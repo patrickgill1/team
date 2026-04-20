@@ -106,10 +106,8 @@ const PublicSurvey: React.FC = () => {
         submittedAt: new Date(),
       });
 
-      // Increment response count (best-effort — unauthenticated users may not have write access)
-      try {
-        await updateDoc(doc(db, 'surveys', surveyId), { responseCount: increment(1) });
-      } catch (_) {}
+      // Increment response count
+      await updateDoc(doc(db, 'surveys', surveyId), { responseCount: increment(1) });
 
       if (!survey.isAnonymous && name.trim()) setRespondentName(name.trim());
       markSubmitted(surveyId);

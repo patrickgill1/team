@@ -1,0 +1,25 @@
+[
+  {
+    "origin": [
+      "https://soccer-team-app-7f6b4.web.app",
+      "https://soccer-team-app-7f6b4.firebaseapp.com",
+      "https://team-patricks-projects-51a70a50.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:5000"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges",
+      "Authorization",
+      "Range",
+      "Accept",
+      "Accept-Encoding",
+      "X-Requested-With"
+    ]
+  }
+]

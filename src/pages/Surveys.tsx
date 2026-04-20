@@ -1,0 +1,601 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { useFirestore } from '../hooks/useFirestore';
+import { useTeam } from '../contexts/TeamContext';
+import { Survey, SurveyQuestion, SurveyQuestionType, SurveyResponse } from '../types';
+import { isCoach, formatDate } from '../utils/helpers';
+import Header from '../components/common/Header';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../utils/firebase';
+
+// ─── Question Builder Helpers ─────────────────────────────────────────────────
+
+const QUESTION_TYPE_LABELS: Record<SurveyQuestionType, string> = {
+  rating: '⭐ Rating Scale',
+  text: '✏️ Free Text',
+  multiple_choice: '☑️ Multiple Choice',
+  yes_no: '👍 Yes / No',
+};
+
+const HOW_AM_I_DOING_TEMPLATE: Omit<Survey, 'id' | 'teamId' | 'createdBy' | 'createdByName' | 'responseCount' | 'createdAt'> = {
+  title: 'How Am I Doing? – Coach Feedback',
+  description: 'Quick anonymous survey so I can improve as a coach. Be honest!',
+  isActive: true,
+  isAnonymous: true,
+  resultsPublic: false,
+  questions: [
+    { id: 'q1', type: 'rating', text: 'How would you rate training sessions overall?', required: true, maxRating: 5, order: 1 },
+    { id: 'q2', type: 'rating', text: 'How well does the coach communicate?', required: true, maxRating: 5, order: 2 },
+    { id: 'q3', type: 'rating', text: 'Does your child enjoy coming to training?', required: true, maxRating: 5, order: 3 },
+    { id: 'q4', type: 'multiple_choice', text: 'What area should we focus on more?', required: false, options: ['Passing & Possession', 'Shooting & Finishing', 'Defending', 'Set Pieces', 'Fitness & Conditioning', 'Fun & Enjoyment'], order: 4 },
+    { id: 'q5', type: 'text', text: 'Any other feedback or suggestions?', required: false, order: 5 },
+  ],
+};
+
+const makeId = () => `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const Surveys: React.FC = () => {
+  const { userData } = useAuth();
+  const { selectedTeamId } = useTeam();
+  const { addDocument, updateDocument, deleteDocument } = useFirestore();
+
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<'list' | 'create' | 'results'>('list');
+  const [editingSurvey, setEditingSurvey] = useState<Survey | null>(null);
+  const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
+  const [responses, setResponses] = useState<SurveyResponse[]>([]);
+  const [responsesLoading, setResponsesLoading] = useState(false);
+  const [copySuccess, setCopySuccess] = useState<string | null>(null);
+
+  // Builder state
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
+
+  const userIsCoach = userData ? isCoach(userData.role) : false;
+
+  // ─── Load surveys ────────────────────────────────────────────────────────
+  const loadSurveys = useCallback(async () => {
+    if (!selectedTeamId) { setLoading(false); return; }
+    try {
+      const q = query(
+        collection(db, 'surveys'),
+        where('teamId', '==', selectedTeamId),
+      );
+      const snap = await getDocs(q);
+      const data = snap.docs.map(d => {
+        const raw = d.data();
+        return { ...raw, id: d.id, createdAt: raw.createdAt?.toDate?.() || new Date(), updatedAt: raw.updatedAt?.toDate?.() } as Survey;
+      });
+      setSurveys(data.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    } catch (err) {
+      console.error('Error loading surveys', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTeamId]);
+
+  useEffect(() => { loadSurveys(); }, [loadSurveys]);
+
+  // ─── Load responses for a survey ────────────────────────────────────────
+  const loadResponses = async (survey: Survey) => {
+    if (!userData || survey.createdBy !== userData.uid) {
+      setResponses([]);
+      setResponsesLoading(false);
+      return;
+    }
+    setResponsesLoading(true);
+    try {
+      const q = query(
+        collection(db, 'survey_responses'),
+        where('surveyId', '==', survey.id),
+      );
+      const snap = await getDocs(q);
+      const data = snap.docs.map(d => {
+        const raw = d.data();
+        return { ...raw, id: d.id, submittedAt: raw.submittedAt?.toDate?.() || new Date() } as SurveyResponse;
+      });
+      setResponses(data.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()));
+    } catch (err) {
+      console.error('Error loading responses', err);
+    } finally {
+      setResponsesLoading(false);
+    }
+  };
+
+  // ─── Create / Update survey ─────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!selectedTeamId || !userData || !title.trim() || questions.length === 0) return;
+
+    const surveyData: any = {
+      title: title.trim(),
+      description: description.trim(),
+      teamId: selectedTeamId,
+      questions,
+      isActive: true,
+      isAnonymous,
+      resultsPublic: false,
+      createdBy: userData.uid,
+      createdByName: userData.name,
+      responseCount: 0,
+      createdAt: new Date(),
+    };
+
+    if (editingSurvey) {
+      delete surveyData.createdAt;
+      delete surveyData.createdBy;
+      delete surveyData.createdByName;
+      delete surveyData.responseCount;
+      surveyData.updatedAt = new Date();
+      await updateDocument('surveys', editingSurvey.id, surveyData);
+    } else {
+      await addDocument('surveys', surveyData);
+    }
+
+    resetBuilder();
+    setView('list');
+    loadSurveys();
+  };
+
+  // ─── Delete survey ──────────────────────────────────────────────────────
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this survey and all its responses?')) return;
+    await deleteDocument('surveys', id);
+    loadSurveys();
+  };
+
+  // ─── Toggle active ──────────────────────────────────────────────────────
+  const handleToggleActive = async (survey: Survey) => {
+    await updateDocument('surveys', survey.id, { isActive: !survey.isActive, updatedAt: new Date() });
+    loadSurveys();
+  };
+
+  // ─── Copy share link ────────────────────────────────────────────────────
+  const copyShareLink = (surveyId: string) => {
+    const url = `${window.location.origin}/survey/${surveyId}`;
+    navigator.clipboard.writeText(url);
+    setCopySuccess(surveyId);
+    setTimeout(() => setCopySuccess(null), 2000);
+  };
+
+  // ─── Builder helpers ────────────────────────────────────────────────────
+  const resetBuilder = () => {
+    setTitle('');
+    setDescription('');
+    setIsAnonymous(true);
+    setQuestions([]);
+    setEditingSurvey(null);
+  };
+
+  const addQuestion = (type: SurveyQuestionType) => {
+    const q: SurveyQuestion = {
+      id: makeId(),
+      type,
+      text: '',
+      required: true,
+      order: questions.length + 1,
+      ...(type === 'rating' ? { maxRating: 5 } : {}),
+      ...(type === 'multiple_choice' ? { options: ['Option 1', 'Option 2'] } : {}),
+    };
+    setQuestions([...questions, q]);
+  };
+
+  const updateQuestion = (id: string, patch: Partial<SurveyQuestion>) => {
+    setQuestions(questions.map(q => (q.id === id ? { ...q, ...patch } : q)));
+  };
+
+  const removeQuestion = (id: string) => {
+    setQuestions(questions.filter(q => q.id !== id).map((q, i) => ({ ...q, order: i + 1 })));
+  };
+
+  const moveQuestion = (id: string, dir: 'up' | 'down') => {
+    const idx = questions.findIndex(q => q.id === id);
+    if ((dir === 'up' && idx === 0) || (dir === 'down' && idx === questions.length - 1)) return;
+    const next = [...questions];
+    const swap = dir === 'up' ? idx - 1 : idx + 1;
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    setQuestions(next.map((q, i) => ({ ...q, order: i + 1 })));
+  };
+
+  const startEdit = (survey: Survey) => {
+    setEditingSurvey(survey);
+    setTitle(survey.title);
+    setDescription(survey.description || '');
+    setIsAnonymous(survey.isAnonymous);
+    setQuestions(survey.questions);
+    setView('create');
+  };
+
+  const useTemplate = () => {
+    setTitle(HOW_AM_I_DOING_TEMPLATE.title);
+    setDescription(HOW_AM_I_DOING_TEMPLATE.description || '');
+    setIsAnonymous(HOW_AM_I_DOING_TEMPLATE.isAnonymous);
+    setQuestions(HOW_AM_I_DOING_TEMPLATE.questions);
+  };
+
+  // ─── Results helpers ────────────────────────────────────────────────────
+  const getAverageRating = (questionId: string): number => {
+    const vals = responses.map(r => r.answers.find(a => a.questionId === questionId)?.value).filter((v): v is number => typeof v === 'number');
+    if (vals.length === 0) return 0;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  };
+
+  const getChoiceCounts = (questionId: string): Record<string, number> => {
+    const counts: Record<string, number> = {};
+    responses.forEach(r => {
+      const ans = r.answers.find(a => a.questionId === questionId);
+      if (ans && typeof ans.value === 'string') {
+        counts[ans.value] = (counts[ans.value] || 0) + 1;
+      }
+    });
+    return counts;
+  };
+
+  // ─── Render ─────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
+      </div>
+    );
+  }
+
+  if (!userIsCoach) {
+    return (
+      <div className="p-6">
+        <Header title="Surveys" />
+        <div className="card-modern p-8 text-center mt-4">
+          <p className="text-fire-500">Only coaches can manage surveys.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  RESULTS VIEW
+  // ════════════════════════════════════════════════════════════════════════
+  if (view === 'results' && selectedSurvey) {
+    return (
+      <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+        <Header title="Survey Results" subtitle={selectedSurvey.title} />
+
+        <button onClick={() => { setView('list'); setSelectedSurvey(null); }} className="text-cyan-600 hover:text-cyan-700 text-sm font-medium mb-4 flex items-center gap-1">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          Back to surveys
+        </button>
+
+        {responsesLoading ? (
+          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" /></div>
+        ) : responses.length === 0 ? (
+          <div className="card-modern p-8 text-center">
+            <p className="text-fire-400 text-lg">No responses yet</p>
+            <button onClick={() => copyShareLink(selectedSurvey.id)} className="btn-primary mt-4 px-4 py-2 rounded-xl text-sm">
+              Copy Share Link
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="card-modern p-4 flex items-center justify-between">
+              <span className="text-fire-600 font-medium">{responses.length} response{responses.length !== 1 ? 's' : ''}</span>
+              {selectedSurvey.isAnonymous && <span className="text-xs bg-fire-100 text-fire-500 px-2 py-0.5 rounded-full">Anonymous</span>}
+            </div>
+
+            {selectedSurvey.questions.map(q => (
+              <div key={q.id} className="card-modern p-5">
+                <h3 className="font-semibold text-fire-900 mb-3">{q.order}. {q.text}</h3>
+
+                {q.type === 'rating' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-bold text-cyan-600">{getAverageRating(q.id).toFixed(1)}</span>
+                      <span className="text-fire-400 text-sm">/ {q.maxRating || 5}</span>
+                    </div>
+                    <div className="h-2 bg-fire-100 rounded-full overflow-hidden">
+                      <div className="h-2 rounded-full bg-cyan-500 transition-all" style={{ width: `${(getAverageRating(q.id) / (q.maxRating || 5)) * 100}%` }} />
+                    </div>
+                    {/* Distribution */}
+                    <div className="flex gap-1 mt-2">
+                      {Array.from({ length: q.maxRating || 5 }, (_, i) => {
+                        const count = responses.filter(r => r.answers.find(a => a.questionId === q.id)?.value === i + 1).length;
+                        return (
+                          <div key={i} className="flex-1 text-center">
+                            <div className="text-xs text-fire-400 mb-1">{i + 1}★</div>
+                            <div className="h-8 bg-fire-100 rounded relative overflow-hidden">
+                              <div className="absolute bottom-0 left-0 right-0 bg-cyan-400 rounded transition-all" style={{ height: responses.length ? `${(count / responses.length) * 100}%` : '0%' }} />
+                            </div>
+                            <div className="text-xs text-fire-400 mt-1">{count}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {q.type === 'yes_no' && (() => {
+                  const counts = getChoiceCounts(q.id);
+                  const yes = counts['yes'] || 0;
+                  const no = counts['no'] || 0;
+                  const total = yes + no;
+                  return (
+                    <div className="flex gap-4">
+                      <div className="flex-1 bg-emerald-50 rounded-xl p-3 text-center border border-emerald-200">
+                        <div className="text-2xl font-bold text-emerald-600">{yes}</div>
+                        <div className="text-xs text-emerald-500">Yes {total > 0 && `(${Math.round((yes / total) * 100)}%)`}</div>
+                      </div>
+                      <div className="flex-1 bg-red-50 rounded-xl p-3 text-center border border-red-200">
+                        <div className="text-2xl font-bold text-red-500">{no}</div>
+                        <div className="text-xs text-red-400">No {total > 0 && `(${Math.round((no / total) * 100)}%)`}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {q.type === 'multiple_choice' && (() => {
+                  const counts = getChoiceCounts(q.id);
+                  const max = Math.max(...Object.values(counts), 1);
+                  return (
+                    <div className="space-y-2">
+                      {(q.options || []).map(opt => (
+                        <div key={opt} className="flex items-center gap-3">
+                          <span className="text-sm text-fire-700 w-40 truncate">{opt}</span>
+                          <div className="flex-1 h-6 bg-fire-100 rounded-full overflow-hidden">
+                            <div className="h-6 bg-cyan-400 rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
+                              {counts[opt] ? <span className="text-xs font-medium text-white">{counts[opt]}</span> : null}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {q.type === 'text' && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {responses.map(r => {
+                      const ans = r.answers.find(a => a.questionId === q.id);
+                      if (!ans || !ans.value) return null;
+                      return (
+                        <div key={r.id} className="bg-fire-50 rounded-lg p-3 text-sm text-fire-700 border border-fire-100">
+                          "{String(ans.value)}"
+                          {!selectedSurvey.isAnonymous && r.respondentName && (
+                            <span className="block text-xs text-fire-400 mt-1">— {r.respondentName}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  CREATE / EDIT VIEW
+  // ════════════════════════════════════════════════════════════════════════
+  if (view === 'create') {
+    return (
+      <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+        <Header title={editingSurvey ? 'Edit Survey' : 'Create Survey'} />
+
+        <button onClick={() => { resetBuilder(); setView('list'); }} className="text-cyan-600 hover:text-cyan-700 text-sm font-medium mb-4 flex items-center gap-1">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          Back
+        </button>
+
+        {/* Template Button */}
+        {!editingSurvey && questions.length === 0 && (
+          <button onClick={useTemplate} className="w-full card-modern p-4 mb-4 border-2 border-dashed border-cyan-300 hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors text-left">
+            <div className="font-semibold text-fire-900">📋 Use "How Am I Doing?" Template</div>
+            <div className="text-sm text-fire-500 mt-1">Pre-built anonymous coach feedback survey — 5 questions ready to go</div>
+          </button>
+        )}
+
+        {/* Title & Description */}
+        <div className="card-modern p-5 space-y-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-fire-700 mb-1">Survey Title *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. End of Season Feedback"
+              className="w-full border border-fire-200 rounded-xl px-4 py-2.5 text-fire-900 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-fire-700 mb-1">Description</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={2}
+              placeholder="Brief description shown to respondents…"
+              className="w-full border border-fire-200 rounded-xl px-4 py-2.5 text-fire-900 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none resize-none"
+            />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400" />
+            <span className="text-sm text-fire-700">Anonymous responses</span>
+          </label>
+          <p className="text-xs text-fire-500">Survey results are private and visible only to the survey creator.</p>
+        </div>
+
+        {/* Questions */}
+        <div className="space-y-3 mb-4">
+          {questions.map((q, idx) => (
+            <div key={q.id} className="card-modern p-4 border-l-4 border-l-cyan-400">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <span className="text-xs font-semibold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => moveQuestion(q.id, 'up')} disabled={idx === 0} className="p-1 text-fire-400 hover:text-fire-700 disabled:opacity-30">↑</button>
+                  <button onClick={() => moveQuestion(q.id, 'down')} disabled={idx === questions.length - 1} className="p-1 text-fire-400 hover:text-fire-700 disabled:opacity-30">↓</button>
+                  <button onClick={() => removeQuestion(q.id)} className="p-1 text-red-400 hover:text-red-600 ml-1">✕</button>
+                </div>
+              </div>
+
+              <input
+                type="text"
+                value={q.text}
+                onChange={e => updateQuestion(q.id, { text: e.target.value })}
+                placeholder="Question text…"
+                className="w-full border border-fire-200 rounded-lg px-3 py-2 text-sm text-fire-900 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none mb-2"
+              />
+
+              {q.type === 'rating' && (
+                <div className="flex items-center gap-2 text-sm text-fire-500">
+                  <span>Max rating:</span>
+                  <select value={q.maxRating || 5} onChange={e => updateQuestion(q.id, { maxRating: Number(e.target.value) })} className="border border-fire-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-cyan-400 outline-none">
+                    {[3, 4, 5, 7, 10].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {q.type === 'multiple_choice' && (
+                <div className="space-y-2 mt-1">
+                  {(q.options || []).map((opt, oi) => (
+                    <div key={oi} className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full border-2 border-fire-300 flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={opt}
+                        onChange={e => {
+                          const next = [...(q.options || [])];
+                          next[oi] = e.target.value;
+                          updateQuestion(q.id, { options: next });
+                        }}
+                        className="flex-1 border border-fire-200 rounded-lg px-3 py-1.5 text-sm text-fire-900 focus:ring-2 focus:ring-cyan-400 outline-none"
+                      />
+                      {(q.options || []).length > 2 && (
+                        <button onClick={() => updateQuestion(q.id, { options: (q.options || []).filter((_, i) => i !== oi) })} className="text-red-400 hover:text-red-600 text-sm">✕</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options || []).length + 1}`] })} className="text-cyan-600 hover:text-cyan-700 text-sm font-medium">+ Add option</button>
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 mt-2 text-sm text-fire-500 cursor-pointer">
+                <input type="checkbox" checked={q.required} onChange={e => updateQuestion(q.id, { required: e.target.checked })} className="w-3.5 h-3.5 rounded text-cyan-500 focus:ring-cyan-400" />
+                Required
+              </label>
+            </div>
+          ))}
+        </div>
+
+        {/* Add Question */}
+        <div className="card-modern p-4 mb-6">
+          <p className="text-sm font-medium text-fire-700 mb-3">Add a question</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.keys(QUESTION_TYPE_LABELS) as SurveyQuestionType[]).map(type => (
+              <button
+                key={type}
+                onClick={() => addQuestion(type)}
+                className="px-3 py-2.5 rounded-xl border border-fire-200 hover:border-cyan-400 hover:bg-cyan-50/50 text-sm text-fire-700 font-medium transition-colors text-left"
+              >
+                {QUESTION_TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          disabled={!title.trim() || questions.length === 0 || questions.some(q => !q.text.trim())}
+          className="w-full btn-primary py-3 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {editingSurvey ? 'Update Survey' : 'Create Survey'}
+        </button>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  LIST VIEW
+  // ════════════════════════════════════════════════════════════════════════
+  return (
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+      <Header title="Surveys" subtitle="Create & share surveys with your team" />
+
+      <button
+        onClick={() => { resetBuilder(); setView('create'); }}
+        className="btn-primary w-full py-3 rounded-xl font-semibold mb-6 flex items-center justify-center gap-2"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+        New Survey
+      </button>
+
+      {surveys.length === 0 ? (
+        <div className="card-modern p-8 text-center">
+          <div className="text-4xl mb-3">📋</div>
+          <p className="text-fire-500">No surveys yet — create one to get started</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {surveys.map(s => (
+            <div key={s.id} className="card-modern p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-fire-900 truncate">{s.title}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-fire-100 text-fire-500'}`}>
+                      {s.isActive ? 'Active' : 'Closed'}
+                    </span>
+                    {s.isAnonymous && <span className="text-xs bg-fire-100 text-fire-400 px-2 py-0.5 rounded-full">Anonymous</span>}
+                    <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">Results Private</span>
+                  </div>
+                  {s.description && <p className="text-sm text-fire-500 mt-1 line-clamp-2">{s.description}</p>}
+                  <div className="flex items-center gap-3 mt-2 text-xs text-fire-400">
+                    <span>{s.questions.length} question{s.questions.length !== 1 ? 's' : ''}</span>
+                    <span>•</span>
+                    <span>{s.responseCount} response{s.responseCount !== 1 ? 's' : ''}</span>
+                    <span>•</span>
+                    <span>{formatDate(s.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                <button onClick={() => copyShareLink(s.id)} className="px-3 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 text-xs font-medium hover:bg-cyan-100 transition-colors flex items-center gap-1">
+                  {copySuccess === s.id ? (
+                    <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Copied!</>
+                  ) : (
+                    <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>Share Link</>
+                  )}
+                </button>
+                {s.createdBy === userData?.uid && (
+                  <button onClick={() => { setSelectedSurvey(s); loadResponses(s); setView('results'); }} className="px-3 py-1.5 rounded-lg bg-fire-100 text-fire-700 text-xs font-medium hover:bg-fire-200 transition-colors">
+                    Results
+                  </button>
+                )}
+                {s.createdBy === userData?.uid && (
+                  <>
+                    <button onClick={() => startEdit(s)} className="px-3 py-1.5 rounded-lg bg-fire-100 text-fire-700 text-xs font-medium hover:bg-fire-200 transition-colors">
+                      Edit
+                    </button>
+                    <button onClick={() => handleToggleActive(s)} className="px-3 py-1.5 rounded-lg bg-fire-100 text-fire-700 text-xs font-medium hover:bg-fire-200 transition-colors">
+                      {s.isActive ? 'Close' : 'Reopen'}
+                    </button>
+                    <button onClick={() => handleDelete(s.id)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors">
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Surveys;

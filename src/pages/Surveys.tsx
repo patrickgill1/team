@@ -49,6 +49,8 @@ const Surveys: React.FC = () => {
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
   const [responsesLoading, setResponsesLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [resultsTab, setResultsTab] = useState<'summary' | 'individual'>('summary');
+  const [individualIndex, setIndividualIndex] = useState(0);
 
   // Builder state
   const [title, setTitle] = useState('');
@@ -260,11 +262,12 @@ const Surveys: React.FC = () => {
   //  RESULTS VIEW
   // ════════════════════════════════════════════════════════════════════════
   if (view === 'results' && selectedSurvey) {
+    const currentResp = responses[individualIndex];
     return (
       <div className="p-4 sm:p-6 max-w-3xl mx-auto">
         <Header title="Survey Results" subtitle={selectedSurvey.title} />
 
-        <button onClick={() => { setView('list'); setSelectedSurvey(null); }} className="text-cyan-600 hover:text-cyan-700 text-sm font-medium mb-4 flex items-center gap-1">
+        <button onClick={() => { setView('list'); setSelectedSurvey(null); setResultsTab('summary'); setIndividualIndex(0); }} className="text-cyan-600 hover:text-cyan-700 text-sm font-medium mb-4 flex items-center gap-1">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back to surveys
         </button>
@@ -280,98 +283,176 @@ const Surveys: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Header bar */}
             <div className="card-modern p-4 flex items-center justify-between">
               <span className="text-fire-600 font-medium">{responses.length} response{responses.length !== 1 ? 's' : ''}</span>
               {selectedSurvey.isAnonymous && <span className="text-xs bg-fire-100 text-fire-500 px-2 py-0.5 rounded-full">Anonymous</span>}
             </div>
 
-            {selectedSurvey.questions.map(q => (
-              <div key={q.id} className="card-modern p-5">
-                <h3 className="font-semibold text-fire-900 mb-3">{q.order}. {q.text}</h3>
+            {/* Tab toggle */}
+            <div className="flex rounded-xl overflow-hidden border border-fire-200 w-fit">
+              <button
+                onClick={() => setResultsTab('summary')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-cyan-500 text-white' : 'bg-white text-fire-600 hover:bg-fire-50'}`}
+              >
+                Summary
+              </button>
+              <button
+                onClick={() => { setResultsTab('individual'); setIndividualIndex(0); }}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-cyan-500 text-white' : 'bg-white text-fire-600 hover:bg-fire-50'}`}
+              >
+                Individual
+              </button>
+            </div>
 
-                {q.type === 'rating' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl font-bold text-cyan-600">{getAverageRating(q.id).toFixed(1)}</span>
-                      <span className="text-fire-400 text-sm">/ {q.maxRating || 5}</span>
-                    </div>
-                    <div className="h-2 bg-fire-100 rounded-full overflow-hidden">
-                      <div className="h-2 rounded-full bg-cyan-500 transition-all" style={{ width: `${(getAverageRating(q.id) / (q.maxRating || 5)) * 100}%` }} />
-                    </div>
-                    {/* Distribution */}
-                    <div className="flex gap-1 mt-2">
-                      {Array.from({ length: q.maxRating || 5 }, (_, i) => {
-                        const count = responses.filter(r => r.answers.find(a => a.questionId === q.id)?.value === i + 1).length;
-                        return (
-                          <div key={i} className="flex-1 text-center">
-                            <div className="text-xs text-fire-400 mb-1">{i + 1}★</div>
-                            <div className="h-8 bg-fire-100 rounded relative overflow-hidden">
-                              <div className="absolute bottom-0 left-0 right-0 bg-cyan-400 rounded transition-all" style={{ height: responses.length ? `${(count / responses.length) * 100}%` : '0%' }} />
-                            </div>
-                            <div className="text-xs text-fire-400 mt-1">{count}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+            {/* ── SUMMARY TAB ── */}
+            {resultsTab === 'summary' && (
+              <div className="space-y-4">
+                {selectedSurvey.questions.map(q => (
+                  <div key={q.id} className="card-modern p-5">
+                    <h3 className="font-semibold text-fire-900 mb-3">{q.order}. {q.text}</h3>
 
-                {q.type === 'yes_no' && (() => {
-                  const counts = getChoiceCounts(q.id);
-                  const yes = counts['yes'] || 0;
-                  const no = counts['no'] || 0;
-                  const total = yes + no;
-                  return (
-                    <div className="flex gap-4">
-                      <div className="flex-1 bg-emerald-50 rounded-xl p-3 text-center border border-emerald-200">
-                        <div className="text-2xl font-bold text-emerald-600">{yes}</div>
-                        <div className="text-xs text-emerald-500">Yes {total > 0 && `(${Math.round((yes / total) * 100)}%)`}</div>
-                      </div>
-                      <div className="flex-1 bg-red-50 rounded-xl p-3 text-center border border-red-200">
-                        <div className="text-2xl font-bold text-red-500">{no}</div>
-                        <div className="text-xs text-red-400">No {total > 0 && `(${Math.round((no / total) * 100)}%)`}</div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {q.type === 'multiple_choice' && (() => {
-                  const counts = getChoiceCounts(q.id);
-                  const max = Math.max(...Object.values(counts), 1);
-                  return (
-                    <div className="space-y-2">
-                      {(q.options || []).map(opt => (
-                        <div key={opt} className="flex items-center gap-3">
-                          <span className="text-sm text-fire-700 w-40 truncate">{opt}</span>
-                          <div className="flex-1 h-6 bg-fire-100 rounded-full overflow-hidden">
-                            <div className="h-6 bg-cyan-400 rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
-                              {counts[opt] ? <span className="text-xs font-medium text-white">{counts[opt]}</span> : null}
-                            </div>
-                          </div>
+                    {q.type === 'rating' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl font-bold text-cyan-600">{getAverageRating(q.id).toFixed(1)}</span>
+                          <span className="text-fire-400 text-sm">/ {q.maxRating || 5} avg</span>
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                        <div className="h-2 bg-fire-100 rounded-full overflow-hidden">
+                          <div className="h-2 rounded-full bg-cyan-500 transition-all" style={{ width: `${(getAverageRating(q.id) / (q.maxRating || 5)) * 100}%` }} />
+                        </div>
+                        <div className="flex gap-1 mt-2">
+                          {Array.from({ length: q.maxRating || 5 }, (_, i) => {
+                            const count = responses.filter(r => r.answers.find(a => a.questionId === q.id)?.value === i + 1).length;
+                            return (
+                              <div key={i} className="flex-1 text-center">
+                                <div className="text-xs text-fire-400 mb-1">{i + 1}★</div>
+                                <div className="h-8 bg-fire-100 rounded relative overflow-hidden">
+                                  <div className="absolute bottom-0 left-0 right-0 bg-cyan-400 rounded transition-all" style={{ height: responses.length ? `${(count / responses.length) * 100}%` : '0%' }} />
+                                </div>
+                                <div className="text-xs text-fire-400 mt-1">{count}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
-                {q.type === 'text' && (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {responses.map(r => {
-                      const ans = r.answers.find(a => a.questionId === q.id);
-                      if (!ans || !ans.value) return null;
+                    {q.type === 'yes_no' && (() => {
+                      const counts = getChoiceCounts(q.id);
+                      const yes = counts['yes'] || 0;
+                      const no = counts['no'] || 0;
+                      const total = yes + no;
                       return (
-                        <div key={r.id} className="bg-fire-50 rounded-lg p-3 text-sm text-fire-700 border border-fire-100">
-                          "{String(ans.value)}"
-                          {!selectedSurvey.isAnonymous && r.respondentName && (
-                            <span className="block text-xs text-fire-400 mt-1">— {r.respondentName}</span>
-                          )}
+                        <div className="flex gap-4">
+                          <div className="flex-1 bg-emerald-50 rounded-xl p-3 text-center border border-emerald-200">
+                            <div className="text-2xl font-bold text-emerald-600">{yes}</div>
+                            <div className="text-xs text-emerald-500">Yes {total > 0 && `(${Math.round((yes / total) * 100)}%)`}</div>
+                          </div>
+                          <div className="flex-1 bg-red-50 rounded-xl p-3 text-center border border-red-200">
+                            <div className="text-2xl font-bold text-red-500">{no}</div>
+                            <div className="text-xs text-red-400">No {total > 0 && `(${Math.round((no / total) * 100)}%)`}</div>
+                          </div>
                         </div>
                       );
-                    })}
+                    })()}
+
+                    {q.type === 'multiple_choice' && (() => {
+                      const counts = getChoiceCounts(q.id);
+                      const max = Math.max(...Object.values(counts), 1);
+                      return (
+                        <div className="space-y-2">
+                          {(q.options || []).map(opt => (
+                            <div key={opt} className="flex items-center gap-3">
+                              <span className="text-sm text-fire-700 w-40 truncate">{opt}</span>
+                              <div className="flex-1 h-6 bg-fire-100 rounded-full overflow-hidden">
+                                <div className="h-6 bg-cyan-400 rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
+                                  {counts[opt] ? <span className="text-xs font-medium text-white">{counts[opt]}</span> : null}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {q.type === 'text' && (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {responses.map(r => {
+                          const ans = r.answers.find(a => a.questionId === q.id);
+                          if (!ans || !ans.value) return null;
+                          return (
+                            <div key={r.id} className="bg-fire-50 rounded-lg p-3 text-sm text-fire-700 border border-fire-100">
+                              "{String(ans.value)}"
+                              {!selectedSurvey.isAnonymous && r.respondentName && (
+                                <span className="block text-xs text-fire-400 mt-1">— {r.respondentName}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            )}
+
+            {/* ── INDIVIDUAL TAB ── */}
+            {resultsTab === 'individual' && currentResp && (
+              <div className="space-y-4">
+                {/* Nav */}
+                <div className="flex items-center justify-between card-modern p-3">
+                  <button
+                    onClick={() => setIndividualIndex(i => Math.max(0, i - 1))}
+                    disabled={individualIndex === 0}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-fire-100 text-fire-600 disabled:opacity-30 hover:bg-fire-200 transition-colors"
+                  >
+                    ← Prev
+                  </button>
+                  <div className="text-center">
+                    <span className="text-fire-600 font-medium text-sm">
+                      {selectedSurvey.isAnonymous ? `Response ${individualIndex + 1}` : (currentResp.respondentName || 'Anonymous')}
+                    </span>
+                    <div className="text-xs text-fire-400">{individualIndex + 1} of {responses.length} · {currentResp.submittedAt.toLocaleDateString()}</div>
+                  </div>
+                  <button
+                    onClick={() => setIndividualIndex(i => Math.min(responses.length - 1, i + 1))}
+                    disabled={individualIndex === responses.length - 1}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-fire-100 text-fire-600 disabled:opacity-30 hover:bg-fire-200 transition-colors"
+                  >
+                    Next →
+                  </button>
+                </div>
+
+                {/* Answers */}
+                {selectedSurvey.questions.map(q => {
+                  const ans = currentResp.answers.find(a => a.questionId === q.id);
+                  return (
+                    <div key={q.id} className="card-modern p-5">
+                      <div className="text-xs font-medium text-fire-400 uppercase tracking-wide mb-1">{QUESTION_TYPE_LABELS[q.type]}</div>
+                      <h3 className="font-semibold text-fire-900 mb-3">{q.order}. {q.text}</h3>
+                      {!ans || ans.value === undefined || ans.value === '' ? (
+                        <span className="text-fire-300 italic text-sm">No answer</span>
+                      ) : q.type === 'rating' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-3xl font-bold text-cyan-600">{ans.value}</span>
+                          <span className="text-fire-400">/ {q.maxRating || 5}</span>
+                          <span className="ml-1 text-amber-400 text-xl">{'★'.repeat(Number(ans.value))}{'☆'.repeat((q.maxRating || 5) - Number(ans.value))}</span>
+                        </div>
+                      ) : q.type === 'yes_no' ? (
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${ans.value === 'yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                          {ans.value === 'yes' ? '👍 Yes' : '👎 No'}
+                        </span>
+                      ) : q.type === 'multiple_choice' ? (
+                        <span className="inline-block bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
+                      ) : (
+                        <p className="text-fire-700 text-sm bg-fire-50 rounded-lg p-3 border border-fire-100">"{String(ans.value)}"</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

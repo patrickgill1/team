@@ -7,6 +7,7 @@ import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
+import FullGames from './FullGames';
 
 const ACTIVITY_TAGS = ['Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
 const ITEMS_PER_PAGE = 20;
@@ -30,6 +31,8 @@ const PlayerMediaPage: React.FC = () => {
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [editingTags, setEditingTags] = useState<string[] | null>(null); // null = not editing
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames'>('highlights');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Upload form
   const [uploadPlayerId, setUploadPlayerId] = useState('');
@@ -325,11 +328,60 @@ const PlayerMediaPage: React.FC = () => {
   const allMediaTags = Array.from(new Set(media.flatMap(m => m.tags || [])));
 
   // Filter media by selected tags
-  const allFilteredMedia = filterTags.length > 0
+  const tagFilteredMedia = filterTags.length > 0
     ? media.filter(m => filterTags.some(t => m.tags?.includes(t)))
     : media;
+  // Then filter by search query (caption, player name, tags, fileName)
+  const allFilteredMedia = searchQuery.trim()
+    ? tagFilteredMedia.filter(m => {
+        const q = searchQuery.toLowerCase();
+        return (
+          (m.caption || '').toLowerCase().includes(q) ||
+          (m.playerName || '').toLowerCase().includes(q) ||
+          (m.fileName || '').toLowerCase().includes(q) ||
+          (m.tags || []).some(t => t.toLowerCase().includes(q))
+        );
+      })
+    : tagFilteredMedia;
   const filteredMedia = allFilteredMedia.slice(0, visibleCount);
   const hasMore = allFilteredMedia.length > visibleCount;
+
+  // ── Stats / Featured sections (computed on full unfiltered media) ──
+  const totalClips = media.filter(m => m.type === 'video').length;
+  const seasonStart = new Date();
+  seasonStart.setMonth(seasonStart.getMonth() - 6);
+  const thisSeasonCount = media.filter(m => {
+    const d: any = m.createdAt;
+    const date = d?.toDate ? d.toDate() : new Date(d);
+    return date >= seasonStart;
+  }).length;
+  const mostLikedItem = [...media].sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))[0];
+  // Recent highlights: latest videos first, then photos
+  const recentHighlights = [...media]
+    .sort((a, b) => {
+      const da: any = a.createdAt; const db: any = b.createdAt;
+      const ta = (da?.toDate ? da.toDate() : new Date(da)).getTime();
+      const tb = (db?.toDate ? db.toDate() : new Date(db)).getTime();
+      return tb - ta;
+    })
+    .slice(0, 3);
+  // Top plays this season: most-liked from last 6 months, top 3
+  const topPlaysThisSeason = media
+    .filter(m => {
+      const d: any = m.createdAt;
+      const date = d?.toDate ? d.toDate() : new Date(d);
+      return date >= seasonStart && (m.likeCount || 0) > 0;
+    })
+    .sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
+    .slice(0, 3);
+  // Players with clip counts (for browse-by-player row)
+  const playersWithCounts = players
+    .map(p => ({
+      player: p,
+      count: media.filter(m => m.playerId === p.id || (m.taggedPlayerIds || []).includes(p.id)).length,
+    }))
+    .filter(p => p.count > 0)
+    .sort((a, b) => b.count - a.count);
 
   const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200MB (will be compressed before upload)
   const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -412,136 +464,248 @@ const PlayerMediaPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gallery</h1>
-              <p className="text-gray-600 mt-1">Team photos and player media</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <select
-                value={selectedPlayerId}
-                onChange={e => setSelectedPlayerId(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Players</option>
-                {players.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-              <div className="flex bg-gray-100 rounded-lg p-0.5">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                    viewMode === 'grid' ? 'bg-white shadow text-gray-900' : 'text-gray-600'
-                  }`}
-                >
-                  Grid
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                    viewMode === 'list' ? 'bg-white shadow text-gray-900' : 'text-gray-600'
-                  }`}
-                >
-                  List
-                </button>
-              </div>
-              <button
-                onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>Upload</span>
-              </button>
-            </div>
+        {/* ── HERO ─────────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden rounded-2xl mb-6 bg-gradient-to-br from-fire-900 via-fire-950 to-black border border-cyan-500/10">
+          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.25),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(239,68,68,0.2),transparent_50%)]" />
+          <div className="relative px-6 py-10 sm:py-14 sm:px-10">
+            <h1 className="text-5xl sm:text-7xl font-black tracking-[0.15em] uppercase bg-gradient-to-r from-cyan-200 via-white to-cyan-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">
+              Media
+            </h1>
+            <p className="mt-3 text-cyan-200/80 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">
+              Highlights · Moments · Memories
+            </p>
           </div>
         </div>
 
-        {/* Tag filter bar */}
-        {allMediaTags.length > 0 && (
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-gray-500 mr-1">Filter:</span>
-            {allMediaTags.map(tag => (
-              <button
-                key={tag}
-                onClick={() => toggleFilterTag(tag)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  filterTags.includes(tag)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-            {filterTags.length > 0 && (
-              <button
-                onClick={() => setFilterTags([])}
-                className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600"
-              >
-                Clear
-              </button>
-            )}
+        {/* ── TABS + SEARCH + UPLOAD ──────────────────────────────── */}
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-6 border-b border-white/10 pb-2">
+          <div className="flex space-x-1">
+            <button
+              onClick={() => setActiveTab('highlights')}
+              className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
+                activeTab === 'highlights' ? 'text-cyan-300' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Highlights
+              {activeTab === 'highlights' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-cyan-400 rounded-full" />}
+            </button>
+            <button
+              onClick={() => setActiveTab('fullgames')}
+              className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
+                activeTab === 'fullgames' ? 'text-cyan-300' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Full Games
+              {activeTab === 'fullgames' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-cyan-400 rounded-full" />}
+            </button>
           </div>
-        )}
+          {activeTab === 'highlights' && (
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search highlights..."
+                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50"
+                />
+                <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+                </svg>
+              </div>
+              <button
+                onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
+                className="bg-cyan-500 hover:bg-cyan-400 text-fire-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">Upload</span>
+              </button>
+            </div>
+          )}
+        </div>
 
-        {/* Media by Player - grouped view */}
-        {selectedPlayerId === 'all' ? (
-          mediaByPlayer.length > 0 ? (
-            <div className="space-y-8">
-              {mediaByPlayer.map(({ player, items }) => (
-                <div key={player.id}>
-                  <div className="flex items-center space-x-3 mb-4">
-                    {player.profilePhotoUrl ? (
-                      <img src={player.profilePhotoUrl} alt={player.name} className="w-8 h-8 rounded-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">
-                        {player.jerseyNumber || player.name.charAt(0)}
-                      </div>
-                    )}
-                    <h2 className="text-lg font-bold text-gray-900">{player.name}</h2>
-                    <span className="text-sm text-gray-500">{items.length} item{items.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  <MediaGrid items={items} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} viewMode={viewMode} />
-                </div>
-              ))}
-              {hasMore && (
-                <div className="text-center py-6">
-                  <button
-                    onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
-                    className="px-6 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Load More ({allFilteredMedia.length - visibleCount} remaining)
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-              <div className="text-5xl mb-4">📸</div>
-              <h3 className="text-lg font-medium text-gray-900">No Media Yet</h3>
-              <p className="text-gray-600 mt-2">Upload photos and videos for your players.</p>
-            </div>
-          )
+        {activeTab === 'fullgames' ? (
+          <div className="bg-white rounded-2xl overflow-hidden">
+            <FullGames />
+          </div>
         ) : (
           <>
-            <MediaGrid items={filteredMedia} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} viewMode={viewMode} />
-            {hasMore && (
-              <div className="text-center py-6">
-                <button
-                  onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
-                  className="px-6 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Load More ({allFilteredMedia.length - visibleCount} remaining)
-                </button>
-              </div>
+            {/* ── STATS ROW ─────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+              <StatCard icon="🎬" label="Total Clips" value={String(totalClips)} accent="cyan" />
+              <StatCard icon="📅" label="This Season" value={String(thisSeasonCount)} accent="blue" />
+              <StatCard icon="👥" label="Players" value={String(players.length)} accent="purple" />
+              <StatCard icon="🔥" label="Most Liked" value={mostLikedItem ? (mostLikedItem.caption || mostLikedItem.playerName || 'Top Clip').slice(0, 18) : '—'} accent="orange" />
+            </div>
+
+            {/* ── RECENT HIGHLIGHTS ─────────────────────────────────── */}
+            {recentHighlights.length > 0 && (
+              <section className="mb-10">
+                <SectionHeader title="Recent Highlights" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recentHighlights.map(item => {
+                    const player = players.find(p => p.id === item.playerId);
+                    const dateObj: any = item.createdAt;
+                    const date = dateObj?.toDate ? dateObj.toDate() : new Date(dateObj);
+                    return (
+                      <FeaturedCard
+                        key={item.id}
+                        item={item}
+                        player={player}
+                        timeAgo={timeAgo(date)}
+                        onClick={() => setSelectedMedia(item)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
             )}
+
+            {/* ── BROWSE BY PLAYER ──────────────────────────────────── */}
+            {playersWithCounts.length > 0 && (
+              <section className="mb-10">
+                <SectionHeader
+                  title="Browse by Player"
+                  action={selectedPlayerId !== 'all' ? { label: 'View all', onClick: () => setSelectedPlayerId('all') } : undefined}
+                />
+                <div className="flex gap-4 overflow-x-auto pb-3 -mx-2 px-2 scrollbar-thin">
+                  <button
+                    onClick={() => setSelectedPlayerId('all')}
+                    className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === 'all' ? 'scale-105' : ''}`}
+                  >
+                    <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-2xl font-black ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === 'all' ? 'ring-cyan-400' : 'ring-transparent'}`}>
+                      ALL
+                    </div>
+                    <span className="text-xs text-white font-medium mt-2">All</span>
+                    <span className="text-[10px] text-gray-500">{media.length} clips</span>
+                  </button>
+                  {playersWithCounts.map(({ player, count }) => (
+                    <button
+                      key={player.id}
+                      onClick={() => setSelectedPlayerId(player.id)}
+                      className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === player.id ? 'scale-105' : ''}`}
+                    >
+                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-fire-700 to-fire-900 ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-cyan-400' : 'ring-transparent'}`}>
+                        {player.profilePhotoUrl ? (
+                          <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white text-xl font-black">
+                            {player.jerseyNumber || player.name.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs text-white font-medium mt-2 max-w-[80px] truncate">{player.name.split(' ')[0]}</span>
+                      <span className="text-[10px] text-gray-500">{count} clip{count !== 1 ? 's' : ''}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── TOP PLAYS THIS SEASON ─────────────────────────────── */}
+            {topPlaysThisSeason.length > 0 && (
+              <section className="mb-10">
+                <SectionHeader title="Top Plays This Season" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {topPlaysThisSeason.map((item, idx) => (
+                    <RankedCard
+                      key={item.id}
+                      rank={idx + 1}
+                      item={item}
+                      onClick={() => setSelectedMedia(item)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── ALL CLIPS / FILTERED VIEW ─────────────────────────── */}
+            <section className="mb-10">
+              <SectionHeader
+                title={selectedPlayerId === 'all' ? 'All Clips' : `${players.find(p => p.id === selectedPlayerId)?.name || 'Player'}'s Clips`}
+                action={
+                  allMediaTags.length > 0
+                    ? { label: filterTags.length > 0 ? `Filters (${filterTags.length}) ✕` : 'Filter by tag', onClick: () => filterTags.length > 0 ? setFilterTags([]) : null }
+                    : undefined
+                }
+              />
+
+              {/* Tag chips */}
+              {allMediaTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {allMediaTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleFilterTag(tag)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        filterTags.includes(tag)
+                          ? 'bg-cyan-500 text-fire-950'
+                          : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedPlayerId === 'all' ? (
+                mediaByPlayer.length > 0 ? (
+                  <div className="space-y-8">
+                    {mediaByPlayer.map(({ player, items }) => (
+                      <div key={player.id}>
+                        <div className="flex items-center space-x-3 mb-3">
+                          {player.profilePhotoUrl ? (
+                            <img src={player.profilePhotoUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-500/30" loading="lazy" />
+                          ) : (
+                            <div className="w-9 h-9 bg-gradient-to-br from-fire-700 to-fire-900 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-cyan-500/30">
+                              {player.jerseyNumber || player.name.charAt(0)}
+                            </div>
+                          )}
+                          <h3 className="text-base font-bold text-white">{player.name}</h3>
+                          <span className="text-xs text-gray-500">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <DarkMediaGrid items={items} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} />
+                      </div>
+                    ))}
+                    {hasMore && (
+                      <div className="text-center pt-4">
+                        <button
+                          onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
+                          className="px-6 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                        >
+                          Load More ({allFilteredMedia.length - visibleCount} remaining)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-white/5 rounded-xl border border-white/10">
+                    <div className="text-5xl mb-4">📸</div>
+                    <h3 className="text-lg font-medium text-white">No Media Yet</h3>
+                    <p className="text-gray-400 mt-2">Upload photos and videos for your players.</p>
+                  </div>
+                )
+              ) : (
+                <>
+                  <DarkMediaGrid items={filteredMedia} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} />
+                  {hasMore && (
+                    <div className="text-center pt-4">
+                      <button
+                        onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
+                        className="px-6 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                      >
+                        Load More ({allFilteredMedia.length - visibleCount} remaining)
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
           </>
         )}
 
@@ -957,3 +1121,217 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
 };
 
 export default PlayerMediaPage;
+
+// ─── Small helpers ───────────────────────────────────────────────────────────
+function timeAgo(date: Date): string {
+  const now = Date.now();
+  const diff = Math.floor((now - date.getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 604800)}w ago`;
+  return `${Math.floor(diff / 2592000)}mo ago`;
+}
+
+const ACCENT_BG: Record<string, string> = {
+  cyan: 'from-cyan-500/20 to-cyan-500/5 border-cyan-500/30',
+  blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30',
+  purple: 'from-purple-500/20 to-purple-500/5 border-purple-500/30',
+  orange: 'from-orange-500/20 to-orange-500/5 border-orange-500/30',
+};
+
+const StatCard: React.FC<{ icon: string; label: string; value: string; accent: string }> = ({ icon, label, value, accent }) => (
+  <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${ACCENT_BG[accent] || ACCENT_BG.cyan} border p-3 sm:p-4`}>
+    <div className="flex items-center gap-3">
+      <div className="text-2xl sm:text-3xl">{icon}</div>
+      <div className="min-w-0">
+        <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">{label}</div>
+        <div className="text-base sm:text-xl font-black text-white truncate">{value}</div>
+      </div>
+    </div>
+  </div>
+);
+
+const SectionHeader: React.FC<{ title: string; action?: { label: string; onClick: any } }> = ({ title, action }) => (
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-sm sm:text-base font-bold uppercase tracking-[0.15em] text-white">{title}</h2>
+    {action && (
+      <button onClick={action.onClick} className="text-xs sm:text-sm text-cyan-400 hover:text-cyan-300 font-medium">
+        {action.label} →
+      </button>
+    )}
+  </div>
+);
+
+interface FeaturedCardProps {
+  item: PlayerMediaType;
+  player?: Player;
+  timeAgo: string;
+  onClick: () => void;
+}
+const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onClick }) => {
+  const primaryTag = (item.tags || []).find(t => ['Goal', 'Assist', 'Save', 'Skill', 'Highlight'].includes(t));
+  const tagColor: Record<string, string> = {
+    Goal: 'bg-yellow-400 text-yellow-950',
+    Assist: 'bg-green-400 text-green-950',
+    Save: 'bg-blue-400 text-blue-950',
+    Skill: 'bg-purple-400 text-purple-950',
+    Highlight: 'bg-pink-400 text-pink-950',
+  };
+  return (
+    <button
+      onClick={onClick}
+      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all hover:shadow-2xl hover:shadow-cyan-500/10 text-left"
+    >
+      {item.type === 'video' ? (
+        <video
+          src={`${item.url}#t=0.5`}
+          preload="metadata"
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <img src={item.url} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+      )}
+      {/* Play icon overlay for videos */}
+      {item.type === 'video' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-14 h-14 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+          </div>
+        </div>
+      )}
+      {/* Bottom info gradient */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-3 pt-10">
+        <div className="flex items-center gap-2">
+          {player?.profilePhotoUrl ? (
+            <img src={player.profilePhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-cyan-500/40" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fire-700 to-fire-900 flex items-center justify-center text-white text-xs font-bold ring-2 ring-cyan-500/40">
+              {player?.jerseyNumber || item.playerName?.charAt(0)}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-white text-sm font-bold truncate uppercase tracking-wide">{item.playerName}</div>
+            <div className="text-gray-300 text-xs truncate">{timeAgo}{item.caption ? ` · ${item.caption}` : ''}</div>
+          </div>
+          {primaryTag && (
+            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${tagColor[primaryTag]}`}>
+              {primaryTag}
+            </span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+};
+
+interface RankedCardProps {
+  rank: number;
+  item: PlayerMediaType;
+  onClick: () => void;
+}
+const RankedCard: React.FC<RankedCardProps> = ({ rank, item, onClick }) => {
+  const rankColor = rank === 1 ? 'from-yellow-400 to-orange-500' : rank === 2 ? 'from-gray-300 to-gray-500' : 'from-orange-400 to-orange-700';
+  return (
+    <button
+      onClick={onClick}
+      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all text-left"
+    >
+      {item.type === 'video' ? (
+        <video
+          src={`${item.url}#t=0.5`}
+          preload="metadata"
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <img src={item.url} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+      )}
+      <div className={`absolute top-2 left-2 w-9 h-9 rounded-lg bg-gradient-to-br ${rankColor} flex items-center justify-center text-white font-black text-lg shadow-lg`}>
+        {rank}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-3 pt-10">
+        <div className="text-white text-sm font-bold truncate uppercase">{item.playerName}</div>
+        <div className="flex items-center justify-between text-xs text-gray-300 mt-0.5">
+          <span className="truncate">{item.caption || (item.tags && item.tags[0]) || 'Highlight'}</span>
+          <span className="flex items-center gap-1 flex-shrink-0 ml-2">
+            <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+            {item.likeCount || 0}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+// Dark-themed thumbnail grid for the new layout
+interface DarkMediaGridProps {
+  items: PlayerMediaType[];
+  onView: (item: PlayerMediaType) => void;
+  onDelete: (item: PlayerMediaType) => void;
+  onLike: (item: PlayerMediaType) => void;
+  onShare: (item: PlayerMediaType) => void;
+  userData: any;
+}
+const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData }) => {
+  if (items.length === 0) {
+    return <div className="text-center py-8 text-gray-500 text-sm">No clips here.</div>;
+  }
+  const isLiked = (item: PlayerMediaType) => item.likes?.includes(userData?.uid || '') || false;
+  const canDelete = (item: PlayerMediaType) => userData?.uid === item.uploadedBy || userData?.role === 'coach';
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      {items.map(item => (
+        <div key={item.id} className="group relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/40 transition-colors">
+          <button onClick={() => onView(item)} className="w-full h-full block">
+            {item.type === 'video' ? (
+              <video
+                src={`${item.url}#t=0.5`}
+                preload="metadata"
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img src={item.url} alt={item.caption || ''} loading="lazy" className="w-full h-full object-cover" />
+            )}
+          </button>
+          {item.type === 'video' && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              </div>
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-2">
+            <div className="flex items-center justify-between">
+              <button onClick={(e) => { e.stopPropagation(); onLike(item); }} className="flex items-center gap-1 hover:scale-110 transition-transform">
+                {isLiked(item) ? (
+                  <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                ) : (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                )}
+                {(item.likeCount || 0) > 0 && <span className="text-white text-xs font-medium">{item.likeCount}</span>}
+              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={(e) => { e.stopPropagation(); onShare(item); }} className="hover:scale-110 transition-transform">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                </button>
+                {canDelete(item) && (
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all">
+                    <svg className="w-4 h-4 text-white/80 hover:text-red-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+

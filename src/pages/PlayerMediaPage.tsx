@@ -33,6 +33,9 @@ const PlayerMediaPage: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames'>('highlights');
   const [searchQuery, setSearchQuery] = useState('');
+  const [replacing, setReplacing] = useState(false);
+  const [replaceProgress, setReplaceProgress] = useState(0);
+  const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
   // Upload form
   const [uploadPlayerId, setUploadPlayerId] = useState('');
@@ -286,6 +289,61 @@ const PlayerMediaPage: React.FC = () => {
     setUploadTags([]);
     setUploadTaggedPlayers([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Replace a video in-place: keeps Firestore doc ID, likes, tags, caption — only swaps the URL.
+  // Works for migrating old Firebase videos to R2 AND for swapping in a re-edited cut later.
+  const handleReplaceVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedMedia) return;
+    if (!file.type.startsWith('video/')) {
+      alert('Please choose a video file.');
+      return;
+    }
+    if (file.size > MAX_VIDEO_SIZE) {
+      alert(`File too large. Max ${MAX_VIDEO_SIZE / 1024 / 1024}MB.`);
+      return;
+    }
+
+    const ok = window.confirm(
+      `Replace this video with "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)}MB)?\n\nLikes, tags, and caption will be preserved.`
+    );
+    if (!ok) {
+      if (replaceFileInputRef.current) replaceFileInputRef.current.value = '';
+      return;
+    }
+
+    try {
+      setReplacing(true);
+      setReplaceProgress(0);
+      const folder = `player_media/${selectedMedia.teamId}/${selectedMedia.playerId}`;
+      const result = await uploadToR2(file, folder, (pct) => setReplaceProgress(pct));
+
+      const collection = selectedMedia.id.startsWith('gallery_') ? 'gallery' : 'player_media';
+      const docId = selectedMedia.id.startsWith('gallery_') ? selectedMedia.id.replace('gallery_', '') : selectedMedia.id;
+      await updateDocument(collection, docId, {
+        url: result.url,
+        fileName: file.name,
+        fileSize: file.size,
+        contentType: file.type,
+        storageProvider: 'r2',
+        previousUrl: selectedMedia.url,
+        replacedAt: new Date(),
+      });
+
+      // Update local state so lightbox + grid reflect new URL immediately
+      const updated = { ...selectedMedia, url: result.url, fileName: file.name, fileSize: file.size, contentType: file.type } as PlayerMediaType;
+      setSelectedMedia(updated);
+      setMedia(prev => prev.map(m => m.id === selectedMedia.id ? updated : m));
+      alert('Video replaced.');
+    } catch (err: any) {
+      console.error('Replace failed:', err);
+      alert(`Replace failed: ${err.message || err}`);
+    } finally {
+      setReplacing(false);
+      setReplaceProgress(0);
+      if (replaceFileInputRef.current) replaceFileInputRef.current.value = '';
+    }
   };
 
   const toggleUploadTag = (tag: string) => {
@@ -901,16 +959,47 @@ const PlayerMediaPage: React.FC = () => {
                   </a>
                 </div>
                 {(userData?.uid === selectedMedia.uploadedBy || userData?.role === 'coach') && (
-                  <button
-                    onClick={() => { handleDelete(selectedMedia); setSelectedMedia(null); }}
-                    className="flex items-center space-x-1.5 text-gray-400 hover:text-red-400 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {selectedMedia.type === 'video' && (
+                      <>
+                        <input
+                          ref={replaceFileInputRef}
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={handleReplaceVideo}
+                        />
+                        <button
+                          onClick={() => replaceFileInputRef.current?.click()}
+                          disabled={replacing}
+                          title="Replace video (preserves likes, tags, caption)"
+                          className="flex items-center space-x-1.5 text-gray-300 hover:text-cyan-400 disabled:opacity-50 transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                          <span className="text-sm font-medium hidden sm:inline">{replacing ? `${replaceProgress}%` : 'Replace'}</span>
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => { handleDelete(selectedMedia); setSelectedMedia(null); }}
+                      disabled={replacing}
+                      className="flex items-center space-x-1.5 text-gray-400 hover:text-red-400 disabled:opacity-50 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
                 )}
               </div>
               {selectedMedia.caption && (
                 <p className="text-white text-center mt-2 text-sm">{selectedMedia.caption}</p>
+              )}
+              {replacing && (
+                <div className="w-full mt-2 px-1">
+                  <div className="text-cyan-300 text-xs font-medium mb-1">Replacing video... {replaceProgress}%</div>
+                  <div className="w-full bg-white/10 rounded-full h-1.5">
+                    <div className="h-1.5 rounded-full bg-cyan-400 transition-all" style={{ width: `${replaceProgress}%` }} />
+                  </div>
+                </div>
               )}
               {/* Tag display / editor */}
               {editingTags !== null ? (

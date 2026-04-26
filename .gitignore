@@ -67,6 +67,16 @@ build/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.*.local
+
+# Firebase Admin service account keys (NEVER commit)
+*firebase-adminsdk*.json
+serviceAccountKey.json
+firebase-admin.json
+
+# Local migration scratch
+scripts/.local/
 
 # dataconnect generated files
 .dataconnect

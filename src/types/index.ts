@@ -309,7 +309,11 @@ export interface VideoLink {
 export interface DevelopmentGoal {
   id: string;
   title: string;
-  description?: string;
+  description?: string; // Legacy / general note
+  duration?: string; // e.g. "10–15 min"
+  setup?: string; // What to set up before drilling
+  instructions?: string; // Step-by-step what to do
+  focus?: string; // Key coaching point
   videoLinks?: VideoLink[]; // YouTube tutorials / reference clips
   playerCompleted: boolean; // Player/parent checks this off
   playerCompletedAt?: Date;

@@ -36,6 +36,7 @@ const PlayerDevelopment: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -290,6 +291,62 @@ const PlayerDevelopment: React.FC = () => {
     }
   };
 
+  const handleEditPlan = (plan: DevelopmentPlan) => {
+    setEditingPlanId(plan.id);
+    setPlanPlayerId(plan.playerId);
+    setPlanTitle(plan.title);
+    setPlanDescription(plan.description || '');
+    setPlanCategory(plan.category);
+    // Preserve all existing goal state (completion, notes, links, etc.)
+    setPlanGoals(plan.goals.map((g, i) => ({ ...g, order: i })));
+    setShowCreateModal(true);
+  };
+
+  const handleUpdatePlan = async () => {
+    if (!editingPlanId || !planTitle.trim()) return;
+    const existing = plans.find(p => p.id === editingPlanId);
+    if (!existing) return;
+
+    // Merge: keep existing goal state by id; new goals get fresh defaults
+    const existingById = new Map(existing.goals.map(g => [g.id, g]));
+    const mergedGoals: DevelopmentGoal[] = planGoals
+      .filter(g => g.title.trim())
+      .map((g, i) => {
+        const prior = existingById.get(g.id);
+        return {
+          ...(prior || {
+            playerCompleted: false,
+            coachVerified: false,
+            readyForReview: false,
+          }),
+          ...g,
+          order: i,
+        } as DevelopmentGoal;
+      });
+
+    if (mergedGoals.length === 0) {
+      alert('Plan must have at least one goal.');
+      return;
+    }
+
+    try {
+      await updateDevelopmentPlan(editingPlanId, {
+        title: planTitle.trim(),
+        description: planDescription.trim() || undefined,
+        category: planCategory,
+        goals: mergedGoals,
+        updatedAt: new Date(),
+      });
+      resetCreateForm();
+      setEditingPlanId(null);
+      setShowCreateModal(false);
+      loadData();
+    } catch (error) {
+      console.error('Error updating plan:', error);
+      alert('Failed to update plan. Please try again.');
+    }
+  };
+
   const addGoalField = () => {
     setPlanGoals([...planGoals, {
       id: `goal_${Date.now()}`,
@@ -399,7 +456,7 @@ const PlayerDevelopment: React.FC = () => {
               </select>
               {isUserCoach && (
                 <button
-                  onClick={() => { resetCreateForm(); setShowCreateModal(true); }}
+                  onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(true); }}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -474,6 +531,7 @@ const PlayerDevelopment: React.FC = () => {
                   onAddVideoLink={(goalId, url, title) => handleAddVideoLink(plan, goalId, url, title)}
                   onRemoveVideoLink={(goalId, linkId) => handleRemoveVideoLink(plan, goalId, linkId)}
                   onArchive={() => handleArchivePlan(plan.id)}
+                  onEdit={() => handleEditPlan(plan)}
                   onCreateNextPlan={() => handleCreateNextPlan(plan)}
                   getCategoryColor={getCategoryColor}
                   getCategoryIcon={getCategoryIcon}
@@ -506,6 +564,7 @@ const PlayerDevelopment: React.FC = () => {
                   onAddVideoLink={() => {}}
                   onRemoveVideoLink={() => {}}
                   onArchive={() => handleArchivePlan(plan.id)}
+                  onEdit={() => handleEditPlan(plan)}
                   onCreateNextPlan={() => handleCreateNextPlan(plan)}
                   getCategoryColor={getCategoryColor}
                   getCategoryIcon={getCategoryIcon}
@@ -535,14 +594,15 @@ const PlayerDevelopment: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Create Development Plan</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{editingPlanId ? 'Edit Development Plan' : 'Create Development Plan'}</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Player *</label>
                     <select
                       value={planPlayerId}
                       onChange={e => setPlanPlayerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      disabled={!!editingPlanId}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                     >
                       <option value="">Select player...</option>
                       {players.map(p => (
@@ -596,15 +656,36 @@ const PlayerDevelopment: React.FC = () => {
                               type="text"
                               value={goal.title}
                               onChange={e => updateGoalField(index, 'title', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                              placeholder="Goal title (e.g. 50 touches with weak foot daily)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                              placeholder="Title (e.g. Pass Weight Drill – Distance Control)"
                             />
                             <input
                               type="text"
-                              value={goal.description || ''}
-                              onChange={e => updateGoalField(index, 'description', e.target.value)}
+                              value={(goal as any).duration || ''}
+                              onChange={e => updateGoalField(index, 'duration', e.target.value)}
                               className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-600"
-                              placeholder="Optional details..."
+                              placeholder="Duration (e.g. 10–15 min)"
+                            />
+                            <textarea
+                              value={(goal as any).setup || ''}
+                              onChange={e => updateGoalField(index, 'setup', e.target.value)}
+                              rows={2}
+                              className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700"
+                              placeholder="Setup — e.g. Place 3 cones in a line at 10, 20, and 25 yards"
+                            />
+                            <textarea
+                              value={(goal as any).instructions || ''}
+                              onChange={e => updateGoalField(index, 'instructions', e.target.value)}
+                              rows={3}
+                              className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700"
+                              placeholder="Instructions — step-by-step what to do"
+                            />
+                            <textarea
+                              value={(goal as any).focus || ''}
+                              onChange={e => updateGoalField(index, 'focus', e.target.value)}
+                              rows={2}
+                              className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700"
+                              placeholder="Focus — the key coaching point"
                             />
                             {/* YouTube link picker */}
                             <div className="space-y-1">
@@ -711,17 +792,17 @@ const PlayerDevelopment: React.FC = () => {
 
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
-                    onClick={() => { resetCreateForm(); setShowCreateModal(false); }}
+                    onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(false); }}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleCreatePlan}
+                    onClick={editingPlanId ? handleUpdatePlan : handleCreatePlan}
                     disabled={!planPlayerId || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
-                    Create Plan
+                    {editingPlanId ? 'Save Changes' : 'Create Plan'}
                   </button>
                 </div>
               </div>
@@ -747,6 +828,7 @@ interface PlanCardProps {
   onAddVideoLink: (goalId: string, url: string, title?: string) => void;
   onRemoveVideoLink: (goalId: string, linkId: string) => void;
   onArchive: () => void;
+  onEdit: () => void;
   onCreateNextPlan: () => void;
   getCategoryColor: (cat: string) => string;
   getCategoryIcon: (cat: string) => string;
@@ -757,7 +839,7 @@ interface PlanCardProps {
 
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
-  onCoachNote, onReadyForReview, onAddPracticeLog, onAddVideoLink, onRemoveVideoLink, onArchive, onCreateNextPlan,
+  onCoachNote, onReadyForReview, onAddPracticeLog, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan,
   getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice
 }) => {
   const progress = getProgressPercentage(plan);
@@ -968,6 +1050,31 @@ const PlanCard: React.FC<PlanCardProps> = ({
                     </div>
                     {goal.description && (
                       <p className="text-xs text-gray-500 mt-1">{goal.description}</p>
+                    )}
+                    {(goal.duration || goal.setup || goal.instructions || goal.focus) && (
+                      <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                        {goal.duration && (
+                          <div className="text-xs text-gray-500">⏱️ <span className="font-medium text-gray-700">{goal.duration}</span></div>
+                        )}
+                        {goal.setup && (
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-blue-600">Setup</div>
+                            <p className="text-xs text-gray-700 whitespace-pre-line mt-0.5">{goal.setup}</p>
+                          </div>
+                        )}
+                        {goal.instructions && (
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-blue-600">Instructions</div>
+                            <p className="text-xs text-gray-700 whitespace-pre-line mt-0.5">{goal.instructions}</p>
+                          </div>
+                        )}
+                        {goal.focus && (
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-amber-600">🎯 Focus</div>
+                            <p className="text-xs text-gray-700 whitespace-pre-line mt-0.5">{goal.focus}</p>
+                          </div>
+                        )}
+                      </div>
                     )}
                     {goal.notes && (
                       <p className="text-xs text-blue-600 mt-1 italic">Coach note: {goal.notes}</p>
@@ -1215,12 +1322,20 @@ const PlanCard: React.FC<PlanCardProps> = ({
               </button>
             )}
             {isCoach && (
-              <button
-                onClick={onArchive}
-                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-100 ml-auto"
-              >
-                Archive
-              </button>
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={onEdit}
+                  className="text-sm text-blue-600 hover:text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-50 font-medium"
+                >
+                  ✏️ Edit Plan
+                </button>
+                <button
+                  onClick={onArchive}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-100"
+                >
+                  Archive
+                </button>
+              </div>
             )}
           </div>
 

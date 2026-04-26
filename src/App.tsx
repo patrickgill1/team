@@ -32,6 +32,7 @@ const PlayerMediaPage = React.lazy(() => import('./pages/PlayerMediaPage'));
 const SharedMedia = React.lazy(() => import('./pages/SharedMedia'));
 const PlayerProfile = React.lazy(() => import('./pages/PlayerProfile'));
 const Surveys = React.lazy(() => import('./pages/Surveys'));
+const FullGames = React.lazy(() => import('./pages/FullGames'));
 
 const PageSpinner = () => (
   <div className="min-h-screen bg-fire-50 flex items-center justify-center">
@@ -315,6 +316,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Surveys />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/full-games" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <FullGames />
                 </AppLayout>
               </ProtectedRoute>
             } />

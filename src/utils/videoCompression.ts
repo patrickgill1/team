@@ -4,10 +4,10 @@
  * for smooth mobile playback from Firebase Storage.
  */
 
-const TARGET_HEIGHT = 720;
-const TARGET_WIDTH = 1280;
-const TARGET_BITRATE = 2_000_000; // 2 Mbps
-const MIN_SIZE_TO_COMPRESS = 5 * 1024 * 1024; // Skip if under 5MB
+const TARGET_HEIGHT = 1080;
+const TARGET_WIDTH = 1920;
+const TARGET_BITRATE = 6_000_000; // 6 Mbps — high quality for 1080p
+const MIN_SIZE_TO_COMPRESS = 50 * 1024 * 1024; // Only compress files over 50MB
 const MAX_DURATION_TO_COMPRESS = 300; // 5 minutes max
 
 function getSupportedMimeType(): string | null {
@@ -22,7 +22,10 @@ function getSupportedMimeType(): string | null {
 }
 
 export function canCompressVideo(): boolean {
-  return getSupportedMimeType() !== null;
+  // DISABLED: Source clips are already H.264 MP4 with Fast Start from Premiere.
+  // Canvas-based recompression destroys quality and produces WebM that iOS
+  // Safari cannot play. Upload originals as-is.
+  return false;
 }
 
 export interface CompressionProgress {

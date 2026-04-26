@@ -116,26 +116,18 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
 
       const statId = await addGameStat(gameStatData);
 
-      // Update player's aggregate stats
-      const currentStats = selectedPlayerData.stats || {
-        gamesPlayed: 0,
-        goals: 0,
-        assists: 0,
-        yellowCards: 0,
-        redCards: 0,
-        minutesPlayed: 0,
-        saves: 0,
-        cleanSheets: 0
-      };
+      // Update player's aggregate stats — guard each field individually
+      // (older players may have stats missing some keys, which would produce NaN)
+      const currentStats = selectedPlayerData.stats || {} as Partial<PlayerStats>;
 
       const updatedStats: PlayerStats = {
-        goals: currentStats.goals + statData.goals,
-        assists: currentStats.assists + statData.assists,
+        goals: (currentStats.goals || 0) + statData.goals,
+        assists: (currentStats.assists || 0) + statData.assists,
         saves: (currentStats.saves || 0) + statData.saves,
-        yellowCards: currentStats.yellowCards + statData.yellowCards,
-        redCards: currentStats.redCards + statData.redCards,
-        minutesPlayed: currentStats.minutesPlayed + statData.minutesPlayed,
-        gamesPlayed: currentStats.gamesPlayed + 1,
+        yellowCards: (currentStats.yellowCards || 0) + statData.yellowCards,
+        redCards: (currentStats.redCards || 0) + statData.redCards,
+        minutesPlayed: (currentStats.minutesPlayed || 0) + statData.minutesPlayed,
+        gamesPlayed: (currentStats.gamesPlayed || 0) + 1,
         cleanSheets: currentStats.cleanSheets || 0
       };
 

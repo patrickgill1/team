@@ -31,6 +31,7 @@ const PlayerProfile: React.FC = () => {
   const [votingNominations, setVotingNominations] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
+  const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
 
   useEffect(() => {
     if (playerId && selectedTeamId) loadProfile();
@@ -338,11 +339,27 @@ const PlayerProfile: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {recentMedia.map(item => (
-                    <Link key={item.id} to={`/player-media`} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setLightboxItem(item)}
+                      className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group"
+                    >
                       {item.type === 'video' ? (
                         <>
-                          <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                            <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center">
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            <video
+                              src={`${item.url}#t=0.5`}
+                              className="w-full h-full object-cover bg-gray-800"
+                              preload="metadata"
+                              muted
+                              playsInline
+                            />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-8 h-8 bg-black/60 rounded-full flex items-center justify-center">
                               <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                             </div>
                           </div>
@@ -350,7 +367,7 @@ const PlayerProfile: React.FC = () => {
                       ) : (
                         <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover" loading="lazy" />
                       )}
-                    </Link>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -384,11 +401,27 @@ const PlayerProfile: React.FC = () => {
             {media.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {media.map(item => (
-                  <div key={item.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setLightboxItem(item)}
+                    className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden text-left"
+                  >
                     {item.type === 'video' ? (
                       <>
-                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                          <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center">
+                        {item.thumbnailUrl ? (
+                          <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <video
+                            src={`${item.url}#t=0.5`}
+                            className="w-full h-full object-cover bg-gray-800"
+                            preload="metadata"
+                            muted
+                            playsInline
+                          />
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-10 h-10 bg-black/60 rounded-full flex items-center justify-center">
                             <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                           </div>
                         </div>
@@ -409,7 +442,7 @@ const PlayerProfile: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -513,6 +546,84 @@ const PlayerProfile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ─── Media Lightbox ─────────────────────────────────────── */}
+      {lightboxItem && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightboxItem(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxItem(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 z-10"
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <div
+            className="max-w-4xl w-full max-h-full flex flex-col items-center"
+            onClick={e => e.stopPropagation()}
+          >
+            {lightboxItem.type === 'video' ? (
+              <video
+                src={lightboxItem.url}
+                controls
+                autoPlay
+                playsInline
+                className="max-w-full max-h-[80vh] rounded-lg"
+              />
+            ) : (
+              <img
+                src={lightboxItem.url}
+                alt={lightboxItem.caption || ''}
+                className="max-w-full max-h-[80vh] rounded-lg object-contain"
+              />
+            )}
+            {lightboxItem.caption && (
+              <p className="text-white text-sm mt-3 text-center">{lightboxItem.caption}</p>
+            )}
+            {lightboxItem.tags && lightboxItem.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center mt-2">
+                {lightboxItem.tags.map(tag => (
+                  <span key={tag} className="px-2 py-0.5 bg-white/20 text-white rounded text-xs">{tag}</span>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  const shareUrl = `${window.location.origin}/media/${encodeURIComponent(lightboxItem.id.replace(/^gallery_/, ''))}`;
+                  const data = { title: lightboxItem.caption || `${lightboxItem.playerName} - ${lightboxItem.type}`, url: shareUrl };
+                  try {
+                    if (navigator.share) await navigator.share(data);
+                    else { await navigator.clipboard.writeText(shareUrl); alert('Link copied to clipboard!'); }
+                  } catch (err) {
+                    if ((err as any)?.name !== 'AbortError') {
+                      try { await navigator.clipboard.writeText(shareUrl); alert('Link copied to clipboard!'); } catch {}
+                    }
+                  }
+                }}
+                className="flex items-center space-x-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                <span>Share</span>
+              </button>
+              <a
+                href={lightboxItem.url}
+                download={lightboxItem.fileName || `${lightboxItem.playerName}-${lightboxItem.type}.${lightboxItem.type === 'video' ? 'mp4' : 'jpg'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Download</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

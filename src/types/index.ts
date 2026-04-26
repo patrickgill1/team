@@ -349,6 +349,26 @@ export interface PlayerMedia {
 }
 
 // ================================
+// FULL GAME (YouTube Links)
+// ================================
+
+export interface FullGame {
+  id: string;
+  teamId: string;
+  title: string;
+  opponent?: string;
+  gameDate: Date;
+  youtubeUrl: string;
+  youtubeId: string;
+  result?: string;          // e.g. "W 3-1", "L 2-4", "T 1-1"
+  notes?: string;
+  addedBy: string;
+  addedByName: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+// ================================
 // SURVEY SYSTEM
 // ================================
 

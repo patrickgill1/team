@@ -1,0 +1,484 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { where, orderBy } from 'firebase/firestore';
+import { useAuth } from '../hooks/useAuth';
+import { useFirestore } from '../hooks/useFirestore';
+import { useTeam } from '../contexts/TeamContext';
+import { FullGame } from '../types';
+import { isCoach, formatDate } from '../utils/helpers';
+
+// Extract YouTube video ID from any common YouTube URL shape.
+function extractYouTubeId(input: string): string | null {
+  if (!input) return null;
+  const url = input.trim();
+  // Already an ID (11 chars, alphanumeric, -, _)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1).split('/')[0] || null;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return v;
+      // /embed/ID or /shorts/ID or /live/ID
+      const parts = u.pathname.split('/').filter(Boolean);
+      const idx = parts.findIndex(p => ['embed', 'shorts', 'live', 'v'].includes(p));
+      if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+    }
+  } catch {
+    // Fall through to regex fallback
+  }
+  const m = url.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+const FullGames: React.FC = () => {
+  const { userData } = useAuth();
+  const { selectedTeamId } = useTeam();
+  const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
+
+  const [games, setGames] = useState<FullGame[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedGame, setSelectedGame] = useState<FullGame | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Form state
+  const [formTitle, setFormTitle] = useState('');
+  const [formOpponent, setFormOpponent] = useState('');
+  const [formDate, setFormDate] = useState('');
+  const [formUrl, setFormUrl] = useState('');
+  const [formResult, setFormResult] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const userIsCoach = userData ? isCoach(userData.role) : false;
+
+  const loadGames = async () => {
+    if (!selectedTeamId) {
+      setGames([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const docs = await getDocuments('full_games', [
+        where('teamId', '==', selectedTeamId),
+        orderBy('gameDate', 'desc'),
+      ]);
+      setGames(docs as FullGame[]);
+    } catch (err) {
+      console.error('Failed to load full games:', err);
+      setGames([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    loadGames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTeamId]);
+
+  const resetForm = () => {
+    setFormTitle('');
+    setFormOpponent('');
+    setFormDate('');
+    setFormUrl('');
+    setFormResult('');
+    setFormNotes('');
+    setEditingId(null);
+  };
+
+  const openAddForm = () => {
+    resetForm();
+    setFormDate(new Date().toISOString().slice(0, 10));
+    setShowForm(true);
+  };
+
+  const openEditForm = (game: FullGame) => {
+    setEditingId(game.id);
+    setFormTitle(game.title);
+    setFormOpponent(game.opponent || '');
+    const d = game.gameDate instanceof Date ? game.gameDate : (game.gameDate as any)?.toDate?.() || new Date();
+    setFormDate(d.toISOString().slice(0, 10));
+    setFormUrl(game.youtubeUrl);
+    setFormResult(game.result || '');
+    setFormNotes(game.notes || '');
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userData || !selectedTeamId) return;
+    const youtubeId = extractYouTubeId(formUrl);
+    if (!youtubeId) {
+      alert('Please enter a valid YouTube link.');
+      return;
+    }
+    if (!formTitle.trim() || !formDate) {
+      alert('Title and date are required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload: Partial<FullGame> = {
+        teamId: selectedTeamId,
+        title: formTitle.trim(),
+        opponent: formOpponent.trim() || undefined,
+        gameDate: new Date(formDate),
+        youtubeUrl: formUrl.trim(),
+        youtubeId,
+        result: formResult.trim() || undefined,
+        notes: formNotes.trim() || undefined,
+        addedBy: userData.uid,
+        addedByName: userData.name || userData.email || 'Coach',
+      };
+      // Strip undefined so Firestore doesn't complain
+      Object.keys(payload).forEach(k => (payload as any)[k] === undefined && delete (payload as any)[k]);
+      if (editingId) {
+        await updateDocument('full_games', editingId, payload);
+      } else {
+        await addDocument('full_games', payload);
+      }
+      setShowForm(false);
+      resetForm();
+      await loadGames();
+    } catch (err) {
+      console.error('Failed to save game:', err);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (game: FullGame) => {
+    if (!window.confirm(`Delete "${game.title}"? This only removes the link, not the YouTube video.`)) return;
+    try {
+      await deleteDocument('full_games', game.id);
+      await loadGames();
+      if (selectedGame?.id === game.id) setSelectedGame(null);
+    } catch (err) {
+      console.error('Failed to delete game:', err);
+      alert('Failed to delete.');
+    }
+  };
+
+  const groupedByYear = useMemo(() => {
+    const map = new Map<number, FullGame[]>();
+    for (const g of games) {
+      const d = g.gameDate instanceof Date ? g.gameDate : (g.gameDate as any)?.toDate?.() || new Date();
+      const year = d.getFullYear();
+      if (!map.has(year)) map.set(year, []);
+      map.get(year)!.push(g);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0] - a[0]);
+  }, [games]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">🎬 Full Games</h1>
+          <p className="text-sm text-gray-500 mt-1">Watch full match recordings on YouTube.</p>
+        </div>
+        {userIsCoach && (
+          <button
+            onClick={openAddForm}
+            className="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <span>Add Game</span>
+          </button>
+        )}
+      </div>
+
+      {/* Empty state */}
+      {games.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+          <div className="text-5xl mb-4">📺</div>
+          <h3 className="text-lg font-medium text-gray-900">No Full Games Yet</h3>
+          <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
+            {userIsCoach
+              ? 'Add a YouTube link to share a full game recording with the team.'
+              : 'Full game recordings will appear here once the coach adds them.'}
+          </p>
+          {userIsCoach && (
+            <button
+              onClick={openAddForm}
+              className="mt-4 inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+            >
+              Add First Game
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {groupedByYear.map(([year, yearGames]) => (
+            <div key={year}>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{year} Season</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {yearGames.map(g => (
+                  <div key={g.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGame(g)}
+                      className="relative aspect-video w-full bg-black group"
+                    >
+                      <img
+                        src={`https://i.ytimg.com/vi/${g.youtubeId}/hqdefault.jpg`}
+                        alt={g.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                        <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+                          <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                      </div>
+                    </button>
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{g.title}</h3>
+                        {g.result && (
+                          <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded ${
+                            g.result.startsWith('W') ? 'bg-green-100 text-green-700'
+                              : g.result.startsWith('L') ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {g.result}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                        {g.opponent && <div>vs {g.opponent}</div>}
+                        <div>{formatDate(g.gameDate as any)}</div>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={() => setSelectedGame(g)}
+                          className="text-xs text-blue-600 hover:underline font-medium"
+                        >
+                          Watch →
+                        </button>
+                        {userIsCoach && (
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => openEditForm(g)}
+                              className="text-xs text-gray-500 hover:text-gray-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(g)}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Watch modal */}
+      {selectedGame && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedGame(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setSelectedGame(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 z-10"
+            aria-label="Close"
+          >
+            ×
+          </button>
+          <div
+            className="max-w-5xl w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="aspect-video w-full bg-black rounded-lg overflow-hidden">
+              <iframe
+                src={`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1&rel=0`}
+                title={selectedGame.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+            <div className="mt-3 text-white">
+              <h2 className="text-lg font-semibold">{selectedGame.title}</h2>
+              <div className="text-sm text-white/70 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                {selectedGame.opponent && <span>vs {selectedGame.opponent}</span>}
+                <span>{formatDate(selectedGame.gameDate as any)}</span>
+                {selectedGame.result && <span className="font-medium">{selectedGame.result}</span>}
+              </div>
+              {selectedGame.notes && <p className="text-sm text-white/80 mt-2">{selectedGame.notes}</p>}
+              <div className="flex items-center gap-3 mt-3">
+                <a
+                  href={selectedGame.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
+                >
+                  <span>Open on YouTube</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7m0 0v7m0-7L10 14M5 5h6v2H7v10h10v-4h2v6H5V5z" /></svg>
+                </a>
+                <button
+                  onClick={async () => {
+                    const url = selectedGame.youtubeUrl;
+                    const data = { title: selectedGame.title, url };
+                    try {
+                      if (navigator.share) await navigator.share(data);
+                      else { await navigator.clipboard.writeText(url); alert('Link copied to clipboard!'); }
+                    } catch (err) {
+                      if ((err as any)?.name !== 'AbortError') {
+                        try { await navigator.clipboard.writeText(url); alert('Link copied to clipboard!'); } catch {}
+                      }
+                    }
+                  }}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                  <span>Share</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit form modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full my-auto">
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900">
+                  {editingId ? 'Edit Game' : 'Add Full Game'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); resetForm(); }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                  <input
+                    type="text"
+                    value={formTitle}
+                    onChange={e => setFormTitle(e.target.value)}
+                    placeholder="e.g. Spring Tournament Final"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <input
+                      type="date"
+                      value={formDate}
+                      onChange={e => setFormDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Opponent</label>
+                    <input
+                      type="text"
+                      value={formOpponent}
+                      onChange={e => setFormOpponent(e.target.value)}
+                      placeholder="e.g. Lightning FC"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL *</label>
+                  <input
+                    type="url"
+                    value={formUrl}
+                    onChange={e => setFormUrl(e.target.value)}
+                    placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  {formUrl && !extractYouTubeId(formUrl) && (
+                    <p className="text-xs text-red-600 mt-1">Doesn't look like a valid YouTube link.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Result</label>
+                  <input
+                    type="text"
+                    value={formResult}
+                    onChange={e => setFormResult(e.target.value)}
+                    placeholder="e.g. W 3-1, L 2-4, T 1-1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <textarea
+                    value={formNotes}
+                    onChange={e => setFormNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Highlights, timestamps, etc."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 mt-6 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); resetForm(); }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Game'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FullGames;

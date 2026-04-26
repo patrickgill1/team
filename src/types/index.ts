@@ -314,6 +314,7 @@ export interface DevelopmentGoal {
   setup?: string; // What to set up before drilling
   instructions?: string; // Step-by-step what to do
   focus?: string; // Key coaching point
+  targetMinutes?: number; // Optional practice-minutes target for this goal
   videoLinks?: VideoLink[]; // YouTube tutorials / reference clips
   playerCompleted: boolean; // Player/parent checks this off
   playerCompletedAt?: Date;

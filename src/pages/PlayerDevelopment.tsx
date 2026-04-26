@@ -356,7 +356,7 @@ const PlayerDevelopment: React.FC = () => {
     }]);
   };
 
-  const updateGoalField = (index: number, field: string, value: string) => {
+  const updateGoalField = (index: number, field: string, value: any) => {
     const updated = [...planGoals];
     (updated[index] as any)[field] = value;
     setPlanGoals(updated);
@@ -687,6 +687,14 @@ const PlayerDevelopment: React.FC = () => {
                               className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700"
                               placeholder="Focus — the key coaching point"
                             />
+                            <input
+                              type="number"
+                              min={0}
+                              value={(goal as any).targetMinutes ?? ''}
+                              onChange={e => updateGoalField(index, 'targetMinutes', e.target.value === '' ? undefined : Number(e.target.value))}
+                              className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700"
+                              placeholder="Practice minutes target (optional, e.g. 60)"
+                            />
                             {/* YouTube link picker */}
                             <div className="space-y-1">
                               {(goal.videoLinks || []).map((link, li) => (
@@ -846,6 +854,14 @@ const PlanCard: React.FC<PlanCardProps> = ({
   const playerProgress = plan.goals.length > 0
     ? Math.round((plan.goals.filter(g => g.playerCompleted).length / plan.goals.length) * 100)
     : 0;
+  const totalLoggedMinutes = plan.goals.reduce(
+    (sum, g) => sum + (g.practiceLog || []).reduce((s, l) => s + (l.minutes || 0), 0),
+    0
+  );
+  const totalTargetMinutes = plan.goals.reduce((sum, g) => sum + (g.targetMinutes || 0), 0);
+  const minutesProgress = totalTargetMinutes > 0
+    ? Math.min(100, Math.round((totalLoggedMinutes / totalTargetMinutes) * 100))
+    : 0;
   const readyForReviewCount = plan.goals.filter(g => g.readyForReview && !g.coachVerified).length;
   const [logGoalId, setLogGoalId] = useState<string | null>(null);
   const [logNote, setLogNote] = useState('');
@@ -917,6 +933,19 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   />
                 </div>
               </div>
+              {totalTargetMinutes > 0 ? (
+                <div>
+                  <div className="flex items-center justify-end gap-2 text-[11px]">
+                    <span className="text-gray-500">🔥 Minutes</span>
+                    <span className="font-semibold text-orange-600">{totalLoggedMinutes}/{totalTargetMinutes}</span>
+                  </div>
+                  <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
+                    <div className="h-1.5 rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${minutesProgress}%` }} />
+                  </div>
+                </div>
+              ) : totalLoggedMinutes > 0 ? (
+                <div className="text-[11px] text-orange-600 font-semibold text-right">🔥 {totalLoggedMinutes} min logged</div>
+              ) : null}
               <div className="text-[10px] text-gray-400">
                 {plan.goals.filter(g => g.playerCompleted).length}/{plan.goals.length} done · {plan.goals.filter(g => g.coachVerified).length}/{plan.goals.length} verified
               </div>
@@ -1023,6 +1052,22 @@ const PlanCard: React.FC<PlanCardProps> = ({
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className={`font-medium text-sm ${goal.coachVerified ? 'text-green-800 line-through' : 'text-gray-900'}`}>
                         {goal.title}
+                        {(() => {
+                          const goalMins = (goal.practiceLog || []).reduce((s, l) => s + (l.minutes || 0), 0);
+                          if (goal.targetMinutes && goal.targetMinutes > 0) {
+                            const pct = Math.min(100, Math.round((goalMins / goal.targetMinutes) * 100));
+                            const done = pct >= 100;
+                            return (
+                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                🔥 {goalMins}/{goal.targetMinutes} min
+                              </span>
+                            );
+                          }
+                          if (goalMins > 0) {
+                            return <span className="ml-2 text-[10px] font-semibold text-orange-600">🔥 {goalMins} min</span>;
+                          }
+                          return null;
+                        })()}
                       </span>
                       <div className="flex items-center space-x-2">
                         {/* Ready for review button (parent/player) */}

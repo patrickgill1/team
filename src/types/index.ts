@@ -362,8 +362,15 @@ export interface FullGame {
   title: string;
   opponent?: string;
   gameDate: Date;
-  youtubeUrl: string;
-  youtubeId: string;
+  // Either a YouTube link OR a self-hosted video on R2.
+  youtubeUrl?: string;
+  youtubeId?: string;
+  videoUrl?: string;          // direct R2 URL for self-hosted MP4
+  videoKey?: string;          // R2 object key
+  videoFileName?: string;
+  videoSize?: number;
+  videoContentType?: string;
+  source?: 'youtube' | 'r2';  // discriminator; defaults inferred from fields
   result?: string;          // e.g. "W 3-1", "L 2-4", "T 1-1"
   notes?: string;
   addedBy: string;

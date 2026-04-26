@@ -12,6 +12,7 @@ import Navigation from './components/common/Navigation';
 import SimpleAuth from './pages/SimpleAuth';
 import PublicVote from './pages/PublicVote';
 import PublicSurvey from './pages/PublicSurvey';
+import PublicGame from './pages/PublicGame';
 import PlayerJoin from './pages/PlayerJoin';
 
 // Lazy load all other pages
@@ -188,6 +189,7 @@ function App() {
               <Route path="/coach-join" element={<CoachJoin />} />
               <Route path="/media/:mediaId" element={<SharedMedia />} />
               <Route path="/survey/:surveyId" element={<PublicSurvey />} />
+              <Route path="/game/:gameId" element={<PublicGame />} />
             
             {/* Root redirect - goes to dashboard if authenticated, auth if not */}
             <Route path="/" element={

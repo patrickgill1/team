@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { where, orderBy } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
+import { uploadToR2 } from '../utils/r2Upload';
 
 // Extract YouTube video ID from any common YouTube URL shape.
 function extractYouTubeId(input: string): string | null {
@@ -52,6 +53,16 @@ const FullGames: React.FC = () => {
   const [formNotes, setFormNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Source toggle: upload a file to our site, or paste a YouTube link
+  const [formSource, setFormSource] = useState<'upload' | 'youtube'>('upload');
+  const [formFile, setFormFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  // For edit mode, keep track of existing R2 video so user knows it's already there
+  const [existingVideoUrl, setExistingVideoUrl] = useState<string | undefined>(undefined);
+  const [existingVideoKey, setExistingVideoKey] = useState<string | undefined>(undefined);
+  const [existingVideoFileName, setExistingVideoFileName] = useState<string | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const userIsCoach = userData ? isCoach(userData.role) : false;
 
   const loadGames = async () => {
@@ -88,6 +99,13 @@ const FullGames: React.FC = () => {
     setFormResult('');
     setFormNotes('');
     setEditingId(null);
+    setFormSource('upload');
+    setFormFile(null);
+    setUploadProgress(0);
+    setExistingVideoUrl(undefined);
+    setExistingVideoKey(undefined);
+    setExistingVideoFileName(undefined);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const openAddForm = () => {
@@ -102,40 +120,91 @@ const FullGames: React.FC = () => {
     setFormOpponent(game.opponent || '');
     const d = game.gameDate instanceof Date ? game.gameDate : (game.gameDate as any)?.toDate?.() || new Date();
     setFormDate(d.toISOString().slice(0, 10));
-    setFormUrl(game.youtubeUrl);
+    setFormUrl(game.youtubeUrl || '');
     setFormResult(game.result || '');
     setFormNotes(game.notes || '');
+    // Determine source from existing data
+    const hasR2 = !!game.videoUrl;
+    setFormSource(hasR2 ? 'upload' : 'youtube');
+    setExistingVideoUrl(game.videoUrl);
+    setExistingVideoKey(game.videoKey);
+    setExistingVideoFileName(game.videoFileName);
+    setFormFile(null);
+    setUploadProgress(0);
     setShowForm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userData || !selectedTeamId) return;
-    const youtubeId = extractYouTubeId(formUrl);
-    if (!youtubeId) {
-      alert('Please enter a valid YouTube link.');
-      return;
-    }
     if (!formTitle.trim() || !formDate) {
       alert('Title and date are required.');
       return;
     }
+
+    let payload: Partial<FullGame> = {
+      teamId: selectedTeamId,
+      title: formTitle.trim(),
+      opponent: formOpponent.trim() || undefined,
+      gameDate: new Date(formDate),
+      result: formResult.trim() || undefined,
+      notes: formNotes.trim() || undefined,
+      addedBy: userData.uid,
+      addedByName: userData.name || userData.email || 'Coach',
+    };
+
+    if (formSource === 'youtube') {
+      const youtubeId = extractYouTubeId(formUrl);
+      if (!youtubeId) {
+        alert('Please enter a valid YouTube link.');
+        return;
+      }
+      payload.source = 'youtube';
+      payload.youtubeUrl = formUrl.trim();
+      payload.youtubeId = youtubeId;
+      // Clear any prior r2 fields when switching
+      (payload as any).videoUrl = null;
+      (payload as any).videoKey = null;
+      (payload as any).videoFileName = null;
+      (payload as any).videoSize = null;
+      (payload as any).videoContentType = null;
+    } else {
+      // Upload mode
+      if (!formFile && !existingVideoUrl) {
+        alert('Please choose a video file to upload.');
+        return;
+      }
+      if (formFile && !formFile.type.startsWith('video/')) {
+        alert('Please choose a video file (MP4, MOV, etc.).');
+        return;
+      }
+      payload.source = 'r2';
+      // Clear youtube fields when switching
+      (payload as any).youtubeUrl = null;
+      (payload as any).youtubeId = null;
+    }
+
     setSaving(true);
     try {
-      const payload: Partial<FullGame> = {
-        teamId: selectedTeamId,
-        title: formTitle.trim(),
-        opponent: formOpponent.trim() || undefined,
-        gameDate: new Date(formDate),
-        youtubeUrl: formUrl.trim(),
-        youtubeId,
-        result: formResult.trim() || undefined,
-        notes: formNotes.trim() || undefined,
-        addedBy: userData.uid,
-        addedByName: userData.name || userData.email || 'Coach',
-      };
-      // Strip undefined so Firestore doesn't complain
+      // Upload to R2 first if needed
+      if (formSource === 'upload' && formFile) {
+        setUploadProgress(0);
+        const result = await uploadToR2(formFile, 'full_games', p => setUploadProgress(p));
+        payload.videoUrl = result.url;
+        payload.videoKey = result.key;
+        payload.videoFileName = formFile.name;
+        payload.videoSize = formFile.size;
+        payload.videoContentType = formFile.type;
+      } else if (formSource === 'upload' && existingVideoUrl) {
+        // Editing without replacing the file — keep existing video fields
+        payload.videoUrl = existingVideoUrl;
+        payload.videoKey = existingVideoKey;
+        payload.videoFileName = existingVideoFileName;
+      }
+
+      // Strip undefined so Firestore doesn't complain (keep null — used to clear fields)
       Object.keys(payload).forEach(k => (payload as any)[k] === undefined && delete (payload as any)[k]);
+
       if (editingId) {
         await updateDocument('full_games', editingId, payload);
       } else {
@@ -146,14 +215,18 @@ const FullGames: React.FC = () => {
       await loadGames();
     } catch (err) {
       console.error('Failed to save game:', err);
-      alert('Failed to save. Please try again.');
+      alert('Failed to save. ' + ((err as Error)?.message || 'Please try again.'));
     } finally {
       setSaving(false);
+      setUploadProgress(0);
     }
   };
 
   const handleDelete = async (game: FullGame) => {
-    if (!window.confirm(`Delete "${game.title}"? This only removes the link, not the YouTube video.`)) return;
+    const msg = game.videoUrl
+      ? `Delete "${game.title}"? This removes the entry. (The uploaded video file will remain in storage.)`
+      : `Delete "${game.title}"? This only removes the link, not the YouTube video.`;
+    if (!window.confirm(msg)) return;
     try {
       await deleteDocument('full_games', game.id);
       await loadGames();
@@ -189,7 +262,7 @@ const FullGames: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">🎬 Full Games</h1>
-          <p className="text-sm text-gray-500 mt-1">Watch full match recordings on YouTube.</p>
+          <p className="text-sm text-gray-500 mt-1">Watch full match recordings hosted on Fire FC or YouTube.</p>
         </div>
         {userIsCoach && (
           <button
@@ -234,17 +307,34 @@ const FullGames: React.FC = () => {
                       onClick={() => setSelectedGame(g)}
                       className="relative aspect-video w-full bg-black group"
                     >
-                      <img
-                        src={`https://i.ytimg.com/vi/${g.youtubeId}/hqdefault.jpg`}
-                        alt={g.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
+                      {g.videoUrl ? (
+                        <video
+                          src={g.videoUrl}
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                          muted
+                          playsInline
+                        />
+                      ) : g.youtubeId ? (
+                        <img
+                          src={`https://i.ytimg.com/vi/${g.youtubeId}/hqdefault.jpg`}
+                          alt={g.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/40 text-4xl">⚽</div>
+                      )}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
-                        <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${
+                          g.videoUrl ? 'bg-cyan-600' : 'bg-red-600'
+                        }`}>
                           <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         </div>
                       </div>
+                      {g.videoUrl && (
+                        <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-cyan-600/90 text-white text-[10px] font-semibold tracking-wide">FIRE FC</span>
+                      )}
                     </button>
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex items-start justify-between gap-2">
@@ -315,13 +405,23 @@ const FullGames: React.FC = () => {
             onClick={e => e.stopPropagation()}
           >
             <div className="aspect-video w-full bg-black rounded-lg overflow-hidden">
-              <iframe
-                src={`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1&rel=0`}
-                title={selectedGame.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="w-full h-full"
-              />
+              {selectedGame.videoUrl ? (
+                <video
+                  src={selectedGame.videoUrl}
+                  className="w-full h-full"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <iframe
+                  src={`https://www.youtube.com/embed/${selectedGame.youtubeId}?autoplay=1&rel=0`}
+                  title={selectedGame.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              )}
             </div>
             <div className="mt-3 text-white">
               <h2 className="text-lg font-semibold">{selectedGame.title}</h2>
@@ -331,19 +431,33 @@ const FullGames: React.FC = () => {
                 {selectedGame.result && <span className="font-medium">{selectedGame.result}</span>}
               </div>
               {selectedGame.notes && <p className="text-sm text-white/80 mt-2">{selectedGame.notes}</p>}
-              <div className="flex items-center gap-3 mt-3">
-                <a
-                  href={selectedGame.youtubeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
-                >
-                  <span>Open on YouTube</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7m0 0v7m0-7L10 14M5 5h6v2H7v10h10v-4h2v6H5V5z" /></svg>
-                </a>
+              <div className="flex flex-wrap items-center gap-3 mt-3">
+                {selectedGame.videoUrl ? (
+                  <a
+                    href={`${window.location.origin}/game/${selectedGame.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
+                  >
+                    <span>Open share page</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7m0 0v7m0-7L10 14M5 5h6v2H7v10h10v-4h2v6H5V5z" /></svg>
+                  </a>
+                ) : (
+                  <a
+                    href={selectedGame.youtubeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
+                  >
+                    <span>Open on YouTube</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7m0 0v7m0-7L10 14M5 5h6v2H7v10h10v-4h2v6H5V5z" /></svg>
+                  </a>
+                )}
                 <button
                   onClick={async () => {
-                    const url = selectedGame.youtubeUrl;
+                    const url = selectedGame.videoUrl
+                      ? `${window.location.origin}/game/${selectedGame.id}`
+                      : (selectedGame.youtubeUrl || '');
                     const data = { title: selectedGame.title, url };
                     try {
                       if (navigator.share) await navigator.share(data);
@@ -420,17 +534,76 @@ const FullGames: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL *</label>
-                  <input
-                    type="url"
-                    value={formUrl}
-                    onChange={e => setFormUrl(e.target.value)}
-                    placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                  {formUrl && !extractYouTubeId(formUrl) && (
-                    <p className="text-xs text-red-600 mt-1">Doesn't look like a valid YouTube link.</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Video Source</label>
+                  <div className="grid grid-cols-2 gap-2 mb-3 p-1 bg-gray-100 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setFormSource('upload')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        formSource === 'upload'
+                          ? 'bg-white text-cyan-700 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      📤 Upload to Fire FC
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormSource('youtube')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        formSource === 'youtube'
+                          ? 'bg-white text-red-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      🔗 YouTube link
+                    </button>
+                  </div>
+
+                  {formSource === 'upload' ? (
+                    <div>
+                      {existingVideoUrl && !formFile && (
+                        <div className="mb-2 px-3 py-2 bg-cyan-50 border border-cyan-200 rounded-lg text-xs text-cyan-800">
+                          Currently hosted on Fire FC: <span className="font-mono">{existingVideoFileName || 'video file'}</span>. Choose a new file below to replace it, or leave blank to keep it.
+                        </div>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={e => setFormFile(e.target.files?.[0] || null)}
+                        className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-cyan-600 file:text-white file:text-sm file:font-medium hover:file:bg-cyan-700"
+                      />
+                      {formFile && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formFile.name} ({(formFile.size / (1024 * 1024)).toFixed(1)} MB)
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        Hosted on Fire FC. Anyone with the share link can watch — no YouTube account needed. Up to 2GB.
+                      </p>
+                      {saving && uploadProgress > 0 && (
+                        <div className="mt-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="h-2 rounded-full bg-cyan-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">Uploading... {uploadProgress}%</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        type="url"
+                        value={formUrl}
+                        onChange={e => setFormUrl(e.target.value)}
+                        placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {formUrl && !extractYouTubeId(formUrl) && (
+                        <p className="text-xs text-red-600 mt-1">Doesn't look like a valid YouTube link.</p>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -470,7 +643,9 @@ const FullGames: React.FC = () => {
                   disabled={saving}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add Game'}
+                  {saving
+                    ? (formSource === 'upload' && formFile ? `Uploading ${uploadProgress}%...` : 'Saving...')
+                    : editingId ? 'Save Changes' : 'Add Game'}
                 </button>
               </div>
             </form>

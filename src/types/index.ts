@@ -342,6 +342,10 @@ export interface PlayerMedia {
   contentType: string;
   tags?: string[];
   taggedPlayerIds?: string[];
+  // Stats credits (only meaningful when tags includes 'Goal')
+  goalScorerId?: string;       // who scored the goal
+  assistByIds?: string[];      // who assisted (max 2 typical)
+  statsCredited?: boolean;     // true if this clip has bumped player stats
   likes?: string[];       // array of user UIDs who liked
   likeCount?: number;
   createdAt: Date;

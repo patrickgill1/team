@@ -15,7 +15,7 @@ const ITEMS_PER_PAGE = 20;
 const PlayerMediaPage: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument } = useFirestore();
+  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument, updatePlayerStats } = useFirestore();
   const { uploadFile } = useStorage();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -30,6 +30,8 @@ const PlayerMediaPage: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<PlayerMediaType | null>(null);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [editingTags, setEditingTags] = useState<string[] | null>(null); // null = not editing
+  const [editingGoalScorerId, setEditingGoalScorerId] = useState<string>('');
+  const [editingAssistByIds, setEditingAssistByIds] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames'>('highlights');
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +45,8 @@ const PlayerMediaPage: React.FC = () => {
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadTags, setUploadTags] = useState<string[]>([]);
   const [uploadTaggedPlayers, setUploadTaggedPlayers] = useState<string[]>([]);
+  const [uploadGoalScorerId, setUploadGoalScorerId] = useState<string>('');
+  const [uploadAssistByIds, setUploadAssistByIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
@@ -117,6 +121,58 @@ const PlayerMediaPage: React.FC = () => {
     }
   };
 
+  // Apply a stats credit diff: takes "before" and "after" credit fields and adjusts
+  // the impacted players' stats.goals / stats.assists accordingly.
+  // - On create:  oldCredits = {}            newCredits = filled-in
+  // - On edit:    oldCredits = previous doc  newCredits = updated doc
+  // - On delete:  oldCredits = stored doc    newCredits = {}
+  const applyStatsDiff = async (
+    oldCredits: { goalScorerId?: string; assistByIds?: string[] },
+    newCredits: { goalScorerId?: string; assistByIds?: string[] },
+  ) => {
+    const delta = new Map<string, { goals: number; assists: number }>();
+    const bump = (pid: string, key: 'goals' | 'assists', amount: number) => {
+      const cur = delta.get(pid) || { goals: 0, assists: 0 };
+      cur[key] += amount;
+      delta.set(pid, cur);
+    };
+    if (oldCredits.goalScorerId) bump(oldCredits.goalScorerId, 'goals', -1);
+    for (const a of oldCredits.assistByIds || []) bump(a, 'assists', -1);
+    if (newCredits.goalScorerId) bump(newCredits.goalScorerId, 'goals', +1);
+    for (const a of newCredits.assistByIds || []) bump(a, 'assists', +1);
+
+    for (const [pid, d] of Array.from(delta.entries())) {
+      if (d.goals === 0 && d.assists === 0) continue;
+      const player = players.find(p => p.id === pid);
+      if (!player) continue;
+      const cur = player.stats || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0 };
+      const next = {
+        ...cur,
+        goals: Math.max(0, (cur.goals || 0) + d.goals),
+        assists: Math.max(0, (cur.assists || 0) + d.assists),
+      };
+      try {
+        await updatePlayerStats(pid, next as any);
+      } catch (err) {
+        console.error('Failed to update stats for player', pid, err);
+      }
+    }
+    // Update local players cache so subsequent diffs see fresh stats
+    setPlayers(prev => prev.map(p => {
+      const d = delta.get(p.id);
+      if (!d) return p;
+      const cur = p.stats || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0 };
+      return {
+        ...p,
+        stats: {
+          ...cur,
+          goals: Math.max(0, (cur.goals || 0) + d.goals),
+          assists: Math.max(0, (cur.assists || 0) + d.assists),
+        },
+      };
+    }));
+  };
+
   const handleUpload = async () => {
     if (!userData || !uploadPlayerId || uploadFiles.length === 0) return;
 
@@ -176,6 +232,18 @@ const PlayerMediaPage: React.FC = () => {
           .filter(Boolean) as string[];
         const allTags = [...uploadTags, ...taggedPlayerNames];
 
+        // Determine stats credits — only when Goal tag is on
+        const isGoalClip = uploadTags.includes('Goal');
+        const scorerId = isGoalClip ? (uploadGoalScorerId || uploadPlayerId) : undefined;
+        const assistIds = isGoalClip ? uploadAssistByIds.filter(id => id !== scorerId) : [];
+
+        // If this is the first file in the batch, credit stats once.
+        // (We only credit the first file to avoid double-counting when uploading multiple
+        // files at once for the same goal — coach can edit later if needed.)
+        if (i === 0 && scorerId) {
+          await applyStatsDiff({}, { goalScorerId: scorerId, assistByIds: assistIds });
+        }
+
         await addPlayerMedia({
           playerId: uploadPlayerId,
           playerName: player.name,
@@ -190,8 +258,11 @@ const PlayerMediaPage: React.FC = () => {
           contentType: file.type,
           tags: allTags.length > 0 ? allTags : undefined,
           taggedPlayerIds: uploadTaggedPlayers.length > 0 ? uploadTaggedPlayers : undefined,
+          goalScorerId: i === 0 ? scorerId : undefined,
+          assistByIds: i === 0 && assistIds.length > 0 ? assistIds : undefined,
+          statsCredited: i === 0 && !!scorerId,
           updatedAt: new Date(),
-        });
+        } as any);
       }
 
       setUploadProgress(100);
@@ -211,6 +282,14 @@ const PlayerMediaPage: React.FC = () => {
   const handleDelete = async (mediaItem: PlayerMediaType) => {
     if (!window.confirm('Delete this media? This cannot be undone.')) return;
     try {
+      // Reverse any stat credits this clip applied
+      const m = mediaItem as any;
+      if (m.statsCredited && m.goalScorerId) {
+        await applyStatsDiff(
+          { goalScorerId: m.goalScorerId, assistByIds: m.assistByIds },
+          {},
+        );
+      }
       if (mediaItem.id.startsWith('gallery_')) {
         await deleteDocument('gallery', mediaItem.id.replace('gallery_', ''));
       } else {
@@ -288,6 +367,8 @@ const PlayerMediaPage: React.FC = () => {
     setUploadFiles([]);
     setUploadTags([]);
     setUploadTaggedPlayers([]);
+    setUploadGoalScorerId('');
+    setUploadAssistByIds([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -371,11 +452,35 @@ const PlayerMediaPage: React.FC = () => {
       const taggedPlayerIds = players
         .filter(p => editingTags.includes(p.name) && p.id !== selectedMedia.playerId)
         .map(p => p.id);
-      await updateDocument(collection, docId, { tags: editingTags, taggedPlayerIds: taggedPlayerIds.length > 0 ? taggedPlayerIds : [] });
+
+      // Stats credits: only meaningful when 'Goal' tag is on
+      const m = selectedMedia as any;
+      const wasGoalClip = !!m.statsCredited && !!m.goalScorerId;
+      const isGoalClip = editingTags.includes('Goal');
+      const newScorerId = isGoalClip ? (editingGoalScorerId || selectedMedia.playerId) : undefined;
+      const newAssistIds = isGoalClip ? editingAssistByIds.filter(id => id !== newScorerId) : [];
+
+      // Apply stats diff (handles all add / remove / change cases in one call)
+      await applyStatsDiff(
+        wasGoalClip ? { goalScorerId: m.goalScorerId, assistByIds: m.assistByIds } : {},
+        newScorerId ? { goalScorerId: newScorerId, assistByIds: newAssistIds } : {},
+      );
+
+      const update: any = {
+        tags: editingTags,
+        taggedPlayerIds: taggedPlayerIds.length > 0 ? taggedPlayerIds : [],
+        goalScorerId: newScorerId || null,
+        assistByIds: newAssistIds.length > 0 ? newAssistIds : [],
+        statsCredited: !!newScorerId,
+      };
+      await updateDocument(collection, docId, update);
+
       // Update local state
-      setMedia(prev => prev.map(m => m.id === selectedMedia.id ? { ...m, tags: editingTags, taggedPlayerIds } : m));
-      setSelectedMedia({ ...selectedMedia, tags: editingTags, taggedPlayerIds });
+      setMedia(prev => prev.map(m2 => m2.id === selectedMedia.id ? { ...m2, tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!newScorerId } as PlayerMediaType : m2));
+      setSelectedMedia({ ...selectedMedia, tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!newScorerId } as PlayerMediaType);
       setEditingTags(null);
+      setEditingGoalScorerId('');
+      setEditingAssistByIds([]);
     } catch (err) {
       console.error('Error saving tags:', err);
       alert('Failed to save tags.');
@@ -843,6 +948,54 @@ const PlayerMediaPage: React.FC = () => {
                       ))}
                     </div>
                   </div>
+                  {uploadTags.includes('Goal') && players.length > 0 && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">⚽ Goal scorer</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {players.map(p => {
+                            const isSel = (uploadGoalScorerId || uploadPlayerId) === p.id;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setUploadGoalScorerId(p.id)}
+                                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                  isSel ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                }`}
+                              >
+                                {p.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Defaults to the player this clip is for. +1 to their goals.</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">🅰️ Assisted by <span className="text-gray-400 font-normal">(optional)</span></label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {players
+                            .filter(p => p.id !== (uploadGoalScorerId || uploadPlayerId))
+                            .map(p => {
+                              const isSel = uploadAssistByIds.includes(p.id);
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => setUploadAssistByIds(prev => isSel ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                    isSel ? 'bg-violet-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {p.name}
+                                </button>
+                              );
+                            })}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Each pick gets +1 to their assists.</p>
+                      </div>
+                    </div>
+                  )}
                   {players.length > 1 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tag Other Players</label>
@@ -1044,8 +1197,52 @@ const PlayerMediaPage: React.FC = () => {
                       </button>
                     ))}
                   </div>
+                  {editingTags.includes('Goal') && players.length > 0 && (
+                    <div className="mt-2 mb-2 rounded-lg bg-black/30 border border-white/10 p-2.5 space-y-2">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-white/50 mb-1.5">⚽ Goal scorer</p>
+                        <div className="flex flex-wrap justify-center gap-1.5">
+                          {players.map(p => {
+                            const isSel = (editingGoalScorerId || selectedMedia.playerId) === p.id;
+                            return (
+                              <button
+                                key={p.id}
+                                onClick={() => setEditingGoalScorerId(p.id)}
+                                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                  isSel ? 'bg-blue-500 text-white' : 'bg-white/15 text-white/70 hover:bg-white/25'
+                                }`}
+                              >
+                                {p.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-white/50 mb-1.5">🅰️ Assisted by</p>
+                        <div className="flex flex-wrap justify-center gap-1.5">
+                          {players
+                            .filter(p => p.id !== (editingGoalScorerId || selectedMedia.playerId))
+                            .map(p => {
+                              const isSel = editingAssistByIds.includes(p.id);
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => setEditingAssistByIds(prev => isSel ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                    isSel ? 'bg-violet-500 text-white' : 'bg-white/15 text-white/70 hover:bg-white/25'
+                                  }`}
+                                >
+                                  {p.name}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => setEditingTags(null)} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
+                    <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
                     <button onClick={handleSaveTags} className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600">Save Tags</button>
                   </div>
                 </div>
@@ -1055,7 +1252,12 @@ const PlayerMediaPage: React.FC = () => {
                     <span key={tag} className="px-2 py-0.5 bg-white/15 text-white/80 rounded-full text-xs">{tag}</span>
                   ))}
                   <button
-                    onClick={() => setEditingTags(selectedMedia.tags || [])}
+                    onClick={() => {
+                      setEditingTags(selectedMedia.tags || []);
+                      const m = selectedMedia as any;
+                      setEditingGoalScorerId(m.goalScorerId || selectedMedia.playerId || '');
+                      setEditingAssistByIds(m.assistByIds || []);
+                    }}
                     className="px-2 py-0.5 border border-white/20 text-white/50 rounded-full text-xs hover:text-white/80 hover:border-white/40 transition-colors"
                   >
                     {selectedMedia.tags && selectedMedia.tags.length > 0 ? '✏️ Edit' : '+ Tags'}

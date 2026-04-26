@@ -895,18 +895,30 @@ const PlanCard: React.FC<PlanCardProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">{progress}%</div>
-              <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
-                <div
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    progress === 100 ? 'bg-green-500' : 'bg-blue-500'
-                  }`}
-                  style={{ width: `${progress}%` }}
-                />
+            <div className="text-right space-y-1.5 min-w-[8rem]">
+              <div>
+                <div className="flex items-center justify-end gap-2 text-[11px]">
+                  <span className="text-gray-500">Player</span>
+                  <span className="font-semibold text-yellow-600">{playerProgress}%</span>
+                </div>
+                <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
+                  <div className="h-1.5 rounded-full bg-yellow-400 transition-all duration-500" style={{ width: `${playerProgress}%` }} />
+                </div>
               </div>
-              <div className="text-xs text-gray-500 mt-0.5">
-                {plan.goals.filter(g => g.coachVerified).length}/{plan.goals.length} verified
+              <div>
+                <div className="flex items-center justify-end gap-2 text-[11px]">
+                  <span className="text-gray-500">Coach</span>
+                  <span className={`font-semibold ${progress === 100 ? 'text-green-600' : 'text-blue-600'}`}>{progress}%</span>
+                </div>
+                <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
+                  <div
+                    className={`h-1.5 rounded-full transition-all duration-500 ${progress === 100 ? 'bg-green-500' : 'bg-blue-500'}`}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+              <div className="text-[10px] text-gray-400">
+                {plan.goals.filter(g => g.playerCompleted).length}/{plan.goals.length} done · {plan.goals.filter(g => g.coachVerified).length}/{plan.goals.length} verified
               </div>
             </div>
             <svg

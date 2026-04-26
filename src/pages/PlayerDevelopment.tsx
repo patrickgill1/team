@@ -2,8 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player } from '../types';
+import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
+
+// Extract YouTube video ID from any common YouTube URL shape (also accepts a raw 11-char ID)
+function extractYouTubeId(input: string): string | null {
+  if (!input) return null;
+  const url = input.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1).split('/')[0] || null;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return v;
+      const parts = u.pathname.split('/').filter(Boolean);
+      const idx = parts.findIndex(p => ['embed', 'shorts', 'live', 'v'].includes(p));
+      if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+    }
+  } catch {}
+  const m = url.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
 
 const PlayerDevelopment: React.FC = () => {
   const { userData } = useAuth();
@@ -213,6 +235,43 @@ const PlayerDevelopment: React.FC = () => {
     }
   };
 
+  const handleAddVideoLink = async (plan: DevelopmentPlan, goalId: string, url: string, title?: string) => {
+    if (!userData) return;
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    const link: VideoLink = {
+      id: `vl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      url: trimmed,
+      youtubeId: extractYouTubeId(trimmed) || undefined,
+      title: title?.trim() || undefined,
+      addedBy: userData.uid,
+      addedByName: userData.name,
+      addedAt: new Date(),
+    };
+    const updatedGoals = plan.goals.map(g =>
+      g.id === goalId ? { ...g, videoLinks: [...(g.videoLinks || []), link] } : g
+    );
+    try {
+      await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
+      loadData();
+    } catch (error) {
+      console.error('Error adding video link:', error);
+      alert('Failed to add link.');
+    }
+  };
+
+  const handleRemoveVideoLink = async (plan: DevelopmentPlan, goalId: string, linkId: string) => {
+    const updatedGoals = plan.goals.map(g =>
+      g.id === goalId ? { ...g, videoLinks: (g.videoLinks || []).filter(l => l.id !== linkId) } : g
+    );
+    try {
+      await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
+      loadData();
+    } catch (error) {
+      console.error('Error removing video link:', error);
+    }
+  };
+
   const handleCreateNextPlan = (plan: DevelopmentPlan) => {
     resetCreateForm();
     setPrefillPlayerId(plan.playerId);
@@ -300,6 +359,11 @@ const PlayerDevelopment: React.FC = () => {
   const completedPlans = visiblePlans.filter(p => p.status === 'completed');
   const archivedPlans = visiblePlans.filter(p => p.status === 'archived');
 
+  // Parents only see their own children in the player filter
+  const visiblePlayers = isUserCoach
+    ? players
+    : (userData ? players.filter(p => p.parentIds?.includes(userData.uid)) : []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -328,8 +392,8 @@ const PlayerDevelopment: React.FC = () => {
                 onChange={e => setSelectedPlayerId(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">All Players</option>
-                {players.map(p => (
+                <option value="all">{isUserCoach ? 'All Players' : 'All My Children'}</option>
+                {visiblePlayers.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
@@ -359,8 +423,8 @@ const PlayerDevelopment: React.FC = () => {
             <div className="text-sm text-gray-600">Completed Plans</div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-gray-600">{players.length}</div>
-            <div className="text-sm text-gray-600">Total Players</div>
+            <div className="text-2xl font-bold text-gray-600">{isUserCoach ? players.length : visiblePlayers.length}</div>
+            <div className="text-sm text-gray-600">{isUserCoach ? 'Total Players' : 'My Children'}</div>
           </div>
         </div>
 
@@ -407,6 +471,8 @@ const PlayerDevelopment: React.FC = () => {
                   onCoachNote={(goalId, note) => handleCoachNote(plan, goalId, note)}
                   onReadyForReview={(goalId) => handleReadyForReview(plan, goalId)}
                   onAddPracticeLog={(goalId, note, mins) => handleAddPracticeLog(plan, goalId, note, mins)}
+                  onAddVideoLink={(goalId, url, title) => handleAddVideoLink(plan, goalId, url, title)}
+                  onRemoveVideoLink={(goalId, linkId) => handleRemoveVideoLink(plan, goalId, linkId)}
                   onArchive={() => handleArchivePlan(plan.id)}
                   onCreateNextPlan={() => handleCreateNextPlan(plan)}
                   getCategoryColor={getCategoryColor}
@@ -437,6 +503,8 @@ const PlayerDevelopment: React.FC = () => {
                   onCoachNote={() => {}}
                   onReadyForReview={() => {}}
                   onAddPracticeLog={() => {}}
+                  onAddVideoLink={() => {}}
+                  onRemoveVideoLink={() => {}}
                   onArchive={() => handleArchivePlan(plan.id)}
                   onCreateNextPlan={() => handleCreateNextPlan(plan)}
                   getCategoryColor={getCategoryColor}
@@ -538,6 +606,86 @@ const PlayerDevelopment: React.FC = () => {
                               className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-600"
                               placeholder="Optional details..."
                             />
+                            {/* YouTube link picker */}
+                            <div className="space-y-1">
+                              {(goal.videoLinks || []).map((link, li) => (
+                                <div key={link.id} className="flex items-center gap-2 px-2 py-1 bg-white border border-gray-200 rounded text-xs">
+                                  <span className="text-red-600">📺</span>
+                                  <span className="flex-1 truncate text-gray-700">{link.title || link.url}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...planGoals];
+                                      const links = [...(updated[index].videoLinks || [])];
+                                      links.splice(li, 1);
+                                      (updated[index] as any).videoLinks = links;
+                                      setPlanGoals(updated);
+                                    }}
+                                    className="text-gray-400 hover:text-red-500"
+                                    aria-label="Remove"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                              <div className="flex gap-1">
+                                <input
+                                  type="url"
+                                  placeholder="YouTube URL (optional)"
+                                  className="flex-1 px-2 py-1 border border-gray-200 rounded text-xs"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const url = (e.target as HTMLInputElement).value.trim();
+                                      if (!url) return;
+                                      const titleInput = (e.currentTarget.parentElement?.querySelector('input[data-link-title]') as HTMLInputElement | null);
+                                      const title = titleInput?.value.trim() || undefined;
+                                      const updated = [...planGoals];
+                                      const newLink: VideoLink = {
+                                        id: `vl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                                        url,
+                                        youtubeId: extractYouTubeId(url) || undefined,
+                                        title,
+                                      };
+                                      (updated[index] as any).videoLinks = [...(updated[index].videoLinks || []), newLink];
+                                      setPlanGoals(updated);
+                                      (e.target as HTMLInputElement).value = '';
+                                      if (titleInput) titleInput.value = '';
+                                    }
+                                  }}
+                                />
+                                <input
+                                  type="text"
+                                  data-link-title="1"
+                                  placeholder="Title"
+                                  className="w-24 px-2 py-1 border border-gray-200 rounded text-xs"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    const wrap = e.currentTarget.parentElement!;
+                                    const urlInput = wrap.querySelector('input[type="url"]') as HTMLInputElement;
+                                    const titleInput = wrap.querySelector('input[data-link-title]') as HTMLInputElement;
+                                    const url = urlInput.value.trim();
+                                    if (!url) return;
+                                    const updated = [...planGoals];
+                                    const newLink: VideoLink = {
+                                      id: `vl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                                      url,
+                                      youtubeId: extractYouTubeId(url) || undefined,
+                                      title: titleInput.value.trim() || undefined,
+                                    };
+                                    (updated[index] as any).videoLinks = [...(updated[index].videoLinks || []), newLink];
+                                    setPlanGoals(updated);
+                                    urlInput.value = '';
+                                    titleInput.value = '';
+                                  }}
+                                  className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
                           </div>
                           {planGoals.length > 1 && (
                             <button
@@ -596,6 +744,8 @@ interface PlanCardProps {
   onCoachNote: (goalId: string, note: string) => void;
   onReadyForReview: (goalId: string) => void;
   onAddPracticeLog: (goalId: string, note: string, minutes?: number) => void;
+  onAddVideoLink: (goalId: string, url: string, title?: string) => void;
+  onRemoveVideoLink: (goalId: string, linkId: string) => void;
   onArchive: () => void;
   onCreateNextPlan: () => void;
   getCategoryColor: (cat: string) => string;
@@ -607,7 +757,7 @@ interface PlanCardProps {
 
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
-  onCoachNote, onReadyForReview, onAddPracticeLog, onArchive, onCreateNextPlan,
+  onCoachNote, onReadyForReview, onAddPracticeLog, onAddVideoLink, onRemoveVideoLink, onArchive, onCreateNextPlan,
   getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice
 }) => {
   const progress = getProgressPercentage(plan);
@@ -619,6 +769,10 @@ const PlanCard: React.FC<PlanCardProps> = ({
   const [logNote, setLogNote] = useState('');
   const [logMinutes, setLogMinutes] = useState('');
   const [showAllLogs, setShowAllLogs] = useState<string | null>(null);
+  // Add-link inline form
+  const [linkGoalId, setLinkGoalId] = useState<string | null>(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkTitle, setLinkTitle] = useState('');
 
   const handleSubmitLog = () => {
     if (!logGoalId || !logNote.trim()) return;
@@ -824,6 +978,117 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         <span>✅ Verified by {goal.coachVerifiedByName}</span>
                       )}
                     </div>
+
+                    {/* Video links / tutorials */}
+                    {((goal.videoLinks && goal.videoLinks.length > 0) || (isCoach && plan.status === 'active')) && (
+                      <div className="mt-3">
+                        {goal.videoLinks && goal.videoLinks.length > 0 && (
+                          <>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">📺 Watch & Learn</p>
+                            <div className="flex flex-wrap gap-2">
+                              {goal.videoLinks.map(link => (
+                                <div key={link.id} className="relative group">
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-40 rounded-lg overflow-hidden border border-gray-200 bg-black hover:ring-2 hover:ring-red-400 transition-all"
+                                  >
+                                    {link.youtubeId ? (
+                                      <div className="relative aspect-video bg-black">
+                                        <img
+                                          src={`https://i.ytimg.com/vi/${link.youtubeId}/mqdefault.jpg`}
+                                          alt={link.title || 'Tutorial'}
+                                          className="w-full h-full object-cover"
+                                          loading="lazy"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                                          <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center shadow-md">
+                                            <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="aspect-video bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-xs px-2 text-center">
+                                        🔗 Open link
+                                      </div>
+                                    )}
+                                    <div className="px-2 py-1.5 bg-white">
+                                      <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug">
+                                        {link.title || (link.youtubeId ? 'YouTube tutorial' : link.url)}
+                                      </p>
+                                    </div>
+                                  </a>
+                                  {isCoach && plan.status === 'active' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        if (window.confirm('Remove this link?')) onRemoveVideoLink(goal.id, link.id);
+                                      }}
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity"
+                                      aria-label="Remove link"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        {isCoach && plan.status === 'active' && (
+                          <div className="mt-2">
+                            {linkGoalId === goal.id ? (
+                              <div className="space-y-2 bg-blue-50/60 border border-blue-200 rounded-lg p-2">
+                                <input
+                                  type="url"
+                                  value={linkUrl}
+                                  onChange={e => setLinkUrl(e.target.value)}
+                                  placeholder="Paste YouTube link (https://youtu.be/...)"
+                                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                  autoFocus
+                                />
+                                <input
+                                  type="text"
+                                  value={linkTitle}
+                                  onChange={e => setLinkTitle(e.target.value)}
+                                  placeholder="Optional title (e.g. 'Inside-of-foot pass technique')"
+                                  className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={() => { setLinkGoalId(null); setLinkUrl(''); setLinkTitle(''); }}
+                                    className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (!linkUrl.trim()) return;
+                                      onAddVideoLink(goal.id, linkUrl, linkTitle);
+                                      setLinkGoalId(null);
+                                      setLinkUrl('');
+                                      setLinkTitle('');
+                                    }}
+                                    disabled={!linkUrl.trim()}
+                                    className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-3 py-1 rounded"
+                                  >
+                                    Add Link
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setLinkGoalId(goal.id); setLinkUrl(''); setLinkTitle(''); }}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                              >
+                                + Add YouTube tutorial
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Practice Log */}
                     {(() => {

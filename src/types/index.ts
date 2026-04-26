@@ -296,10 +296,21 @@ export interface DevelopmentPlan {
   completedAt?: Date;
 }
 
+export interface VideoLink {
+  id: string;
+  url: string;          // original URL (YouTube watch / share / shorts / etc.)
+  youtubeId?: string;   // extracted ID if YouTube
+  title?: string;       // optional coach label
+  addedBy?: string;
+  addedByName?: string;
+  addedAt?: Date;
+}
+
 export interface DevelopmentGoal {
   id: string;
   title: string;
   description?: string;
+  videoLinks?: VideoLink[]; // YouTube tutorials / reference clips
   playerCompleted: boolean; // Player/parent checks this off
   playerCompletedAt?: Date;
   readyForReview: boolean; // Player signals coach to check at training

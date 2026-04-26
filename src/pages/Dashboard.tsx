@@ -349,7 +349,7 @@ const Dashboard: React.FC = () => {
                     >
                       <span className="text-2xl mr-3">📸</span>
                       <div>
-                        <p className="font-medium text-fire-950">Photo Gallery</p>
+                        <p className="font-medium text-fire-950">Media</p>
                         <p className="text-sm text-gray-500">Share team photos</p>
                       </div>
                     </Link>

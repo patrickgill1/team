@@ -107,7 +107,7 @@ const Navigation: React.FC = () => {
   const allNavItems = [
     { name: 'Dashboard', path: '/dashboard', emoji: '🏠', group: 'main' },
     { name: 'Players', path: '/players', emoji: '👥', group: 'main' },
-    { name: 'Gallery', path: '/player-media', emoji: '📸', group: 'main' },
+    { name: 'Media', path: '/player-media', emoji: '📸', group: 'main' },
     { name: 'Vote', path: '/player-of-match', emoji: '🏆', group: 'main' },
     ...(linkedPlayer ? [{
       name: linkedPlayer.name.split(' ')[0],

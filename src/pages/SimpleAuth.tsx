@@ -231,29 +231,48 @@ const SimpleAuth: React.FC = () => {
   // If the user is already authenticated, the redirect useEffect above handles it.
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 py-8 sm:py-12">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center px-4 py-10 sm:py-16">
+      {/* Ambient gradient orbs */}
+      <div className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-cyan-500/20 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-violet-600/20 blur-[140px]" />
+      <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[100px]" />
+      {/* Subtle grid */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
       {/* Mobile-first container with better spacing */}
-      <div className="w-full max-w-sm sm:max-w-md space-y-6 sm:space-y-8">
+      <div className="relative w-full max-w-sm sm:max-w-md space-y-7 sm:space-y-9">
         {/* Logo and Header Section */}
         <div className="text-center">
-          <div className="mb-6 sm:mb-8">
-            <Logo size="lg" variant="full" className="sm:scale-110" />
+          <div className="mb-5 sm:mb-6 flex justify-center">
+            <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur-md p-3">
+              <Logo size="lg" variant="full" />
+            </div>
           </div>
-          
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            {mode === 'login' && 'Welcome back!'}
-            {mode === 'register' && 'Join your team'}
-            {mode === 'setup' && 'Create your team'}
+
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 ring-1 ring-white/10 backdrop-blur-md mb-4">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-cyan-300/90">
+              {mode === 'login' && 'Member Access'}
+              {mode === 'register' && 'Team Invitation'}
+              {mode === 'setup' && 'New Team'}
+            </span>
+          </div>
+
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
+            {mode === 'login' && 'Welcome Back'}
+            {mode === 'register' && 'Join Your Team'}
+            {mode === 'setup' && 'Create Your Team'}
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 px-2">
-            {mode === 'login' && 'Sign in to your account'}
-            {mode === 'register' && 'Create your account to join the team'}
+          <p className="text-sm sm:text-base text-slate-400 px-2">
+            {mode === 'login' && 'Sign in to access your team hub'}
+            {mode === 'register' && 'Create your account to join the squad'}
             {mode === 'setup' && 'Set up a new team to get started'}
           </p>
         </div>
 
-        {/* Form Container - Mobile optimized */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
+        {/* Form Container - dark glass */}
+        <div className="relative rounded-3xl bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
+          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
           {/* Form padding optimized for mobile */}
           <div className="p-6 sm:p-8">
             {/* Google Sign-In Button - Only show if function is available */}
@@ -262,7 +281,7 @@ const SimpleAuth: React.FC = () => {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center px-4 py-3.5 border border-gray-300 rounded-xl shadow-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-white/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -295,10 +314,10 @@ const SimpleAuth: React.FC = () => {
                 {/* Divider */}
                 <div className="relative mb-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
+                    <div className="w-full border-t border-white/10" />
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-3 bg-slate-950/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
                   </div>
                 </div>
               </>
@@ -307,7 +326,7 @@ const SimpleAuth: React.FC = () => {
             <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit}>
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                   Email Address
                 </label>
                 <input
@@ -315,19 +334,19 @@ const SimpleAuth: React.FC = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`w-full px-4 py-3.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white/90 text-base ${
-                    errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                   }`}
-                  placeholder="Enter your email"
+                  placeholder="you@example.com"
                   disabled={isSubmitting}
                   autoComplete="email"
                 />
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                {errors.email && <p className="text-red-400 text-sm mt-1.5">{errors.email}</p>}
               </div>
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                   Password
                 </label>
                 <input
@@ -335,20 +354,20 @@ const SimpleAuth: React.FC = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={`w-full px-4 py-3.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white/90 text-base ${
-                    errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                   }`}
-                  placeholder={mode === 'login' ? 'Enter your password' : 'Create a password (min 6 characters)'}
+                  placeholder={mode === 'login' ? '••••••••' : 'At least 6 characters'}
                   disabled={isSubmitting}
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 />
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                {errors.password && <p className="text-red-400 text-sm mt-1.5">{errors.password}</p>}
               </div>
 
               {/* Confirm Password (Register/Setup only) */}
               {(mode === 'register' || mode === 'setup') && (
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                     Confirm Password
                   </label>
                   <input
@@ -356,21 +375,21 @@ const SimpleAuth: React.FC = () => {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={`w-full px-4 py-3.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white/90 text-base ${
-                      errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                     }`}
-                    placeholder="Confirm your password"
+                    placeholder="Repeat your password"
                     disabled={isSubmitting}
                     autoComplete="new-password"
                   />
-                  {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                  {errors.confirmPassword && <p className="text-red-400 text-sm mt-1.5">{errors.confirmPassword}</p>}
                 </div>
               )}
 
               {/* Name (Register/Setup only) */}
               {(mode === 'register' || mode === 'setup') && (
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                     Your Full Name
                   </label>
                   <input
@@ -378,28 +397,28 @@ const SimpleAuth: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full px-4 py-3.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white/90 text-base ${
-                      errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                     }`}
                     placeholder="Enter your full name"
                     disabled={isSubmitting}
                     autoComplete="name"
                   />
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                  {errors.name && <p className="text-red-400 text-sm mt-1.5">{errors.name}</p>}
                 </div>
               )}
 
               {/* Role (Register/Setup only) - Mobile optimized */}
               {(mode === 'register' || mode === 'setup') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">
                     I am a...
                   </label>
                   <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    <label className={`flex flex-col items-center p-4 sm:p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                    <label className={`flex flex-col items-center p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-200 ring-1 ${
                       formData.role === 'parent' 
-                        ? 'border-blue-500 bg-blue-50 shadow-lg transform scale-105' 
-                        : 'border-gray-200 hover:border-gray-300 bg-white/50'
+                        ? 'ring-cyan-400/70 bg-cyan-400/10 shadow-lg shadow-cyan-500/20' 
+                        : 'ring-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
                     }`}>
                       <input
                         type="radio"
@@ -410,12 +429,12 @@ const SimpleAuth: React.FC = () => {
                         className="sr-only"
                       />
                       <span className="text-2xl sm:text-3xl mb-2">👨‍👩‍👧‍👦</span>
-                      <span className="font-medium text-gray-900 text-sm sm:text-base">Parent</span>
+                      <span className="font-semibold text-white text-sm sm:text-base">Parent</span>
                     </label>
-                    <label className={`flex flex-col items-center p-4 sm:p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                    <label className={`flex flex-col items-center p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-200 ring-1 ${
                       formData.role === 'coach' 
-                        ? 'border-blue-500 bg-blue-50 shadow-lg transform scale-105' 
-                        : 'border-gray-200 hover:border-gray-300 bg-white/50'
+                        ? 'ring-violet-400/70 bg-violet-400/10 shadow-lg shadow-violet-500/20' 
+                        : 'ring-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
                     }`}>
                       <input
                         type="radio"
@@ -426,7 +445,7 @@ const SimpleAuth: React.FC = () => {
                         className="sr-only"
                       />
                       <span className="text-2xl sm:text-3xl mb-2">🏃‍♂️</span>
-                      <span className="font-medium text-gray-900 text-sm sm:text-base">Coach</span>
+                      <span className="font-semibold text-white text-sm sm:text-base">Coach</span>
                     </label>
                   </div>
                 </div>
@@ -436,7 +455,7 @@ const SimpleAuth: React.FC = () => {
               {mode === 'setup' && (
                 <>
                   <div>
-                    <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="teamName" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                       Team Name
                     </label>
                     <input
@@ -444,63 +463,63 @@ const SimpleAuth: React.FC = () => {
                       type="text"
                       value={formData.teamName}
                       onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-                      className={`w-full px-4 py-3.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white/90 text-base ${
-                        errors.teamName ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                        errors.teamName ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                       }`}
                       placeholder="Enter team name"
                       disabled={isSubmitting}
                     />
-                    {errors.teamName && <p className="text-red-500 text-sm mt-1">{errors.teamName}</p>}
+                    {errors.teamName && <p className="text-red-400 text-sm mt-1.5">{errors.teamName}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="ageGroup" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="ageGroup" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                       Age Group
                     </label>
                     <select
                       id="ageGroup"
                       value={formData.ageGroup}
                       onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
-                      className={`w-full px-4 py-3.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white/90 text-base ${
-                        errors.ageGroup ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                        errors.ageGroup ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                       }`}
                       disabled={isSubmitting}
                     >
-                      <option value="">Select age group</option>
-                      <option value="U8">Under 8</option>
-                      <option value="U10">Under 10</option>
-                      <option value="U12">Under 12</option>
-                      <option value="U14">Under 14</option>
-                      <option value="U16">Under 16</option>
-                      <option value="U18">Under 18</option>
-                      <option value="Adult">Adult</option>
+                      <option value="" className="bg-slate-900">Select age group</option>
+                      <option value="U8" className="bg-slate-900">Under 8</option>
+                      <option value="U10" className="bg-slate-900">Under 10</option>
+                      <option value="U12" className="bg-slate-900">Under 12</option>
+                      <option value="U14" className="bg-slate-900">Under 14</option>
+                      <option value="U16" className="bg-slate-900">Under 16</option>
+                      <option value="U18" className="bg-slate-900">Under 18</option>
+                      <option value="Adult" className="bg-slate-900">Adult</option>
                     </select>
-                    {errors.ageGroup && <p className="text-red-500 text-sm mt-1">{errors.ageGroup}</p>}
+                    {errors.ageGroup && <p className="text-red-400 text-sm mt-1.5">{errors.ageGroup}</p>}
                   </div>
                 </>
               )}
 
               {/* Invite Code (Register mode only) */}
               {mode === 'register' && formData.inviteCode && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <div className="rounded-xl p-4 bg-emerald-400/10 ring-1 ring-emerald-400/30">
                   <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-emerald-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-emerald-800 font-medium text-sm">Joining existing team</span>
+                    <span className="text-emerald-100 font-semibold text-sm">Joining existing team</span>
                   </div>
-                  <p className="text-emerald-700 text-sm mt-1">You'll be added to the team automatically after creating your account.</p>
+                  <p className="text-emerald-200/80 text-sm mt-1">You'll be added to the team automatically after creating your account.</p>
                 </div>
               )}
 
               {/* Submit Error */}
               {errors.submit && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="rounded-xl p-4 bg-red-500/10 ring-1 ring-red-500/30">
                   <div className="flex items-start space-x-2">
-                    <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-red-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="text-red-600 text-sm font-medium">{errors.submit}</p>
+                    <p className="text-red-200 text-sm font-medium">{errors.submit}</p>
                   </div>
                 </div>
               )}
@@ -509,7 +528,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.email.trim() || !formData.password.trim()}
-                className="w-full bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:via-blue-700 hover:to-indigo-700 text-white font-medium py-4 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-base"
+                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] hover:shadow-[0_20px_50px_-10px_rgba(167,139,250,0.6)] enabled:hover:-translate-y-0.5 bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400"
               >
                 {isSubmitting ? (
                   <>
@@ -552,23 +571,23 @@ const SimpleAuth: React.FC = () => {
               <div className="text-center space-y-3 pt-2">
                 {mode === 'login' && (
                   <div className="space-y-3">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-slate-400">
                       Don't have an account?{' '}
                       <button 
                         type="button"
                         onClick={() => switchMode('register')}
-                        className="font-semibold text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                        className="font-semibold text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
                         disabled={isSubmitting}
                       >
                         Join a team
                       </button>
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-slate-400">
                       Need to create a new team?{' '}
                       <button 
                         type="button"
                         onClick={() => switchMode('setup')}
-                        className="font-semibold text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                        className="font-semibold text-violet-300 hover:text-violet-200 transition-colors duration-200"
                         disabled={isSubmitting}
                       >
                         Set up your team
@@ -578,12 +597,12 @@ const SimpleAuth: React.FC = () => {
                 )}
                 
                 {(mode === 'register' || mode === 'setup') && (
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-slate-400">
                     Already have an account?{' '}
                     <button 
                       type="button"
                       onClick={() => switchMode('login')}
-                      className="font-semibold text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                      className="font-semibold text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Sign in

@@ -432,32 +432,28 @@ const FullGames: React.FC = () => {
               </div>
               {selectedGame.notes && <p className="text-sm text-white/80 mt-2">{selectedGame.notes}</p>}
               <div className="flex flex-wrap items-center gap-3 mt-3">
-                {selectedGame.videoUrl ? (
-                  <a
-                    href={`${window.location.origin}/game/${selectedGame.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
-                  >
-                    <span>Open share page</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7m0 0v7m0-7L10 14M5 5h6v2H7v10h10v-4h2v6H5V5z" /></svg>
-                  </a>
-                ) : (
+                <a
+                  href={`${window.location.origin}/game/${selectedGame.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
+                >
+                  <span>Open share page</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7m0 0v7m0-7L10 14M5 5h6v2H7v10h10v-4h2v6H5V5z" /></svg>
+                </a>
+                {selectedGame.youtubeUrl && !selectedGame.videoUrl && (
                   <a
                     href={selectedGame.youtubeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-white/60 font-medium"
                   >
-                    <span>Open on YouTube</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7m0 0v7m0-7L10 14M5 5h6v2H7v10h10v-4h2v6H5V5z" /></svg>
+                    <span>YouTube source</span>
                   </a>
                 )}
                 <button
                   onClick={async () => {
-                    const url = selectedGame.videoUrl
-                      ? `${window.location.origin}/game/${selectedGame.id}`
-                      : (selectedGame.youtubeUrl || '');
+                    const url = `${window.location.origin}/game/${selectedGame.id}`;
                     const data = { title: selectedGame.title, url };
                     try {
                       if (navigator.share) await navigator.share(data);

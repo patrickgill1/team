@@ -683,6 +683,15 @@ const PlayerMediaPage: React.FC = () => {
 
             {/* ── ALL CLIPS / FILTERED VIEW ─────────────────────────── */}
             <section className="mb-10">
+              {selectedPlayerId !== 'all' && (
+                <button
+                  onClick={() => setSelectedPlayerId('all')}
+                  className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/5 ring-1 ring-white/10 text-sm font-medium text-cyan-300 hover:bg-white/10 hover:text-cyan-200 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                  Back to all clips
+                </button>
+              )}
               <SectionHeader
                 title={selectedPlayerId === 'all' ? 'All Clips' : `${players.find(p => p.id === selectedPlayerId)?.name || 'Player'}'s Clips`}
                 action={

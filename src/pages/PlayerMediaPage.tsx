@@ -6,6 +6,7 @@ import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
+import { uploadToR2 } from '../utils/r2Upload';
 
 const ACTIVITY_TAGS = ['Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
 const ITEMS_PER_PAGE = 20;
@@ -146,10 +147,22 @@ const PlayerMediaPage: React.FC = () => {
         if (!isVideo) {
           file = await compressImage(file);
         }
-        
-        const storagePath = `player_media/${selectedTeamId}/${uploadPlayerId}/${Date.now()}_${file.name}`;
 
-        const url = await uploadFile(file, storagePath);
+        // Videos go to Cloudflare R2 (cheaper egress, better streaming).
+        // Photos stay on Firebase Storage.
+        let url: string;
+        if (isVideo) {
+          const folder = `player_media/${selectedTeamId}/${uploadPlayerId}`;
+          const result = await uploadToR2(file, folder, (pct) => {
+            // Map per-file progress into overall progress
+            const overall = ((i + pct / 100) / totalFiles) * 100;
+            setUploadProgress(Math.round(overall));
+          });
+          url = result.url;
+        } else {
+          const storagePath = `player_media/${selectedTeamId}/${uploadPlayerId}/${Date.now()}_${file.name}`;
+          url = await uploadFile(file, storagePath);
+        }
 
         // Build tags: activity tags + tagged player names
         const taggedPlayerNames = uploadTaggedPlayers

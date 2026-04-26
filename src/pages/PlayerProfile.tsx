@@ -191,6 +191,21 @@ const PlayerProfile: React.FC = () => {
   const recentMedia = media.slice(0, 6);
   const totalGoalsInPlans = plans.reduce((sum, p) => sum + p.goals.length, 0);
   const verifiedGoals = plans.reduce((sum, p) => sum + p.goals.filter(g => g.coachVerified).length, 0);
+  const playerCompletedGoals = plans.reduce((sum, p) => sum + p.goals.filter(g => g.playerCompleted).length, 0);
+  const totalPracticeMinutes = plans.reduce(
+    (sum, p) => sum + p.goals.reduce((s, g) => s + (g.practiceLog || []).reduce((m, l) => m + (l.minutes || 0), 0), 0),
+    0
+  );
+  const totalPracticeSessions = plans.reduce(
+    (sum, p) => sum + p.goals.reduce((s, g) => s + (g.practiceLog || []).length, 0),
+    0
+  );
+  const formatMinutes = (mins: number) => {
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m === 0 ? `${h} hr` : `${h}h ${m}m`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -298,7 +313,22 @@ const PlayerProfile: React.FC = () => {
                   <h2 className="text-lg font-bold text-gray-900">Development Progress</h2>
                   <button onClick={() => setActiveTab('development')} className="text-sm text-blue-600 hover:underline">View All →</button>
                 </div>
-                <div className="grid grid-cols-3 gap-4 mb-4">
+
+                {/* Effort hero — celebrate practice time */}
+                {totalPracticeMinutes > 0 && (
+                  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-4 mb-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs uppercase tracking-wide font-semibold opacity-90">🔥 Practice Effort</div>
+                        <div className="text-3xl font-bold mt-1">{formatMinutes(totalPracticeMinutes)}</div>
+                        <div className="text-xs opacity-90 mt-0.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'}</div>
+                      </div>
+                      <div className="text-5xl">💪</div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   <div className="text-center p-3 bg-blue-50 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600">{activePlans.length}</div>
                     <div className="text-xs text-gray-600">Active Plans</div>
@@ -307,26 +337,65 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-2xl font-bold text-green-600">{completedPlans.length}</div>
                     <div className="text-xs text-gray-600">Completed</div>
                   </div>
+                  <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600">{playerCompletedGoals}/{totalGoalsInPlans}</div>
+                    <div className="text-xs text-gray-600">Goals Done</div>
+                  </div>
                   <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-gray-600">{totalGoalsInPlans > 0 ? Math.round((verifiedGoals / totalGoalsInPlans) * 100) : 0}%</div>
-                    <div className="text-xs text-gray-600">Overall Progress</div>
+                    <div className="text-2xl font-bold text-gray-700">{totalGoalsInPlans > 0 ? Math.round((verifiedGoals / totalGoalsInPlans) * 100) : 0}%</div>
+                    <div className="text-xs text-gray-600">Coach Verified</div>
                   </div>
                 </div>
-                {activePlans.slice(0, 2).map(plan => (
-                  <div key={plan.id} className="border border-gray-100 rounded-lg p-3 mb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span>{getCategoryIcon(plan.category)}</span>
-                        <span className="font-medium text-sm text-gray-900">{plan.title}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryColor(plan.category)}`}>{plan.category}</span>
+                {activePlans.slice(0, 2).map(plan => {
+                  const verified = getProgressPercent(plan);
+                  const playerPct = plan.goals.length
+                    ? Math.round((plan.goals.filter(g => g.playerCompleted).length / plan.goals.length) * 100)
+                    : 0;
+                  const planMins = plan.goals.reduce((s, g) => s + (g.practiceLog || []).reduce((m, l) => m + (l.minutes || 0), 0), 0);
+                  const planTarget = plan.goals.reduce((s, g) => s + (g.targetMinutes || 0), 0);
+                  return (
+                    <div key={plan.id} className="border border-gray-100 rounded-lg p-3 mb-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center space-x-2">
+                          <span>{getCategoryIcon(plan.category)}</span>
+                          <span className="font-medium text-sm text-gray-900">{plan.title}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryColor(plan.category)}`}>{plan.category}</span>
+                        </div>
+                        {planMins > 0 && (
+                          <span className="text-xs font-semibold text-orange-600">🔥 {formatMinutes(planMins)}{planTarget > 0 ? ` / ${formatMinutes(planTarget)}` : ''}</span>
+                        )}
                       </div>
-                      <span className="text-sm font-medium text-gray-600">{getProgressPercent(plan)}%</span>
+                      <div className="mt-2 space-y-1.5">
+                        <div>
+                          <div className="flex justify-between text-[10px] text-gray-500">
+                            <span>Player</span><span>{playerPct}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className="bg-yellow-400 h-1.5 rounded-full transition-all" style={{ width: `${playerPct}%` }} />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-[10px] text-gray-500">
+                            <span>Coach Verified</span><span>{verified}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className={`h-1.5 rounded-full transition-all ${verified === 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${verified}%` }} />
+                          </div>
+                        </div>
+                        {planTarget > 0 && (
+                          <div>
+                            <div className="flex justify-between text-[10px] text-gray-500">
+                              <span>🔥 Practice Minutes</span><span>{Math.min(100, Math.round((planMins / planTarget) * 100))}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div className="bg-orange-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((planMins / planTarget) * 100))}%` }} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                      <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${getProgressPercent(plan)}%` }} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 

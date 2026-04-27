@@ -20,6 +20,11 @@ interface MatchVoting {
     playerName: string;
     voteCount: number;
   };
+  winners?: Array<{
+    playerId: string;
+    playerName: string;
+    voteCount: number;
+  }>; // All players tied for top vote count (co-Players-of-the-Match)
   teamId: string;
   createdBy: string;
   createdByName: string;
@@ -333,9 +338,9 @@ const PlayerOfMatch: React.FC = () => {
     if (!activeVoting || !isUserCoach) return;
 
     try {
-      // Calculate winner
+      // Calculate winner(s) — ties give credit to ALL tied players
       const voteCounts: {[playerId: string]: {count: number, name: string}} = {};
-      
+
       activeVoting.votes.forEach(vote => {
         if (!voteCounts[vote.playerId]) {
           voteCounts[vote.playerId] = {count: 0, name: vote.playerName};
@@ -343,18 +348,20 @@ const PlayerOfMatch: React.FC = () => {
         voteCounts[vote.playerId].count++;
       });
 
-      const winner = Object.entries(voteCounts).reduce((prev, [playerId, data]) => 
-        data.count > prev.count ? {playerId, ...data} : prev
-      , {playerId: '', count: 0, name: ''});
+      const entries = Object.entries(voteCounts);
+      const topCount = entries.reduce((max, [, data]) => Math.max(max, data.count), 0);
+      const winners = topCount > 0
+        ? entries
+            .filter(([, data]) => data.count === topCount)
+            .map(([playerId, data]) => ({ playerId, playerName: data.name, voteCount: data.count }))
+        : [];
 
       await updateDocument('match_votings', activeVoting.id, {
         isActive: false,
         closedAt: new Date(),
-        winner: winner.count > 0 ? {
-          playerId: winner.playerId,
-          playerName: winner.name,
-          voteCount: winner.count
-        } : undefined
+        winners: winners.length > 0 ? winners : undefined,
+        // Keep legacy 'winner' field set to first tied player for backward compatibility
+        winner: winners.length > 0 ? winners[0] : undefined,
       });
 
       loadData();
@@ -839,17 +846,27 @@ const PlayerOfMatch: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        {voting.winner && (
+                        {(voting.winners && voting.winners.length > 0) || voting.winner ? (
                           <div className="text-right">
                             <div className="flex items-center space-x-2">
                               <span className="text-2xl">🏆</span>
                               <div>
-                                <p className="font-semibold text-yellow-600">{voting.winner.playerName}</p>
-                                <p className="text-sm text-gray-600">{voting.winner.voteCount} votes</p>
+                                {voting.winners && voting.winners.length > 1 ? (
+                                  <>
+                                    <p className="font-semibold text-yellow-600 text-sm">Co-Players of the Match ({voting.winners.length})</p>
+                                    <p className="text-xs text-gray-600">{voting.winners.map(w => w.playerName).join(', ')}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{voting.winners[0].voteCount} votes each</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="font-semibold text-yellow-600">{(voting.winners?.[0] || voting.winner)!.playerName}</p>
+                                    <p className="text-sm text-gray-600">{(voting.winners?.[0] || voting.winner)!.voteCount} votes</p>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
-                        )}
+                        ) : null}
                       </div>
 
                       {results.length > 0 && (

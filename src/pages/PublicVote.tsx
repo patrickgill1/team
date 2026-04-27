@@ -22,6 +22,7 @@ interface MatchVoting {
   isActive: boolean;
   votes: Vote[];
   winner?: { playerId: string; playerName: string; voteCount: number };
+  winners?: Array<{ playerId: string; playerName: string; voteCount: number }>;
   teamId: string;
   location?: string;
   opponent?: string;
@@ -422,11 +423,21 @@ const PublicVote: React.FC = () => {
                 <div className="bg-gray-50 px-4 py-3 text-center">
                   <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Voting Closed</p>
                 </div>
-                {voting.winner && (
+                {((voting.winners && voting.winners.length > 0) || voting.winner) && (
                   <div className="bg-[#f0f9ff] px-4 py-5 text-center border-t border-[#159BE3] border-opacity-20">
-                    <p className="text-[#159BE3] text-xs font-black uppercase tracking-widest mb-1">Winner</p>
-                    <p className="text-2xl font-black text-gray-900">🏆 {voting.winner.playerName}</p>
-                    <p className="text-gray-500 text-sm mt-1">{voting.winner.voteCount} vote{voting.winner.voteCount !== 1 ? 's' : ''}</p>
+                    {voting.winners && voting.winners.length > 1 ? (
+                      <>
+                        <p className="text-[#159BE3] text-xs font-black uppercase tracking-widest mb-1">Co-Players of the Match</p>
+                        <p className="text-xl font-black text-gray-900">🏆 {voting.winners.map(w => w.playerName).join(' · ')}</p>
+                        <p className="text-gray-500 text-sm mt-1">{voting.winners[0].voteCount} vote{voting.winners[0].voteCount !== 1 ? 's' : ''} each</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[#159BE3] text-xs font-black uppercase tracking-widest mb-1">Winner</p>
+                        <p className="text-2xl font-black text-gray-900">🏆 {(voting.winners?.[0] || voting.winner)!.playerName}</p>
+                        <p className="text-gray-500 text-sm mt-1">{(voting.winners?.[0] || voting.winner)!.voteCount} vote{(voting.winners?.[0] || voting.winner)!.voteCount !== 1 ? 's' : ''}</p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

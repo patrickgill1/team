@@ -14,6 +14,7 @@ interface MatchVoting {
   isActive: boolean;
   votes: { voterId: string; voterName: string; playerId: string; playerName: string; reason?: string; timestamp: any }[];
   winner?: { playerId: string; playerName: string; voteCount: number };
+  winners?: Array<{ playerId: string; playerName: string; voteCount: number }>;
   closedAt?: any;
 }
 
@@ -104,7 +105,9 @@ const PlayerProfile: React.FC = () => {
           closedAt: v.closedAt?.toDate ? v.closedAt.toDate() : undefined,
         })) as MatchVoting[];
 
-      const wins = teamVotings.filter(v => v.winner?.playerId === playerId);
+      const wins = teamVotings.filter(v =>
+        v.winners?.some(w => w.playerId === playerId) || v.winner?.playerId === playerId
+      );
       setVotingWins(wins);
 
       // Collect all votings where this player received votes (with reasons)
@@ -578,7 +581,8 @@ const PlayerProfile: React.FC = () => {
               <div className="space-y-3">
                 <h2 className="text-lg font-bold text-gray-900">Vote History</h2>
                 {allPlayerVotings.map(({ voting, playerVotes }) => {
-                  const isWin = voting.winner?.playerId === playerId;
+                  const isWin = voting.winners?.some(w => w.playerId === playerId) || voting.winner?.playerId === playerId;
+                  const isCoWin = isWin && (voting.winners?.length || 0) > 1;
                   return (
                     <div key={voting.id} className={`bg-white rounded-xl border ${isWin ? 'border-yellow-300' : 'border-gray-200'} p-4`}>
                       <div className="flex items-center space-x-3">
@@ -586,7 +590,7 @@ const PlayerProfile: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-900">{voting.gameTitle}</p>
-                            {isWin && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Winner</span>}
+                            {isWin && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">{isCoWin ? `Co-Winner (×${voting.winners!.length})` : 'Winner'}</span>}
                           </div>
                           <p className="text-sm text-gray-500">{voting.gameDate instanceof Date ? formatDate(voting.gameDate) : ''} • {playerVotes.length} vote{playerVotes.length !== 1 ? 's' : ''}</p>
                         </div>

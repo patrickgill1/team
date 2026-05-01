@@ -259,6 +259,33 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
     }
   };
 
+  const handleChangeRole = async (uid: string, name: string, currentRole: string) => {
+    const promote = currentRole !== 'coach';
+    const verb = promote ? 'promote' : 'demote';
+    const target = promote ? 'a coach' : 'a parent';
+    if (!window.confirm(
+      promote
+        ? `Promote ${name} to coach? They'll get full access to manage players, schedule, stats, and media.`
+        : `Demote ${name} back to parent? They'll lose coach access.`
+    )) return;
+    try {
+      const updates: any = {
+        role: promote ? 'coach' : 'parent',
+        approved: true,
+      };
+      if (promote) updates.coachLevel = 'assistant_coach';
+      await updateDocument('users', uid, updates);
+      setDirectory(prev => prev.map(e =>
+        e.user.uid === uid
+          ? { ...e, user: { ...e.user, role: updates.role, approved: true, coachLevel: updates.coachLevel ?? e.user.coachLevel } }
+          : e
+      ));
+    } catch (error) {
+      console.error(`Error trying to ${verb} member to ${target}:`, error);
+      alert(`Failed to ${verb} ${name}.`);
+    }
+  };
+
   const handleLinkToPlayer = async (parentUid: string, parentEmail: string, playerId: string) => {
     try {
       await updateDoc(doc(db, 'players', playerId), {
@@ -414,15 +441,32 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     )}
                   </div>
                   {isUserCoach && entry.user.uid !== userData?.uid && (
-                    <button
-                      onClick={() => handleRemoveMember(entry.user.uid, entry.user.name)}
-                      className="shrink-0 bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full p-1.5 transition-colors"
-                      title="Remove member"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleChangeRole(entry.user.uid, entry.user.name, entry.user.role)}
+                        className="bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full p-1.5 transition-colors"
+                        title={entry.user.role === 'coach' ? 'Demote to parent' : 'Promote to coach'}
+                      >
+                        {entry.user.role === 'coach' ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleRemoveMember(entry.user.uid, entry.user.name)}
+                        className="bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full p-1.5 transition-colors"
+                        title="Remove member"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

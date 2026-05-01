@@ -546,7 +546,7 @@ const PlayerMediaPage: React.FC = () => {
     .filter(p => p.count > 0)
     .sort((a, b) => b.count - a.count);
 
-  const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200MB (will be compressed before upload)
+  const MAX_VIDEO_SIZE = 350 * 1024 * 1024; // 350MB (will be compressed before upload)
   const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
   const compressImage = (file: File): Promise<File> => {
@@ -596,7 +596,7 @@ const PlayerMediaPage: React.FC = () => {
       (f.type.startsWith('image/') && f.size > MAX_IMAGE_SIZE)
     );
     if (oversized.length > 0) {
-      alert(`${oversized.length} file(s) are too large. Videos must be under 200MB, images under 10MB.`);
+      alert(`${oversized.length} file(s) are too large. Videos must be under 350MB, images under 10MB.`);
       setUploadFiles(valid.filter(f => !oversized.includes(f)));
       return;
     }

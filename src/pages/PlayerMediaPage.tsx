@@ -41,6 +41,8 @@ const PlayerMediaPage: React.FC = () => {
   const [usersMap, setUsersMap] = useState<Record<string, string>>({}); // uid -> display name
   const [showLikersFor, setShowLikersFor] = useState<PlayerMediaType | null>(null);
   const [showViewersFor, setShowViewersFor] = useState<PlayerMediaType | null>(null);
+  const [showDownloadersFor, setShowDownloadersFor] = useState<PlayerMediaType | null>(null);
+  const [showSharersFor, setShowSharersFor] = useState<PlayerMediaType | null>(null);
 
   // Upload form
   const [uploadPlayerId, setUploadPlayerId] = useState('');
@@ -346,6 +348,38 @@ const PlayerMediaPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMedia?.id]);
 
+  // Generic counter bump for downloads / shares.
+  // Counts every tap (so 3 downloads from the same person = 3) but also
+  // tracks unique user IDs in an array so we can show *who* did it.
+  const bumpEngagement = async (
+    mediaItem: PlayerMediaType,
+    field: 'downloads' | 'shares',
+  ) => {
+    if (!userData) return;
+    const countField = field === 'downloads' ? 'downloadCount' : 'shareCount';
+    const arr = (mediaItem[field] as string[] | undefined) || [];
+    const newArr = arr.includes(userData.uid) ? arr : [...arr, userData.uid];
+    const newCount = ((mediaItem[countField] as number | undefined) || 0) + 1;
+
+    setMedia(prev => prev.map(m =>
+      m.id === mediaItem.id ? { ...m, [field]: newArr, [countField]: newCount } : m
+    ));
+    setSelectedMedia(prev => prev && prev.id === mediaItem.id
+      ? { ...prev, [field]: newArr, [countField]: newCount }
+      : prev);
+
+    try {
+      const collection = mediaItem.id.startsWith('gallery_') ? 'gallery' : 'player_media';
+      const docId = mediaItem.id.startsWith('gallery_') ? mediaItem.id.replace('gallery_', '') : mediaItem.id;
+      await updateDocument(collection, docId, {
+        [field]: newArr,
+        [countField]: newCount,
+      });
+    } catch (error) {
+      console.error(`Error recording ${field}:`, error);
+    }
+  };
+
   const handleLike = async (mediaItem: PlayerMediaType) => {
     if (!userData) return;
     const likes = mediaItem.likes || [];
@@ -386,12 +420,15 @@ const PlayerMediaPage: React.FC = () => {
       title: mediaItem.caption || `${mediaItem.playerName} - ${mediaItem.type}`,
       url: shareUrl,
     };
+    let shared = false;
     try {
       if (navigator.share) {
         await navigator.share(shareData);
+        shared = true;
       } else {
         await navigator.clipboard.writeText(shareUrl);
         alert('Link copied to clipboard!');
+        shared = true;
       }
     } catch (error) {
       // User cancelled share or error
@@ -399,11 +436,13 @@ const PlayerMediaPage: React.FC = () => {
         try {
           await navigator.clipboard.writeText(shareUrl);
           alert('Link copied to clipboard!');
+          shared = true;
         } catch {
           console.error('Error sharing:', error);
         }
       }
     }
+    if (shared) bumpEngagement(mediaItem, 'shares');
   };
 
   const resetUploadForm = () => {
@@ -1175,16 +1214,35 @@ const PlayerMediaPage: React.FC = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
                     <span className="text-sm font-medium">Share</span>
                   </button>
+                  {(selectedMedia.shareCount || 0) > 0 && (
+                    <button
+                      onClick={() => setShowSharersFor(selectedMedia)}
+                      className="-ml-3 text-white text-sm font-medium hover:underline"
+                      title="See who shared"
+                    >
+                      {selectedMedia.shareCount}
+                    </button>
+                  )}
                   <a
                     href={selectedMedia.url}
                     download={selectedMedia.fileName || `${selectedMedia.playerName}-${selectedMedia.type}.${selectedMedia.type === 'video' ? 'mp4' : 'jpg'}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => bumpEngagement(selectedMedia, 'downloads')}
                     className="flex items-center space-x-1.5 text-white hover:scale-110 transition-transform"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     <span className="text-sm font-medium">Download</span>
                   </a>
+                  {(selectedMedia.downloadCount || 0) > 0 && (
+                    <button
+                      onClick={() => setShowDownloadersFor(selectedMedia)}
+                      className="-ml-3 text-white text-sm font-medium hover:underline"
+                      title="See who downloaded"
+                    >
+                      {selectedMedia.downloadCount}
+                    </button>
+                  )}
                 </div>
                 {(userData?.uid === selectedMedia.uploadedBy || userData?.role === 'coach') && (
                   <div className="flex items-center gap-3">
@@ -1337,12 +1395,17 @@ const PlayerMediaPage: React.FC = () => {
           </div>
         )}
 
-        {/* Likers / Viewers panel */}
-        {(showLikersFor || showViewersFor) && (() => {
-          const isLikers = !!showLikersFor;
-          const item = (showLikersFor || showViewersFor) as PlayerMediaType;
-          const uids = (isLikers ? item.likes : item.views) || [];
-          const close = () => { setShowLikersFor(null); setShowViewersFor(null); };
+        {/* Likers / Viewers / Downloaders / Sharers panel */}
+        {(showLikersFor || showViewersFor || showDownloadersFor || showSharersFor) && (() => {
+          const item = (showLikersFor || showViewersFor || showDownloadersFor || showSharersFor) as PlayerMediaType;
+          let uids: string[] = [];
+          let title = '';
+          let empty = '';
+          if (showLikersFor) { uids = item.likes || []; title = `❤️ Liked by ${uids.length}`; empty = 'No likes yet.'; }
+          else if (showViewersFor) { uids = item.views || []; title = `👁 Viewed by ${uids.length}`; empty = 'No views yet.'; }
+          else if (showDownloadersFor) { uids = item.downloads || []; title = `⬇️ Downloaded by ${uids.length} (${item.downloadCount || 0} total)`; empty = 'No downloads yet.'; }
+          else if (showSharersFor) { uids = item.shares || []; title = `🔗 Shared by ${uids.length} (${item.shareCount || 0} total)`; empty = 'No shares yet.'; }
+          const close = () => { setShowLikersFor(null); setShowViewersFor(null); setShowDownloadersFor(null); setShowSharersFor(null); };
           return (
             <div
               className="fixed inset-0 bg-black/80 flex items-center justify-center z-[70] p-4"
@@ -1353,16 +1416,12 @@ const PlayerMediaPage: React.FC = () => {
                 onClick={e => e.stopPropagation()}
               >
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-800">
-                    {isLikers ? `❤️ Liked by ${uids.length}` : `👁 Viewed by ${uids.length}`}
-                  </h3>
+                  <h3 className="font-semibold text-gray-800">{title}</h3>
                   <button onClick={close} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
                 </div>
                 <div className="overflow-y-auto flex-1">
                   {uids.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm text-gray-500">
-                      {isLikers ? 'No likes yet.' : 'No views yet.'}
-                    </p>
+                    <p className="px-4 py-6 text-center text-sm text-gray-500">{empty}</p>
                   ) : (
                     <ul className="divide-y divide-gray-100">
                       {uids.map(uid => (

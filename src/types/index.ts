@@ -366,6 +366,10 @@ export interface PlayerMedia {
   likeCount?: number;
   views?: string[];       // array of unique user UIDs who have viewed
   viewCount?: number;
+  downloads?: string[];   // array of user UIDs who downloaded
+  downloadCount?: number; // total download taps (counts repeats)
+  shares?: string[];      // array of user UIDs who shared
+  shareCount?: number;    // total share taps (counts repeats)
   createdAt: Date;
   updatedAt?: Date;
 }

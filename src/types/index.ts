@@ -364,6 +364,8 @@ export interface PlayerMedia {
   statsCredited?: boolean;     // true if this clip has bumped player stats
   likes?: string[];       // array of user UIDs who liked
   likeCount?: number;
+  views?: string[];       // array of unique user UIDs who have viewed
+  viewCount?: number;
   createdAt: Date;
   updatedAt?: Date;
 }

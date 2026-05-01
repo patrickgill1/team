@@ -38,6 +38,9 @@ const PlayerMediaPage: React.FC = () => {
   const [replacing, setReplacing] = useState(false);
   const [replaceProgress, setReplaceProgress] = useState(0);
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
+  const [usersMap, setUsersMap] = useState<Record<string, string>>({}); // uid -> display name
+  const [showLikersFor, setShowLikersFor] = useState<PlayerMediaType | null>(null);
+  const [showViewersFor, setShowViewersFor] = useState<PlayerMediaType | null>(null);
 
   // Upload form
   const [uploadPlayerId, setUploadPlayerId] = useState('');
@@ -70,11 +73,20 @@ const PlayerMediaPage: React.FC = () => {
         ? getPhotosByTeam(selectedTeamId).catch(err => { console.error('Error loading gallery photos:', err); return []; })
         : Promise.resolve([]);
 
-      const [playersData, mediaData, galleryPhotos] = await Promise.all([
+      const [playersData, mediaData, galleryPhotos, usersData] = await Promise.all([
         getDocuments('players', []),
         mediaPromise,
-        galleryPromise
+        galleryPromise,
+        getDocuments('users', []).catch(() => [])
       ]);
+
+      // Build uid -> name lookup for likes/views display
+      const uMap: Record<string, string> = {};
+      (usersData as any[]).forEach((u: any) => {
+        const uid = u.uid || u.id;
+        if (uid) uMap[uid] = u.name || u.email || 'Unknown';
+      });
+      setUsersMap(uMap);
 
       const teamPlayers = playersData
         .filter((p: any) => (p.teamId === selectedTeamId || p.teamIds?.includes(selectedTeamId)) && p.isActive)
@@ -300,6 +312,39 @@ const PlayerMediaPage: React.FC = () => {
       console.error('Error deleting media:', error);
     }
   };
+
+  const recordView = async (mediaItem: PlayerMediaType) => {
+    if (!userData) return;
+    const views = mediaItem.views || [];
+    if (views.includes(userData.uid)) return; // already counted
+    // Don't count the uploader's own views
+    if (mediaItem.uploadedBy === userData.uid) return;
+    const newViews = [...views, userData.uid];
+
+    setMedia(prev => prev.map(m =>
+      m.id === mediaItem.id ? { ...m, views: newViews, viewCount: newViews.length } : m
+    ));
+    setSelectedMedia(prev => prev && prev.id === mediaItem.id
+      ? { ...prev, views: newViews, viewCount: newViews.length }
+      : prev);
+
+    try {
+      const collection = mediaItem.id.startsWith('gallery_') ? 'gallery' : 'player_media';
+      const docId = mediaItem.id.startsWith('gallery_') ? mediaItem.id.replace('gallery_', '') : mediaItem.id;
+      await updateDocument(collection, docId, {
+        views: newViews,
+        viewCount: newViews.length,
+      });
+    } catch (error) {
+      console.error('Error recording view:', error);
+    }
+  };
+
+  // Record a view whenever the lightbox opens on a new item
+  useEffect(() => {
+    if (selectedMedia) recordView(selectedMedia);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMedia?.id]);
 
   const handleLike = async (mediaItem: PlayerMediaType) => {
     if (!userData) return;
@@ -1100,7 +1145,28 @@ const PlayerMediaPage: React.FC = () => {
                     ) : (
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                     )}
-                    <span className="text-sm font-medium">{selectedMedia.likeCount || 0}</span>
+                  </button>
+                  {(selectedMedia.likeCount || 0) > 0 ? (
+                    <button
+                      onClick={() => setShowLikersFor(selectedMedia)}
+                      className="-ml-3 text-white text-sm font-medium hover:underline"
+                      title="See who liked"
+                    >
+                      {selectedMedia.likeCount}
+                    </button>
+                  ) : (
+                    <span className="-ml-3 text-white/70 text-sm font-medium">0</span>
+                  )}
+                  <button
+                    onClick={() => setShowViewersFor(selectedMedia)}
+                    className="flex items-center space-x-1.5 text-white hover:scale-110 transition-transform"
+                    title="See who viewed"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-sm font-medium">{selectedMedia.viewCount || 0}</span>
                   </button>
                   <button
                     onClick={() => handleShare(selectedMedia)}
@@ -1270,6 +1336,53 @@ const PlayerMediaPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Likers / Viewers panel */}
+        {(showLikersFor || showViewersFor) && (() => {
+          const isLikers = !!showLikersFor;
+          const item = (showLikersFor || showViewersFor) as PlayerMediaType;
+          const uids = (isLikers ? item.likes : item.views) || [];
+          const close = () => { setShowLikersFor(null); setShowViewersFor(null); };
+          return (
+            <div
+              className="fixed inset-0 bg-black/80 flex items-center justify-center z-[70] p-4"
+              onClick={close}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-800">
+                    {isLikers ? `❤️ Liked by ${uids.length}` : `👁 Viewed by ${uids.length}`}
+                  </h3>
+                  <button onClick={close} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+                </div>
+                <div className="overflow-y-auto flex-1">
+                  {uids.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-sm text-gray-500">
+                      {isLikers ? 'No likes yet.' : 'No views yet.'}
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-gray-100">
+                      {uids.map(uid => (
+                        <li key={uid} className="px-4 py-2.5 flex items-center space-x-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                            {(usersMap[uid] || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-sm text-gray-800">
+                            {usersMap[uid] || 'Unknown user'}
+                            {uid === userData?.uid && <span className="text-gray-400 ml-1">(you)</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

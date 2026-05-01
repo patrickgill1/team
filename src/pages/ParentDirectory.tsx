@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { User, Player } from '../types';
-import { isCoach } from '../utils/helpers';
+import { isCoach, isHeadCoach } from '../utils/helpers';
 
 interface ParentDirectoryProps {}
 
@@ -56,6 +56,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserHeadCoach = isHeadCoach(userData);
 
   useEffect(() => {
     loadDirectory();
@@ -440,7 +441,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                       <p className="text-xs mt-1 opacity-75">★ This is you</p>
                     )}
                   </div>
-                  {isUserCoach && entry.user.uid !== userData?.uid && (
+                  {isUserHeadCoach && entry.user.uid !== userData?.uid && !isHeadCoach(entry.user) && (
                     <div className="shrink-0 flex items-center gap-1.5">
                       <button
                         onClick={() => handleChangeRole(entry.user.uid, entry.user.name, entry.user.role)}

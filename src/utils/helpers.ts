@@ -82,6 +82,11 @@ export const isCoach = (userRole: string): boolean => {
   return userRole === 'coach';
 };
 
+export const isHeadCoach = (user: { role?: string; coachLevel?: string } | null | undefined): boolean => {
+  if (!user) return false;
+  return user.role === 'coach' && user.coachLevel === 'head_coach';
+};
+
 export const isParent = (userRole: string): boolean => {
   return userRole === 'parent';
 };

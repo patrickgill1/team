@@ -7,6 +7,57 @@ import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoach } from '../../utils/helpers';
 import EventForm from './EventForm';
 
+const formatIcsDate = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    d.getUTCFullYear().toString() +
+    pad(d.getUTCMonth() + 1) +
+    pad(d.getUTCDate()) + 'T' +
+    pad(d.getUTCHours()) +
+    pad(d.getUTCMinutes()) +
+    pad(d.getUTCSeconds()) + 'Z'
+  );
+};
+
+const escapeIcs = (s: string = '') =>
+  s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+
+const downloadEventIcs = (event: CalendarEvent) => {
+  try {
+    const start = new Date(event.date);
+    const end = new Date(start.getTime() + 90 * 60 * 1000); // default 90 min
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Team App//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${event.id}@team-app`,
+      `DTSTAMP:${formatIcsDate(new Date())}`,
+      `DTSTART:${formatIcsDate(start)}`,
+      `DTEND:${formatIcsDate(end)}`,
+      `SUMMARY:${escapeIcs(event.title || event.type)}`,
+      event.location ? `LOCATION:${escapeIcs(event.location)}` : '',
+      event.description ? `DESCRIPTION:${escapeIcs(event.description)}` : '',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].filter(Boolean).join('\r\n');
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(event.title || 'event').replace(/[^a-z0-9]+/gi, '_')}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('Failed to export ICS', err);
+    alert('Could not generate calendar file.');
+  }
+};
+
 interface CalendarProps {
   viewMode?: 'month' | 'list';
   showCreateButton?: boolean;
@@ -550,6 +601,15 @@ const EventCard: React.FC<EventCardProps> = ({
               <p className={`text-sm mt-2 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
                 {event.description}
               </p>
+            )}
+            {!isPast && (
+              <button
+                onClick={() => downloadEventIcs(event)}
+                className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors"
+                title="Download .ics calendar file"
+              >
+                📅 Add to my calendar
+              </button>
             )}
           </div>
         </div>

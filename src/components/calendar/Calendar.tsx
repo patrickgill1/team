@@ -6,6 +6,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoach } from '../../utils/helpers';
 import EventForm from './EventForm';
+import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 
 const formatIcsDate = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -588,6 +589,18 @@ const EventCard: React.FC<EventCardProps> = ({
   isDeleting,
   isPast = false
 }) => {
+  const [weather, setWeather] = useState<WeatherSummary | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setWeather(null);
+    if (isPast || !event?.location || !event?.date) return;
+    const dt = event.date instanceof Date ? event.date : new Date(event.date);
+    if (Number.isNaN(dt.getTime())) return;
+    const diffDays = Math.floor((dt.getTime() - Date.now()) / 86400_000);
+    if (diffDays < 0 || diffDays > 15) return;
+    getWeatherForEvent(event.location, dt).then(w => { if (!cancelled) setWeather(w); });
+    return () => { cancelled = true; };
+  }, [event?.id, event?.location, event?.date, isPast]);
   const getEventTypeIcon = (type: string) => {
     switch (type) {
       case 'game': return '⚽';
@@ -651,6 +664,18 @@ const EventCard: React.FC<EventCardProps> = ({
               <p className={`text-sm mt-2 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
                 {event.description}
               </p>
+            )}
+            {weather && (
+              <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-medium">
+                <span className="text-base leading-none">{weather.icon}</span>
+                <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
+                {weather.precipChance > 0 && <span className="text-sky-600">· {weather.precipChance}% rain</span>}
+              </div>
+            )}
+            {(event as any).seriesId && (
+              <span className="inline-flex items-center gap-1 mt-2 ml-2 px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-medium" title="Part of a recurring series">
+                🔁 {(event as any).recurrence || 'recurring'}
+              </span>
             )}
             {!isPast && (
               <button

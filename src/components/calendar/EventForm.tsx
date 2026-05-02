@@ -3,6 +3,7 @@ import { CalendarEvent } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
+import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 
 interface EventFormProps {
   isOpen: boolean;
@@ -32,14 +33,19 @@ const EventForm: React.FC<EventFormProps> = ({
     type: 'practice' as 'game' | 'practice' | 'event',
     createAttendance: true, // New field for creating attendance
     createVolunteerOpps: false, // New field for creating volunteer opportunities
-    volunteerTypes: [] as string[] // Types of volunteers needed
+    volunteerTypes: [] as string[], // Types of volunteers needed
+    recurrence: 'none' as 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly',
+    recurrenceUntil: '' as string,
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [weather, setWeather] = useState<WeatherSummary | null>(null);
 
   useEffect(() => {
     if (editingEvent) {
       const eventDate = editingEvent.date instanceof Date ? editingEvent.date : (editingEvent.date as any).toDate();
+      const untilRaw: any = (editingEvent as any).recurrenceUntil;
+      const untilDate = untilRaw ? (untilRaw?.toDate ? untilRaw.toDate() : new Date(untilRaw)) : null;
       setFormData({
         title: editingEvent.title,
         description: editingEvent.description,
@@ -49,7 +55,9 @@ const EventForm: React.FC<EventFormProps> = ({
         type: editingEvent.type,
         createAttendance: false, // Don't auto-create for existing events
         createVolunteerOpps: false,
-        volunteerTypes: []
+        volunteerTypes: [],
+        recurrence: (editingEvent as any).recurrence || 'none',
+        recurrenceUntil: untilDate ? untilDate.toISOString().split('T')[0] : '',
       });
     } else {
       const defaultDate = selectedDate || new Date();
@@ -62,7 +70,9 @@ const EventForm: React.FC<EventFormProps> = ({
         type: 'practice',
         createAttendance: true,
         createVolunteerOpps: false,
-        volunteerTypes: []
+        volunteerTypes: [],
+        recurrence: 'none',
+        recurrenceUntil: '',
       });
     }
     setErrors({});
@@ -95,9 +105,50 @@ const EventForm: React.FC<EventFormProps> = ({
       newErrors.location = 'Location is required';
     }
 
+    if (!editingEvent && formData.recurrence !== 'none') {
+      if (!formData.recurrenceUntil) {
+        newErrors.recurrenceUntil = 'Choose an end date for the repeating series';
+      } else if (formData.date && new Date(formData.recurrenceUntil) <= new Date(formData.date)) {
+        newErrors.recurrenceUntil = 'End date must be after the start date';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  // Generate the date list for a recurring series.
+  const generateSeriesDates = (start: Date, until: Date, recurrence: typeof formData.recurrence): Date[] => {
+    const out: Date[] = [];
+    if (recurrence === 'none') return [start];
+    const cap = 200; // safety
+    let cursor = new Date(start);
+    const endMs = until.getTime() + 86400_000 - 1; // include the until date
+    while (cursor.getTime() <= endMs && out.length < cap) {
+      out.push(new Date(cursor));
+      switch (recurrence) {
+        case 'daily':    cursor.setDate(cursor.getDate() + 1); break;
+        case 'weekly':   cursor.setDate(cursor.getDate() + 7); break;
+        case 'biweekly': cursor.setDate(cursor.getDate() + 14); break;
+        case 'monthly':  cursor.setMonth(cursor.getMonth() + 1); break;
+      }
+    }
+    return out;
+  };
+
+  // Look up weather forecast for the chosen date/location (debounced via effect deps).
+  useEffect(() => {
+    let cancelled = false;
+    setWeather(null);
+    if (!formData.date || !formData.time || !formData.location.trim()) return;
+    const dt = new Date(`${formData.date}T${formData.time}`);
+    if (Number.isNaN(dt.getTime())) return;
+    const handle = setTimeout(async () => {
+      const w = await getWeatherForEvent(formData.location.trim(), dt);
+      if (!cancelled) setWeather(w);
+    }, 400);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [formData.date, formData.time, formData.location]);
 
   // Function to create related attendance event
   const createAttendanceEvent = async (calendarEvent: any) => {
@@ -226,22 +277,40 @@ const EventForm: React.FC<EventFormProps> = ({
           ...eventData
         };
       } else {
-        console.log('Creating new event');
-        const eventId = await addDocument('events', eventData);
-        console.log('Event created with ID:', eventId);
-        calendarEvent = {
-          id: eventId,
-          ...eventData
-        };
+        // Build the list of dates (one for non-recurring, many for series)
+        const isSeries = formData.recurrence !== 'none';
+        const seriesId = isSeries ? `series_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` : undefined;
+        const dates = isSeries && formData.recurrenceUntil
+          ? generateSeriesDates(eventDateTime, new Date(`${formData.recurrenceUntil}T${formData.time}`), formData.recurrence)
+          : [eventDateTime];
 
-        // Create related events if this is a new event
-        if (formData.createAttendance && (formData.type === 'practice' || formData.type === 'game')) {
-          await createAttendanceEvent(calendarEvent);
-        }
+        let firstId = '';
+        for (let i = 0; i < dates.length; i++) {
+          const dt = dates[i];
+          const docData: any = {
+            ...eventData,
+            date: dt,
+          };
+          if (isSeries) {
+            docData.seriesId = seriesId;
+            docData.recurrence = formData.recurrence;
+            docData.recurrenceUntil = new Date(`${formData.recurrenceUntil}T${formData.time}`);
+          }
+          const eventId = await addDocument('events', docData);
+          if (i === 0) firstId = eventId;
 
-        if (formData.createVolunteerOpps && formData.volunteerTypes.length > 0) {
-          await createVolunteerOpportunities(calendarEvent);
+          // Only attach attendance/volunteer items to the first occurrence to avoid spamming.
+          if (i === 0) {
+            calendarEvent = { id: eventId, ...docData };
+            if (formData.createAttendance && (formData.type === 'practice' || formData.type === 'game')) {
+              await createAttendanceEvent(calendarEvent);
+            }
+            if (formData.createVolunteerOpps && formData.volunteerTypes.length > 0) {
+              await createVolunteerOpportunities(calendarEvent);
+            }
+          }
         }
+        console.log(`Created ${dates.length} event(s), first id ${firstId}`);
       }
 
       onEventUpdated(calendarEvent);
@@ -256,7 +325,9 @@ const EventForm: React.FC<EventFormProps> = ({
         type: 'practice',
         createAttendance: true,
         createVolunteerOpps: false,
-        volunteerTypes: []
+        volunteerTypes: [],
+        recurrence: 'none',
+        recurrenceUntil: '',
       });
       onClose();
     } catch (error) {
@@ -429,6 +500,57 @@ const EventForm: React.FC<EventFormProps> = ({
             />
           </div>
 
+          {/* Repeat (new events only) */}
+          {!editingEvent && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  🔁 Repeat
+                </label>
+                <select
+                  value={formData.recurrence}
+                  onChange={(e) => setFormData({ ...formData, recurrence: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="none">Does not repeat</option>
+                  <option value="daily">Every day</option>
+                  <option value="weekly">Every week</option>
+                  <option value="biweekly">Every 2 weeks</option>
+                  <option value="monthly">Every month</option>
+                </select>
+              </div>
+              {formData.recurrence !== 'none' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Until *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.recurrenceUntil}
+                    onChange={(e) => setFormData({ ...formData, recurrenceUntil: e.target.value })}
+                    min={formData.date}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.recurrenceUntil ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.recurrenceUntil && <p className="text-red-500 text-xs mt-1">{errors.recurrenceUntil}</p>}
+                </div>
+              )}
+            </div>
+          )}
+          {!editingEvent && formData.recurrence !== 'none' && formData.date && formData.recurrenceUntil && (() => {
+            try {
+              const dt = new Date(`${formData.date}T${formData.time || '10:00'}`);
+              const until = new Date(`${formData.recurrenceUntil}T${formData.time || '10:00'}`);
+              const count = generateSeriesDates(dt, until, formData.recurrence).length;
+              return (
+                <p className="-mt-3 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
+                  Will create <b>{count}</b> events ({formData.recurrence}). Each can be edited or deleted individually.
+                </p>
+              );
+            } catch { return null; }
+          })()}
+
           {/* Integration Options (for new events only) */}
           {!editingEvent && (
             <div className="border-t pt-4">
@@ -521,6 +643,13 @@ const EventForm: React.FC<EventFormProps> = ({
                     </div>
                     {formData.description && (
                       <p className="text-sm text-gray-600 mt-2">{formData.description}</p>
+                    )}
+                    {weather && (
+                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-medium">
+                        <span className="text-base leading-none">{weather.icon}</span>
+                        <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
+                        {weather.precipChance > 0 && <span className="text-sky-600">· {weather.precipChance}% rain</span>}
+                      </div>
                     )}
                     
                     {/* Show what will be created */}

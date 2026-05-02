@@ -152,6 +152,10 @@ export interface CalendarEvent {
   }>;
   createdAt: Date;
   updatedAt?: Date;
+  // Recurring series — when set, this event is part of a generated series.
+  seriesId?: string;
+  recurrence?: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  recurrenceUntil?: Date;
 }
 
 export interface GalleryPhoto {

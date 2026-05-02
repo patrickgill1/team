@@ -1,0 +1,15 @@
+{
+  "name": "firefc16-mailer",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.78.0",
+    "typescript": "^5.5.4",
+    "@cloudflare/workers-types": "^4.20240924.0"
+  }
+}

@@ -364,6 +364,26 @@ const PlayerOfMatch: React.FC = () => {
         winner: winners.length > 0 ? winners[0] : undefined,
       });
 
+      // Email each winner's parents
+      try {
+        if (winners.length > 0) {
+          const { getParentEmailsForPlayer, tplPotmWin, sendEmailBatch } = await import('../utils/notify');
+          const isCoWin = winners.length > 1;
+          const messages: any[] = [];
+          for (const w of winners) {
+            const parents = await getParentEmailsForPlayer(w.playerId, 'potm');
+            const { subject, html } = tplPotmWin({
+              playerName: w.playerName,
+              voteCount: w.voteCount,
+              gameTitle: activeVoting.gameTitle,
+              isCoWin,
+            });
+            for (const p of parents) messages.push({ to: p.email, subject, html });
+          }
+          if (messages.length > 0) sendEmailBatch(messages);
+        }
+      } catch (e) { console.warn('POTM email failed', e); }
+
       loadData();
     } catch (error) {
       console.error('Error closing voting:', error);

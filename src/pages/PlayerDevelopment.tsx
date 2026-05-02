@@ -131,6 +131,21 @@ const PlayerDevelopment: React.FC = () => {
         updatedAt: new Date(),
       });
 
+      // Email parents (fire-and-forget; failures don't block UI)
+      try {
+        const { getParentEmailsForPlayer, tplDevPlan, sendEmailBatch } = await import('../utils/notify');
+        const parents = await getParentEmailsForPlayer(planPlayerId, 'devPlan');
+        if (parents.length > 0) {
+          const { subject, html } = tplDevPlan({
+            playerName: player.name,
+            planTitle: planTitle.trim(),
+            goalCount: goals.length,
+            coachName: userData.name,
+          });
+          sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
+        }
+      } catch (e) { console.warn('dev plan email failed', e); }
+
       resetCreateForm();
       setShowCreateModal(false);
       loadData();

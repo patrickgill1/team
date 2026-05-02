@@ -280,6 +280,34 @@ const PlayerMediaPage: React.FC = () => {
       }
 
       setUploadProgress(100);
+
+      // Email parents of subject player + any tagged players (one batch per upload session)
+      try {
+        const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch } = await import('../utils/notify');
+        const subjectPlayer = players.find(p => p.id === uploadPlayerId);
+        const isVideo = Array.from(uploadFiles).some((f: File) => f.type.startsWith('video/'));
+        const playerIdsToNotify = Array.from(new Set([uploadPlayerId, ...uploadTaggedPlayers]));
+        const messages: any[] = [];
+        const sentTo = new Set<string>();
+        for (const pid of playerIdsToNotify) {
+          const player = players.find(pp => pp.id === pid);
+          if (!player) continue;
+          const parents = await getParentEmailsForPlayer(pid, 'clip');
+          const { subject, html } = tplClipUploaded({
+            playerName: player.name,
+            uploaderName: userData.name,
+            isVideo,
+            caption: uploadCaption.trim() || undefined,
+          });
+          for (const p of parents) {
+            if (sentTo.has(p.email)) continue;
+            sentTo.add(p.email);
+            messages.push({ to: p.email, subject, html });
+          }
+        }
+        if (messages.length > 0) sendEmailBatch(messages);
+      } catch (e) { console.warn('clip email failed', e); }
+
       resetUploadForm();
       setShowUploadModal(false);
       loadData();

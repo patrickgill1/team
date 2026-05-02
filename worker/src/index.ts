@@ -118,6 +118,12 @@ export default {
       return json({ ok: false, error: 'method-not-allowed' }, 405, cors);
     }
 
+    // /run-digest takes no body — handle it before requiring JSON parse.
+    if (url.pathname === '/run-digest') {
+      const result = await runWeeklyDigest(env);
+      return json(result, result.ok ? 200 : 500, cors);
+    }
+
     let payload: any;
     try {
       payload = await req.json();
@@ -154,12 +160,6 @@ export default {
         icon: payload?.icon ? String(payload.icon) : undefined,
       }, env.FCM_SERVICE_ACCOUNT);
       return json(result, 200, cors);
-    }
-
-    if (url.pathname === '/run-digest') {
-      // Manual trigger of the weekly digest (also runs automatically via cron).
-      const result = await runWeeklyDigest(env);
-      return json(result, result.ok ? 200 : 500, cors);
     }
 
     return json({ ok: false, error: 'not-found' }, 404, cors);

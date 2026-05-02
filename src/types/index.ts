@@ -139,6 +139,17 @@ export interface CalendarEvent {
   result?: string;
   // RSVPs: { uid: { status, name, respondedAt, forPlayerId? } }
   rsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; forPlayerName?: string }>;
+  // Carpool board: parents post offers ("driving 2 seats from west") or requests ("need ride from south")
+  carpoolPosts?: Array<{
+    id: string;
+    uid: string;
+    name: string;
+    type: 'offer' | 'request';
+    seats?: number;
+    location?: string;
+    note?: string;
+    createdAt: any;
+  }>;
   createdAt: Date;
   updatedAt?: Date;
 }

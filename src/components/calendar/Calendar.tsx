@@ -180,6 +180,48 @@ const Calendar: React.FC<CalendarProps> = ({
     }
   };
 
+  const handleAddCarpoolPost = async (
+    eventId: string,
+    post: { type: 'offer' | 'request'; seats?: number; location?: string; note?: string }
+  ) => {
+    if (!userData) return;
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+    const entry = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      uid: userData.uid,
+      name: userData.name || userData.email || 'Unknown',
+      type: post.type,
+      seats: post.seats,
+      location: post.location,
+      note: post.note,
+      createdAt: new Date(),
+    };
+    const newPosts = [...(ev.carpoolPosts || []), entry];
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, carpoolPosts: newPosts } : e));
+    try {
+      await updateDocument('events', eventId, { carpoolPosts: newPosts });
+    } catch (err) {
+      console.error('Error adding carpool post:', err);
+      setEvents(prev => prev.map(e => e.id === eventId ? ev : e));
+      alert('Failed to post.');
+    }
+  };
+
+  const handleDeleteCarpoolPost = async (eventId: string, postId: string) => {
+    if (!userData) return;
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+    const newPosts = (ev.carpoolPosts || []).filter(p => p.id !== postId);
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, carpoolPosts: newPosts } : e));
+    try {
+      await updateDocument('events', eventId, { carpoolPosts: newPosts });
+    } catch (err) {
+      console.error('Error deleting carpool post:', err);
+      setEvents(prev => prev.map(e => e.id === eventId ? ev : e));
+    }
+  };
+
   const getEventTypeIcon = (type: string) => {
     switch (type) {
       case 'game': return '⚽';
@@ -395,6 +437,8 @@ const Calendar: React.FC<CalendarProps> = ({
                     onEdit={handleEditEvent}
                     onDelete={handleDeleteEvent}
                     onRsvp={handleRsvp}
+                    onAddCarpool={handleAddCarpoolPost}
+                    onDeleteCarpool={handleDeleteCarpoolPost}
                     userUid={userData?.uid}
                     canEdit={isUserCoach && event.createdBy === userData?.uid}
                     isDeleting={deletingIds.has(event.id)}
@@ -420,6 +464,8 @@ const Calendar: React.FC<CalendarProps> = ({
                     onEdit={handleEditEvent}
                     onDelete={handleDeleteEvent}
                     onRsvp={handleRsvp}
+                    onAddCarpool={handleAddCarpoolPost}
+                    onDeleteCarpool={handleDeleteCarpoolPost}
                     userUid={userData?.uid}
                     canEdit={isUserCoach && event.createdBy === userData?.uid}
                     isDeleting={deletingIds.has(event.id)}
@@ -522,6 +568,8 @@ interface EventCardProps {
   onEdit: (event: CalendarEvent) => void;
   onDelete: (eventId: string) => void;
   onRsvp?: (eventId: string, status: 'going' | 'maybe' | 'no') => void;
+  onAddCarpool?: (eventId: string, post: { type: 'offer' | 'request'; seats?: number; location?: string; note?: string }) => void;
+  onDeleteCarpool?: (eventId: string, postId: string) => void;
   userUid?: string;
   canEdit: boolean;
   isDeleting: boolean;
@@ -533,6 +581,8 @@ const EventCard: React.FC<EventCardProps> = ({
   onEdit,
   onDelete,
   onRsvp,
+  onAddCarpool,
+  onDeleteCarpool,
   userUid,
   canEdit,
   isDeleting,
@@ -645,6 +695,7 @@ const EventCard: React.FC<EventCardProps> = ({
         )}
       </div>
       <RsvpBar event={event} userUid={userUid} onRsvp={onRsvp} isPast={isPast} />
+      <CarpoolBar event={event} userUid={userUid} onAdd={onAddCarpool} onDelete={onDeleteCarpool} isPast={isPast} />
     </div>
   );
 };
@@ -740,6 +791,132 @@ const RsvpBar: React.FC<{
               )}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CarpoolBar: React.FC<{
+  event: CalendarEvent;
+  userUid?: string;
+  onAdd?: (eventId: string, post: { type: 'offer' | 'request'; seats?: number; location?: string; note?: string }) => void;
+  onDelete?: (eventId: string, postId: string) => void;
+  isPast?: boolean;
+}> = ({ event, userUid, onAdd, onDelete, isPast }) => {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState<'offer' | 'request'>('offer');
+  const [seats, setSeats] = useState('');
+  const [location, setLocation] = useState('');
+  const [note, setNote] = useState('');
+  if (event.type !== 'game' && event.type !== 'event') return null;
+  const posts = event.carpoolPosts || [];
+  const offerCount = posts.filter(p => p.type === 'offer').length;
+  const requestCount = posts.filter(p => p.type === 'request').length;
+  const submit = () => {
+    if (!onAdd) return;
+    if (!location.trim() && !note.trim()) {
+      alert('Add a pickup area or a note.');
+      return;
+    }
+    onAdd(event.id, {
+      type,
+      seats: seats ? Math.max(0, parseInt(seats, 10) || 0) : undefined,
+      location: location.trim() || undefined,
+      note: note.trim() || undefined,
+    });
+    setSeats(''); setLocation(''); setNote('');
+  };
+  return (
+    <div className="mt-2 pt-2 border-t border-dashed border-gray-100">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between text-xs font-medium text-gray-600 hover:text-gray-800"
+      >
+        <span className="uppercase tracking-wide">🚗 Carpool board</span>
+        <span className="flex items-center gap-2 text-[11px]">
+          <span className="text-emerald-700">{offerCount} offer{offerCount !== 1 ? 's' : ''}</span>
+          <span className="text-amber-700">{requestCount} request{requestCount !== 1 ? 's' : ''}</span>
+          <span className="text-gray-400">{open ? '▲' : '▼'}</span>
+        </span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2">
+          {posts.length === 0 && (
+            <p className="text-xs text-gray-400 italic">No posts yet — be the first.</p>
+          )}
+          {posts.map(p => (
+            <div
+              key={p.id}
+              className={`flex items-start justify-between gap-2 p-2 rounded-lg text-xs ${
+                p.type === 'offer' ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'
+              }`}
+            >
+              <div className="flex-1">
+                <div className="font-semibold text-gray-800">
+                  {p.type === 'offer' ? '🚙 Offering ride' : '🙋 Need ride'} — {p.name}
+                </div>
+                <div className="text-gray-700 mt-0.5">
+                  {p.seats ? `${p.seats} seat${p.seats !== 1 ? 's' : ''}` : ''}
+                  {p.seats && p.location ? ' · ' : ''}
+                  {p.location || ''}
+                </div>
+                {p.note && <div className="text-gray-600 mt-0.5">{p.note}</div>}
+              </div>
+              {userUid === p.uid && onDelete && (
+                <button
+                  onClick={() => onDelete(event.id, p.id)}
+                  className="text-gray-400 hover:text-red-600 text-sm leading-none"
+                  title="Delete"
+                >✕</button>
+              )}
+            </div>
+          ))}
+          {!isPast && userUid && onAdd && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-2">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setType('offer')}
+                  className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
+                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200'
+                  }`}
+                >🚙 Offer</button>
+                <button
+                  onClick={() => setType('request')}
+                  className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
+                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200'
+                  }`}
+                >🙋 Request</button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number" min="0"
+                  placeholder={type === 'offer' ? 'Seats' : 'Riders'}
+                  value={seats}
+                  onChange={e => setSeats(e.target.value)}
+                  className="px-2 py-1 text-xs border border-gray-200 rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="Pickup area"
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                  className="px-2 py-1 text-xs border border-gray-200 rounded"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Optional note (e.g. leaving at 8:30)"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                className="w-full px-2 py-1 text-xs border border-gray-200 rounded"
+              />
+              <button
+                onClick={submit}
+                className="w-full px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded"
+              >Post</button>
+            </div>
+          )}
         </div>
       )}
     </div>

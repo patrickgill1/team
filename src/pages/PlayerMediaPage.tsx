@@ -836,13 +836,18 @@ const PlayerMediaPage: React.FC = () => {
                       onClick={() => setSelectedPlayerId(player.id)}
                       className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === player.id ? 'scale-105' : ''}`}
                     >
-                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-fire-700 to-fire-900 ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-cyan-400' : 'ring-transparent'}`}>
+                      <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-fire-700 to-fire-900 ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-cyan-400' : 'ring-transparent'}`}>
                         {player.profilePhotoUrl ? (
                           <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-white text-xl font-black">
                             {player.jerseyNumber || player.name.charAt(0)}
                           </div>
+                        )}
+                        {player.profilePhotoUrl && player.jerseyNumber != null && (
+                          <span className="absolute -bottom-0.5 -right-0.5 bg-cyan-500 text-gray-950 rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow ring-2 ring-gray-950">
+                            {player.jerseyNumber}
+                          </span>
                         )}
                       </div>
                       <span className="text-xs text-white font-medium mt-2 max-w-[80px] truncate">{player.name.split(' ')[0]}</span>
@@ -916,7 +921,14 @@ const PlayerMediaPage: React.FC = () => {
                       <div key={player.id}>
                         <div className="flex items-center space-x-3 mb-3">
                           {player.profilePhotoUrl ? (
-                            <img src={player.profilePhotoUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-500/30" loading="lazy" />
+                            <div className="relative w-9 h-9">
+                              <img src={player.profilePhotoUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-500/30" loading="lazy" />
+                              {player.jerseyNumber != null && (
+                                <span className="absolute -bottom-1 -right-1 bg-cyan-500 text-gray-950 rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-black ring-1 ring-gray-950">
+                                  {player.jerseyNumber}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <div className="w-9 h-9 bg-gradient-to-br from-fire-700 to-fire-900 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-cyan-500/30">
                               {player.jerseyNumber || player.name.charAt(0)}

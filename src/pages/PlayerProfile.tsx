@@ -217,13 +217,20 @@ const PlayerProfile: React.FC = () => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
           <Link to="/players" className="text-blue-200 hover:text-white text-sm mb-4 inline-block">← Back to Roster</Link>
           <div className="flex items-center space-x-6">
-            {player.profilePhotoUrl ? (
-              <img src={player.profilePhotoUrl} alt={player.name} className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white/30" />
-            ) : (
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30">
-                <span className="text-3xl font-bold">{player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0)}</span>
-              </div>
-            )}
+            <div className="relative">
+              {player.profilePhotoUrl ? (
+                <img src={player.profilePhotoUrl} alt={player.name} className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white/30" />
+              ) : (
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30">
+                  <span className="text-3xl font-bold">{player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0)}</span>
+                </div>
+              )}
+              {player.profilePhotoUrl && player.jerseyNumber != null && (
+                <span className="absolute -bottom-1 -right-1 bg-white text-blue-700 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-blue-700">
+                  #{player.jerseyNumber}
+                </span>
+              )}
+            </div>
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold">{player.name}</h1>
               <div className="flex flex-wrap items-center gap-3 mt-2">

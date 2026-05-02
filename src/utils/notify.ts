@@ -152,17 +152,32 @@ export async function getParentEmailsForPlayer(
 
 const APP_BASE = (typeof window !== 'undefined' && window.location?.origin) || 'https://firefc16.com';
 
-const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111827;line-height:1.5;`;
+const BRAND_NAVY = '#1e3a5f';
+const BRAND_NAVY_DARK = '#122340';
+const LOGO_URL = `${APP_BASE}/images/logo.png`;
+
+const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111827;line-height:1.5;background:#f3f4f6;`;
 
 function wrap(inner: string, footer = ''): string {
-  return `<div style="${baseStyle}max-width:560px;margin:0 auto;padding:24px;">
-    <div style="font-size:20px;font-weight:800;color:#dc2626;margin-bottom:16px;">🔥 Fire FC16</div>
-    ${inner}
-    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-      ${footer}
-      You can change which emails you receive in your profile on Fire FC16.
+  return `<div style="${baseStyle}padding:24px 12px;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+      <div style="background:${BRAND_NAVY};padding:20px 24px;text-align:center;">
+        <img src="${LOGO_URL}" alt="Fire FC16" width="56" height="56" style="display:inline-block;border:0;outline:none;text-decoration:none;" />
+        <div style="color:#ffffff;font-weight:700;font-size:16px;letter-spacing:0.5px;margin-top:8px;">FIRE FC16</div>
+      </div>
+      <div style="padding:24px;">
+        ${inner}
+        <div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
+          ${footer}
+          You can change which emails you receive in your profile on <a href="${APP_BASE}" style="color:${BRAND_NAVY};text-decoration:none;">Fire FC16</a>.
+        </div>
+      </div>
     </div>
   </div>`;
+}
+
+function button(href: string, label: string): string {
+  return `<p style="margin:0 0 16px;"><a href="${href}" style="display:inline-block;background:${BRAND_NAVY};color:#ffffff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;">${label}</a></p>`;
 }
 
 /* ---------------- TEMPLATES ---------------- */
@@ -175,12 +190,10 @@ export function tplDevPlan(opts: {
 }): { subject: string; html: string } {
   const subject = `New development plan for ${opts.playerName}: ${opts.planTitle}`;
   const html = wrap(`
-    <h2 style="font-size:18px;margin:0 0 12px;">New development plan 🎯</h2>
+    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">New development plan 🎯</h2>
     <p style="margin:0 0 12px;">Coach <b>${opts.coachName}</b> just created a development plan for <b>${opts.playerName}</b>.</p>
     <p style="margin:0 0 16px;"><b>${opts.planTitle}</b><br/><span style="color:#6b7280;font-size:14px;">${opts.goalCount} goal${opts.goalCount === 1 ? '' : 's'} to work on</span></p>
-    <p style="margin:0 0 16px;">
-      <a href="${APP_BASE}/player-development" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;">View plan</a>
-    </p>
+    ${button(`${APP_BASE}/development`, 'View plan')}
   `);
   return { subject, html };
 }
@@ -194,12 +207,10 @@ export function tplClipUploaded(opts: {
   const kind = opts.isVideo ? 'video clip' : 'photo';
   const subject = `New ${kind} of ${opts.playerName}`;
   const html = wrap(`
-    <h2 style="font-size:18px;margin:0 0 12px;">${opts.isVideo ? '🎬' : '📸'} New ${kind}</h2>
+    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">${opts.isVideo ? '🎬' : '📸'} New ${kind}</h2>
     <p style="margin:0 0 12px;"><b>${opts.uploaderName}</b> just shared a new ${kind} of <b>${opts.playerName}</b>.</p>
     ${opts.caption ? `<p style="margin:0 0 16px;color:#374151;font-style:italic;">"${opts.caption}"</p>` : ''}
-    <p style="margin:0 0 16px;">
-      <a href="${APP_BASE}/player-media" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;">Open media</a>
-    </p>
+    ${button(`${APP_BASE}/player-media`, 'Open media')}
   `);
   return { subject, html };
 }
@@ -212,11 +223,9 @@ export function tplPotmWin(opts: {
 }): { subject: string; html: string } {
   const subject = `🏆 ${opts.playerName} won Player of the Match!`;
   const html = wrap(`
-    <h2 style="font-size:18px;margin:0 0 12px;">🏆 Player of the Match</h2>
+    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">🏆 Player of the Match</h2>
     <p style="margin:0 0 12px;">Congratulations — <b>${opts.playerName}</b> ${opts.isCoWin ? 'is a co-winner of' : 'won'} Player of the Match for <b>${opts.gameTitle}</b> with ${opts.voteCount} vote${opts.voteCount === 1 ? '' : 's'}!</p>
-    <p style="margin:0 0 16px;">
-      <a href="${APP_BASE}/player-of-match" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:600;">See results</a>
-    </p>
+    ${button(`${APP_BASE}/player-of-match`, 'See results')}
   `);
   return { subject, html };
 }

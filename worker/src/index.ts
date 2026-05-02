@@ -9,17 +9,16 @@
  * Auth: every request needs `Authorization: Bearer <NOTIFY_SECRET>`.
  * The same secret must be set in the React app's env as REACT_APP_NOTIFY_SECRET.
  *
- * Email transport: MailChannels (free from Cloudflare Workers, no API key).
- *   Requires DNS on the sending domain (firefc16.com):
- *     SPF (TXT @): include MailChannels in your existing record.
- *     Domain Lockdown (TXT _mailchannels): "v=mc1 cfid=<your-workers-subdomain>.workers.dev"
- *     DKIM (recommended; see worker/README.md).
+ * Email transport: Resend (https://resend.com). Free tier 3k/month, 100/day.
+ *   Requires a verified domain in Resend with the DNS records they generate
+ *   (SPF/DKIM as TXT in Cloudflare DNS for firefc16.com).
  *
- * Cron: weekly digest fires Sundays 22:00 UTC. Stub for now — wire to Firestore later.
+ * Cron: weekly digest will be added once Firestore wiring is in place.
  */
 
 export interface Env {
   NOTIFY_SECRET: string;
+  RESEND_API_KEY: string;
   FROM_EMAIL: string;
   FROM_NAME: string;
   APP_ORIGIN: string;
@@ -70,31 +69,35 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-async function sendOne(msg: MailMessage, env: Env): Promise<{ ok: boolean; error?: string }> {
+async function sendOne(msg: MailMessage, env: Env): Promise<{ ok: boolean; error?: string; id?: string }> {
   const recipients = Array.isArray(msg.to) ? msg.to : [msg.to];
   const valid = recipients.filter((r) => /.+@.+\..+/.test(r));
   if (valid.length === 0) return { ok: false, error: 'no-valid-recipients' };
 
   const body = {
-    personalizations: [{ to: valid.map((email) => ({ email })) }],
-    from: { email: env.FROM_EMAIL, name: env.FROM_NAME },
-    ...(msg.replyTo ? { reply_to: { email: msg.replyTo } } : {}),
+    from: `${env.FROM_NAME} <${env.FROM_EMAIL}>`,
+    to: valid,
     subject: msg.subject,
-    content: [
-      { type: 'text/plain', value: msg.text || htmlToText(msg.html) },
-      { type: 'text/html', value: msg.html },
-    ],
+    html: msg.html,
+    text: msg.text || htmlToText(msg.html),
+    ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
   };
 
-  const res = await fetch('https://api.mailchannels.net/tx/v1/send', {
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${env.RESEND_API_KEY}`,
+    },
     body: JSON.stringify(body),
   });
 
-  if (res.status >= 200 && res.status < 300) return { ok: true };
+  if (res.status >= 200 && res.status < 300) {
+    const data: any = await res.json().catch(() => ({}));
+    return { ok: true, id: data?.id };
+  }
   const txt = await res.text().catch(() => '');
-  return { ok: false, error: `mailchannels ${res.status}: ${txt.slice(0, 300)}` };
+  return { ok: false, error: `resend ${res.status}: ${txt.slice(0, 300)}` };
 }
 
 export default {

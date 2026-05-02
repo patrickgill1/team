@@ -82,8 +82,18 @@ export const isCoach = (userRole: string): boolean => {
   return userRole === 'coach';
 };
 
-export const isHeadCoach = (user: { role?: string; coachLevel?: string } | null | undefined): boolean => {
+// Hardcoded super-admin (app owner). Can do anything in the UI,
+// regardless of role/coachLevel — including removing other head coaches.
+const OWNER_EMAILS = ['patrickgill4@gmail.com'];
+
+export const isOwner = (user: { email?: string } | null | undefined): boolean => {
+  if (!user?.email) return false;
+  return OWNER_EMAILS.includes(user.email.toLowerCase());
+};
+
+export const isHeadCoach = (user: { role?: string; coachLevel?: string; email?: string } | null | undefined): boolean => {
   if (!user) return false;
+  if (isOwner(user)) return true;
   return user.role === 'coach' && user.coachLevel === 'head_coach';
 };
 

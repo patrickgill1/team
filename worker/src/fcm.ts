@@ -16,6 +16,24 @@ export interface ServiceAccount {
   token_uri?: string;
 }
 
+/**
+ * Parse the FCM_SERVICE_ACCOUNT secret. Accepts either:
+ *   - Raw JSON (multi-line OK)
+ *   - Base64-encoded JSON (recommended — avoids newline issues with `wrangler secret put`)
+ */
+export function parseServiceAccount(raw: string): ServiceAccount {
+  const trimmed = raw.trim();
+  // Try raw JSON first.
+  try { return JSON.parse(trimmed); } catch { /* fall through */ }
+  // Try base64.
+  try {
+    const decoded = atob(trimmed.replace(/\s+/g, ''));
+    return JSON.parse(decoded);
+  } catch {
+    throw new Error('invalid-service-account');
+  }
+}
+
 let cachedTokens: Record<string, { token: string; exp: number }> = {};
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
@@ -102,7 +120,7 @@ export interface PushResult { ok: boolean; sent: number; failed: number; invalid
 export async function sendPush(tokens: string[], msg: PushMessage, serviceAccountJson: string): Promise<PushResult> {
   if (!serviceAccountJson) return { ok: false, sent: 0, failed: tokens.length, invalidTokens: [], errors: ['no-service-account'] };
   let sa: ServiceAccount;
-  try { sa = JSON.parse(serviceAccountJson); }
+  try { sa = parseServiceAccount(serviceAccountJson); }
   catch { return { ok: false, sent: 0, failed: tokens.length, invalidTokens: [], errors: ['bad-json'] }; }
 
   const accessToken = await getAccessToken(sa);

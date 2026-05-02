@@ -10,7 +10,7 @@
  */
 
 import { runQuery, listDocuments, FirestoreDoc } from './firestore';
-import type { ServiceAccount } from './fcm';
+import { parseServiceAccount, type ServiceAccount } from './fcm';
 
 interface DigestEnv {
   RESEND_API_KEY: string;
@@ -156,7 +156,7 @@ export async function runWeeklyDigest(env: DigestEnv): Promise<{ ok: boolean; te
   const errors: string[] = [];
   if (!env.FCM_SERVICE_ACCOUNT) return { ok: false, teams: 0, emails: 0, errors: ['no-service-account'] };
   let sa: ServiceAccount;
-  try { sa = JSON.parse(env.FCM_SERVICE_ACCOUNT); } catch { return { ok: false, teams: 0, emails: 0, errors: ['invalid-service-account'] }; }
+  try { sa = parseServiceAccount(env.FCM_SERVICE_ACCOUNT); } catch { return { ok: false, teams: 0, emails: 0, errors: ['invalid-service-account'] }; }
   const projectId = sa.project_id;
 
   // Load teams + all users (we'll filter parents per team).

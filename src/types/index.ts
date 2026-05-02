@@ -137,6 +137,8 @@ export interface CalendarEvent {
   opponent?: string;
   homeAway?: 'home' | 'away';
   result?: string;
+  // RSVPs: { uid: { status, name, respondedAt, forPlayerId? } }
+  rsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; forPlayerName?: string }>;
   createdAt: Date;
   updatedAt?: Date;
 }

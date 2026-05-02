@@ -106,6 +106,29 @@ const Calendar: React.FC<CalendarProps> = ({
     }
   };
 
+  const handleRsvp = async (eventId: string, status: 'going' | 'maybe' | 'no') => {
+    if (!userData) return;
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+    const newRsvps = {
+      ...(ev.rsvps || {}),
+      [userData.uid]: {
+        status,
+        name: userData.name || userData.email || 'Unknown',
+        respondedAt: new Date(),
+      },
+    };
+    // Optimistic
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, rsvps: newRsvps } : e));
+    try {
+      await updateDocument('events', eventId, { rsvps: newRsvps });
+    } catch (err) {
+      console.error('Error saving RSVP:', err);
+      setEvents(prev => prev.map(e => e.id === eventId ? ev : e));
+      alert('Failed to save RSVP.');
+    }
+  };
+
   const getEventTypeIcon = (type: string) => {
     switch (type) {
       case 'game': return '⚽';
@@ -320,6 +343,8 @@ const Calendar: React.FC<CalendarProps> = ({
                     event={event}
                     onEdit={handleEditEvent}
                     onDelete={handleDeleteEvent}
+                    onRsvp={handleRsvp}
+                    userUid={userData?.uid}
                     canEdit={isUserCoach && event.createdBy === userData?.uid}
                     isDeleting={deletingIds.has(event.id)}
                   />
@@ -343,6 +368,8 @@ const Calendar: React.FC<CalendarProps> = ({
                     event={event}
                     onEdit={handleEditEvent}
                     onDelete={handleDeleteEvent}
+                    onRsvp={handleRsvp}
+                    userUid={userData?.uid}
                     canEdit={isUserCoach && event.createdBy === userData?.uid}
                     isDeleting={deletingIds.has(event.id)}
                     isPast={true}
@@ -443,6 +470,8 @@ interface EventCardProps {
   event: CalendarEvent;
   onEdit: (event: CalendarEvent) => void;
   onDelete: (eventId: string) => void;
+  onRsvp?: (eventId: string, status: 'going' | 'maybe' | 'no') => void;
+  userUid?: string;
   canEdit: boolean;
   isDeleting: boolean;
   isPast?: boolean;
@@ -452,6 +481,8 @@ const EventCard: React.FC<EventCardProps> = ({
   event,
   onEdit,
   onDelete,
+  onRsvp,
+  userUid,
   canEdit,
   isDeleting,
   isPast = false
@@ -553,6 +584,104 @@ const EventCard: React.FC<EventCardProps> = ({
           </div>
         )}
       </div>
+      <RsvpBar event={event} userUid={userUid} onRsvp={onRsvp} isPast={isPast} />
+    </div>
+  );
+};
+
+const RsvpBar: React.FC<{
+  event: CalendarEvent;
+  userUid?: string;
+  onRsvp?: (eventId: string, status: 'going' | 'maybe' | 'no') => void;
+  isPast?: boolean;
+}> = ({ event, userUid, onRsvp, isPast }) => {
+  const [showList, setShowList] = useState<null | 'going' | 'maybe' | 'no'>(null);
+  if (event.type !== 'game' && event.type !== 'practice' && event.type !== 'event') return null;
+  const rsvps = event.rsvps || {};
+  const entries = Object.entries(rsvps);
+  const counts = {
+    going: entries.filter(([, v]: any) => v.status === 'going').length,
+    maybe: entries.filter(([, v]: any) => v.status === 'maybe').length,
+    no: entries.filter(([, v]: any) => v.status === 'no').length,
+  };
+  const my = userUid ? rsvps[userUid]?.status : undefined;
+  const btn = (status: 'going' | 'maybe' | 'no', label: string, icon: string, color: string) => (
+    <button
+      key={status}
+      onClick={() => onRsvp && onRsvp(event.id, status)}
+      disabled={!userUid || isPast}
+      className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+        my === status
+          ? `${color} text-white border-transparent shadow-sm`
+          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+      } disabled:opacity-50 disabled:cursor-not-allowed`}
+    >
+      {icon} {label}
+    </button>
+  );
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+          {isPast ? 'Final RSVPs' : 'Will you be there?'}
+        </span>
+        <div className="flex items-center gap-2 text-xs">
+          <button onClick={() => setShowList('going')} className="text-green-700 font-semibold hover:underline">
+            ✅ {counts.going}
+          </button>
+          <button onClick={() => setShowList('maybe')} className="text-amber-700 font-semibold hover:underline">
+            🤔 {counts.maybe}
+          </button>
+          <button onClick={() => setShowList('no')} className="text-rose-700 font-semibold hover:underline">
+            ❌ {counts.no}
+          </button>
+        </div>
+      </div>
+      {!isPast && (
+        <div className="flex gap-2">
+          {btn('going', 'Going', '✅', 'bg-green-600')}
+          {btn('maybe', 'Maybe', '🤔', 'bg-amber-500')}
+          {btn('no', "Can't", '❌', 'bg-rose-600')}
+        </div>
+      )}
+      {showList && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowList(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800">
+                {showList === 'going' && `✅ Going (${counts.going})`}
+                {showList === 'maybe' && `🤔 Maybe (${counts.maybe})`}
+                {showList === 'no' && `❌ Can't make it (${counts.no})`}
+              </h3>
+              <button onClick={() => setShowList(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {entries.filter(([, v]: any) => v.status === showList).length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-gray-500">No one yet.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {entries
+                    .filter(([, v]: any) => v.status === showList)
+                    .map(([uid, v]: any) => (
+                      <li key={uid} className="px-4 py-2.5 flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                          {(v.name || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm text-gray-800">{v.name || 'Unknown'}</span>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -661,6 +661,15 @@ const EventCard: React.FC<EventCardProps> = ({
                 📅 Add to my calendar
               </button>
             )}
+            {event.type === 'game' && (
+              <a
+                href={`/game-day/${event.id}`}
+                className="inline-flex items-center gap-1.5 mt-2 ml-2 px-2.5 py-1 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 rounded-md shadow-sm transition-colors"
+                title="Open Game Day live tracker"
+              >
+                🎯 Game Day {isPast ? 'recap' : 'live'}
+              </a>
+            )}
           </div>
         </div>
 

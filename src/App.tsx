@@ -34,6 +34,7 @@ const SharedMedia = React.lazy(() => import('./pages/SharedMedia'));
 const PlayerProfile = React.lazy(() => import('./pages/PlayerProfile'));
 const Surveys = React.lazy(() => import('./pages/Surveys'));
 const FullGames = React.lazy(() => import('./pages/FullGames'));
+const GameDay = React.lazy(() => import('./pages/GameDay'));
 
 const PageSpinner = () => (
   <div className="min-h-screen bg-fire-50 flex items-center justify-center">
@@ -251,6 +252,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Calendar />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/game-day/:eventId" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <GameDay />
                 </AppLayout>
               </ProtectedRoute>
             } />

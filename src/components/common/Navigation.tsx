@@ -120,6 +120,7 @@ const Navigation: React.FC = () => {
     { name: 'Stats', path: '/stats', emoji: '📊', group: 'apps' },
     { name: 'News', path: '/news', emoji: '📰', group: 'apps' },
     { name: 'Full Games', path: '/full-games', emoji: '🎬', group: 'apps' },
+    { name: 'Highlights', path: '/highlights', emoji: '✨', group: 'apps' },
     { name: 'Attendance', path: '/attendance', emoji: '✅', group: 'apps' },
     { name: 'Volunteers', path: '/volunteers', emoji: '🤝', group: 'apps' },
     { name: 'Directory', path: '/directory', emoji: '📞', group: 'apps' },

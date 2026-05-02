@@ -30,6 +30,7 @@ const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const PlayerDevelopment = React.lazy(() => import('./pages/PlayerDevelopment'));
 const PlayerMediaPage = React.lazy(() => import('./pages/PlayerMediaPage'));
+const Highlights = React.lazy(() => import('./pages/Highlights'));
 const SharedMedia = React.lazy(() => import('./pages/SharedMedia'));
 const PlayerProfile = React.lazy(() => import('./pages/PlayerProfile'));
 const Surveys = React.lazy(() => import('./pages/Surveys'));
@@ -319,6 +320,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <PlayerMediaPage />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/highlights" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Highlights />
                 </AppLayout>
               </ProtectedRoute>
             } />

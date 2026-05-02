@@ -7,7 +7,7 @@
  *   3. Add `FCM_PROJECT_ID` to wrangler.toml [vars] OR rely on the JSON's project_id.
  */
 
-interface ServiceAccount {
+export interface ServiceAccount {
   type: string;
   project_id: string;
   private_key_id: string;
@@ -16,7 +16,7 @@ interface ServiceAccount {
   token_uri?: string;
 }
 
-let cachedToken: { token: string; exp: number } | null = null;
+let cachedTokens: Record<string, { token: string; exp: number }> = {};
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
   const b64 = pem
@@ -43,15 +43,16 @@ function base64UrlEncode(input: ArrayBuffer | string): string {
   return bin.replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
-async function getAccessToken(sa: ServiceAccount): Promise<string> {
+export async function getAccessToken(sa: ServiceAccount, scope: string = 'https://www.googleapis.com/auth/firebase.messaging'): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  if (cachedToken && cachedToken.exp - 60 > now) return cachedToken.token;
+  const cached = cachedTokens[scope];
+  if (cached && cached.exp - 60 > now) return cached.token;
 
   const tokenUri = sa.token_uri || 'https://oauth2.googleapis.com/token';
   const header = { alg: 'RS256', typ: 'JWT', kid: sa.private_key_id };
   const claim = {
     iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+    scope,
     aud: tokenUri,
     iat: now,
     exp: now + 3600,
@@ -85,7 +86,7 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
     throw new Error(`token exchange failed: ${res.status} ${txt.slice(0, 200)}`);
   }
   const data: any = await res.json();
-  cachedToken = { token: data.access_token, exp: now + (data.expires_in || 3600) };
+  cachedTokens[scope] = { token: data.access_token, exp: now + (data.expires_in || 3600) };
   return data.access_token;
 }
 

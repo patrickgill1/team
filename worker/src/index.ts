@@ -11,6 +11,7 @@
  */
 
 import { sendPush } from './fcm';
+import { runWeeklyDigest } from './digest';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -155,13 +156,19 @@ export default {
       return json(result, 200, cors);
     }
 
+    if (url.pathname === '/run-digest') {
+      // Manual trigger of the weekly digest (also runs automatically via cron).
+      const result = await runWeeklyDigest(env);
+      return json(result, result.ok ? 200 : 500, cors);
+    }
+
     return json({ ok: false, error: 'not-found' }, 404, cors);
   },
 
-  async scheduled(_event: ScheduledEvent, _env: Env, _ctx: ExecutionContext): Promise<void> {
-    // Weekly digest stub. Will be wired up to Firestore in a follow-up commit.
-    // Need: Firebase Admin REST or a callable on the app side that the worker pings,
-    // since workers can't run the firebase-admin SDK directly.
-    console.log('[cron] weekly digest tick — not yet wired');
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    // Weekly digest — enabled via wrangler.toml [triggers] crons.
+    ctx.waitUntil(
+      runWeeklyDigest(env).then(r => console.log('[cron] weekly digest', JSON.stringify(r)))
+    );
   },
 };

@@ -3,6 +3,7 @@ import { Player, GameStat } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoach } from '../../utils/helpers';
+import StatsTrends from './StatsTrends';
 
 interface StatsDisplayProps {
   players: Player[];
@@ -247,6 +248,12 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Trends & streaks */}
+          <StatsTrends
+            stats={playerStats}
+            isKeeper={(selectedPlayerData.position || '').toLowerCase().includes('keeper') || (selectedPlayerData.position || '').toLowerCase().includes('gk')}
+          />
 
           {viewMode === 'overview' ? (
             /* Overview Mode */

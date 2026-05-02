@@ -349,10 +349,10 @@ const EventForm: React.FC<EventFormProps> = ({
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
-      case 'game': return 'bg-red-100 text-red-800 border-red-200';
-      case 'practice': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'event': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'game': return 'border-rose-500 bg-rose-500/10 text-rose-700 ring-2 ring-rose-500/30';
+      case 'practice': return 'border-fire-500 bg-fire-500/10 text-fire-800 ring-2 ring-fire-500/30';
+      case 'event': return 'border-emerald-500 bg-emerald-500/10 text-emerald-700 ring-2 ring-emerald-500/30';
+      default: return 'border-slate-300 bg-slate-100 text-slate-700';
     }
   };
 
@@ -373,16 +373,17 @@ const EventForm: React.FC<EventFormProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-screen overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+    <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto shadow-2xl ring-1 ring-slate-200">
+        <div className="sticky top-0 bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 px-5 sm:px-6 py-4 z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
               {editingEvent ? 'Edit Event' : 'Create New Event'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              className="text-white/70 hover:text-white hover:bg-white/15 rounded-lg p-1 transition"
+              aria-label="Close"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -391,13 +392,13 @@ const EventForm: React.FC<EventFormProps> = ({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
           {/* Event Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
               Event Type *
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2.5">
               {[
                 { value: 'practice', label: 'Practice', icon: '🏃' },
                 { value: 'game', label: 'Game', icon: '⚽' },
@@ -407,14 +408,14 @@ const EventForm: React.FC<EventFormProps> = ({
                   key={value}
                   type="button"
                   onClick={() => setFormData({ ...formData, type: value as any })}
-                  className={`p-3 border-2 rounded-lg transition-all duration-200 ${
+                  className={`p-3 border rounded-xl transition-all ${
                     formData.type === value
                       ? getEventTypeColor(value)
-                      : 'border-gray-200 hover:border-gray-300'
+                      : 'border-slate-200 bg-white hover:border-fire-300 hover:bg-fire-50/40'
                   }`}
                 >
                   <div className="text-2xl mb-1">{icon}</div>
-                  <div className="text-sm font-medium">{label}</div>
+                  <div className="text-xs font-bold">{label}</div>
                 </button>
               ))}
             </div>
@@ -544,7 +545,7 @@ const EventForm: React.FC<EventFormProps> = ({
               const until = new Date(`${formData.recurrenceUntil}T${formData.time || '10:00'}`);
               const count = generateSeriesDates(dt, until, formData.recurrence).length;
               return (
-                <p className="-mt-3 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
+                <p className="-mt-2 text-xs font-semibold text-navy-700 bg-fire-50 border border-fire-200 rounded-lg px-3 py-2">
                   Will create <b>{count}</b> events ({formData.recurrence}). Each can be edited or deleted individually.
                 </p>
               );
@@ -645,10 +646,10 @@ const EventForm: React.FC<EventFormProps> = ({
                       <p className="text-sm text-gray-600 mt-2">{formData.description}</p>
                     )}
                     {weather && (
-                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-medium">
+                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 border border-fire-200 text-navy-700 text-xs font-semibold">
                         <span className="text-base leading-none">{weather.icon}</span>
                         <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
-                        {weather.precipChance > 0 && <span className="text-sky-600">· {weather.precipChance}% rain</span>}
+                        {weather.precipChance > 0 && <span className="text-fire-700">· {weather.precipChance}% rain</span>}
                       </div>
                     )}
                     
@@ -683,22 +684,22 @@ const EventForm: React.FC<EventFormProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex space-x-4 pt-4">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl transition disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+              className="flex-1 bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:shadow transition disabled:opacity-50 flex items-center justify-center"
             >
               {isSubmitting ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/40 border-t-white"></div>
               ) : (
                 editingEvent ? 'Update Event' : 'Create Event'
               )}

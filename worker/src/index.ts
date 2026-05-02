@@ -2,19 +2,15 @@
  * Fire FC16 mailer — Cloudflare Worker
  *
  * Endpoints:
- *   POST /send         { to, subject, html, text? }            single
+ *   POST /send         { to, subject, html, text? }            single email
  *   POST /send-batch   { messages: [{ to, subject, html, text? }] }
+ *   POST /send-push    { tokens: string[], title, body, url?, icon? }
  *   GET  /health
  *
  * Auth: every request needs `Authorization: Bearer <NOTIFY_SECRET>`.
- * The same secret must be set in the React app's env as REACT_APP_NOTIFY_SECRET.
- *
- * Email transport: Resend (https://resend.com). Free tier 3k/month, 100/day.
- *   Requires a verified domain in Resend with the DNS records they generate
- *   (SPF/DKIM as TXT in Cloudflare DNS for firefc16.com).
- *
- * Cron: weekly digest will be added once Firestore wiring is in place.
  */
+
+import { sendPush } from './fcm';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -23,6 +19,7 @@ export interface Env {
   FROM_NAME: string;
   APP_ORIGIN: string;
   ALLOWED_ORIGINS: string;
+  FCM_SERVICE_ACCOUNT?: string;
 }
 
 interface MailMessage {
@@ -140,6 +137,22 @@ export default {
       const results = await Promise.all(messages.map((m) => sendOne(m, env)));
       const sent = results.filter((r) => r.ok).length;
       return json({ ok: true, sent, failed: results.length - sent, results }, 200, cors);
+    }
+
+    if (url.pathname === '/send-push') {
+      if (!env.FCM_SERVICE_ACCOUNT) return json({ ok: false, error: 'fcm-not-configured' }, 503, cors);
+      const tokens: string[] = Array.isArray(payload?.tokens) ? payload.tokens.filter((t: any) => typeof t === 'string' && t.length > 10) : [];
+      const title: string = String(payload?.title || '').slice(0, 200);
+      const body: string  = String(payload?.body  || '').slice(0, 500);
+      if (tokens.length === 0) return json({ ok: false, error: 'no-tokens' }, 400, cors);
+      if (!title) return json({ ok: false, error: 'no-title' }, 400, cors);
+      if (tokens.length > 500) return json({ ok: false, error: 'too-many' }, 400, cors);
+      const result = await sendPush(tokens, {
+        title, body,
+        url: payload?.url ? String(payload.url) : undefined,
+        icon: payload?.icon ? String(payload.icon) : undefined,
+      }, env.FCM_SERVICE_ACCOUNT);
+      return json(result, 200, cors);
     }
 
     return json({ ok: false, error: 'not-found' }, 404, cors);

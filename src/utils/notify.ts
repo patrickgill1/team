@@ -150,6 +150,51 @@ export async function getParentEmailsForPlayer(
   }
 }
 
+/**
+ * Send a Web Push notification to a list of user UIDs (looks up their saved
+ * fcmTokens). Silent no-op if push isn't configured. Honors emailPreferences
+ * via the same prefKey when provided.
+ */
+export async function sendPushToUsers(
+  userIds: string[],
+  msg: { title: string; body: string; url?: string },
+  opts?: { prefKey?: EmailPrefKey }
+): Promise<boolean> {
+  if (!configured()) return false;
+  if (!userIds || userIds.length === 0) return false;
+  try {
+    const tokens: string[] = [];
+    const seen = new Set<string>();
+    for (const uid of userIds) {
+      try {
+        const uSnap = await getDoc(doc(db, 'users', uid));
+        if (!uSnap.exists()) continue;
+        const u: any = uSnap.data();
+        if (u.isActive === false) continue;
+        if (opts?.prefKey) {
+          const prefs: EmailPreferences = { ...DEFAULT_EMAIL_PREFS, ...(u.emailPreferences || {}) };
+          if (!prefs[opts.prefKey]) continue;
+        }
+        const arr: string[] = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
+        for (const t of arr) {
+          if (typeof t === 'string' && t && !seen.has(t)) { seen.add(t); tokens.push(t); }
+        }
+      } catch { /* ignore */ }
+    }
+    if (tokens.length === 0) return false;
+    const res = await fetch(`${NOTIFY_URL}/send-push`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
+      body: JSON.stringify({ tokens, title: msg.title, body: msg.body, url: msg.url }),
+    });
+    return res.ok;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[notify] push send threw', err);
+    return false;
+  }
+}
+
 const APP_BASE = (typeof window !== 'undefined' && window.location?.origin) || 'https://firefc16.com';
 
 const BRAND_NAVY = '#1e3a5f';

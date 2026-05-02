@@ -42,6 +42,7 @@ const PlayerDevelopment: React.FC = () => {
 
   // Create plan form
   const [planPlayerId, setPlanPlayerId] = useState('');
+  const [bulkPlayerIds, setBulkPlayerIds] = useState<string[]>([]);
   const [planTitle, setPlanTitle] = useState('');
   const [planDescription, setPlanDescription] = useState('');
   const [planCategory, setPlanCategory] = useState<DevelopmentPlan['category']>('technical');
@@ -95,63 +96,81 @@ const PlayerDevelopment: React.FC = () => {
   };
 
   const handleCreatePlan = async () => {
-    if (!userData || !planPlayerId || !planTitle.trim()) return;
+    if (!userData || !planTitle.trim()) return;
 
-    const player = players.find(p => p.id === planPlayerId);
-    if (!player) return;
+    // Bulk mode: create one plan per selected player. Single mode: use planPlayerId.
+    const targetIds: string[] = bulkPlayerIds.length > 0 ? bulkPlayerIds : (planPlayerId ? [planPlayerId] : []);
+    if (targetIds.length === 0) { alert('Please select at least one player.'); return; }
 
-    const goals: DevelopmentGoal[] = planGoals
-      .filter(g => g.title.trim())
-      .map((g, i) => ({
+    const baseGoalsTpl = planGoals.filter(g => g.title.trim());
+    if (baseGoalsTpl.length === 0) { alert('Please add at least one goal to the plan.'); return; }
+
+    let createdCount = 0;
+    let failedCount = 0;
+    const baseTime = Date.now();
+
+    for (let pi = 0; pi < targetIds.length; pi++) {
+      const pid = targetIds[pi];
+      const player = players.find(p => p.id === pid);
+      if (!player) { failedCount++; continue; }
+
+      // Fresh goal IDs per plan so each player has independent objects
+      const goals: DevelopmentGoal[] = baseGoalsTpl.map((g, i) => ({
         ...g,
-        id: `goal_${Date.now()}_${i}`,
+        id: `goal_${baseTime}_${pi}_${i}`,
         playerCompleted: false,
         coachVerified: false,
         readyForReview: false,
         order: i,
       }));
 
-    if (goals.length === 0) {
-      alert('Please add at least one goal to the plan.');
-      return;
+      try {
+        await addDevelopmentPlan({
+          playerId: pid,
+          playerName: player.name,
+          teamId: selectedTeamId,
+          title: planTitle.trim(),
+          description: planDescription.trim() || undefined,
+          category: planCategory,
+          goals,
+          status: 'active',
+          createdBy: userData.uid,
+          createdByName: userData.name,
+          updatedAt: new Date(),
+        });
+        createdCount++;
+
+        // Email parents per player (fire-and-forget)
+        try {
+          const { getParentEmailsForPlayer, tplDevPlan, sendEmailBatch } = await import('../utils/notify');
+          const parents = await getParentEmailsForPlayer(pid, 'devPlan');
+          if (parents.length > 0) {
+            const { subject, html } = tplDevPlan({
+              playerName: player.name,
+              planTitle: planTitle.trim(),
+              goalCount: goals.length,
+              coachName: userData.name,
+            });
+            sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
+          }
+        } catch (e) { console.warn('dev plan email failed', e); }
+      } catch (error) {
+        console.error('Error creating development plan for', pid, error);
+        failedCount++;
+      }
     }
 
-    try {
-      await addDevelopmentPlan({
-        playerId: planPlayerId,
-        playerName: player.name,
-        teamId: selectedTeamId,
-        title: planTitle.trim(),
-        description: planDescription.trim() || undefined,
-        category: planCategory,
-        goals,
-        status: 'active',
-        createdBy: userData.uid,
-        createdByName: userData.name,
-        updatedAt: new Date(),
-      });
-
-      // Email parents (fire-and-forget; failures don't block UI)
-      try {
-        const { getParentEmailsForPlayer, tplDevPlan, sendEmailBatch } = await import('../utils/notify');
-        const parents = await getParentEmailsForPlayer(planPlayerId, 'devPlan');
-        if (parents.length > 0) {
-          const { subject, html } = tplDevPlan({
-            playerName: player.name,
-            planTitle: planTitle.trim(),
-            goalCount: goals.length,
-            coachName: userData.name,
-          });
-          sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
-        }
-      } catch (e) { console.warn('dev plan email failed', e); }
-
+    if (createdCount > 0 && failedCount === 0) {
       resetCreateForm();
       setShowCreateModal(false);
       loadData();
-    } catch (error) {
-      console.error('Error creating development plan:', error);
-      alert('Failed to create plan. Please try again.');
+    } else if (createdCount > 0 && failedCount > 0) {
+      alert(`Created ${createdCount} plan(s), but ${failedCount} failed. Refreshing…`);
+      resetCreateForm();
+      setShowCreateModal(false);
+      loadData();
+    } else {
+      alert('Failed to create plan(s). Please try again.');
     }
   };
 
@@ -292,6 +311,7 @@ const PlayerDevelopment: React.FC = () => {
     resetCreateForm();
     setPrefillPlayerId(plan.playerId);
     setPlanPlayerId(plan.playerId);
+    setBulkPlayerIds([plan.playerId]);
     setPlanCategory(plan.category);
     setShowCreateModal(true);
   };
@@ -384,6 +404,7 @@ const PlayerDevelopment: React.FC = () => {
 
   const resetCreateForm = () => {
     setPlanPlayerId('');
+    setBulkPlayerIds([]);
     setPlanTitle('');
     setPlanDescription('');
     setPlanCategory('technical');
@@ -414,6 +435,45 @@ const PlayerDevelopment: React.FC = () => {
     if (plan.goals.length === 0) return 0;
     return Math.round((plan.goals.filter(g => g.coachVerified).length / plan.goals.length) * 100);
   };
+
+  // — Streak: per player, count of most-recent consecutive coach-verified goals across all their plans.
+  // A goal is considered "attempted" once it has a playerCompletedAt OR coachVerifiedAt timestamp.
+  // Walk attempts most-recent-first; count while coachVerified === true; stop at first miss.
+  const playerStreaks = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    const byPlayer: Record<string, { verified: boolean; t: number }[]> = {};
+    for (const pl of plans) {
+      for (const g of pl.goals) {
+        const verifiedAt: any = (g as any).coachVerifiedAt;
+        const playerAt: any = (g as any).playerCompletedAt;
+        const tRaw = verifiedAt || playerAt;
+        if (!tRaw) continue;
+        const t = tRaw?.toDate ? tRaw.toDate().getTime() : new Date(tRaw).getTime();
+        if (Number.isNaN(t)) continue;
+        (byPlayer[pl.playerId] = byPlayer[pl.playerId] || []).push({ verified: !!g.coachVerified, t });
+      }
+    }
+    for (const pid in byPlayer) {
+      const arr = byPlayer[pid].sort((a, b) => b.t - a.t);
+      let n = 0;
+      for (const item of arr) { if (item.verified) n++; else break; }
+      map[pid] = n;
+    }
+    return map;
+  }, [plans]);
+
+  const topStreak = React.useMemo(() => {
+    let best: { playerId: string; name: string; streak: number } | null = null;
+    for (const pid in playerStreaks) {
+      const s = playerStreaks[pid];
+      if (s <= 0) continue;
+      if (!best || s > best.streak) {
+        const player = players.find(p => p.id === pid);
+        best = { playerId: pid, name: player?.name || 'Player', streak: s };
+      }
+    }
+    return best;
+  }, [playerStreaks, players]);
 
   // For parents: find plans related to their children
   const getVisiblePlans = () => {
@@ -485,7 +545,7 @@ const PlayerDevelopment: React.FC = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="text-2xl font-bold text-blue-600">{activePlans.length}</div>
             <div className="text-sm text-gray-600">Active Plans</div>
@@ -497,6 +557,22 @@ const PlayerDevelopment: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="text-2xl font-bold text-gray-600">{isUserCoach ? players.length : visiblePlayers.length}</div>
             <div className="text-sm text-gray-600">{isUserCoach ? 'Total Players' : 'My Children'}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            {topStreak ? (
+              <>
+                <div className="text-2xl font-bold text-orange-600 flex items-center gap-1">
+                  <span>🔥</span>
+                  <span>{topStreak.streak}</span>
+                </div>
+                <div className="text-sm text-gray-600 truncate">Top streak — {topStreak.name}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-gray-300">—</div>
+                <div className="text-sm text-gray-600">Top streak</div>
+              </>
+            )}
           </div>
         </div>
 
@@ -553,6 +629,7 @@ const PlayerDevelopment: React.FC = () => {
                   getProgressPercentage={getProgressPercentage}
                   canPlayerComplete={!isUserCoach}
                   canLogPractice={true}
+                  streak={playerStreaks[plan.playerId] || 0}
                 />
               ))}
             </div>
@@ -586,6 +663,7 @@ const PlayerDevelopment: React.FC = () => {
                   getProgressPercentage={getProgressPercentage}
                   canPlayerComplete={false}
                   canLogPractice={false}
+                  streak={playerStreaks[plan.playerId] || 0}
                 />
               ))}
             </div>
@@ -612,18 +690,71 @@ const PlayerDevelopment: React.FC = () => {
                 <h2 className="text-xl font-bold text-gray-900 mb-4">{editingPlanId ? 'Edit Development Plan' : 'Create Development Plan'}</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Player *</label>
-                    <select
-                      value={planPlayerId}
-                      onChange={e => setPlanPlayerId(e.target.value)}
-                      disabled={!!editingPlanId}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    >
-                      <option value="">Select player...</option>
-                      {players.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} {p.jerseyNumber ? `(#${p.jerseyNumber})` : ''}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700">
+                        {editingPlanId ? 'Player *' : `Players * ${bulkPlayerIds.length > 0 ? `(${bulkPlayerIds.length} selected)` : ''}`}
+                      </label>
+                      {!editingPlanId && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => { setBulkPlayerIds(players.map(p => p.id)); setPlanPlayerId(''); }}
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >Select all</button>
+                          <span className="text-gray-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => { setBulkPlayerIds([]); setPlanPlayerId(''); }}
+                            className="text-gray-600 hover:text-gray-800 font-medium"
+                          >Clear</button>
+                        </div>
+                      )}
+                    </div>
+                    {editingPlanId ? (
+                      <select
+                        value={planPlayerId}
+                        onChange={e => setPlanPlayerId(e.target.value)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                      >
+                        <option value="">Select player...</option>
+                        {players.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} {p.jerseyNumber ? `(#${p.jerseyNumber})` : ''}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-gray-50">
+                          {players.length === 0 && (
+                            <div className="col-span-full text-center text-sm text-gray-500 py-4">No players on this team yet.</div>
+                          )}
+                          {players.map(p => {
+                            const checked = bulkPlayerIds.includes(p.id);
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => {
+                                  setPlanPlayerId('');
+                                  setBulkPlayerIds(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id]);
+                                }}
+                                className={`text-left px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${checked
+                                  ? 'bg-blue-600 border-blue-600 text-white'
+                                  : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'}`}
+                              >
+                                <span className="inline-block w-5">{checked ? '✓' : ''}</span>
+                                {p.jerseyNumber ? `#${p.jerseyNumber} ` : ''}{p.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {bulkPlayerIds.length > 1 && (
+                          <p className="mt-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
+                            Will create <b>{bulkPlayerIds.length}</b> identical plans — one per selected player. Each plan tracks progress independently.
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Plan Title *</label>
@@ -822,10 +953,10 @@ const PlayerDevelopment: React.FC = () => {
                   </button>
                   <button
                     onClick={editingPlanId ? handleUpdatePlan : handleCreatePlan}
-                    disabled={!planPlayerId || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
+                    disabled={(editingPlanId ? !planPlayerId : (bulkPlayerIds.length === 0 && !planPlayerId)) || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {editingPlanId ? 'Save Changes' : 'Create Plan'}
+                    {editingPlanId ? 'Save Changes' : (bulkPlayerIds.length > 1 ? `Create ${bulkPlayerIds.length} Plans` : 'Create Plan')}
                   </button>
                 </div>
               </div>
@@ -858,12 +989,13 @@ interface PlanCardProps {
   getProgressPercentage: (plan: DevelopmentPlan) => number;
   canPlayerComplete: boolean;
   canLogPractice: boolean;
+  streak?: number;
 }
 
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
   onCoachNote, onReadyForReview, onAddPracticeLog, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan,
-  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice
+  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak
 }) => {
   const progress = getProgressPercentage(plan);
   const playerProgress = plan.goals.length > 0
@@ -920,6 +1052,11 @@ const PlanCard: React.FC<PlanCardProps> = ({
                 {readyForReviewCount > 0 && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 animate-pulse">
                     🔔 {readyForReviewCount} ready for review
+                  </span>
+                )}
+                {typeof streak === 'number' && streak >= 2 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 font-semibold" title={`${streak} consecutive verified goals`}>
+                    🔥 {streak} streak
                   </span>
                 )}
               </div>

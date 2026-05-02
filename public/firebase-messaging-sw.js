@@ -10,12 +10,12 @@ importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-comp
 // NOTE: keep these in sync with src/utils/firebase.ts.
 // They are the same values exposed via REACT_APP_FIREBASE_* env vars.
 firebase.initializeApp({
-  apiKey: 'REPLACE_WITH_API_KEY',
-  authDomain: 'REPLACE_WITH_AUTH_DOMAIN',
-  projectId: 'REPLACE_WITH_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_STORAGE_BUCKET',
-  messagingSenderId: 'REPLACE_WITH_SENDER_ID',
-  appId: 'REPLACE_WITH_APP_ID',
+  apiKey: 'AIzaSyCzwhp8OWzSdBTBSTkVaeYglKxcCjjrrCA',
+  authDomain: 'soccer-team-app-7f6b4.firebaseapp.com',
+  projectId: 'soccer-team-app-7f6b4',
+  storageBucket: 'soccer-team-app-7f6b4.firebasestorage.app',
+  messagingSenderId: '320764293456',
+  appId: '1:320764293456:web:efe8ed6f26fa85992f3c55',
 });
 
 const messaging = firebase.messaging();

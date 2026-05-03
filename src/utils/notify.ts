@@ -274,3 +274,26 @@ export function tplPotmWin(opts: {
   `);
   return { subject, html };
 }
+
+export function tplCoachWhisper(opts: {
+  playerName: string;
+  coachName: string;
+  message: string;
+  clipUrl?: string;
+  clipCaption?: string;
+  recentDevPlanTitle?: string;
+}): { subject: string; html: string } {
+  const subject = `A note from Coach ${opts.coachName} about ${opts.playerName}`;
+  const safeMsg = (opts.message || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+  const html = wrap(`
+    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">💬 A note about ${opts.playerName}</h2>
+    <p style="margin:0 0 12px;color:#374151;">From <b>Coach ${opts.coachName}</b>:</p>
+    <div style="margin:0 0 16px;padding:14px 16px;background:#f0f9ff;border-left:3px solid ${BRAND_NAVY};border-radius:6px;color:#0c4a6e;font-size:15px;line-height:1.55;">
+      ${safeMsg}
+    </div>
+    ${opts.recentDevPlanTitle ? `<p style="margin:0 0 12px;font-size:13px;color:#6b7280;">Active development plan: <b style="color:#374151;">${opts.recentDevPlanTitle}</b></p>` : ''}
+    ${opts.clipUrl ? `<p style="margin:0 0 12px;font-size:13px;color:#6b7280;">📎 Recent highlight ${opts.clipCaption ? `— "${opts.clipCaption}"` : ''}: <a href="${opts.clipUrl}" style="color:${BRAND_NAVY};">watch clip</a></p>` : ''}
+    ${button(`${APP_BASE}/players`, `Open ${opts.playerName}'s profile`)}
+  `);
+  return { subject, html };
+}

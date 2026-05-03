@@ -34,9 +34,24 @@ interface LiveGameDoc {
   clockOffsetSeconds?: number;  // accumulated seconds from previous periods
   period?: 1 | 2 | 'OT';
   timeline: TimelineEntry[];
+  lineup?: LineupState;
   updatedAt?: any;
   startedBy?: string;
   startedByName?: string;
+}
+
+interface OnFieldSlot {
+  playerId: string;
+  enteredAtSec: number; // game-clock seconds when this player came on
+}
+
+interface LineupState {
+  onField: OnFieldSlot[];
+  benchIds: string[];
+  minutes: Record<string, number>; // accumulated seconds (does NOT include current shift)
+  shiftSeconds: number;            // rotation bell interval
+  lastBellAtSec?: number;          // game-clock seconds when bell last rang
+  bellEnabled?: boolean;
 }
 
 const KIND_META: Record<StatKind, { label: string; emoji: string; color: string }> = {
@@ -266,6 +281,123 @@ const GameDay: React.FC = () => {
     await patch(update);
   };
 
+  // ─── LINEUP / SUBS ──────────────────────────────────────────────────────
+  const lineup: LineupState = game?.lineup || {
+    onField: [],
+    benchIds: [],
+    minutes: {},
+    shiftSeconds: 300,
+    bellEnabled: true,
+  };
+  const onFieldIds = new Set(lineup.onField.map(s => s.playerId));
+  const minutesFor = (pid: string): number => {
+    const base = lineup.minutes?.[pid] || 0;
+    const slot = lineup.onField.find(s => s.playerId === pid);
+    if (!slot) return base;
+    if (game?.status !== 'live') return base;
+    return base + Math.max(0, liveSeconds - slot.enteredAtSec);
+  };
+
+  const persistLineup = async (next: LineupState, syncTimeline?: TimelineEntry) => {
+    await ensureGameDoc();
+    const update: any = { lineup: next };
+    if (syncTimeline) update.timeline = [...(game?.timeline || []), syncTimeline];
+    await patch(update);
+  };
+
+  const initRosterToBench = async () => {
+    if (lineup.onField.length || lineup.benchIds.length) return;
+    const next: LineupState = {
+      ...lineup,
+      benchIds: players.map(p => p.id),
+    };
+    await persistLineup(next);
+  };
+
+  const subOn = async (playerId: string) => {
+    if (onFieldIds.has(playerId)) return;
+    const next: LineupState = {
+      ...lineup,
+      onField: [...lineup.onField, { playerId, enteredAtSec: liveSeconds }],
+      benchIds: lineup.benchIds.filter(id => id !== playerId),
+    };
+    const p = players.find(x => x.id === playerId);
+    const entry: TimelineEntry = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      at: Date.now(), minute, kind: 'sub',
+      playerId, playerName: p?.name, jerseyNumber: p?.jerseyNumber,
+      note: 'on',
+      recordedBy: userData?.uid, recordedByName: userData?.name || 'Coach',
+    };
+    await persistLineup(next, entry);
+  };
+
+  const subOff = async (playerId: string) => {
+    const slot = lineup.onField.find(s => s.playerId === playerId);
+    if (!slot) return;
+    const accrued = game?.status === 'live' ? Math.max(0, liveSeconds - slot.enteredAtSec) : 0;
+    const next: LineupState = {
+      ...lineup,
+      onField: lineup.onField.filter(s => s.playerId !== playerId),
+      benchIds: [...lineup.benchIds, playerId],
+      minutes: {
+        ...(lineup.minutes || {}),
+        [playerId]: (lineup.minutes?.[playerId] || 0) + accrued,
+      },
+    };
+    const p = players.find(x => x.id === playerId);
+    const entry: TimelineEntry = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      at: Date.now(), minute, kind: 'sub',
+      playerId, playerName: p?.name, jerseyNumber: p?.jerseyNumber,
+      note: 'off',
+      recordedBy: userData?.uid, recordedByName: userData?.name || 'Coach',
+    };
+    await persistLineup(next, entry);
+  };
+
+  const setShiftSeconds = async (sec: number) => {
+    await persistLineup({ ...lineup, shiftSeconds: sec, lastBellAtSec: liveSeconds });
+  };
+  const toggleBell = async () => {
+    await persistLineup({ ...lineup, bellEnabled: !lineup.bellEnabled, lastBellAtSec: liveSeconds });
+  };
+  const acknowledgeBell = async () => {
+    await persistLineup({ ...lineup, lastBellAtSec: liveSeconds });
+  };
+
+  // Bell trigger
+  const bellAlerted = useRef<number>(0);
+  useEffect(() => {
+    if (!isUserCoach) return;
+    if (game?.status !== 'live') return;
+    if (!lineup.bellEnabled) return;
+    const since = liveSeconds - (lineup.lastBellAtSec || 0);
+    if (since >= lineup.shiftSeconds && bellAlerted.current !== Math.floor(liveSeconds / lineup.shiftSeconds)) {
+      bellAlerted.current = Math.floor(liveSeconds / lineup.shiftSeconds);
+      try { (navigator as any).vibrate && (navigator as any).vibrate([200, 80, 200, 80, 400]); } catch {}
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('🔔 Time to rotate!', { body: `Shift complete (${lineup.shiftSeconds / 60} min)`, tag: 'gameday-bell' });
+        }
+      } catch {}
+    }
+  }, [liveSeconds, lineup.shiftSeconds, lineup.lastBellAtSec, lineup.bellEnabled, game?.status, isUserCoach]);
+
+  useEffect(() => {
+    if (!isUserCoach) return;
+    if ('Notification' in window && Notification.permission === 'default') {
+      try { Notification.requestPermission(); } catch {}
+    }
+  }, [isUserCoach]);
+
+  // Suggested next sub: bench player with fewest minutes
+  const suggestedNext = useMemo(() => {
+    if (lineup.benchIds.length === 0) return null;
+    const sorted = [...lineup.benchIds].sort((a, b) => minutesFor(a) - minutesFor(b));
+    return sorted[0];
+  }, [lineup.benchIds, lineup.minutes, lineup.onField, liveSeconds]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -370,6 +502,130 @@ const GameDay: React.FC = () => {
                 </button>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Lineup & Subs (coaches only) */}
+        {isUserCoach && status !== 'final' && (
+          <section className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs uppercase tracking-wider text-white/60 font-bold">Lineup &amp; Subs</h3>
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="text-white/40">Shift</span>
+                <select
+                  value={lineup.shiftSeconds}
+                  onChange={e => setShiftSeconds(parseInt(e.target.value, 10))}
+                  className="bg-white/10 ring-1 ring-white/20 rounded px-1.5 py-0.5 text-white text-[11px]"
+                >
+                  <option value={180}>3 min</option>
+                  <option value={300}>5 min</option>
+                  <option value={420}>7 min</option>
+                  <option value={600}>10 min</option>
+                </select>
+                <button
+                  onClick={toggleBell}
+                  className={`px-2 py-0.5 rounded font-semibold ${lineup.bellEnabled ? 'bg-emerald-600/30 text-emerald-200 ring-1 ring-emerald-500/50' : 'bg-white/10 text-white/50 ring-1 ring-white/20'}`}
+                  title="Toggle rotation bell"
+                >🔔 {lineup.bellEnabled ? 'On' : 'Off'}</button>
+              </div>
+            </div>
+
+            {/* Bell countdown */}
+            {game?.status === 'live' && lineup.bellEnabled && (
+              <div className="mb-3">
+                {(() => {
+                  const remaining = Math.max(0, lineup.shiftSeconds - (liveSeconds - (lineup.lastBellAtSec || 0)));
+                  const pct = Math.min(100, ((lineup.shiftSeconds - remaining) / lineup.shiftSeconds) * 100);
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] text-white/60 mb-1">
+                        <span>Next rotation in {formatClock(remaining)}</span>
+                        <button onClick={acknowledgeBell} className="text-cyan-300 hover:text-cyan-200">Reset</button>
+                      </div>
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Quick init */}
+            {lineup.onField.length === 0 && lineup.benchIds.length === 0 && (
+              <button
+                onClick={initRosterToBench}
+                className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-semibold text-sm"
+              >Load roster to bench</button>
+            )}
+
+            {(lineup.onField.length > 0 || lineup.benchIds.length > 0) && (
+              <div className="grid grid-cols-2 gap-3">
+                {/* On field */}
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold mb-1.5">On Field ({lineup.onField.length})</div>
+                  <div className="space-y-1.5">
+                    {lineup.onField.map(slot => {
+                      const p = players.find(pp => pp.id === slot.playerId);
+                      if (!p) return null;
+                      const mins = Math.floor(minutesFor(slot.playerId) / 60);
+                      return (
+                        <button
+                          key={slot.playerId}
+                          onClick={() => subOff(slot.playerId)}
+                          className="w-full flex items-center gap-2 p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 ring-1 ring-emerald-500/30 text-left"
+                          title="Tap to sub OFF"
+                        >
+                          <span className="w-7 h-7 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">
+                            {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-xs font-semibold truncate">{p.name}</span>
+                            <span className="block text-[10px] text-emerald-300 tabular-nums">{mins} min</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {lineup.onField.length === 0 && <div className="text-[11px] text-white/40 italic px-1">No one on the field.</div>}
+                  </div>
+                </div>
+
+                {/* Bench (sorted by least minutes) */}
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-amber-400 font-bold mb-1.5">Bench ({lineup.benchIds.length})</div>
+                  <div className="space-y-1.5">
+                    {[...lineup.benchIds]
+                      .sort((a, b) => minutesFor(a) - minutesFor(b))
+                      .map(pid => {
+                        const p = players.find(pp => pp.id === pid);
+                        if (!p) return null;
+                        const mins = Math.floor(minutesFor(pid) / 60);
+                        const isNext = pid === suggestedNext;
+                        return (
+                          <button
+                            key={pid}
+                            onClick={() => subOn(pid)}
+                            className={`w-full flex items-center gap-2 p-1.5 rounded-lg ring-1 text-left ${isNext ? 'bg-amber-500/15 ring-amber-500/50 hover:bg-amber-500/25' : 'bg-white/5 ring-white/10 hover:bg-white/10'}`}
+                            title="Tap to sub ON"
+                          >
+                            <span className={`w-7 h-7 rounded-full text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 ${isNext ? 'bg-amber-600' : 'bg-slate-600'}`}>
+                              {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-xs font-semibold truncate flex items-center gap-1">
+                                {p.name}
+                                {isNext && <span className="text-[9px] bg-amber-600 px-1 rounded text-white">NEXT</span>}
+                              </span>
+                              <span className="block text-[10px] text-white/50 tabular-nums">{mins} min</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    {lineup.benchIds.length === 0 && <div className="text-[11px] text-white/40 italic px-1">Bench empty.</div>}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         )}
 

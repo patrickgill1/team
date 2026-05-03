@@ -6,6 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { Player, PlayerMedia, DevelopmentPlan } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import { where } from 'firebase/firestore';
+import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 
 interface MatchVoting {
   id: string;
@@ -33,6 +34,7 @@ const PlayerProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
   const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
+  const [showWhisper, setShowWhisper] = useState(false);
 
   useEffect(() => {
     if (playerId && selectedTeamId) loadProfile();
@@ -238,6 +240,15 @@ const PlayerProfile: React.FC = () => {
                 {player.position && <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">{player.position}</span>}
                 {age && <span className="text-blue-200 text-sm">Age {age}</span>}
               </div>
+              {userData && isCoach(userData.role) && (
+                <button
+                  onClick={() => setShowWhisper(true)}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-semibold ring-1 ring-white/20"
+                  title="Send a private note to this player's parents"
+                >
+                  💬 Parent Whisper
+                </button>
+              )}
             </div>
           </div>
 
@@ -703,6 +714,16 @@ const PlayerProfile: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showWhisper && (
+        <ParentWhisperModal
+          isOpen={showWhisper}
+          onClose={() => setShowWhisper(false)}
+          player={player}
+          recentMedia={recentMedia}
+          activePlans={activePlans}
+        />
       )}
     </div>
   );

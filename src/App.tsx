@@ -36,6 +36,7 @@ const PlayerProfile = React.lazy(() => import('./pages/PlayerProfile'));
 const Surveys = React.lazy(() => import('./pages/Surveys'));
 const FullGames = React.lazy(() => import('./pages/FullGames'));
 const GameDay = React.lazy(() => import('./pages/GameDay'));
+const QuickGameLauncher = React.lazy(() => import('./pages/QuickGameLauncher'));
 const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder'));
 
 const PageSpinner = () => (
@@ -262,6 +263,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <GameDay />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/game-day" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <QuickGameLauncher />
                 </AppLayout>
               </ProtectedRoute>
             } />

@@ -5,9 +5,10 @@ import { doc, getDoc, onSnapshot, setDoc, updateDoc, serverTimestamp } from 'fir
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
+import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
 
-type StatKind = 'goal' | 'assist' | 'save' | 'yellow' | 'red' | 'sub' | 'note';
+type StatKind = 'goal' | 'owngoal' | 'assist' | 'save' | 'yellow' | 'red' | 'sub' | 'note';
 
 interface TimelineEntry {
   id: string;
@@ -20,6 +21,12 @@ interface TimelineEntry {
   note?: string;
   recordedBy?: string;
   recordedByName?: string;
+  // Stat-dedup glue: 'live' (default) when a coach tapped it, 'clip' when a
+  // parent's video upload created the entry. clipUrl/clipMediaId may also be
+  // present on a 'live' entry once a matching clip is uploaded and attached.
+  source?: 'live' | 'clip';
+  clipUrl?: string;
+  clipMediaId?: string;
 }
 
 interface LiveGameDoc {
@@ -55,13 +62,14 @@ interface LineupState {
 }
 
 const KIND_META: Record<StatKind, { label: string; emoji: string; color: string }> = {
-  goal:   { label: 'Goal',    emoji: '⚽', color: 'bg-emerald-500' },
-  assist: { label: 'Assist',  emoji: '🅰️', color: 'bg-cyan-500' },
-  save:   { label: 'Save',    emoji: '🧤', color: 'bg-blue-500' },
-  yellow: { label: 'Yellow',  emoji: '🟨', color: 'bg-yellow-500' },
-  red:    { label: 'Red',     emoji: '🟥', color: 'bg-red-600' },
-  sub:    { label: 'Sub',     emoji: '🔄', color: 'bg-purple-500' },
-  note:   { label: 'Note',    emoji: '📝', color: 'bg-gray-500' },
+  goal:    { label: 'Goal',     emoji: '⚽', color: 'bg-emerald-500' },
+  owngoal: { label: 'Own Goal', emoji: '🥅', color: 'bg-rose-500' },
+  assist:  { label: 'Assist',   emoji: '🅰️', color: 'bg-cyan-500' },
+  save:    { label: 'Save',     emoji: '🧘', color: 'bg-blue-500' },
+  yellow:  { label: 'Yellow',   emoji: '🟨', color: 'bg-yellow-500' },
+  red:     { label: 'Red',      emoji: '🟥', color: 'bg-red-600' },
+  sub:     { label: 'Sub',      emoji: '🔄', color: 'bg-purple-500' },
+  note:    { label: 'Note',     emoji: '📝', color: 'bg-gray-500' },
 };
 
 const formatClock = (totalSec: number) => {
@@ -73,7 +81,9 @@ const formatClock = (totalSec: number) => {
 const GameDay: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const { userData } = useAuth();
+  const { selectedTeamId } = useTeam();
   const { getDocument, getPlayersByTeam, addGameStat, updatePlayerStats } = useFirestore();
+  const isQuickGame = !!eventId && eventId.startsWith('quick_');
   const [event, setEvent] = useState<any | null>(null);
   const [game, setGame] = useState<LiveGameDoc | null>(null);
   const [players, setPlayers] = useState<any[]>([]);
@@ -101,9 +111,30 @@ const GameDay: React.FC = () => {
     let unsub: (() => void) | undefined;
     (async () => {
       try {
-        const ev = await getDocument('events', eventId);
-        if (!ev) { setError('Event not found'); setLoading(false); return; }
-        setEvent(ev);
+        let ev: any = null;
+        if (isQuickGame) {
+          // Quick game — no calendar event. Synthesize from selected team.
+          if (!selectedTeamId) { setError('No team selected'); setLoading(false); return; }
+          // Try to seed opponent from an existing live_games doc
+          let opponent = 'Opponent';
+          try {
+            const existing = await getDoc(doc(db, 'live_games', eventId));
+            if (existing.exists()) opponent = (existing.data() as any).opponent || opponent;
+          } catch {}
+          ev = {
+            id: eventId,
+            teamId: selectedTeamId,
+            opponent,
+            type: 'game',
+            date: new Date(),
+            title: `Quick game vs ${opponent}`,
+          };
+          setEvent(ev);
+        } else {
+          ev = await getDocument('events', eventId);
+          if (!ev) { setError('Event not found'); setLoading(false); return; }
+          setEvent(ev);
+        }
         const teamPlayers = await getPlayersByTeam(ev.teamId);
         setPlayers(teamPlayers);
         unsub = onSnapshot(doc(db, 'live_games', eventId), snap => {
@@ -124,7 +155,7 @@ const GameDay: React.FC = () => {
       }
     })();
     return () => { if (unsub) unsub(); };
-  }, [eventId, getDocument, getPlayersByTeam]);
+  }, [eventId, isQuickGame, selectedTeamId, getDocument, getPlayersByTeam]);
 
   // Derived clock
   const liveSeconds = useMemo(() => {
@@ -183,6 +214,10 @@ const GameDay: React.FC = () => {
   };
   const finalizeGame = async () => {
     if (!game) return;
+    if (game.status === 'final') {
+      alert('This game is already finalized. Season stats were written when it was finalized.');
+      return;
+    }
     if (!window.confirm('End the game? This will mark it Final and write per-player stats to season totals.')) return;
     await patch({
       status: 'final',
@@ -262,7 +297,7 @@ const GameDay: React.FC = () => {
     };
     const newTimeline = [...(game?.timeline || []), entry];
     const update: Partial<LiveGameDoc> = { timeline: newTimeline };
-    if (kind === 'goal') {
+    if (kind === 'goal' || kind === 'owngoal') {
       update.ourScore = (game?.ourScore || 0) + 1;
     }
     await patch(update);
@@ -275,7 +310,7 @@ const GameDay: React.FC = () => {
     if (!window.confirm('Remove this entry?')) return;
     const newTimeline = game.timeline.filter(t => t.id !== id);
     const update: Partial<LiveGameDoc> = { timeline: newTimeline };
-    if (target.kind === 'goal' && (game.ourScore || 0) > 0) {
+    if ((target.kind === 'goal' || target.kind === 'owngoal') && (game.ourScore || 0) > 0) {
       update.ourScore = game.ourScore - 1;
     }
     await patch(update);
@@ -490,10 +525,18 @@ const GameDay: React.FC = () => {
           <section>
             <h3 className="text-xs uppercase tracking-wider text-white/40 mb-2">Tap to record</h3>
             <div className="grid grid-cols-4 gap-2">
-              {(['goal', 'assist', 'save', 'yellow', 'red', 'sub', 'note'] as StatKind[]).map(k => (
+              {(['goal', 'owngoal', 'assist', 'save', 'yellow', 'red', 'sub', 'note'] as StatKind[]).map(k => (
                 <button
                   key={k}
-                  onClick={() => { setPickerKind(k); setNoteText(''); }}
+                  onClick={async () => {
+                    if (k === 'owngoal') {
+                      if (!window.confirm('Mark Own Goal? +1 to us, no player credit. (You can still tap Assist for the kicker.)')) return;
+                      await addTimelineEntry('owngoal', { note: 'Opponent own goal' });
+                      return;
+                    }
+                    setPickerKind(k);
+                    setNoteText('');
+                  }}
                   className={`flex flex-col items-center gap-1 py-2.5 rounded-xl ring-1 ring-white/10 hover:ring-white/30 ${KIND_META[k].color} bg-opacity-15`}
                   style={{ backgroundColor: undefined }}
                 >
@@ -658,6 +701,16 @@ const GameDay: React.FC = () => {
                       )}
                     </div>
                     {t.note && <div className="text-xs text-white/70 mt-0.5">{t.note}</div>}
+                    {t.clipUrl && (
+                      <a
+                        href={t.clipUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-cyan-300 hover:text-cyan-200"
+                      >
+                        🎬 {t.source === 'clip' ? 'Clip credit' : 'Watch clip'}
+                      </a>
+                    )}
                     <div className="text-[10px] text-white/40 mt-0.5">
                       Min {t.minute} · {new Date(t.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       {t.recordedByName ? ` · by ${t.recordedByName}` : ''}

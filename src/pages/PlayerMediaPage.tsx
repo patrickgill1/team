@@ -52,6 +52,9 @@ const PlayerMediaPage: React.FC = () => {
   const [uploadTaggedPlayers, setUploadTaggedPlayers] = useState<string[]>([]);
   const [uploadGoalScorerId, setUploadGoalScorerId] = useState<string>('');
   const [uploadAssistByIds, setUploadAssistByIds] = useState<string[]>([]);
+  const [uploadGameId, setUploadGameId] = useState<string>('');
+  const [editingGameId, setEditingGameId] = useState<string>('');
+  const [recentGames, setRecentGames] = useState<{ id: string; label: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
@@ -97,6 +100,30 @@ const PlayerMediaPage: React.FC = () => {
           createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)
         })) as Player[];
       setPlayers(teamPlayers);
+
+      // Recent games for the optional "Link to game" dropdown (used to dedup
+      // stat credits between coach live-tap and parent clip uploads).
+      try {
+        const allEvents = await getDocuments('events', []);
+        const cutoffPast = Date.now() - 60 * 24 * 3600 * 1000;
+        const cutoffFuture = Date.now() + 7 * 24 * 3600 * 1000;
+        const games = (allEvents as any[])
+          .filter(e => e.teamId === selectedTeamId && e.type === 'game')
+          .map(e => {
+            const d: Date = e.date?.toDate ? e.date.toDate() : new Date(e.date);
+            return { id: e.id, ts: d.getTime(), date: d, opponent: e.opponent || e.title || 'Game' };
+          })
+          .filter(g => g.ts >= cutoffPast && g.ts <= cutoffFuture)
+          .sort((a, b) => b.ts - a.ts)
+          .map(g => ({
+            id: g.id,
+            label: `${g.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} — vs ${g.opponent}`,
+          }));
+        setRecentGames(games);
+      } catch (err) {
+        console.warn('Could not load games for dedup link', err);
+        setRecentGames([]);
+      }
 
       const formattedMedia = mediaData.map((m: any) => ({
         ...m,
@@ -251,14 +278,10 @@ const PlayerMediaPage: React.FC = () => {
         const scorerId = isGoalClip ? (uploadGoalScorerId || uploadPlayerId) : undefined;
         const assistIds = isGoalClip ? uploadAssistByIds.filter(id => id !== scorerId) : [];
 
-        // If this is the first file in the batch, credit stats once.
-        // (We only credit the first file to avoid double-counting when uploading multiple
-        // files at once for the same goal — coach can edit later if needed.)
-        if (i === 0 && scorerId) {
-          await applyStatsDiff({}, { goalScorerId: scorerId, assistByIds: assistIds });
-        }
-
-        await addPlayerMedia({
+        // We need the new media doc id BEFORE bumping stats so we can pass it
+        // into the live-game dedup helper. Build the doc payload first, add it,
+        // then apply credits.
+        const mediaPayload: any = {
           playerId: uploadPlayerId,
           playerName: player.name,
           teamId: selectedTeamId,
@@ -272,11 +295,79 @@ const PlayerMediaPage: React.FC = () => {
           contentType: file.type,
           tags: allTags.length > 0 ? allTags : undefined,
           taggedPlayerIds: uploadTaggedPlayers.length > 0 ? uploadTaggedPlayers : undefined,
-          goalScorerId: i === 0 ? scorerId : undefined,
-          assistByIds: i === 0 && assistIds.length > 0 ? assistIds : undefined,
-          statsCredited: i === 0 && !!scorerId,
+          gameId: uploadGameId || undefined,
           updatedAt: new Date(),
-        } as any);
+        };
+
+        const newMediaId = await addPlayerMedia(mediaPayload);
+
+        // We only credit the FIRST file of a multi-file upload to avoid double-
+        // counting when a coach drops in 5 angles of the same goal.
+        if (i === 0 && scorerId) {
+          let attachedScorer = false;
+          let attachedAssistIds: string[] = [];
+          let needsBumpScorer = true;
+          let needsBumpAssistIds = [...assistIds];
+
+          if (uploadGameId && newMediaId) {
+            try {
+              const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
+              const scorer = players.find(p => p.id === scorerId);
+              const assistsById: Record<string, { name?: string; jersey?: number }> = {};
+              for (const aid of assistIds) {
+                const ap = players.find(pp => pp.id === aid);
+                if (ap) assistsById[aid] = { name: ap.name, jersey: ap.jerseyNumber };
+              }
+              const res = await attachClipCreditsToGame({
+                gameId: uploadGameId,
+                mediaId: newMediaId,
+                clipUrl: url,
+                scorerId,
+                scorerName: scorer?.name,
+                scorerJersey: scorer?.jerseyNumber,
+                assistIds,
+                assistsById,
+                recordedBy: userData.uid,
+                recordedByName: userData.name,
+              });
+              attachedScorer = res.attachedScorer;
+              attachedAssistIds = res.attachedAssistIds;
+              if (res.status === 'final') {
+                // Game already finalized — finalize won't re-run, so bump only the
+                // credits we *added* (attached ones were already counted live).
+                needsBumpScorer = res.addedScorer;
+                needsBumpAssistIds = res.addedAssistIds;
+              } else if (res.status !== 'no-doc') {
+                // Game is live/halftime/scheduled — finalize will pick everything
+                // up. Skip the immediate bump.
+                needsBumpScorer = false;
+                needsBumpAssistIds = [];
+              }
+            } catch (err) {
+              console.warn('clip-game dedup failed; falling back to direct stat bump', err);
+            }
+          }
+
+          const willBumpScorer = needsBumpScorer && !attachedScorer;
+          const willBumpAssistIds = needsBumpAssistIds.filter(a => !attachedAssistIds.includes(a));
+          if (willBumpScorer || willBumpAssistIds.length > 0) {
+            await applyStatsDiff({}, {
+              goalScorerId: willBumpScorer ? scorerId : undefined,
+              assistByIds: willBumpAssistIds,
+            });
+          }
+
+          // Persist the credit fields on the media doc. statsCredited reflects
+          // what *this clip* directly bumped (used to roll back on delete/edit).
+          try {
+            await updateDocument('player_media', newMediaId, {
+              goalScorerId: scorerId,
+              assistByIds: assistIds.length > 0 ? assistIds : [],
+              statsCredited: !!willBumpScorer,
+              statsCreditedAssistIds: willBumpAssistIds,
+            } as any);
+          } catch (e) { console.warn('failed to persist credit fields', e); }
+        }
       }
 
       setUploadProgress(100);
@@ -324,11 +415,29 @@ const PlayerMediaPage: React.FC = () => {
   const handleDelete = async (mediaItem: PlayerMediaType) => {
     if (!window.confirm('Delete this media? This cannot be undone.')) return;
     try {
-      // Reverse any stat credits this clip applied
       const m = mediaItem as any;
-      if (m.statsCredited && m.goalScorerId) {
+
+      // If this clip was linked to a game, scrub our markers from the live
+      // timeline. The detach result tells us which credits had been "added"
+      // (vs merely attached) so we know what season-stat bumps are ours.
+      let creditedAssistIds: string[] = m.statsCreditedAssistIds || (m.statsCredited ? (m.assistByIds || []) : []);
+      let creditedScorer = !!(m.statsCredited && m.goalScorerId);
+      if (m.gameId) {
+        try {
+          const { detachClipCreditsFromGame } = await import('../utils/clipGameLink');
+          const det = await detachClipCreditsFromGame(m.gameId, mediaItem.id);
+          // Trust the detach result over the stale doc fields.
+          creditedScorer = det.removedScorer;
+          creditedAssistIds = det.removedAssistIds;
+        } catch (e) { console.warn('detachClipCreditsFromGame failed', e); }
+      }
+
+      if (creditedScorer || creditedAssistIds.length > 0) {
         await applyStatsDiff(
-          { goalScorerId: m.goalScorerId, assistByIds: m.assistByIds },
+          {
+            goalScorerId: creditedScorer ? m.goalScorerId : undefined,
+            assistByIds: creditedAssistIds,
+          },
           {},
         );
       }
@@ -481,6 +590,7 @@ const PlayerMediaPage: React.FC = () => {
     setUploadTaggedPlayers([]);
     setUploadGoalScorerId('');
     setUploadAssistByIds([]);
+    setUploadGameId('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -568,14 +678,90 @@ const PlayerMediaPage: React.FC = () => {
       // Stats credits: only meaningful when 'Goal' tag is on
       const m = selectedMedia as any;
       const wasGoalClip = !!m.statsCredited && !!m.goalScorerId;
+      const wasCreditedAssistIds: string[] = m.statsCreditedAssistIds || (wasGoalClip ? (m.assistByIds || []) : []);
       const isGoalClip = editingTags.includes('Goal');
       const newScorerId = isGoalClip ? (editingGoalScorerId || selectedMedia.playerId) : undefined;
       const newAssistIds = isGoalClip ? editingAssistByIds.filter(id => id !== newScorerId) : [];
 
-      // Apply stats diff (handles all add / remove / change cases in one call)
+      const oldGameId: string | undefined = m.gameId;
+      const newGameId = editingGameId || undefined;
+
+      // 1. If the clip was previously linked to a game, scrub our markers off
+      //    that game's timeline. Returns which credits had been "added" so we
+      //    can roll back season stats if the game was already final.
+      let priorAddedScorer = false;
+      let priorAddedAssistIds: string[] = [];
+      if (oldGameId) {
+        try {
+          const { detachClipCreditsFromGame } = await import('../utils/clipGameLink');
+          const det = await detachClipCreditsFromGame(oldGameId, docId);
+          priorAddedScorer = det.removedScorer;
+          priorAddedAssistIds = det.removedAssistIds;
+        } catch (e) { console.warn('detachClipCreditsFromGame failed', e); }
+      }
+
+      // 2. Compute the "old" stats footprint we need to undo. With a gameId
+      //    link the clip itself only owns the credits that were *added*
+      //    (attached credits never bumped season stats); without a link the
+      //    clip owns everything it credited.
+      const undoCredits = oldGameId
+        ? {
+            goalScorerId: priorAddedScorer ? m.goalScorerId : undefined,
+            assistByIds: priorAddedAssistIds,
+          }
+        : (wasGoalClip
+            ? { goalScorerId: m.goalScorerId, assistByIds: wasCreditedAssistIds }
+            : {});
+
+      // 3. Apply credits forward.
+      let willBumpScorerId: string | undefined;
+      let willBumpAssistIds: string[] = [];
+      if (newScorerId && newGameId) {
+        try {
+          const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
+          const scorer = players.find(p => p.id === newScorerId);
+          const assistsById: Record<string, { name?: string; jersey?: number }> = {};
+          for (const aid of newAssistIds) {
+            const ap = players.find(pp => pp.id === aid);
+            if (ap) assistsById[aid] = { name: ap.name, jersey: ap.jerseyNumber };
+          }
+          const res = await attachClipCreditsToGame({
+            gameId: newGameId,
+            mediaId: docId,
+            clipUrl: selectedMedia.url,
+            scorerId: newScorerId,
+            scorerName: scorer?.name,
+            scorerJersey: scorer?.jerseyNumber,
+            assistIds: newAssistIds,
+            assistsById,
+            recordedBy: userData?.uid,
+            recordedByName: userData?.name,
+          });
+          if (res.status === 'final') {
+            willBumpScorerId = res.addedScorer ? newScorerId : undefined;
+            willBumpAssistIds = res.addedAssistIds;
+          } else if (res.status === 'no-doc') {
+            // Game has no live doc — fall back to direct bump
+            willBumpScorerId = newScorerId;
+            willBumpAssistIds = newAssistIds;
+          } else {
+            // live/halftime/scheduled → finalize will count, no immediate bump
+          }
+        } catch (e) {
+          console.warn('attachClipCreditsToGame failed; falling back to direct bump', e);
+          willBumpScorerId = newScorerId;
+          willBumpAssistIds = newAssistIds;
+        }
+      } else if (newScorerId) {
+        willBumpScorerId = newScorerId;
+        willBumpAssistIds = newAssistIds;
+      }
+
       await applyStatsDiff(
-        wasGoalClip ? { goalScorerId: m.goalScorerId, assistByIds: m.assistByIds } : {},
-        newScorerId ? { goalScorerId: newScorerId, assistByIds: newAssistIds } : {},
+        undoCredits,
+        willBumpScorerId
+          ? { goalScorerId: willBumpScorerId, assistByIds: willBumpAssistIds }
+          : {},
       );
 
       const update: any = {
@@ -583,7 +769,9 @@ const PlayerMediaPage: React.FC = () => {
         taggedPlayerIds: taggedPlayerIds.length > 0 ? taggedPlayerIds : [],
         goalScorerId: newScorerId || null,
         assistByIds: newAssistIds.length > 0 ? newAssistIds : [],
-        statsCredited: !!newScorerId,
+        statsCredited: !!willBumpScorerId,
+        statsCreditedAssistIds: willBumpAssistIds,
+        gameId: newGameId || null,
       };
       await updateDocument(collection, docId, update);
 
@@ -617,11 +805,13 @@ const PlayerMediaPage: React.FC = () => {
       } catch (e) { console.warn('tag-add email failed', e); }
 
       // Update local state
-      setMedia(prev => prev.map(m2 => m2.id === selectedMedia.id ? { ...m2, tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!newScorerId } as PlayerMediaType : m2));
-      setSelectedMedia({ ...selectedMedia, tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!newScorerId } as PlayerMediaType);
+      const localPatch: any = { tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!willBumpScorerId, statsCreditedAssistIds: willBumpAssistIds, gameId: newGameId };
+      setMedia(prev => prev.map(m2 => m2.id === selectedMedia.id ? { ...m2, ...localPatch } as PlayerMediaType : m2));
+      setSelectedMedia({ ...selectedMedia, ...localPatch } as PlayerMediaType);
       setEditingTags(null);
       setEditingGoalScorerId('');
       setEditingAssistByIds([]);
+      setEditingGameId('');
     } catch (err) {
       console.error('Error saving tags:', err);
       alert('Failed to save tags.');
@@ -1149,6 +1339,22 @@ const PlayerMediaPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+                  {recentGames.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Link to game <span className="text-gray-400 font-normal">(optional, prevents double-counting)</span>
+                      </label>
+                      <select
+                        value={uploadGameId}
+                        onChange={e => setUploadGameId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm"
+                      >
+                        <option value="">— Not linked —</option>
+                        {recentGames.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">If the coach already tapped this goal on Game Day, linking attaches your clip without doubling stats.</p>
+                    </div>
+                  )}
                   {players.length > 1 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tag Other Players</label>
@@ -1434,8 +1640,22 @@ const PlayerMediaPage: React.FC = () => {
                       </div>
                     </div>
                   )}
+                  {recentGames.length > 0 && (
+                    <div className="px-2">
+                      <p className="text-[11px] uppercase tracking-wide text-white/50 mb-1.5">🔗 Link to game</p>
+                      <select
+                        value={editingGameId}
+                        onChange={e => setEditingGameId(e.target.value)}
+                        className="w-full bg-white/10 ring-1 ring-white/20 rounded-lg px-2 py-1.5 text-xs text-white"
+                      >
+                        <option value="" className="text-gray-900">— Not linked —</option>
+                        {recentGames.map(g => <option key={g.id} value={g.id} className="text-gray-900">{g.label}</option>)}
+                      </select>
+                      <p className="text-[10px] text-white/40 mt-1">Linking dedupes against the coach’s live taps so stats aren’t doubled.</p>
+                    </div>
+                  )}
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
+                    <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); setEditingGameId(''); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
                     <button onClick={handleSaveTags} className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600">Save Tags</button>
                   </div>
                 </div>
@@ -1450,6 +1670,7 @@ const PlayerMediaPage: React.FC = () => {
                       const m = selectedMedia as any;
                       setEditingGoalScorerId(m.goalScorerId || selectedMedia.playerId || '');
                       setEditingAssistByIds(m.assistByIds || []);
+                      setEditingGameId(m.gameId || '');
                     }}
                     className="px-2 py-0.5 border border-white/20 text-white/50 rounded-full text-xs hover:text-white/80 hover:border-white/40 transition-colors"
                   >

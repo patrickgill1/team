@@ -379,6 +379,10 @@ export interface PlayerMedia {
   goalScorerId?: string;       // who scored the goal
   assistByIds?: string[];      // who assisted (max 2 typical)
   statsCredited?: boolean;     // true if this clip has bumped player stats
+  // Optional link to a calendar event / live_games doc. When set, credits on
+  // this clip are deduped against the live game timeline so coach-tap +
+  // clip-credit don't double-count season stats.
+  gameId?: string;
   likes?: string[];       // array of user UIDs who liked
   likeCount?: number;
   views?: string[];       // array of unique user UIDs who have viewed

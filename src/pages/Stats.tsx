@@ -35,20 +35,16 @@ const Stats: React.FC = () => {
         
         const teamPlayers = await getPlayersByTeam(selectedTeamId);
         const statsMap = await getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any));
-        const playersWithDates = teamPlayers.map((player: any) => ({
-          ...player,
-          createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
-          stats: statsMap[player.id] || player.stats || {
-            gamesPlayed: 0,
-            goals: 0,
-            assists: 0,
-            yellowCards: 0,
-            redCards: 0,
-            minutesPlayed: 0,
-            saves: 0,
-            cleanSheets: 0
-          }
-        })) as Player[];
+        const playersWithDates = teamPlayers.map((player: any) => {
+          const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+          const isShared = Array.isArray(player.teamIds) && player.teamIds.length > 1;
+          const stats = (statsMap as any)[player.id] || (isShared ? empty : (player.stats || empty));
+          return {
+            ...player,
+            createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
+            stats,
+          };
+        }) as Player[];
         
         console.log('Players loaded for stats:', playersWithDates);
         setPlayers(playersWithDates);
@@ -79,20 +75,16 @@ const Stats: React.FC = () => {
         getPlayersByTeam(selectedTeamId),
         getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
       ]).then(([teamPlayers, statsMap]: any) => {
-        const playersWithDates = (teamPlayers as any[]).map((player: any) => ({
-          ...player,
-          createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
-          stats: statsMap[player.id] || player.stats || {
-            gamesPlayed: 0,
-            goals: 0,
-            assists: 0,
-            yellowCards: 0,
-            redCards: 0,
-            minutesPlayed: 0,
-            saves: 0,
-            cleanSheets: 0
-          }
-        })) as Player[];
+        const playersWithDates = (teamPlayers as any[]).map((player: any) => {
+          const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+          const isShared = Array.isArray(player.teamIds) && player.teamIds.length > 1;
+          const stats = (statsMap as any)[player.id] || (isShared ? empty : (player.stats || empty));
+          return {
+            ...player,
+            createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
+            stats,
+          };
+        }) as Player[];
         setPlayers(playersWithDates);
       }).catch(error => {
         console.error('Error reloading players:', error);

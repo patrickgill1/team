@@ -52,13 +52,17 @@ const PlayerProfile: React.FC = () => {
       ]);
       const found = playersData.find((p: any) => p.id === playerId) as any;
       if (found) {
+        const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+        const isShared = Array.isArray(found.teamIds) && found.teamIds.length > 1;
+        const teamScoped = (statsMap as any)[playerId];
         setPlayer({
           ...found,
           createdAt: found.createdAt?.toDate ? found.createdAt.toDate() : new Date(found.createdAt),
           dateOfBirth: found.dateOfBirth?.toDate ? found.dateOfBirth.toDate() : found.dateOfBirth ? new Date(found.dateOfBirth) : undefined,
           // Override aggregate with per-team stats so SHARED players (rostered
           // on multiple teams) only show stats for the currently selected team.
-          stats: (statsMap as any)[playerId] || found.stats,
+          // Never fall back to the combined aggregate when shared.
+          stats: teamScoped || (isShared ? empty : (found.stats || empty)),
         } as Player);
       }
     } catch (err) {

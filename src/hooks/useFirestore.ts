@@ -263,7 +263,10 @@ const getUserData = useCallback(async (uid: string) => {
       const pid = r.playerId;
       if (!pid) continue;
       const cur = map[pid] || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
-      cur.gamesPlayed += 1;
+      // Synthetic clip-credit records (gameId starts with 'clip_') only carry
+      // goal/assist deltas — don't count them toward gamesPlayed.
+      const isClipRecord = typeof r.gameId === 'string' && r.gameId.startsWith('clip_');
+      if (!isClipRecord) cur.gamesPlayed += 1;
       cur.goals += r.goals || 0;
       cur.assists += r.assists || 0;
       cur.saves += r.saves || 0;

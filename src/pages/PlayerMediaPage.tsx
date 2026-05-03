@@ -15,7 +15,7 @@ const ITEMS_PER_PAGE = 20;
 const PlayerMediaPage: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument, updatePlayerStats } = useFirestore();
+  const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
   const { uploadFile } = useStorage();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -208,6 +208,32 @@ const PlayerMediaPage: React.FC = () => {
         await updatePlayerStats(pid, next as any);
       } catch (err) {
         console.error('Failed to update stats for player', pid, err);
+      }
+      // Also write a team-scoped 'stats' collection record so the per-team
+      // aggregator (getTeamPlayerStatsMap) sees clip-credited goals/assists
+      // for SHARED players. Without this, shared players get +1 to the
+      // global aggregate but 0 to the per-team total.
+      if (selectedTeamId && (d.goals !== 0 || d.assists !== 0)) {
+        try {
+          await addGameStat({
+            playerId: pid,
+            playerName: player.name,
+            gameId: `clip_${Date.now()}_${pid}`,
+            gameDate: new Date(),
+            opponent: 'Clip credit',
+            minutesPlayed: 0,
+            goals: d.goals,
+            assists: d.assists,
+            yellowCards: 0,
+            redCards: 0,
+            saves: 0,
+            recordedBy: userData?.uid,
+            recordedByName: userData?.name || 'Coach',
+            teamId: selectedTeamId,
+          } as any);
+        } catch (err) {
+          console.error('Failed to write per-team clip stat for player', pid, err);
+        }
       }
     }
     // Update local players cache so subsequent diffs see fresh stats

@@ -38,16 +38,20 @@ const Dashboard: React.FC = () => {
           getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
         ]);
 
-        const playersWithDates = (teamPlayers as any[]).map((p: any) => ({
-          ...p,
-          createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
-          // override aggregate with per-team stats so shared players don't
-          // combine totals across teams
-          stats: (statsMap as any)[p.id] || p.stats || {
-            gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0,
-            redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0,
-          },
-        })) as Player[];
+        const playersWithDates = (teamPlayers as any[]).map((p: any) => {
+          const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+          const teamScoped = (statsMap as any)[p.id];
+          // Shared players (rostered on multiple teams) MUST NOT fall back
+          // to the global p.stats aggregate, which combines goals across
+          // every team they play for.
+          const isShared = Array.isArray(p.teamIds) && p.teamIds.length > 1;
+          const stats = teamScoped || (isShared ? empty : (p.stats || empty));
+          return {
+            ...p,
+            createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt),
+            stats,
+          };
+        }) as Player[];
         setPlayers(playersWithDates);
 
         const eventsWithDates = (teamEvents as any[]).map((e: any) => ({

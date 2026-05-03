@@ -11,7 +11,7 @@ import StatsDisplay from '../components/stats/StatsDisplay';
 const Stats: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getPlayersByTeam } = useFirestore();
+  const { getPlayersByTeam, getTeamPlayerStatsMap } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [isStatsTrackerOpen, setIsStatsTrackerOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
@@ -34,10 +34,11 @@ const Stats: React.FC = () => {
         console.log('Loading players for stats page...');
         
         const teamPlayers = await getPlayersByTeam(selectedTeamId);
+        const statsMap = await getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any));
         const playersWithDates = teamPlayers.map((player: any) => ({
           ...player,
           createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
-          stats: player.stats || {
+          stats: statsMap[player.id] || player.stats || {
             gamesPlayed: 0,
             goals: 0,
             assists: 0,
@@ -68,17 +69,20 @@ const Stats: React.FC = () => {
     };
 
     loadPlayers();
-  }, [selectedTeamId, getPlayersByTeam]);
+  }, [selectedTeamId, getPlayersByTeam, getTeamPlayerStatsMap]);
 
   // Update players list when stats are recorded
   const handleStatsRecorded = () => {
     // Reload players to get updated stats
     if (selectedTeamId) {
-      getPlayersByTeam(selectedTeamId).then((teamPlayers: any[]) => {
-        const playersWithDates = teamPlayers.map((player: any) => ({
+      Promise.all([
+        getPlayersByTeam(selectedTeamId),
+        getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
+      ]).then(([teamPlayers, statsMap]: any) => {
+        const playersWithDates = (teamPlayers as any[]).map((player: any) => ({
           ...player,
           createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt),
-          stats: player.stats || {
+          stats: statsMap[player.id] || player.stats || {
             gamesPlayed: 0,
             goals: 0,
             assists: 0,

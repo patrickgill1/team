@@ -69,10 +69,10 @@ const PlayerMediaPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Load players and media in parallel
-      const mediaPromise = (selectedPlayerId && selectedPlayerId !== 'all')
-        ? getPlayerMediaByPlayer(selectedPlayerId)
-        : getPlayerMediaByTeam(selectedTeamId);
+      // Load all team media every time so the BROWSE BY PLAYER counts and
+      // per-player views can include clips where the player is only a
+      // *tagged* secondary player (not the subject). We filter client-side.
+      const mediaPromise = getPlayerMediaByTeam(selectedTeamId);
 
       const galleryPromise = (!selectedPlayerId || selectedPlayerId === 'all')
         ? getPhotosByTeam(selectedTeamId).catch(err => { console.error('Error loading gallery photos:', err); return []; })
@@ -842,10 +842,14 @@ const PlayerMediaPage: React.FC = () => {
   // Get all unique tags across media for filter options
   const allMediaTags = Array.from(new Set(media.flatMap(m => m.tags || [])));
 
+  // Filter by selected player (subject OR tagged secondary). 'all' shows everything.
+  const playerFilteredMedia = (selectedPlayerId && selectedPlayerId !== 'all')
+    ? media.filter(m => m.playerId === selectedPlayerId || (m.taggedPlayerIds || []).includes(selectedPlayerId))
+    : media;
   // Filter media by selected tags
   const tagFilteredMedia = filterTags.length > 0
-    ? media.filter(m => filterTags.some(t => m.tags?.includes(t)))
-    : media;
+    ? playerFilteredMedia.filter(m => filterTags.some(t => m.tags?.includes(t)))
+    : playerFilteredMedia;
   // Then filter by search query (caption, player name, tags, fileName)
   const allFilteredMedia = searchQuery.trim()
     ? tagFilteredMedia.filter(m => {

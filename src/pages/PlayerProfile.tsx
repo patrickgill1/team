@@ -23,7 +23,7 @@ const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, getPlayerMediaByPlayer, getDevelopmentPlansByPlayer } = useFirestore();
+  const { getDocuments, getPlayerMediaByPlayer, getDevelopmentPlansByPlayer, getTeamPlayerStatsMap } = useFirestore();
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [media, setMedia] = useState<PlayerMedia[]>([]);
@@ -46,13 +46,19 @@ const PlayerProfile: React.FC = () => {
 
     // Load player first (needed to render header)
     try {
-      const playersData = await getDocuments('players', []);
+      const [playersData, statsMap] = await Promise.all([
+        getDocuments('players', []),
+        getTeamPlayerStatsMap(selectedTeamId).catch(() => ({} as any)),
+      ]);
       const found = playersData.find((p: any) => p.id === playerId) as any;
       if (found) {
         setPlayer({
           ...found,
           createdAt: found.createdAt?.toDate ? found.createdAt.toDate() : new Date(found.createdAt),
           dateOfBirth: found.dateOfBirth?.toDate ? found.dateOfBirth.toDate() : found.dateOfBirth ? new Date(found.dateOfBirth) : undefined,
+          // Override aggregate with per-team stats so SHARED players (rostered
+          // on multiple teams) only show stats for the currently selected team.
+          stats: (statsMap as any)[playerId] || found.stats,
         } as Player);
       }
     } catch (err) {

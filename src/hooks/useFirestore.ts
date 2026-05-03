@@ -252,6 +252,29 @@ const getUserData = useCallback(async (uid: string) => {
     });
   }, []);
 
+  // Aggregate per-team stats for every player on a team by reading the
+  // `stats` collection (per-game records). Use this for displays that need
+  // accurate stats for SHARED players (rostered on multiple teams) so we
+  // don't combine stats across teams via the global player.stats aggregate.
+  const getTeamPlayerStatsMap = useCallback(async (teamId: string): Promise<Record<string, Player['stats']>> => {
+    const records = await getDocuments('stats', [where('teamId', '==', teamId)]);
+    const map: Record<string, any> = {};
+    for (const r of records as any[]) {
+      const pid = r.playerId;
+      if (!pid) continue;
+      const cur = map[pid] || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+      cur.gamesPlayed += 1;
+      cur.goals += r.goals || 0;
+      cur.assists += r.assists || 0;
+      cur.saves += r.saves || 0;
+      cur.yellowCards += r.yellowCards || 0;
+      cur.redCards += r.redCards || 0;
+      cur.minutesPlayed += r.minutesPlayed || 0;
+      map[pid] = cur;
+    }
+    return map;
+  }, [getDocuments]);
+
   // Stats-specific functions
   const addGameStat = useCallback(async (statData: Omit<GameStat, 'id' | 'createdAt'>) => {
     const statToAdd = {
@@ -684,6 +707,7 @@ const getUserData = useCallback(async (uid: string) => {
     updatePlayer,
     getPlayersByTeam,
     updatePlayerStats,
+    getTeamPlayerStatsMap,
     // Stats functions
     addGameStat,
     getStatsByPlayer,

@@ -316,8 +316,14 @@ const Calendar: React.FC<CalendarProps> = ({
             {dayEvents.slice(0, 2).map(event => (
               <div
                 key={event.id}
-                className={`text-[11px] px-1.5 py-0.5 rounded-md truncate border ${getEventTypeColor(event.type)}`}
-                title={`${event.title} - ${event.location}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isUserCoach) {
+                    handleEditEvent(event);
+                  }
+                }}
+                className={`text-[11px] px-1.5 py-0.5 rounded-md truncate border ${getEventTypeColor(event.type)} ${isUserCoach ? 'cursor-pointer hover:ring-1 hover:ring-fire-400' : ''}`}
+                title={isUserCoach ? `Edit: ${event.title} — ${event.location}` : `${event.title} - ${event.location}`}
               >
                 {getEventTypeIcon(event.type)} {event.title}
               </div>
@@ -447,7 +453,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     onAddCarpool={handleAddCarpoolPost}
                     onDeleteCarpool={handleDeleteCarpoolPost}
                     userUid={userData?.uid}
-                    canEdit={isUserCoach && event.createdBy === userData?.uid}
+                    canEdit={isUserCoach}
                     isDeleting={deletingIds.has(event.id)}
                   />
                 ))}
@@ -476,7 +482,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     onAddCarpool={handleAddCarpoolPost}
                     onDeleteCarpool={handleDeleteCarpoolPost}
                     userUid={userData?.uid}
-                    canEdit={isUserCoach && event.createdBy === userData?.uid}
+                    canEdit={isUserCoach}
                     isDeleting={deletingIds.has(event.id)}
                     isPast={true}
                   />
@@ -601,12 +607,12 @@ const EventCard: React.FC<EventCardProps> = ({
   useEffect(() => {
     let cancelled = false;
     setWeather(null);
-    if (isPast || !event?.location || !event?.date) return;
+    if (isPast || !event?.date) return;
     const dt = event.date instanceof Date ? event.date : new Date(event.date);
     if (Number.isNaN(dt.getTime())) return;
     const diffDays = Math.floor((dt.getTime() - Date.now()) / 86400_000);
     if (diffDays < 0 || diffDays > 15) return;
-    getWeatherForEvent(event.location, dt).then(w => { if (!cancelled) setWeather(w); });
+    getWeatherForEvent(event.location || '', dt).then(w => { if (!cancelled) setWeather(w); });
     return () => { cancelled = true; };
   }, [event?.id, event?.location, event?.date, isPast]);
   const getEventTypeIcon = (type: string) => {

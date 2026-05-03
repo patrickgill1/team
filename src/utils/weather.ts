@@ -13,8 +13,12 @@ export interface WeatherSummary {
 
 interface GeoResult { lat: number; lon: number; name: string; }
 
-const GEO_CACHE_KEY = 'weatherGeoCache.v1';
-const FORECAST_CACHE_PREFIX = 'weatherForecast.v1:';
+// Fallback when a location string can't be geocoded. All Fire FC games are in
+// St George, UT, so this gives us a useful forecast for vague venue names.
+const DEFAULT_GEO: GeoResult = { lat: 37.0965, lon: -113.5684, name: 'St. George, UT' };
+
+const GEO_CACHE_KEY = 'weatherGeoCache.v3';
+const FORECAST_CACHE_PREFIX = 'weatherForecast.v3:';
 
 function getGeoCache(): Record<string, GeoResult | null> {
   try { return JSON.parse(sessionStorage.getItem(GEO_CACHE_KEY) || '{}'); } catch { return {}; }
@@ -28,21 +32,55 @@ export async function geocodeLocation(location: string): Promise<GeoResult | nul
   if (!key) return null;
   const cache = getGeoCache();
   if (key in cache) return cache[key];
-  try {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('geocode failed');
-    const j = await r.json();
-    const hit = j?.results?.[0];
-    const result: GeoResult | null = hit ? { lat: hit.latitude, lon: hit.longitude, name: hit.name } : null;
-    cache[key] = result;
-    setGeoCache(cache);
-    return result;
-  } catch {
-    cache[key] = null;
-    setGeoCache(cache);
-    return null;
+
+  // Build a list of progressively looser query candidates so generic field/park
+  // names like "Smith Field" still resolve when "Smith Field, Greenwich CT" would.
+  const original = location.trim();
+  const candidates: string[] = [];
+  const push = (s?: string | null) => {
+    const v = (s || '').trim().replace(/\s+/g, ' ');
+    if (v && !candidates.includes(v)) candidates.push(v);
+  };
+  push(original);
+  // After each comma (e.g. "Field 4, Greenwich Town Park, CT" -> tries each tail)
+  const parts = original.split(',').map(p => p.trim()).filter(Boolean);
+  for (let i = 1; i < parts.length; i++) push(parts.slice(i).join(', '));
+  // Strip generic venue prefix ("Field 4 at Smith Park" -> "Smith Park")
+  const atSplit = original.split(/\s+at\s+/i);
+  if (atSplit.length > 1) push(atSplit.slice(1).join(' at '));
+  // Strip leading "Field N", "Court N", "Pitch N"
+  push(original.replace(/^(field|court|pitch|rink|gym|diamond)\s*\d+\s*[-,]?\s*/i, ''));
+  // Last 3-4 words as a final hail-mary (often "Town State")
+  const words = original.split(/\s+/);
+  if (words.length > 3) push(words.slice(-3).join(' '));
+  if (words.length > 4) push(words.slice(-4).join(' '));
+
+  for (const q of candidates) {
+    try {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`;
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const j = await r.json();
+      const hit = j?.results?.[0];
+      if (hit?.latitude != null && hit?.longitude != null) {
+        const result: GeoResult = { lat: hit.latitude, lon: hit.longitude, name: hit.name };
+        if (q !== original) {
+          // eslint-disable-next-line no-console
+          console.info(`[weather] geocoded "${original}" via fallback "${q}" -> ${hit.name}`);
+        }
+        cache[key] = result;
+        setGeoCache(cache);
+        return result;
+      }
+    } catch {
+      // try next candidate
+    }
   }
+  // eslint-disable-next-line no-console
+  console.warn(`[weather] could not geocode "${original}" — falling back to St. George, UT.`);
+  cache[key] = DEFAULT_GEO;
+  setGeoCache(cache);
+  return DEFAULT_GEO;
 }
 
 // WMO weather code -> emoji + label
@@ -68,13 +106,13 @@ function ymd(d: Date): string {
 }
 
 export async function getWeatherForEvent(location: string, date: Date): Promise<WeatherSummary | null> {
-  if (!location || !date) return null;
+  if (!date) return null;
   const eventDay = new Date(date);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diffDays = Math.floor((eventDay.getTime() - today.getTime()) / 86400000);
   if (diffDays < 0 || diffDays > 15) return null; // forecast horizon
 
-  const geo = await geocodeLocation(location);
+  const geo = location ? (await geocodeLocation(location)) : DEFAULT_GEO;
   if (!geo) return null;
 
   const cacheKey = `${FORECAST_CACHE_PREFIX}${geo.lat.toFixed(2)},${geo.lon.toFixed(2)}`;

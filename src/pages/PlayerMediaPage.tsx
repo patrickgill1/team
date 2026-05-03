@@ -53,7 +53,9 @@ const PlayerMediaPage: React.FC = () => {
   const [uploadGoalScorerId, setUploadGoalScorerId] = useState<string>('');
   const [uploadAssistByIds, setUploadAssistByIds] = useState<string[]>([]);
   const [uploadGameId, setUploadGameId] = useState<string>('');
+  const [uploadIsOwnGoal, setUploadIsOwnGoal] = useState<boolean>(false);
   const [editingGameId, setEditingGameId] = useState<string>('');
+  const [editingIsOwnGoal, setEditingIsOwnGoal] = useState<boolean>(false);
   const [recentGames, setRecentGames] = useState<{ id: string; label: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -273,9 +275,11 @@ const PlayerMediaPage: React.FC = () => {
           .filter(Boolean) as string[];
         const allTags = [...uploadTags, ...taggedPlayerNames];
 
-        // Determine stats credits — only when Goal tag is on
+        // Determine stats credits — only when Goal tag is on. For an opponent
+        // own goal we still allow assist credit (e.g. the kicker who forced
+        // the deflection) but never credit a scorer on our roster.
         const isGoalClip = uploadTags.includes('Goal');
-        const scorerId = isGoalClip ? (uploadGoalScorerId || uploadPlayerId) : undefined;
+        const scorerId = (isGoalClip && !uploadIsOwnGoal) ? (uploadGoalScorerId || uploadPlayerId) : undefined;
         const assistIds = isGoalClip ? uploadAssistByIds.filter(id => id !== scorerId) : [];
 
         // We need the new media doc id BEFORE bumping stats so we can pass it
@@ -296,6 +300,7 @@ const PlayerMediaPage: React.FC = () => {
           tags: allTags.length > 0 ? allTags : undefined,
           taggedPlayerIds: uploadTaggedPlayers.length > 0 ? uploadTaggedPlayers : undefined,
           gameId: uploadGameId || undefined,
+          isOwnGoal: (isGoalClip && uploadIsOwnGoal) ? true : undefined,
           updatedAt: new Date(),
         };
 
@@ -303,7 +308,8 @@ const PlayerMediaPage: React.FC = () => {
 
         // We only credit the FIRST file of a multi-file upload to avoid double-
         // counting when a coach drops in 5 angles of the same goal.
-        if (i === 0 && scorerId) {
+        // Trigger when there's a scorer OR (own-goal case) when assists exist.
+        if (i === 0 && (scorerId || assistIds.length > 0)) {
           let attachedScorer = false;
           let attachedAssistIds: string[] = [];
           let needsBumpScorer = true;
@@ -363,7 +369,7 @@ const PlayerMediaPage: React.FC = () => {
             await updateDocument('player_media', newMediaId, {
               goalScorerId: scorerId,
               assistByIds: assistIds.length > 0 ? assistIds : [],
-              statsCredited: !!willBumpScorer,
+              statsCredited: !!(willBumpScorer && scorerId),
               statsCreditedAssistIds: willBumpAssistIds,
             } as any);
           } catch (e) { console.warn('failed to persist credit fields', e); }
@@ -591,6 +597,7 @@ const PlayerMediaPage: React.FC = () => {
     setUploadGoalScorerId('');
     setUploadAssistByIds([]);
     setUploadGameId('');
+    setUploadIsOwnGoal(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -680,7 +687,7 @@ const PlayerMediaPage: React.FC = () => {
       const wasGoalClip = !!m.statsCredited && !!m.goalScorerId;
       const wasCreditedAssistIds: string[] = m.statsCreditedAssistIds || (wasGoalClip ? (m.assistByIds || []) : []);
       const isGoalClip = editingTags.includes('Goal');
-      const newScorerId = isGoalClip ? (editingGoalScorerId || selectedMedia.playerId) : undefined;
+      const newScorerId = (isGoalClip && !editingIsOwnGoal) ? (editingGoalScorerId || selectedMedia.playerId) : undefined;
       const newAssistIds = isGoalClip ? editingAssistByIds.filter(id => id !== newScorerId) : [];
 
       const oldGameId: string | undefined = m.gameId;
@@ -716,10 +723,10 @@ const PlayerMediaPage: React.FC = () => {
       // 3. Apply credits forward.
       let willBumpScorerId: string | undefined;
       let willBumpAssistIds: string[] = [];
-      if (newScorerId && newGameId) {
+      if ((newScorerId || newAssistIds.length > 0) && newGameId) {
         try {
           const { attachClipCreditsToGame } = await import('../utils/clipGameLink');
-          const scorer = players.find(p => p.id === newScorerId);
+          const scorer = newScorerId ? players.find(p => p.id === newScorerId) : undefined;
           const assistsById: Record<string, { name?: string; jersey?: number }> = {};
           for (const aid of newAssistIds) {
             const ap = players.find(pp => pp.id === aid);
@@ -752,14 +759,14 @@ const PlayerMediaPage: React.FC = () => {
           willBumpScorerId = newScorerId;
           willBumpAssistIds = newAssistIds;
         }
-      } else if (newScorerId) {
+      } else if (newScorerId || newAssistIds.length > 0) {
         willBumpScorerId = newScorerId;
         willBumpAssistIds = newAssistIds;
       }
 
       await applyStatsDiff(
         undoCredits,
-        willBumpScorerId
+        (willBumpScorerId || willBumpAssistIds.length > 0)
           ? { goalScorerId: willBumpScorerId, assistByIds: willBumpAssistIds }
           : {},
       );
@@ -769,9 +776,10 @@ const PlayerMediaPage: React.FC = () => {
         taggedPlayerIds: taggedPlayerIds.length > 0 ? taggedPlayerIds : [],
         goalScorerId: newScorerId || null,
         assistByIds: newAssistIds.length > 0 ? newAssistIds : [],
-        statsCredited: !!willBumpScorerId,
+        statsCredited: !!(willBumpScorerId),
         statsCreditedAssistIds: willBumpAssistIds,
         gameId: newGameId || null,
+        isOwnGoal: (isGoalClip && editingIsOwnGoal) ? true : null,
       };
       await updateDocument(collection, docId, update);
 
@@ -805,13 +813,14 @@ const PlayerMediaPage: React.FC = () => {
       } catch (e) { console.warn('tag-add email failed', e); }
 
       // Update local state
-      const localPatch: any = { tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!willBumpScorerId, statsCreditedAssistIds: willBumpAssistIds, gameId: newGameId };
+      const localPatch: any = { tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!willBumpScorerId, statsCreditedAssistIds: willBumpAssistIds, gameId: newGameId, isOwnGoal: (isGoalClip && editingIsOwnGoal) || false };
       setMedia(prev => prev.map(m2 => m2.id === selectedMedia.id ? { ...m2, ...localPatch } as PlayerMediaType : m2));
       setSelectedMedia({ ...selectedMedia, ...localPatch } as PlayerMediaType);
       setEditingTags(null);
       setEditingGoalScorerId('');
       setEditingAssistByIds([]);
       setEditingGameId('');
+      setEditingIsOwnGoal(false);
     } catch (err) {
       console.error('Error saving tags:', err);
       alert('Failed to save tags.');
@@ -1293,32 +1302,46 @@ const PlayerMediaPage: React.FC = () => {
                   </div>
                   {uploadTags.includes('Goal') && players.length > 0 && (
                     <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">⚽ Goal scorer</label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {players.map(p => {
-                            const isSel = (uploadGoalScorerId || uploadPlayerId) === p.id;
-                            return (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => setUploadGoalScorerId(p.id)}
-                                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                  isSel ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                                }`}
-                              >
-                                {p.name}
-                              </button>
-                            );
-                          })}
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={uploadIsOwnGoal}
+                          onChange={e => setUploadIsOwnGoal(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                        />
+                        <span className="text-xs text-gray-700">
+                          <span className="font-semibold">🥅 Own goal (opponent)</span>
+                          <span className="block text-[11px] text-gray-500">Team gets +1 score, but no scorer credit. You can still award an assist below.</span>
+                        </span>
+                      </label>
+                      {!uploadIsOwnGoal && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">⚽ Goal scorer</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {players.map(p => {
+                              const isSel = (uploadGoalScorerId || uploadPlayerId) === p.id;
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => setUploadGoalScorerId(p.id)}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                    isSel ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {p.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">Defaults to the player this clip is for. +1 to their goals.</p>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Defaults to the player this clip is for. +1 to their goals.</p>
-                      </div>
+                      )}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">🅰️ Assisted by <span className="text-gray-400 font-normal">(optional)</span></label>
                         <div className="flex flex-wrap gap-1.5">
                           {players
-                            .filter(p => p.id !== (uploadGoalScorerId || uploadPlayerId))
+                            .filter(p => uploadIsOwnGoal || p.id !== (uploadGoalScorerId || uploadPlayerId))
                             .map(p => {
                               const isSel = uploadAssistByIds.includes(p.id);
                               return (
@@ -1598,30 +1621,44 @@ const PlayerMediaPage: React.FC = () => {
                   </div>
                   {editingTags.includes('Goal') && players.length > 0 && (
                     <div className="mt-2 mb-2 rounded-lg bg-black/30 border border-white/10 p-2.5 space-y-2">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-white/50 mb-1.5">⚽ Goal scorer</p>
-                        <div className="flex flex-wrap justify-center gap-1.5">
-                          {players.map(p => {
-                            const isSel = (editingGoalScorerId || selectedMedia.playerId) === p.id;
-                            return (
-                              <button
-                                key={p.id}
-                                onClick={() => setEditingGoalScorerId(p.id)}
-                                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                  isSel ? 'bg-blue-500 text-white' : 'bg-white/15 text-white/70 hover:bg-white/25'
-                                }`}
-                              >
-                                {p.name}
-                              </button>
-                            );
-                          })}
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editingIsOwnGoal}
+                          onChange={e => setEditingIsOwnGoal(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-white/30 text-rose-500 focus:ring-rose-400"
+                        />
+                        <span className="text-xs text-white/80">
+                          <span className="font-semibold">🥅 Own goal (opponent)</span>
+                          <span className="block text-[10px] text-white/50">No scorer credit. Assists still allowed.</span>
+                        </span>
+                      </label>
+                      {!editingIsOwnGoal && (
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-white/50 mb-1.5">⚽ Goal scorer</p>
+                          <div className="flex flex-wrap justify-center gap-1.5">
+                            {players.map(p => {
+                              const isSel = (editingGoalScorerId || selectedMedia.playerId) === p.id;
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => setEditingGoalScorerId(p.id)}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                                    isSel ? 'bg-blue-500 text-white' : 'bg-white/15 text-white/70 hover:bg-white/25'
+                                  }`}
+                                >
+                                  {p.name}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
+                      )}
                       <div>
                         <p className="text-[11px] uppercase tracking-wide text-white/50 mb-1.5">🅰️ Assisted by</p>
                         <div className="flex flex-wrap justify-center gap-1.5">
                           {players
-                            .filter(p => p.id !== (editingGoalScorerId || selectedMedia.playerId))
+                            .filter(p => editingIsOwnGoal || p.id !== (editingGoalScorerId || selectedMedia.playerId))
                             .map(p => {
                               const isSel = editingAssistByIds.includes(p.id);
                               return (
@@ -1655,7 +1692,7 @@ const PlayerMediaPage: React.FC = () => {
                     </div>
                   )}
                   <div className="flex justify-center gap-2">
-                    <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); setEditingGameId(''); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
+                    <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); setEditingGameId(''); setEditingIsOwnGoal(false); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
                     <button onClick={handleSaveTags} className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600">Save Tags</button>
                   </div>
                 </div>
@@ -1671,6 +1708,7 @@ const PlayerMediaPage: React.FC = () => {
                       setEditingGoalScorerId(m.goalScorerId || selectedMedia.playerId || '');
                       setEditingAssistByIds(m.assistByIds || []);
                       setEditingGameId(m.gameId || '');
+                      setEditingIsOwnGoal(!!m.isOwnGoal);
                     }}
                     className="px-2 py-0.5 border border-white/20 text-white/50 rounded-full text-xs hover:text-white/80 hover:border-white/40 transition-colors"
                   >

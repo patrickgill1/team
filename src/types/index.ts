@@ -379,6 +379,10 @@ export interface PlayerMedia {
   goalScorerId?: string;       // who scored the goal
   assistByIds?: string[];      // who assisted (max 2 typical)
   statsCredited?: boolean;     // true if this clip has bumped player stats
+  // Marks the clip as documenting an opponent own goal: team scored, but no
+  // player on our roster gets the goal credit. Assists may still be awarded
+  // (e.g. the kicker who forced the deflection).
+  isOwnGoal?: boolean;
   // Optional link to a calendar event / live_games doc. When set, credits on
   // this clip are deduped against the live game timeline so coach-tap +
   // clip-credit don't double-count season stats.

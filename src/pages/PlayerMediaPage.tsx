@@ -56,6 +56,7 @@ const PlayerMediaPage: React.FC = () => {
   const [editingGameId, setEditingGameId] = useState<string>('');
   const [recentGames, setRecentGames] = useState<{ id: string; label: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const clipsSectionRef = useRef<HTMLElement | null>(null);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -63,6 +64,17 @@ const PlayerMediaPage: React.FC = () => {
     setVisibleCount(ITEMS_PER_PAGE);
     loadData();
   }, [selectedTeamId, selectedPlayerId]);
+
+  // When the user picks a player from BROWSE BY PLAYER, scroll the clips
+  // grid into view so it's obvious it loaded (otherwise the page stays
+  // anchored on the player chip row and the clips appear below the fold).
+  useEffect(() => {
+    if (selectedPlayerId && selectedPlayerId !== 'all') {
+      requestAnimationFrame(() => {
+        clipsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [selectedPlayerId]);
 
   const loadData = async () => {
     if (!selectedTeamId) { setLoading(false); return; }
@@ -1062,7 +1074,7 @@ const PlayerMediaPage: React.FC = () => {
             </div>
 
             {/* ── RECENT HIGHLIGHTS ─────────────────────────────────── */}
-            {recentHighlights.length > 0 && (
+            {selectedPlayerId === 'all' && recentHighlights.length > 0 && (
               <section className="mb-10">
                 <SectionHeader title="Recent Highlights" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1131,7 +1143,7 @@ const PlayerMediaPage: React.FC = () => {
             )}
 
             {/* ── TOP PLAYS THIS SEASON ─────────────────────────────── */}
-            {topPlaysThisSeason.length > 0 && (
+            {selectedPlayerId === 'all' && topPlaysThisSeason.length > 0 && (
               <section className="mb-10">
                 <SectionHeader title="Top Plays This Season" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1148,7 +1160,7 @@ const PlayerMediaPage: React.FC = () => {
             )}
 
             {/* ── ALL CLIPS / FILTERED VIEW ─────────────────────────── */}
-            <section className="mb-10">
+            <section ref={clipsSectionRef} className="mb-10 scroll-mt-24">
               {selectedPlayerId !== 'all' && (
                 <button
                   onClick={() => setSelectedPlayerId('all')}

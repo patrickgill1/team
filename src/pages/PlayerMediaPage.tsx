@@ -587,6 +587,35 @@ const PlayerMediaPage: React.FC = () => {
       };
       await updateDocument(collection, docId, update);
 
+      // Email parents of NEWLY tagged players only (skip already-tagged + subject player)
+      try {
+        const prevTaggedIds: string[] = (selectedMedia as any).taggedPlayerIds || [];
+        const newlyTagged = taggedPlayerIds.filter(id => !prevTaggedIds.includes(id));
+        if (newlyTagged.length > 0 && userData) {
+          const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch } = await import('../utils/notify');
+          const isVideo = (selectedMedia as any).type === 'video';
+          const messages: any[] = [];
+          const sentTo = new Set<string>();
+          for (const pid of newlyTagged) {
+            const tp = players.find(pp => pp.id === pid);
+            if (!tp) continue;
+            const parents = await getParentEmailsForPlayer(pid, 'clip');
+            const { subject, html } = tplClipUploaded({
+              playerName: tp.name,
+              uploaderName: userData.name,
+              isVideo,
+              caption: (selectedMedia as any).caption || undefined,
+            });
+            for (const p of parents) {
+              if (sentTo.has(p.email)) continue;
+              sentTo.add(p.email);
+              messages.push({ to: p.email, subject, html });
+            }
+          }
+          if (messages.length > 0) sendEmailBatch(messages);
+        }
+      } catch (e) { console.warn('tag-add email failed', e); }
+
       // Update local state
       setMedia(prev => prev.map(m2 => m2.id === selectedMedia.id ? { ...m2, tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!newScorerId } as PlayerMediaType : m2));
       setSelectedMedia({ ...selectedMedia, tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!newScorerId } as PlayerMediaType);

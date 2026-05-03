@@ -263,16 +263,33 @@ const getUserData = useCallback(async (uid: string) => {
       const pid = r.playerId;
       if (!pid) continue;
       const cur = map[pid] || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+      const gid: string = typeof r.gameId === 'string' ? r.gameId : '';
       // Synthetic clip-credit records (gameId starts with 'clip_') only carry
       // goal/assist deltas — don't count them toward gamesPlayed.
-      const isClipRecord = typeof r.gameId === 'string' && r.gameId.startsWith('clip_');
-      if (!isClipRecord) cur.gamesPlayed += 1;
+      const isClipRecord = gid.startsWith('clip_');
+      // Manual correction records (gameId starts with 'adjust_') store the
+      // signed delta to apply. We use the record's gamesPlayed value as a
+      // delta instead of always adding +1.
+      const isAdjustRecord = gid.startsWith('adjust_');
+      if (isAdjustRecord) {
+        cur.gamesPlayed += r.gamesPlayed || 0;
+      } else if (!isClipRecord) {
+        cur.gamesPlayed += 1;
+      }
       cur.goals += r.goals || 0;
       cur.assists += r.assists || 0;
       cur.saves += r.saves || 0;
       cur.yellowCards += r.yellowCards || 0;
       cur.redCards += r.redCards || 0;
       cur.minutesPlayed += r.minutesPlayed || 0;
+      // Clamp to zero so a too-large negative correction never produces
+      // negative totals on the UI.
+      cur.gamesPlayed = Math.max(0, cur.gamesPlayed);
+      cur.goals = Math.max(0, cur.goals);
+      cur.assists = Math.max(0, cur.assists);
+      cur.saves = Math.max(0, cur.saves);
+      cur.yellowCards = Math.max(0, cur.yellowCards);
+      cur.redCards = Math.max(0, cur.redCards);
       map[pid] = cur;
     }
     return map;

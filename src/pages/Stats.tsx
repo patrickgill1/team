@@ -11,13 +11,14 @@ import StatsDisplay from '../components/stats/StatsDisplay';
 const Stats: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getPlayersByTeam, getTeamPlayerStatsMap } = useFirestore();
+  const { getPlayersByTeam, getTeamPlayerStatsMap, addGameStat, updatePlayerStats } = useFirestore();
   const [players, setPlayers] = useState<Player[]>([]);
   const [isStatsTrackerOpen, setIsStatsTrackerOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'overview' | 'track'>('overview');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [adjustingPlayerId, setAdjustingPlayerId] = useState<string | null>(null);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -274,44 +275,64 @@ const Stats: React.FC = () => {
                     {players.map(player => (
                       <div
                         key={player.id}
-                        onClick={() => {
-                          setSelectedPlayerId(player.id);
-                          setIsStatsTrackerOpen(true);
-                        }}
-                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer"
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all duration-200"
                       >
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center">
-                            <span className="text-lg font-bold text-blue-600">#{player.jerseyNumber}</span>
+                        <div
+                          onClick={() => {
+                            setSelectedPlayerId(player.id);
+                            setIsStatsTrackerOpen(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center">
+                              <span className="text-lg font-bold text-blue-600">#{player.jerseyNumber}</span>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{player.name}</h4>
+                              <p className="text-sm text-gray-600">{player.position}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{player.name}</h4>
-                            <p className="text-sm text-gray-600">{player.position}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                          <div>
-                            <div className="text-lg font-bold text-blue-600">{player.stats?.goals || 0}</div>
-                            <div className="text-xs text-gray-600">Goals</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-bold text-green-600">{player.stats?.assists || 0}</div>
-                            <div className="text-xs text-gray-600">Assists</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-bold text-purple-600">{player.stats?.saves || 0}</div>
-                            <div className="text-xs text-gray-600">Saves</div>
+
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div>
+                              <div className="text-lg font-bold text-blue-600">{player.stats?.goals || 0}</div>
+                              <div className="text-xs text-gray-600">Goals</div>
+                            </div>
+                            <div>
+                              <div className="text-lg font-bold text-green-600">{player.stats?.assists || 0}</div>
+                              <div className="text-xs text-gray-600">Assists</div>
+                            </div>
+                            <div>
+                              <div className="text-lg font-bold text-purple-600">{player.stats?.saves || 0}</div>
+                              <div className="text-xs text-gray-600">Saves</div>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="flex items-center justify-center text-blue-600 text-sm font-medium">
+                        <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedPlayerId(player.id);
+                              setIsStatsTrackerOpen(true);
+                            }}
+                            className="flex-1 inline-flex items-center justify-center text-blue-600 text-sm font-medium hover:text-blue-700"
+                          >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            Click to record stats
-                          </div>
+                            Record
+                          </button>
+                          <button
+                            onClick={() => setAdjustingPlayerId(player.id)}
+                            className="flex-1 inline-flex items-center justify-center text-amber-600 text-sm font-medium hover:text-amber-700"
+                            title="Fix a stat mistake"
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Fix
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -339,6 +360,167 @@ const Stats: React.FC = () => {
             }}
           />
         )}
+
+        {/* Adjust (fix) stats modal */}
+        {adjustingPlayerId && (
+          <AdjustStatsModal
+            player={players.find(p => p.id === adjustingPlayerId)!}
+            teamId={selectedTeamId}
+            onClose={() => setAdjustingPlayerId(null)}
+            onSave={async (next) => {
+              const player = players.find(p => p.id === adjustingPlayerId);
+              if (!player || !selectedTeamId) return;
+              const cur = player.stats || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+              const delta = {
+                gamesPlayed: (next.gamesPlayed || 0) - (cur.gamesPlayed || 0),
+                goals:       (next.goals       || 0) - (cur.goals       || 0),
+                assists:     (next.assists     || 0) - (cur.assists     || 0),
+                saves:       (next.saves       || 0) - (cur.saves       || 0),
+                yellowCards: (next.yellowCards || 0) - (cur.yellowCards || 0),
+                redCards:    (next.redCards    || 0) - (cur.redCards    || 0),
+              };
+              const hasChange = Object.values(delta).some(v => v !== 0);
+              if (!hasChange) { setAdjustingPlayerId(null); return; }
+              try {
+                // Write a correction record so the per-team aggregator picks
+                // up the change for shared players. The 'adjust_' gameId
+                // prefix tells the aggregator to apply gamesPlayed as a
+                // delta rather than +1.
+                await addGameStat({
+                  playerId: player.id,
+                  playerName: player.name,
+                  gameId: `adjust_${Date.now()}_${player.id}`,
+                  gameDate: new Date(),
+                  opponent: 'Manual correction',
+                  minutesPlayed: 0,
+                  goals: delta.goals,
+                  assists: delta.assists,
+                  yellowCards: delta.yellowCards,
+                  redCards: delta.redCards,
+                  saves: delta.saves,
+                  gamesPlayed: delta.gamesPlayed,
+                  recordedBy: userData?.uid,
+                  recordedByName: userData?.name || 'Coach',
+                  teamId: selectedTeamId,
+                  isCorrection: true,
+                } as any);
+                // Also update the global aggregate for non-shared players /
+                // legacy displays. For shared players this is a best-effort
+                // mirror; team-scoped views will use the correction record.
+                const isShared = Array.isArray((player as any).teamIds) && (player as any).teamIds.length > 1;
+                if (!isShared) {
+                  await updatePlayerStats(player.id, next as any);
+                }
+              } catch (err) {
+                console.error('Failed to save stat correction:', err);
+                alert('Failed to save correction. Check console.');
+              } finally {
+                setAdjustingPlayerId(null);
+                handleStatsRecorded();
+              }
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Adjust Stats Modal ────────────────────────────────────────
+interface AdjustStatsModalProps {
+  player: Player;
+  teamId: string;
+  onClose: () => void;
+  onSave: (next: Player['stats']) => void | Promise<void>;
+}
+
+const STAT_FIELDS: { key: keyof Player['stats']; label: string; emoji: string; color: string }[] = [
+  { key: 'goals',       label: 'Goals',     emoji: '⚽', color: 'text-emerald-600' },
+  { key: 'assists',     label: 'Assists',   emoji: '🎯', color: 'text-cyan-600' },
+  { key: 'saves',       label: 'Saves',     emoji: '🧤', color: 'text-violet-600' },
+  { key: 'gamesPlayed', label: 'Games',     emoji: '🏆', color: 'text-amber-600' },
+  { key: 'yellowCards', label: 'Yellow',    emoji: '🟨', color: 'text-yellow-600' },
+  { key: 'redCards',    label: 'Red',       emoji: '🟥', color: 'text-red-600' },
+];
+
+const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, onSave }) => {
+  const cur = player.stats || { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+  const [values, setValues] = useState<any>({
+    goals: cur.goals || 0,
+    assists: cur.assists || 0,
+    saves: cur.saves || 0,
+    gamesPlayed: cur.gamesPlayed || 0,
+    yellowCards: cur.yellowCards || 0,
+    redCards: cur.redCards || 0,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const set = (k: string, v: number) => setValues((s: any) => ({ ...s, [k]: Math.max(0, v | 0) }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave({
+      ...cur,
+      goals: values.goals,
+      assists: values.assists,
+      saves: values.saves,
+      gamesPlayed: values.gamesPlayed,
+      yellowCards: values.yellowCards,
+      redCards: values.redCards,
+    } as Player['stats']);
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white sticky top-0">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Fix Stats</h3>
+            <p className="text-xs text-gray-500">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-3">
+          <p className="text-xs text-gray-500 mb-2">
+            Set the correct totals for this player. Adjustments are saved as a correction record so per-team stats stay accurate (including for players on multiple teams).
+          </p>
+          {STAT_FIELDS.map(f => (
+            <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+              <div className="text-2xl w-8 text-center">{f.emoji}</div>
+              <div className="flex-1">
+                <p className={`text-sm font-bold ${f.color}`}>{f.label}</p>
+                <p className="text-[11px] text-gray-500">Currently {(cur as any)[f.key] || 0}</p>
+              </div>
+              <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">−</button>
+              <input
+                type="number"
+                min={0}
+                value={values[f.key]}
+                onChange={e => set(String(f.key), parseInt(e.target.value || '0', 10))}
+                className="w-16 text-center font-bold text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+              />
+              <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">+</button>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 sticky bottom-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200" disabled={saving}>
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50">
+            {saving ? 'Saving…' : 'Save correction'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -14,11 +14,37 @@ interface PlayerCardProps {
   showActions?: boolean;
 }
 
-const PlayerCard: React.FC<PlayerCardProps> = ({ 
-  player, 
-  onEdit, 
-  onDelete, 
-  showActions = true 
+const positionDot = (pos?: string): string => {
+  switch (pos) {
+    case 'Goalkeeper': return 'bg-amber-400';
+    case 'Defender': return 'bg-sky-400';
+    case 'Midfielder': return 'bg-emerald-400';
+    case 'Forward':
+    case 'Striker': return 'bg-rose-400';
+    case 'Winger': return 'bg-orange-400';
+    default: return 'bg-cyan-400';
+  }
+};
+
+const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ label, value, accent }) => {
+  const ring =
+    accent === 'emerald' ? 'text-emerald-300' :
+    accent === 'cyan' ? 'text-cyan-300' :
+    accent === 'amber' ? 'text-amber-300' :
+    'text-violet-300';
+  return (
+    <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 text-center">
+      <div className={`text-xl sm:text-2xl font-black ${ring}`}>{value}</div>
+      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">{label}</div>
+    </div>
+  );
+};
+
+const PlayerCard: React.FC<PlayerCardProps> = ({
+  player,
+  onEdit,
+  onDelete,
+  showActions = true
 }) => {
   const { userData } = useAuth();
   const { deleteDocument } = useFirestore();
@@ -30,7 +56,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await deleteDocument('players', player.id);
@@ -56,161 +82,160 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   };
 
   const age = calculateAge(player.dateOfBirth);
+  const isMyChild = userData ? player.parentIds?.includes(userData.uid) : false;
+
+  const toggleMyChild = async () => {
+    if (!userData) return;
+    try {
+      const playerRef = doc(db, 'players', player.id);
+      if (isMyChild) {
+        await updateDoc(playerRef, { parentIds: arrayRemove(userData.uid) });
+      } else {
+        await updateDoc(playerRef, { parentIds: arrayUnion(userData.uid) });
+      }
+    } catch (err) {
+      console.error('Error linking parent:', err);
+    }
+  };
 
   return (
     <>
-      <div className="card-modern overflow-hidden">
-        {/* Header with jersey number, position, and profile photo */}
-        <div className="bg-gradient-to-r from-cyan-500 to-sky-600 px-4 py-3 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              {/* Profile Photo or Jersey Number */}
-              <div className="relative">
-                {player.profilePhotoUrl ? (
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30">
-                    <img
-                      src={player.profilePhotoUrl}
-                      alt={player.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="bg-white/20 rounded-full w-12 h-12 flex items-center justify-center">
-                    <span className="text-xl font-bold">
-                      {player.jerseyNumber ? `#${player.jerseyNumber}` : '?'}
-                    </span>
-                  </div>
-                )}
-                {/* Jersey number badge if profile photo exists */}
-                {player.profilePhotoUrl && player.jerseyNumber && (
-                  <div className="absolute -bottom-1 -right-1 bg-white/90 rounded-full w-6 h-6 flex items-center justify-center">
-                    <span className="text-xs font-bold text-cyan-600">#{player.jerseyNumber}</span>
-                  </div>
-                )}
-              </div>
-              <div>
-                <Link to={`/player/${player.id}`} className="hover:underline">
-                  <h3 className="text-lg font-semibold">{player.name}</h3>
-                </Link>
-                <div className="flex items-center space-x-2">
-                  {player.position && (
-                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
-                      {player.position}
-                    </span>
-                  )}
-                  {age && (
-                    <span className="text-xs text-cyan-100">
-                      Age {age}
-                    </span>
-                  )}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-fire-700 via-fire-800 to-navy-900 p-5 sm:p-6 text-white shadow-2xl ring-1 ring-white/10">
+        {/* decorative blobs */}
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Edit / Delete actions */}
+        {canEdit && (
+          <div className="absolute top-3 right-3 z-10 flex space-x-1">
+            <button
+              onClick={() => onEdit && onEdit(player)}
+              className="p-2 bg-white/10 hover:bg-white/20 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+              title="Edit Player"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2 bg-white/10 hover:bg-rose-500/40 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+              title="Delete Player"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        <div className="relative">
+          {/* Position pill */}
+          {player.position && (
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
+              <span className={`w-2 h-2 rounded-full ${positionDot(player.position)}`} />
+              {player.position}
+            </div>
+          )}
+
+          {/* Photo + Name row */}
+          <div className="flex items-center gap-4 mb-5">
+            <div className="relative flex-shrink-0">
+              {player.profilePhotoUrl ? (
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 ring-white/25 shadow-lg">
+                  <img
+                    src={player.profilePhotoUrl}
+                    alt={player.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 ring-2 ring-white/25 shadow-lg flex items-center justify-center backdrop-blur">
+                  <span className="text-2xl font-black text-white">
+                    {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              {player.profilePhotoUrl && player.jerseyNumber != null && (
+                <span className="absolute -bottom-1 -right-1 bg-white text-fire-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-fire-900">
+                  #{player.jerseyNumber}
+                </span>
+              )}
             </div>
 
-            {canEdit && (
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => onEdit && onEdit(player)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors duration-200"
-                  title="Edit Player"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="p-2 hover:bg-rose-500/30 rounded-full transition-colors duration-200"
-                  title="Delete Player"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
+            <div className="flex-1 min-w-0">
+              <Link to={`/player/${player.id}`} className="hover:underline">
+                <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight truncate">{player.name}</h3>
+              </Link>
+              <p className="text-white/70 text-sm font-medium mt-0.5">
+                {player.jerseyNumber != null && !player.profilePhotoUrl ? `Jersey #${player.jerseyNumber}` : ''}
+                {player.jerseyNumber != null && !player.profilePhotoUrl && age ? ' · ' : ''}
+                {age ? `Age ${age}` : (player.jerseyNumber != null && !player.profilePhotoUrl ? '' : 'Player')}
+              </p>
+            </div>
+          </div>
+
+          {/* Mini stat tiles */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <MiniStat label="Goals" value={player.stats?.goals || 0} accent="emerald" />
+            <MiniStat label="Assists" value={player.stats?.assists || 0} accent="cyan" />
+            <MiniStat label="Saves" value={player.stats?.saves || 0} accent="amber" />
+            <MiniStat label="Games" value={player.stats?.gamesPlayed || 0} accent="violet" />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <Link
+              to={`/player/${player.id}`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-fire-800 font-bold text-sm shadow hover:scale-105 transition"
+            >
+              View Profile →
+            </Link>
+            {isUserCoach && userData && (
+              <button
+                onClick={toggleMyChild}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold backdrop-blur transition ${
+                  isMyChild
+                    ? 'bg-emerald-400/20 ring-1 ring-emerald-300/40 text-emerald-200 hover:bg-emerald-400/30'
+                    : 'bg-white/15 ring-1 ring-white/20 text-white hover:bg-white/25'
+                }`}
+                title={isMyChild ? 'Unlink as my child' : 'Link as my child'}
+              >
+                {isMyChild ? '✓ My Child' : 'My Child?'}
+              </button>
+            )}
+            {!isUserCoach && showActions && (
+              <button
+                onClick={() => onEdit && onEdit(player)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 ring-1 ring-white/20 text-white font-semibold text-sm hover:bg-white/25 transition backdrop-blur"
+              >
+                Update Stats
+              </button>
             )}
           </div>
-        </div>
 
-        {/* Stats section */}
-        <div className="p-4">
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="text-center p-3 bg-cyan-50/60 rounded-2xl">
-              <div className="text-2xl font-bold text-cyan-600">{player.stats?.goals || 0}</div>
-              <div className="text-sm text-gray-600">Goals</div>
-            </div>
-            <div className="text-center p-3 bg-emerald-50/60 rounded-2xl">
-              <div className="text-2xl font-bold text-emerald-600">{player.stats?.assists || 0}</div>
-              <div className="text-sm text-gray-600">Assists</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-center p-3 bg-amber-50/60 rounded-2xl">
-              <div className="text-2xl font-bold text-amber-600">{player.stats?.saves || 0}</div>
-              <div className="text-sm text-gray-600">Saves</div>
-            </div>
-            <div className="text-center p-3 bg-fuchsia-50/60 rounded-2xl">
-              <div className="text-2xl font-bold text-fuchsia-600">{player.stats?.gamesPlayed || 0}</div>
-              <div className="text-sm text-gray-600">Games</div>
-            </div>
-          </div>
-
-          {/* Additional Info for coaches */}
-          {isUserCoach && (
-            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-              {/* "My Child" link toggle */}
-              {userData && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const isLinked = player.parentIds?.includes(userData.uid);
-                      const playerRef = doc(db, 'players', player.id);
-                      if (isLinked) {
-                        await updateDoc(playerRef, { parentIds: arrayRemove(userData.uid) });
-                      } else {
-                        await updateDoc(playerRef, { parentIds: arrayUnion(userData.uid) });
-                      }
-                    } catch (err) {
-                      console.error('Error linking parent:', err);
-                    }
-                  }}
-                  className={`inline-flex items-center space-x-1 text-xs px-2 py-1 rounded-full transition-colors ${
-                    player.parentIds?.includes(userData.uid)
-                      ? 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                  title={player.parentIds?.includes(userData.uid) ? 'Unlink as my child' : 'Link as my child'}
-                >
-                  <span>{player.parentIds?.includes(userData.uid) ? '👨‍👦' : '🔗'}</span>
-                  <span>{player.parentIds?.includes(userData.uid) ? 'My Child' : 'My Child?'}</span>
-                </button>
-              )}
-
-              {/* Medical Info */}
+          {/* Coach-only footer info */}
+          {isUserCoach && (player.medicalInfo || (player.emergencyContacts && player.emergencyContacts.length > 0)) && (
+            <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
               {player.medicalInfo && (
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium text-rose-700">Medical Info:</span>
-                  <p className="text-xs mt-1 text-rose-600 bg-rose-50 p-2 rounded-xl">
-                    {player.medicalInfo}
-                  </p>
+                <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-300/30 p-3 backdrop-blur">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-rose-200 mb-1">Medical Info</p>
+                  <p className="text-xs text-rose-100">{player.medicalInfo}</p>
                 </div>
               )}
 
-              {/* Emergency Contacts */}
               {player.emergencyContacts && player.emergencyContacts.length > 0 && (
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">Emergency Contacts:</span>
-                  <div className="mt-1 space-y-1">
+                <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3 backdrop-blur">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">Emergency Contacts</p>
+                  <div className="space-y-1.5">
                     {player.emergencyContacts.map((contact, index) => (
-                      <div key={index} className="text-xs">
-                        <span className="font-medium">{contact.name}</span>
-                        <span className="text-gray-500"> ({contact.relationship})</span>
-                        {contact.isPrimary && <span className="text-cyan-600 ml-1">• Primary</span>}
-                        <br />
+                      <div key={index} className="text-xs text-white/85">
+                        <span className="font-semibold">{contact.name}</span>
+                        <span className="text-white/60"> ({contact.relationship})</span>
+                        {contact.isPrimary && <span className="text-cyan-300 ml-1">• Primary</span>}
                         <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="text-cyan-600 hover:text-cyan-700"
+                          className="block text-cyan-300 hover:text-cyan-200 underline-offset-2 hover:underline"
                         >
                           {contact.phoneNumber}
                         </a>
@@ -222,18 +247,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             </div>
           )}
         </div>
-
-        {/* Action buttons for parents */}
-        {!isUserCoach && showActions && (
-          <div className="px-4 pb-4">
-            <button
-              onClick={() => onEdit && onEdit(player)}
-              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200"
-            >
-              View/Update Stats
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Delete confirmation modal */}

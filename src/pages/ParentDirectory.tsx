@@ -430,177 +430,112 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
         {/* Directory Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDirectory.map((entry) => (
-            <div key={entry.user.uid} className="card-modern border border-gray-200 overflow-hidden">
-              {/* Header with User Info */}
-              <div className={`px-4 py-3 text-white ${
-                entry.user.role === 'coach' 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600' 
-                  : 'bg-gradient-to-r from-cyan-500 to-sky-600'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <div className="bg-white bg-opacity-20 rounded-full w-12 h-12 flex items-center justify-center shrink-0">
-                    <span className="text-lg font-bold">
-                      {entry.user.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?'}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-lg font-semibold">{entry.user.name || 'Unknown'}</h3>
-                      {entry.user.role === 'coach' && (
-                        <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">
-                          Coach
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-sm ${
-                      entry.user.role === 'coach' ? 'text-purple-100' : 'text-cyan-100'
-                    }`}>
-                      {entry.user.role === 'coach' 
-                        ? 'Team Coach'
-                        : entry.players.length > 0 
-                          ? `Parent of ${entry.players.map(p => p.name).join(', ')}`
-                          : 'Team Member'
-                      }
-                    </p>
-                    {entry.user.uid === userData?.uid && (
-                      <p className="text-xs mt-1 opacity-75">★ This is you</p>
-                    )}
-                  </div>
-                  {isUserHeadCoach && entry.user.uid !== userData?.uid && (isUserOwner || !isHeadCoach(entry.user)) && (
-                    <div className="shrink-0 flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleChangeRole(entry.user.uid, entry.user.name, entry.user.role)}
-                        className="bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full p-1.5 transition-colors"
-                        title={entry.user.role === 'coach' ? 'Demote to parent' : 'Promote to coach'}
-                      >
-                        {entry.user.role === 'coach' ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleRemoveMember(entry.user.uid, entry.user.name)}
-                        className="bg-white bg-opacity-20 hover:bg-opacity-40 rounded-full p-1.5 transition-colors"
-                        title="Remove member"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          {filteredDirectory.map((entry) => {
+            const isCoachRole = entry.user.role === 'coach';
+            const dotColor = isCoachRole ? 'bg-violet-400' : 'bg-emerald-400';
+            const roleLabel = isCoachRole ? 'Coach' : 'Parent';
+            const initials = entry.user.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?';
+            return (
+              <div
+                key={entry.user.uid}
+                className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-fire-700 via-fire-800 to-navy-900 p-5 sm:p-6 text-white shadow-2xl ring-1 ring-white/10"
+              >
+                {/* decorative blobs */}
+                <div className={`absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none ${isCoachRole ? 'bg-violet-500/20' : 'bg-cyan-500/20'}`} />
+                <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+
+                {/* Head coach controls (top-right) */}
+                {isUserHeadCoach && entry.user.uid !== userData?.uid && (isUserOwner || !isHeadCoach(entry.user)) && (
+                  <div className="absolute top-3 right-3 z-10 flex space-x-1">
+                    <button
+                      onClick={() => handleChangeRole(entry.user.uid, entry.user.name, entry.user.role)}
+                      className="p-2 bg-white/10 hover:bg-white/20 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+                      title={isCoachRole ? 'Demote to parent' : 'Promote to coach'}
+                    >
+                      {isCoachRole ? (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
-                      </button>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleRemoveMember(entry.user.uid, entry.user.name)}
+                      className="p-2 bg-white/10 hover:bg-rose-500/40 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+                      title="Remove member"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                <div className="relative">
+                  {/* Role pill */}
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
+                    <span className={`w-2 h-2 rounded-full ${dotColor} ${entry.user.uid === userData?.uid ? 'animate-pulse' : ''}`} />
+                    {roleLabel}{entry.user.uid === userData?.uid ? ' · You' : ''}
+                  </div>
+
+                  {/* Avatar + name */}
+                  <div className="flex items-center gap-4 mb-5">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/10 ring-2 ring-white/25 shadow-lg flex items-center justify-center backdrop-blur flex-shrink-0">
+                      <span className="text-lg sm:text-xl font-black text-white">{initials}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight truncate">{entry.user.name || 'Unknown'}</h3>
+                      <p className="text-white/70 text-sm font-medium mt-0.5 truncate">
+                        {isCoachRole
+                          ? 'Team Coach'
+                          : entry.players.length > 0
+                            ? `Parent of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
+                            : 'Team Member'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Players section */}
+                  {entry.players.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mb-2">Their Players</p>
+                      <div className="space-y-2">
+                        {entry.players.map((player: any) => {
+                          const playerAge = player.dateOfBirth ? new Date().getFullYear() - new Date(player.dateOfBirth).getFullYear() : null;
+                          return (
+                            <div key={player.id} className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-3 flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0 font-black text-sm">
+                                {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-white text-sm truncate">{player.name}</p>
+                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-white/70">
+                                  {player.position && <span>{player.position}</span>}
+                                  {playerAge && <span>· Age {playerAge}</span>}
+                                  {player.stats?.goals > 0 && <span className="text-emerald-300">· {player.stats.goals}G</span>}
+                                  {player.stats?.assists > 0 && <span className="text-cyan-300">· {player.stats.assists}A</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
 
-              {/* PLAYERS SECTION - MOST PROMINENT - Show for both parents AND coaches */}
-              {(entry.user.role === 'parent' || entry.user.role === 'coach') && entry.players.length > 0 && (
-                <div className="p-4 bg-gradient-to-b from-cyan-50/40 to-white border-b-2 border-cyan-100">
-                  <div className="flex items-center mb-3">
-                    <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <h4 className="text-lg font-bold text-gray-900">
-                      {entry.user.role === 'coach' ? 'Their Players' : 'Their Players'}
-                    </h4>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {entry.players.map((player: any) => (
-                      <div key={player.id} className="bg-white rounded-xl p-4 border-2 border-cyan-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-                        <div className="flex items-center space-x-4">
-                          {/* Jersey Number Circle */}
-                          <div className="bg-gradient-to-br from-cyan-600 to-sky-700 text-white rounded-full w-14 h-14 flex items-center justify-center font-bold text-lg shadow-lg">
-                            #{player.jerseyNumber || '?'}
-                          </div>
-                          
-                          {/* Player Info */}
-                          <div className="flex-1">
-                            <h5 className="text-xl font-bold text-gray-900 mb-1">{player.name}</h5>
-                            <div className="flex flex-wrap gap-2 text-sm text-gray-600">
-                              {player.position && (
-                                <span className="flex items-center space-x-1 bg-cyan-50 text-cyan-700 px-2 py-1 rounded-full">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 7a2 2 0 012-2h10a2 2 0 012 2v2M7 7h10" />
-                                  </svg>
-                                  <span>{player.position}</span>
-                                </span>
-                              )}
-                              {player.dateOfBirth && (
-                                <span className="flex items-center space-x-1 bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                  <span>Age {new Date().getFullYear() - new Date(player.dateOfBirth).getFullYear()}</span>
-                                </span>
-                              )}
-                              {/* Show connection type for coaches */}
-                              {entry.user.role === 'coach' && (
-                                <span className="flex items-center space-x-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                  </svg>
-                                  <span>Coached Player</span>
-                                </span>
-                              )}
-                            </div>
-                            
-                            {/* Player Stats */}
-                            {player.stats && (player.stats.goals > 0 || player.stats.assists > 0 || player.stats.saves > 0) && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {player.stats.goals > 0 && (
-                                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
-                                    ⚽ {player.stats.goals} goals
-                                  </span>
-                                )}
-                                {player.stats.assists > 0 && (
-                                  <span className="bg-cyan-50 text-cyan-700 text-xs px-2 py-1 rounded-full font-medium">
-                                    🎯 {player.stats.assists} assists
-                                  </span>
-                                )}
-                                {player.stats.saves > 0 && (
-                                  <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
-                                    🥅 {player.stats.saves} saves
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Empty state for parents with no players */}
-              {entry.user.role === 'parent' && entry.players.length === 0 && (
-                <div className="p-4 bg-gradient-to-b from-cyan-50/40 to-white border-b-2 border-cyan-100">
-                  <div className="flex items-center mb-3">
-                    <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <h4 className="text-lg font-bold text-gray-900">Their Players</h4>
-                  </div>
-                  
-                  <div className="bg-gray-50 rounded-xl p-6 text-center border-2 border-dashed border-gray-300">
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <p className="text-gray-600 font-medium mb-1">No players assigned</p>
-                    <p className="text-sm text-gray-500 mb-3">This parent hasn't been linked to any players yet</p>
-                    
-                    {isUserCoach && (
-                      <>
-                        {linkingUid === entry.user.uid ? (
-                          <div className="mt-2">
+                  {/* Empty state for parents with no players */}
+                  {entry.user.role === 'parent' && entry.players.length === 0 && (
+                    <div className="mb-4 rounded-2xl bg-white/5 ring-1 ring-dashed ring-white/20 p-4 text-center backdrop-blur">
+                      <p className="text-white/85 text-sm font-medium mb-1">No players linked yet</p>
+                      <p className="text-white/55 text-xs mb-3">Coach can link this parent to a player</p>
+                      {isUserCoach && (
+                        linkingUid === entry.user.uid ? (
+                          <div className="space-y-2">
                             <select
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-2"
+                              className="w-full bg-white/10 ring-1 ring-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 backdrop-blur"
                               defaultValue=""
                               onChange={(e) => {
                                 if (e.target.value) {
@@ -608,16 +543,16 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                                 }
                               }}
                             >
-                              <option value="" disabled>Select a player...</option>
+                              <option value="" disabled className="bg-fire-900">Select a player…</option>
                               {allTeamPlayers.map((p: any) => (
-                                <option key={p.id} value={p.id}>
+                                <option key={p.id} value={p.id} className="bg-fire-900">
                                   {p.name} {p.jerseyNumber ? `#${p.jerseyNumber}` : ''} {p.position ? `(${p.position})` : ''}
                                 </option>
                               ))}
                             </select>
                             <button
                               onClick={() => setLinkingUid(null)}
-                              className="text-xs text-gray-500 hover:text-gray-700"
+                              className="text-xs text-white/60 hover:text-white"
                             >
                               Cancel
                             </button>
@@ -625,122 +560,97 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ) : (
                           <button
                             onClick={() => setLinkingUid(entry.user.uid)}
-                            className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-fire-800 font-bold text-sm shadow hover:scale-105 transition"
                           >
                             Link to Player
                           </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Contact Information Section */}
-              <div className="p-4">
-                <div className="flex items-center mb-3">
-                  <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <h4 className="text-sm font-semibold text-gray-900">Contact Information</h4>
-                </div>
-
-                <div className="space-y-3">
-                  {/* Email */}
-                  {entry.privacy.showEmail && entry.user.email && (
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <a 
-                        href={`mailto:${entry.user.email}`}
-                        className="text-cyan-600 hover:text-cyan-700 text-sm break-all"
-                      >
-                        {entry.user.email}
-                      </a>
+                        )
+                      )}
                     </div>
                   )}
 
-                  {/* Phone */}
-                  {entry.privacy.showPhone && entry.user.phoneNumber && (
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      <a 
-                        href={`tel:${entry.user.phoneNumber}`}
-                        className="text-cyan-600 hover:text-cyan-700 text-sm"
-                      >
-                        {formatPhone(entry.user.phoneNumber)}
-                      </a>
+                  {/* Contact rows */}
+                  {((entry.privacy.showEmail && entry.user.email) || (entry.privacy.showPhone && entry.user.phoneNumber) || (entry.privacy.showAddress && entry.user.address)) && (
+                    <div className="space-y-1.5 mb-4">
+                      {entry.privacy.showEmail && entry.user.email && (
+                        <a
+                          href={`mailto:${entry.user.email}`}
+                          className="flex items-center gap-2 text-sm text-cyan-200 hover:text-cyan-100 break-all"
+                        >
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <span className="truncate">{entry.user.email}</span>
+                        </a>
+                      )}
+                      {entry.privacy.showPhone && entry.user.phoneNumber && (
+                        <a
+                          href={`tel:${entry.user.phoneNumber}`}
+                          className="flex items-center gap-2 text-sm text-cyan-200 hover:text-cyan-100"
+                        >
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <span>{formatPhone(entry.user.phoneNumber)}</span>
+                        </a>
+                      )}
+                      {entry.privacy.showAddress && entry.user.address && (
+                        <div className="flex items-center gap-2 text-sm text-white/75">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="truncate">{entry.user.address}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Address */}
-                  {entry.privacy.showAddress && entry.user.address && (
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="text-sm text-gray-600">{entry.user.address}</span>
-                    </div>
-                  )}
-
-                  {/* Emergency Contact (visible to coaches only) */}
+                  {/* Emergency contact (coach only) */}
                   {isUserCoach && entry.user.emergencyContact && (
-                    <div className="pt-3 mt-3 border-t border-gray-200">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <span className="text-sm font-medium text-red-700">Emergency Contact</span>
-                      </div>
-                      <div className="text-sm text-gray-600 ml-7">
-                        <div className="font-medium">{entry.user.emergencyContact}</div>
-                        {entry.user.emergencyPhone && (
-                          <a 
-                            href={`tel:${entry.user.emergencyPhone}`}
-                            className="text-cyan-600 hover:text-cyan-700"
-                          >
-                            {formatPhone(entry.user.emergencyPhone)}
-                          </a>
-                        )}
-                      </div>
+                    <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-300/30 p-3 backdrop-blur mb-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-rose-200 mb-1">Emergency Contact</p>
+                      <p className="text-sm text-white font-semibold">{entry.user.emergencyContact}</p>
+                      {entry.user.emergencyPhone && (
+                        <a
+                          href={`tel:${entry.user.emergencyPhone}`}
+                          className="text-sm text-rose-200 hover:text-rose-100 underline-offset-2 hover:underline"
+                        >
+                          {formatPhone(entry.user.emergencyPhone)}
+                        </a>
+                      )}
                     </div>
                   )}
-                </div>
 
-                {/* Quick Actions */}
-                <div className="pt-4 mt-4 border-t border-gray-200">
-                  <div className="flex space-x-2">
+                  {/* Action pills */}
+                  <div className="flex flex-wrap gap-2">
                     {entry.privacy.showEmail && entry.user.email && (
                       <button
                         onClick={() => window.open(`mailto:${entry.user.email}`)}
-                        className="flex-1 bg-cyan-50 hover:bg-cyan-50 text-cyan-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-fire-800 font-bold text-sm shadow hover:scale-105 transition"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                        <span>Email</span>
+                        Email
                       </button>
                     )}
                     {entry.privacy.showPhone && entry.user.phoneNumber && (
                       <button
                         onClick={() => window.open(`tel:${entry.user.phoneNumber}`)}
-                        className="flex-1 bg-green-50 hover:bg-green-100 text-emerald-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 ring-1 ring-white/20 text-white font-semibold text-sm hover:bg-white/25 transition backdrop-blur"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                         </svg>
-                        <span>Call</span>
+                        Call
                       </button>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Empty State */}

@@ -61,7 +61,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     <>
       <div className="card-modern overflow-hidden">
         {/* Header with jersey number, position, and profile photo */}
-        <div className="bg-gradient-to-r from-cyan-500 to-sky-600 px-4 py-3 text-white">
+        <div className="bg-gradient-to-br from-fire-900 via-fire-950 to-black border-b border-cyan-500/10 px-4 py-3 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {/* Profile Photo or Jersey Number */}
@@ -178,7 +178,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   className={`inline-flex items-center space-x-1 text-xs px-2 py-1 rounded-full transition-colors ${
                     player.parentIds?.includes(userData.uid)
                       ? 'bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
-                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
                   }`}
                   title={player.parentIds?.includes(userData.uid) ? 'Unlink as my child' : 'Link as my child'}
                 >
@@ -256,7 +256,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50"
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-gray-800 font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>

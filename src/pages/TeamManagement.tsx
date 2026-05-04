@@ -464,7 +464,7 @@ const TeamManagement: React.FC = () => {
               <div className="mt-4 flex space-x-2">
                 <button
                   onClick={() => startEditTeam(team)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-gray-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   Edit
                 </button>
@@ -491,7 +491,7 @@ const TeamManagement: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {players.map(player => (
-                <div key={player.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div key={player.id} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
                   {player.profilePhotoUrl ? (
                     <div className="relative w-10 h-10 flex-shrink-0">
                       <img src={player.profilePhotoUrl} alt={player.name} className="w-10 h-10 rounded-full object-cover" />
@@ -512,7 +512,7 @@ const TeamManagement: React.FC = () => {
                       {player.position || 'No position'} {player.jerseyNumber ? `• #${player.jerseyNumber}` : ''}
                     </div>
                     {(player.teamIds?.length || 0) > 1 && (
-                      <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Shared</span>
+                      <span className="text-xs bg-violet-500/20 text-violet-200 px-1.5 py-0.5 rounded">Shared</span>
                     )}
                   </div>
                 </div>
@@ -527,7 +527,7 @@ const TeamManagement: React.FC = () => {
             <h2 className="text-xl font-bold text-white mb-4">Coach Invitations</h2>
             <div className="space-y-3">
               {coachInvites.map((invite: any) => (
-                <div key={invite.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={invite.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                   <div>
                     <div className="font-medium text-white">{invite.email}</div>
                     <div className="text-xs text-gray-400">
@@ -537,7 +537,7 @@ const TeamManagement: React.FC = () => {
                   </div>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                     invite.status === 'pending' ? 'bg-amber-500/20 text-amber-200' :
-                    invite.status === 'accepted' ? 'bg-green-100 text-emerald-300' :
+                    invite.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-200' :
                     'bg-rose-500/20 text-rose-200'
                   }`}>
                     {invite.status}
@@ -672,7 +672,7 @@ const TeamManagement: React.FC = () => {
                           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             linkCopied
                               ? 'bg-emerald-600 text-white'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-200'
+                              : 'bg-white/5 hover:bg-white/10 text-gray-200'
                           }`}
                         >
                           {linkCopied ? '✓ Copied' : 'Copy'}
@@ -681,7 +681,7 @@ const TeamManagement: React.FC = () => {
                     </div>
                     <button
                       onClick={() => { setInviteLink(null); setInviteEmail(''); setShowInviteCoachModal(false); }}
-                      className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-200 rounded-lg font-medium"
+                      className="w-full px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-200 rounded-lg font-medium"
                     >
                       Done
                     </button>

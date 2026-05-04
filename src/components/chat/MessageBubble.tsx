@@ -33,7 +33,7 @@ function renderRichContent(text: string): string {
   // @mentions of any name (letters/numbers/spaces up to 30 chars terminated by punctuation/end)
   const mentioned = linked.replace(
     /@([A-Za-z][A-Za-z0-9 _'-]{0,28}[A-Za-z0-9])/g,
-    '<span class="bg-blue-100 text-blue-800 font-medium px-1 rounded">@$1</span>'
+    '<span class="bg-cyan-500/20 text-cyan-200 font-medium px-1 rounded">@$1</span>'
   );
   return mentioned;
 }
@@ -92,8 +92,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <span
             className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
               message.senderRole === 'coach'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-green-100 text-green-800'
+                ? 'bg-cyan-500/20 text-cyan-200'
+                : 'bg-emerald-500/20 text-emerald-200'
             }`}
           >
             {message.senderRole}
@@ -153,7 +153,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
                   info.mine
                     ? 'bg-blue-50 border-blue-300 text-blue-800'
-                    : 'bg-white border-white/15 text-gray-200 hover:bg-white/5'
+                    : 'bg-white/5 border-white/15 text-gray-200 hover:bg-white/5'
                 }`}
               >
                 <span className="mr-1">{emoji}</span>

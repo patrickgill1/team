@@ -237,7 +237,7 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'game': return 'bg-rose-500/10 text-rose-300 border-rose-300/50';
       case 'practice': return 'bg-fire-500/10 text-fire-200 border-fire-300/50';
       case 'event': return 'bg-emerald-500/10 text-emerald-300 border-emerald-300/50';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      default: return 'bg-slate-100 text-gray-200 border-slate-200';
     }
   };
 
@@ -283,7 +283,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 sm:h-28 bg-slate-50/60"></div>);
+      days.push(<div key={`empty-${i}`} className="h-24 sm:h-28 bg-white/5/60"></div>);
     }
 
     // Days of the month
@@ -301,14 +301,14 @@ const Calendar: React.FC<CalendarProps> = ({
             isToday
               ? 'bg-gradient-to-br from-fire-500/10 to-transparent ring-1 ring-fire-300/60'
               : isPast
-                ? 'bg-slate-50/40 hover:bg-slate-50'
+                ? 'bg-white/5/40 hover:bg-white/5'
                 : 'bg-white hover:bg-fire-50/40'
           }`}
         >
           <div className={`text-xs font-semibold mb-1 inline-flex items-center justify-center ${
             isToday
               ? 'w-6 h-6 rounded-full bg-fire-600 text-white shadow-sm'
-              : isPast ? 'text-slate-400' : 'text-slate-700'
+              : isPast ? 'text-slate-400' : 'text-gray-200'
           }`}>
             {day}
           </div>
@@ -329,7 +329,7 @@ const Calendar: React.FC<CalendarProps> = ({
               </div>
             ))}
             {dayEvents.length > 2 && (
-              <div className="text-[10px] text-slate-500 px-1 font-medium">
+              <div className="text-[10px] text-gray-400 px-1 font-medium">
                 +{dayEvents.length - 2} more
               </div>
             )}
@@ -376,9 +376,9 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200/70">
+        <div className="grid grid-cols-7 bg-white/5 border-b border-slate-200/70">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-2 px-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            <div key={day} className="py-2 px-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-400">
               {day}
             </div>
           ))}
@@ -417,7 +417,7 @@ const Calendar: React.FC<CalendarProps> = ({
           <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
             <span className="w-1.5 h-5 bg-fire-500 rounded-full"></span>
             <h3 className="text-base font-bold text-navy-900 tracking-tight">Upcoming</h3>
-            <span className="ml-auto text-xs font-semibold text-slate-500">{upcomingEvents.length}</span>
+            <span className="ml-auto text-xs font-semibold text-gray-400">{upcomingEvents.length}</span>
           </div>
           <div className="p-5 sm:p-6">
             {upcomingEvents.length === 0 ? (
@@ -427,7 +427,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-slate-600 font-medium">No upcoming events scheduled</p>
+                <p className="text-gray-300 font-medium">No upcoming events scheduled</p>
                 {isUserCoach && (
                   <button
                     onClick={() => {
@@ -467,7 +467,7 @@ const Calendar: React.FC<CalendarProps> = ({
           <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70">
             <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
               <span className="w-1.5 h-5 bg-slate-300 rounded-full"></span>
-              <h3 className="text-base font-bold text-slate-700 tracking-tight">Past Events</h3>
+              <h3 className="text-base font-bold text-gray-200 tracking-tight">Past Events</h3>
               <span className="ml-auto text-xs font-semibold text-slate-400">{pastEvents.length}</span>
             </div>
             <div className="p-5 sm:p-6">
@@ -522,7 +522,7 @@ const Calendar: React.FC<CalendarProps> = ({
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'month'
                   ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
               Month
@@ -532,7 +532,7 @@ const Calendar: React.FC<CalendarProps> = ({
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'list'
                   ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
               List
@@ -630,13 +630,13 @@ const EventCard: React.FC<EventCardProps> = ({
       practice: 'bg-fire-500/10 text-fire-200 border-fire-300/50',
       event: 'bg-emerald-500/10 text-emerald-300 border-emerald-300/50'
     };
-    return colors[type as keyof typeof colors] || 'bg-slate-100 text-slate-700 border-slate-200';
+    return colors[type as keyof typeof colors] || 'bg-slate-100 text-gray-200 border-slate-200';
   };
 
   return (
     <div className={`rounded-2xl p-4 sm:p-5 transition-all ring-1 ${
       isPast
-        ? 'ring-slate-200 bg-slate-50/60'
+        ? 'ring-slate-200 bg-white/5/60'
         : 'ring-slate-200/70 bg-white hover:ring-fire-300/60 hover:shadow-md hover:-translate-y-0.5'
     }`}>
       <div className="flex items-start justify-between">
@@ -923,7 +923,7 @@ const CarpoolBar: React.FC<{
             </div>
           ))}
           {!isPast && userUid && onAdd && (
-            <div className="bg-gray-50 border border-white/10 rounded-lg p-2 space-y-2">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-2 space-y-2">
               <div className="flex gap-1">
                 <button
                   onClick={() => setType('offer')}

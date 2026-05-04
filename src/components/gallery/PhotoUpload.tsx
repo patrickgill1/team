@@ -265,8 +265,8 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                       disabled={isUploading || uploadLoading}
                       className={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 disabled:opacity-50 ${
                         selectedTags.includes(tag)
-                          ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                          : 'bg-gray-100 text-gray-200 border border-white/15 hover:bg-gray-200'
+                          ? 'bg-cyan-500/20 text-cyan-200 border border-blue-300'
+                          : 'bg-white/5 text-gray-300 border border-white/15 hover:bg-white/10'
                       }`}
                     >
                       {tag}
@@ -342,7 +342,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                 <span className="text-sm font-medium text-gray-200">Uploading...</span>
                 <span className="text-sm text-gray-400">{Math.round(uploadProgress.progress)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-white/10 rounded-full h-2">
                 <div 
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress.progress}%` }}

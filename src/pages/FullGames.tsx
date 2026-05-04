@@ -341,9 +341,9 @@ const FullGames: React.FC = () => {
                         <h3 className="font-semibold text-white text-sm leading-snug line-clamp-2">{g.title}</h3>
                         {g.result && (
                           <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded ${
-                            g.result.startsWith('W') ? 'bg-green-100 text-emerald-300'
+                            g.result.startsWith('W') ? 'bg-emerald-500/20 text-emerald-200'
                               : g.result.startsWith('L') ? 'bg-rose-500/20 text-rose-200'
-                              : 'bg-gray-100 text-gray-200'
+                              : 'bg-white/5 text-gray-300'
                           }`}>
                             {g.result}
                           </span>
@@ -580,7 +580,7 @@ const FullGames: React.FC = () => {
                       </p>
                       {saving && uploadProgress > 0 && (
                         <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-white/10 rounded-full h-2">
                             <div className="h-2 rounded-full bg-cyan-500 transition-all" style={{ width: `${uploadProgress}%` }} />
                           </div>
                           <p className="text-xs text-gray-400 mt-1">Uploading... {uploadProgress}%</p>

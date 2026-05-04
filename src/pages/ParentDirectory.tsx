@@ -351,7 +351,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
             <div className="flex space-x-3">
               <button
                 onClick={handleRefreshDirectory}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                className="bg-white/50 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -433,10 +433,10 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
           {filteredDirectory.map((entry) => (
             <div key={entry.user.uid} className="card-modern border border-white/10 overflow-hidden">
               {/* Header with User Info */}
-              <div className={`px-4 py-3 text-white ${
-                entry.user.role === 'coach' 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600' 
-                  : 'bg-gradient-to-r from-cyan-500 to-sky-600'
+              <div className={`px-4 py-3 text-white border-b ${
+                entry.user.role === 'coach'
+                  ? 'bg-gradient-to-br from-fire-900 via-fire-950 to-black border-violet-500/15'
+                  : 'bg-gradient-to-br from-fire-900 via-fire-950 to-black border-cyan-500/10'
               }`}>
                 <div className="flex items-center space-x-3">
                   <div className="bg-white bg-opacity-20 rounded-full w-12 h-12 flex items-center justify-center shrink-0">
@@ -500,7 +500,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
               {/* PLAYERS SECTION - MOST PROMINENT - Show for both parents AND coaches */}
               {(entry.user.role === 'parent' || entry.user.role === 'coach') && entry.players.length > 0 && (
-                <div className="p-4 bg-gradient-to-b from-cyan-50/40 to-white border-b-2 border-cyan-100">
+                <div className="p-4 bg-white/5 border-b border-white/10">
                   <div className="flex items-center mb-3">
                     <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -512,10 +512,10 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   
                   <div className="space-y-3">
                     {entry.players.map((player: any) => (
-                      <div key={player.id} className="bg-gray-900/80 rounded-xl p-4 border-2 border-cyan-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <div key={player.id} className="bg-gray-900/80 rounded-xl p-4 border border-white/10 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div className="flex items-center space-x-4">
                           {/* Jersey Number Circle */}
-                          <div className="bg-gradient-to-br from-cyan-600 to-sky-700 text-white rounded-full w-14 h-14 flex items-center justify-center font-bold text-lg shadow-lg">
+                          <div className="bg-gradient-to-br from-cyan-600 to-sky-700 ring-1 ring-cyan-400/30 text-white rounded-full w-14 h-14 flex items-center justify-center font-bold text-lg shadow-lg">
                             #{player.jerseyNumber || '?'}
                           </div>
                           
@@ -532,7 +532,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                                 </span>
                               )}
                               {player.dateOfBirth && (
-                                <span className="flex items-center space-x-1 bg-gray-100 text-gray-200 px-2 py-1 rounded-full">
+                                <span className="flex items-center space-x-1 bg-white/5 text-gray-300 px-2 py-1 rounded-full">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                   </svg>
@@ -541,7 +541,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                               )}
                               {/* Show connection type for coaches */}
                               {entry.user.role === 'coach' && (
-                                <span className="flex items-center space-x-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                <span className="flex items-center space-x-1 bg-violet-500/20 text-violet-200 px-2 py-1 rounded-full">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                   </svg>
@@ -554,7 +554,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                             {player.stats && (player.stats.goals > 0 || player.stats.assists > 0 || player.stats.saves > 0) && (
                               <div className="mt-2 flex flex-wrap gap-1">
                                 {player.stats.goals > 0 && (
-                                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
+                                  <span className="bg-emerald-500/20 text-emerald-200 text-xs px-2 py-1 rounded-full font-medium">
                                     ⚽ {player.stats.goals} goals
                                   </span>
                                 )}
@@ -564,7 +564,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                                   </span>
                                 )}
                                 {player.stats.saves > 0 && (
-                                  <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
+                                  <span className="bg-orange-500/20 text-orange-200 text-xs px-2 py-1 rounded-full font-medium">
                                     🥅 {player.stats.saves} saves
                                   </span>
                                 )}
@@ -580,7 +580,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
               {/* Empty state for parents with no players */}
               {entry.user.role === 'parent' && entry.players.length === 0 && (
-                <div className="p-4 bg-gradient-to-b from-cyan-50/40 to-white border-b-2 border-cyan-100">
+                <div className="p-4 bg-white/5 border-b border-white/10">
                   <div className="flex items-center mb-3">
                     <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -588,7 +588,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     <h4 className="text-lg font-bold text-white">Their Players</h4>
                   </div>
                   
-                  <div className="bg-gray-50 rounded-xl p-6 text-center border-2 border-dashed border-white/15">
+                  <div className="bg-white/5 rounded-xl p-6 text-center border-2 border-dashed border-white/15">
                     <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
@@ -728,7 +728,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     {entry.privacy.showPhone && entry.user.phoneNumber && (
                       <button
                         onClick={() => window.open(`tel:${entry.user.phoneNumber}`)}
-                        className="flex-1 bg-green-50 hover:bg-green-100 text-emerald-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1"
+                        className="flex-1 bg-green-50 hover:bg-emerald-500/20 text-emerald-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />

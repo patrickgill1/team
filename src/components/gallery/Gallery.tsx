@@ -201,8 +201,8 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
             onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: '' }))}
             className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
               tagFilter === '' 
-                ? 'bg-blue-100 text-blue-800' 
-                : 'bg-gray-100 text-gray-200 hover:bg-gray-200'
+                ? 'bg-cyan-500/20 text-cyan-200' 
+                : 'bg-white/5 text-gray-300 hover:bg-white/10'
             }`}
           >
             All
@@ -213,8 +213,8 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: tag }))}
               className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
                 tagFilter === tag 
-                  ? 'bg-blue-100 text-blue-800' 
-                  : 'bg-gray-100 text-gray-200 hover:bg-gray-200'
+                  ? 'bg-cyan-500/20 text-cyan-200' 
+                  : 'bg-white/5 text-gray-300 hover:bg-white/10'
               }`}
             >
               {tag}
@@ -361,7 +361,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
             {photo.tags.slice(0, 3).map(tag => (
               <span
                 key={tag}
-                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                className="px-2 py-1 bg-cyan-500/20 text-cyan-200 text-xs rounded-full"
               >
                 {tag}
               </span>
@@ -464,7 +464,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
               {photo.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  className="px-2 py-1 bg-cyan-500/20 text-cyan-200 text-sm rounded-full"
                 >
                   {tag}
                 </span>

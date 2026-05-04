@@ -355,7 +355,7 @@ const Navigation: React.FC = () => {
                 <select
                   value={selectedTeamId}
                   onChange={e => setSelectedTeamId(e.target.value)}
-                  className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-gray-50 text-gray-200 focus:ring-2 focus:ring-cyan-500"
+                  className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-white/5 text-gray-200 focus:ring-2 focus:ring-cyan-500"
                 >
                   {teams.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -375,7 +375,7 @@ const Navigation: React.FC = () => {
                     className={`flex flex-col items-center p-3 rounded-2xl transition-all ${
                       isActive(item.path)
                         ? 'bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-200'
-                        : 'bg-gray-50 text-gray-300 hover:bg-white/10'
+                        : 'bg-white/5 text-gray-300 hover:bg-white/10'
                     }`}
                   >
                     <span className="text-2xl mb-1">{item.emoji}</span>

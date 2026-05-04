@@ -90,7 +90,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
         <div className="p-5 space-y-4">
           {/* Quick presets */}
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Quick start</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Quick start</div>
             <div className="flex flex-wrap gap-2">
               {presetMessages.map((p, i) => (
                 <button
@@ -107,7 +107,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
 
           {/* Message */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Your note</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Your note</label>
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
@@ -121,7 +121,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
 
           {/* Attach plan */}
           {newestPlan && (
-            <label className="flex items-start gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer ring-1 ring-slate-200">
+            <label className="flex items-start gap-2 p-3 rounded-xl bg-white/5 hover:bg-slate-100 cursor-pointer ring-1 ring-slate-200">
               <input
                 type="checkbox"
                 checked={includePlan}
@@ -129,8 +129,8 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
                 className="mt-0.5 h-4 w-4 text-fire-600 focus:ring-fire-500/30 border-slate-300 rounded"
               />
               <div className="text-sm">
-                <div className="font-semibold text-slate-700">Mention current dev plan</div>
-                <div className="text-xs text-slate-500 mt-0.5">"{newestPlan.title}"</div>
+                <div className="font-semibold text-gray-200">Mention current dev plan</div>
+                <div className="text-xs text-gray-400 mt-0.5">"{newestPlan.title}"</div>
               </div>
             </label>
           )}
@@ -138,7 +138,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
           {/* Attach clip */}
           {recentClips.length > 0 && (
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Attach a recent clip (optional)</div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Attach a recent clip (optional)</div>
               <select
                 value={includeClipId}
                 onChange={e => setIncludeClipId(e.target.value)}
@@ -166,7 +166,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
               type="button"
               onClick={onClose}
               disabled={sending}
-              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl"
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-gray-200 font-semibold py-3 rounded-xl"
             >Cancel</button>
             <button
               type="button"

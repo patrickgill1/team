@@ -352,7 +352,7 @@ const EventForm: React.FC<EventFormProps> = ({
       case 'game': return 'border-rose-500 bg-rose-500/10 text-rose-300 ring-2 ring-rose-500/30';
       case 'practice': return 'border-fire-500 bg-fire-500/10 text-fire-200 ring-2 ring-fire-500/30';
       case 'event': return 'border-emerald-500 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/30';
-      default: return 'border-slate-300 bg-slate-100 text-slate-700';
+      default: return 'border-slate-300 bg-slate-100 text-gray-200';
     }
   };
 
@@ -395,7 +395,7 @@ const EventForm: React.FC<EventFormProps> = ({
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
           {/* Event Type */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
               Event Type *
             </label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -622,7 +622,7 @@ const EventForm: React.FC<EventFormProps> = ({
           {formData.title && formData.date && formData.time && formData.location && (
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium text-gray-200 mb-2">Preview</h3>
-              <div className="bg-gray-50 rounded-lg p-4 border border-white/10">
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                 <div className="flex items-start space-x-3">
                   <div className="text-2xl">{getEventTypeIcon(formData.type)}</div>
                   <div className="flex-1">
@@ -689,7 +689,7 @@ const EventForm: React.FC<EventFormProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl transition disabled:opacity-50"
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-gray-200 font-semibold py-3 px-4 rounded-xl transition disabled:opacity-50"
             >
               Cancel
             </button>

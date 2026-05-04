@@ -117,7 +117,7 @@ const GalleryPage: React.FC = () => {
                 </span>
               )}
               {tagFilter && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-emerald-500/20 text-emerald-200">
                   Tag: {tagFilter}
                   <button
                     onClick={() => setTagFilter('')}

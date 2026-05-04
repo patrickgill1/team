@@ -163,10 +163,10 @@ const PlayerProfile: React.FC = () => {
   const getCategoryColor = (cat: string) => {
     switch (cat) {
       case 'technical': return 'bg-cyan-500/10 text-cyan-300';
-      case 'tactical': return 'bg-purple-100 text-purple-700';
-      case 'physical': return 'bg-orange-100 text-orange-700';
-      case 'mental': return 'bg-green-100 text-emerald-300';
-      default: return 'bg-gray-100 text-gray-200';
+      case 'tactical': return 'bg-violet-500/20 text-violet-200';
+      case 'physical': return 'bg-orange-500/20 text-orange-200';
+      case 'mental': return 'bg-emerald-500/20 text-emerald-200';
+      default: return 'bg-white/5 text-gray-300';
     }
   };
 
@@ -225,7 +225,8 @@ const PlayerProfile: React.FC = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="bg-gradient-to-r from-cyan-600 to-sky-700 text-white">
+      <div className="relative overflow-hidden bg-gradient-to-br from-fire-900 via-fire-950 to-black border-b border-cyan-500/10 text-white">
+        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.25),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(239,68,68,0.18),transparent_50%)] pointer-events-none" />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
           <Link to="/players" className="text-cyan-100 hover:text-white text-sm mb-4 inline-block">← Back to Roster</Link>
           <div className="flex items-center space-x-6">
@@ -318,19 +319,19 @@ const PlayerProfile: React.FC = () => {
             <div className="bg-gray-900/80 rounded-xl border border-white/10 p-6">
               <h2 className="text-lg font-bold text-white mb-4">Season Stats</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-3 bg-white/5 rounded-lg">
                   <div className="text-2xl font-bold text-cyan-600">{player.stats?.gamesPlayed || 0}</div>
                   <div className="text-sm text-gray-300">Games</div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-3 bg-white/5 rounded-lg">
                   <div className="text-2xl font-bold text-emerald-600">{player.stats?.goals || 0}</div>
                   <div className="text-sm text-gray-300">Goals</div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-3 bg-white/5 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">{player.stats?.assists || 0}</div>
                   <div className="text-sm text-gray-300">Assists</div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-3 bg-white/5 rounded-lg">
                   <div className="text-2xl font-bold text-amber-400">{player.stats?.saves || 0}</div>
                   <div className="text-sm text-gray-300">Saves</div>
                 </div>
@@ -372,7 +373,7 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-2xl font-bold text-amber-400">{playerCompletedGoals}/{totalGoalsInPlans}</div>
                     <div className="text-xs text-gray-300">Goals Done</div>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="text-center p-3 bg-white/5 rounded-lg">
                     <div className="text-2xl font-bold text-gray-200">{totalGoalsInPlans > 0 ? Math.round((verifiedGoals / totalGoalsInPlans) * 100) : 0}%</div>
                     <div className="text-xs text-gray-300">Coach Verified</div>
                   </div>
@@ -401,7 +402,7 @@ const PlayerProfile: React.FC = () => {
                           <div className="flex justify-between text-[10px] text-gray-400">
                             <span>Player</span><span>{playerPct}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div className="w-full bg-white/10 rounded-full h-1.5">
                             <div className="bg-yellow-400 h-1.5 rounded-full transition-all" style={{ width: `${playerPct}%` }} />
                           </div>
                         </div>
@@ -409,7 +410,7 @@ const PlayerProfile: React.FC = () => {
                           <div className="flex justify-between text-[10px] text-gray-400">
                             <span>Coach Verified</span><span>{verified}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div className="w-full bg-white/10 rounded-full h-1.5">
                             <div className={`h-1.5 rounded-full transition-all ${verified === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${verified}%` }} />
                           </div>
                         </div>
@@ -418,7 +419,7 @@ const PlayerProfile: React.FC = () => {
                             <div className="flex justify-between text-[10px] text-gray-400">
                               <span>🔥 Practice Minutes</span><span>{Math.min(100, Math.round((planMins / planTarget) * 100))}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className="w-full bg-white/10 rounded-full h-1.5">
                               <div className="bg-orange-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((planMins / planTarget) * 100))}%` }} />
                             </div>
                           </div>
@@ -626,7 +627,7 @@ const PlayerProfile: React.FC = () => {
                       {playerVotes.some(v => v.reason) && (
                         <div className="mt-3 space-y-2 pl-10">
                           {playerVotes.filter(v => v.reason).map((v, i) => (
-                            <div key={i} className="bg-gray-50 rounded-lg px-3 py-2">
+                            <div key={i} className="bg-white/5 rounded-lg px-3 py-2">
                               <p className="text-sm text-gray-200 italic">"{v.reason}"</p>
                               <p className="text-xs text-gray-400 mt-0.5">— {v.voterName}</p>
                             </div>
@@ -793,7 +794,7 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-3">
+        <div className="w-full bg-white/10 rounded-full h-1.5 mt-3">
           <div className={`h-1.5 rounded-full transition-all ${plan.status === 'completed' ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${progress}%` }} />
         </div>
       </button>
@@ -807,7 +808,7 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
               const hours = Math.floor(totalMins / 60);
               const mins = totalMins % 60;
               return (
-              <div key={goal.id} className="p-2 rounded-lg bg-gray-50">
+              <div key={goal.id} className="p-2 rounded-lg bg-white/5">
                 <div className="flex items-start space-x-3">
                 <div className="mt-0.5">
                   {goal.coachVerified ? (

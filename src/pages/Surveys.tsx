@@ -286,7 +286,7 @@ const Surveys: React.FC = () => {
             {/* Header bar */}
             <div className="card-modern p-4 flex items-center justify-between">
               <span className="text-fire-600 font-medium">{responses.length} response{responses.length !== 1 ? 's' : ''}</span>
-              {selectedSurvey.isAnonymous && <span className="text-xs bg-fire-100 text-fire-500 px-2 py-0.5 rounded-full">Anonymous</span>}
+              {selectedSurvey.isAnonymous && <span className="text-xs bg-fire-500/20 text-fire-200 px-2 py-0.5 rounded-full">Anonymous</span>}
             </div>
 
             {/* Tab toggle */}
@@ -440,11 +440,11 @@ const Surveys: React.FC = () => {
                           <span className="ml-1 text-amber-400 text-xl">{'★'.repeat(Number(ans.value))}{'☆'.repeat((q.maxRating || 5) - Number(ans.value))}</span>
                         </div>
                       ) : q.type === 'yes_no' ? (
-                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${ans.value === 'yes' ? 'bg-emerald-100 text-emerald-300' : 'bg-red-100 text-rose-300'}`}>
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${ans.value === 'yes' ? 'bg-emerald-500/20 text-emerald-200' : 'bg-rose-500/20 text-rose-200'}`}>
                           {ans.value === 'yes' ? '👍 Yes' : '👎 No'}
                         </span>
                       ) : q.type === 'multiple_choice' ? (
-                        <span className="inline-block bg-cyan-100 text-cyan-300 px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
+                        <span className="inline-block bg-cyan-500/20 text-cyan-200 px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
                       ) : (
                         <p className="text-fire-200 text-sm bg-fire-50 rounded-lg p-3 border border-fire-100">"{String(ans.value)}"</p>
                       )}
@@ -627,7 +627,7 @@ const Surveys: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-fire-100 truncate">{s.title}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.isActive ? 'bg-emerald-100 text-emerald-300' : 'bg-fire-100 text-fire-500'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.isActive ? 'bg-emerald-500/20 text-emerald-200' : 'bg-fire-500/20 text-fire-200'}`}>
                       {s.isActive ? 'Active' : 'Closed'}
                     </span>
                     {s.isAnonymous && <span className="text-xs bg-fire-100 text-fire-400 px-2 py-0.5 rounded-full">Anonymous</span>}

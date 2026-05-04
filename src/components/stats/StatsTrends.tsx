@@ -130,7 +130,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
           {Array.from({ length: Math.max(0, 5 - recent.length) }).map((_, i) => (
             <div
               key={`pad-${i}`}
-              className="px-2 py-1 rounded-md text-xs font-bold bg-gray-100 text-gray-400"
+              className="px-2 py-1 rounded-md text-xs font-bold bg-white/5 text-gray-400"
             >
               –
             </div>
@@ -177,7 +177,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
           <div className="text-2xl font-bold text-emerald-300">{streaks.currentContribStreak}</div>
           <div className="text-[10px] text-gray-400">best {streaks.longestContribStreak}</div>
         </div>
-        <div className="text-center bg-gray-50 rounded-lg p-3">
+        <div className="text-center bg-white/5 rounded-lg p-3">
           <div className="text-xs text-gray-300 mb-1">Dry games</div>
           <div className="text-2xl font-bold text-gray-200">{streaks.currentDryStreak}</div>
           <div className="text-[10px] text-gray-400">since last contrib</div>
@@ -195,15 +195,15 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
       <div>
         <div className="text-sm font-medium text-gray-200 mb-2">Single-game bests</div>
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="bg-gray-50 rounded-lg p-3">
+          <div className="bg-white/5 rounded-lg p-3">
             <div className="text-xs text-gray-300">Goals</div>
             <div className="text-lg font-bold text-blue-700">{bestGoals}</div>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3">
+          <div className="bg-white/5 rounded-lg p-3">
             <div className="text-xs text-gray-300">Assists</div>
             <div className="text-lg font-bold text-emerald-300">{bestAssists}</div>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3">
+          <div className="bg-white/5 rounded-lg p-3">
             <div className="text-xs text-gray-300">{isKeeper ? 'Saves' : 'Saves'}</div>
             <div className="text-lg font-bold text-purple-700">{bestSaves}</div>
           </div>

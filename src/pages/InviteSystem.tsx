@@ -266,7 +266,7 @@ The Team Manager Team`;
             <button
               onClick={copyInviteLink}
               disabled={isSending}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-200 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center"
+              className="bg-white/5 hover:bg-white/10 text-gray-200 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center"
               title="Copy invite link"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,7 +282,7 @@ The Team Manager Team`;
             <p className="text-xs text-gray-300 mb-2">
               You can also share this link directly via text, social media, or any other method:
             </p>
-            <div className="bg-gray-50 p-2 rounded text-xs text-gray-200 break-all font-mono">
+            <div className="bg-white/5 p-2 rounded text-xs text-gray-200 break-all font-mono">
               {generateInviteLink()}
             </div>
           </div>

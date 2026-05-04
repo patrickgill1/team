@@ -241,7 +241,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   type="text"
                   value={opponent}
                   disabled
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg bg-gray-50"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg bg-white/5"
                 />
               </div>
               <div>

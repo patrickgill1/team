@@ -414,10 +414,10 @@ const PlayerDevelopment: React.FC = () => {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'technical': return 'bg-cyan-500/10 text-cyan-300 border-cyan-100';
-      case 'tactical': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'physical': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'mental': return 'bg-green-100 text-emerald-300 border-green-200';
-      default: return 'bg-gray-100 text-gray-200 border-white/10';
+      case 'tactical': return 'bg-violet-500/20 text-violet-200 border-purple-200';
+      case 'physical': return 'bg-orange-500/20 text-orange-200 border-orange-200';
+      case 'mental': return 'bg-emerald-500/20 text-emerald-200 border-green-200';
+      default: return 'bg-white/5 text-gray-300 border-white/10';
     }
   };
 
@@ -715,7 +715,7 @@ const PlayerDevelopment: React.FC = () => {
                         value={planPlayerId}
                         onChange={e => setPlanPlayerId(e.target.value)}
                         disabled
-                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100 disabled:text-gray-400"
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-cyan-500 disabled:bg-white/5 disabled:text-gray-400"
                       >
                         <option value="">Select player...</option>
                         {players.map(p => (
@@ -724,7 +724,7 @@ const PlayerDevelopment: React.FC = () => {
                       </select>
                     ) : (
                       <>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-white/10 rounded-lg bg-gray-50">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-white/10 rounded-lg bg-white/5">
                           {players.length === 0 && (
                             <div className="col-span-full text-center text-sm text-gray-400 py-4">No players on this team yet.</div>
                           )}
@@ -740,7 +740,7 @@ const PlayerDevelopment: React.FC = () => {
                                 }}
                                 className={`text-left px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${checked
                                   ? 'bg-cyan-600 border-cyan-600 text-white'
-                                  : 'bg-white border-white/15 text-gray-200 hover:border-cyan-400'}`}
+                                  : 'bg-white/5 border-white/15 text-gray-200 hover:border-cyan-400'}`}
                               >
                                 <span className="inline-block w-5">{checked ? '✓' : ''}</span>
                                 {p.jerseyNumber ? `#${p.jerseyNumber} ` : ''}{p.name}
@@ -795,7 +795,7 @@ const PlayerDevelopment: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-200 mb-2">Development Goals *</label>
                     <div className="space-y-3">
                       {planGoals.map((goal, index) => (
-                        <div key={goal.id} className="flex items-start space-x-2 bg-gray-50 p-3 rounded-lg">
+                        <div key={goal.id} className="flex items-start space-x-2 bg-white/5 p-3 rounded-lg">
                           <span className="text-sm font-medium text-gray-400 mt-2">{index + 1}.</span>
                           <div className="flex-1 space-y-2">
                             <input
@@ -1045,7 +1045,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   {plan.category}
                 </span>
                 {plan.status === 'completed' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-emerald-300 border border-green-200">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-green-200">
                     ✅ Completed
                   </span>
                 )}
@@ -1055,7 +1055,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   </span>
                 )}
                 {typeof streak === 'number' && streak >= 2 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 font-semibold" title={`${streak} consecutive verified goals`}>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-200 border border-orange-200 font-semibold" title={`${streak} consecutive verified goals`}>
                     🔥 {streak} streak
                   </span>
                 )}
@@ -1069,7 +1069,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   <span className="text-gray-400">Player</span>
                   <span className="font-semibold text-amber-400">{playerProgress}%</span>
                 </div>
-                <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
+                <div className="w-32 bg-white/10 rounded-full h-1.5 mt-0.5">
                   <div className="h-1.5 rounded-full bg-yellow-400 transition-all duration-500" style={{ width: `${playerProgress}%` }} />
                 </div>
               </div>
@@ -1078,7 +1078,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   <span className="text-gray-400">Coach</span>
                   <span className={`font-semibold ${progress === 100 ? 'text-emerald-600' : 'text-cyan-600'}`}>{progress}%</span>
                 </div>
-                <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
+                <div className="w-32 bg-white/10 rounded-full h-1.5 mt-0.5">
                   <div
                     className={`h-1.5 rounded-full transition-all duration-500 ${progress === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`}
                     style={{ width: `${progress}%` }}
@@ -1091,7 +1091,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                     <span className="text-gray-400">🔥 Minutes</span>
                     <span className="font-semibold text-orange-600">{totalLoggedMinutes}/{totalTargetMinutes}</span>
                   </div>
-                  <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
+                  <div className="w-32 bg-white/10 rounded-full h-1.5 mt-0.5">
                     <div className="h-1.5 rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${minutesProgress}%` }} />
                   </div>
                 </div>
@@ -1120,19 +1120,19 @@ const PlanCard: React.FC<PlanCardProps> = ({
           )}
           
           {/* Progress bars + Practice Summary */}
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div className="mb-4 p-3 bg-white/5 rounded-lg">
             <div className="flex justify-between text-xs text-gray-300 mb-1">
               <span>Player self-reported: {playerProgress}%</span>
               <span>Coach verified: {progress}%</span>
             </div>
             <div className="flex space-x-2">
               <div className="flex-1">
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-white/10 rounded-full h-2">
                   <div className="h-2 rounded-full bg-yellow-400 transition-all" style={{ width: `${playerProgress}%` }} />
                 </div>
               </div>
               <div className="flex-1">
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-white/10 rounded-full h-2">
                   <div className={`h-2 rounded-full transition-all ${progress === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${progress}%` }} />
                 </div>
               </div>
@@ -1167,7 +1167,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                 goal.coachVerified ? 'bg-green-50 border-green-200' :
                 goal.readyForReview ? 'bg-amber-500/10 border-amber-500/20' :
                 goal.playerCompleted ? 'bg-cyan-500/10 border-cyan-100' :
-                'bg-white border-white/10'
+                'bg-white/5 border-white/10'
               }`}>
                 <div className="flex items-start space-x-3">
                   {/* Player checkbox */}
@@ -1210,7 +1210,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             const pct = Math.min(100, Math.round((goalMins / goal.targetMinutes) * 100));
                             const done = pct >= 100;
                             return (
-                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-green-100 text-emerald-300' : 'bg-orange-100 text-orange-700'}`}>
+                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-emerald-500/20 text-emerald-200' : 'bg-orange-500/20 text-orange-200'}`}>
                                 🔥 {goalMins}/{goal.targetMinutes} min
                               </span>
                             );
@@ -1241,7 +1241,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             onClick={() => onCoachVerify(goal.id)}
                             className={`text-xs px-2 py-1 rounded-full font-medium transition-colors ${
                               goal.coachVerified
-                                ? 'bg-green-100 text-emerald-300 hover:bg-green-200'
+                                ? 'bg-emerald-500/20 text-emerald-200 hover:bg-green-200'
                                 : goal.readyForReview
                                 ? 'bg-amber-500/20 text-amber-200 hover:bg-green-100 hover:text-emerald-300 ring-2 ring-yellow-300'
                                 : 'bg-gray-100 text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-300'
@@ -1251,7 +1251,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                           </button>
                         )}
                         {!isCoach && goal.coachVerified && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-emerald-300 font-medium">
+                          <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-200 font-medium">
                             ✅ Coach Verified
                           </span>
                         )}
@@ -1261,7 +1261,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                       <p className="text-xs text-gray-400 mt-1">{goal.description}</p>
                     )}
                     {(goal.duration || goal.setup || goal.instructions || goal.focus) && (
-                      <div className="mt-2 bg-gray-50 border border-white/10 rounded-lg p-3 space-y-2">
+                      <div className="mt-2 bg-white/5 border border-white/10 rounded-lg p-3 space-y-2">
                         {goal.duration && (
                           <div className="text-xs text-gray-400">⏱️ <span className="font-medium text-gray-200">{goal.duration}</span></div>
                         )}

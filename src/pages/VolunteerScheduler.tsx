@@ -245,14 +245,14 @@ const VolunteerScheduler: React.FC = () => {
 
   const getTypeColor = (type: string) => {
     const colors = {
-      snacks: 'bg-orange-100 text-orange-800',
+      snacks: 'bg-orange-500/20 text-orange-200',
       setup: 'bg-cyan-500/10 text-cyan-300',
-      cleanup: 'bg-green-100 text-green-800',
-      transportation: 'bg-purple-100 text-purple-800',
+      cleanup: 'bg-emerald-500/20 text-emerald-200',
+      transportation: 'bg-violet-500/20 text-violet-200',
       equipment: 'bg-rose-500/20 text-rose-200',
-      other: 'bg-gray-100 text-gray-800'
+      other: 'bg-white/5 text-gray-300'
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[type as keyof typeof colors] || 'bg-white/5 text-gray-300';
   };
 
   const isUserSignedUp = (opportunity: VolunteerOpportunity) => {
@@ -345,7 +345,7 @@ const VolunteerScheduler: React.FC = () => {
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         event.type === 'game' ? 'bg-rose-500/20 text-rose-200' :
                         event.type === 'practice' ? 'bg-cyan-500/10 text-cyan-300' :
-                        'bg-green-100 text-green-800'
+                        'bg-emerald-500/20 text-emerald-200'
                       }`}>
                         {event.type}
                       </span>
@@ -388,7 +388,7 @@ const VolunteerScheduler: React.FC = () => {
                 className={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${
                   filterType === type
                     ? 'bg-cyan-500/10 text-cyan-300'
-                    : 'bg-gray-100 text-gray-200 hover:bg-gray-200'
+                    : 'bg-white/5 text-gray-300 hover:bg-white/10'
                 }`}
               >
                 {type === 'all' ? '🔍 All' : `${getTypeIcon(type)} ${type.charAt(0).toUpperCase() + type.slice(1)}`}
@@ -416,7 +416,7 @@ const VolunteerScheduler: React.FC = () => {
                           {getTypeIcon(opportunity.type)} {opportunity.type.charAt(0).toUpperCase() + opportunity.type.slice(1)}
                         </span>
                         {isSignedUp && (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                          <span className="px-2 py-1 bg-emerald-500/20 text-emerald-200 rounded-full text-xs font-medium">
                             ✓ You're helping!
                           </span>
                         )}
@@ -495,7 +495,7 @@ const VolunteerScheduler: React.FC = () => {
                       disabled={isFull}
                       className={`w-full font-medium py-2 px-4 rounded-lg transition duration-200 ${
                         isFull
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          ? 'bg-white/5 text-gray-400 cursor-not-allowed'
                           : 'bg-cyan-600 hover:bg-cyan-700 text-white'
                       }`}
                     >

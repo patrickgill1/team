@@ -326,7 +326,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                       <div key={stat.id} className="border border-white/10 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                            <span className="bg-cyan-500/20 text-cyan-200 text-xs font-medium px-2 py-1 rounded-full">
                               Game {playerStats.length - index}
                             </span>
                             <span className="text-sm text-gray-300">

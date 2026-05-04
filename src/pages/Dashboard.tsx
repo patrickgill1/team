@@ -387,7 +387,7 @@ const Dashboard: React.FC = () => {
                         index === 0 ? 'bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-200 ring-2 ring-amber-300/50' :
                         index === 1 ? 'bg-gradient-to-br from-gray-200 to-gray-400 text-gray-800' :
                         index === 2 ? 'bg-gradient-to-br from-orange-300 to-amber-600 text-orange-900' :
-                        'bg-gray-100 text-gray-200'
+                        'bg-white/5 text-gray-300'
                       }`}>
                         {index + 1}
                       </div>

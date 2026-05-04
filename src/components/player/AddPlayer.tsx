@@ -519,7 +519,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               Profile Photo (Optional)
             </label>
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center">
+              <div className="w-20 h-20 bg-white/10 rounded-full overflow-hidden flex items-center justify-center">
                 {profilePhotoPreview ? (
                   <img 
                     src={profilePhotoPreview} 

@@ -352,7 +352,7 @@ const AttendanceTracker: React.FC = () => {
                         <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${
                           selectedEventData.type === 'game' 
                             ? 'bg-rose-500/20 text-rose-200' 
-                            : 'bg-green-100 text-green-800'
+                            : 'bg-emerald-500/20 text-emerald-200'
                         }`}>
                           {selectedEventData.type.charAt(0).toUpperCase() + selectedEventData.type.slice(1)}
                         </span>
@@ -392,11 +392,11 @@ const AttendanceTracker: React.FC = () => {
                                   disabled={!isUserCoach}
                                   className={`px-3 py-1 rounded text-sm font-medium transition-colors duration-200 ${
                                     currentStatus === status
-                                      ? status === 'present' ? 'bg-green-100 text-green-800'
-                                        : status === 'absent' ? 'bg-rose-500/20 text-rose-200'
-                                        : status === 'late' ? 'bg-amber-500/20 text-amber-200'
-                                        : 'bg-cyan-500/10 text-cyan-300'
-                                      : 'bg-gray-100 text-gray-300 hover:bg-gray-200'
+                                      ? status === 'present' ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40'
+                                        : status === 'absent' ? 'bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/40'
+                                        : status === 'late' ? 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40'
+                                        : 'bg-cyan-500/20 text-cyan-200 ring-1 ring-cyan-400/40'
+                                      : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200'
                                   } ${!isUserCoach ? 'cursor-not-allowed opacity-50' : ''}`}
                                 >
                                   {status.charAt(0).toUpperCase() + status.slice(1)}

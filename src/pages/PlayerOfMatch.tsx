@@ -552,7 +552,7 @@ const PlayerOfMatch: React.FC = () => {
                 </div>
               </div>
             ) : !activeVoting && (
-              <div className="bg-gray-50 border border-white/10 rounded-lg p-4">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
                   <svg className="w-5 h-5 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -787,7 +787,7 @@ const PlayerOfMatch: React.FC = () => {
                   {isUserCoach && expandedVoters.has(activeVoting.id) && (
                     <div className="mt-4 rounded-lg border border-white/10 overflow-hidden">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b border-white/10">
+                        <thead className="bg-white/5 border-b border-white/10">
                           <tr>
                             <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Voter</th>
                             <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Voted for</th>
@@ -812,7 +812,7 @@ const PlayerOfMatch: React.FC = () => {
               {/* Non-coaches see a "results hidden" notice while voting is active */}
               {activeVoting.votes.length > 0 && !isUserCoach && (
                 <div className="mt-6 pt-6 border-t border-white/10">
-                  <div className="bg-gray-50 border border-white/10 rounded-lg p-4 text-center">
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
                     <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                     </svg>
@@ -933,7 +933,7 @@ const PlayerOfMatch: React.FC = () => {
                           {expandedVoters.has(voting.id) && (
                             <div className="mt-2 rounded-lg border border-white/10 overflow-hidden">
                               <table className="w-full text-sm">
-                                <thead className="bg-gray-50 border-b border-white/10">
+                                <thead className="bg-white/5 border-b border-white/10">
                                   <tr>
                                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Voter</th>
                                     <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Voted for</th>
@@ -1004,7 +1004,7 @@ const PlayerOfMatch: React.FC = () => {
                 <label
                   key={player.id}
                   className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                    attendancePlayerIds.has(player.id) ? 'bg-green-50 hover:bg-green-100' : 'bg-rose-500/10 hover:bg-red-100'
+                    attendancePlayerIds.has(player.id) ? 'bg-emerald-500/10 hover:bg-emerald-500/20' : 'bg-rose-500/10 hover:bg-red-100'
                   }`}
                 >
                   <input
@@ -1092,7 +1092,7 @@ const PlayerOfMatch: React.FC = () => {
 
             {/* Show all calendar games for debugging */}
             {process.env.NODE_ENV === 'development' && calendarEvents.length > 0 && (
-              <div className="mb-6 p-3 bg-gray-50 rounded-lg">
+              <div className="mb-6 p-3 bg-white/5 rounded-lg">
                 <h4 className="text-sm font-medium text-gray-200 mb-2">Debug: All Calendar Games</h4>
                 <div className="space-y-1 text-xs">
                   {calendarEvents.filter(e => e.type === 'game').map(game => (

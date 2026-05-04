@@ -514,7 +514,7 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-white/10 flex justify-end gap-2 bg-white/5 sticky bottom-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-200 hover:bg-gray-200" disabled={saving}>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-200 hover:bg-white/10" disabled={saving}>
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50">

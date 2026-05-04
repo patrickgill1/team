@@ -61,7 +61,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     <>
       <div className="card-modern overflow-hidden">
         {/* Header with jersey number, position, and profile photo */}
-        <div className="bg-gradient-to-br from-fire-900 via-fire-950 to-black border-b border-cyan-500/10 px-4 py-3 text-white">
+        <div className="bg-gradient-to-r from-cyan-500 to-sky-600 px-4 py-3 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {/* Profile Photo or Jersey Number */}
@@ -84,7 +84,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 {/* Jersey number badge if profile photo exists */}
                 {player.profilePhotoUrl && player.jerseyNumber && (
                   <div className="absolute -bottom-1 -right-1 bg-white/90 rounded-full w-6 h-6 flex items-center justify-center">
-                    <span className="text-xs font-bold text-cyan-300">#{player.jerseyNumber}</span>
+                    <span className="text-xs font-bold text-cyan-600">#{player.jerseyNumber}</span>
                   </div>
                 )}
               </div>
@@ -135,30 +135,30 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         {/* Stats section */}
         <div className="p-4">
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="text-center p-3 bg-cyan-500/10 rounded-2xl">
-              <div className="text-2xl font-bold text-cyan-300">{player.stats?.goals || 0}</div>
-              <div className="text-sm text-gray-300">Goals</div>
+            <div className="text-center p-3 bg-cyan-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-cyan-600">{player.stats?.goals || 0}</div>
+              <div className="text-sm text-gray-600">Goals</div>
             </div>
-            <div className="text-center p-3 bg-emerald-500/100/10 rounded-2xl">
-              <div className="text-2xl font-bold text-emerald-300">{player.stats?.assists || 0}</div>
-              <div className="text-sm text-gray-300">Assists</div>
+            <div className="text-center p-3 bg-emerald-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-emerald-600">{player.stats?.assists || 0}</div>
+              <div className="text-sm text-gray-600">Assists</div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="text-center p-3 bg-amber-500/10 rounded-2xl">
-              <div className="text-2xl font-bold text-amber-300">{player.stats?.saves || 0}</div>
-              <div className="text-sm text-gray-300">Saves</div>
+            <div className="text-center p-3 bg-amber-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-amber-600">{player.stats?.saves || 0}</div>
+              <div className="text-sm text-gray-600">Saves</div>
             </div>
-            <div className="text-center p-3 bg-fuchsia-500/10 rounded-2xl">
-              <div className="text-2xl font-bold text-fuchsia-300">{player.stats?.gamesPlayed || 0}</div>
-              <div className="text-sm text-gray-300">Games</div>
+            <div className="text-center p-3 bg-fuchsia-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-fuchsia-600">{player.stats?.gamesPlayed || 0}</div>
+              <div className="text-sm text-gray-600">Games</div>
             </div>
           </div>
 
           {/* Additional Info for coaches */}
           {isUserCoach && (
-            <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
               {/* "My Child" link toggle */}
               {userData && (
                 <button
@@ -177,8 +177,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   }}
                   className={`inline-flex items-center space-x-1 text-xs px-2 py-1 rounded-full transition-colors ${
                     player.parentIds?.includes(userData.uid)
-                      ? 'bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      ? 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                   title={player.parentIds?.includes(userData.uid) ? 'Unlink as my child' : 'Link as my child'}
                 >
@@ -189,9 +189,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
               {/* Medical Info */}
               {player.medicalInfo && (
-                <div className="text-sm text-gray-300">
-                  <span className="font-medium text-rose-300">Medical Info:</span>
-                  <p className="text-xs mt-1 text-rose-300 bg-rose-500/10 p-2 rounded-xl">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium text-rose-700">Medical Info:</span>
+                  <p className="text-xs mt-1 text-rose-600 bg-rose-50 p-2 rounded-xl">
                     {player.medicalInfo}
                   </p>
                 </div>
@@ -199,18 +199,18 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
               {/* Emergency Contacts */}
               {player.emergencyContacts && player.emergencyContacts.length > 0 && (
-                <div className="text-sm text-gray-300">
+                <div className="text-sm text-gray-600">
                   <span className="font-medium">Emergency Contacts:</span>
                   <div className="mt-1 space-y-1">
                     {player.emergencyContacts.map((contact, index) => (
                       <div key={index} className="text-xs">
                         <span className="font-medium">{contact.name}</span>
-                        <span className="text-gray-400"> ({contact.relationship})</span>
-                        {contact.isPrimary && <span className="text-cyan-300 ml-1">• Primary</span>}
+                        <span className="text-gray-500"> ({contact.relationship})</span>
+                        {contact.isPrimary && <span className="text-cyan-600 ml-1">• Primary</span>}
                         <br />
                         <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="text-cyan-300 hover:text-cyan-300"
+                          className="text-cyan-600 hover:text-cyan-700"
                         >
                           {contact.phoneNumber}
                         </a>
@@ -242,21 +242,21 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="card-modern max-w-md w-full p-6">
             <div className="flex items-center mb-4">
               <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-rose-100">
-                <svg className="h-6 w-6 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white mb-2">Delete Player</h3>
-              <p className="text-sm text-gray-400 mb-6">
+              <h3 className="text-lg font-semibold text-fire-950 mb-2">Delete Player</h3>
+              <p className="text-sm text-gray-500 mb-6">
                 Are you sure you want to delete <strong>{player.name}</strong>? This action cannot be undone and will remove all associated statistics.
               </p>
               <div className="flex space-x-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
-                  className="flex-1 bg-white/5 hover:bg-white/10 text-gray-800 font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50"
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>

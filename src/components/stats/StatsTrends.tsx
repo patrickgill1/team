@@ -87,7 +87,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
   const formBadge = (s: GameStat) => {
     const g = s.goals || 0;
     const a = s.assists || 0;
-    let bg = 'bg-white/10 text-gray-200';
+    let bg = 'bg-gray-200 text-gray-700';
     let label = '–';
     if (g > 0 && a > 0) {
       bg = 'bg-emerald-500 text-white';
@@ -103,17 +103,17 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
   };
 
   return (
-    <div className="bg-gray-900/80 rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Trends &amp; streaks</h3>
-        <span className="text-xs text-gray-400">
+        <h3 className="text-lg font-semibold text-gray-900">Trends &amp; streaks</h3>
+        <span className="text-xs text-gray-500">
           {ordered.length} game{ordered.length === 1 ? '' : 's'} recorded
         </span>
       </div>
 
       {/* Recent form */}
       <div className="mb-6">
-        <div className="text-sm font-medium text-gray-200 mb-2">Recent form (last 5)</div>
+        <div className="text-sm font-medium text-gray-700 mb-2">Recent form (last 5)</div>
         <div className="flex space-x-2">
           {recent.map((s) => {
             const b = formBadge(s);
@@ -130,7 +130,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
           {Array.from({ length: Math.max(0, 5 - recent.length) }).map((_, i) => (
             <div
               key={`pad-${i}`}
-              className="px-2 py-1 rounded-md text-xs font-bold bg-white/5 text-gray-400"
+              className="px-2 py-1 rounded-md text-xs font-bold bg-gray-100 text-gray-400"
             >
               –
             </div>
@@ -140,7 +140,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
 
       {/* Sparkline */}
       <div className="mb-6">
-        <div className="text-sm font-medium text-gray-200 mb-2">
+        <div className="text-sm font-medium text-gray-700 mb-2">
           Goals + assists per game
         </div>
         <svg
@@ -167,45 +167,45 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
 
       {/* Streaks grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="text-center bg-cyan-500/10 rounded-lg p-3">
-          <div className="text-xs text-gray-300 mb-1">Goal streak</div>
-          <div className="text-2xl font-bold text-cyan-200">{streaks.currentGoalStreak}</div>
-          <div className="text-[10px] text-gray-400">best {streaks.longestGoalStreak}</div>
+        <div className="text-center bg-blue-50 rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Goal streak</div>
+          <div className="text-2xl font-bold text-blue-700">{streaks.currentGoalStreak}</div>
+          <div className="text-[10px] text-gray-500">best {streaks.longestGoalStreak}</div>
         </div>
-        <div className="text-center bg-emerald-500/10 rounded-lg p-3">
-          <div className="text-xs text-gray-300 mb-1">Contribution streak</div>
-          <div className="text-2xl font-bold text-emerald-300">{streaks.currentContribStreak}</div>
-          <div className="text-[10px] text-gray-400">best {streaks.longestContribStreak}</div>
+        <div className="text-center bg-emerald-50 rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Contribution streak</div>
+          <div className="text-2xl font-bold text-emerald-700">{streaks.currentContribStreak}</div>
+          <div className="text-[10px] text-gray-500">best {streaks.longestContribStreak}</div>
         </div>
-        <div className="text-center bg-white/5 rounded-lg p-3">
-          <div className="text-xs text-gray-300 mb-1">Dry games</div>
-          <div className="text-2xl font-bold text-gray-200">{streaks.currentDryStreak}</div>
-          <div className="text-[10px] text-gray-400">since last contrib</div>
+        <div className="text-center bg-gray-50 rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Dry games</div>
+          <div className="text-2xl font-bold text-gray-700">{streaks.currentDryStreak}</div>
+          <div className="text-[10px] text-gray-500">since last contrib</div>
         </div>
-        <div className="text-center bg-violet-500/10 rounded-lg p-3">
-          <div className="text-xs text-gray-300 mb-1">Avg contribution</div>
-          <div className="text-2xl font-bold text-violet-300">
+        <div className="text-center bg-purple-50 rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Avg contribution</div>
+          <div className="text-2xl font-bold text-purple-700">
             {(((totalGoals + totalAssists) / ordered.length) || 0).toFixed(2)}
           </div>
-          <div className="text-[10px] text-gray-400">per game</div>
+          <div className="text-[10px] text-gray-500">per game</div>
         </div>
       </div>
 
       {/* Personal bests */}
       <div>
-        <div className="text-sm font-medium text-gray-200 mb-2">Single-game bests</div>
+        <div className="text-sm font-medium text-gray-700 mb-2">Single-game bests</div>
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="bg-white/5 rounded-lg p-3">
-            <div className="text-xs text-gray-300">Goals</div>
-            <div className="text-lg font-bold text-cyan-200">{bestGoals}</div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="text-xs text-gray-600">Goals</div>
+            <div className="text-lg font-bold text-blue-700">{bestGoals}</div>
           </div>
-          <div className="bg-white/5 rounded-lg p-3">
-            <div className="text-xs text-gray-300">Assists</div>
-            <div className="text-lg font-bold text-emerald-300">{bestAssists}</div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="text-xs text-gray-600">Assists</div>
+            <div className="text-lg font-bold text-emerald-700">{bestAssists}</div>
           </div>
-          <div className="bg-white/5 rounded-lg p-3">
-            <div className="text-xs text-gray-300">{isKeeper ? 'Saves' : 'Saves'}</div>
-            <div className="text-lg font-bold text-violet-300">{bestSaves}</div>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <div className="text-xs text-gray-600">{isKeeper ? 'Saves' : 'Saves'}</div>
+            <div className="text-lg font-bold text-purple-700">{bestSaves}</div>
           </div>
         </div>
       </div>

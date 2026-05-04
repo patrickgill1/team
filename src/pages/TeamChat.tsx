@@ -333,10 +333,10 @@ const TeamChat: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white/5">
+      <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600 mx-auto mb-2"></div>
-          <p className="text-gray-300">Loading chat...</p>
+          <p className="text-gray-600">Loading chat...</p>
         </div>
       </div>
     );
@@ -345,14 +345,14 @@ const TeamChat: React.FC = () => {
   // MOBILE: Single view at a time
   if (isMobile) {
     return (
-      <div className="h-screen flex flex-col bg-white/5">
+      <div className="h-screen flex flex-col bg-gray-50">
         {currentView === 'threads' ? (
           // THREADS LIST VIEW
-          <div className="flex-1 flex flex-col bg-gray-900/40">
+          <div className="flex-1 flex flex-col bg-white">
             {/* Header */}
-            <div className="p-4 border-b border-white/10 bg-gray-900/60">
+            <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">Team Chat</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Team Chat</h2>
                 <button
                   onClick={() => setIsCreatingThread(true)}
                   className="bg-cyan-600 hover:bg-cyan-700 text-white p-2.5 rounded-lg transition-colors"
@@ -370,7 +370,7 @@ const TeamChat: React.FC = () => {
                   placeholder="Search threads..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
                   style={{ fontSize: '16px' }}
                 />
                 <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,8 +386,8 @@ const TeamChat: React.FC = () => {
                     onClick={() => setFilterTag(filter)}
                     className={`px-3 py-2 text-sm rounded-full transition-colors ${
                       filterTag === filter
-                        ? 'bg-cyan-500/10 text-cyan-300 font-medium'
-                        : 'bg-gray-100 text-gray-300 hover:bg-white/10'
+                        ? 'bg-cyan-50 text-cyan-700 font-medium'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -402,12 +402,12 @@ const TeamChat: React.FC = () => {
                 <div
                   key={thread.id}
                   onClick={() => showChatView(thread)}
-                  className="p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 active:bg-gray-100 transition-colors"
+                  className="p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold text-white truncate text-base">{thread.title}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate text-base">{thread.title}</h3>
                         {thread.isPinned && (
                           <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -421,18 +421,18 @@ const TeamChat: React.FC = () => {
                       </div>
                       
                       {thread.description && (
-                        <p className="text-sm text-gray-300 truncate mb-2">{thread.description}</p>
+                        <p className="text-sm text-gray-600 truncate mb-2">{thread.description}</p>
                       )}
                       
                       {thread.lastMessage && (
-                        <p className="text-sm text-gray-400 truncate mb-2">
+                        <p className="text-sm text-gray-500 truncate mb-2">
                           <span className="font-medium">{thread.lastMessage.senderName}:</span> {thread.lastMessage.content}
                         </p>
                       )}
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">{thread.messageCount || 0} messages</span>
-                        <span className="text-xs text-gray-400">{formatTime(thread.lastActivity)}</span>
+                        <span className="text-xs text-gray-500">{thread.messageCount || 0} messages</span>
+                        <span className="text-xs text-gray-500">{formatTime(thread.lastActivity)}</span>
                       </div>
                     </div>
                     
@@ -450,10 +450,10 @@ const TeamChat: React.FC = () => {
                   <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <p className="text-gray-400 text-sm">No threads found</p>
+                  <p className="text-gray-500 text-sm">No threads found</p>
                   <button
                     onClick={() => setIsCreatingThread(true)}
-                    className="mt-3 text-cyan-300 text-sm font-medium"
+                    className="mt-3 text-cyan-600 text-sm font-medium"
                   >
                     Create your first thread
                   </button>
@@ -464,32 +464,32 @@ const TeamChat: React.FC = () => {
         ) : (
           // CHAT VIEW
           selectedThread && (
-            <div className="flex-1 flex flex-col bg-gray-900/40">
+            <div className="flex-1 flex flex-col bg-white">
               {/* Chat Header with Back Button */}
-              <div className="bg-gray-900/60 border-b border-white/10 p-4">
+              <div className="bg-white border-b border-gray-200 p-4">
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={showThreadsList}
-                    className="flex items-center justify-center w-10 h-10 bg-white/5 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
+                    className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors flex-shrink-0"
                   >
-                    <svg className="w-6 h-6 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <h1 className="text-lg font-semibold text-white truncate">{selectedThread.title}</h1>
+                      <h1 className="text-lg font-semibold text-gray-900 truncate">{selectedThread.title}</h1>
                       {selectedThread.isPinned && (
                         <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       )}
                       {selectedThread.isPrivate && (
-                        <span className="bg-rose-500/20 text-rose-200 text-xs px-2 py-1 rounded-full flex-shrink-0">Coach Only</span>
+                        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full flex-shrink-0">Coach Only</span>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2 text-xs text-gray-400 mt-1">
+                    <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
@@ -534,13 +534,13 @@ const TeamChat: React.FC = () => {
         {/* Create Thread Modal */}
         {isCreatingThread && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900/80 rounded-lg shadow-lg w-full max-w-md max-h-screen overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-md max-h-screen overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-white">Create New Thread</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Create New Thread</h3>
                   <button
                     onClick={() => setIsCreatingThread(false)}
-                    className="text-gray-400 hover:text-gray-300"
+                    className="text-gray-400 hover:text-gray-600"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -550,28 +550,28 @@ const TeamChat: React.FC = () => {
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-200 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Thread Title
                     </label>
                     <input
                       type="text"
                       value={newThread.title}
                       onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
                       placeholder="Enter thread title..."
                       style={{ fontSize: '16px' }}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-200 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Description (Optional)
                     </label>
                     <textarea
                       value={newThread.description}
                       onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
-                      className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
                       placeholder="What's this thread about?"
                       style={{ fontSize: '16px' }}
                     />
@@ -584,9 +584,9 @@ const TeamChat: React.FC = () => {
                         id="isPrivate"
                         checked={newThread.isPrivate}
                         onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                        className="rounded border-white/15 text-cyan-300 focus:ring-cyan-500 w-4 h-4"
+                        className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500 w-4 h-4"
                       />
-                      <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-200">
+                      <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-700">
                         Coach-only thread
                       </label>
                     </div>
@@ -596,7 +596,7 @@ const TeamChat: React.FC = () => {
                 <div className="flex space-x-3 mt-6">
                   <button
                     onClick={() => setIsCreatingThread(false)}
-                    className="flex-1 px-4 py-2.5 text-gray-200 border border-white/15 rounded-lg hover:bg-white/5 transition-colors font-medium"
+                    className="flex-1 px-4 py-2.5 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                   >
                     Cancel
                   </button>
@@ -618,13 +618,13 @@ const TeamChat: React.FC = () => {
 
   // DESKTOP: Side-by-side layout
   return (
-    <div className="h-screen flex bg-white/5">
+    <div className="h-screen flex bg-gray-50">
       {/* Desktop Sidebar */}
-      <div className="w-80 bg-gray-900/40 border-r border-white/10 flex flex-col">
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Team Chat</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Team Chat</h2>
             <button
               onClick={() => setIsCreatingThread(true)}
               className="bg-cyan-600 hover:bg-cyan-700 text-white p-2 rounded-lg transition-colors"
@@ -641,7 +641,7 @@ const TeamChat: React.FC = () => {
               placeholder="Search threads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
             <svg className="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -655,8 +655,8 @@ const TeamChat: React.FC = () => {
                 onClick={() => setFilterTag(filter)}
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   filterTag === filter
-                    ? 'bg-cyan-500/10 text-cyan-300 font-medium'
-                    : 'bg-gray-100 text-gray-300 hover:bg-white/10'
+                    ? 'bg-cyan-50 text-cyan-700 font-medium'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -671,14 +671,14 @@ const TeamChat: React.FC = () => {
             <div
               key={thread.id}
               onClick={() => setSelectedThread(thread)}
-              className={`p-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors ${
-                selectedThread?.id === thread.id ? 'bg-cyan-500/10 border-l-4 border-l-blue-600' : ''
+              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                selectedThread?.id === thread.id ? 'bg-cyan-50 border-l-4 border-l-blue-600' : ''
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <h3 className="font-medium text-white truncate">{thread.title}</h3>
+                    <h3 className="font-medium text-gray-900 truncate">{thread.title}</h3>
                     {thread.isPinned && (
                       <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -692,18 +692,18 @@ const TeamChat: React.FC = () => {
                   </div>
                   
                   {thread.description && (
-                    <p className="text-sm text-gray-300 truncate mb-2">{thread.description}</p>
+                    <p className="text-sm text-gray-600 truncate mb-2">{thread.description}</p>
                   )}
                   
                   {thread.lastMessage && (
-                    <p className="text-xs text-gray-400 truncate mb-2">
+                    <p className="text-xs text-gray-500 truncate mb-2">
                       <span className="font-medium">{thread.lastMessage.senderName}:</span> {thread.lastMessage.content}
                     </p>
                   )}
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">{thread.messageCount || 0} messages</span>
-                    <span className="text-xs text-gray-400">{formatTime(thread.lastActivity)}</span>
+                    <span className="text-xs text-gray-500">{thread.messageCount || 0} messages</span>
+                    <span className="text-xs text-gray-500">{formatTime(thread.lastActivity)}</span>
                   </div>
                 </div>
                 
@@ -714,7 +714,7 @@ const TeamChat: React.FC = () => {
                       togglePinThread(thread);
                     }}
                     className={`ml-2 p-1 rounded transition-colors ${
-                      thread.isPinned ? 'text-yellow-500 hover:text-amber-400' : 'text-gray-400 hover:text-gray-300'
+                      thread.isPinned ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -733,26 +733,26 @@ const TeamChat: React.FC = () => {
         {selectedThread ? (
           <>
             {/* Desktop Chat Header */}
-            <div className="bg-gray-900/60 border-b border-white/10 p-4">
+            <div className="bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h1 className="text-xl font-semibold text-white">{selectedThread.title}</h1>
+                    <h1 className="text-xl font-semibold text-gray-900">{selectedThread.title}</h1>
                     {selectedThread.isPinned && (
                       <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                     )}
                     {selectedThread.isPrivate && (
-                      <span className="bg-rose-500/20 text-rose-200 text-xs px-2 py-1 rounded-full">Coach Only</span>
+                      <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Coach Only</span>
                     )}
                   </div>
                   {selectedThread.description && (
-                    <p className="text-sm text-gray-300 mt-1">{selectedThread.description}</p>
+                    <p className="text-sm text-gray-600 mt-1">{selectedThread.description}</p>
                   )}
                 </div>
                 
-                <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
@@ -797,8 +797,8 @@ const TeamChat: React.FC = () => {
               <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <h3 className="text-lg font-medium text-white mb-2">Select a thread to start chatting</h3>
-              <p className="text-gray-400">Choose a thread from the sidebar or create a new one</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Select a thread to start chatting</h3>
+              <p className="text-gray-500">Choose a thread from the sidebar or create a new one</p>
             </div>
           </div>
         )}
@@ -807,13 +807,13 @@ const TeamChat: React.FC = () => {
       {/* Desktop Create Thread Modal */}
       {isCreatingThread && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900/80 rounded-lg shadow-lg w-full max-w-md">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-white">Create New Thread</h3>
+                <h3 className="text-lg font-medium text-gray-900">Create New Thread</h3>
                 <button
                   onClick={() => setIsCreatingThread(false)}
-                  className="text-gray-400 hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -823,27 +823,27 @@ const TeamChat: React.FC = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Thread Title
                   </label>
                   <input
                     type="text"
                     value={newThread.title}
                     onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     placeholder="Enter thread title..."
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Description (Optional)
                   </label>
                   <textarea
                     value={newThread.description}
                     onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
-                    className="w-full border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     placeholder="What's this thread about?"
                   />
                 </div>
@@ -855,9 +855,9 @@ const TeamChat: React.FC = () => {
                       id="isPrivate"
                       checked={newThread.isPrivate}
                       onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                      className="rounded border-white/15 text-cyan-300 focus:ring-cyan-500"
+                      className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
                     />
-                    <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-200">
+                    <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-700">
                       Coach-only thread
                     </label>
                   </div>
@@ -867,7 +867,7 @@ const TeamChat: React.FC = () => {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={() => setIsCreatingThread(false)}
-                  className="px-4 py-2 text-gray-200 border border-white/15 rounded-lg hover:bg-white/5 transition-colors"
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>

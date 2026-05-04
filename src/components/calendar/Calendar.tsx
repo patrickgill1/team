@@ -234,10 +234,10 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
-      case 'game': return 'bg-rose-500/10 text-rose-300 border-rose-300/50';
-      case 'practice': return 'bg-fire-500/10 text-fire-200 border-fire-300/50';
-      case 'event': return 'bg-emerald-500/10 text-emerald-300 border-emerald-300/50';
-      default: return 'bg-white/5 text-gray-200 border-white/10';
+      case 'game': return 'bg-rose-500/10 text-rose-700 border-rose-300/50';
+      case 'practice': return 'bg-fire-500/10 text-fire-800 border-fire-300/50';
+      case 'event': return 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -283,7 +283,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 sm:h-28 bg-white/5"></div>);
+      days.push(<div key={`empty-${i}`} className="h-24 sm:h-28 bg-slate-50/60"></div>);
     }
 
     // Days of the month
@@ -297,18 +297,18 @@ const Calendar: React.FC<CalendarProps> = ({
         <div
           key={day}
           onClick={() => handleDateClick(date)}
-          className={`h-24 sm:h-28 border border-white/10/70 p-1.5 cursor-pointer transition-all duration-150 ${
+          className={`h-24 sm:h-28 border border-slate-200/70 p-1.5 cursor-pointer transition-all duration-150 ${
             isToday
-              ? 'bg-gradient-to-br from-fire-500/10 to-transparent ring-1 ring-fire-300/60'
+              ? 'bg-gradient-to-br from-fire-50 to-white ring-1 ring-fire-300/60'
               : isPast
-                ? 'bg-white/5 hover:bg-white/5'
-                : 'bg-white/[0.02] hover:bg-white/5'
+                ? 'bg-slate-50/40 hover:bg-slate-50'
+                : 'bg-white hover:bg-fire-50/40'
           }`}
         >
           <div className={`text-xs font-semibold mb-1 inline-flex items-center justify-center ${
             isToday
               ? 'w-6 h-6 rounded-full bg-fire-600 text-white shadow-sm'
-              : isPast ? 'text-gray-500' : 'text-gray-200'
+              : isPast ? 'text-slate-400' : 'text-slate-700'
           }`}>
             {day}
           </div>
@@ -329,7 +329,7 @@ const Calendar: React.FC<CalendarProps> = ({
               </div>
             ))}
             {dayEvents.length > 2 && (
-              <div className="text-[10px] text-gray-400 px-1 font-medium">
+              <div className="text-[10px] text-slate-500 px-1 font-medium">
                 +{dayEvents.length - 2} more
               </div>
             )}
@@ -339,10 +339,9 @@ const Calendar: React.FC<CalendarProps> = ({
     }
 
     return (
-      <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-white/10/70 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 overflow-hidden">
         {/* Calendar Header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-fire-900 via-fire-950 to-black border-b border-cyan-500/10 px-5 sm:px-6 py-4">
-          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.2),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(239,68,68,0.15),transparent_50%)] pointer-events-none" />
+        <div className="bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 px-5 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -377,9 +376,9 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 bg-white/5 border-b border-white/10">
+        <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200/70">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-2 px-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-400">
+            <div key={day} className="py-2 px-3 text-center text-[11px] font-bold uppercase tracking-wider text-slate-500">
               {day}
             </div>
           ))}
@@ -392,9 +391,9 @@ const Calendar: React.FC<CalendarProps> = ({
 
         {/* Click hint for coaches */}
         {isUserCoach && (
-          <div className="px-5 sm:px-6 py-3 bg-white/5 border-t border-white/10">
-            <p className="text-xs sm:text-sm text-gray-300 font-medium">
-              Tap any date to create a new event
+          <div className="px-5 sm:px-6 py-3 bg-fire-50/60 border-t border-fire-100">
+            <p className="text-xs sm:text-sm text-navy-700 font-medium">
+              💡 Click any date to create a new event
             </p>
           </div>
         )}
@@ -414,21 +413,21 @@ const Calendar: React.FC<CalendarProps> = ({
     return (
       <div className="space-y-6">
         {/* Upcoming Events */}
-        <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-white/10/70">
-          <div className="px-5 sm:px-6 py-4 border-b border-white/10 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70">
+          <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
             <span className="w-1.5 h-5 bg-fire-500 rounded-full"></span>
-            <h3 className="text-base font-bold text-white tracking-tight">Upcoming</h3>
-            <span className="ml-auto text-xs font-semibold text-gray-400">{upcomingEvents.length}</span>
+            <h3 className="text-base font-bold text-navy-900 tracking-tight">Upcoming</h3>
+            <span className="ml-auto text-xs font-semibold text-slate-500">{upcomingEvents.length}</span>
           </div>
           <div className="p-5 sm:p-6">
             {upcomingEvents.length === 0 ? (
               <div className="text-center py-10">
-                <div className="text-gray-400 mb-3">
+                <div className="text-slate-300 mb-3">
                   <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-gray-300 font-medium">No upcoming events scheduled</p>
+                <p className="text-slate-600 font-medium">No upcoming events scheduled</p>
                 {isUserCoach && (
                   <button
                     onClick={() => {
@@ -465,11 +464,11 @@ const Calendar: React.FC<CalendarProps> = ({
 
         {/* Past Events */}
         {pastEvents.length > 0 && (
-          <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-white/10/70">
-            <div className="px-5 sm:px-6 py-4 border-b border-white/10 flex items-center gap-2">
-              <span className="w-1.5 h-5 bg-white/30 rounded-full"></span>
-              <h3 className="text-base font-bold text-gray-200 tracking-tight">Past Events</h3>
-              <span className="ml-auto text-xs font-semibold text-gray-500">{pastEvents.length}</span>
+          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70">
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
+              <span className="w-1.5 h-5 bg-slate-300 rounded-full"></span>
+              <h3 className="text-base font-bold text-slate-700 tracking-tight">Past Events</h3>
+              <span className="ml-auto text-xs font-semibold text-slate-400">{pastEvents.length}</span>
             </div>
             <div className="p-5 sm:p-6">
               <div className="space-y-4">
@@ -489,7 +488,7 @@ const Calendar: React.FC<CalendarProps> = ({
                   />
                 ))}
                 {pastEvents.length > 5 && (
-                  <p className="text-sm text-gray-500 text-center pt-4 border-t border-white/10">
+                  <p className="text-sm text-slate-400 text-center pt-4 border-t border-slate-200/60">
                     … and {pastEvents.length - 5} more past events
                   </p>
                 )}
@@ -514,16 +513,16 @@ const Calendar: React.FC<CalendarProps> = ({
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-white tracking-tight">Team Calendar</h2>
+          <h2 className="text-xl font-bold text-navy-900 tracking-tight">Team Calendar</h2>
 
           {/* View Mode Toggle */}
-          <div className="flex bg-white/5 ring-1 ring-white/10 rounded-xl p-1">
+          <div className="flex bg-slate-100 rounded-xl p-1">
             <button
               onClick={() => setViewMode('month')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'month'
-                  ? 'bg-cyan-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200'
+                  ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               Month
@@ -532,8 +531,8 @@ const Calendar: React.FC<CalendarProps> = ({
               onClick={() => setViewMode('list')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 viewMode === 'list'
-                  ? 'bg-cyan-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200'
+                  ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
+                  : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               List
@@ -627,25 +626,25 @@ const EventCard: React.FC<EventCardProps> = ({
 
   const getEventTypeColor = (type: string) => {
     const colors = {
-      game: 'bg-rose-500/10 text-rose-300 border-rose-300/50',
-      practice: 'bg-fire-500/10 text-fire-200 border-fire-300/50',
-      event: 'bg-emerald-500/10 text-emerald-300 border-emerald-300/50'
+      game: 'bg-rose-500/10 text-rose-700 border-rose-300/50',
+      practice: 'bg-fire-500/10 text-fire-800 border-fire-300/50',
+      event: 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50'
     };
-    return colors[type as keyof typeof colors] || 'bg-white/5 text-gray-200 border-white/10';
+    return colors[type as keyof typeof colors] || 'bg-slate-100 text-slate-700 border-slate-200';
   };
 
   return (
     <div className={`rounded-2xl p-4 sm:p-5 transition-all ring-1 ${
       isPast
-        ? 'ring-white/10 bg-white/5'
-        : 'ring-white/10 bg-white/[0.02] hover:ring-cyan-400/30 hover:shadow-md hover:-translate-y-0.5'
+        ? 'ring-slate-200 bg-slate-50/60'
+        : 'ring-slate-200/70 bg-white hover:ring-fire-300/60 hover:shadow-md hover:-translate-y-0.5'
     }`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3 flex-1">
           <div className="text-2xl">{getEventTypeIcon(event.type)}</div>
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-1">
-              <h4 className={`font-semibold ${isPast ? 'text-gray-300' : 'text-white'}`}>
+              <h4 className={`font-semibold ${isPast ? 'text-gray-600' : 'text-gray-900'}`}>
                 {event.title}
               </h4>
               <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getEventTypeColor(event.type)} ${
@@ -654,7 +653,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
               </span>
             </div>
-            <div className={`text-sm space-y-1 ${isPast ? 'text-gray-400' : 'text-gray-300'}`}>
+            <div className={`text-sm space-y-1 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
               <div className="flex items-center space-x-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -678,26 +677,26 @@ const EventCard: React.FC<EventCardProps> = ({
               )}
             </div>
             {event.description && (
-              <p className={`text-sm mt-2 ${isPast ? 'text-gray-400' : 'text-gray-300'}`}>
+              <p className={`text-sm mt-2 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
                 {event.description}
               </p>
             )}
             {weather && (
-              <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 border border-fire-200 text-gray-200 text-xs font-semibold">
+              <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 border border-fire-200 text-navy-700 text-xs font-semibold">
                 <span className="text-base leading-none">{weather.icon}</span>
                 <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
-                {weather.precipChance > 0 && <span className="text-fire-200">· {weather.precipChance}% rain</span>}
+                {weather.precipChance > 0 && <span className="text-fire-700">· {weather.precipChance}% rain</span>}
               </div>
             )}
             {(event as any).seriesId && (
-              <span className="inline-flex items-center gap-1 mt-2 ml-2 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-200 text-violet-700 text-xs font-semibold" title="Part of a recurring series">
+              <span className="inline-flex items-center gap-1 mt-2 ml-2 px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold" title="Part of a recurring series">
                 🔁 {(event as any).recurrence || 'recurring'}
               </span>
             )}
             {!isPast && (
               <button
                 onClick={() => downloadEventIcs(event)}
-                className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 text-xs font-semibold text-gray-200 bg-fire-50 hover:bg-fire-100 rounded-lg border border-fire-200 transition-colors"
+                className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 text-xs font-semibold text-navy-700 bg-fire-50 hover:bg-fire-100 rounded-lg border border-fire-200 transition-colors"
                 title="Download .ics calendar file"
               >
                 📅 Add to my calendar
@@ -721,7 +720,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <button
               onClick={() => onEdit(event)}
               disabled={isDeleting}
-              className="p-2 text-gray-300 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50"
+              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
               title="Edit Event"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -731,7 +730,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <button
               onClick={() => onDelete(event.id)}
               disabled={isDeleting}
-              className="p-2 text-gray-300 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50"
+              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
               title="Delete Event"
             >
               {isDeleting ? (
@@ -775,26 +774,26 @@ const RsvpBar: React.FC<{
       className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-all ${
         my === status
           ? `${color} text-white border-transparent shadow-sm`
-          : 'bg-white/5 text-gray-200 border-white/10 hover:border-white/15'
+          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {icon} {label}
     </button>
   );
   return (
-    <div className="mt-3 pt-3 border-t border-white/10">
+    <div className="mt-3 pt-3 border-t border-gray-100">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
           {isPast ? 'Final RSVPs' : 'Will you be there?'}
         </span>
         <div className="flex items-center gap-2 text-xs">
-          <button onClick={() => setShowList('going')} className="text-emerald-300 font-semibold hover:underline">
+          <button onClick={() => setShowList('going')} className="text-green-700 font-semibold hover:underline">
             ✅ {counts.going}
           </button>
-          <button onClick={() => setShowList('maybe')} className="text-amber-300 font-semibold hover:underline">
+          <button onClick={() => setShowList('maybe')} className="text-amber-700 font-semibold hover:underline">
             🤔 {counts.maybe}
           </button>
-          <button onClick={() => setShowList('no')} className="text-rose-300 font-semibold hover:underline">
+          <button onClick={() => setShowList('no')} className="text-rose-700 font-semibold hover:underline">
             ❌ {counts.no}
           </button>
         </div>
@@ -812,22 +811,22 @@ const RsvpBar: React.FC<{
           onClick={() => setShowList(null)}
         >
           <div
-            className="bg-gray-900/80 rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
+            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-semibold text-gray-800">
                 {showList === 'going' && `✅ Going (${counts.going})`}
                 {showList === 'maybe' && `🤔 Maybe (${counts.maybe})`}
                 {showList === 'no' && `❌ Can't make it (${counts.no})`}
               </h3>
-              <button onClick={() => setShowList(null)} className="text-gray-400 hover:text-gray-300 text-xl leading-none">✕</button>
+              <button onClick={() => setShowList(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
             </div>
             <div className="overflow-y-auto flex-1">
               {entries.filter(([, v]: any) => v.status === showList).length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-gray-400">No one yet.</p>
+                <p className="px-4 py-6 text-center text-sm text-gray-500">No one yet.</p>
               ) : (
-                <ul className="divide-y divide-white/10">
+                <ul className="divide-y divide-gray-100">
                   {entries
                     .filter(([, v]: any) => v.status === showList)
                     .map(([uid, v]: any) => (
@@ -879,15 +878,15 @@ const CarpoolBar: React.FC<{
     setSeats(''); setLocation(''); setNote('');
   };
   return (
-    <div className="mt-2 pt-2 border-t border-dashed border-white/10">
+    <div className="mt-2 pt-2 border-t border-dashed border-gray-100">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between text-xs font-medium text-gray-300 hover:text-gray-800"
+        className="w-full flex items-center justify-between text-xs font-medium text-gray-600 hover:text-gray-800"
       >
         <span className="uppercase tracking-wide">🚗 Carpool board</span>
         <span className="flex items-center gap-2 text-[11px]">
-          <span className="text-emerald-300">{offerCount} offer{offerCount !== 1 ? 's' : ''}</span>
-          <span className="text-amber-300">{requestCount} request{requestCount !== 1 ? 's' : ''}</span>
+          <span className="text-emerald-700">{offerCount} offer{offerCount !== 1 ? 's' : ''}</span>
+          <span className="text-amber-700">{requestCount} request{requestCount !== 1 ? 's' : ''}</span>
           <span className="text-gray-400">{open ? '▲' : '▼'}</span>
         </span>
       </button>
@@ -900,42 +899,42 @@ const CarpoolBar: React.FC<{
             <div
               key={p.id}
               className={`flex items-start justify-between gap-2 p-2 rounded-lg text-xs ${
-                p.type === 'offer' ? 'bg-emerald-500/10 border border-emerald-100' : 'bg-amber-500/10 border border-amber-100'
+                p.type === 'offer' ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'
               }`}
             >
               <div className="flex-1">
                 <div className="font-semibold text-gray-800">
                   {p.type === 'offer' ? '🚙 Offering ride' : '🙋 Need ride'} — {p.name}
                 </div>
-                <div className="text-gray-200 mt-0.5">
+                <div className="text-gray-700 mt-0.5">
                   {p.seats ? `${p.seats} seat${p.seats !== 1 ? 's' : ''}` : ''}
                   {p.seats && p.location ? ' · ' : ''}
                   {p.location || ''}
                 </div>
-                {p.note && <div className="text-gray-300 mt-0.5">{p.note}</div>}
+                {p.note && <div className="text-gray-600 mt-0.5">{p.note}</div>}
               </div>
               {userUid === p.uid && onDelete && (
                 <button
                   onClick={() => onDelete(event.id, p.id)}
-                  className="text-gray-400 hover:text-rose-300 text-sm leading-none"
+                  className="text-gray-400 hover:text-red-600 text-sm leading-none"
                   title="Delete"
                 >✕</button>
               )}
             </div>
           ))}
           {!isPast && userUid && onAdd && (
-            <div className="bg-white/5 border border-white/10 rounded-lg p-2 space-y-2">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-2">
               <div className="flex gap-1">
                 <button
                   onClick={() => setType('offer')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-200 border-white/10'
+                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200'
                   }`}
                 >🚙 Offer</button>
                 <button
                   onClick={() => setType('request')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-200 border-white/10'
+                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200'
                   }`}
                 >🙋 Request</button>
               </div>
@@ -945,14 +944,14 @@ const CarpoolBar: React.FC<{
                   placeholder={type === 'offer' ? 'Seats' : 'Riders'}
                   value={seats}
                   onChange={e => setSeats(e.target.value)}
-                  className="px-2 py-1 text-xs border border-white/10 rounded"
+                  className="px-2 py-1 text-xs border border-gray-200 rounded"
                 />
                 <input
                   type="text"
                   placeholder="Pickup area"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  className="px-2 py-1 text-xs border border-white/10 rounded"
+                  className="px-2 py-1 text-xs border border-gray-200 rounded"
                 />
               </div>
               <input
@@ -960,7 +959,7 @@ const CarpoolBar: React.FC<{
                 placeholder="Optional note (e.g. leaving at 8:30)"
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                className="w-full px-2 py-1 text-xs border border-white/10 rounded"
+                className="w-full px-2 py-1 text-xs border border-gray-200 rounded"
               />
               <button
                 onClick={submit}

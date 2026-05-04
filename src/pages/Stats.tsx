@@ -95,17 +95,17 @@ const Stats: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading team statistics...</p>
+          <p className="text-gray-600">Loading team statistics...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <Header 
         title="Team Statistics" 
         subtitle={isUserCoach ? "Track and analyze player performance" : "View team and player statistics"}
@@ -114,19 +114,19 @@ const Stats: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Error Message */}
         {loadError && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-6">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-amber-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
               <div>
-                <h3 className="text-sm font-medium text-amber-200">Loading Issue</h3>
-                <p className="text-sm text-amber-300 mt-1">{loadError}</p>
+                <h3 className="text-sm font-medium text-yellow-800">Loading Issue</h3>
+                <p className="text-sm text-yellow-700 mt-1">{loadError}</p>
               </div>
             </div>
             <button
               onClick={() => window.location.reload()}
-              className="mt-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
+              className="mt-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
             >
               Refresh Page
             </button>
@@ -135,14 +135,14 @@ const Stats: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="card-modern mb-6">
-          <div className="border-b border-white/10">
+          <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                   activeTab === 'overview'
-                    ? 'border-cyan-400 text-cyan-300'
-                    : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-white/15'
+                    ? 'border-cyan-500 text-cyan-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center space-x-2">
@@ -158,8 +158,8 @@ const Stats: React.FC = () => {
                   onClick={() => setActiveTab('track')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                     activeTab === 'track'
-                      ? 'border-cyan-400 text-cyan-300'
-                      : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-white/15'
+                      ? 'border-cyan-500 text-cyan-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-center space-x-2">
@@ -180,8 +180,8 @@ const Stats: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Team Performance</h3>
-                    <p className="text-sm text-gray-300">
+                    <h3 className="text-lg font-semibold text-gray-900">Team Performance</h3>
+                    <p className="text-sm text-gray-600">
                       View detailed statistics for all players and games
                     </p>
                   </div>
@@ -191,7 +191,7 @@ const Stats: React.FC = () => {
                     <select
                       value={selectedPlayerId}
                       onChange={(e) => setSelectedPlayerId(e.target.value)}
-                      className="px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     >
                       <option value="">View All Players</option>
                       {players.map(player => (
@@ -210,8 +210,8 @@ const Stats: React.FC = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-2">No Players Found</h3>
-                    <p className="text-gray-300 mb-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Players Found</h3>
+                    <p className="text-gray-600 mb-4">
                       Add players to your team to start tracking statistics.
                     </p>
                     <button
@@ -234,8 +234,8 @@ const Stats: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Record Player Statistics</h3>
-                    <p className="text-sm text-gray-300">
+                    <h3 className="text-lg font-semibold text-gray-900">Record Player Statistics</h3>
+                    <p className="text-sm text-gray-600">
                       Track goals, assists, saves, and key plays during games
                     </p>
                   </div>
@@ -259,8 +259,8 @@ const Stats: React.FC = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-2">No Players Added</h3>
-                    <p className="text-gray-300 mb-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Players Added</h3>
+                    <p className="text-gray-600 mb-4">
                       You need to add players to your team before you can track statistics.
                     </p>
                     <button
@@ -275,7 +275,7 @@ const Stats: React.FC = () => {
                     {players.map(player => (
                       <div
                         key={player.id}
-                        className="bg-white/5 border border-white/10 rounded-lg p-4 hover:border-cyan-300 hover:shadow-md transition-all duration-200"
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-cyan-300 hover:shadow-md transition-all duration-200"
                       >
                         <div
                           onClick={() => {
@@ -285,38 +285,38 @@ const Stats: React.FC = () => {
                           className="cursor-pointer"
                         >
                           <div className="flex items-center space-x-3 mb-3">
-                            <div className="bg-cyan-500/10 rounded-full w-12 h-12 flex items-center justify-center">
-                              <span className="text-lg font-bold text-cyan-300">#{player.jerseyNumber}</span>
+                            <div className="bg-cyan-50 rounded-full w-12 h-12 flex items-center justify-center">
+                              <span className="text-lg font-bold text-cyan-600">#{player.jerseyNumber}</span>
                             </div>
                             <div>
-                              <h4 className="font-semibold text-white">{player.name}</h4>
-                              <p className="text-sm text-gray-300">{player.position}</p>
+                              <h4 className="font-semibold text-gray-900">{player.name}</h4>
+                              <p className="text-sm text-gray-600">{player.position}</p>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-2 text-center">
                             <div>
-                              <div className="text-lg font-bold text-cyan-300">{player.stats?.goals || 0}</div>
-                              <div className="text-xs text-gray-300">Goals</div>
+                              <div className="text-lg font-bold text-cyan-600">{player.stats?.goals || 0}</div>
+                              <div className="text-xs text-gray-600">Goals</div>
                             </div>
                             <div>
-                              <div className="text-lg font-bold text-emerald-300">{player.stats?.assists || 0}</div>
-                              <div className="text-xs text-gray-300">Assists</div>
+                              <div className="text-lg font-bold text-emerald-600">{player.stats?.assists || 0}</div>
+                              <div className="text-xs text-gray-600">Assists</div>
                             </div>
                             <div>
-                              <div className="text-lg font-bold text-violet-300">{player.stats?.saves || 0}</div>
-                              <div className="text-xs text-gray-300">Saves</div>
+                              <div className="text-lg font-bold text-purple-600">{player.stats?.saves || 0}</div>
+                              <div className="text-xs text-gray-600">Saves</div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                        <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between gap-2">
                           <button
                             onClick={() => {
                               setSelectedPlayerId(player.id);
                               setIsStatsTrackerOpen(true);
                             }}
-                            className="flex-1 inline-flex items-center justify-center text-cyan-300 text-sm font-medium hover:text-cyan-300"
+                            className="flex-1 inline-flex items-center justify-center text-cyan-600 text-sm font-medium hover:text-cyan-700"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -325,7 +325,7 @@ const Stats: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setAdjustingPlayerId(player.id)}
-                            className="flex-1 inline-flex items-center justify-center text-amber-300 text-sm font-medium hover:text-amber-300"
+                            className="flex-1 inline-flex items-center justify-center text-amber-600 text-sm font-medium hover:text-amber-700"
                             title="Fix a stat mistake"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -435,12 +435,12 @@ interface AdjustStatsModalProps {
 }
 
 const STAT_FIELDS: { key: keyof Player['stats']; label: string; emoji: string; color: string }[] = [
-  { key: 'goals',       label: 'Goals',     emoji: '⚽', color: 'text-emerald-300' },
-  { key: 'assists',     label: 'Assists',   emoji: '🎯', color: 'text-cyan-300' },
-  { key: 'saves',       label: 'Saves',     emoji: '🧤', color: 'text-violet-300' },
-  { key: 'gamesPlayed', label: 'Games',     emoji: '🏆', color: 'text-amber-300' },
-  { key: 'yellowCards', label: 'Yellow',    emoji: '🟨', color: 'text-amber-400' },
-  { key: 'redCards',    label: 'Red',       emoji: '🟥', color: 'text-rose-300' },
+  { key: 'goals',       label: 'Goals',     emoji: '⚽', color: 'text-emerald-600' },
+  { key: 'assists',     label: 'Assists',   emoji: '🎯', color: 'text-cyan-600' },
+  { key: 'saves',       label: 'Saves',     emoji: '🧤', color: 'text-violet-600' },
+  { key: 'gamesPlayed', label: 'Games',     emoji: '🏆', color: 'text-amber-600' },
+  { key: 'yellowCards', label: 'Yellow',    emoji: '🟨', color: 'text-yellow-600' },
+  { key: 'redCards',    label: 'Red',       emoji: '🟥', color: 'text-red-600' },
 ];
 
 const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, onSave }) => {
@@ -473,14 +473,14 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-gray-900/80 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-500/10 to-transparent sticky top-0">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white sticky top-0">
           <div>
-            <h3 className="text-lg font-bold text-white">Fix Stats</h3>
-            <p className="text-xs text-gray-400">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
+            <h3 className="text-lg font-bold text-gray-900">Fix Stats</h3>
+            <p className="text-xs text-gray-500">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-gray-400" aria-label="Close">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -489,32 +489,32 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
 
         {/* Body */}
         <div className="p-6 space-y-3">
-          <p className="text-xs text-gray-400 mb-2">
+          <p className="text-xs text-gray-500 mb-2">
             Set the correct totals for this player. Adjustments are saved as a correction record so per-team stats stay accurate (including for players on multiple teams).
           </p>
           {STAT_FIELDS.map(f => (
-            <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+            <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
               <div className="text-2xl w-8 text-center">{f.emoji}</div>
               <div className="flex-1">
                 <p className={`text-sm font-bold ${f.color}`}>{f.label}</p>
-                <p className="text-[11px] text-gray-400">Currently {(cur as any)[f.key] || 0}</p>
+                <p className="text-[11px] text-gray-500">Currently {(cur as any)[f.key] || 0}</p>
               </div>
-              <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-white/10 ring-1 ring-white/15 text-lg font-bold text-gray-300 hover:bg-white/10">−</button>
+              <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">−</button>
               <input
                 type="number"
                 min={0}
                 value={values[f.key]}
                 onChange={e => set(String(f.key), parseInt(e.target.value || '0', 10))}
-                className="w-16 text-center font-bold text-white border border-white/10 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                className="w-16 text-center font-bold text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
               />
-              <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-white/10 ring-1 ring-white/15 text-lg font-bold text-gray-300 hover:bg-white/10">+</button>
+              <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">+</button>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/10 flex justify-end gap-2 bg-white/5 sticky bottom-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-200 hover:bg-white/10" disabled={saving}>
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 sticky bottom-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200" disabled={saving}>
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50">

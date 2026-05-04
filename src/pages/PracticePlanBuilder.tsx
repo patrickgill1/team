@@ -94,10 +94,10 @@ const PracticePlanBuilder: React.FC = () => {
   if (!isUserCoach) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-amber-500/10 border border-amber-200 rounded-xl p-6 text-center">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
           <div className="text-4xl mb-2">🔒</div>
-          <h2 className="font-bold text-amber-200">Coaches only</h2>
-          <p className="text-sm text-amber-300 mt-1">The Practice Plan Builder is available to coaches only.</p>
+          <h2 className="font-bold text-amber-900">Coaches only</h2>
+          <p className="text-sm text-amber-700 mt-1">The Practice Plan Builder is available to coaches only.</p>
           <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-navy-700 text-white rounded-lg">Back to Dashboard</Link>
         </div>
       </div>
@@ -188,7 +188,7 @@ const PracticePlanBuilder: React.FC = () => {
       <div className="max-w-6xl mx-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
         {/* Sidebar: plan list */}
         <aside className="print:hidden">
-          <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-3">
+          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-3">
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-2 mb-2">Your plans</div>
             {loading ? (
               <div className="text-sm text-slate-400 px-2 py-4">Loading…</div>
@@ -218,7 +218,7 @@ const PracticePlanBuilder: React.FC = () => {
         {/* Main: editor */}
         <main>
           {!active ? (
-            <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-12 text-center">
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-12 text-center">
               <div className="text-5xl mb-3">📋</div>
               <h2 className="font-bold text-navy-900 text-lg">Pick a plan, or create a new one</h2>
               <p className="text-slate-500 text-sm mt-1">Build a timeline of drills, save it as a template, share with your assistants, and print before practice.</p>
@@ -226,7 +226,7 @@ const PracticePlanBuilder: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <input
                     value={active.title}
@@ -251,7 +251,7 @@ const PracticePlanBuilder: React.FC = () => {
                       className="w-20 px-2 py-1 rounded border border-slate-300 text-sm"
                     /> <span className="text-slate-500 text-sm">min</span>
                   </label>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${totalMin > active.durationMin ? 'bg-rose-100 text-rose-300' : totalMin === active.durationMin ? 'bg-emerald-100 text-emerald-300' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${totalMin > active.durationMin ? 'bg-rose-100 text-rose-700' : totalMin === active.durationMin ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
                     Filled: {totalMin}/{active.durationMin} min
                   </span>
                   <label className="flex items-center gap-1.5 text-xs ml-auto">
@@ -275,12 +275,12 @@ const PracticePlanBuilder: React.FC = () => {
                   >+ Custom drill</button>
                   <button onClick={() => newPlan(active)} className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">📄 Duplicate</button>
                   <button onClick={printPlan} className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">🖨️ Print / PDF</button>
-                  <button onClick={() => active.id && removePlan(active.id)} className="ml-auto px-3 py-1.5 text-sm text-rose-600 hover:bg-rose-500/10 rounded-lg font-semibold">Delete</button>
+                  <button onClick={() => active.id && removePlan(active.id)} className="ml-auto px-3 py-1.5 text-sm text-rose-600 hover:bg-rose-50 rounded-lg font-semibold">Delete</button>
                 </div>
               </div>
 
               {/* Timeline */}
-              <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
                 {active.drills.length === 0 ? (
                   <div className="text-center text-slate-400 py-8 text-sm">No drills yet. Add from the library or build a custom block.</div>
                 ) : (
@@ -317,7 +317,7 @@ const PracticePlanBuilder: React.FC = () => {
                             <div className="flex items-center gap-1 print:hidden">
                               <button onClick={() => moveDrill(idx, -1)} disabled={idx === 0} className="text-xs px-1.5 disabled:opacity-30">↑</button>
                               <button onClick={() => moveDrill(idx, 1)} disabled={idx === active.drills.length - 1} className="text-xs px-1.5 disabled:opacity-30">↓</button>
-                              <button onClick={() => removeDrill(d.id)} className="text-xs px-1.5 text-rose-300">✕</button>
+                              <button onClick={() => removeDrill(d.id)} className="text-xs px-1.5 text-rose-700">✕</button>
                             </div>
                           </div>
                           <textarea
@@ -335,7 +335,7 @@ const PracticePlanBuilder: React.FC = () => {
               </div>
 
               {/* Plan-level notes */}
-              <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">General notes</label>
                 <textarea
                   value={active.notes || ''}

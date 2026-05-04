@@ -66,10 +66,10 @@ const KIND_META: Record<StatKind, { label: string; emoji: string; color: string 
   owngoal: { label: 'Own Goal', emoji: '🥅', color: 'bg-rose-500' },
   assist:  { label: 'Assist',   emoji: '🅰️', color: 'bg-cyan-500' },
   save:    { label: 'Save',     emoji: '🧘', color: 'bg-cyan-500' },
-  yellow:  { label: 'Yellow',   emoji: '🟨', color: 'bg-amber-500/100' },
+  yellow:  { label: 'Yellow',   emoji: '🟨', color: 'bg-yellow-500' },
   red:     { label: 'Red',      emoji: '🟥', color: 'bg-red-600' },
   sub:     { label: 'Sub',      emoji: '🔄', color: 'bg-purple-500' },
-  note:    { label: 'Note',     emoji: '📝', color: 'bg-white/50' },
+  note:    { label: 'Note',     emoji: '📝', color: 'bg-gray-500' },
 };
 
 const formatClock = (totalSec: number) => {
@@ -465,9 +465,9 @@ const GameDay: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <Link to="/calendar" className="text-xs text-white/60 hover:text-white">← Calendar</Link>
             <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
-              status === 'live' ? 'bg-rose-500/100/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
+              status === 'live' ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
               status === 'halftime' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40' :
-              status === 'final' ? 'bg-white/50/20 text-gray-300 ring-1 ring-gray-500/40' :
+              status === 'final' ? 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40' :
               'bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-500/40'
             }`}>
               {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}

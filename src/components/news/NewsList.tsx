@@ -134,7 +134,7 @@ const NewsList: React.FC<NewsListProps> = ({
       .split('\n')
       .map((paragraph, index) => {
         if (paragraph.trim() === '---') {
-          return <hr key={index} className="my-3 border-white/15" />;
+          return <hr key={index} className="my-3 border-gray-300" />;
         }
         if (paragraph.trim() === '') {
           return <br key={index} />;
@@ -147,14 +147,14 @@ const NewsList: React.FC<NewsListProps> = ({
         
         if (paragraph.trim().startsWith('- ')) {
           return (
-            <ul key={index} className="list-disc list-inside mb-2 text-gray-200">
+            <ul key={index} className="list-disc list-inside mb-2 text-gray-700">
               <li dangerouslySetInnerHTML={{ __html: formattedParagraph.substring(2) }} />
             </ul>
           );
         }
         
         return (
-          <p key={index} className="mb-2 text-gray-200" dangerouslySetInnerHTML={{ __html: formattedParagraph }} />
+          <p key={index} className="mb-2 text-gray-700" dangerouslySetInnerHTML={{ __html: formattedParagraph }} />
         );
       });
   };
@@ -176,7 +176,7 @@ const NewsList: React.FC<NewsListProps> = ({
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="text-lg font-semibold text-gray-900">
           Team News {!limit && `(${filteredNews.length})`}
         </h2>
         
@@ -205,8 +205,8 @@ const NewsList: React.FC<NewsListProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">No News Articles</h3>
-          <p className="text-gray-300 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No News Articles</h3>
+          <p className="text-gray-600 mb-4">
             {searchTerm
               ? 'No articles match your search criteria.'
               : 'No news articles have been published yet.'}
@@ -230,15 +230,15 @@ const NewsList: React.FC<NewsListProps> = ({
             const isDeleting = deletingIds.has(article.id);
 
             return (
-              <article key={article.id} className="bg-gray-900/80 rounded-lg shadow-md border border-white/10 overflow-hidden">
+              <article key={article.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
                 {/* Article Header */}
-                <div className="px-6 py-4 border-b border-white/10">
+                <div className="px-6 py-4 border-b border-gray-200">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-white mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         {article.title}
                       </h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-300">
+                      <div className="flex items-center space-x-4 text-sm text-gray-600">
                         <span className="flex items-center space-x-1">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -252,7 +252,7 @@ const NewsList: React.FC<NewsListProps> = ({
                           <span>{formatDateTime(article.createdAt)}</span>
                         </span>
                         {article.updatedAt.getTime() !== article.createdAt.getTime() && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-500">
                             (Updated {formatDateTime(article.updatedAt)})
                           </span>
                         )}
@@ -265,7 +265,7 @@ const NewsList: React.FC<NewsListProps> = ({
                         <button
                           onClick={() => handleEditNews(article)}
                           disabled={isDeleting}
-                          className="p-2 text-gray-300 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50"
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
                           title="Edit Article"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,7 +275,7 @@ const NewsList: React.FC<NewsListProps> = ({
                         <button
                           onClick={() => handleDeleteNews(article.id)}
                           disabled={isDeleting}
-                          className="p-2 text-gray-300 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50"
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
                           title="Delete Article"
                         >
                           {isDeleting ? (
@@ -301,7 +301,7 @@ const NewsList: React.FC<NewsListProps> = ({
                   {article.content.length > 200 && (
                     <button
                       onClick={() => toggleExpanded(article.id)}
-                      className="mt-3 text-cyan-300 hover:text-cyan-200 font-medium text-sm transition-colors duration-200"
+                      className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors duration-200"
                     >
                       {isExpanded ? 'Read Less' : 'Read More'}
                     </button>

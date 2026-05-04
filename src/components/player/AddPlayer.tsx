@@ -427,21 +427,21 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   if (inviteLink) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-900/80 rounded-lg max-w-md w-full p-6">
+        <div className="bg-white rounded-lg max-w-md w-full p-6">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-8 h-8 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-white">Player Added! 🎉</h2>
-            <p className="text-gray-300 mt-1 text-sm">
+            <h2 className="text-xl font-bold text-gray-900">Player Added! 🎉</h2>
+            <p className="text-gray-600 mt-1 text-sm">
               Share this link with the player's parent so they can link their account.
             </p>
           </div>
 
-          <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4 mb-4">
-            <p className="text-xs text-cyan-300 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <p className="text-xs text-blue-600 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
             <p className="text-sm text-blue-900 break-all font-mono mb-3">{inviteLink}</p>
             <button
               onClick={() => copyInviteLink(inviteLink)}
@@ -469,13 +469,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </button>
           </div>
 
-          <p className="text-xs text-gray-400 text-center mb-4">
+          <p className="text-xs text-gray-500 text-center mb-4">
             💡 The parent clicks the link, signs in or creates a free account, and they'll be linked to this player's profile. They can then vote in Player of the Match polls.
           </p>
 
           <button
             onClick={() => { setInviteLink(null); onClose(); }}
-            className="w-full border border-white/15 text-gray-200 hover:bg-white/5 py-2.5 rounded-lg font-medium transition-colors"
+            className="w-full border border-gray-300 text-gray-700 hover:bg-gray-50 py-2.5 rounded-lg font-medium transition-colors"
           >
             Done
           </button>
@@ -486,15 +486,15 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900/80 rounded-lg max-w-lg w-full max-h-screen overflow-y-auto">
-        <div className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-white/10 px-6 py-4">
+      <div className="bg-white rounded-lg max-w-lg w-full max-h-screen overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-gray-900">
               {editingPlayer ? 'Edit Player' : 'Add New Player'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-300 transition-colors duration-200"
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -515,11 +515,11 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Profile Photo */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Profile Photo (Optional)
             </label>
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-white/10 rounded-full overflow-hidden flex items-center justify-center">
+              <div className="w-20 h-20 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center">
                 {profilePhotoPreview ? (
                   <img 
                     src={profilePhotoPreview} 
@@ -543,14 +543,14 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 />
                 <label
                   htmlFor="profile-photo-input"
-                  className="cursor-pointer inline-flex items-center px-3 py-2 border border-white/15 rounded-md text-sm font-medium text-gray-200 bg-white/10 hover:bg-white/15 transition-colors duration-200 disabled:opacity-50"
+                  className="cursor-pointer inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                   {editingPlayer?.profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
                 </label>
-                <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
               </div>
             </div>
             {(errors.profilePhoto || uploadError) && (
@@ -561,13 +561,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
           {/* Team Selector */}
           {teams.length > 1 && (
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Add to Team *
               </label>
               <select
                 value={targetTeamId}
                 onChange={(e) => setTargetTeamId(e.target.value)}
-                className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSubmitting}
               >
                 {teams.map(t => (
@@ -579,7 +579,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Player Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Player Name *
             </label>
             <input
@@ -587,7 +587,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.name ? 'border-red-500' : 'border-white/15'
+                errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter player's full name"
               disabled={isSubmitting}
@@ -598,7 +598,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
           {/* Jersey Number and Position */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Jersey Number
               </label>
               <input
@@ -608,7 +608,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 value={formData.jerseyNumber}
                 onChange={(e) => setFormData({ ...formData, jerseyNumber: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.jerseyNumber ? 'border-red-500' : 'border-white/15'
+                  errors.jerseyNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="1-99"
                 disabled={isSubmitting}
@@ -617,13 +617,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Position
               </label>
               <select
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSubmitting}
               >
                 {positions.map(position => (
@@ -635,7 +635,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Date of Birth */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Date of Birth (Optional)
             </label>
             <input
@@ -643,7 +643,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               value={formData.dateOfBirth}
               onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.dateOfBirth ? 'border-red-500' : 'border-white/15'
+                errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
               }`}
               disabled={isSubmitting}
             />
@@ -652,7 +652,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Parent Emails */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Parent Email Addresses (Optional)
             </label>
             <div className="space-y-2">
@@ -663,7 +663,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                     value={email}
                     onChange={(e) => updateParentEmail(index, e.target.value)}
                     className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors[`parentEmail${index}`] ? 'border-red-500' : 'border-white/15'
+                      errors[`parentEmail${index}`] ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="parent@example.com"
                     disabled={isSubmitting}
@@ -673,7 +673,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                       type="button"
                       onClick={() => removeParentEmailField(index)}
                       disabled={isSubmitting}
-                      className="px-3 py-2 text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50"
+                      className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -689,7 +689,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 type="button"
                 onClick={addParentEmailField}
                 disabled={isSubmitting}
-                className="mt-2 text-cyan-300 hover:text-cyan-200 text-sm font-medium disabled:opacity-50"
+                className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
               >
                 + Add another parent email
               </button>
@@ -702,13 +702,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Medical Information */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Medical Information (Optional)
             </label>
             <textarea
               value={formData.medicalInfo}
               onChange={(e) => setFormData({ ...formData, medicalInfo: e.target.value })}
-              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               rows={3}
               placeholder="Any allergies, medical conditions, or special instructions..."
               disabled={isSubmitting}
@@ -717,17 +717,17 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Submit Error */}
           {errors.submit && (
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3">
-              <p className="text-rose-300 text-sm">{errors.submit}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-600 text-sm">{errors.submit}</p>
             </div>
           )}
 
           {/* Upload Progress */}
           {uploadLoading && (
-            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <p className="text-cyan-300 text-sm">Uploading profile photo...</p>
+                <p className="text-blue-600 text-sm">Uploading profile photo...</p>
               </div>
             </div>
           )}

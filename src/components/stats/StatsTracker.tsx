@@ -180,14 +180,14 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900/80 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-white/10 px-6 py-4">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">Record Player Stats</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Record Player Stats</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-300 transition-colors duration-200"
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -198,28 +198,28 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
 
         <div className="p-6">
           {successMessage && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 mb-4">
-              <p className="text-emerald-300 text-sm">{successMessage}</p>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+              <p className="text-green-600 text-sm">{successMessage}</p>
             </div>
           )}
 
           {error && (
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 mb-4">
-              <p className="text-rose-300 text-sm">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Player Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Player *
               </label>
               <select
                 value={selectedPlayer}
                 onChange={(e) => setSelectedPlayer(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
                 <option value="">Choose a player...</option>
@@ -234,18 +234,18 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
             {/* Game Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Opponent
                 </label>
                 <input
                   type="text"
                   value={opponent}
                   disabled
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg bg-white/5"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Minutes Played
                 </label>
                 <input
@@ -255,7 +255,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.minutesPlayed}
                   onChange={(e) => updateStatValue('minutesPlayed', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -263,7 +263,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Goals
                 </label>
                 <input
@@ -272,12 +272,12 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.goals}
                   onChange={(e) => updateStatValue('goals', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Assists
                 </label>
                 <input
@@ -286,12 +286,12 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.assists}
                   onChange={(e) => updateStatValue('assists', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Saves
                 </label>
                 <input
@@ -300,12 +300,12 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.saves}
                   onChange={(e) => updateStatValue('saves', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Yellow Cards
                 </label>
                 <input
@@ -314,12 +314,12 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.yellowCards}
                   onChange={(e) => updateStatValue('yellowCards', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Red Cards
                 </label>
                 <input
@@ -328,14 +328,14 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.redCards}
                   onChange={(e) => updateStatValue('redCards', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
 
             {/* Key Plays */}
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Key Plays (Optional)
               </label>
               <div className="space-y-2">
@@ -347,14 +347,14 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                       onChange={(e) => updateKeyPlay(index, e.target.value)}
                       placeholder="Describe a key play..."
                       disabled={isSubmitting}
-                      className="flex-1 px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     {keyPlays.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeKeyPlay(index)}
                         disabled={isSubmitting}
-                        className="px-3 py-2 text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors duration-200"
+                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -370,7 +370,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   type="button"
                   onClick={addKeyPlay}
                   disabled={isSubmitting}
-                  className="mt-2 text-cyan-300 hover:text-cyan-200 text-sm font-medium"
+                  className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
                 >
                   + Add Key Play
                 </button>
@@ -378,7 +378,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-4 pt-4 border-t border-white/10">
+            <div className="flex space-x-4 pt-4 border-t border-gray-200">
               <button
                 type="button"
                 onClick={onClose}

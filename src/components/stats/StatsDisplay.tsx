@@ -133,7 +133,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           <select
             value={selectedPlayer}
             onChange={(e) => setSelectedPlayer(e.target.value)}
-            className="px-3 py-2 border border-white/15 bg-white/5 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Players Overview</option>
             {players.map(player => (
@@ -144,13 +144,13 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           </select>
 
           {selectedPlayer && (
-            <div className="flex bg-white/5 ring-1 ring-white/10 rounded-lg p-1">
+            <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('overview')}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                   viewMode === 'overview'
-                    ? 'bg-cyan-600 text-white shadow-sm'
-                    : 'text-gray-300 hover:text-white'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Overview
@@ -159,8 +159,8 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 onClick={() => setViewMode('detailed')}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                   viewMode === 'detailed'
-                    ? 'bg-cyan-600 text-white shadow-sm'
-                    : 'text-gray-300 hover:text-white'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Game by Game
@@ -175,26 +175,26 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         /* Team Overview */
         <div className="space-y-6">
           {/* Top Performers */}
-          <div className="bg-gray-900/80 rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Top Performers</h3>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performers</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-amber-500/10 rounded-lg">
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
                 <div className="text-2xl mb-2">🥇</div>
-                <div className="font-semibold text-white">{topPerformers.topScorer.name}</div>
-                <div className="text-sm text-gray-300">Top Scorer</div>
-                <div className="text-xl font-bold text-cyan-300">{topPerformers.topScorer.totalGoals} goals</div>
+                <div className="font-semibold text-gray-900">{topPerformers.topScorer.name}</div>
+                <div className="text-sm text-gray-600">Top Scorer</div>
+                <div className="text-xl font-bold text-blue-600">{topPerformers.topScorer.totalGoals} goals</div>
               </div>
-              <div className="text-center p-4 bg-emerald-500/10 rounded-lg">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl mb-2">🎯</div>
-                <div className="font-semibold text-white">{topPerformers.topAssister.name}</div>
-                <div className="text-sm text-gray-300">Top Assister</div>
-                <div className="text-xl font-bold text-emerald-300">{topPerformers.topAssister.totalAssists} assists</div>
+                <div className="font-semibold text-gray-900">{topPerformers.topAssister.name}</div>
+                <div className="text-sm text-gray-600">Top Assister</div>
+                <div className="text-xl font-bold text-green-600">{topPerformers.topAssister.totalAssists} assists</div>
               </div>
-              <div className="text-center p-4 bg-violet-500/10 rounded-lg">
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <div className="text-2xl mb-2">🧤</div>
-                <div className="font-semibold text-white">{topPerformers.topSaver.name}</div>
-                <div className="text-sm text-gray-300">Top Saver</div>
-                <div className="text-xl font-bold text-violet-300">{topPerformers.topSaver.totalSaves} saves</div>
+                <div className="font-semibold text-gray-900">{topPerformers.topSaver.name}</div>
+                <div className="text-sm text-gray-600">Top Saver</div>
+                <div className="text-xl font-bold text-purple-600">{topPerformers.topSaver.totalSaves} saves</div>
               </div>
             </div>
           </div>
@@ -202,31 +202,31 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           {/* Team Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {players.map(player => (
-              <div key={player.id} className="bg-gray-900/80 rounded-lg shadow-md p-4">
+              <div key={player.id} className="bg-white rounded-lg shadow-md p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h4 className="font-semibold text-white">{player.name}</h4>
-                    <p className="text-sm text-gray-300">#{player.jerseyNumber} • {player.position}</p>
+                    <h4 className="font-semibold text-gray-900">{player.name}</h4>
+                    <p className="text-sm text-gray-600">#{player.jerseyNumber} • {player.position}</p>
                   </div>
                   <button
                     onClick={() => setSelectedPlayer(player.id)}
-                    className="text-cyan-300 hover:text-cyan-200 text-sm font-medium"
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >
                     View Details
                   </button>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <div className="text-lg font-bold text-cyan-300">{player.stats.goals}</div>
-                    <div className="text-xs text-gray-300">Goals</div>
+                    <div className="text-lg font-bold text-blue-600">{player.stats.goals}</div>
+                    <div className="text-xs text-gray-600">Goals</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-emerald-300">{player.stats.assists}</div>
-                    <div className="text-xs text-gray-300">Assists</div>
+                    <div className="text-lg font-bold text-green-600">{player.stats.assists}</div>
+                    <div className="text-xs text-gray-600">Assists</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-violet-300">{player.stats.saves}</div>
-                    <div className="text-xs text-gray-300">Saves</div>
+                    <div className="text-lg font-bold text-purple-600">{player.stats.saves}</div>
+                    <div className="text-xs text-gray-600">Saves</div>
                   </div>
                 </div>
               </div>
@@ -237,7 +237,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         /* Individual Player Stats */
         <div className="space-y-6">
           {/* Player Header */}
-          <div className="bg-gradient-to-r from-cyan-500 to-sky-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
             <div className="flex items-center space-x-4">
               <div className="bg-white bg-opacity-20 rounded-full w-16 h-16 flex items-center justify-center">
                 <span className="text-2xl font-bold">#{selectedPlayerData.jerseyNumber}</span>
@@ -259,56 +259,56 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
             /* Overview Mode */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Season Totals */}
-              <div className="bg-gray-900/80 rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Season Totals</h3>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Season Totals</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Goals</span>
-                    <span className="text-2xl font-bold text-cyan-300">{selectedPlayerData.stats.goals}</span>
+                    <span className="text-gray-600">Goals</span>
+                    <span className="text-2xl font-bold text-blue-600">{selectedPlayerData.stats.goals}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Assists</span>
-                    <span className="text-2xl font-bold text-emerald-300">{selectedPlayerData.stats.assists}</span>
+                    <span className="text-gray-600">Assists</span>
+                    <span className="text-2xl font-bold text-green-600">{selectedPlayerData.stats.assists}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Saves</span>
-                    <span className="text-2xl font-bold text-violet-300">{selectedPlayerData.stats.saves}</span>
+                    <span className="text-gray-600">Saves</span>
+                    <span className="text-2xl font-bold text-purple-600">{selectedPlayerData.stats.saves}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Games Played</span>
-                    <span className="text-2xl font-bold text-gray-200">{selectedPlayerData.stats.gamesPlayed}</span>
+                    <span className="text-gray-600">Games Played</span>
+                    <span className="text-2xl font-bold text-gray-700">{selectedPlayerData.stats.gamesPlayed}</span>
                   </div>
                 </div>
               </div>
 
               {/* Averages */}
-              <div className="bg-gray-900/80 rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Per Game Averages</h3>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Per Game Averages</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Goals/Game</span>
-                    <span className="text-2xl font-bold text-cyan-300">{averages.goals}</span>
+                    <span className="text-gray-600">Goals/Game</span>
+                    <span className="text-2xl font-bold text-blue-600">{averages.goals}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Assists/Game</span>
-                    <span className="text-2xl font-bold text-emerald-300">{averages.assists}</span>
+                    <span className="text-gray-600">Assists/Game</span>
+                    <span className="text-2xl font-bold text-green-600">{averages.assists}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Saves/Game</span>
-                    <span className="text-2xl font-bold text-violet-300">{averages.saves}</span>
+                    <span className="text-gray-600">Saves/Game</span>
+                    <span className="text-2xl font-bold text-purple-600">{averages.saves}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Games Recorded</span>
-                    <span className="text-2xl font-bold text-gray-200">{playerStats.length}</span>
+                    <span className="text-gray-600">Games Recorded</span>
+                    <span className="text-2xl font-bold text-gray-700">{playerStats.length}</span>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
             /* Detailed Game-by-Game */
-            <div className="bg-gray-900/80 rounded-lg shadow-md">
-              <div className="px-6 py-4 border-b border-white/10">
-                <h3 className="text-lg font-semibold text-white">Game-by-Game Performance</h3>
+            <div className="bg-white rounded-lg shadow-md">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Game-by-Game Performance</h3>
               </div>
               <div className="p-6">
                 {playerStats.length === 0 ? (
@@ -318,23 +318,23 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                     </div>
-                    <p className="text-gray-300">No game stats recorded yet for this player.</p>
+                    <p className="text-gray-600">No game stats recorded yet for this player.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {playerStats.map((stat, index) => (
-                      <div key={stat.id} className="border border-white/10 rounded-lg p-4">
+                      <div key={stat.id} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <span className="bg-cyan-500/20 text-cyan-200 text-xs font-medium px-2 py-1 rounded-full">
+                            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
                               Game {playerStats.length - index}
                             </span>
-                            <span className="text-sm text-gray-300">
+                            <span className="text-sm text-gray-600">
                               {formatDateTime(stat.createdAt)}
                             </span>
                           </div>
                           {isUserCoach && stat.recordedByName && (
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-gray-500">
                               Recorded by {stat.recordedByName}
                             </span>
                           )}
@@ -342,25 +342,25 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                         
                         <div className="grid grid-cols-3 gap-4 mb-3">
                           <div className="text-center">
-                            <div className="text-lg font-bold text-cyan-300">{stat.goals}</div>
-                            <div className="text-sm text-gray-300">Goals</div>
+                            <div className="text-lg font-bold text-blue-600">{stat.goals}</div>
+                            <div className="text-sm text-gray-600">Goals</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-lg font-bold text-emerald-300">{stat.assists}</div>
-                            <div className="text-sm text-gray-300">Assists</div>
+                            <div className="text-lg font-bold text-green-600">{stat.assists}</div>
+                            <div className="text-sm text-gray-600">Assists</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-lg font-bold text-violet-300">{stat.saves}</div>
-                            <div className="text-sm text-gray-300">Saves</div>
+                            <div className="text-lg font-bold text-purple-600">{stat.saves}</div>
+                            <div className="text-sm text-gray-600">Saves</div>
                           </div>
                         </div>
 
                         {stat.keyPlays.length > 0 && (
                           <div>
-                            <h5 className="font-medium text-white mb-2">Key Plays:</h5>
+                            <h5 className="font-medium text-gray-900 mb-2">Key Plays:</h5>
                             <ul className="list-disc list-inside space-y-1">
                               {stat.keyPlays.map((play, playIndex) => (
-                                <li key={playIndex} className="text-sm text-gray-300">{play}</li>
+                                <li key={playIndex} className="text-sm text-gray-600">{play}</li>
                               ))}
                             </ul>
                           </div>
@@ -375,7 +375,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         </div>
       ) : (
         <div className="text-center py-8">
-          <p className="text-gray-300">Player not found.</p>
+          <p className="text-gray-600">Player not found.</p>
         </div>
       )}
     </div>

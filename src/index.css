@@ -26,29 +26,13 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0a0e1a;
-  color: #e5e7eb;
+  background-color: var(--fire-ice);
+  color: #111827;
   line-height: 1.6;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-}
-
-/* Dark default for native form controls so we don't have to style every <select>/<input>
-   inline. Instances that already pass explicit bg/text classes will override these. */
-select, input[type="text"], input[type="email"], input[type="password"], input[type="number"],
-input[type="search"], input[type="tel"], input[type="url"], input[type="date"], input[type="time"],
-input[type="datetime-local"], textarea {
-  color-scheme: dark;
-}
-select {
-  background-color: rgba(255,255,255,0.05);
-  color: #f3f4f6;
-}
-select option {
-  background-color: #16223a;
-  color: #f3f4f6;
 }
 
 /* Safe area padding for mobile notches / home indicators */
@@ -64,37 +48,17 @@ select option {
 }
 
 /* ===== CARD SYSTEM ===== */
-/* Navy-tinted card surface — matches the fire-950 / dark-navy page bg
-   instead of clashing with neutral gray. Subtle cyan inner top highlight
-   for premium depth, gentle outer shadow. */
 .card-modern {
-  background: linear-gradient(180deg, #1c2840 0%, #16223a 100%);
+  background: white;
   border-radius: 16px;
-  box-shadow:
-    0 1px 0 rgba(56,189,248,0.08) inset,
-    0 4px 14px rgba(0,0,0,0.45),
-    0 1px 3px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.07);
-  color: #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.05);
   transition: all 0.2s ease;
 }
 .card-modern:hover {
-  border-color: rgba(56,189,248,0.2);
-  box-shadow:
-    0 1px 0 rgba(56,189,248,0.12) inset,
-    0 12px 32px rgba(0,0,0,0.55),
-    0 2px 6px rgba(0,0,0,0.35);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
   transform: translateY(-1px);
 }
-.card-lift { /* alias kept for any stray refs */
-  background: linear-gradient(180deg, #1c2840 0%, #16223a 100%);
-  border-radius: 16px;
-  box-shadow: 0 1px 0 rgba(56,189,248,0.08) inset, 0 4px 14px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.07);
-  color: #e5e7eb;
-  transition: all 0.2s ease;
-}
-
 .card-interactive {
   cursor: pointer;
   transition: all 0.2s ease;
@@ -123,9 +87,9 @@ select option {
   transform: translateY(-1px);
 }
 .btn-secondary {
-  background: rgba(255,255,255,0.06);
-  color: #e5e7eb;
-  border: 1px solid rgba(255,255,255,0.12);
+  background: white;
+  color: #374151;
+  border: 1px solid #e5e7eb;
   padding: 10px 20px;
   border-radius: 12px;
   font-weight: 500;
@@ -134,8 +98,8 @@ select option {
   transition: all 0.2s ease;
 }
 .btn-secondary:hover {
-  background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.2);
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 .btn-success {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -158,25 +122,22 @@ select option {
 .form-input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   font-size: 14px;
   transition: all 0.2s ease;
-  background: rgba(255,255,255,0.05);
-  color: #f3f4f6;
+  background: white;
 }
-.form-input::placeholder { color: #6b7280; }
 .form-input:focus {
   outline: none;
   border-color: #06b6d4;
-  box-shadow: 0 0 0 3px rgba(6,182,212,0.2);
-  background: rgba(255,255,255,0.07);
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.15);
 }
 .form-label {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #d1d5db;
+  color: #374151;
   margin-bottom: 6px;
 }
 
@@ -202,9 +163,9 @@ select option {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.text-title { font-size: 1.875rem; font-weight: 700; color: #f8fafc; line-height: 1.2; }
-.text-subtitle { font-size: 1.125rem; font-weight: 600; color: #e2e8f0; }
-.text-body { font-size: 1rem; color: #cbd5e1; line-height: 1.6; }
+.text-title { font-size: 1.875rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+.text-subtitle { font-size: 1.125rem; font-weight: 600; color: #334155; }
+.text-body { font-size: 1rem; color: #64748b; line-height: 1.6; }
 .text-small { font-size: 0.875rem; color: #94a3b8; }
 
 /* ===== LOADING ===== */

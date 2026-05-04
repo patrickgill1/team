@@ -28,12 +28,12 @@ function renderRichContent(text: string): string {
   // URLs
   const linked = safe.replace(
     /(https?:\/\/[^\s<]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-cyan-300 underline break-all">$1</a>'
+    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline break-all">$1</a>'
   );
   // @mentions of any name (letters/numbers/spaces up to 30 chars terminated by punctuation/end)
   const mentioned = linked.replace(
     /@([A-Za-z][A-Za-z0-9 _'-]{0,28}[A-Za-z0-9])/g,
-    '<span class="bg-cyan-500/20 text-cyan-200 font-medium px-1 rounded">@$1</span>'
+    '<span class="bg-blue-100 text-blue-800 font-medium px-1 rounded">@$1</span>'
   );
   return mentioned;
 }
@@ -69,7 +69,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <div
       className={`flex space-x-3 group ${
-        isMentioned ? '-mx-2 px-2 py-1 rounded-md bg-amber-500/10' : ''
+        isMentioned ? '-mx-2 px-2 py-1 rounded-md bg-yellow-50' : ''
       }`}
     >
       <div className="flex-shrink-0">
@@ -85,40 +85,40 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center space-x-2 mb-1 flex-wrap">
           <span
-            className={`font-medium text-white ${compact ? 'text-sm truncate' : ''}`}
+            className={`font-medium text-gray-900 ${compact ? 'text-sm truncate' : ''}`}
           >
             {message.senderName}
           </span>
           <span
             className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
               message.senderRole === 'coach'
-                ? 'bg-cyan-500/20 text-cyan-200'
-                : 'bg-emerald-500/20 text-emerald-200'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-green-100 text-green-800'
             }`}
           >
             {message.senderRole}
           </span>
-          <span className="text-xs text-gray-400 flex-shrink-0">{formatTime(message.timestamp)}</span>
+          <span className="text-xs text-gray-500 flex-shrink-0">{formatTime(message.timestamp)}</span>
         </div>
 
         {message.replyTo && (
-          <div className="mb-2 p-2 bg-gray-100 rounded border-l-2 border-blue-400 text-sm text-gray-200">
+          <div className="mb-2 p-2 bg-gray-100 rounded border-l-2 border-blue-400 text-sm text-gray-700">
             {replyTarget ? (
               <>
-                <div className="text-xs font-semibold text-cyan-200">
+                <div className="text-xs font-semibold text-blue-700">
                   ↪ {replyTarget.senderName}
                 </div>
                 <div className="truncate">{(replyTarget.content || '').slice(0, 140)}</div>
               </>
             ) : (
-              <span className="italic text-gray-400">Replying to a message</span>
+              <span className="italic text-gray-500">Replying to a message</span>
             )}
           </div>
         )}
 
         {message.content && (
           <div
-            className={`text-white whitespace-pre-wrap break-words ${
+            className={`text-gray-900 whitespace-pre-wrap break-words ${
               compact ? 'text-sm leading-relaxed' : ''
             }`}
             dangerouslySetInnerHTML={{ __html: renderRichContent(message.content) }}
@@ -136,7 +136,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <img
                   src={img.url}
                   alt={img.name || 'attachment'}
-                  className="rounded-lg border border-white/10 max-h-64 object-cover w-full"
+                  className="rounded-lg border border-gray-200 max-h-64 object-cover w-full"
                 />
               </a>
             ))}
@@ -152,8 +152,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 title={info.names.join(', ')}
                 className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
                   info.mine
-                    ? 'bg-cyan-500/10 border-cyan-500/30 text-blue-800'
-                    : 'bg-white/5 border-white/15 text-gray-200 hover:bg-white/5'
+                    ? 'bg-blue-50 border-blue-300 text-blue-800'
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 <span className="mr-1">{emoji}</span>
@@ -163,10 +163,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        <div className="mt-1 flex items-center space-x-3 text-xs text-gray-400">
+        <div className="mt-1 flex items-center space-x-3 text-xs text-gray-500">
           <button
             onClick={() => onReply(message)}
-            className="hover:text-gray-200 font-medium"
+            className="hover:text-gray-700 font-medium"
           >
             Reply
           </button>
@@ -174,13 +174,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div className="relative">
             <button
               onClick={() => setPickerOpen((v) => !v)}
-              className="hover:text-gray-200 font-medium"
+              className="hover:text-gray-700 font-medium"
               aria-label="Add reaction"
             >
               😊 React
             </button>
             {pickerOpen && (
-              <div className="absolute z-20 mt-1 left-0 bg-white/5 border border-white/10 rounded-lg shadow-lg p-2 flex space-x-1">
+              <div className="absolute z-20 mt-1 left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex space-x-1">
                 {QUICK_REACTIONS.map((e) => (
                   <button
                     key={e}
@@ -188,7 +188,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                       onToggleReaction(message, e);
                       setPickerOpen(false);
                     }}
-                    className="text-lg hover:bg-white/10 rounded p-1"
+                    className="text-lg hover:bg-gray-100 rounded p-1"
                   >
                     {e}
                   </button>

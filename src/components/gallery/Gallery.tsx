@@ -140,7 +140,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
       {/* Header and Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center space-x-4">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-gray-900">
             Team Gallery ({filteredPhotos.length})
           </h2>
           
@@ -150,8 +150,8 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('grid')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'grid'
-                  ? 'bg-white text-cyan-300 shadow-sm'
-                  : 'text-gray-300 hover:text-white'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Grid
@@ -160,8 +160,8 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('masonry')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'masonry'
-                  ? 'bg-white text-cyan-300 shadow-sm'
-                  : 'text-gray-300 hover:text-white'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Masonry
@@ -172,7 +172,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
-            className="px-3 py-1 border border-white/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -196,13 +196,13 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
       {/* Tags Filter */}
       {getAllTags().length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <span className="text-sm font-medium text-gray-200">Filter by tag:</span>
+          <span className="text-sm font-medium text-gray-700">Filter by tag:</span>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: '' }))}
             className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
               tagFilter === '' 
-                ? 'bg-cyan-500/20 text-cyan-200' 
-                : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                ? 'bg-blue-100 text-blue-800' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             All
@@ -213,8 +213,8 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: tag }))}
               className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
                 tagFilter === tag 
-                  ? 'bg-cyan-500/20 text-cyan-200' 
-                  : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {tag}
@@ -231,8 +231,8 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">No Photos Found</h3>
-          <p className="text-gray-300 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Photos Found</h3>
+          <p className="text-gray-600 mb-4">
             {searchTerm || tagFilter
               ? 'No photos match your current filters.'
               : 'No photos have been uploaded to the gallery yet.'}
@@ -306,7 +306,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   viewMode
 }) => {
   return (
-    <div className={`group relative bg-gray-900/80 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 ${
+    <div className={`group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 ${
       viewMode === 'masonry' ? 'break-inside-avoid mb-4' : ''
     }`}>
       <div className="relative">
@@ -335,7 +335,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
               <button
                 onClick={onDelete}
                 disabled={isDeleting}
-                className="p-2 bg-rose-500/100 bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all duration-200 disabled:opacity-50"
+                className="p-2 bg-red-500 bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all duration-200 disabled:opacity-50"
               >
                 {isDeleting ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -361,18 +361,18 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
             {photo.tags.slice(0, 3).map(tag => (
               <span
                 key={tag}
-                className="px-2 py-1 bg-cyan-500/20 text-cyan-200 text-xs rounded-full"
+                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
               >
                 {tag}
               </span>
             ))}
             {photo.tags.length > 3 && (
-              <span className="text-xs text-gray-400">+{photo.tags.length - 3}</span>
+              <span className="text-xs text-gray-500">+{photo.tags.length - 3}</span>
             )}
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs text-gray-400">
+        <div className="flex items-center justify-between text-xs text-gray-500">
           <span>{photo.uploadedByName}</span>
           <span>{formatDateTime(photo.createdAt)}</span>
         </div>
@@ -445,10 +445,10 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         </div>
 
         {/* Photo Details */}
-        <div className="bg-gray-900/80 rounded-lg p-4">
+        <div className="bg-white rounded-lg p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <div className="flex items-center space-x-2 text-sm text-gray-300 mb-2">
+              <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
                 <span>📷 {photo.uploadedByName}</span>
                 <span>•</span>
                 <span>{formatDateTime(photo.createdAt)}</span>
@@ -464,7 +464,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
               {photo.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-2 py-1 bg-cyan-500/20 text-cyan-200 text-sm rounded-full"
+                  className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
                 >
                   {tag}
                 </span>

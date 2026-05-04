@@ -349,10 +349,10 @@ const EventForm: React.FC<EventFormProps> = ({
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
-      case 'game': return 'border-rose-500 bg-rose-500/10 text-rose-300 ring-2 ring-rose-500/30';
-      case 'practice': return 'border-fire-500 bg-fire-500/10 text-fire-200 ring-2 ring-fire-500/30';
-      case 'event': return 'border-emerald-500 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/30';
-      default: return 'border-slate-300 bg-slate-100 text-gray-200';
+      case 'game': return 'border-rose-500 bg-rose-500/10 text-rose-700 ring-2 ring-rose-500/30';
+      case 'practice': return 'border-fire-500 bg-fire-500/10 text-fire-800 ring-2 ring-fire-500/30';
+      case 'event': return 'border-emerald-500 bg-emerald-500/10 text-emerald-700 ring-2 ring-emerald-500/30';
+      default: return 'border-slate-300 bg-slate-100 text-slate-700';
     }
   };
 
@@ -374,7 +374,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-      <div className="bg-gray-900/80 rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto shadow-2xl ring-1 ring-slate-200">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto shadow-2xl ring-1 ring-slate-200">
         <div className="sticky top-0 bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 px-5 sm:px-6 py-4 z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
@@ -395,7 +395,7 @@ const EventForm: React.FC<EventFormProps> = ({
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
           {/* Event Type */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
               Event Type *
             </label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -423,7 +423,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
           {/* Event Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Event Title *
             </label>
             <input
@@ -431,7 +431,7 @@ const EventForm: React.FC<EventFormProps> = ({
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.title ? 'border-red-500' : 'border-white/15'
+                errors.title ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder={`Enter ${formData.type} title...`}
             />
@@ -441,7 +441,7 @@ const EventForm: React.FC<EventFormProps> = ({
           {/* Date and Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date *
               </label>
               <input
@@ -449,13 +449,13 @@ const EventForm: React.FC<EventFormProps> = ({
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.date ? 'border-red-500' : 'border-white/15'
+                  errors.date ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
               {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Time *
               </label>
               <input
@@ -463,7 +463,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.time ? 'border-red-500' : 'border-white/15'
+                  errors.time ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
               {errors.time && <p className="text-red-500 text-sm mt-1">{errors.time}</p>}
@@ -472,7 +472,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Location *
             </label>
             <input
@@ -480,7 +480,7 @@ const EventForm: React.FC<EventFormProps> = ({
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.location ? 'border-red-500' : 'border-white/15'
+                errors.location ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter location (e.g., Main Field, Community Center)"
             />
@@ -489,13 +489,13 @@ const EventForm: React.FC<EventFormProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Description (Optional)
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               rows={3}
               placeholder="Add any additional details about the event..."
             />
@@ -505,13 +505,13 @@ const EventForm: React.FC<EventFormProps> = ({
           {!editingEvent && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-200 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   🔁 Repeat
                 </label>
                 <select
                   value={formData.recurrence}
                   onChange={(e) => setFormData({ ...formData, recurrence: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="none">Does not repeat</option>
                   <option value="daily">Every day</option>
@@ -522,7 +522,7 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
               {formData.recurrence !== 'none' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Until *
                   </label>
                   <input
@@ -531,7 +531,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     onChange={(e) => setFormData({ ...formData, recurrenceUntil: e.target.value })}
                     min={formData.date}
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.recurrenceUntil ? 'border-red-500' : 'border-white/15'
+                      errors.recurrenceUntil ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
                   {errors.recurrenceUntil && <p className="text-red-500 text-xs mt-1">{errors.recurrenceUntil}</p>}
@@ -555,7 +555,7 @@ const EventForm: React.FC<EventFormProps> = ({
           {/* Integration Options (for new events only) */}
           {!editingEvent && (
             <div className="border-t pt-4">
-              <h3 className="text-sm font-medium text-gray-200 mb-3">🔗 Create Related Items</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">🔗 Create Related Items</h3>
               
               {/* Attendance Tracking */}
               {(formData.type === 'practice' || formData.type === 'game') && (
@@ -565,13 +565,13 @@ const EventForm: React.FC<EventFormProps> = ({
                       type="checkbox"
                       checked={formData.createAttendance}
                       onChange={(e) => setFormData({ ...formData, createAttendance: e.target.checked })}
-                      className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <span className="text-sm font-medium text-gray-200">
+                    <span className="text-sm font-medium text-gray-700">
                       📋 Create attendance tracking
                     </span>
                   </label>
-                  <p className="text-xs text-gray-400 ml-6">
+                  <p className="text-xs text-gray-500 ml-6">
                     Automatically create an attendance event for tracking who attends
                   </p>
                 </div>
@@ -584,16 +584,16 @@ const EventForm: React.FC<EventFormProps> = ({
                     type="checkbox"
                     checked={formData.createVolunteerOpps}
                     onChange={(e) => setFormData({ ...formData, createVolunteerOpps: e.target.checked })}
-                    className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <span className="text-sm font-medium text-gray-200">
+                  <span className="text-sm font-medium text-gray-700">
                     🤝 Create volunteer opportunities
                   </span>
                 </label>
                 
                 {formData.createVolunteerOpps && (
                   <div className="ml-6 space-y-2">
-                    <p className="text-xs text-gray-400 mb-2">Select types of volunteers needed:</p>
+                    <p className="text-xs text-gray-500 mb-2">Select types of volunteers needed:</p>
                     {[
                       { value: 'snacks', label: '🍎 Snacks & Drinks', desc: 'Provide refreshments' },
                       { value: 'setup', label: '⚙️ Setup Help', desc: 'Equipment and field preparation' },
@@ -604,11 +604,11 @@ const EventForm: React.FC<EventFormProps> = ({
                           type="checkbox"
                           checked={formData.volunteerTypes.includes(value)}
                           onChange={(e) => handleVolunteerTypeChange(value, e.target.checked)}
-                          className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded mt-0.5"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
                         />
                         <div>
-                          <span className="text-sm text-gray-200">{label}</span>
-                          <p className="text-xs text-gray-400">{desc}</p>
+                          <span className="text-sm text-gray-700">{label}</span>
+                          <p className="text-xs text-gray-500">{desc}</p>
                         </div>
                       </label>
                     ))}
@@ -621,13 +621,13 @@ const EventForm: React.FC<EventFormProps> = ({
           {/* Event Preview */}
           {formData.title && formData.date && formData.time && formData.location && (
             <div className="border-t pt-4">
-              <h3 className="text-sm font-medium text-gray-200 mb-2">Preview</h3>
-              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Preview</h3>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-start space-x-3">
                   <div className="text-2xl">{getEventTypeIcon(formData.type)}</div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-white">{formData.title}</h4>
-                    <div className="text-sm text-gray-300 space-y-1 mt-1">
+                    <h4 className="font-semibold text-gray-900">{formData.title}</h4>
+                    <div className="text-sm text-gray-600 space-y-1 mt-1">
                       <div className="flex items-center space-x-1">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -643,21 +643,21 @@ const EventForm: React.FC<EventFormProps> = ({
                       </div>
                     </div>
                     {formData.description && (
-                      <p className="text-sm text-gray-300 mt-2">{formData.description}</p>
+                      <p className="text-sm text-gray-600 mt-2">{formData.description}</p>
                     )}
                     {weather && (
                       <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 border border-fire-200 text-navy-700 text-xs font-semibold">
                         <span className="text-base leading-none">{weather.icon}</span>
                         <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
-                        {weather.precipChance > 0 && <span className="text-fire-200">· {weather.precipChance}% rain</span>}
+                        {weather.precipChance > 0 && <span className="text-fire-700">· {weather.precipChance}% rain</span>}
                       </div>
                     )}
                     
                     {/* Show what will be created */}
                     {!editingEvent && (formData.createAttendance || formData.createVolunteerOpps) && (
-                      <div className="mt-3 pt-2 border-t border-white/15">
-                        <p className="text-xs font-medium text-gray-200 mb-1">Will also create:</p>
-                        <ul className="text-xs text-gray-300 space-y-1">
+                      <div className="mt-3 pt-2 border-t border-gray-300">
+                        <p className="text-xs font-medium text-gray-700 mb-1">Will also create:</p>
+                        <ul className="text-xs text-gray-600 space-y-1">
                           {formData.createAttendance && (
                             <li>• Attendance tracking event</li>
                           )}
@@ -678,8 +678,8 @@ const EventForm: React.FC<EventFormProps> = ({
 
           {/* Submit Error */}
           {errors.submit && (
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3">
-              <p className="text-rose-300 text-sm">{errors.submit}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-600 text-sm">{errors.submit}</p>
             </div>
           )}
 
@@ -689,7 +689,7 @@ const EventForm: React.FC<EventFormProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 bg-slate-100 hover:bg-slate-200 text-gray-200 font-semibold py-3 px-4 rounded-xl transition disabled:opacity-50"
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl transition disabled:opacity-50"
             >
               Cancel
             </button>

@@ -211,10 +211,10 @@ const CoachJoin: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center p-4">
-        <div className="bg-gray-900/80 rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-4xl mb-4">❌</div>
-          <h2 className="text-xl font-bold text-white mb-2">Invalid Invite</h2>
-          <p className="text-gray-300">{error}</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid Invite</h2>
+          <p className="text-gray-600">{error}</p>
         </div>
       </div>
     );
@@ -223,13 +223,13 @@ const CoachJoin: React.FC = () => {
   if (joined) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center p-4">
-        <div className="bg-gray-900/80 rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-white mb-2">Welcome, Coach!</h2>
-          <p className="text-gray-300 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome, Coach!</h2>
+          <p className="text-gray-600 mb-2">
             You've joined <strong>{invite?.teamName}</strong> as {invite?.coachLevel === 'head_coach' ? 'Head Coach' : 'Assistant Coach'}.
           </p>
-          <p className="text-gray-400 text-sm mb-6">You now have access to manage voting, view stats, and help with team admin.</p>
+          <p className="text-gray-500 text-sm mb-6">You now have access to manage voting, view stats, and help with team admin.</p>
           <button
             onClick={() => navigate('/dashboard')}
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
@@ -244,9 +244,9 @@ const CoachJoin: React.FC = () => {
   if (joining) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center p-4">
-        <div className="bg-gray-900/80 rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-300">Joining team...</p>
+          <p className="text-gray-600">Joining team...</p>
         </div>
       </div>
     );
@@ -254,7 +254,7 @@ const CoachJoin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900/80 rounded-xl shadow-lg max-w-md w-full overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg max-w-md w-full overflow-hidden">
         {/* Header */}
         <div className="bg-emerald-600 px-6 py-5 text-white text-center">
           <div className="text-3xl mb-2">⚽</div>
@@ -269,14 +269,14 @@ const CoachJoin: React.FC = () => {
 
         {/* Auth */}
         <div className="p-6">
-          <p className="text-sm text-gray-300 mb-4 text-center">
+          <p className="text-sm text-gray-600 mb-4 text-center">
             {currentUser ? 'Processing...' : 'Sign in or create an account to join the team.'}
           </p>
 
           {/* Google Sign In */}
           <button
             onClick={handleGoogleAuth}
-            className="w-full flex items-center justify-center space-x-3 bg-white border-2 border-white/10 hover:border-white/15 hover:bg-white/5 px-4 py-3 rounded-lg font-medium transition-colors mb-4"
+            className="w-full flex items-center justify-center space-x-3 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 px-4 py-3 rounded-lg font-medium transition-colors mb-4"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -284,12 +284,12 @@ const CoachJoin: React.FC = () => {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            <span className="text-gray-200">Continue with Google</span>
+            <span className="text-gray-700">Continue with Google</span>
           </button>
 
           <div className="relative mb-4">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-            <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-400">or</span></div>
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
+            <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">or</span></div>
           </div>
 
           {/* Email/Password form */}
@@ -299,7 +299,7 @@ const CoachJoin: React.FC = () => {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="Your name"
                 required
               />
@@ -308,7 +308,7 @@ const CoachJoin: React.FC = () => {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Email address"
               required
             />
@@ -316,7 +316,7 @@ const CoachJoin: React.FC = () => {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Password"
               required
               minLength={6}
@@ -335,11 +335,11 @@ const CoachJoin: React.FC = () => {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-400 mt-4">
+          <p className="text-center text-sm text-gray-500 mt-4">
             {authMode === 'register' ? (
-              <>Already have an account? <button onClick={() => setAuthMode('login')} className="text-emerald-300 font-medium hover:underline">Sign in</button></>
+              <>Already have an account? <button onClick={() => setAuthMode('login')} className="text-emerald-600 font-medium hover:underline">Sign in</button></>
             ) : (
-              <>Need an account? <button onClick={() => setAuthMode('register')} className="text-emerald-300 font-medium hover:underline">Register</button></>
+              <>Need an account? <button onClick={() => setAuthMode('register')} className="text-emerald-600 font-medium hover:underline">Register</button></>
             )}
           </p>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -60,10 +61,27 @@ const PlayerMediaPage: React.FC = () => {
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkConsumedRef = useRef<string | null>(null);
+
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
     loadData();
   }, [selectedTeamId, selectedPlayerId]);
+
+  // Deep-link: open ?clip=<id> once media has loaded.
+  useEffect(() => {
+    const clipId = searchParams.get('clip');
+    if (!clipId || media.length === 0 || deepLinkConsumedRef.current === clipId) return;
+    const target = media.find(m => m.id === clipId);
+    if (target) {
+      setSelectedMedia(target);
+      deepLinkConsumedRef.current = clipId;
+      const next = new URLSearchParams(searchParams);
+      next.delete('clip');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, media, setSearchParams]);
 
   // When the user picks a player from BROWSE BY PLAYER, scroll the clips
   // grid into view so it's obvious it loaded (otherwise the page stays

@@ -496,7 +496,7 @@ const ClipTile: React.FC<{ clip: any; rank: number }> = ({ clip, rank }) => {
   const likes = clip.likeCount || clip.likes?.length || 0;
   return (
     <Link
-      to="/player-media"
+      to={`/player-media?clip=${clip.id}`}
       className="group relative aspect-[3/4] rounded-2xl overflow-hidden ring-1 ring-gray-100 bg-gradient-to-br from-gray-800 to-gray-950 shadow hover:shadow-xl hover:-translate-y-0.5 transition"
     >
       {thumb ? (
@@ -527,7 +527,7 @@ const ClipThumb: React.FC<{ clip: any }> = ({ clip }) => {
   const thumb = clip.thumbnailUrl || (clip.type === 'photo' ? clip.url : undefined);
   return (
     <Link
-      to="/player-media"
+      to={`/player-media?clip=${clip.id}`}
       className="group flex-shrink-0 w-28 sm:w-32 rounded-xl overflow-hidden ring-1 ring-gray-100 bg-gray-100 hover:ring-cyan-300 hover:shadow-md transition"
     >
       <div className="relative aspect-square bg-gradient-to-br from-gray-700 to-gray-900">

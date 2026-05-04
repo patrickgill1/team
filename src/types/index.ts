@@ -267,6 +267,8 @@ export interface ChatThread {
   lastActivity: Date;
   isPinned: boolean;
   isPrivate: boolean; // For coach-only threads
+  isDM?: boolean; // Direct message between two users
+  dmParticipantNames?: { [uid: string]: string }; // For displaying the "other" person in DMs
   isArchived?: boolean;
   messageCount: number;
   participants: string[]; // User IDs

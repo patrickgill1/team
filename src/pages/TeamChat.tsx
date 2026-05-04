@@ -17,6 +17,7 @@ const TeamChat: React.FC = () => {
     subscribeToChatMessages,
     updateDocument,
     getDocuments,
+    getOrCreateDMThread,
   } = useFirestore();
   
   // Simple mobile-first state management
@@ -43,6 +44,11 @@ const TeamChat: React.FC = () => {
     isPrivate: false,
     tags: [] as string[]
   });
+
+  // Direct-message picker state
+  const [isDMPickerOpen, setIsDMPickerOpen] = useState(false);
+  const [dmSearch, setDmSearch] = useState('');
+  const [dmStarting, setDmStarting] = useState<string | null>(null);
 
   const isCoach = userData?.role === 'coach';
 
@@ -320,14 +326,77 @@ const TeamChat: React.FC = () => {
   };
 
   const filteredThreads = threads.filter(thread => {
+    // Hide DMs the current user is not part of.
+    const isDM = (thread as any).isDM === true;
+    if (isDM && userData?.uid && !thread.participants.includes(userData.uid)) {
+      return false;
+    }
     const matchesSearch = thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          thread.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterTag === 'all' || 
+    const matchesFilter = filterTag === 'all' ||
                          (filterTag === 'pinned' && thread.isPinned) ||
                          (filterTag === 'private' && thread.isPrivate) ||
+                         (filterTag === 'direct' && isDM) ||
                          thread.tags?.includes(filterTag);
     return matchesSearch && matchesFilter;
   });
+
+  // Display title for a thread — for DMs, show the OTHER person's name.
+  const getThreadDisplayTitle = (thread: ChatThread): string => {
+    const isDM = (thread as any).isDM === true;
+    if (!isDM) return thread.title;
+    const map = (thread as any).dmParticipantNames as Record<string, string> | undefined;
+    const otherUid = thread.participants.find(uid => uid !== userData?.uid);
+    if (map && otherUid && map[otherUid]) return map[otherUid];
+    if (otherUid) {
+      const m = teamMembers.find(tm => tm.uid === otherUid);
+      if (m?.name) return m.name;
+    }
+    return thread.title.replace(/^DM:\s*/, '');
+  };
+
+  const startDM = async (member: { uid: string; name: string }) => {
+    if (!userData || !selectedTeamId || dmStarting) return;
+    setDmStarting(member.uid);
+    try {
+      const threadId = await getOrCreateDMThread({
+        teamId: selectedTeamId,
+        me: { uid: userData.uid, name: userData.name },
+        other: { uid: member.uid, name: member.name },
+      });
+      // Try to find it in current threads; if not yet streamed in, build a minimal one.
+      const existing = threads.find(t => t.id === threadId);
+      if (existing) {
+        setSelectedThread(existing);
+      } else {
+        setSelectedThread({
+          id: threadId as string,
+          title: `DM: ${userData.name} & ${member.name}`,
+          teamId: selectedTeamId,
+          createdBy: userData.uid,
+          createdByName: userData.name,
+          createdAt: new Date(),
+          lastActivity: new Date(),
+          isPinned: false,
+          isPrivate: false,
+          messageCount: 0,
+          participants: [userData.uid, member.uid],
+          tags: ['direct'],
+          // @ts-ignore extras
+          isDM: true,
+          dmParticipantNames: { [userData.uid]: userData.name, [member.uid]: member.name },
+        } as any);
+      }
+      setCurrentView('chat');
+      setIsDMPickerOpen(false);
+      setDmSearch('');
+    } catch (err) {
+      console.error('Failed to open DM:', err);
+      alert('Could not open direct message. Please try again.');
+    } finally {
+      setDmStarting(null);
+    }
+  };
 
   console.log('Current state:', { currentView, isMobile, selectedThread: selectedThread?.title });
 
@@ -342,6 +411,84 @@ const TeamChat: React.FC = () => {
     );
   }
 
+  // Reusable DM picker modal — rendered in both mobile and desktop returns.
+  const dmCandidates = teamMembers
+    .filter(m => m.uid && m.uid !== userData?.uid && m.name)
+    .filter(m => !dmSearch || m.name.toLowerCase().includes(dmSearch.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const dmPickerModal = isDMPickerOpen ? (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); }}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-violet-50 to-white">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Direct Message</h3>
+            <p className="text-xs text-gray-500">Pick a teammate to start a private 1:1 chat.</p>
+          </div>
+          <button
+            onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); }}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+            aria-label="Close"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="p-4 border-b border-gray-100">
+          <input
+            type="text"
+            value={dmSearch}
+            onChange={e => setDmSearch(e.target.value)}
+            placeholder="Search teammates..."
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-base"
+            style={{ fontSize: '16px' }}
+            autoFocus
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
+          {dmCandidates.length === 0 ? (
+            <div className="p-6 text-center text-sm text-gray-500">
+              {teamMembers.length <= 1
+                ? 'No other teammates found yet on this team.'
+                : 'No teammates match that search.'}
+            </div>
+          ) : (
+            dmCandidates.map(m => (
+              <button
+                key={m.uid}
+                onClick={() => startDM({ uid: m.uid, name: m.name })}
+                disabled={dmStarting === m.uid}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-violet-50 active:bg-violet-100 transition-colors text-left disabled:opacity-50"
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                  {m.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{m.name}</p>
+                  <p className="text-xs text-gray-500 capitalize">{m.role || 'parent'}</p>
+                </div>
+                {dmStarting === m.uid ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-violet-600"></div>
+                ) : (
+                  <svg className="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   // MOBILE: Single view at a time
   if (isMobile) {
     return (
@@ -353,14 +500,26 @@ const TeamChat: React.FC = () => {
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">Team Chat</h2>
-                <button
-                  onClick={() => setIsCreatingThread(true)}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white p-2.5 rounded-lg transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsDMPickerOpen(true)}
+                    className="bg-violet-600 hover:bg-violet-700 text-white p-2.5 rounded-lg transition-colors"
+                    title="Direct message"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setIsCreatingThread(true)}
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white p-2.5 rounded-lg transition-colors"
+                    title="New thread"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Search */}
@@ -380,7 +539,7 @@ const TeamChat: React.FC = () => {
 
               {/* Filters */}
               <div className="flex space-x-2">
-                {['all', 'pinned', 'private'].map((filter) => (
+                {['all', 'pinned', 'private', 'direct'].map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setFilterTag(filter)}
@@ -407,7 +566,7 @@ const TeamChat: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 truncate text-base">{thread.title}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate text-base">{getThreadDisplayTitle(thread)}</h3>
                         {thread.isPinned && (
                           <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -479,7 +638,7 @@ const TeamChat: React.FC = () => {
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <h1 className="text-lg font-semibold text-gray-900 truncate">{selectedThread.title}</h1>
+                      <h1 className="text-lg font-semibold text-gray-900 truncate">{getThreadDisplayTitle(selectedThread)}</h1>
                       {selectedThread.isPinned && (
                         <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -612,6 +771,7 @@ const TeamChat: React.FC = () => {
             </div>
           </div>
         )}
+        {dmPickerModal}
       </div>
     );
   }
@@ -625,14 +785,26 @@ const TeamChat: React.FC = () => {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Team Chat</h2>
-            <button
-              onClick={() => setIsCreatingThread(true)}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white p-2 rounded-lg transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsDMPickerOpen(true)}
+                className="bg-violet-600 hover:bg-violet-700 text-white p-2 rounded-lg transition-colors"
+                title="Direct message"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setIsCreatingThread(true)}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white p-2 rounded-lg transition-colors"
+                title="New thread"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div className="relative mb-3">
@@ -649,7 +821,7 @@ const TeamChat: React.FC = () => {
           </div>
 
           <div className="flex space-x-2">
-            {['all', 'pinned', 'private'].map((filter) => (
+            {['all', 'pinned', 'private', 'direct'].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setFilterTag(filter)}
@@ -678,7 +850,7 @@ const TeamChat: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <h3 className="font-medium text-gray-900 truncate">{thread.title}</h3>
+                    <h3 className="font-medium text-gray-900 truncate">{getThreadDisplayTitle(thread)}</h3>
                     {thread.isPinned && (
                       <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -737,7 +909,7 @@ const TeamChat: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h1 className="text-xl font-semibold text-gray-900">{selectedThread.title}</h1>
+                    <h1 className="text-xl font-semibold text-gray-900">{getThreadDisplayTitle(selectedThread)}</h1>
                     {selectedThread.isPinned && (
                       <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -883,6 +1055,7 @@ const TeamChat: React.FC = () => {
           </div>
         </div>
       )}
+      {dmPickerModal}
     </div>
   );
 };

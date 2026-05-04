@@ -537,6 +537,57 @@ const getUserData = useCallback(async (uid: string) => {
     });
   }, []);
 
+  // Find or create a 1:1 direct-message thread between two users on a team.
+  const getOrCreateDMThread = useCallback(async (params: {
+    teamId: string;
+    me: { uid: string; name: string };
+    other: { uid: string; name: string };
+  }) => {
+    const { teamId, me, other } = params;
+    if (!teamId || !me?.uid || !other?.uid || me.uid === other.uid) {
+      throw new Error('Invalid DM participants');
+    }
+
+    // Look for an existing DM thread between exactly these two users on this team.
+    try {
+      const q = query(
+        collection(db, 'chat_threads'),
+        where('teamId', '==', teamId),
+        where('isDM', '==', true),
+        where('participants', 'array-contains', me.uid)
+      );
+      const snap = await getDocs(q);
+      const existing = snap.docs
+        .map(d => ({ id: d.id, ...(d.data() as any) }))
+        .find(t => Array.isArray(t.participants)
+          && t.participants.length === 2
+          && t.participants.includes(other.uid));
+      if (existing) return existing.id as string;
+    } catch (e) {
+      // Index may be missing or rules blocked the lookup; fall through to create.
+      console.warn('[chat] DM lookup failed, will create new thread', e);
+    }
+
+    const threadToAdd: any = {
+      title: `DM: ${me.name} & ${other.name}`,
+      description: '',
+      teamId,
+      createdBy: me.uid,
+      createdByName: me.name,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastActivity: new Date(),
+      isPinned: false,
+      isPrivate: false,
+      isDM: true,
+      messageCount: 0,
+      participants: [me.uid, other.uid],
+      dmParticipantNames: { [me.uid]: me.name, [other.uid]: other.name },
+      tags: ['direct'],
+    };
+    return addDocument('chat_threads', threadToAdd);
+  }, [addDocument]);
+
   const subscribeToChatMessages = useCallback((threadId: string, callback: (messages: ChatMessage[]) => void) => {
     const q = query(
       collection(db, 'chat_messages'),
@@ -751,6 +802,7 @@ const getUserData = useCallback(async (uid: string) => {
     getChatMessagesByThread,
     subscribeToChatThreads,
     subscribeToChatMessages,
+    getOrCreateDMThread,
     // Development plan functions
     addDevelopmentPlan,
     updateDevelopmentPlan,

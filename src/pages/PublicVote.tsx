@@ -283,15 +283,17 @@ const PublicVote: React.FC = () => {
     setError(null);
     try {
       const voterToken = getVoterToken();
+      const reason = voteReason.trim();
       const vote: Vote = {
         voterId: voterToken,
         voterName: voterName.trim() || 'Anonymous',
         playerId: selectedPlayerId,
         playerName: player.name,
-        reason: voteReason.trim() || undefined,
+        // Only include `reason` when set — Firestore rejects undefined in arrayUnion.
+        ...(reason ? { reason } : {}),
         timestamp: new Date(),
         isPublicVote: true,
-      };
+      } as Vote;
       await updateDoc(doc(db, 'match_votings', votingId), {
         votes: arrayUnion(vote),
       });

@@ -65,7 +65,7 @@ const KIND_META: Record<StatKind, { label: string; emoji: string; color: string 
   goal:    { label: 'Goal',     emoji: '⚽', color: 'bg-emerald-500' },
   owngoal: { label: 'Own Goal', emoji: '🥅', color: 'bg-rose-500' },
   assist:  { label: 'Assist',   emoji: '🅰️', color: 'bg-cyan-500' },
-  save:    { label: 'Save',     emoji: '🧘', color: 'bg-blue-500' },
+  save:    { label: 'Save',     emoji: '🧘', color: 'bg-cyan-500' },
   yellow:  { label: 'Yellow',   emoji: '🟨', color: 'bg-yellow-500' },
   red:     { label: 'Red',      emoji: '🟥', color: 'bg-red-600' },
   sub:     { label: 'Sub',      emoji: '🔄', color: 'bg-purple-500' },

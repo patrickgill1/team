@@ -476,13 +476,13 @@ const PlayerOfMatch: React.FC = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Player of the Match</h1>
+              <h1 className="text-3xl font-bold text-fire-950">Player of the Match</h1>
               <p className="text-gray-600 mt-1">Vote for outstanding performances</p>
             </div>
             {isUserCoach && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -497,21 +497,21 @@ const PlayerOfMatch: React.FC = () => {
         {isUserCoach && (
           <div className="mb-6">
             {availableGames.length > 0 ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-cyan-50 border border-cyan-100 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-cyan-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-blue-900 mb-2">
+                    <h3 className="text-sm font-medium text-cyan-900 mb-2">
                       🎯 Games Available for Player of the Match Voting
                     </h3>
-                    <p className="text-sm text-blue-700 mb-3">
+                    <p className="text-sm text-cyan-700 mb-3">
                       Create voting sessions for recent or upcoming games
                     </p>
                     <div className="space-y-2">
                       {availableGames.map(game => (
-                        <div key={game.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-blue-200">
+                        <div key={game.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-cyan-100">
                           <div>
                             <p className="font-medium text-gray-900">{game.title}</p>
                             <p className="text-sm text-gray-600">
@@ -521,7 +521,7 @@ const PlayerOfMatch: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -574,17 +574,17 @@ const PlayerOfMatch: React.FC = () => {
 
         {/* Active Voting */}
         {activeVoting && (
-          <div className="bg-white rounded-lg shadow-md mb-6">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-yellow-100">
-              <div className="flex items-center justify-between">
+          <div className="card-modern mb-6 overflow-hidden">
+            <div className="px-6 py-4 border-b border-amber-100 bg-amber-50/60">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-yellow-900">🏆 Active Voting</h2>
-                  <p className="text-yellow-700">{activeVoting.gameTitle} - {formatDate(activeVoting.gameDate)}</p>
+                  <h2 className="text-lg font-semibold text-amber-900">🏆 Active Voting</h2>
+                  <p className="text-amber-700">{activeVoting.gameTitle} - {formatDate(activeVoting.gameDate)}</p>
                   {activeVoting.calendarEventId && (
-                    <p className="text-sm text-yellow-600">🔗 Linked to calendar event</p>
+                    <p className="text-sm text-amber-700/80">🔗 Linked to calendar event</p>
                   )}
                   {activeVoting.eligiblePlayerIds && activeVoting.eligiblePlayerIds.length > 0 && (
-                    <p className="text-sm text-yellow-600">
+                    <p className="text-sm text-amber-700/80">
                       📋 Attendance: {activeVoting.eligiblePlayerIds.length}/{players.length} players present
                     </p>
                   )}
@@ -592,10 +592,10 @@ const PlayerOfMatch: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => copyVoteLink(activeVoting.id)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 border ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 border ${
                       linkCopied
-                        ? 'bg-green-100 border-green-400 text-green-700'
-                        : 'bg-white border-yellow-400 text-yellow-700 hover:bg-yellow-50'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                        : 'bg-white border-amber-200 text-amber-800 hover:bg-amber-50'
                     }`}
                     title="Copy vote link to share with parents"
                   >
@@ -619,7 +619,7 @@ const PlayerOfMatch: React.FC = () => {
                     <>
                       <button
                         onClick={handleEditAttendance}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-1.5"
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5"
                         title="Edit which players were present"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -629,13 +629,13 @@ const PlayerOfMatch: React.FC = () => {
                       </button>
                       <button
                         onClick={handleCloseVoting}
-                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200"
                       >
                         Close Voting
                       </button>
                       <button
                         onClick={handleDeleteVoting}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-1.5"
+                        className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5"
                         title="Permanently delete this voting session"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -649,17 +649,17 @@ const PlayerOfMatch: React.FC = () => {
               </div>
               {/* Share link banner */}
               {newVotingId === activeVoting.id && (
-                <div className="mt-3 p-3 bg-green-50 border border-green-300 rounded-lg flex items-center justify-between gap-3">
+                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-green-800 text-sm min-w-0">
-                    <svg className="w-4 h-4 shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="font-medium">Voting created!</span>
-                    <span className="text-green-600 truncate hidden sm:block">{getVoteLink(activeVoting.id)}</span>
+                    <span className="text-emerald-600 truncate hidden sm:block">{getVoteLink(activeVoting.id)}</span>
                   </div>
                   <button
                     onClick={() => copyVoteLink(activeVoting.id)}
-                    className="shrink-0 bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+                    className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
                   >
                     {linkCopied ? '✓ Copied' : 'Copy Link'}
                   </button>
@@ -670,15 +670,15 @@ const PlayerOfMatch: React.FC = () => {
 
             <div className="p-6">
               {usersVote ? (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="font-medium text-green-900">You voted for {usersVote.playerName}</p>
+                      <p className="font-medium text-emerald-900">You voted for {usersVote.playerName}</p>
                       {usersVote.reason && (
-                        <p className="text-sm text-green-700">"{usersVote.reason}"</p>
+                        <p className="text-sm text-emerald-700">"{usersVote.reason}"</p>
                       )}
                     </div>
                   </div>
@@ -692,7 +692,7 @@ const PlayerOfMatch: React.FC = () => {
                     <select
                       value={selectedPlayer}
                       onChange={(e) => setSelectedPlayer(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     >
                       <option value="">Select a player...</option>
                       {votableePlayers.map(player => (
@@ -716,7 +716,7 @@ const PlayerOfMatch: React.FC = () => {
                       value={voteReason}
                       onChange={(e) => setVoteReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       placeholder="Why does this player deserve to be Player of the Match?"
                     />
                   </div>
@@ -724,7 +724,7 @@ const PlayerOfMatch: React.FC = () => {
                   <button
                     onClick={handleVote}
                     disabled={!selectedPlayer}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Submit Vote
                   </button>
@@ -753,7 +753,7 @@ const PlayerOfMatch: React.FC = () => {
                           else next.add(activeVoting.id);
                           return next;
                         })}
-                        className="text-xs text-blue-600 hover:underline font-medium"
+                        className="text-xs text-cyan-600 hover:underline font-medium"
                       >
                         {expandedVoters.has(activeVoting.id) ? 'Hide voter details' : 'Show voter details'}
                       </button>
@@ -772,7 +772,7 @@ const PlayerOfMatch: React.FC = () => {
                             <span className="font-medium text-gray-900 w-36 truncate">{result.name}</span>
                             <div className="flex-1 bg-gray-100 rounded-full h-2">
                               <div
-                                className="h-2 rounded-full bg-blue-500 transition-all duration-500"
+                                className="h-2 rounded-full bg-cyan-500 transition-all duration-500"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -826,9 +826,9 @@ const PlayerOfMatch: React.FC = () => {
         )}
 
         {/* Previous Votings */}
-        <div className="bg-white rounded-lg shadow-md">
+        <div className="card-modern">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Previous Results</h2>
+            <h2 className="text-lg font-semibold text-fire-950">Previous Results</h2>
           </div>
           <div className="p-6">
             {votings.filter(v => !v.isActive).length === 0 ? (
@@ -902,7 +902,7 @@ const PlayerOfMatch: React.FC = () => {
                                   <span className="font-medium text-gray-900 w-36 truncate">{result.name}</span>
                                   <div className="flex-1 bg-gray-100 rounded-full h-2">
                                     <div
-                                      className="h-2 rounded-full bg-blue-500"
+                                      className="h-2 rounded-full bg-cyan-500"
                                       style={{ width: `${pct}%` }}
                                     />
                                   </div>
@@ -924,7 +924,7 @@ const PlayerOfMatch: React.FC = () => {
                               else next.add(voting.id);
                               return next;
                             })}
-                            className="text-xs text-blue-600 hover:underline font-medium"
+                            className="text-xs text-cyan-600 hover:underline font-medium"
                           >
                             {expandedVoters.has(voting.id)
                               ? '▲ Hide voter details'
@@ -966,7 +966,7 @@ const PlayerOfMatch: React.FC = () => {
       {/* Attendance Step Modal */}
       {showAttendanceStep && (pendingVotingData || editingVotingId) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">{editingVotingId ? 'Edit Attendance' : 'Mark Attendance'}</h2>
             {pendingVotingData && (
             <p className="text-sm text-gray-600 mb-1">
@@ -984,7 +984,7 @@ const PlayerOfMatch: React.FC = () => {
               <div className="space-x-2">
                 <button
                   onClick={() => setAttendancePlayerIds(new Set(players.map(p => p.id)))}
-                  className="text-xs text-blue-600 hover:underline"
+                  className="text-xs text-cyan-600 hover:underline"
                 >
                   Select all
                 </button>
@@ -1011,7 +1011,7 @@ const PlayerOfMatch: React.FC = () => {
                     type="checkbox"
                     checked={attendancePlayerIds.has(player.id)}
                     onChange={() => toggleAttendance(player.id)}
-                    className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-green-500"
                   />
                   <span className="text-sm font-medium text-gray-900">
                     {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}{player.name}
@@ -1038,7 +1038,7 @@ const PlayerOfMatch: React.FC = () => {
               <button
                 onClick={handleConfirmAttendanceAndCreate}
                 disabled={attendancePlayerIds.size === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 font-medium"
               >
                 {editingVotingId ? `Update Attendance (${attendancePlayerIds.size} eligible)` : `Create Voting (${attendancePlayerIds.size} eligible)`}
               </button>
@@ -1050,14 +1050,14 @@ const PlayerOfMatch: React.FC = () => {
       {/* Create Voting Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Create Player of the Match Voting</h2>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold text-fire-950 mb-4">Create Player of the Match Voting</h2>
             
             {/* Option 1: Link to Calendar Game */}
             {availableGames.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
                   Link to Scheduled Game
@@ -1070,7 +1070,7 @@ const PlayerOfMatch: React.FC = () => {
                     <button
                       key={game.id}
                       onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                      className="w-full text-left p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors duration-200"
+                      className="w-full text-left p-3 border border-gray-200 rounded-lg hover:border-cyan-300 hover:bg-cyan-50 transition-colors duration-200"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -1098,7 +1098,7 @@ const PlayerOfMatch: React.FC = () => {
                   {calendarEvents.filter(e => e.type === 'game').map(game => (
                     <div key={game.id} className="flex justify-between items-center">
                       <span>{game.title} - {formatDate(game.date)}</span>
-                      <span className={votings.find(v => v.calendarEventId === game.id) ? 'text-green-600' : 'text-red-600'}>
+                      <span className={votings.find(v => v.calendarEventId === game.id) ? 'text-emerald-600' : 'text-red-600'}>
                         {votings.find(v => v.calendarEventId === game.id) ? 'Has Voting' : 'No Voting'}
                       </span>
                     </div>
@@ -1196,7 +1196,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
           type="text"
           value={gameTitle}
           onChange={(e) => setGameTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           placeholder="e.g., vs Eagles, Championship Final"
           required
         />
@@ -1209,7 +1209,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
             type="date"
             value={gameDate}
             onChange={(e) => setGameDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             required
           />
         </div>
@@ -1219,7 +1219,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
             type="time"
             value={gameTime}
             onChange={(e) => setGameTime(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
         </div>
       </div>
@@ -1231,7 +1231,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
             type="text"
             value={opponent}
             onChange={(e) => setOpponent(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             placeholder="e.g. Eagles FC"
           />
         </div>
@@ -1240,7 +1240,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
           <select
             value={homeAway}
             onChange={(e) => setHomeAway(e.target.value as 'home' | 'away' | '')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="">—</option>
             <option value="home">🏠 Home</option>
@@ -1255,7 +1255,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
           type="text"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           placeholder="e.g. Town Park, Pitch 3"
         />
       </div>
@@ -1269,7 +1269,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
       <button
         type="submit"
         disabled={!gameTitle.trim() || !gameDate}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
       >
         Create Custom Voting
       </button>

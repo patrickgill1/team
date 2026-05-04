@@ -97,7 +97,7 @@ const Stats: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading team statistics...</p>
         </div>
       </div>
@@ -134,14 +134,14 @@ const Stats: React.FC = () => {
         )}
 
         {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-md mb-6">
+        <div className="card-modern mb-6">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                   activeTab === 'overview'
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-cyan-500 text-cyan-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -158,7 +158,7 @@ const Stats: React.FC = () => {
                   onClick={() => setActiveTab('track')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                     activeTab === 'track'
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'border-cyan-500 text-cyan-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
@@ -191,7 +191,7 @@ const Stats: React.FC = () => {
                     <select
                       value={selectedPlayerId}
                       onChange={(e) => setSelectedPlayerId(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     >
                       <option value="">View All Players</option>
                       {players.map(player => (
@@ -216,7 +216,7 @@ const Stats: React.FC = () => {
                     </p>
                     <button
                       onClick={() => window.location.href = '/players'}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                     >
                       Add Players
                     </button>
@@ -243,7 +243,7 @@ const Stats: React.FC = () => {
                   <button
                     onClick={() => setIsStatsTrackerOpen(true)}
                     disabled={players.length === 0}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -265,7 +265,7 @@ const Stats: React.FC = () => {
                     </p>
                     <button
                       onClick={() => window.location.href = '/players'}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                     >
                       Add Players
                     </button>
@@ -275,7 +275,7 @@ const Stats: React.FC = () => {
                     {players.map(player => (
                       <div
                         key={player.id}
-                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-cyan-300 hover:shadow-md transition-all duration-200"
                       >
                         <div
                           onClick={() => {
@@ -285,8 +285,8 @@ const Stats: React.FC = () => {
                           className="cursor-pointer"
                         >
                           <div className="flex items-center space-x-3 mb-3">
-                            <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center">
-                              <span className="text-lg font-bold text-blue-600">#{player.jerseyNumber}</span>
+                            <div className="bg-cyan-50 rounded-full w-12 h-12 flex items-center justify-center">
+                              <span className="text-lg font-bold text-cyan-600">#{player.jerseyNumber}</span>
                             </div>
                             <div>
                               <h4 className="font-semibold text-gray-900">{player.name}</h4>
@@ -296,11 +296,11 @@ const Stats: React.FC = () => {
 
                           <div className="grid grid-cols-3 gap-2 text-center">
                             <div>
-                              <div className="text-lg font-bold text-blue-600">{player.stats?.goals || 0}</div>
+                              <div className="text-lg font-bold text-cyan-600">{player.stats?.goals || 0}</div>
                               <div className="text-xs text-gray-600">Goals</div>
                             </div>
                             <div>
-                              <div className="text-lg font-bold text-green-600">{player.stats?.assists || 0}</div>
+                              <div className="text-lg font-bold text-emerald-600">{player.stats?.assists || 0}</div>
                               <div className="text-xs text-gray-600">Assists</div>
                             </div>
                             <div>
@@ -316,7 +316,7 @@ const Stats: React.FC = () => {
                               setSelectedPlayerId(player.id);
                               setIsStatsTrackerOpen(true);
                             }}
-                            className="flex-1 inline-flex items-center justify-center text-blue-600 text-sm font-medium hover:text-blue-700"
+                            className="flex-1 inline-flex items-center justify-center text-cyan-600 text-sm font-medium hover:text-cyan-700"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

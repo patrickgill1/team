@@ -255,7 +255,7 @@ const AttendanceTracker: React.FC = () => {
                 <p className="text-sm text-gray-600 mb-2">No practices or games found</p>
                 <a 
                   href="/calendar" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
                 >
                   📅 Create Events in Calendar
                 </a>
@@ -266,10 +266,10 @@ const AttendanceTracker: React.FC = () => {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="card-modern p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-cyan-50 rounded-lg">
+                <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -280,10 +280,10 @@ const AttendanceTracker: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="card-modern p-6">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -294,7 +294,7 @@ const AttendanceTracker: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="card-modern p-6">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,7 +313,7 @@ const AttendanceTracker: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Attendance Taking */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-md">
+            <div className="card-modern">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900">Take Attendance</h2>
@@ -321,7 +321,7 @@ const AttendanceTracker: React.FC = () => {
                     <select
                       value={selectedEvent}
                       onChange={(e) => setSelectedEvent(e.target.value)}
-                      className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     >
                       <option value="">Select an event...</option>
                       {calendarEvents.map(event => {
@@ -342,11 +342,11 @@ const AttendanceTracker: React.FC = () => {
               {selectedEventData ? (
                 <div className="p-6">
                   {/* Event Info */}
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                  <div className="mb-4 p-4 bg-cyan-50 rounded-lg">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-medium text-blue-900">{selectedEventData.title}</h3>
-                        <p className="text-sm text-blue-700">
+                        <h3 className="font-medium text-cyan-900">{selectedEventData.title}</h3>
+                        <p className="text-sm text-cyan-700">
                           {formatDate(selectedEventData.date)} • {selectedEventData.location || 'No location specified'}
                         </p>
                         <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${
@@ -359,7 +359,7 @@ const AttendanceTracker: React.FC = () => {
                       </div>
                       <a 
                         href="/calendar" 
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
                       >
                         📅 View in Calendar
                       </a>
@@ -375,8 +375,8 @@ const AttendanceTracker: React.FC = () => {
                         return (
                           <div key={player.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                             <div className="flex items-center space-x-3">
-                              <div className="bg-blue-100 rounded-full w-10 h-10 flex items-center justify-center">
-                                <span className="text-sm font-bold text-blue-600">#{player.jerseyNumber}</span>
+                              <div className="bg-cyan-50 rounded-full w-10 h-10 flex items-center justify-center">
+                                <span className="text-sm font-bold text-cyan-600">#{player.jerseyNumber}</span>
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">{player.name}</p>
@@ -395,7 +395,7 @@ const AttendanceTracker: React.FC = () => {
                                       ? status === 'present' ? 'bg-green-100 text-green-800'
                                         : status === 'absent' ? 'bg-red-100 text-red-800'
                                         : status === 'late' ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-blue-100 text-blue-800'
+                                        : 'bg-cyan-50 text-cyan-700'
                                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                   } ${!isUserCoach ? 'cursor-not-allowed opacity-50' : ''}`}
                                 >
@@ -412,7 +412,7 @@ const AttendanceTracker: React.FC = () => {
                       <p>No players found. Add players to track attendance.</p>
                       <a 
                         href="/players"
-                        className="mt-2 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                        className="mt-2 inline-block bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                       >
                         Add Players
                       </a>
@@ -425,7 +425,7 @@ const AttendanceTracker: React.FC = () => {
                       <button
                         onClick={saveAttendance}
                         disabled={saving}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
                       >
                         {saving ? (
                           <>
@@ -454,7 +454,7 @@ const AttendanceTracker: React.FC = () => {
                       </p>
                       <a
                         href="/calendar"
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                       >
                         📅 Go to Calendar
                       </a>
@@ -469,7 +469,7 @@ const AttendanceTracker: React.FC = () => {
 
           {/* Player Stats */}
           <div>
-            <div className="bg-white rounded-lg shadow-md">
+            <div className="card-modern">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Player Stats</h2>
               </div>
@@ -481,8 +481,8 @@ const AttendanceTracker: React.FC = () => {
                       return (
                         <div key={player.id} className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className="bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center">
-                              <span className="text-xs font-bold text-blue-600">#{player.jerseyNumber}</span>
+                            <div className="bg-cyan-50 rounded-full w-8 h-8 flex items-center justify-center">
+                              <span className="text-xs font-bold text-cyan-600">#{player.jerseyNumber}</span>
                             </div>
                             <span className="text-sm font-medium text-gray-900">{player.name}</span>
                           </div>

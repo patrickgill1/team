@@ -164,7 +164,7 @@ const Highlights: React.FC = () => {
             <option key={t} value={t} className="text-black">{t}</option>
           ))}
         </select>
-        <Link to="/player-media" className="text-sm text-blue-300 hover:text-blue-200 underline ml-1">
+        <Link to="/player-media" className="text-sm text-cyan-300 hover:text-cyan-100 underline ml-1">
           ← all media
         </Link>
       </div>
@@ -179,7 +179,7 @@ const Highlights: React.FC = () => {
               ? 'Try removing filters, or upload some clips on the Media page.'
               : 'Upload some clips on the Media page to start your highlight reel.'}
           </div>
-          <Link to="/player-media" className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">
+          <Link to="/player-media" className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm font-medium">
             Go to Media
           </Link>
         </div>
@@ -262,7 +262,7 @@ const Highlights: React.FC = () => {
           {/* Desktop transport controls */}
           <div className="flex items-center justify-center gap-3 mt-3">
             <button onClick={goPrev} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm">⏮ Prev</button>
-            <button onClick={togglePlay} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold">
+            <button onClick={togglePlay} className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm font-semibold">
               {isPlaying ? '⏸ Pause' : '▶ Play'}
             </button>
             <button onClick={goNext} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm">Next ⏭</button>

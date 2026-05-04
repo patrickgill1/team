@@ -18,7 +18,7 @@ const News: React.FC = () => {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Search Bar */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="card-modern p-6 mb-6">
           <div className="flex items-center space-x-4">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -31,7 +31,7 @@ const News: React.FC = () => {
                 placeholder="Search news articles..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-lg"
               />
               {searchTerm && (
                 <button
@@ -54,7 +54,7 @@ const News: React.FC = () => {
               </p>
               <button
                 onClick={clearSearch}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-cyan-600 hover:text-cyan-700 font-medium"
               >
                 Clear search
               </button>
@@ -71,14 +71,14 @@ const News: React.FC = () => {
         {/* Help Text for Empty State */}
         {!searchTerm && (
           <div className="mt-8 text-center">
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-              <div className="text-blue-600 mb-2">
+            <div className="bg-cyan-50 rounded-lg p-6 border border-cyan-100">
+              <div className="text-cyan-600 mb-2">
                 <svg className="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-blue-900 mb-2">Stay Connected</h3>
-              <p className="text-blue-700 text-sm">
+              <h3 className="text-lg font-medium text-cyan-900 mb-2">Stay Connected</h3>
+              <p className="text-cyan-700 text-sm">
                 This is your team's news hub. Coaches can share updates, announcements, 
                 and important information. Parents can stay informed about everything 
                 happening with the team.

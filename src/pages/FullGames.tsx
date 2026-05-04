@@ -267,7 +267,7 @@ const FullGames: React.FC = () => {
         {userIsCoach && (
           <button
             onClick={openAddForm}
-            className="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+            className="inline-flex items-center space-x-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             <span>Add Game</span>
@@ -288,7 +288,7 @@ const FullGames: React.FC = () => {
           {userIsCoach && (
             <button
               onClick={openAddForm}
-              className="mt-4 inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+              className="mt-4 inline-flex items-center bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
             >
               Add First Game
             </button>
@@ -341,7 +341,7 @@ const FullGames: React.FC = () => {
                         <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{g.title}</h3>
                         {g.result && (
                           <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded ${
-                            g.result.startsWith('W') ? 'bg-green-100 text-green-700'
+                            g.result.startsWith('W') ? 'bg-green-100 text-emerald-700'
                               : g.result.startsWith('L') ? 'bg-red-100 text-red-700'
                               : 'bg-gray-100 text-gray-700'
                           }`}>
@@ -356,7 +356,7 @@ const FullGames: React.FC = () => {
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                         <button
                           onClick={() => setSelectedGame(g)}
-                          className="text-xs text-blue-600 hover:underline font-medium"
+                          className="text-xs text-cyan-600 hover:underline font-medium"
                         >
                           Watch →
                         </button>
@@ -501,7 +501,7 @@ const FullGames: React.FC = () => {
                     value={formTitle}
                     onChange={e => setFormTitle(e.target.value)}
                     placeholder="e.g. Spring Tournament Final"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     required
                   />
                 </div>
@@ -513,7 +513,7 @@ const FullGames: React.FC = () => {
                       type="date"
                       value={formDate}
                       onChange={e => setFormDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                       required
                     />
                   </div>
@@ -524,7 +524,7 @@ const FullGames: React.FC = () => {
                       value={formOpponent}
                       onChange={e => setFormOpponent(e.target.value)}
                       placeholder="e.g. Lightning FC"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     />
                   </div>
                 </div>
@@ -594,7 +594,7 @@ const FullGames: React.FC = () => {
                         value={formUrl}
                         onChange={e => setFormUrl(e.target.value)}
                         placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                       />
                       {formUrl && !extractYouTubeId(formUrl) && (
                         <p className="text-xs text-red-600 mt-1">Doesn't look like a valid YouTube link.</p>
@@ -610,7 +610,7 @@ const FullGames: React.FC = () => {
                     value={formResult}
                     onChange={e => setFormResult(e.target.value)}
                     placeholder="e.g. W 3-1, L 2-4, T 1-1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   />
                 </div>
 
@@ -621,7 +621,7 @@ const FullGames: React.FC = () => {
                     onChange={e => setFormNotes(e.target.value)}
                     rows={3}
                     placeholder="Highlights, timestamps, etc."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   />
                 </div>
               </div>
@@ -637,7 +637,7 @@ const FullGames: React.FC = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg disabled:opacity-50"
                 >
                   {saving
                     ? (formSource === 'upload' && formFile ? `Uploading ${uploadProgress}%...` : 'Saving...')

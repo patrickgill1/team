@@ -162,11 +162,37 @@ const PlayerProfile: React.FC = () => {
 
   const getCategoryColor = (cat: string) => {
     switch (cat) {
-      case 'technical': return 'bg-cyan-50 text-cyan-700';
-      case 'tactical': return 'bg-purple-100 text-purple-700';
-      case 'physical': return 'bg-orange-100 text-orange-700';
-      case 'mental': return 'bg-green-100 text-emerald-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'technical': return 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100';
+      case 'tactical': return 'bg-violet-50 text-violet-700 ring-1 ring-violet-100';
+      case 'physical': return 'bg-orange-50 text-orange-700 ring-1 ring-orange-100';
+      case 'mental': return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100';
+      default: return 'bg-gray-50 text-gray-700 ring-1 ring-gray-100';
+    }
+  };
+
+  const positionDot = (pos?: string): string => {
+    switch (pos) {
+      case 'Goalkeeper': return 'bg-amber-400';
+      case 'Defender': return 'bg-sky-400';
+      case 'Midfielder': return 'bg-emerald-400';
+      case 'Forward':
+      case 'Striker': return 'bg-rose-400';
+      case 'Winger': return 'bg-orange-400';
+      default: return 'bg-cyan-400';
+    }
+  };
+
+  const handleShareProfile = async () => {
+    if (!player) return;
+    const url = `${window.location.origin}/player/${player.id}`;
+    const data = { title: `${player.name} · Fire FC`, url };
+    try {
+      if (navigator.share) await navigator.share(data);
+      else { await navigator.clipboard.writeText(url); alert('Profile link copied!'); }
+    } catch (err) {
+      if ((err as any)?.name !== 'AbortError') {
+        try { await navigator.clipboard.writeText(url); alert('Profile link copied!'); } catch {}
+      }
     }
   };
 
@@ -222,38 +248,86 @@ const PlayerProfile: React.FC = () => {
     return m === 0 ? `${h} hr` : `${h}h ${m}m`;
   };
 
+  // Latest vote-quote callout — kids LOVE seeing what people said about them
+  const latestQuote = (() => {
+    for (const { voting, playerVotes } of allPlayerVotings) {
+      const withReason = playerVotes.find(v => v.reason && v.reason.trim().length > 0);
+      if (withReason) {
+        return { reason: withReason.reason!, voterName: withReason.voterName, gameTitle: voting.gameTitle, gameDate: voting.gameDate };
+      }
+    }
+    return null;
+  })();
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-cyan-600 to-sky-700 text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <Link to="/players" className="text-cyan-100 hover:text-white text-sm mb-4 inline-block">← Back to Roster</Link>
-          <div className="flex items-center space-x-6">
-            <div className="relative">
+      {/* ───── HERO ───── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-fire-700 via-fire-800 to-navy-900 text-white">
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-cyan-500/25 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-12 w-80 h-80 bg-rose-500/25 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+          {/* Top row: back + share */}
+          <div className="flex items-center justify-between mb-5">
+            <Link
+              to="/players"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              Roster
+            </Link>
+            <button
+              onClick={handleShareProfile}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
+              title="Share profile"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+              Share
+            </button>
+          </div>
+
+          {/* Status pill */}
+          {player.position && (
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur">
+              <span className={`w-2 h-2 rounded-full ${positionDot(player.position)} animate-pulse`} />
+              {player.position}{age ? ` · Age ${age}` : ''}
+            </div>
+          )}
+
+          {/* Avatar + name */}
+          <div className="flex items-center gap-4 sm:gap-6 mb-5">
+            <div className="relative flex-shrink-0">
               {player.profilePhotoUrl ? (
-                <img src={player.profilePhotoUrl} alt={player.name} className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white/30" />
+                <img
+                  src={player.profilePhotoUrl}
+                  alt={player.name}
+                  className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-white/25 shadow-2xl"
+                />
               ) : (
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30">
-                  <span className="text-3xl font-bold">{player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0)}</span>
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white/10 ring-4 ring-white/25 shadow-2xl flex items-center justify-center backdrop-blur">
+                  <span className="text-3xl sm:text-4xl font-black text-white">
+                    {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
+                  </span>
                 </div>
               )}
               {player.profilePhotoUrl && player.jerseyNumber != null && (
-                <span className="absolute -bottom-1 -right-1 bg-white text-cyan-700 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-cyan-700">
+                <span className="absolute -bottom-1 -right-1 bg-white text-fire-800 rounded-full min-w-[32px] h-8 px-2 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-fire-900">
                   #{player.jerseyNumber}
                 </span>
               )}
             </div>
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold">{player.name}</h1>
-              <div className="flex flex-wrap items-center gap-3 mt-2">
-                {player.jerseyNumber && <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">#{player.jerseyNumber}</span>}
-                {player.position && <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">{player.position}</span>}
-                {age && <span className="text-cyan-100 text-sm">Age {age}</span>}
-              </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none truncate">{player.name}</h1>
+              {(media.length > 0 || votingWins.length > 0) && (
+                <p className="text-white/70 text-sm sm:text-base font-medium mt-2">
+                  {votingWins.length > 0 && `${votingWins.length} POTM ${votingWins.length === 1 ? 'win' : 'wins'}`}
+                  {votingWins.length > 0 && media.length > 0 && ' · '}
+                  {media.length > 0 && `${media.length} ${media.length === 1 ? 'clip' : 'clips'}`}
+                </p>
+              )}
               {userData && isCoach(userData.role) && (
                 <button
                   onClick={() => setShowWhisper(true)}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-semibold ring-1 ring-white/20"
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-semibold ring-1 ring-white/20 transition backdrop-blur"
                   title="Send a private note to this player's parents"
                 >
                   💬 Parent Whisper
@@ -262,121 +336,162 @@ const PlayerProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Stats Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <div className="text-2xl font-bold">{player.stats?.goals || 0}</div>
-              <div className="text-xs text-cyan-100">Goals</div>
+          {/* 4-up stats */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+              <div className="text-2xl sm:text-3xl font-black text-emerald-300">{player.stats?.goals || 0}</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Goals</div>
             </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <div className="text-2xl font-bold">{player.stats?.assists || 0}</div>
-              <div className="text-xs text-cyan-100">Assists</div>
+            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+              <div className="text-2xl sm:text-3xl font-black text-cyan-300">{player.stats?.assists || 0}</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Assists</div>
             </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <div className="text-2xl font-bold">{votingWins.length}</div>
-              <div className="text-xs text-cyan-100">POTM Wins</div>
+            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+              <div className="text-2xl sm:text-3xl font-black text-amber-300">{votingWins.length}</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">POTM</div>
             </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center">
-              <div className="text-2xl font-bold">{media.length}</div>
-              <div className="text-xs text-cyan-100">Media</div>
+            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+              <div className="text-2xl sm:text-3xl font-black text-violet-300">{media.length}</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Clips</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="flex space-x-1 overflow-x-auto">
-            {(['overview', 'media', 'development', 'awards'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-                  activeTab === tab
-                    ? 'border-cyan-600 text-cyan-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab === 'overview' && '📊 Overview'}
-                {tab === 'media' && `📸 Media (${media.length})`}
-                {tab === 'development' && `📋 Development (${activePlans.length})`}
-                {tab === 'awards' && `🏆 Awards (${votingWins.length})`}
-              </button>
-            ))}
+      {/* ───── PILL TABS (sticky) ───── */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+            {(['overview', 'media', 'development', 'awards'] as const).map(tab => {
+              const count =
+                tab === 'media' ? media.length :
+                tab === 'development' ? activePlans.length :
+                tab === 'awards' ? votingWins.length : null;
+              const label =
+                tab === 'overview' ? 'Overview' :
+                tab === 'media' ? 'Media' :
+                tab === 'development' ? 'Development' : 'Awards';
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition ${
+                    isActive
+                      ? 'bg-fire-900 text-white shadow'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <span>{label}</span>
+                  {count !== null && count > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-white text-gray-500'
+                    }`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Tab Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
 
         {/* ─── OVERVIEW TAB ──────────────────────────────────────── */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Stats */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Season Stats</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-cyan-600">{player.stats?.gamesPlayed || 0}</div>
-                  <div className="text-sm text-gray-600">Games</div>
+          <div className="space-y-4 sm:space-y-6">
+
+            {/* WHAT PEOPLE ARE SAYING — kids love this */}
+            {latestQuote && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('awards')}
+                className="w-full text-left relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 p-5 text-white shadow-xl hover:scale-[1.01] transition group"
+              >
+                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">💬</span>
+                    <span className="text-[10px] uppercase tracking-widest font-black opacity-90">What people said</span>
+                  </div>
+                  <p className="text-base sm:text-lg font-bold italic leading-snug">"{latestQuote.reason}"</p>
+                  <p className="text-xs opacity-90 mt-2 font-semibold">— {latestQuote.voterName} · {latestQuote.gameTitle}</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-emerald-600">{player.stats?.goals || 0}</div>
-                  <div className="text-sm text-gray-600">Goals</div>
+              </button>
+            )}
+
+            {/* SEASON STATS */}
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-black text-gray-900">Season Stats</h2>
+                <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">All-Time</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                <div className="rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100/50 ring-1 ring-cyan-100 p-3 text-center">
+                  <div className="text-2xl sm:text-3xl font-black text-cyan-700">{player.stats?.gamesPlayed || 0}</div>
+                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-cyan-700/70 font-bold">Games</div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{player.stats?.assists || 0}</div>
-                  <div className="text-sm text-gray-600">Assists</div>
+                <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 ring-1 ring-emerald-100 p-3 text-center">
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-700">{player.stats?.goals || 0}</div>
+                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-emerald-700/70 font-bold">Goals</div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">{player.stats?.saves || 0}</div>
-                  <div className="text-sm text-gray-600">Saves</div>
+                <div className="rounded-xl bg-gradient-to-br from-violet-50 to-violet-100/50 ring-1 ring-violet-100 p-3 text-center">
+                  <div className="text-2xl sm:text-3xl font-black text-violet-700">{player.stats?.assists || 0}</div>
+                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-violet-700/70 font-bold">Assists</div>
+                </div>
+                <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 ring-1 ring-amber-100 p-3 text-center">
+                  <div className="text-2xl sm:text-3xl font-black text-amber-700">{player.stats?.saves || 0}</div>
+                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-amber-700/70 font-bold">Saves</div>
                 </div>
               </div>
             </div>
 
-            {/* Development Summary */}
+            {/* PRACTICE EFFORT — when there is any */}
+            {totalPracticeMinutes > 0 && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-rose-500 to-rose-600 text-white p-5 sm:p-6 shadow-xl">
+                <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/15 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-amber-400/30 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest font-black opacity-90 mb-1">🔥 Practice Effort</div>
+                    <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none">{formatMinutes(totalPracticeMinutes)}</div>
+                    <div className="text-xs sm:text-sm font-semibold opacity-90 mt-1.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'} · keep it up</div>
+                  </div>
+                  <div className="text-5xl sm:text-7xl drop-shadow-lg">💪</div>
+                </div>
+              </div>
+            )}
+
+            {/* DEVELOPMENT SUMMARY */}
             {plans.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Development Progress</h2>
-                  <button onClick={() => setActiveTab('development')} className="text-sm text-cyan-600 hover:underline">View All →</button>
+                  <h2 className="text-lg font-black text-gray-900">Development</h2>
+                  <button onClick={() => setActiveTab('development')} className="text-sm text-cyan-600 hover:text-cyan-700 font-bold">View All →</button>
                 </div>
 
-                {/* Effort hero — celebrate practice time */}
-                {totalPracticeMinutes > 0 && (
-                  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl p-4 mb-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-xs uppercase tracking-wide font-semibold opacity-90">🔥 Practice Effort</div>
-                        <div className="text-3xl font-bold mt-1">{formatMinutes(totalPracticeMinutes)}</div>
-                        <div className="text-xs opacity-90 mt-0.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'}</div>
-                      </div>
-                      <div className="text-5xl">💪</div>
-                    </div>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  <div className="rounded-xl bg-cyan-50 ring-1 ring-cyan-100 p-3 text-center">
+                    <div className="text-xl sm:text-2xl font-black text-cyan-700">{activePlans.length}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-cyan-700/70 font-bold">Active</div>
                   </div>
-                )}
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                  <div className="text-center p-3 bg-cyan-50 rounded-lg">
-                    <div className="text-2xl font-bold text-cyan-600">{activePlans.length}</div>
-                    <div className="text-xs text-gray-600">Active Plans</div>
+                  <div className="rounded-xl bg-emerald-50 ring-1 ring-emerald-100 p-3 text-center">
+                    <div className="text-xl sm:text-2xl font-black text-emerald-700">{completedPlans.length}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-emerald-700/70 font-bold">Done</div>
                   </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-emerald-600">{completedPlans.length}</div>
-                    <div className="text-xs text-gray-600">Completed</div>
+                  <div className="rounded-xl bg-amber-50 ring-1 ring-amber-100 p-3 text-center">
+                    <div className="text-xl sm:text-2xl font-black text-amber-700">{playerCompletedGoals}<span className="text-sm text-amber-700/60">/{totalGoalsInPlans}</span></div>
+                    <div className="text-[10px] uppercase tracking-wider text-amber-700/70 font-bold">Goals</div>
                   </div>
-                  <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600">{playerCompletedGoals}/{totalGoalsInPlans}</div>
-                    <div className="text-xs text-gray-600">Goals Done</div>
-                  </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-gray-700">{totalGoalsInPlans > 0 ? Math.round((verifiedGoals / totalGoalsInPlans) * 100) : 0}%</div>
-                    <div className="text-xs text-gray-600">Coach Verified</div>
+                  <div className="rounded-xl bg-violet-50 ring-1 ring-violet-100 p-3 text-center">
+                    <div className="text-xl sm:text-2xl font-black text-violet-700">{totalGoalsInPlans > 0 ? Math.round((verifiedGoals / totalGoalsInPlans) * 100) : 0}%</div>
+                    <div className="text-[10px] uppercase tracking-wider text-violet-700/70 font-bold">Verified</div>
                   </div>
                 </div>
+
                 {activePlans.slice(0, 2).map(plan => {
                   const verified = getProgressPercent(plan);
                   const playerPct = plan.goals.length
@@ -385,42 +500,30 @@ const PlayerProfile: React.FC = () => {
                   const planMins = plan.goals.reduce((s, g) => s + (g.practiceLog || []).reduce((m, l) => m + (l.minutes || 0), 0), 0);
                   const planTarget = plan.goals.reduce((s, g) => s + (g.targetMinutes || 0), 0);
                   return (
-                    <div key={plan.id} className="border border-gray-100 rounded-lg p-3 mb-2">
+                    <div key={plan.id} className="rounded-xl ring-1 ring-gray-100 p-3 mb-2 bg-gradient-to-br from-gray-50/50 to-white">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           <span>{getCategoryIcon(plan.category)}</span>
-                          <span className="font-medium text-sm text-gray-900">{plan.title}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryColor(plan.category)}`}>{plan.category}</span>
+                          <span className="font-bold text-sm text-gray-900 truncate">{plan.title}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getCategoryColor(plan.category)}`}>{plan.category}</span>
                         </div>
                         {planMins > 0 && (
-                          <span className="text-xs font-semibold text-orange-600">🔥 {formatMinutes(planMins)}{planTarget > 0 ? ` / ${formatMinutes(planTarget)}` : ''}</span>
+                          <span className="text-xs font-bold text-orange-600 whitespace-nowrap">🔥 {formatMinutes(planMins)}{planTarget > 0 ? ` / ${formatMinutes(planTarget)}` : ''}</span>
                         )}
                       </div>
-                      <div className="mt-2 space-y-1.5">
+                      <div className="mt-2.5 space-y-1.5">
                         <div>
-                          <div className="flex justify-between text-[10px] text-gray-500">
-                            <span>Player</span><span>{playerPct}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div className="bg-yellow-400 h-1.5 rounded-full transition-all" style={{ width: `${playerPct}%` }} />
-                          </div>
+                          <div className="flex justify-between text-[10px] text-gray-500 font-semibold uppercase tracking-wider"><span>You</span><span>{playerPct}%</span></div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="bg-amber-400 h-1.5 rounded-full transition-all" style={{ width: `${playerPct}%` }} /></div>
                         </div>
                         <div>
-                          <div className="flex justify-between text-[10px] text-gray-500">
-                            <span>Coach Verified</span><span>{verified}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div className={`h-1.5 rounded-full transition-all ${verified === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${verified}%` }} />
-                          </div>
+                          <div className="flex justify-between text-[10px] text-gray-500 font-semibold uppercase tracking-wider"><span>Coach Verified</span><span>{verified}%</span></div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5"><div className={`h-1.5 rounded-full transition-all ${verified === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${verified}%` }} /></div>
                         </div>
                         {planTarget > 0 && (
                           <div>
-                            <div className="flex justify-between text-[10px] text-gray-500">
-                              <span>🔥 Practice Minutes</span><span>{Math.min(100, Math.round((planMins / planTarget) * 100))}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
-                              <div className="bg-orange-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((planMins / planTarget) * 100))}%` }} />
-                            </div>
+                            <div className="flex justify-between text-[10px] text-gray-500 font-semibold uppercase tracking-wider"><span>🔥 Minutes</span><span>{Math.min(100, Math.round((planMins / planTarget) * 100))}%</span></div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="bg-orange-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((planMins / planTarget) * 100))}%` }} /></div>
                           </div>
                         )}
                       </div>
@@ -430,66 +533,80 @@ const PlayerProfile: React.FC = () => {
               </div>
             )}
 
-            {/* Recent Media */}
+            {/* RECENT HIGHLIGHTS */}
             {recentMedia.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Recent Media</h2>
-                  <button onClick={() => setActiveTab('media')} className="text-sm text-cyan-600 hover:underline">View All →</button>
+                  <h2 className="text-lg font-black text-gray-900">Recent Highlights</h2>
+                  <button onClick={() => setActiveTab('media')} className="text-sm text-cyan-600 hover:text-cyan-700 font-bold">View All →</button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {recentMedia.map(item => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => setLightboxItem(item)}
-                      className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group"
+                      className="group relative aspect-square bg-gradient-to-br from-gray-800 to-gray-950 rounded-xl overflow-hidden ring-1 ring-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition"
                     >
                       {item.type === 'video' ? (
                         <>
                           {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                            <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                           ) : (
-                            <video
-                              src={`${item.url}#t=0.5`}
-                              className="w-full h-full object-cover bg-gray-800"
-                              preload="metadata"
-                              muted
-                              playsInline
-                            />
+                            <video src={`${item.url}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
                           )}
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-8 h-8 bg-black/60 rounded-full flex items-center justify-center">
+                            <div className="w-9 h-9 bg-black/60 rounded-full flex items-center justify-center backdrop-blur">
                               <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                             </div>
                           </div>
                         </>
                       ) : (
-                        <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                       )}
+                      {item.likeCount && item.likeCount > 0 ? (
+                        <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-bold backdrop-blur">❤ {item.likeCount}</div>
+                      ) : null}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Recent Awards */}
-            {votingWins.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+            {/* AWARDS PEEK */}
+            {(votingWins.length > 0 || votingNominations > 0) && (
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Player of the Match</h2>
-                  <button onClick={() => setActiveTab('awards')} className="text-sm text-cyan-600 hover:underline">View All →</button>
+                  <h2 className="text-lg font-black text-gray-900">Player of the Match</h2>
+                  <button onClick={() => setActiveTab('awards')} className="text-sm text-cyan-600 hover:text-cyan-700 font-bold">View All →</button>
                 </div>
-                <div className="flex items-center space-x-4 text-center mb-4">
-                  <div className="bg-yellow-50 rounded-lg p-3 flex-1">
-                    <div className="text-2xl font-bold text-yellow-600">🏆 {votingWins.length}</div>
-                    <div className="text-xs text-gray-600">Wins</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-white p-5 shadow-md">
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none" />
+                    <div className="relative">
+                      <div className="text-3xl mb-1">🏆</div>
+                      <div className="text-3xl sm:text-4xl font-black leading-none">{votingWins.length}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-bold opacity-90 mt-1">Wins</div>
+                    </div>
                   </div>
-                  <div className="bg-cyan-50 rounded-lg p-3 flex-1">
-                    <div className="text-2xl font-bold text-cyan-600">{votingNominations}</div>
-                    <div className="text-xs text-gray-600">Times Nominated</div>
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-400 via-cyan-500 to-sky-600 text-white p-5 shadow-md">
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none" />
+                    <div className="relative">
+                      <div className="text-3xl mb-1">⭐</div>
+                      <div className="text-3xl sm:text-4xl font-black leading-none">{votingNominations}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-bold opacity-90 mt-1">Nominated</div>
+                    </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* EMPTY STATE */}
+            {plans.length === 0 && recentMedia.length === 0 && votingWins.length === 0 && (
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-8 text-center">
+                <div className="text-5xl mb-3">⚽</div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{player.name.split(' ')[0]}'s journey starts here</h3>
+                <p className="text-sm text-gray-500">Stats, clips, and awards will show up as the season unfolds.</p>
               </div>
             )}
           </div>
@@ -499,58 +616,52 @@ const PlayerProfile: React.FC = () => {
         {activeTab === 'media' && (
           <div>
             {media.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
                 {media.map(item => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => setLightboxItem(item)}
-                    className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden text-left"
+                    className="group relative aspect-square bg-gradient-to-br from-gray-800 to-gray-950 rounded-2xl overflow-hidden text-left shadow-sm ring-1 ring-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition"
                   >
                     {item.type === 'video' ? (
                       <>
                         {item.thumbnailUrl ? (
-                          <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                         ) : (
-                          <video
-                            src={`${item.url}#t=0.5`}
-                            className="w-full h-full object-cover bg-gray-800"
-                            preload="metadata"
-                            muted
-                            playsInline
-                          />
+                          <video src={`${item.url}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
                         )}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-10 h-10 bg-black/60 rounded-full flex items-center justify-center">
+                          <div className="w-11 h-11 bg-black/60 rounded-full flex items-center justify-center backdrop-blur shadow-lg">
                             <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                           </div>
                         </div>
                       </>
                     ) : (
-                      <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover" loading="lazy" />
+                      <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent pt-4 pb-2 px-2">
-                      {item.caption && <p className="text-white text-xs truncate">{item.caption}</p>}
-                      <div className="flex items-center space-x-2 mt-1">
-                        {item.likeCount ? <span className="text-white/80 text-xs">❤️ {item.likeCount}</span> : null}
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="flex gap-0.5">
-                            {item.tags.slice(0, 2).map(tag => (
-                              <span key={tag} className="px-1.5 py-0.5 bg-white/20 text-white rounded text-[9px]">{tag}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                    {item.likeCount && item.likeCount > 0 ? (
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-bold backdrop-blur">❤ {item.likeCount}</div>
+                    ) : null}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pt-8 pb-2.5 px-2.5">
+                      {item.caption && <p className="text-white text-xs font-semibold truncate">{item.caption}</p>}
+                      {item.tags && item.tags.length > 0 && (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {item.tags.slice(0, 2).map(tag => (
+                            <span key={tag} className="px-1.5 py-0.5 bg-white/20 text-white rounded text-[9px] font-bold uppercase tracking-wider backdrop-blur">{tag}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                <div className="text-5xl mb-4">📸</div>
-                <h3 className="text-lg font-medium text-gray-900">No Media Yet</h3>
-                <p className="text-gray-500 text-sm mt-1">Photos and videos will appear here.</p>
-                <Link to="/player-media" className="text-cyan-600 hover:underline text-sm mt-3 inline-block">Go to Gallery →</Link>
+              <div className="text-center py-12 bg-white rounded-2xl shadow-sm ring-1 ring-gray-100">
+                <div className="text-5xl mb-3">📸</div>
+                <h3 className="text-lg font-bold text-gray-900">No Highlights Yet</h3>
+                <p className="text-gray-500 text-sm mt-1">Photos and videos will live here.</p>
+                <Link to="/player-media" className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold transition">Go to Gallery →</Link>
               </div>
             )}
           </div>
@@ -563,7 +674,7 @@ const PlayerProfile: React.FC = () => {
               <div className="space-y-4">
                 {activePlans.length > 0 && (
                   <>
-                    <h2 className="text-lg font-bold text-gray-900">Active Plans</h2>
+                    <h2 className="text-lg font-black text-gray-900 px-1">Active Plans</h2>
                     {activePlans.map(plan => (
                       <PlanDetail key={plan.id} plan={plan} getCategoryColor={getCategoryColor} getCategoryIcon={getCategoryIcon} getProgressPercent={getProgressPercent} />
                     ))}
@@ -571,7 +682,7 @@ const PlayerProfile: React.FC = () => {
                 )}
                 {completedPlans.length > 0 && (
                   <>
-                    <h2 className="text-lg font-bold text-gray-900 mt-6">✅ Completed Plans</h2>
+                    <h2 className="text-lg font-black text-gray-900 px-1 mt-6">✅ Completed Plans</h2>
                     {completedPlans.map(plan => (
                       <PlanDetail key={plan.id} plan={plan} getCategoryColor={getCategoryColor} getCategoryIcon={getCategoryIcon} getProgressPercent={getProgressPercent} />
                     ))}
@@ -579,11 +690,11 @@ const PlayerProfile: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                <div className="text-5xl mb-4">📋</div>
-                <h3 className="text-lg font-medium text-gray-900">No Development Plans</h3>
-                <p className="text-gray-500 text-sm mt-1">Development plans from coaches will show here.</p>
-                <Link to="/development" className="text-cyan-600 hover:underline text-sm mt-3 inline-block">Go to Development →</Link>
+              <div className="text-center py-12 bg-white rounded-2xl shadow-sm ring-1 ring-gray-100">
+                <div className="text-5xl mb-3">📋</div>
+                <h3 className="text-lg font-bold text-gray-900">No Development Plans</h3>
+                <p className="text-gray-500 text-sm mt-1">Plans from coaches will show up here.</p>
+                <Link to="/development" className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold transition">Open Development →</Link>
               </div>
             )}
           </div>
@@ -591,57 +702,89 @@ const PlayerProfile: React.FC = () => {
 
         {/* ─── AWARDS TAB ────────────────────────────────────────── */}
         {activeTab === 'awards' && (
-          <div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-                <div className="text-4xl mb-2">🏆</div>
-                <div className="text-3xl font-bold text-yellow-600">{votingWins.length}</div>
-                <div className="text-sm text-gray-600">Player of the Match</div>
+          <div className="space-y-4 sm:space-y-6">
+            {/* Big trophy hero */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-white p-5 sm:p-6 text-center shadow-xl">
+                <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative">
+                  <div className="text-5xl sm:text-6xl mb-2 drop-shadow-lg">🏆</div>
+                  <div className="text-4xl sm:text-5xl font-black leading-none">{votingWins.length}</div>
+                  <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-90 mt-1.5">POTM Wins</div>
+                </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-                <div className="text-4xl mb-2">⭐</div>
-                <div className="text-3xl font-bold text-cyan-600">{votingNominations}</div>
-                <div className="text-sm text-gray-600">Times Nominated</div>
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-400 via-cyan-500 to-sky-600 text-white p-5 sm:p-6 text-center shadow-xl">
+                <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="relative">
+                  <div className="text-5xl sm:text-6xl mb-2 drop-shadow-lg">⭐</div>
+                  <div className="text-4xl sm:text-5xl font-black leading-none">{votingNominations}</div>
+                  <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-90 mt-1.5">Nominations</div>
+                </div>
               </div>
             </div>
 
             {allPlayerVotings.length > 0 ? (
               <div className="space-y-3">
-                <h2 className="text-lg font-bold text-gray-900">Vote History</h2>
+                <h2 className="text-lg font-black text-gray-900 px-1">Vote History</h2>
                 {allPlayerVotings.map(({ voting, playerVotes }) => {
                   const isWin = voting.winners?.some(w => w.playerId === playerId) || voting.winner?.playerId === playerId;
                   const isCoWin = isWin && (voting.winners?.length || 0) > 1;
+                  const reasons = playerVotes.filter(v => v.reason);
                   return (
-                    <div key={voting.id} className={`bg-white rounded-xl border ${isWin ? 'border-yellow-300' : 'border-gray-200'} p-4`}>
-                      <div className="flex items-center space-x-3">
-                        <div className="text-2xl">{isWin ? '🏆' : '⭐'}</div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-gray-900">{voting.gameTitle}</p>
-                            {isWin && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">{isCoWin ? `Co-Winner (×${voting.winners!.length})` : 'Winner'}</span>}
-                          </div>
-                          <p className="text-sm text-gray-500">{voting.gameDate instanceof Date ? formatDate(voting.gameDate) : ''} • {playerVotes.length} vote{playerVotes.length !== 1 ? 's' : ''}</p>
-                        </div>
-                      </div>
-                      {playerVotes.some(v => v.reason) && (
-                        <div className="mt-3 space-y-2 pl-10">
-                          {playerVotes.filter(v => v.reason).map((v, i) => (
-                            <div key={i} className="bg-gray-50 rounded-lg px-3 py-2">
-                              <p className="text-sm text-gray-700 italic">"{v.reason}"</p>
-                              <p className="text-xs text-gray-400 mt-0.5">— {v.voterName}</p>
-                            </div>
-                          ))}
-                        </div>
+                    <div
+                      key={voting.id}
+                      className={`relative overflow-hidden rounded-2xl shadow-sm ${
+                        isWin
+                          ? 'bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 ring-2 ring-amber-300'
+                          : 'bg-white ring-1 ring-gray-100'
+                      }`}
+                    >
+                      {isWin && (
+                        <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-300/30 rounded-full blur-2xl pointer-events-none" />
                       )}
+                      <div className="relative p-4 sm:p-5">
+                        <div className="flex items-start gap-3">
+                          <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-md ${
+                            isWin ? 'bg-gradient-to-br from-amber-300 to-orange-500 text-white' : 'bg-gray-100'
+                          }`}>
+                            {isWin ? '🏆' : '⭐'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-bold text-gray-900 truncate">{voting.gameTitle}</p>
+                              {isWin && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white">
+                                  {isCoWin ? `Co-Winner ×${voting.winners!.length}` : 'Winner'}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium mt-0.5">
+                              {voting.gameDate instanceof Date ? formatDate(voting.gameDate) : ''}
+                              {' · '}
+                              <span className={isWin ? 'text-amber-700' : ''}>{playerVotes.length} vote{playerVotes.length !== 1 ? 's' : ''}</span>
+                            </p>
+                          </div>
+                        </div>
+                        {reasons.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {reasons.map((v, i) => (
+                              <div key={i} className={`rounded-xl px-3 py-2.5 ${isWin ? 'bg-white/70' : 'bg-gray-50'}`}>
+                                <p className="text-sm text-gray-800 italic font-medium">"{v.reason}"</p>
+                                <p className="text-xs text-gray-500 mt-1 font-semibold">— {v.voterName}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                <div className="text-5xl mb-4">🏆</div>
-                <h3 className="text-lg font-medium text-gray-900">No Awards Yet</h3>
-                <p className="text-gray-500 text-sm mt-1">Player of the Match wins will appear here.</p>
+              <div className="text-center py-12 bg-white rounded-2xl shadow-sm ring-1 ring-gray-100">
+                <div className="text-5xl mb-3">🏆</div>
+                <h3 className="text-lg font-bold text-gray-900">No Awards Yet</h3>
+                <p className="text-gray-500 text-sm mt-1">Player of the Match wins will land here.</p>
               </div>
             )}
           </div>

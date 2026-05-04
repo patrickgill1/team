@@ -74,32 +74,39 @@ const ConfettiCanvas: React.FC<{ active: boolean }> = ({ active }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    ctx.scale(dpr, dpr);
 
-    for (let i = 0; i < 140; i++) {
+    particles.current = [];
+    for (let i = 0; i < 110; i++) {
       particles.current.push({
-        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
-        y: canvas.height * 0.55,
-        vx: (Math.random() - 0.5) * 14,
-        vy: -Math.random() * 18 - 4,
+        x: w / 2 + (Math.random() - 0.5) * 240,
+        y: h * 0.55,
+        vx: (Math.random() - 0.5) * 18,
+        vy: -Math.random() * 22 - 6,
         color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
         size: Math.random() * 8 + 4,
         angle: Math.random() * 360,
-        spin: (Math.random() - 0.5) * 8,
+        spin: (Math.random() - 0.5) * 12,
         alpha: 1,
       });
     }
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.current = particles.current.filter(p => p.alpha > 0.02);
+      ctx.clearRect(0, 0, w, h);
+      particles.current = particles.current.filter(p => p.alpha > 0.02 && p.y < h + 40);
       particles.current.forEach(p => {
         p.x += p.vx;
-        p.vy += 0.45;
+        p.vy += 0.65;
         p.y += p.vy;
         p.angle += p.spin;
-        p.alpha -= 0.012;
+        p.alpha -= 0.022;
         p.vx *= 0.99;
         ctx.save();
         ctx.globalAlpha = Math.max(0, p.alpha);
@@ -112,7 +119,7 @@ const ConfettiCanvas: React.FC<{ active: boolean }> = ({ active }) => {
       if (particles.current.length > 0) {
         rafRef.current = requestAnimationFrame(animate);
       } else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, w, h);
       }
     };
     rafRef.current = requestAnimationFrame(animate);
@@ -291,7 +298,7 @@ const PublicVote: React.FC = () => {
       markSessionAsVoted(votingId);
       setSubmitted(true);
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 4500);
+      setTimeout(() => setShowConfetti(false), 2200);
       setStep('results');
     } catch (err: any) {
       console.error('Vote submission error:', err?.code, err?.message);
@@ -488,18 +495,51 @@ const PublicVote: React.FC = () => {
                     Your child on the team <span className="text-[#159BE3]">*</span>
                   </label>
                   <p className="text-xs text-gray-400 mb-2">They'll be excluded from your choices — keeping it fair.</p>
-                  <select
-                    value={myChildId}
-                    onChange={e => setMyChildId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#159BE3] focus:border-transparent text-sm bg-white transition-shadow"
-                  >
-                    <option value="" disabled>— Select your child —</option>
-                    {players.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.jerseyNumber ? `#${p.jerseyNumber} – ` : ''}{p.name}{p.position ? ` (${p.position})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1 -mr-1">
+                    {players.map(p => {
+                      const isSelected = myChildId === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setMyChildId(p.id)}
+                          className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all duration-150 text-left ${
+                            isSelected
+                              ? 'border-[#159BE3] bg-[#f0f9ff] shadow-sm'
+                              : 'border-gray-200 hover:border-[#159BE3] hover:border-opacity-40 hover:bg-gray-50'
+                          }`}
+                        >
+                          {p.profilePhotoUrl ? (
+                            <img
+                              src={p.profilePhotoUrl}
+                              alt={p.name}
+                              className={`w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 ${isSelected ? 'border-[#159BE3]' : 'border-gray-100'}`}
+                            />
+                          ) : (
+                            <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${isSelected ? 'bg-[#159BE3]' : 'bg-gray-200'}`}>
+                              <span className={`font-bold text-base ${isSelected ? 'text-white' : 'text-gray-500'}`}>
+                                {p.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-gray-900 text-sm truncate">{p.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {p.jerseyNumber && (
+                                <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full font-mono">
+                                  #{p.jerseyNumber}
+                                </span>
+                              )}
+                              {p.position && <PositionBadge position={p.position} />}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <div className="bg-[#159BE3] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">✓</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {error && (

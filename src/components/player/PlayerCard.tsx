@@ -139,7 +139,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               <div className="text-2xl font-bold text-cyan-300">{player.stats?.goals || 0}</div>
               <div className="text-sm text-gray-300">Goals</div>
             </div>
-            <div className="text-center p-3 bg-emerald-500/10 rounded-2xl">
+            <div className="text-center p-3 bg-emerald-500/100/10 rounded-2xl">
               <div className="text-2xl font-bold text-emerald-300">{player.stats?.assists || 0}</div>
               <div className="text-sm text-gray-300">Assists</div>
             </div>

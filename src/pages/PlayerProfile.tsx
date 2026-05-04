@@ -365,7 +365,7 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-2xl font-bold text-cyan-300">{activePlans.length}</div>
                     <div className="text-xs text-gray-300">Active Plans</div>
                   </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-center p-3 bg-emerald-500/100/10 rounded-lg">
                     <div className="text-2xl font-bold text-emerald-300">{completedPlans.length}</div>
                     <div className="text-xs text-gray-300">Completed</div>
                   </div>

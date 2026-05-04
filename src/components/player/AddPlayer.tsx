@@ -440,7 +440,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+          <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4 mb-4">
             <p className="text-xs text-cyan-300 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
             <p className="text-sm text-blue-900 break-all font-mono mb-3">{inviteLink}</p>
             <button
@@ -724,7 +724,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Upload Progress */}
           {uploadLoading && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3">
               <div className="flex items-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                 <p className="text-cyan-300 text-sm">Uploading profile photo...</p>

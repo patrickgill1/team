@@ -167,7 +167,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
 
       {/* Streaks grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="text-center bg-blue-50 rounded-lg p-3">
+        <div className="text-center bg-cyan-500/10 rounded-lg p-3">
           <div className="text-xs text-gray-300 mb-1">Goal streak</div>
           <div className="text-2xl font-bold text-cyan-200">{streaks.currentGoalStreak}</div>
           <div className="text-[10px] text-gray-400">best {streaks.longestGoalStreak}</div>
@@ -182,7 +182,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
           <div className="text-2xl font-bold text-gray-200">{streaks.currentDryStreak}</div>
           <div className="text-[10px] text-gray-400">since last contrib</div>
         </div>
-        <div className="text-center bg-purple-50 rounded-lg p-3">
+        <div className="text-center bg-violet-500/10 rounded-lg p-3">
           <div className="text-xs text-gray-300 mb-1">Avg contribution</div>
           <div className="text-2xl font-bold text-violet-300">
             {(((totalGoals + totalAssists) / ordered.length) || 0).toFixed(2)}

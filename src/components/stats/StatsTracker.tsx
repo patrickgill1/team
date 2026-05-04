@@ -198,7 +198,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
 
         <div className="p-6">
           {successMessage && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 mb-4">
               <p className="text-emerald-300 text-sm">{successMessage}</p>
             </div>
           )}

@@ -721,7 +721,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <button
               onClick={() => onEdit(event)}
               disabled={isDeleting}
-              className="p-2 text-gray-300 hover:text-cyan-300 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
+              className="p-2 text-gray-300 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50"
               title="Edit Event"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -145,12 +145,12 @@ const GalleryPage: React.FC = () => {
               <h4 className="font-medium text-white mb-1">Game Moments</h4>
               <p className="text-sm text-gray-300">Capture goals, celebrations, and team spirit during matches</p>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-center p-4 bg-emerald-500/10 rounded-lg">
               <div className="text-2xl mb-2">🏃</div>
               <h4 className="font-medium text-white mb-1">Practice Sessions</h4>
               <p className="text-sm text-gray-300">Document training progress and skill development</p>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-center p-4 bg-violet-500/10 rounded-lg">
               <div className="text-2xl mb-2">👨‍👩‍👧‍👦</div>
               <h4 className="font-medium text-white mb-1">Team Bonding</h4>
               <p className="text-sm text-gray-300">Share team events, parties, and fun moments</p>

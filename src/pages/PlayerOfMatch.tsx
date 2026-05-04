@@ -649,7 +649,7 @@ const PlayerOfMatch: React.FC = () => {
               </div>
               {/* Share link banner */}
               {newVotingId === activeVoting.id && (
-                <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-200 rounded-lg flex items-center justify-between gap-3">
+                <div className="mt-3 p-3 bg-emerald-500/100/10 border border-emerald-200 rounded-lg flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-emerald-200 text-sm min-w-0">
                     <svg className="w-4 h-4 shrink-0 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -152,7 +152,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 title={info.names.join(', ')}
                 className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
                   info.mine
-                    ? 'bg-blue-50 border-blue-300 text-blue-800'
+                    ? 'bg-cyan-500/10 border-cyan-500/30 text-blue-800'
                     : 'bg-white/5 border-white/15 text-gray-200 hover:bg-white/5'
                 }`}
               >

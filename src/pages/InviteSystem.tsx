@@ -154,7 +154,7 @@ The Team Manager Team`;
 
         {/* Team ID Display for Coaches */}
         {isUserCoach && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mb-4 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
             <p className="text-sm font-medium text-blue-900 mb-1">Your Team ID:</p>
             <p className="text-xs font-mono text-cyan-200 bg-white px-2 py-1 rounded border">
               {selectedTeamId || userData?.teamId}
@@ -166,7 +166,7 @@ The Team Manager Team`;
         )}
 
         {message && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 mb-4">
             <div className="flex items-center">
               <svg className="w-5 h-5 text-emerald-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -288,7 +288,7 @@ The Team Manager Team`;
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-cyan-300 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

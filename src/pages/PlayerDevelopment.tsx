@@ -1164,7 +1164,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
           <div className="space-y-3">
             {plan.goals.sort((a, b) => a.order - b.order).map((goal) => (
               <div key={goal.id} className={`p-3 rounded-lg border ${
-                goal.coachVerified ? 'bg-green-50 border-green-200' :
+                goal.coachVerified ? 'bg-emerald-500/10 border-emerald-500/20' :
                 goal.readyForReview ? 'bg-amber-500/10 border-amber-500/20' :
                 goal.playerCompleted ? 'bg-cyan-500/10 border-cyan-100' :
                 'bg-white/5 border-white/10'

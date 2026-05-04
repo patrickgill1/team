@@ -133,7 +133,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           <select
             value={selectedPlayer}
             onChange={(e) => setSelectedPlayer(e.target.value)}
-            className="px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-white/15 bg-white/5 text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="">All Players Overview</option>
             {players.map(player => (
@@ -184,13 +184,13 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 <div className="text-sm text-gray-300">Top Scorer</div>
                 <div className="text-xl font-bold text-cyan-300">{topPerformers.topScorer.totalGoals} goals</div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-center p-4 bg-emerald-500/10 rounded-lg">
                 <div className="text-2xl mb-2">🎯</div>
                 <div className="font-semibold text-white">{topPerformers.topAssister.name}</div>
                 <div className="text-sm text-gray-300">Top Assister</div>
                 <div className="text-xl font-bold text-emerald-300">{topPerformers.topAssister.totalAssists} assists</div>
               </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-center p-4 bg-violet-500/10 rounded-lg">
                 <div className="text-2xl mb-2">🧤</div>
                 <div className="font-semibold text-white">{topPerformers.topSaver.name}</div>
                 <div className="text-sm text-gray-300">Top Saver</div>

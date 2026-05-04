@@ -35,6 +35,22 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
+/* Dark default for native form controls so we don't have to style every <select>/<input>
+   inline. Instances that already pass explicit bg/text classes will override these. */
+select, input[type="text"], input[type="email"], input[type="password"], input[type="number"],
+input[type="search"], input[type="tel"], input[type="url"], input[type="date"], input[type="time"],
+input[type="datetime-local"], textarea {
+  color-scheme: dark;
+}
+select {
+  background-color: rgba(255,255,255,0.05);
+  color: #f3f4f6;
+}
+select option {
+  background-color: #16223a;
+  color: #f3f4f6;
+}
+
 /* Safe area padding for mobile notches / home indicators */
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
@@ -48,37 +64,36 @@ code {
 }
 
 /* ===== CARD SYSTEM ===== */
-/* Solid gray-800 (#1f2937) — clearly lighter than the near-black page bg
-   so cards visibly lift. Subtle inner top highlight + deeper outer shadow
-   for premium depth without looking flat. */
+/* Navy-tinted card surface — matches the fire-950 / dark-navy page bg
+   instead of clashing with neutral gray. Subtle cyan inner top highlight
+   for premium depth, gentle outer shadow. */
 .card-modern {
-  background: #1f2937;
+  background: linear-gradient(180deg, #1c2840 0%, #16223a 100%);
   border-radius: 16px;
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 1px 0 rgba(56,189,248,0.08) inset,
     0 4px 14px rgba(0,0,0,0.45),
     0 1px 3px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.07);
   color: #e5e7eb;
   transition: all 0.2s ease;
 }
 .card-modern:hover {
-  border-color: rgba(255,255,255,0.14);
+  border-color: rgba(56,189,248,0.2);
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.08) inset,
+    0 1px 0 rgba(56,189,248,0.12) inset,
     0 12px 32px rgba(0,0,0,0.55),
     0 2px 6px rgba(0,0,0,0.35);
   transform: translateY(-1px);
 }
-
-/* Alias kept temporarily so Dashboard's card-lift refs still resolve while
-   we revert them. Both classes look identical. */
-.card-lift { background: #1f2937; border-radius: 16px;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 4px 14px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.08); color: #e5e7eb; transition: all 0.2s ease; }
-.card-lift:hover { border-color: rgba(255,255,255,0.14);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35);
-  transform: translateY(-1px); }
+.card-lift { /* alias kept for any stray refs */
+  background: linear-gradient(180deg, #1c2840 0%, #16223a 100%);
+  border-radius: 16px;
+  box-shadow: 0 1px 0 rgba(56,189,248,0.08) inset, 0 4px 14px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: #e5e7eb;
+  transition: all 0.2s ease;
+}
 
 .card-interactive {
   cursor: pointer;

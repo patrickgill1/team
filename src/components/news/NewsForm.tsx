@@ -124,15 +124,15 @@ const NewsForm: React.FC<NewsFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-gray-900/80 rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+        <div className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-white/10 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-white">
               {editingNews ? 'Edit News Article' : 'Create News Article'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              className="text-gray-400 hover:text-gray-300 transition-colors duration-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -144,7 +144,7 @@ const NewsForm: React.FC<NewsFormProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-200 mb-1">
               Title *
             </label>
             <input
@@ -152,7 +152,7 @@ const NewsForm: React.FC<NewsFormProps> = ({
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.title ? 'border-red-500' : 'border-gray-300'
+                errors.title ? 'border-red-500' : 'border-white/15'
               }`}
               placeholder="Enter news title"
               disabled={isSubmitting}
@@ -162,7 +162,7 @@ const NewsForm: React.FC<NewsFormProps> = ({
 
           {/* Summary */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-200 mb-1">
               Summary (Optional)
             </label>
             <textarea
@@ -170,12 +170,12 @@ const NewsForm: React.FC<NewsFormProps> = ({
               onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
               rows={2}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.summary ? 'border-red-500' : 'border-gray-300'
+                errors.summary ? 'border-red-500' : 'border-white/15'
               }`}
               placeholder="Brief summary for preview (optional)"
               disabled={isSubmitting}
             />
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-400 mt-1">
               {formData.summary.length}/200 characters
             </p>
             {errors.summary && <p className="text-red-500 text-sm mt-1">{errors.summary}</p>}
@@ -183,7 +183,7 @@ const NewsForm: React.FC<NewsFormProps> = ({
 
           {/* Content */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-200 mb-1">
               Content *
             </label>
             <textarea
@@ -191,7 +191,7 @@ const NewsForm: React.FC<NewsFormProps> = ({
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               rows={10}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.content ? 'border-red-500' : 'border-gray-300'
+                errors.content ? 'border-red-500' : 'border-white/15'
               }`}
               placeholder="Write your news article content here..."
               disabled={isSubmitting}
@@ -208,9 +208,9 @@ const NewsForm: React.FC<NewsFormProps> = ({
                 checked={formData.isPinned}
                 onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
                 disabled={isSubmitting}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/15 rounded"
               />
-              <label htmlFor="isPinned" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="isPinned" className="ml-2 block text-sm text-gray-200">
                 Pin this article (appears at top)
               </label>
             </div>
@@ -222,9 +222,9 @@ const NewsForm: React.FC<NewsFormProps> = ({
                 checked={formData.isPublished}
                 onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
                 disabled={isSubmitting}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/15 rounded"
               />
-              <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-200">
                 Publish immediately
               </label>
             </div>
@@ -232,13 +232,13 @@ const NewsForm: React.FC<NewsFormProps> = ({
 
           {/* Submit Error */}
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-600 text-sm">{errors.submit}</p>
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3">
+              <p className="text-rose-300 text-sm">{errors.submit}</p>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex space-x-4 pt-4 border-t border-gray-200">
+          <div className="flex space-x-4 pt-4 border-t border-white/10">
             <button
               type="button"
               onClick={onClose}

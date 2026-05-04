@@ -234,9 +234,9 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
-      case 'game': return 'bg-rose-500/10 text-rose-700 border-rose-300/50';
-      case 'practice': return 'bg-fire-500/10 text-fire-800 border-fire-300/50';
-      case 'event': return 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50';
+      case 'game': return 'bg-rose-500/10 text-rose-300 border-rose-300/50';
+      case 'practice': return 'bg-fire-500/10 text-fire-200 border-fire-300/50';
+      case 'event': return 'bg-emerald-500/10 text-emerald-300 border-emerald-300/50';
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
@@ -299,7 +299,7 @@ const Calendar: React.FC<CalendarProps> = ({
           onClick={() => handleDateClick(date)}
           className={`h-24 sm:h-28 border border-slate-200/70 p-1.5 cursor-pointer transition-all duration-150 ${
             isToday
-              ? 'bg-gradient-to-br from-fire-50 to-white ring-1 ring-fire-300/60'
+              ? 'bg-gradient-to-br from-fire-500/10 to-transparent ring-1 ring-fire-300/60'
               : isPast
                 ? 'bg-slate-50/40 hover:bg-slate-50'
                 : 'bg-white hover:bg-fire-50/40'
@@ -339,7 +339,7 @@ const Calendar: React.FC<CalendarProps> = ({
     }
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 overflow-hidden">
+      <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70 overflow-hidden">
         {/* Calendar Header */}
         <div className="bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 px-5 sm:px-6 py-4">
           <div className="flex items-center justify-between">
@@ -413,7 +413,7 @@ const Calendar: React.FC<CalendarProps> = ({
     return (
       <div className="space-y-6">
         {/* Upcoming Events */}
-        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70">
+        <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70">
           <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
             <span className="w-1.5 h-5 bg-fire-500 rounded-full"></span>
             <h3 className="text-base font-bold text-navy-900 tracking-tight">Upcoming</h3>
@@ -464,7 +464,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
         {/* Past Events */}
         {pastEvents.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70">
+          <div className="bg-gray-900/80 rounded-2xl shadow-sm ring-1 ring-slate-200/70">
             <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
               <span className="w-1.5 h-5 bg-slate-300 rounded-full"></span>
               <h3 className="text-base font-bold text-slate-700 tracking-tight">Past Events</h3>
@@ -626,9 +626,9 @@ const EventCard: React.FC<EventCardProps> = ({
 
   const getEventTypeColor = (type: string) => {
     const colors = {
-      game: 'bg-rose-500/10 text-rose-700 border-rose-300/50',
-      practice: 'bg-fire-500/10 text-fire-800 border-fire-300/50',
-      event: 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50'
+      game: 'bg-rose-500/10 text-rose-300 border-rose-300/50',
+      practice: 'bg-fire-500/10 text-fire-200 border-fire-300/50',
+      event: 'bg-emerald-500/10 text-emerald-300 border-emerald-300/50'
     };
     return colors[type as keyof typeof colors] || 'bg-slate-100 text-slate-700 border-slate-200';
   };
@@ -644,7 +644,7 @@ const EventCard: React.FC<EventCardProps> = ({
           <div className="text-2xl">{getEventTypeIcon(event.type)}</div>
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-1">
-              <h4 className={`font-semibold ${isPast ? 'text-gray-600' : 'text-gray-900'}`}>
+              <h4 className={`font-semibold ${isPast ? 'text-gray-300' : 'text-white'}`}>
                 {event.title}
               </h4>
               <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getEventTypeColor(event.type)} ${
@@ -653,7 +653,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
               </span>
             </div>
-            <div className={`text-sm space-y-1 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
+            <div className={`text-sm space-y-1 ${isPast ? 'text-gray-400' : 'text-gray-300'}`}>
               <div className="flex items-center space-x-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -677,7 +677,7 @@ const EventCard: React.FC<EventCardProps> = ({
               )}
             </div>
             {event.description && (
-              <p className={`text-sm mt-2 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
+              <p className={`text-sm mt-2 ${isPast ? 'text-gray-400' : 'text-gray-300'}`}>
                 {event.description}
               </p>
             )}
@@ -685,11 +685,11 @@ const EventCard: React.FC<EventCardProps> = ({
               <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 border border-fire-200 text-navy-700 text-xs font-semibold">
                 <span className="text-base leading-none">{weather.icon}</span>
                 <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
-                {weather.precipChance > 0 && <span className="text-fire-700">· {weather.precipChance}% rain</span>}
+                {weather.precipChance > 0 && <span className="text-fire-200">· {weather.precipChance}% rain</span>}
               </div>
             )}
             {(event as any).seriesId && (
-              <span className="inline-flex items-center gap-1 mt-2 ml-2 px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold" title="Part of a recurring series">
+              <span className="inline-flex items-center gap-1 mt-2 ml-2 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-200 text-violet-700 text-xs font-semibold" title="Part of a recurring series">
                 🔁 {(event as any).recurrence || 'recurring'}
               </span>
             )}
@@ -720,7 +720,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <button
               onClick={() => onEdit(event)}
               disabled={isDeleting}
-              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
+              className="p-2 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
               title="Edit Event"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -730,7 +730,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <button
               onClick={() => onDelete(event.id)}
               disabled={isDeleting}
-              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
+              className="p-2 text-gray-300 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50"
               title="Delete Event"
             >
               {isDeleting ? (
@@ -774,26 +774,26 @@ const RsvpBar: React.FC<{
       className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-all ${
         my === status
           ? `${color} text-white border-transparent shadow-sm`
-          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+          : 'bg-white text-gray-200 border-white/10 hover:border-white/15'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {icon} {label}
     </button>
   );
   return (
-    <div className="mt-3 pt-3 border-t border-gray-100">
+    <div className="mt-3 pt-3 border-t border-white/10">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
           {isPast ? 'Final RSVPs' : 'Will you be there?'}
         </span>
         <div className="flex items-center gap-2 text-xs">
           <button onClick={() => setShowList('going')} className="text-green-700 font-semibold hover:underline">
             ✅ {counts.going}
           </button>
-          <button onClick={() => setShowList('maybe')} className="text-amber-700 font-semibold hover:underline">
+          <button onClick={() => setShowList('maybe')} className="text-amber-300 font-semibold hover:underline">
             🤔 {counts.maybe}
           </button>
-          <button onClick={() => setShowList('no')} className="text-rose-700 font-semibold hover:underline">
+          <button onClick={() => setShowList('no')} className="text-rose-300 font-semibold hover:underline">
             ❌ {counts.no}
           </button>
         </div>
@@ -811,22 +811,22 @@ const RsvpBar: React.FC<{
           onClick={() => setShowList(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
+            className="bg-gray-900/80 rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
               <h3 className="font-semibold text-gray-800">
                 {showList === 'going' && `✅ Going (${counts.going})`}
                 {showList === 'maybe' && `🤔 Maybe (${counts.maybe})`}
                 {showList === 'no' && `❌ Can't make it (${counts.no})`}
               </h3>
-              <button onClick={() => setShowList(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+              <button onClick={() => setShowList(null)} className="text-gray-400 hover:text-gray-300 text-xl leading-none">✕</button>
             </div>
             <div className="overflow-y-auto flex-1">
               {entries.filter(([, v]: any) => v.status === showList).length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-gray-500">No one yet.</p>
+                <p className="px-4 py-6 text-center text-sm text-gray-400">No one yet.</p>
               ) : (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-white/10">
                   {entries
                     .filter(([, v]: any) => v.status === showList)
                     .map(([uid, v]: any) => (
@@ -878,15 +878,15 @@ const CarpoolBar: React.FC<{
     setSeats(''); setLocation(''); setNote('');
   };
   return (
-    <div className="mt-2 pt-2 border-t border-dashed border-gray-100">
+    <div className="mt-2 pt-2 border-t border-dashed border-white/10">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between text-xs font-medium text-gray-600 hover:text-gray-800"
+        className="w-full flex items-center justify-between text-xs font-medium text-gray-300 hover:text-gray-800"
       >
         <span className="uppercase tracking-wide">🚗 Carpool board</span>
         <span className="flex items-center gap-2 text-[11px]">
-          <span className="text-emerald-700">{offerCount} offer{offerCount !== 1 ? 's' : ''}</span>
-          <span className="text-amber-700">{requestCount} request{requestCount !== 1 ? 's' : ''}</span>
+          <span className="text-emerald-300">{offerCount} offer{offerCount !== 1 ? 's' : ''}</span>
+          <span className="text-amber-300">{requestCount} request{requestCount !== 1 ? 's' : ''}</span>
           <span className="text-gray-400">{open ? '▲' : '▼'}</span>
         </span>
       </button>
@@ -899,42 +899,42 @@ const CarpoolBar: React.FC<{
             <div
               key={p.id}
               className={`flex items-start justify-between gap-2 p-2 rounded-lg text-xs ${
-                p.type === 'offer' ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'
+                p.type === 'offer' ? 'bg-emerald-500/10 border border-emerald-100' : 'bg-amber-500/10 border border-amber-100'
               }`}
             >
               <div className="flex-1">
                 <div className="font-semibold text-gray-800">
                   {p.type === 'offer' ? '🚙 Offering ride' : '🙋 Need ride'} — {p.name}
                 </div>
-                <div className="text-gray-700 mt-0.5">
+                <div className="text-gray-200 mt-0.5">
                   {p.seats ? `${p.seats} seat${p.seats !== 1 ? 's' : ''}` : ''}
                   {p.seats && p.location ? ' · ' : ''}
                   {p.location || ''}
                 </div>
-                {p.note && <div className="text-gray-600 mt-0.5">{p.note}</div>}
+                {p.note && <div className="text-gray-300 mt-0.5">{p.note}</div>}
               </div>
               {userUid === p.uid && onDelete && (
                 <button
                   onClick={() => onDelete(event.id, p.id)}
-                  className="text-gray-400 hover:text-red-600 text-sm leading-none"
+                  className="text-gray-400 hover:text-rose-300 text-sm leading-none"
                   title="Delete"
                 >✕</button>
               )}
             </div>
           ))}
           {!isPast && userUid && onAdd && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-2">
+            <div className="bg-gray-50 border border-white/10 rounded-lg p-2 space-y-2">
               <div className="flex gap-1">
                 <button
                   onClick={() => setType('offer')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200'
+                    type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-200 border-white/10'
                   }`}
                 >🚙 Offer</button>
                 <button
                   onClick={() => setType('request')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
-                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200'
+                    type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-200 border-white/10'
                   }`}
                 >🙋 Request</button>
               </div>
@@ -944,14 +944,14 @@ const CarpoolBar: React.FC<{
                   placeholder={type === 'offer' ? 'Seats' : 'Riders'}
                   value={seats}
                   onChange={e => setSeats(e.target.value)}
-                  className="px-2 py-1 text-xs border border-gray-200 rounded"
+                  className="px-2 py-1 text-xs border border-white/10 rounded"
                 />
                 <input
                   type="text"
                   placeholder="Pickup area"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
-                  className="px-2 py-1 text-xs border border-gray-200 rounded"
+                  className="px-2 py-1 text-xs border border-white/10 rounded"
                 />
               </div>
               <input
@@ -959,7 +959,7 @@ const CarpoolBar: React.FC<{
                 placeholder="Optional note (e.g. leaving at 8:30)"
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                className="w-full px-2 py-1 text-xs border border-gray-200 rounded"
+                className="w-full px-2 py-1 text-xs border border-white/10 rounded"
               />
               <button
                 onClick={submit}

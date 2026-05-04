@@ -178,7 +178,7 @@ const Dashboard: React.FC = () => {
                 {isUserCoach && (
                   <Link
                     to="/game-day"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-fire-800 font-bold text-sm shadow hover:scale-105 transition"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-fire-200 font-bold text-sm shadow hover:scale-105 transition"
                   >
                     ⚡ Quick Game
                   </Link>
@@ -243,12 +243,12 @@ const Dashboard: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Upcoming Events */}
             <div className="card-modern overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cyan-50 to-white">
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-cyan-500/10 to-transparent">
                 <div>
-                  <h2 className="text-lg font-bold text-fire-950">Upcoming Events</h2>
-                  <p className="text-xs text-gray-500">Practices and games on deck</p>
+                  <h2 className="text-lg font-bold text-white">Upcoming Events</h2>
+                  <p className="text-xs text-gray-400">Practices and games on deck</p>
                 </div>
-                <Link to="/calendar" className="text-cyan-600 hover:text-cyan-700 text-sm font-semibold">
+                <Link to="/calendar" className="text-cyan-600 hover:text-cyan-300 text-sm font-semibold">
                   View All →
                 </Link>
               </div>
@@ -256,7 +256,7 @@ const Dashboard: React.FC = () => {
                 {upcomingEvents.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="text-5xl mb-3">📭</div>
-                    <p className="text-gray-600 mb-4">No upcoming events scheduled</p>
+                    <p className="text-gray-300 mb-4">No upcoming events scheduled</p>
                     {isUserCoach && (
                       <Link
                         to="/calendar"
@@ -272,19 +272,19 @@ const Dashboard: React.FC = () => {
                       <Link
                         key={event.id}
                         to="/calendar"
-                        className="group flex items-stretch gap-4 p-3 rounded-2xl border border-gray-100 hover:border-cyan-200 hover:shadow-md hover:bg-cyan-50/30 transition"
+                        className="group flex items-stretch gap-4 p-3 rounded-2xl border border-white/10 hover:border-cyan-200 hover:shadow-md hover:bg-cyan-500/10/30 transition"
                       >
                         <div className={`flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br ${eventGradient(event.type)} flex items-center justify-center text-2xl shadow-md`}>
                           {eventEmoji(event.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-bold text-fire-950 truncate group-hover:text-cyan-700">{event.title}</h3>
-                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-fire-50 text-fire-700">
+                            <h3 className="font-bold text-white truncate group-hover:text-cyan-300">{event.title}</h3>
+                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-fire-50 text-fire-200">
                               {event.type}
                             </span>
                           </div>
-                          <div className="text-xs text-gray-600 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <div className="text-xs text-gray-300 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                             <span>🕒 {formatDateTime(event.date)}</span>
                             {event.location && <span>📍 {event.location}</span>}
                           </div>
@@ -299,10 +299,10 @@ const Dashboard: React.FC = () => {
             {/* Recent Clips Strip */}
             {recentClips.length > 0 && (
               <div className="card-modern overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-violet-50 to-white">
+                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-violet-500/10 to-transparent">
                   <div>
-                    <h2 className="text-lg font-bold text-fire-950">Recent Uploads</h2>
-                    <p className="text-xs text-gray-500">Latest team media</p>
+                    <h2 className="text-lg font-bold text-white">Recent Uploads</h2>
+                    <p className="text-xs text-gray-400">Latest team media</p>
                   </div>
                   <Link to="/player-media" className="text-violet-600 hover:text-violet-700 text-sm font-semibold">
                     View All →
@@ -320,12 +320,12 @@ const Dashboard: React.FC = () => {
 
             {/* Latest News */}
             <div className="card-modern overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
                 <div>
-                  <h2 className="text-lg font-bold text-fire-950">Latest News</h2>
-                  <p className="text-xs text-gray-500">From your coaching staff</p>
+                  <h2 className="text-lg font-bold text-white">Latest News</h2>
+                  <p className="text-xs text-gray-400">From your coaching staff</p>
                 </div>
-                <Link to="/news" className="text-amber-600 hover:text-amber-700 text-sm font-semibold">
+                <Link to="/news" className="text-amber-600 hover:text-amber-300 text-sm font-semibold">
                   View All →
                 </Link>
               </div>
@@ -339,9 +339,9 @@ const Dashboard: React.FC = () => {
           <div className="space-y-6">
             {/* Quick Actions */}
             <div className="card-modern overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-fire-50 to-white">
-                <h2 className="text-lg font-bold text-fire-950">Quick Actions</h2>
-                <p className="text-xs text-gray-500">Jump back in</p>
+              <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-fire-500/10 to-transparent">
+                <h2 className="text-lg font-bold text-white">Quick Actions</h2>
+                <p className="text-xs text-gray-400">Jump back in</p>
               </div>
               <div className="p-4 grid grid-cols-2 gap-2">
                 {isUserCoach ? (
@@ -367,12 +367,12 @@ const Dashboard: React.FC = () => {
             {/* Top Scorers */}
             {topScorers.length > 0 && (
               <div className="card-modern overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
+                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
                   <div>
-                    <h2 className="text-lg font-bold text-fire-950">🏅 Top Scorers</h2>
-                    <p className="text-xs text-gray-500">Leading the table</p>
+                    <h2 className="text-lg font-bold text-white">🏅 Top Scorers</h2>
+                    <p className="text-xs text-gray-400">Leading the table</p>
                   </div>
-                  <Link to="/stats" className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold">
+                  <Link to="/stats" className="text-emerald-600 hover:text-emerald-300 text-sm font-semibold">
                     View All →
                   </Link>
                 </div>
@@ -384,22 +384,22 @@ const Dashboard: React.FC = () => {
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-fire-50/60 transition group"
                     >
                       <div className={`relative w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shadow ${
-                        index === 0 ? 'bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-900 ring-2 ring-amber-300/50' :
+                        index === 0 ? 'bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-200 ring-2 ring-amber-300/50' :
                         index === 1 ? 'bg-gradient-to-br from-gray-200 to-gray-400 text-gray-800' :
                         index === 2 ? 'bg-gradient-to-br from-orange-300 to-amber-600 text-orange-900' :
-                        'bg-gray-100 text-gray-700'
+                        'bg-gray-100 text-gray-200'
                       }`}>
                         {index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-fire-950 truncate group-hover:text-cyan-700">{player.name}</p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="font-bold text-white truncate group-hover:text-cyan-300">{player.name}</p>
+                        <p className="text-xs text-gray-400 truncate">
                           {player.jerseyNumber != null ? `#${player.jerseyNumber} · ` : ''}{player.position || 'Player'}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-fire-950 leading-tight">{player.stats?.goals || 0}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-wide">goals</p>
+                        <p className="font-black text-white leading-tight">{player.stats?.goals || 0}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">goals</p>
                       </div>
                     </Link>
                   ))}
@@ -410,16 +410,16 @@ const Dashboard: React.FC = () => {
             {/* Top Assists (compact) */}
             {topAssists.length > 0 && (
               <div className="card-modern overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-cyan-50 to-white">
-                  <h2 className="text-lg font-bold text-fire-950">🎯 Playmakers</h2>
-                  <p className="text-xs text-gray-500">Top assist providers</p>
+                <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 to-transparent">
+                  <h2 className="text-lg font-bold text-white">🎯 Playmakers</h2>
+                  <p className="text-xs text-gray-400">Top assist providers</p>
                 </div>
                 <div className="p-4 space-y-2">
                   {topAssists.map((player) => (
                     <Link
                       key={player.id}
                       to={`/player/${player.id}`}
-                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-cyan-50/60 transition"
+                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-cyan-500/10 transition"
                     >
                       <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black shadow">
                         {(player as any).profilePhotoUrl ? (
@@ -429,14 +429,14 @@ const Dashboard: React.FC = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-fire-950 truncate">{player.name}</p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="font-bold text-white truncate">{player.name}</p>
+                        <p className="text-xs text-gray-400 truncate">
                           {player.jerseyNumber != null ? `#${player.jerseyNumber} · ` : ''}{player.position || 'Player'}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-cyan-700 leading-tight">{player.stats?.assists || 0}</p>
-                        <p className="text-[10px] text-gray-500 uppercase tracking-wide">assists</p>
+                        <p className="font-black text-cyan-300 leading-tight">{player.stats?.assists || 0}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide">assists</p>
                       </div>
                     </Link>
                   ))}
@@ -463,15 +463,15 @@ const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cy
 };
 
 const StatCard: React.FC<{ icon: string; label: string; value: number | string; gradient: string; small?: boolean }> = ({ icon, label, value, gradient, small }) => (
-  <div className="group relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 p-4 sm:p-5 hover:shadow-lg hover:-translate-y-0.5 transition">
+  <div className="group relative overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5 hover:shadow-lg hover:-translate-y-0.5 transition">
     <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition`} />
     <div className="relative flex items-center gap-3">
       <div className={`flex-shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-xl sm:text-2xl shadow-md`}>
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</p>
-        <p className={`font-black text-fire-950 leading-tight ${small ? 'text-base sm:text-lg' : 'text-2xl sm:text-3xl'}`}>{value}</p>
+        <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</p>
+        <p className={`font-black text-white leading-tight ${small ? 'text-base sm:text-lg' : 'text-2xl sm:text-3xl'}`}>{value}</p>
       </div>
     </div>
   </div>
@@ -480,11 +480,11 @@ const StatCard: React.FC<{ icon: string; label: string; value: number | string; 
 const SectionHeader: React.FC<{ title: string; subtitle?: string; link?: { to: string; label: string } }> = ({ title, subtitle, link }) => (
   <div className="flex items-end justify-between mb-3 px-1">
     <div>
-      <h2 className="text-xl font-black text-fire-950">{title}</h2>
-      {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+      <h2 className="text-xl font-black text-white">{title}</h2>
+      {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
     </div>
     {link && (
-      <Link to={link.to} className="text-sm font-semibold text-cyan-600 hover:text-cyan-700">
+      <Link to={link.to} className="text-sm font-semibold text-cyan-600 hover:text-cyan-300">
         {link.label} →
       </Link>
     )}
@@ -497,7 +497,7 @@ const ClipTile: React.FC<{ clip: any; rank: number }> = ({ clip, rank }) => {
   return (
     <Link
       to={`/player-media?clip=${clip.id}`}
-      className="group relative aspect-[3/4] rounded-2xl overflow-hidden ring-1 ring-gray-100 bg-gradient-to-br from-gray-800 to-gray-950 shadow hover:shadow-xl hover:-translate-y-0.5 transition"
+      className="group relative aspect-[3/4] rounded-2xl overflow-hidden ring-1 ring-white/10 bg-gradient-to-br from-gray-800 to-gray-950 shadow hover:shadow-xl hover:-translate-y-0.5 transition"
     >
       {thumb ? (
         <img src={thumb} alt={clip.caption || clip.playerName} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition" loading="lazy" />
@@ -505,7 +505,7 @@ const ClipTile: React.FC<{ clip: any; rank: number }> = ({ clip, rank }) => {
         <div className="w-full h-full flex items-center justify-center text-4xl">🎬</div>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-white/90 backdrop-blur text-fire-900 text-[10px] font-black flex items-center gap-1">
+      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-white/90 backdrop-blur text-fire-100 text-[10px] font-black flex items-center gap-1">
         #{rank} 🔥
       </div>
       {clip.type === 'video' && (
@@ -528,7 +528,7 @@ const ClipThumb: React.FC<{ clip: any }> = ({ clip }) => {
   return (
     <Link
       to={`/player-media?clip=${clip.id}`}
-      className="group flex-shrink-0 w-28 sm:w-32 rounded-xl overflow-hidden ring-1 ring-gray-100 bg-gray-100 hover:ring-cyan-300 hover:shadow-md transition"
+      className="group flex-shrink-0 w-28 sm:w-32 rounded-xl overflow-hidden ring-1 ring-white/10 bg-gray-100 hover:ring-cyan-300 hover:shadow-md transition"
     >
       <div className="relative aspect-square bg-gradient-to-br from-gray-700 to-gray-900">
         {thumb ? (
@@ -542,9 +542,9 @@ const ClipThumb: React.FC<{ clip: any }> = ({ clip }) => {
           </div>
         )}
       </div>
-      <div className="px-2 py-1.5 bg-white">
-        <p className="text-[11px] font-bold text-fire-950 truncate">{clip.playerName || 'Team'}</p>
-        <p className="text-[10px] text-gray-500 truncate">{timeAgo(new Date(clip.createdAt))}</p>
+      <div className="px-2 py-1.5 bg-gray-900/60">
+        <p className="text-[11px] font-bold text-white truncate">{clip.playerName || 'Team'}</p>
+        <p className="text-[10px] text-gray-400 truncate">{timeAgo(new Date(clip.createdAt))}</p>
       </div>
     </Link>
   );
@@ -553,13 +553,13 @@ const ClipThumb: React.FC<{ clip: any }> = ({ clip }) => {
 const ActionTile: React.FC<{ to: string; emoji: string; label: string; gradient: string }> = ({ to, emoji, label, gradient }) => (
   <Link
     to={to}
-    className="group relative overflow-hidden rounded-2xl p-3 ring-1 ring-gray-100 bg-white hover:shadow-md hover:-translate-y-0.5 transition flex flex-col items-center justify-center text-center min-h-[80px]"
+    className="group relative overflow-hidden rounded-2xl p-3 ring-1 ring-white/10 bg-white/5 hover:shadow-md hover:-translate-y-0.5 transition flex flex-col items-center justify-center text-center min-h-[80px]"
   >
     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition`} />
     <div className={`relative w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-lg shadow mb-1`}>
       {emoji}
     </div>
-    <span className="relative text-xs font-bold text-fire-950">{label}</span>
+    <span className="relative text-xs font-bold text-white">{label}</span>
   </Link>
 );
 

@@ -198,13 +198,13 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       {/* Header with sort options and add button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center space-x-4">
-          <h2 className="text-lg font-semibold text-fire-950">
+          <h2 className="text-lg font-semibold text-white">
             Team Players ({filteredPlayers.length})
           </h2>
 
           {/* Sort options */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Sort by:</span>
+            <span className="text-sm text-gray-300">Sort by:</span>
             <div className="flex space-x-1">
               {[
                 { key: 'jerseyNumber' as const, label: '#' },
@@ -217,8 +217,8 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                   onClick={() => handleSort(key)}
                   className={`px-2 py-1 text-sm rounded-lg flex items-center space-x-1 transition-colors duration-200 ${
                     sortBy === key
-                      ? 'bg-cyan-50 text-cyan-700'
-                      : 'text-gray-600 hover:bg-gray-100'
+                      ? 'bg-cyan-500/10 text-cyan-300'
+                      : 'text-gray-300 hover:bg-white/10'
                   }`}
                 >
                   <span>{label}</span>
@@ -254,8 +254,8 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-fire-950 mb-2">No Players Found</h3>
-          <p className="text-gray-600 mb-4">
+          <h3 className="text-lg font-semibold text-white mb-2">No Players Found</h3>
+          <p className="text-gray-300 mb-4">
             {searchTerm || positionFilter
               ? 'No players match your current filters.'
               : 'No players have been added to the team yet.'}

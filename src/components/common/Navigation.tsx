@@ -230,7 +230,7 @@ const Navigation: React.FC = () => {
           {isUserCoach && (
             <button
               onClick={() => setIsInviteOpen(true)}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-cyan-500 hover:bg-cyan-400 text-fire-950 transition-colors`}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-cyan-500 hover:bg-cyan-400 text-white transition-colors`}
             >
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -239,7 +239,7 @@ const Navigation: React.FC = () => {
             </button>
           )}
           <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2`}>
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-cyan-400 to-fire-400 flex items-center justify-center text-fire-950 font-bold text-sm flex-shrink-0">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-cyan-400 to-fire-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               {userData?.name?.charAt(0).toUpperCase()}
             </div>
             {!sidebarCollapsed && (
@@ -273,7 +273,7 @@ const Navigation: React.FC = () => {
                 ))}
               </select>
             )}
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-fire-400 flex items-center justify-center text-fire-950 font-bold text-xs">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-fire-400 flex items-center justify-center text-white font-bold text-xs">
               {userData?.name?.charAt(0).toUpperCase()}
             </div>
           </div>
@@ -281,7 +281,7 @@ const Navigation: React.FC = () => {
       </header>
 
       {/* ===== MOBILE BOTTOM TAB BAR ===== */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 safe-bottom">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-fire-950/95 backdrop-blur border-t border-white/10 safe-bottom">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           {bottomTabs.map(tab => {
             const active = tab.path === '#more' ? isMoreOpen : isActive(tab.path);
@@ -324,7 +324,7 @@ const Navigation: React.FC = () => {
             onClick={() => setIsMoreOpen(false)}
           />
           {/* Sheet */}
-          <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up safe-bottom">
+          <div className="absolute bottom-0 inset-x-0 bg-fire-950 rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up safe-bottom">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 rounded-full bg-gray-300" />
@@ -335,13 +335,13 @@ const Navigation: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <img src="/images/logo.png" alt="Fire FC" className="h-8 w-8 object-contain" />
                 <div>
-                  <div className="font-bold text-fire-950">{selectedTeam?.name || 'Fire FC'}</div>
-                  <div className="text-xs text-gray-500">{userData?.name}</div>
+                  <div className="font-bold text-white">{selectedTeam?.name || 'Fire FC'}</div>
+                  <div className="text-xs text-gray-400">{userData?.name}</div>
                 </div>
               </div>
               <button
                 onClick={() => setIsMoreOpen(false)}
-                className="p-2 rounded-full hover:bg-gray-100 text-gray-400"
+                className="p-2 rounded-full hover:bg-white/10 text-gray-400"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -355,7 +355,7 @@ const Navigation: React.FC = () => {
                 <select
                   value={selectedTeamId}
                   onChange={e => setSelectedTeamId(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 text-gray-700 focus:ring-2 focus:ring-cyan-500"
+                  className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-gray-50 text-gray-200 focus:ring-2 focus:ring-cyan-500"
                 >
                   {teams.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -374,8 +374,8 @@ const Navigation: React.FC = () => {
                     to={item.path}
                     className={`flex flex-col items-center p-3 rounded-2xl transition-all ${
                       isActive(item.path)
-                        ? 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-cyan-500/10 text-cyan-300 ring-1 ring-cyan-200'
+                        : 'bg-gray-50 text-gray-300 hover:bg-white/10'
                     }`}
                   >
                     <span className="text-2xl mb-1">{item.emoji}</span>
@@ -394,7 +394,7 @@ const Navigation: React.FC = () => {
                 >
                   <span className="text-2xl">⚽</span>
                   <div>
-                    <div className="font-medium text-fire-900">{linkedPlayer.name}</div>
+                    <div className="font-medium text-fire-100">{linkedPlayer.name}</div>
                     <div className="text-xs text-fire-600">View player profile</div>
                   </div>
                 </Link>
@@ -402,11 +402,11 @@ const Navigation: React.FC = () => {
             )}
 
             {/* Actions */}
-            <div className="px-6 py-3 space-y-2 border-t border-gray-100">
+            <div className="px-6 py-3 space-y-2 border-t border-white/10">
               {isUserCoach && (
                 <button
                   onClick={() => { setIsInviteOpen(true); setIsMoreOpen(false); }}
-                  className="w-full flex items-center space-x-3 p-3 rounded-2xl bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition-colors"
+                  className="w-full flex items-center space-x-3 p-3 rounded-2xl bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition-colors"
                 >
                   <span className="text-xl">➕</span>
                   <span className="font-medium">Invite Parents</span>
@@ -414,7 +414,7 @@ const Navigation: React.FC = () => {
               )}
               <button
                 onClick={() => { handleLogout(); setIsMoreOpen(false); }}
-                className="w-full flex items-center space-x-3 p-3 rounded-2xl text-red-500 hover:bg-red-50 transition-colors"
+                className="w-full flex items-center space-x-3 p-3 rounded-2xl text-red-500 hover:bg-rose-500/10 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />

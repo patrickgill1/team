@@ -130,14 +130,14 @@ The Team Manager Team`;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
+      <div className="bg-gray-900/80 rounded-lg max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-white">
             {isUserCoach ? 'Invite Parents to Team' : 'Invite Family Member'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            className="text-gray-400 hover:text-gray-300 transition-colors duration-200"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -145,7 +145,7 @@ The Team Manager Team`;
           </button>
         </div>
 
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-300 mb-6">
           {isUserCoach 
             ? 'Invite parents to join your team so they can see players, events, and communicate with other families.'
             : 'Invite your spouse, partner, or other family members to join the team and stay updated.'
@@ -177,12 +177,12 @@ The Team Manager Team`;
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 mb-4">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-rose-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-red-600 text-sm">{error}</p>
+              <p className="text-rose-300 text-sm">{error}</p>
             </div>
           </div>
         )}
@@ -190,7 +190,7 @@ The Team Manager Team`;
         <div className="space-y-4">
           {/* Email Input */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
               Email Address
             </label>
             <input
@@ -202,7 +202,7 @@ The Team Manager Team`;
                 setError('');
               }}
               onKeyPress={handleKeyPress}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter their email address"
               disabled={isSending}
               autoComplete="email"
@@ -211,14 +211,14 @@ The Team Manager Team`;
 
           {/* Relationship */}
           <div>
-            <label htmlFor="relationship" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="relationship" className="block text-sm font-medium text-gray-200 mb-1">
               {isUserCoach ? 'They are a...' : 'Relationship'}
             </label>
             <select
               id="relationship"
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isSending}
             >
               {isUserCoach ? (
@@ -266,7 +266,7 @@ The Team Manager Team`;
             <button
               onClick={copyInviteLink}
               disabled={isSending}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-200 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center"
               title="Copy invite link"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,12 +277,12 @@ The Team Manager Team`;
           </div>
 
           {/* Manual Instructions */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Share Invite Link Manually</h4>
-            <p className="text-xs text-gray-600 mb-2">
+          <div className="mt-6 pt-4 border-t border-white/10">
+            <h4 className="text-sm font-medium text-white mb-2">Share Invite Link Manually</h4>
+            <p className="text-xs text-gray-300 mb-2">
               You can also share this link directly via text, social media, or any other method:
             </p>
-            <div className="bg-gray-50 p-2 rounded text-xs text-gray-700 break-all font-mono">
+            <div className="bg-gray-50 p-2 rounded text-xs text-gray-200 break-all font-mono">
               {generateInviteLink()}
             </div>
           </div>

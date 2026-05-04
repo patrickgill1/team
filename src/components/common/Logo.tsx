@@ -26,9 +26,9 @@ const Logo: React.FC<LogoProps> = ({
 
   // Color configurations for text
   const colorConfig = {
-    primary: { text: 'text-gray-900' },
+    primary: { text: 'text-white' },
     white: { text: 'text-white' },
-    dark: { text: 'text-gray-900' }
+    dark: { text: 'text-white' }
   };
 
   const config = sizeConfig[size];

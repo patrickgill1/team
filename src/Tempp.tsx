@@ -17,7 +17,7 @@ import Gallery from './pages/GalleryPage';
 // Layout component for authenticated pages
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Navigation />
       <main>{children}</main>
     </div>

@@ -170,15 +170,15 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   };
 
   return (
-    <div className="bg-white border-t border-gray-200 p-4">
+    <div className="bg-gray-900/60 backdrop-blur border-t border-white/10 p-4">
       {replyingTo && (
         <div className="mb-3 p-2 bg-gray-100 rounded flex items-center justify-between">
-          <span className="text-sm text-gray-600 truncate">
+          <span className="text-sm text-gray-300 truncate">
             Replying to {replyingTo.senderName}
           </span>
           <button
             onClick={onCancelReply}
-            className="text-gray-400 hover:text-gray-600 ml-2 flex-shrink-0"
+            className="text-gray-400 hover:text-gray-300 ml-2 flex-shrink-0"
             aria-label="Cancel reply"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,7 +195,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
               <img
                 src={a.url}
                 alt={a.name}
-                className="w-16 h-16 object-cover rounded-lg border border-gray-300"
+                className="w-16 h-16 object-cover rounded-lg border border-white/15"
               />
               <button
                 onClick={() => removePending(i)}
@@ -210,7 +210,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {uploading && (
-        <div className="mb-2 text-xs text-gray-500">Uploading {uploadPct}%…</div>
+        <div className="mb-2 text-xs text-gray-400">Uploading {uploadPct}%…</div>
       )}
 
       <div className="relative flex space-x-2 items-end">
@@ -225,7 +225,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="flex-shrink-0 w-10 h-10 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 flex items-center justify-center"
+          className="flex-shrink-0 w-10 h-10 rounded-lg border border-white/15 text-gray-300 hover:bg-white/5 flex items-center justify-center"
           title="Attach image"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,11 +241,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             onKeyDown={handleKey}
             placeholder="Type a message… use @ to mention"
             rows={rows}
-            className="w-full resize-none border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+            className="w-full resize-none border border-white/15 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
             style={{ fontSize: '16px' }}
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
-            <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+            <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-white/5 border border-white/10 rounded-lg shadow-lg">
               {filteredMembers.map((m, i) => (
                 <button
                   key={m.uid}
@@ -254,13 +254,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     e.preventDefault();
                     insertMention(m);
                   }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-white/10 ${
                     i === highlight ? 'bg-gray-100' : ''
                   }`}
                 >
-                  <span className="font-medium text-gray-900">{m.name}</span>
+                  <span className="font-medium text-white">{m.name}</span>
                   {m.role && (
-                    <span className="ml-2 text-xs text-gray-500">{m.role}</span>
+                    <span className="ml-2 text-xs text-gray-400">{m.role}</span>
                   )}
                 </button>
               ))}

@@ -26,7 +26,7 @@ const GalleryPage: React.FC = () => {
   const hasActiveFilters = searchTerm || tagFilter;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header 
         title="Team Gallery" 
         subtitle="Share and view team photos and memories"
@@ -49,14 +49,14 @@ const GalleryPage: React.FC = () => {
                   placeholder="Search photos by caption or uploader..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   >
-                    <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 text-gray-400 hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -70,14 +70,14 @@ const GalleryPage: React.FC = () => {
                   placeholder="Filter by tag..."
                   value={tagFilter}
                   onChange={(e) => setTagFilter(e.target.value)}
-                  className="w-full md:w-48 pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full md:w-48 pl-3 pr-4 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 />
                 {tagFilter && (
                   <button
                     onClick={() => setTagFilter('')}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   >
-                    <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 text-gray-400 hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -89,7 +89,7 @@ const GalleryPage: React.FC = () => {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center space-x-2"
+                className="px-4 py-2 text-gray-300 hover:text-gray-800 border border-white/15 rounded-lg hover:bg-white/5 transition-colors duration-200 flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -102,13 +102,13 @@ const GalleryPage: React.FC = () => {
           {/* Active Filters Display */}
           {hasActiveFilters && (
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-gray-700">Active filters:</span>
+              <span className="text-sm font-medium text-gray-200">Active filters:</span>
               {searchTerm && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-cyan-50 text-cyan-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-cyan-500/10 text-cyan-300">
                   Search: "{searchTerm}"
                   <button
                     onClick={() => setSearchTerm('')}
-                    className="ml-2 text-cyan-600 hover:text-cyan-700"
+                    className="ml-2 text-cyan-600 hover:text-cyan-300"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -138,31 +138,31 @@ const GalleryPage: React.FC = () => {
 
         {/* Photo Upload Tips */}
         <div className="mt-8 card-modern p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">📸 Photo Tips</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">📸 Photo Tips</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-cyan-50 rounded-lg">
+            <div className="text-center p-4 bg-cyan-500/10 rounded-lg">
               <div className="text-2xl mb-2">🏆</div>
-              <h4 className="font-medium text-gray-900 mb-1">Game Moments</h4>
-              <p className="text-sm text-gray-600">Capture goals, celebrations, and team spirit during matches</p>
+              <h4 className="font-medium text-white mb-1">Game Moments</h4>
+              <p className="text-sm text-gray-300">Capture goals, celebrations, and team spirit during matches</p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl mb-2">🏃</div>
-              <h4 className="font-medium text-gray-900 mb-1">Practice Sessions</h4>
-              <p className="text-sm text-gray-600">Document training progress and skill development</p>
+              <h4 className="font-medium text-white mb-1">Practice Sessions</h4>
+              <p className="text-sm text-gray-300">Document training progress and skill development</p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl mb-2">👨‍👩‍👧‍👦</div>
-              <h4 className="font-medium text-gray-900 mb-1">Team Bonding</h4>
-              <p className="text-sm text-gray-600">Share team events, parties, and fun moments</p>
+              <h4 className="font-medium text-white mb-1">Team Bonding</h4>
+              <p className="text-sm text-gray-300">Share team events, parties, and fun moments</p>
             </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+            <div className="text-center p-4 bg-amber-500/10 rounded-lg">
               <div className="text-2xl mb-2">🏅</div>
-              <h4 className="font-medium text-gray-900 mb-1">Achievements</h4>
-              <p className="text-sm text-gray-600">Celebrate wins, awards, and personal milestones</p>
+              <h4 className="font-medium text-white mb-1">Achievements</h4>
+              <p className="text-sm text-gray-300">Celebrate wins, awards, and personal milestones</p>
             </div>
           </div>
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-300">
               <strong>Remember:</strong> Keep photos appropriate and focus on positive team moments. 
               Use tags like "practice", "game", "celebration" to help others find photos easily.
             </p>

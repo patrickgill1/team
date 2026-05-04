@@ -39,14 +39,14 @@ const Players: React.FC = () => {
                   placeholder="Search players by name or jersey number..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white"
+                  className="w-full pl-10 pr-4 py-2 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white/5"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   >
-                    <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 text-gray-400 hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -58,7 +58,7 @@ const Players: React.FC = () => {
                 <select
                   value={positionFilter}
                   onChange={(e) => setPositionFilter(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 >
                   <option value="">All Positions</option>
                   {positions.map(position => (
@@ -77,7 +77,7 @@ const Players: React.FC = () => {
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors duration-200 flex items-center space-x-2"
+                className="px-4 py-2 text-gray-300 hover:text-gray-800 border border-white/10 rounded-xl hover:bg-white/5 transition-colors duration-200 flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -90,9 +90,9 @@ const Players: React.FC = () => {
           {/* Active Filters Display */}
           {hasActiveFilters && (
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-gray-700">Active filters:</span>
+              <span className="text-sm font-medium text-gray-200">Active filters:</span>
               {searchTerm && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-cyan-50 text-cyan-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-cyan-500/10 text-cyan-300">
                   Search: "{searchTerm}"
                   <button
                     onClick={() => setSearchTerm('')}
@@ -105,7 +105,7 @@ const Players: React.FC = () => {
                 </span>
               )}
               {positionFilter && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-emerald-50 text-emerald-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-emerald-500/10 text-emerald-300">
                   Position: {positionFilter}
                   <button
                     onClick={() => setPositionFilter('')}

@@ -130,7 +130,7 @@ const Highlights: React.FC = () => {
 
   if (!selectedTeamId) {
     return (
-      <div className="p-6 text-center text-gray-600">Select a team to see highlights.</div>
+      <div className="p-6 text-center text-gray-300">Select a team to see highlights.</div>
     );
   }
 

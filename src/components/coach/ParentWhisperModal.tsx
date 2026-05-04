@@ -69,7 +69,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
 
   return (
     <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-900/95 backdrop-blur rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 px-5 py-4 z-10">
           <div className="flex items-center justify-between">
@@ -142,7 +142,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
               <select
                 value={includeClipId}
                 onChange={e => setIncludeClipId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm bg-white"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm bg-white/5"
               >
                 <option value="none">— None —</option>
                 {recentClips.map(c => (
@@ -155,7 +155,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
           )}
 
           {result && (
-            <div className={`text-sm rounded-xl p-3 ${result.ok ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'}`}>
+            <div className={`text-sm rounded-xl p-3 ${result.ok ? 'bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-200' : 'bg-rose-500/10 text-rose-300 ring-1 ring-rose-200'}`}>
               {result.ok ? `✓ Sent to ${result.count} parent${result.count === 1 ? '' : 's'}.` : (result.reason || 'Send failed.')}
             </div>
           )}

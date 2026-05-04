@@ -40,10 +40,10 @@ const QuickGameLauncher = React.lazy(() => import('./pages/QuickGameLauncher'));
 const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder'));
 
 const PageSpinner = () => (
-  <div className="min-h-screen bg-fire-50 flex items-center justify-center">
+  <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950 flex items-center justify-center">
     <div className="flex flex-col items-center space-y-3">
       <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
-      <span className="text-sm text-fire-400 font-medium">Loading...</span>
+      <span className="text-sm text-gray-400 font-medium">Loading...</span>
     </div>
   </div>
 );
@@ -96,10 +96,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-fire-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
-          <span className="text-sm text-fire-400 font-medium">Loading...</span>
+          <span className="text-sm text-gray-400 font-medium">Loading...</span>
         </div>
       </div>
     );
@@ -107,14 +107,14 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (gateReason === 'pending-approval') {
     return (
-      <div className="min-h-screen bg-fire-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950 flex items-center justify-center px-4">
         <div className="max-w-sm w-full text-center">
           <div className="text-6xl mb-4">🔒</div>
-          <h1 className="text-2xl font-bold text-fire-950 mb-2">Waiting for Approval</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-white mb-2">Waiting for Approval</h1>
+          <p className="text-gray-300 mb-6">
             Your account has been created but needs to be approved by a coach before you can access the team.
           </p>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left text-sm text-amber-800 mb-6">
+          <div className="bg-amber-500/10 border border-amber-200 rounded-2xl p-4 text-left text-sm text-amber-800 mb-6">
             <p className="font-medium mb-1">Your email:</p>
             <p className="font-mono bg-amber-100 px-2 py-1 rounded-lg">{userData?.email}</p>
           </div>
@@ -126,7 +126,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </button>
           <button
             onClick={logout}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-400 hover:text-gray-200"
           >
             Sign Out
           </button>
@@ -137,16 +137,16 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (gateReason === 'not-linked') {
     return (
-      <div className="min-h-screen bg-fire-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950 flex items-center justify-center px-4">
         <div className="max-w-sm w-full text-center">
           <div className="text-6xl mb-4">⏳</div>
-          <h1 className="text-2xl font-bold text-fire-950 mb-2">Almost There!</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-white mb-2">Almost There!</h1>
+          <p className="text-gray-300 mb-6">
             Your account is approved! A coach just needs to link you to your child's player profile and everything will appear automatically.
           </p>
-          <div className="bg-fire-100 border border-fire-200 rounded-2xl p-4 text-left text-sm text-fire-800 mb-6">
+          <div className="bg-fire-500/10 border border-white/10 rounded-2xl p-4 text-left text-sm text-fire-200 mb-6">
             <p className="font-medium mb-1">Let your coach know:</p>
-            <p>Edit the player → add <span className="font-mono bg-fire-200 px-1 rounded-lg">{userData?.email}</span> as a parent email.</p>
+            <p>Edit the player → add <span className="font-mono bg-fire-500/20 px-1 rounded-lg">{userData?.email}</span> as a parent email.</p>
           </div>
           <button
             onClick={() => { window.location.reload(); }}
@@ -156,7 +156,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </button>
           <button
             onClick={logout}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-400 hover:text-gray-200"
           >
             Sign Out
           </button>
@@ -166,7 +166,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-fire-50">
+    <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950 text-gray-200">
       <Navigation />
       {/* Main content: offset for desktop sidebar + mobile top/bottom bars */}
       <main className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0">

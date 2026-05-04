@@ -48,37 +48,37 @@ code {
 }
 
 /* ===== CARD SYSTEM ===== */
+/* Solid gray-800 (#1f2937) — clearly lighter than the near-black page bg
+   so cards visibly lift. Subtle inner top highlight + deeper outer shadow
+   for premium depth without looking flat. */
 .card-modern {
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: #1f2937;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 4px 14px rgba(0,0,0,0.45),
+    0 1px 3px rgba(0,0,0,0.3);
   border: 1px solid rgba(255,255,255,0.08);
   color: #e5e7eb;
   transition: all 0.2s ease;
 }
 .card-modern:hover {
   border-color: rgba(255,255,255,0.14);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.08) inset,
+    0 12px 32px rgba(0,0,0,0.55),
+    0 2px 6px rgba(0,0,0,0.35);
   transform: translateY(-1px);
 }
 
-/* PREVIEW: lifted variant — clearer contrast against the dark page bg.
-   Used only on Dashboard for now so the user can A/B against card-modern. */
-.card-lift {
-  background: linear-gradient(180deg, rgba(55,65,81,0.55) 0%, rgba(31,41,55,0.7) 100%);
-  border-radius: 16px;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 16px rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.10);
-  color: #e5e7eb;
-  transition: all 0.2s ease;
-}
-.card-lift:hover {
-  border-color: rgba(255,255,255,0.18);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 32px rgba(0,0,0,0.55);
-  transform: translateY(-1px);
-}
+/* Alias kept temporarily so Dashboard's card-lift refs still resolve while
+   we revert them. Both classes look identical. */
+.card-lift { background: #1f2937; border-radius: 16px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 4px 14px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08); color: #e5e7eb; transition: all 0.2s ease; }
+.card-lift:hover { border-color: rgba(255,255,255,0.14);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35);
+  transform: translateY(-1px); }
 
 .card-interactive {
   cursor: pointer;

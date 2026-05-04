@@ -356,7 +356,7 @@ const FullGames: React.FC = () => {
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
                         <button
                           onClick={() => setSelectedGame(g)}
-                          className="text-xs text-cyan-600 hover:underline font-medium"
+                          className="text-xs text-cyan-300 hover:underline font-medium"
                         >
                           Watch →
                         </button>

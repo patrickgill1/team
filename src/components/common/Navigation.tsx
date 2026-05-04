@@ -291,7 +291,7 @@ const Navigation: React.FC = () => {
                   key={tab.name}
                   onClick={() => setIsMoreOpen(!isMoreOpen)}
                   className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                    active ? 'text-cyan-600' : 'text-gray-400'
+                    active ? 'text-cyan-300' : 'text-gray-400'
                   }`}
                 >
                   {tab.icon(active)}
@@ -304,7 +304,7 @@ const Navigation: React.FC = () => {
                 key={tab.name}
                 to={tab.path}
                 className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  active ? 'text-cyan-600' : 'text-gray-400'
+                  active ? 'text-cyan-300' : 'text-gray-400'
                 }`}
               >
                 {tab.icon(active)}

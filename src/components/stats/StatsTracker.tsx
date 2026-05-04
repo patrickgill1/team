@@ -199,7 +199,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
         <div className="p-6">
           {successMessage && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-              <p className="text-green-600 text-sm">{successMessage}</p>
+              <p className="text-emerald-300 text-sm">{successMessage}</p>
             </div>
           )}
 
@@ -370,7 +370,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   type="button"
                   onClick={addKeyPlay}
                   disabled={isSubmitting}
-                  className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  className="mt-2 text-cyan-300 hover:text-cyan-200 text-sm font-medium"
                 >
                   + Add Key Play
                 </button>

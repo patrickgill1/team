@@ -194,7 +194,7 @@ const PlayerProfile: React.FC = () => {
         <div className="text-center">
           <div className="text-5xl mb-4">😕</div>
           <h2 className="text-xl font-bold text-white">Player Not Found</h2>
-          <Link to="/players" className="text-cyan-600 hover:underline mt-2 inline-block">← Back to Roster</Link>
+          <Link to="/players" className="text-cyan-300 hover:underline mt-2 inline-block">← Back to Roster</Link>
         </div>
       </div>
     );
@@ -295,7 +295,7 @@ const PlayerProfile: React.FC = () => {
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   activeTab === tab
-                    ? 'border-cyan-600 text-cyan-600'
+                    ? 'border-cyan-600 text-cyan-300'
                     : 'border-transparent text-gray-400 hover:text-gray-200'
                 }`}
               >
@@ -320,15 +320,15 @@ const PlayerProfile: React.FC = () => {
               <h2 className="text-lg font-bold text-white mb-4">Season Stats</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-white/5 rounded-lg">
-                  <div className="text-2xl font-bold text-cyan-600">{player.stats?.gamesPlayed || 0}</div>
+                  <div className="text-2xl font-bold text-cyan-300">{player.stats?.gamesPlayed || 0}</div>
                   <div className="text-sm text-gray-300">Games</div>
                 </div>
                 <div className="text-center p-3 bg-white/5 rounded-lg">
-                  <div className="text-2xl font-bold text-emerald-600">{player.stats?.goals || 0}</div>
+                  <div className="text-2xl font-bold text-emerald-300">{player.stats?.goals || 0}</div>
                   <div className="text-sm text-gray-300">Goals</div>
                 </div>
                 <div className="text-center p-3 bg-white/5 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{player.stats?.assists || 0}</div>
+                  <div className="text-2xl font-bold text-violet-300">{player.stats?.assists || 0}</div>
                   <div className="text-sm text-gray-300">Assists</div>
                 </div>
                 <div className="text-center p-3 bg-white/5 rounded-lg">
@@ -343,7 +343,7 @@ const PlayerProfile: React.FC = () => {
               <div className="bg-gray-900/80 rounded-xl border border-white/10 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-white">Development Progress</h2>
-                  <button onClick={() => setActiveTab('development')} className="text-sm text-cyan-600 hover:underline">View All →</button>
+                  <button onClick={() => setActiveTab('development')} className="text-sm text-cyan-300 hover:underline">View All →</button>
                 </div>
 
                 {/* Effort hero — celebrate practice time */}
@@ -362,11 +362,11 @@ const PlayerProfile: React.FC = () => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   <div className="text-center p-3 bg-cyan-500/10 rounded-lg">
-                    <div className="text-2xl font-bold text-cyan-600">{activePlans.length}</div>
+                    <div className="text-2xl font-bold text-cyan-300">{activePlans.length}</div>
                     <div className="text-xs text-gray-300">Active Plans</div>
                   </div>
                   <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-emerald-600">{completedPlans.length}</div>
+                    <div className="text-2xl font-bold text-emerald-300">{completedPlans.length}</div>
                     <div className="text-xs text-gray-300">Completed</div>
                   </div>
                   <div className="text-center p-3 bg-amber-500/10 rounded-lg">
@@ -394,7 +394,7 @@ const PlayerProfile: React.FC = () => {
                           <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryColor(plan.category)}`}>{plan.category}</span>
                         </div>
                         {planMins > 0 && (
-                          <span className="text-xs font-semibold text-orange-600">🔥 {formatMinutes(planMins)}{planTarget > 0 ? ` / ${formatMinutes(planTarget)}` : ''}</span>
+                          <span className="text-xs font-semibold text-orange-300">🔥 {formatMinutes(planMins)}{planTarget > 0 ? ` / ${formatMinutes(planTarget)}` : ''}</span>
                         )}
                       </div>
                       <div className="mt-2 space-y-1.5">
@@ -436,7 +436,7 @@ const PlayerProfile: React.FC = () => {
               <div className="bg-gray-900/80 rounded-xl border border-white/10 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-white">Recent Media</h2>
-                  <button onClick={() => setActiveTab('media')} className="text-sm text-cyan-600 hover:underline">View All →</button>
+                  <button onClick={() => setActiveTab('media')} className="text-sm text-cyan-300 hover:underline">View All →</button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {recentMedia.map(item => (
@@ -479,7 +479,7 @@ const PlayerProfile: React.FC = () => {
               <div className="bg-gray-900/80 rounded-xl border border-white/10 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-white">Player of the Match</h2>
-                  <button onClick={() => setActiveTab('awards')} className="text-sm text-cyan-600 hover:underline">View All →</button>
+                  <button onClick={() => setActiveTab('awards')} className="text-sm text-cyan-300 hover:underline">View All →</button>
                 </div>
                 <div className="flex items-center space-x-4 text-center mb-4">
                   <div className="bg-amber-500/10 rounded-lg p-3 flex-1">
@@ -487,7 +487,7 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-xs text-gray-300">Wins</div>
                   </div>
                   <div className="bg-cyan-500/10 rounded-lg p-3 flex-1">
-                    <div className="text-2xl font-bold text-cyan-600">{votingNominations}</div>
+                    <div className="text-2xl font-bold text-cyan-300">{votingNominations}</div>
                     <div className="text-xs text-gray-300">Times Nominated</div>
                   </div>
                 </div>
@@ -551,7 +551,7 @@ const PlayerProfile: React.FC = () => {
                 <div className="text-5xl mb-4">📸</div>
                 <h3 className="text-lg font-medium text-white">No Media Yet</h3>
                 <p className="text-gray-400 text-sm mt-1">Photos and videos will appear here.</p>
-                <Link to="/player-media" className="text-cyan-600 hover:underline text-sm mt-3 inline-block">Go to Gallery →</Link>
+                <Link to="/player-media" className="text-cyan-300 hover:underline text-sm mt-3 inline-block">Go to Gallery →</Link>
               </div>
             )}
           </div>
@@ -584,7 +584,7 @@ const PlayerProfile: React.FC = () => {
                 <div className="text-5xl mb-4">📋</div>
                 <h3 className="text-lg font-medium text-white">No Development Plans</h3>
                 <p className="text-gray-400 text-sm mt-1">Development plans from coaches will show here.</p>
-                <Link to="/development" className="text-cyan-600 hover:underline text-sm mt-3 inline-block">Go to Development →</Link>
+                <Link to="/development" className="text-cyan-300 hover:underline text-sm mt-3 inline-block">Go to Development →</Link>
               </div>
             )}
           </div>
@@ -601,7 +601,7 @@ const PlayerProfile: React.FC = () => {
               </div>
               <div className="bg-gray-900/80 rounded-xl border border-white/10 p-6 text-center">
                 <div className="text-4xl mb-2">⭐</div>
-                <div className="text-3xl font-bold text-cyan-600">{votingNominations}</div>
+                <div className="text-3xl font-bold text-cyan-300">{votingNominations}</div>
                 <div className="text-sm text-gray-300">Times Nominated</div>
               </div>
             </div>
@@ -823,16 +823,16 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <p className={`text-sm font-medium ${goal.coachVerified ? 'text-emerald-300 line-through' : 'text-white'}`}>{goal.title}</p>
                     {totalMins > 0 && (
-                      <span className="text-xs font-medium text-cyan-600 bg-cyan-500/10 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-medium text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full">
                         ⏱️ {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`}
                       </span>
                     )}
                   </div>
                   {goal.description && <p className="text-xs text-gray-400 mt-0.5">{goal.description}</p>}
-                  {goal.notes && <p className="text-xs text-cyan-600 mt-1 italic">Coach: {goal.notes}</p>}
+                  {goal.notes && <p className="text-xs text-cyan-300 mt-1 italic">Coach: {goal.notes}</p>}
                   <div className="flex gap-2 mt-1">
                     {goal.playerCompleted && <span className="text-[10px] text-gray-400">Marked done by player</span>}
-                    {goal.coachVerified && goal.coachVerifiedByName && <span className="text-[10px] text-emerald-600">Verified by {goal.coachVerifiedByName}</span>}
+                    {goal.coachVerified && goal.coachVerifiedByName && <span className="text-[10px] text-emerald-300">Verified by {goal.coachVerifiedByName}</span>}
                   </div>
 
                   {/* Practice Log entries */}
@@ -844,13 +844,13 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                           <span className="text-gray-400">
                             {entry.date?.toDate ? entry.date.toDate().toLocaleDateString() : new Date(entry.date).toLocaleDateString()}
                           </span>
-                          {entry.minutes && <span className="text-cyan-600 font-medium ml-1">({entry.minutes} min)</span>}
+                          {entry.minutes && <span className="text-cyan-300 font-medium ml-1">({entry.minutes} min)</span>}
                           {' — '}{entry.note}
                           {entry.loggedByName && <span className="text-gray-400 ml-1">— {entry.loggedByName}</span>}
                         </div>
                       ))}
                       {logs.length > 3 && showAllLogs !== goal.id && (
-                        <button onClick={() => setShowAllLogs(goal.id)} className="text-xs text-cyan-600 hover:text-cyan-300">
+                        <button onClick={() => setShowAllLogs(goal.id)} className="text-xs text-cyan-300 hover:text-cyan-300">
                           Show all {logs.length} entries
                         </button>
                       )}

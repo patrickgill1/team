@@ -54,7 +54,7 @@ const News: React.FC = () => {
               </p>
               <button
                 onClick={clearSearch}
-                className="text-sm text-cyan-600 hover:text-cyan-300 font-medium"
+                className="text-sm text-cyan-300 hover:text-cyan-300 font-medium"
               >
                 Clear search
               </button>
@@ -72,7 +72,7 @@ const News: React.FC = () => {
         {!searchTerm && (
           <div className="mt-8 text-center">
             <div className="bg-cyan-500/10 rounded-lg p-6 border border-cyan-100">
-              <div className="text-cyan-600 mb-2">
+              <div className="text-cyan-300 mb-2">
                 <svg className="mx-auto h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>

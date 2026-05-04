@@ -224,7 +224,7 @@ const PlayerJoin: React.FC = () => {
           <p className="text-rose-300 bg-rose-500/10 p-3 rounded-lg text-sm">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="mt-4 text-blue-600 hover:text-blue-800 text-sm underline"
+            className="mt-4 text-cyan-300 hover:text-blue-800 text-sm underline"
           >
             Go to homepage
           </button>
@@ -366,14 +366,14 @@ const PlayerJoin: React.FC = () => {
                 {authMode === 'login' ? (
                   <>
                     Don't have an account?{' '}
-                    <button onClick={() => { setAuthMode('register'); setAuthError(null); }} className="text-blue-600 font-medium hover:underline">
+                    <button onClick={() => { setAuthMode('register'); setAuthError(null); }} className="text-cyan-300 font-medium hover:underline">
                       Sign up
                     </button>
                   </>
                 ) : (
                   <>
                     Already have an account?{' '}
-                    <button onClick={() => { setAuthMode('login'); setAuthError(null); }} className="text-blue-600 font-medium hover:underline">
+                    <button onClick={() => { setAuthMode('login'); setAuthError(null); }} className="text-cyan-300 font-medium hover:underline">
                       Sign in
                     </button>
                   </>

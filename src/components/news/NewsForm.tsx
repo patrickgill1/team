@@ -208,7 +208,7 @@ const NewsForm: React.FC<NewsFormProps> = ({
                 checked={formData.isPinned}
                 onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
                 disabled={isSubmitting}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/15 rounded"
+                className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded"
               />
               <label htmlFor="isPinned" className="ml-2 block text-sm text-gray-200">
                 Pin this article (appears at top)
@@ -222,7 +222,7 @@ const NewsForm: React.FC<NewsFormProps> = ({
                 checked={formData.isPublished}
                 onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
                 disabled={isSubmitting}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/15 rounded"
+                className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded"
               />
               <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-200">
                 Publish immediately

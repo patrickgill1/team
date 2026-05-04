@@ -116,7 +116,7 @@ const Stats: React.FC = () => {
         {loadError && (
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-6">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-amber-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
               <div>
@@ -141,7 +141,7 @@ const Stats: React.FC = () => {
                 onClick={() => setActiveTab('overview')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                   activeTab === 'overview'
-                    ? 'border-cyan-500 text-cyan-600'
+                    ? 'border-cyan-400 text-cyan-300'
                     : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-white/15'
                 }`}
               >
@@ -158,7 +158,7 @@ const Stats: React.FC = () => {
                   onClick={() => setActiveTab('track')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                     activeTab === 'track'
-                      ? 'border-cyan-500 text-cyan-600'
+                      ? 'border-cyan-400 text-cyan-300'
                       : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-white/15'
                   }`}
                 >
@@ -286,7 +286,7 @@ const Stats: React.FC = () => {
                         >
                           <div className="flex items-center space-x-3 mb-3">
                             <div className="bg-cyan-500/10 rounded-full w-12 h-12 flex items-center justify-center">
-                              <span className="text-lg font-bold text-cyan-600">#{player.jerseyNumber}</span>
+                              <span className="text-lg font-bold text-cyan-300">#{player.jerseyNumber}</span>
                             </div>
                             <div>
                               <h4 className="font-semibold text-white">{player.name}</h4>
@@ -296,15 +296,15 @@ const Stats: React.FC = () => {
 
                           <div className="grid grid-cols-3 gap-2 text-center">
                             <div>
-                              <div className="text-lg font-bold text-cyan-600">{player.stats?.goals || 0}</div>
+                              <div className="text-lg font-bold text-cyan-300">{player.stats?.goals || 0}</div>
                               <div className="text-xs text-gray-300">Goals</div>
                             </div>
                             <div>
-                              <div className="text-lg font-bold text-emerald-600">{player.stats?.assists || 0}</div>
+                              <div className="text-lg font-bold text-emerald-300">{player.stats?.assists || 0}</div>
                               <div className="text-xs text-gray-300">Assists</div>
                             </div>
                             <div>
-                              <div className="text-lg font-bold text-purple-600">{player.stats?.saves || 0}</div>
+                              <div className="text-lg font-bold text-violet-300">{player.stats?.saves || 0}</div>
                               <div className="text-xs text-gray-300">Saves</div>
                             </div>
                           </div>
@@ -316,7 +316,7 @@ const Stats: React.FC = () => {
                               setSelectedPlayerId(player.id);
                               setIsStatsTrackerOpen(true);
                             }}
-                            className="flex-1 inline-flex items-center justify-center text-cyan-600 text-sm font-medium hover:text-cyan-300"
+                            className="flex-1 inline-flex items-center justify-center text-cyan-300 text-sm font-medium hover:text-cyan-300"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -325,7 +325,7 @@ const Stats: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setAdjustingPlayerId(player.id)}
-                            className="flex-1 inline-flex items-center justify-center text-amber-600 text-sm font-medium hover:text-amber-300"
+                            className="flex-1 inline-flex items-center justify-center text-amber-300 text-sm font-medium hover:text-amber-300"
                             title="Fix a stat mistake"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -435,10 +435,10 @@ interface AdjustStatsModalProps {
 }
 
 const STAT_FIELDS: { key: keyof Player['stats']; label: string; emoji: string; color: string }[] = [
-  { key: 'goals',       label: 'Goals',     emoji: '⚽', color: 'text-emerald-600' },
-  { key: 'assists',     label: 'Assists',   emoji: '🎯', color: 'text-cyan-600' },
-  { key: 'saves',       label: 'Saves',     emoji: '🧤', color: 'text-violet-600' },
-  { key: 'gamesPlayed', label: 'Games',     emoji: '🏆', color: 'text-amber-600' },
+  { key: 'goals',       label: 'Goals',     emoji: '⚽', color: 'text-emerald-300' },
+  { key: 'assists',     label: 'Assists',   emoji: '🎯', color: 'text-cyan-300' },
+  { key: 'saves',       label: 'Saves',     emoji: '🧤', color: 'text-violet-300' },
+  { key: 'gamesPlayed', label: 'Games',     emoji: '🏆', color: 'text-amber-300' },
   { key: 'yellowCards', label: 'Yellow',    emoji: '🟨', color: 'text-amber-400' },
   { key: 'redCards',    label: 'Red',       emoji: '🟥', color: 'text-rose-300' },
 ];
@@ -475,7 +475,7 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-gray-900/80 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white sticky top-0">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-500/10 to-transparent sticky top-0">
           <div>
             <h3 className="text-lg font-bold text-white">Fix Stats</h3>
             <p className="text-xs text-gray-400">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>

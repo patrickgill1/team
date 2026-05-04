@@ -430,7 +430,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         <div className="bg-gray-900/80 rounded-lg max-w-md w-full p-6">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -441,7 +441,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-            <p className="text-xs text-blue-600 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
+            <p className="text-xs text-cyan-300 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
             <p className="text-sm text-blue-900 break-all font-mono mb-3">{inviteLink}</p>
             <button
               onClick={() => copyInviteLink(inviteLink)}
@@ -689,7 +689,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 type="button"
                 onClick={addParentEmailField}
                 disabled={isSubmitting}
-                className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
+                className="mt-2 text-cyan-300 hover:text-cyan-200 text-sm font-medium disabled:opacity-50"
               >
                 + Add another parent email
               </button>
@@ -727,7 +727,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <p className="text-blue-600 text-sm">Uploading profile photo...</p>
+                <p className="text-cyan-300 text-sm">Uploading profile photo...</p>
               </div>
             </div>
           )}

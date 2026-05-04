@@ -28,7 +28,7 @@ function renderRichContent(text: string): string {
   // URLs
   const linked = safe.replace(
     /(https?:\/\/[^\s<]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline break-all">$1</a>'
+    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-cyan-300 underline break-all">$1</a>'
   );
   // @mentions of any name (letters/numbers/spaces up to 30 chars terminated by punctuation/end)
   const mentioned = linked.replace(
@@ -105,7 +105,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div className="mb-2 p-2 bg-gray-100 rounded border-l-2 border-blue-400 text-sm text-gray-200">
             {replyTarget ? (
               <>
-                <div className="text-xs font-semibold text-blue-700">
+                <div className="text-xs font-semibold text-cyan-200">
                   ↪ {replyTarget.senderName}
                 </div>
                 <div className="truncate">{(replyTarget.content || '').slice(0, 140)}</div>

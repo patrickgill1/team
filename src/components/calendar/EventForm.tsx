@@ -565,7 +565,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       type="checkbox"
                       checked={formData.createAttendance}
                       onChange={(e) => setFormData({ ...formData, createAttendance: e.target.checked })}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/15 rounded"
+                      className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded"
                     />
                     <span className="text-sm font-medium text-gray-200">
                       📋 Create attendance tracking
@@ -584,7 +584,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     type="checkbox"
                     checked={formData.createVolunteerOpps}
                     onChange={(e) => setFormData({ ...formData, createVolunteerOpps: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/15 rounded"
+                    className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded"
                   />
                   <span className="text-sm font-medium text-gray-200">
                     🤝 Create volunteer opportunities
@@ -604,7 +604,7 @@ const EventForm: React.FC<EventFormProps> = ({
                           type="checkbox"
                           checked={formData.volunteerTypes.includes(value)}
                           onChange={(e) => handleVolunteerTypeChange(value, e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/15 rounded mt-0.5"
+                          className="h-4 w-4 text-cyan-300 focus:ring-blue-500 border-white/15 rounded mt-0.5"
                         />
                         <div>
                           <span className="text-sm text-gray-200">{label}</span>

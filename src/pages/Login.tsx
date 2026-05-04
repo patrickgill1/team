@@ -152,7 +152,7 @@ const Login: React.FC = () => {
               Don't have an account?{' '}
               <Link 
                 to="/setup" 
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                className="font-medium text-cyan-300 hover:text-blue-500 transition-colors duration-200"
               >
                 Set up your team
               </Link>

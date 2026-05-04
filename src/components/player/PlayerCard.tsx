@@ -84,7 +84,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 {/* Jersey number badge if profile photo exists */}
                 {player.profilePhotoUrl && player.jerseyNumber && (
                   <div className="absolute -bottom-1 -right-1 bg-white/90 rounded-full w-6 h-6 flex items-center justify-center">
-                    <span className="text-xs font-bold text-cyan-600">#{player.jerseyNumber}</span>
+                    <span className="text-xs font-bold text-cyan-300">#{player.jerseyNumber}</span>
                   </div>
                 )}
               </div>
@@ -136,22 +136,22 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         <div className="p-4">
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div className="text-center p-3 bg-cyan-500/10 rounded-2xl">
-              <div className="text-2xl font-bold text-cyan-600">{player.stats?.goals || 0}</div>
+              <div className="text-2xl font-bold text-cyan-300">{player.stats?.goals || 0}</div>
               <div className="text-sm text-gray-300">Goals</div>
             </div>
             <div className="text-center p-3 bg-emerald-500/10 rounded-2xl">
-              <div className="text-2xl font-bold text-emerald-600">{player.stats?.assists || 0}</div>
+              <div className="text-2xl font-bold text-emerald-300">{player.stats?.assists || 0}</div>
               <div className="text-sm text-gray-300">Assists</div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="text-center p-3 bg-amber-500/10 rounded-2xl">
-              <div className="text-2xl font-bold text-amber-600">{player.stats?.saves || 0}</div>
+              <div className="text-2xl font-bold text-amber-300">{player.stats?.saves || 0}</div>
               <div className="text-sm text-gray-300">Saves</div>
             </div>
             <div className="text-center p-3 bg-fuchsia-500/10 rounded-2xl">
-              <div className="text-2xl font-bold text-fuchsia-600">{player.stats?.gamesPlayed || 0}</div>
+              <div className="text-2xl font-bold text-fuchsia-300">{player.stats?.gamesPlayed || 0}</div>
               <div className="text-sm text-gray-300">Games</div>
             </div>
           </div>
@@ -191,7 +191,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               {player.medicalInfo && (
                 <div className="text-sm text-gray-300">
                   <span className="font-medium text-rose-300">Medical Info:</span>
-                  <p className="text-xs mt-1 text-rose-600 bg-rose-500/10 p-2 rounded-xl">
+                  <p className="text-xs mt-1 text-rose-300 bg-rose-500/10 p-2 rounded-xl">
                     {player.medicalInfo}
                   </p>
                 </div>
@@ -206,11 +206,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                       <div key={index} className="text-xs">
                         <span className="font-medium">{contact.name}</span>
                         <span className="text-gray-400"> ({contact.relationship})</span>
-                        {contact.isPrimary && <span className="text-cyan-600 ml-1">• Primary</span>}
+                        {contact.isPrimary && <span className="text-cyan-300 ml-1">• Primary</span>}
                         <br />
                         <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="text-cyan-600 hover:text-cyan-300"
+                          className="text-cyan-300 hover:text-cyan-300"
                         >
                           {contact.phoneNumber}
                         </a>
@@ -242,7 +242,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="card-modern max-w-md w-full p-6">
             <div className="flex items-center mb-4">
               <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-rose-100">
-                <svg className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>

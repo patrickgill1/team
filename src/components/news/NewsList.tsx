@@ -265,7 +265,7 @@ const NewsList: React.FC<NewsListProps> = ({
                         <button
                           onClick={() => handleEditNews(article)}
                           disabled={isDeleting}
-                          className="p-2 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
+                          className="p-2 text-gray-300 hover:text-cyan-300 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
                           title="Edit Article"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +301,7 @@ const NewsList: React.FC<NewsListProps> = ({
                   {article.content.length > 200 && (
                     <button
                       onClick={() => toggleExpanded(article.id)}
-                      className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors duration-200"
+                      className="mt-3 text-cyan-300 hover:text-cyan-200 font-medium text-sm transition-colors duration-200"
                     >
                       {isExpanded ? 'Read Less' : 'Read More'}
                     </button>

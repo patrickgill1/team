@@ -150,7 +150,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('grid')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'grid'
-                  ? 'bg-white text-blue-600 shadow-sm'
+                  ? 'bg-white text-cyan-300 shadow-sm'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
@@ -160,7 +160,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('masonry')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'masonry'
-                  ? 'bg-white text-blue-600 shadow-sm'
+                  ? 'bg-white text-cyan-300 shadow-sm'
                   : 'text-gray-300 hover:text-white'
               }`}
             >

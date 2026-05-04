@@ -248,7 +248,7 @@ const Dashboard: React.FC = () => {
                   <h2 className="text-lg font-bold text-white">Upcoming Events</h2>
                   <p className="text-xs text-gray-400">Practices and games on deck</p>
                 </div>
-                <Link to="/calendar" className="text-cyan-600 hover:text-cyan-300 text-sm font-semibold">
+                <Link to="/calendar" className="text-cyan-300 hover:text-cyan-300 text-sm font-semibold">
                   View All →
                 </Link>
               </div>
@@ -304,7 +304,7 @@ const Dashboard: React.FC = () => {
                     <h2 className="text-lg font-bold text-white">Recent Uploads</h2>
                     <p className="text-xs text-gray-400">Latest team media</p>
                   </div>
-                  <Link to="/player-media" className="text-violet-600 hover:text-violet-700 text-sm font-semibold">
+                  <Link to="/player-media" className="text-violet-300 hover:text-violet-700 text-sm font-semibold">
                     View All →
                   </Link>
                 </div>
@@ -320,12 +320,12 @@ const Dashboard: React.FC = () => {
 
             {/* Latest News */}
             <div className="card-lift overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-500/10 to-transparent">
                 <div>
                   <h2 className="text-lg font-bold text-white">Latest News</h2>
                   <p className="text-xs text-gray-400">From your coaching staff</p>
                 </div>
-                <Link to="/news" className="text-amber-600 hover:text-amber-300 text-sm font-semibold">
+                <Link to="/news" className="text-amber-300 hover:text-amber-300 text-sm font-semibold">
                   View All →
                 </Link>
               </div>
@@ -367,12 +367,12 @@ const Dashboard: React.FC = () => {
             {/* Top Scorers */}
             {topScorers.length > 0 && (
               <div className="card-lift overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
+                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-transparent">
                   <div>
                     <h2 className="text-lg font-bold text-white">🏅 Top Scorers</h2>
                     <p className="text-xs text-gray-400">Leading the table</p>
                   </div>
-                  <Link to="/stats" className="text-emerald-600 hover:text-emerald-300 text-sm font-semibold">
+                  <Link to="/stats" className="text-emerald-300 hover:text-emerald-300 text-sm font-semibold">
                     View All →
                   </Link>
                 </div>
@@ -484,7 +484,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; link?: { to: s
       {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
     </div>
     {link && (
-      <Link to={link.to} className="text-sm font-semibold text-cyan-600 hover:text-cyan-300">
+      <Link to={link.to} className="text-sm font-semibold text-cyan-300 hover:text-cyan-300">
         {link.label} →
       </Link>
     )}

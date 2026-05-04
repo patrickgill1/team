@@ -87,7 +87,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
   const formBadge = (s: GameStat) => {
     const g = s.goals || 0;
     const a = s.assists || 0;
-    let bg = 'bg-gray-200 text-gray-200';
+    let bg = 'bg-white/10 text-gray-200';
     let label = '–';
     if (g > 0 && a > 0) {
       bg = 'bg-emerald-500 text-white';
@@ -169,7 +169,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="text-center bg-blue-50 rounded-lg p-3">
           <div className="text-xs text-gray-300 mb-1">Goal streak</div>
-          <div className="text-2xl font-bold text-blue-700">{streaks.currentGoalStreak}</div>
+          <div className="text-2xl font-bold text-cyan-200">{streaks.currentGoalStreak}</div>
           <div className="text-[10px] text-gray-400">best {streaks.longestGoalStreak}</div>
         </div>
         <div className="text-center bg-emerald-500/10 rounded-lg p-3">
@@ -184,7 +184,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
         </div>
         <div className="text-center bg-purple-50 rounded-lg p-3">
           <div className="text-xs text-gray-300 mb-1">Avg contribution</div>
-          <div className="text-2xl font-bold text-purple-700">
+          <div className="text-2xl font-bold text-violet-300">
             {(((totalGoals + totalAssists) / ordered.length) || 0).toFixed(2)}
           </div>
           <div className="text-[10px] text-gray-400">per game</div>
@@ -197,7 +197,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="bg-white/5 rounded-lg p-3">
             <div className="text-xs text-gray-300">Goals</div>
-            <div className="text-lg font-bold text-blue-700">{bestGoals}</div>
+            <div className="text-lg font-bold text-cyan-200">{bestGoals}</div>
           </div>
           <div className="bg-white/5 rounded-lg p-3">
             <div className="text-xs text-gray-300">Assists</div>
@@ -205,7 +205,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
           </div>
           <div className="bg-white/5 rounded-lg p-3">
             <div className="text-xs text-gray-300">{isKeeper ? 'Saves' : 'Saves'}</div>
-            <div className="text-lg font-bold text-purple-700">{bestSaves}</div>
+            <div className="text-lg font-bold text-violet-300">{bestSaves}</div>
           </div>
         </div>
       </div>

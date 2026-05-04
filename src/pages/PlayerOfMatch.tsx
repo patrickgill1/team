@@ -499,7 +499,7 @@ const PlayerOfMatch: React.FC = () => {
             {availableGames.length > 0 ? (
               <div className="bg-cyan-500/10 border border-cyan-100 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <svg className="w-5 h-5 text-cyan-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-cyan-300 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div className="flex-1">
@@ -650,12 +650,12 @@ const PlayerOfMatch: React.FC = () => {
               {/* Share link banner */}
               {newVotingId === activeVoting.id && (
                 <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-200 rounded-lg flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-green-800 text-sm min-w-0">
-                    <svg className="w-4 h-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-2 text-emerald-200 text-sm min-w-0">
+                    <svg className="w-4 h-4 shrink-0 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="font-medium">Voting created!</span>
-                    <span className="text-emerald-600 truncate hidden sm:block">{getVoteLink(activeVoting.id)}</span>
+                    <span className="text-emerald-300 truncate hidden sm:block">{getVoteLink(activeVoting.id)}</span>
                   </div>
                   <button
                     onClick={() => copyVoteLink(activeVoting.id)}
@@ -672,7 +672,7 @@ const PlayerOfMatch: React.FC = () => {
               {usersVote ? (
                 <div className="bg-emerald-500/10 border border-emerald-100 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
@@ -753,7 +753,7 @@ const PlayerOfMatch: React.FC = () => {
                           else next.add(activeVoting.id);
                           return next;
                         })}
-                        className="text-xs text-cyan-600 hover:underline font-medium"
+                        className="text-xs text-cyan-300 hover:underline font-medium"
                       >
                         {expandedVoters.has(activeVoting.id) ? 'Hide voter details' : 'Show voter details'}
                       </button>
@@ -924,7 +924,7 @@ const PlayerOfMatch: React.FC = () => {
                               else next.add(voting.id);
                               return next;
                             })}
-                            className="text-xs text-cyan-600 hover:underline font-medium"
+                            className="text-xs text-cyan-300 hover:underline font-medium"
                           >
                             {expandedVoters.has(voting.id)
                               ? '▲ Hide voter details'
@@ -984,7 +984,7 @@ const PlayerOfMatch: React.FC = () => {
               <div className="space-x-2">
                 <button
                   onClick={() => setAttendancePlayerIds(new Set(players.map(p => p.id)))}
-                  className="text-xs text-cyan-600 hover:underline"
+                  className="text-xs text-cyan-300 hover:underline"
                 >
                   Select all
                 </button>
@@ -1011,7 +1011,7 @@ const PlayerOfMatch: React.FC = () => {
                     type="checkbox"
                     checked={attendancePlayerIds.has(player.id)}
                     onChange={() => toggleAttendance(player.id)}
-                    className="w-4 h-4 rounded border-white/15 text-emerald-600 focus:ring-green-500"
+                    className="w-4 h-4 rounded border-white/15 text-emerald-300 focus:ring-green-500"
                   />
                   <span className="text-sm font-medium text-white">
                     {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}{player.name}
@@ -1057,7 +1057,7 @@ const PlayerOfMatch: React.FC = () => {
             {availableGames.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-200 mb-3 flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-2 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
                   Link to Scheduled Game
@@ -1098,7 +1098,7 @@ const PlayerOfMatch: React.FC = () => {
                   {calendarEvents.filter(e => e.type === 'game').map(game => (
                     <div key={game.id} className="flex justify-between items-center">
                       <span>{game.title} - {formatDate(game.date)}</span>
-                      <span className={votings.find(v => v.calendarEventId === game.id) ? 'text-emerald-600' : 'text-rose-300'}>
+                      <span className={votings.find(v => v.calendarEventId === game.id) ? 'text-emerald-300' : 'text-rose-300'}>
                         {votings.find(v => v.calendarEventId === game.id) ? 'Has Voting' : 'No Voting'}
                       </span>
                     </div>

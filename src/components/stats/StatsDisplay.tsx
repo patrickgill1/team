@@ -144,12 +144,12 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           </select>
 
           {selectedPlayer && (
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            <div className="flex bg-white/5 ring-1 ring-white/10 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('overview')}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                   viewMode === 'overview'
-                    ? 'bg-white text-blue-600 shadow-sm'
+                    ? 'bg-cyan-600 text-white shadow-sm'
                     : 'text-gray-300 hover:text-white'
                 }`}
               >
@@ -159,7 +159,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 onClick={() => setViewMode('detailed')}
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                   viewMode === 'detailed'
-                    ? 'bg-white text-blue-600 shadow-sm'
+                    ? 'bg-cyan-600 text-white shadow-sm'
                     : 'text-gray-300 hover:text-white'
                 }`}
               >
@@ -182,19 +182,19 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 <div className="text-2xl mb-2">🥇</div>
                 <div className="font-semibold text-white">{topPerformers.topScorer.name}</div>
                 <div className="text-sm text-gray-300">Top Scorer</div>
-                <div className="text-xl font-bold text-blue-600">{topPerformers.topScorer.totalGoals} goals</div>
+                <div className="text-xl font-bold text-cyan-300">{topPerformers.topScorer.totalGoals} goals</div>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl mb-2">🎯</div>
                 <div className="font-semibold text-white">{topPerformers.topAssister.name}</div>
                 <div className="text-sm text-gray-300">Top Assister</div>
-                <div className="text-xl font-bold text-green-600">{topPerformers.topAssister.totalAssists} assists</div>
+                <div className="text-xl font-bold text-emerald-300">{topPerformers.topAssister.totalAssists} assists</div>
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <div className="text-2xl mb-2">🧤</div>
                 <div className="font-semibold text-white">{topPerformers.topSaver.name}</div>
                 <div className="text-sm text-gray-300">Top Saver</div>
-                <div className="text-xl font-bold text-purple-600">{topPerformers.topSaver.totalSaves} saves</div>
+                <div className="text-xl font-bold text-violet-300">{topPerformers.topSaver.totalSaves} saves</div>
               </div>
             </div>
           </div>
@@ -210,22 +210,22 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                   </div>
                   <button
                     onClick={() => setSelectedPlayer(player.id)}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    className="text-cyan-300 hover:text-cyan-200 text-sm font-medium"
                   >
                     View Details
                   </button>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <div className="text-lg font-bold text-blue-600">{player.stats.goals}</div>
+                    <div className="text-lg font-bold text-cyan-300">{player.stats.goals}</div>
                     <div className="text-xs text-gray-300">Goals</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-green-600">{player.stats.assists}</div>
+                    <div className="text-lg font-bold text-emerald-300">{player.stats.assists}</div>
                     <div className="text-xs text-gray-300">Assists</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-purple-600">{player.stats.saves}</div>
+                    <div className="text-lg font-bold text-violet-300">{player.stats.saves}</div>
                     <div className="text-xs text-gray-300">Saves</div>
                   </div>
                 </div>
@@ -237,7 +237,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         /* Individual Player Stats */
         <div className="space-y-6">
           {/* Player Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-cyan-500 to-sky-600 rounded-lg p-6 text-white">
             <div className="flex items-center space-x-4">
               <div className="bg-white bg-opacity-20 rounded-full w-16 h-16 flex items-center justify-center">
                 <span className="text-2xl font-bold">#{selectedPlayerData.jerseyNumber}</span>
@@ -264,15 +264,15 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Goals</span>
-                    <span className="text-2xl font-bold text-blue-600">{selectedPlayerData.stats.goals}</span>
+                    <span className="text-2xl font-bold text-cyan-300">{selectedPlayerData.stats.goals}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Assists</span>
-                    <span className="text-2xl font-bold text-green-600">{selectedPlayerData.stats.assists}</span>
+                    <span className="text-2xl font-bold text-emerald-300">{selectedPlayerData.stats.assists}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Saves</span>
-                    <span className="text-2xl font-bold text-purple-600">{selectedPlayerData.stats.saves}</span>
+                    <span className="text-2xl font-bold text-violet-300">{selectedPlayerData.stats.saves}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Games Played</span>
@@ -287,15 +287,15 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Goals/Game</span>
-                    <span className="text-2xl font-bold text-blue-600">{averages.goals}</span>
+                    <span className="text-2xl font-bold text-cyan-300">{averages.goals}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Assists/Game</span>
-                    <span className="text-2xl font-bold text-green-600">{averages.assists}</span>
+                    <span className="text-2xl font-bold text-emerald-300">{averages.assists}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Saves/Game</span>
-                    <span className="text-2xl font-bold text-purple-600">{averages.saves}</span>
+                    <span className="text-2xl font-bold text-violet-300">{averages.saves}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Games Recorded</span>
@@ -342,15 +342,15 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                         
                         <div className="grid grid-cols-3 gap-4 mb-3">
                           <div className="text-center">
-                            <div className="text-lg font-bold text-blue-600">{stat.goals}</div>
+                            <div className="text-lg font-bold text-cyan-300">{stat.goals}</div>
                             <div className="text-sm text-gray-300">Goals</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-lg font-bold text-green-600">{stat.assists}</div>
+                            <div className="text-lg font-bold text-emerald-300">{stat.assists}</div>
                             <div className="text-sm text-gray-300">Assists</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-lg font-bold text-purple-600">{stat.saves}</div>
+                            <div className="text-lg font-bold text-violet-300">{stat.saves}</div>
                             <div className="text-sm text-gray-300">Saves</div>
                           </div>
                         </div>

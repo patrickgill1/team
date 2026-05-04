@@ -453,7 +453,7 @@ const TeamChat: React.FC = () => {
                   <p className="text-gray-400 text-sm">No threads found</p>
                   <button
                     onClick={() => setIsCreatingThread(true)}
-                    className="mt-3 text-cyan-600 text-sm font-medium"
+                    className="mt-3 text-cyan-300 text-sm font-medium"
                   >
                     Create your first thread
                   </button>
@@ -584,7 +584,7 @@ const TeamChat: React.FC = () => {
                         id="isPrivate"
                         checked={newThread.isPrivate}
                         onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                        className="rounded border-white/15 text-cyan-600 focus:ring-cyan-500 w-4 h-4"
+                        className="rounded border-white/15 text-cyan-300 focus:ring-cyan-500 w-4 h-4"
                       />
                       <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-200">
                         Coach-only thread
@@ -855,7 +855,7 @@ const TeamChat: React.FC = () => {
                       id="isPrivate"
                       checked={newThread.isPrivate}
                       onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                      className="rounded border-white/15 text-cyan-600 focus:ring-cyan-500"
+                      className="rounded border-white/15 text-cyan-300 focus:ring-cyan-500"
                     />
                     <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-200">
                       Coach-only thread

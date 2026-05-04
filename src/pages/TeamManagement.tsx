@@ -502,7 +502,7 @@ const TeamManagement: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center text-cyan-600 font-bold text-sm flex-shrink-0">
+                    <div className="w-10 h-10 bg-cyan-500/10 rounded-full flex items-center justify-center text-cyan-300 font-bold text-sm flex-shrink-0">
                       {player.jerseyNumber || player.name.charAt(0)}
                     </div>
                   )}
@@ -656,8 +656,8 @@ const TeamManagement: React.FC = () => {
                   <div className="space-y-4">
                     <div className="bg-emerald-500/10 border border-emerald-100 rounded-lg p-4">
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-emerald-600 text-lg">✅</span>
-                        <span className="font-medium text-green-800">Invite Created!</span>
+                        <span className="text-emerald-300 text-lg">✅</span>
+                        <span className="font-medium text-emerald-200">Invite Created!</span>
                       </div>
                       <p className="text-sm text-emerald-300 mb-3">Share this link with the coach:</p>
                       <div className="flex items-center space-x-2">

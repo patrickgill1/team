@@ -267,7 +267,7 @@ const Surveys: React.FC = () => {
       <div className="p-4 sm:p-6 max-w-3xl mx-auto">
         <Header title="Survey Results" subtitle={selectedSurvey.title} />
 
-        <button onClick={() => { setView('list'); setSelectedSurvey(null); setResultsTab('summary'); setIndividualIndex(0); }} className="text-cyan-600 hover:text-cyan-300 text-sm font-medium mb-4 flex items-center gap-1">
+        <button onClick={() => { setView('list'); setSelectedSurvey(null); setResultsTab('summary'); setIndividualIndex(0); }} className="text-cyan-300 hover:text-cyan-300 text-sm font-medium mb-4 flex items-center gap-1">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back to surveys
         </button>
@@ -315,7 +315,7 @@ const Surveys: React.FC = () => {
                     {q.type === 'rating' && (
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <span className="text-3xl font-bold text-cyan-600">{getAverageRating(q.id).toFixed(1)}</span>
+                          <span className="text-3xl font-bold text-cyan-300">{getAverageRating(q.id).toFixed(1)}</span>
                           <span className="text-fire-400 text-sm">/ {q.maxRating || 5} avg</span>
                         </div>
                         <div className="h-2 bg-fire-100 rounded-full overflow-hidden">
@@ -346,7 +346,7 @@ const Surveys: React.FC = () => {
                       return (
                         <div className="flex gap-4">
                           <div className="flex-1 bg-emerald-500/10 rounded-xl p-3 text-center border border-emerald-200">
-                            <div className="text-2xl font-bold text-emerald-600">{yes}</div>
+                            <div className="text-2xl font-bold text-emerald-300">{yes}</div>
                             <div className="text-xs text-emerald-500">Yes {total > 0 && `(${Math.round((yes / total) * 100)}%)`}</div>
                           </div>
                           <div className="flex-1 bg-rose-500/10 rounded-xl p-3 text-center border border-rose-500/20">
@@ -435,7 +435,7 @@ const Surveys: React.FC = () => {
                         <span className="text-fire-300 italic text-sm">No answer</span>
                       ) : q.type === 'rating' ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-3xl font-bold text-cyan-600">{ans.value}</span>
+                          <span className="text-3xl font-bold text-cyan-300">{ans.value}</span>
                           <span className="text-fire-400">/ {q.maxRating || 5}</span>
                           <span className="ml-1 text-amber-400 text-xl">{'★'.repeat(Number(ans.value))}{'☆'.repeat((q.maxRating || 5) - Number(ans.value))}</span>
                         </div>
@@ -467,7 +467,7 @@ const Surveys: React.FC = () => {
       <div className="p-4 sm:p-6 max-w-3xl mx-auto">
         <Header title={editingSurvey ? 'Edit Survey' : 'Create Survey'} />
 
-        <button onClick={() => { resetBuilder(); setView('list'); }} className="text-cyan-600 hover:text-cyan-300 text-sm font-medium mb-4 flex items-center gap-1">
+        <button onClick={() => { resetBuilder(); setView('list'); }} className="text-cyan-300 hover:text-cyan-300 text-sm font-medium mb-4 flex items-center gap-1">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
@@ -514,7 +514,7 @@ const Surveys: React.FC = () => {
           {questions.map((q, idx) => (
             <div key={q.id} className="card-modern p-4 border-l-4 border-l-cyan-400">
               <div className="flex items-start justify-between gap-2 mb-3">
-                <span className="text-xs font-semibold text-cyan-600 bg-cyan-500/10 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
+                <span className="text-xs font-semibold text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => moveQuestion(q.id, 'up')} disabled={idx === 0} className="p-1 text-fire-400 hover:text-fire-200 disabled:opacity-30">↑</button>
                   <button onClick={() => moveQuestion(q.id, 'down')} disabled={idx === questions.length - 1} className="p-1 text-fire-400 hover:text-fire-200 disabled:opacity-30">↓</button>
@@ -559,7 +559,7 @@ const Surveys: React.FC = () => {
                       )}
                     </div>
                   ))}
-                  <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options || []).length + 1}`] })} className="text-cyan-600 hover:text-cyan-300 text-sm font-medium">+ Add option</button>
+                  <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options || []).length + 1}`] })} className="text-cyan-300 hover:text-cyan-300 text-sm font-medium">+ Add option</button>
                 </div>
               )}
 
@@ -631,7 +631,7 @@ const Surveys: React.FC = () => {
                       {s.isActive ? 'Active' : 'Closed'}
                     </span>
                     {s.isAnonymous && <span className="text-xs bg-fire-100 text-fire-400 px-2 py-0.5 rounded-full">Anonymous</span>}
-                    <span className="text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full">Results Private</span>
+                    <span className="text-xs bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded-full">Results Private</span>
                   </div>
                   {s.description && <p className="text-sm text-fire-500 mt-1 line-clamp-2">{s.description}</p>}
                   <div className="flex items-center gap-3 mt-2 text-xs text-fire-400">

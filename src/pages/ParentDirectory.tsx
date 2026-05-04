@@ -391,7 +391,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
         {isUserCoach && pendingMembers.length > 0 && (
           <div className="mb-6 bg-amber-500/10 border border-amber-200 rounded-xl p-5">
             <div className="flex items-center mb-4">
-              <svg className="w-5 h-5 text-amber-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-amber-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
               </svg>
               <h2 className="text-lg font-bold text-amber-200">
@@ -502,7 +502,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
               {(entry.user.role === 'parent' || entry.user.role === 'coach') && entry.players.length > 0 && (
                 <div className="p-4 bg-white/5 border-b border-white/10">
                   <div className="flex items-center mb-3">
-                    <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 mr-2 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <h4 className="text-lg font-bold text-white">
@@ -582,7 +582,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
               {entry.user.role === 'parent' && entry.players.length === 0 && (
                 <div className="p-4 bg-white/5 border-b border-white/10">
                   <div className="flex items-center mb-3">
-                    <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 mr-2 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <h4 className="text-lg font-bold text-white">Their Players</h4>
@@ -654,7 +654,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                       </svg>
                       <a 
                         href={`mailto:${entry.user.email}`}
-                        className="text-cyan-600 hover:text-cyan-300 text-sm break-all"
+                        className="text-cyan-300 hover:text-cyan-300 text-sm break-all"
                       >
                         {entry.user.email}
                       </a>
@@ -669,7 +669,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                       </svg>
                       <a 
                         href={`tel:${entry.user.phoneNumber}`}
-                        className="text-cyan-600 hover:text-cyan-300 text-sm"
+                        className="text-cyan-300 hover:text-cyan-300 text-sm"
                       >
                         {formatPhone(entry.user.phoneNumber)}
                       </a>
@@ -701,7 +701,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         {entry.user.emergencyPhone && (
                           <a 
                             href={`tel:${entry.user.emergencyPhone}`}
-                            className="text-cyan-600 hover:text-cyan-300"
+                            className="text-cyan-300 hover:text-cyan-300"
                           >
                             {formatPhone(entry.user.emergencyPhone)}
                           </a>
@@ -851,7 +851,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ...profileForm, 
                         privacy: {...profileForm.privacy, showEmail: e.target.checked}
                       })}
-                      className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-white/15 rounded"
+                      className="h-4 w-4 text-cyan-300 focus:ring-cyan-500 border-white/15 rounded"
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -863,7 +863,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ...profileForm, 
                         privacy: {...profileForm.privacy, showPhone: e.target.checked}
                       })}
-                      className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-white/15 rounded"
+                      className="h-4 w-4 text-cyan-300 focus:ring-cyan-500 border-white/15 rounded"
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -875,7 +875,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ...profileForm, 
                         privacy: {...profileForm.privacy, showAddress: e.target.checked}
                       })}
-                      className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-white/15 rounded"
+                      className="h-4 w-4 text-cyan-300 focus:ring-cyan-500 border-white/15 rounded"
                     />
                   </div>
                 </div>
@@ -901,7 +901,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                           ...profileForm,
                           emailPreferences: { ...profileForm.emailPreferences, [key]: e.target.checked }
                         })}
-                        className="h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-white/15 rounded"
+                        className="h-4 w-4 text-cyan-300 focus:ring-cyan-500 border-white/15 rounded"
                       />
                     </div>
                   ))}

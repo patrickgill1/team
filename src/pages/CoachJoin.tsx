@@ -337,9 +337,9 @@ const CoachJoin: React.FC = () => {
 
           <p className="text-center text-sm text-gray-400 mt-4">
             {authMode === 'register' ? (
-              <>Already have an account? <button onClick={() => setAuthMode('login')} className="text-emerald-600 font-medium hover:underline">Sign in</button></>
+              <>Already have an account? <button onClick={() => setAuthMode('login')} className="text-emerald-300 font-medium hover:underline">Sign in</button></>
             ) : (
-              <>Need an account? <button onClick={() => setAuthMode('register')} className="text-emerald-600 font-medium hover:underline">Register</button></>
+              <>Need an account? <button onClick={() => setAuthMode('register')} className="text-emerald-300 font-medium hover:underline">Register</button></>
             )}
           </p>
         </div>

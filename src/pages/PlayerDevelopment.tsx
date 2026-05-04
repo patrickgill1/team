@@ -547,11 +547,11 @@ const PlayerDevelopment: React.FC = () => {
         {/* Summary Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-900/80 rounded-xl shadow-sm border border-white/10 p-4">
-            <div className="text-2xl font-bold text-cyan-600">{activePlans.length}</div>
+            <div className="text-2xl font-bold text-cyan-300">{activePlans.length}</div>
             <div className="text-sm text-gray-300">Active Plans</div>
           </div>
           <div className="bg-gray-900/80 rounded-xl shadow-sm border border-white/10 p-4">
-            <div className="text-2xl font-bold text-emerald-600">{completedPlans.length}</div>
+            <div className="text-2xl font-bold text-emerald-300">{completedPlans.length}</div>
             <div className="text-sm text-gray-300">Completed Plans</div>
           </div>
           <div className="bg-gray-900/80 rounded-xl shadow-sm border border-white/10 p-4">
@@ -561,7 +561,7 @@ const PlayerDevelopment: React.FC = () => {
           <div className="bg-gray-900/80 rounded-xl shadow-sm border border-white/10 p-4">
             {topStreak ? (
               <>
-                <div className="text-2xl font-bold text-orange-600 flex items-center gap-1">
+                <div className="text-2xl font-bold text-orange-300 flex items-center gap-1">
                   <span>🔥</span>
                   <span>{topStreak.streak}</span>
                 </div>
@@ -699,7 +699,7 @@ const PlayerDevelopment: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => { setBulkPlayerIds(players.map(p => p.id)); setPlanPlayerId(''); }}
-                            className="text-cyan-600 hover:text-cyan-300 font-medium"
+                            className="text-cyan-300 hover:text-cyan-300 font-medium"
                           >Select all</button>
                           <span className="text-gray-300">|</span>
                           <button
@@ -937,7 +937,7 @@ const PlayerDevelopment: React.FC = () => {
                     </div>
                     <button
                       onClick={addGoalField}
-                      className="mt-2 text-sm text-cyan-600 hover:text-cyan-300 font-medium"
+                      className="mt-2 text-sm text-cyan-300 hover:text-cyan-300 font-medium"
                     >
                       + Add another goal
                     </button>
@@ -1076,7 +1076,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
               <div>
                 <div className="flex items-center justify-end gap-2 text-[11px]">
                   <span className="text-gray-400">Coach</span>
-                  <span className={`font-semibold ${progress === 100 ? 'text-emerald-600' : 'text-cyan-600'}`}>{progress}%</span>
+                  <span className={`font-semibold ${progress === 100 ? 'text-emerald-300' : 'text-cyan-300'}`}>{progress}%</span>
                 </div>
                 <div className="w-32 bg-white/10 rounded-full h-1.5 mt-0.5">
                   <div
@@ -1089,14 +1089,14 @@ const PlanCard: React.FC<PlanCardProps> = ({
                 <div>
                   <div className="flex items-center justify-end gap-2 text-[11px]">
                     <span className="text-gray-400">🔥 Minutes</span>
-                    <span className="font-semibold text-orange-600">{totalLoggedMinutes}/{totalTargetMinutes}</span>
+                    <span className="font-semibold text-orange-300">{totalLoggedMinutes}/{totalTargetMinutes}</span>
                   </div>
                   <div className="w-32 bg-white/10 rounded-full h-1.5 mt-0.5">
                     <div className="h-1.5 rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${minutesProgress}%` }} />
                   </div>
                 </div>
               ) : totalLoggedMinutes > 0 ? (
-                <div className="text-[11px] text-orange-600 font-semibold text-right">🔥 {totalLoggedMinutes} min logged</div>
+                <div className="text-[11px] text-orange-300 font-semibold text-right">🔥 {totalLoggedMinutes} min logged</div>
               ) : null}
               <div className="text-[10px] text-gray-400">
                 {plan.goals.filter(g => g.playerCompleted).length}/{plan.goals.length} done · {plan.goals.filter(g => g.coachVerified).length}/{plan.goals.length} verified
@@ -1202,7 +1202,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
 
                   <div className="flex-1">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className={`font-medium text-sm ${goal.coachVerified ? 'text-green-800 line-through' : 'text-white'}`}>
+                      <span className={`font-medium text-sm ${goal.coachVerified ? 'text-emerald-200 line-through' : 'text-white'}`}>
                         {goal.title}
                         {(() => {
                           const goalMins = (goal.practiceLog || []).reduce((s, l) => s + (l.minutes || 0), 0);
@@ -1216,7 +1216,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             );
                           }
                           if (goalMins > 0) {
-                            return <span className="ml-2 text-[10px] font-semibold text-orange-600">🔥 {goalMins} min</span>;
+                            return <span className="ml-2 text-[10px] font-semibold text-orange-300">🔥 {goalMins} min</span>;
                           }
                           return null;
                         })()}
@@ -1267,26 +1267,26 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         )}
                         {goal.setup && (
                           <div>
-                            <div className="text-[11px] font-bold uppercase tracking-wide text-cyan-600">Setup</div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-cyan-300">Setup</div>
                             <p className="text-xs text-gray-200 whitespace-pre-line mt-0.5">{goal.setup}</p>
                           </div>
                         )}
                         {goal.instructions && (
                           <div>
-                            <div className="text-[11px] font-bold uppercase tracking-wide text-cyan-600">Instructions</div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-cyan-300">Instructions</div>
                             <p className="text-xs text-gray-200 whitespace-pre-line mt-0.5">{goal.instructions}</p>
                           </div>
                         )}
                         {goal.focus && (
                           <div>
-                            <div className="text-[11px] font-bold uppercase tracking-wide text-amber-600">🎯 Focus</div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-amber-300">🎯 Focus</div>
                             <p className="text-xs text-gray-200 whitespace-pre-line mt-0.5">{goal.focus}</p>
                           </div>
                         )}
                       </div>
                     )}
                     {goal.notes && (
-                      <p className="text-xs text-cyan-600 mt-1 italic">Coach note: {goal.notes}</p>
+                      <p className="text-xs text-cyan-300 mt-1 italic">Coach note: {goal.notes}</p>
                     )}
                     <div className="flex items-center space-x-3 mt-1 text-xs text-gray-400">
                       {goal.playerCompleted && <span>📝 Player marked done</span>}
@@ -1396,7 +1396,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             ) : (
                               <button
                                 onClick={() => { setLinkGoalId(goal.id); setLinkUrl(''); setLinkTitle(''); }}
-                                className="text-xs text-cyan-600 hover:text-cyan-300 font-medium"
+                                className="text-xs text-cyan-300 hover:text-cyan-300 font-medium"
                               >
                                 + Add YouTube tutorial
                               </button>
@@ -1419,7 +1419,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               <div className="flex items-center justify-between">
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Practice Log</p>
                                 {totalMins > 0 && (
-                                  <span className="text-xs font-medium text-cyan-600 bg-cyan-500/10 px-2 py-0.5 rounded-full">
+                                  <span className="text-xs font-medium text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full">
                                     ⏱️ {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} total
                                   </span>
                                 )}
@@ -1429,7 +1429,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   <span className="text-gray-400">
                                     {entry.date?.toDate ? entry.date.toDate().toLocaleDateString() : new Date(entry.date).toLocaleDateString()}
                                   </span>
-                                  {entry.minutes && <span className="text-cyan-600 font-medium ml-1">({entry.minutes} min)</span>}
+                                  {entry.minutes && <span className="text-cyan-300 font-medium ml-1">({entry.minutes} min)</span>}
                                   {' — '}{entry.note}
                                   {entry.loggedByName && <span className="text-gray-400 ml-1">— {entry.loggedByName}</span>}
                                 </div>
@@ -1437,7 +1437,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               {logs.length > 3 && showAllLogs !== goal.id && (
                                 <button
                                   onClick={() => setShowAllLogs(goal.id)}
-                                  className="text-xs text-cyan-600 hover:text-cyan-300"
+                                  className="text-xs text-cyan-300 hover:text-cyan-300"
                                 >
                                   Show all {logs.length} entries
                                 </button>
@@ -1534,7 +1534,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
               <div className="flex items-center gap-2 ml-auto">
                 <button
                   onClick={onEdit}
-                  className="text-sm text-cyan-600 hover:text-cyan-300 px-3 py-1 rounded-lg hover:bg-cyan-500/10 font-medium"
+                  className="text-sm text-cyan-300 hover:text-cyan-300 px-3 py-1 rounded-lg hover:bg-cyan-500/10 font-medium"
                 >
                   ✏️ Edit Plan
                 </button>

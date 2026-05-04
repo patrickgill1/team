@@ -164,11 +164,11 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
     }
     
     return sortOrder === 'asc' ? (
-      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
       </svg>
     ) : (
-      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
       </svg>
     );
@@ -176,8 +176,11 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
+          <span className="text-sm text-gray-400 font-medium">Loading...</span>
+        </div>
       </div>
     );
   }
@@ -195,10 +198,10 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
       {/* Header with sort options and add button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center space-x-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-fire-950">
             Team Players ({filteredPlayers.length})
           </h2>
-          
+
           {/* Sort options */}
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-600">Sort by:</span>
@@ -212,9 +215,9 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 <button
                   key={key}
                   onClick={() => handleSort(key)}
-                  className={`px-2 py-1 text-sm rounded-md flex items-center space-x-1 transition-colors duration-200 ${
+                  className={`px-2 py-1 text-sm rounded-lg flex items-center space-x-1 transition-colors duration-200 ${
                     sortBy === key
-                      ? 'bg-blue-100 text-blue-700'
+                      ? 'bg-cyan-50 text-cyan-700'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -233,7 +236,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
               setEditingPlayer(null);
               setIsAddPlayerOpen(true);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2"
+            className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200 flex items-center space-x-2 shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -245,13 +248,13 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
       {/* Players Grid */}
       {filteredPlayers.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="card-modern text-center py-12 px-6">
           <div className="text-gray-400 mb-4">
             <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Players Found</h3>
+          <h3 className="text-lg font-semibold text-fire-950 mb-2">No Players Found</h3>
           <p className="text-gray-600 mb-4">
             {searchTerm || positionFilter
               ? 'No players match your current filters.'
@@ -263,7 +266,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 setEditingPlayer(null);
                 setIsAddPlayerOpen(true);
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200"
             >
               Add Your First Player
             </button>

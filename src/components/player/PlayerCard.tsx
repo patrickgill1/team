@@ -43,19 +43,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     }
   };
 
-  const getPositionColor = (position?: string): string => {
-    if (!position) return 'bg-gray-100 text-gray-800';
-    
-    const positionColors: { [key: string]: string } = {
-      'Goalkeeper': 'bg-yellow-100 text-yellow-800',
-      'Defender': 'bg-blue-100 text-blue-800',
-      'Midfielder': 'bg-green-100 text-green-800',
-      'Forward': 'bg-red-100 text-red-800',
-      'Striker': 'bg-purple-100 text-purple-800'
-    };
-    return positionColors[position] || 'bg-gray-100 text-gray-800';
-  };
-
   const calculateAge = (dateOfBirth?: Date): number | null => {
     if (!dateOfBirth) return null;
     const today = new Date();
@@ -72,15 +59,15 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-200">
+      <div className="card-modern overflow-hidden">
         {/* Header with jersey number, position, and profile photo */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-white">
+        <div className="bg-gradient-to-r from-cyan-500 to-sky-600 px-4 py-3 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {/* Profile Photo or Jersey Number */}
               <div className="relative">
                 {player.profilePhotoUrl ? (
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white border-opacity-30">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30">
                     <img
                       src={player.profilePhotoUrl}
                       alt={player.name}
@@ -88,7 +75,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                     />
                   </div>
                 ) : (
-                  <div className="bg-white bg-opacity-20 rounded-full w-12 h-12 flex items-center justify-center">
+                  <div className="bg-white/20 rounded-full w-12 h-12 flex items-center justify-center">
                     <span className="text-xl font-bold">
                       {player.jerseyNumber ? `#${player.jerseyNumber}` : '?'}
                     </span>
@@ -96,8 +83,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 )}
                 {/* Jersey number badge if profile photo exists */}
                 {player.profilePhotoUrl && player.jerseyNumber && (
-                  <div className="absolute -bottom-1 -right-1 bg-white bg-opacity-90 rounded-full w-6 h-6 flex items-center justify-center">
-                    <span className="text-xs font-bold text-blue-600">#{player.jerseyNumber}</span>
+                  <div className="absolute -bottom-1 -right-1 bg-white/90 rounded-full w-6 h-6 flex items-center justify-center">
+                    <span className="text-xs font-bold text-cyan-600">#{player.jerseyNumber}</span>
                   </div>
                 )}
               </div>
@@ -107,24 +94,24 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 </Link>
                 <div className="flex items-center space-x-2">
                   {player.position && (
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getPositionColor(player.position)} bg-opacity-20 text-white`}>
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
                       {player.position}
                     </span>
                   )}
                   {age && (
-                    <span className="text-xs text-blue-100">
+                    <span className="text-xs text-cyan-100">
                       Age {age}
                     </span>
                   )}
                 </div>
               </div>
             </div>
-            
+
             {canEdit && (
               <div className="flex space-x-2">
                 <button
                   onClick={() => onEdit && onEdit(player)}
-                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors duration-200"
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors duration-200"
                   title="Edit Player"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +120,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-2 hover:bg-red-500 hover:bg-opacity-20 rounded-full transition-colors duration-200"
+                  className="p-2 hover:bg-rose-500/30 rounded-full transition-colors duration-200"
                   title="Delete Player"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,31 +134,31 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
         {/* Stats section */}
         <div className="p-4">
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{player.stats?.goals || 0}</div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="text-center p-3 bg-cyan-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-cyan-600">{player.stats?.goals || 0}</div>
               <div className="text-sm text-gray-600">Goals</div>
             </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{player.stats?.assists || 0}</div>
+            <div className="text-center p-3 bg-emerald-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-emerald-600">{player.stats?.assists || 0}</div>
               <div className="text-sm text-gray-600">Assists</div>
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">{player.stats?.saves || 0}</div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center p-3 bg-amber-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-amber-600">{player.stats?.saves || 0}</div>
               <div className="text-sm text-gray-600">Saves</div>
             </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{player.stats?.gamesPlayed || 0}</div>
+            <div className="text-center p-3 bg-fuchsia-50/60 rounded-2xl">
+              <div className="text-2xl font-bold text-fuchsia-600">{player.stats?.gamesPlayed || 0}</div>
               <div className="text-sm text-gray-600">Games</div>
             </div>
           </div>
 
           {/* Additional Info for coaches */}
           {isUserCoach && (
-            <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+            <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
               {/* "My Child" link toggle */}
               {userData && (
                 <button
@@ -190,7 +177,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   }}
                   className={`inline-flex items-center space-x-1 text-xs px-2 py-1 rounded-full transition-colors ${
                     player.parentIds?.includes(userData.uid)
-                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      ? 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                   title={player.parentIds?.includes(userData.uid) ? 'Unlink as my child' : 'Link as my child'}
@@ -203,8 +190,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               {/* Medical Info */}
               {player.medicalInfo && (
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium text-red-700">Medical Info:</span>
-                  <p className="text-xs mt-1 text-red-600 bg-red-50 p-2 rounded">
+                  <span className="font-medium text-rose-700">Medical Info:</span>
+                  <p className="text-xs mt-1 text-rose-600 bg-rose-50 p-2 rounded-xl">
                     {player.medicalInfo}
                   </p>
                 </div>
@@ -219,11 +206,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                       <div key={index} className="text-xs">
                         <span className="font-medium">{contact.name}</span>
                         <span className="text-gray-500"> ({contact.relationship})</span>
-                        {contact.isPrimary && <span className="text-blue-600 ml-1">• Primary</span>}
+                        {contact.isPrimary && <span className="text-cyan-600 ml-1">• Primary</span>}
                         <br />
-                        <a 
+                        <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="text-blue-600 hover:text-blue-700"
+                          className="text-cyan-600 hover:text-cyan-700"
                         >
                           {contact.phoneNumber}
                         </a>
@@ -241,7 +228,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="px-4 pb-4">
             <button
               onClick={() => onEdit && onEdit(player)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200"
             >
               View/Update Stats
             </button>
@@ -251,32 +238,32 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="card-modern max-w-md w-full p-6">
             <div className="flex items-center mb-4">
-              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-rose-100">
+                <svg className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Player</h3>
+              <h3 className="text-lg font-semibold text-fire-950 mb-2">Delete Player</h3>
               <p className="text-sm text-gray-500 mb-6">
                 Are you sure you want to delete <strong>{player.name}</strong>? This action cannot be undone and will remove all associated statistics.
               </p>
-              <div className="flex space-x-4">
+              <div className="flex space-x-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200 disabled:opacity-50 flex items-center justify-center"
                 >
                   {isDeleting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

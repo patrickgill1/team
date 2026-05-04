@@ -242,7 +242,7 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Upcoming Events */}
-            <div className="card-modern overflow-hidden">
+            <div className="card-lift overflow-hidden">
               <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-cyan-500/10 to-transparent">
                 <div>
                   <h2 className="text-lg font-bold text-white">Upcoming Events</h2>
@@ -298,7 +298,7 @@ const Dashboard: React.FC = () => {
 
             {/* Recent Clips Strip */}
             {recentClips.length > 0 && (
-              <div className="card-modern overflow-hidden">
+              <div className="card-lift overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-violet-500/10 to-transparent">
                   <div>
                     <h2 className="text-lg font-bold text-white">Recent Uploads</h2>
@@ -319,7 +319,7 @@ const Dashboard: React.FC = () => {
             )}
 
             {/* Latest News */}
-            <div className="card-modern overflow-hidden">
+            <div className="card-lift overflow-hidden">
               <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
                 <div>
                   <h2 className="text-lg font-bold text-white">Latest News</h2>
@@ -338,7 +338,7 @@ const Dashboard: React.FC = () => {
           {/* Right column */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="card-modern overflow-hidden">
+            <div className="card-lift overflow-hidden">
               <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-fire-500/10 to-transparent">
                 <h2 className="text-lg font-bold text-white">Quick Actions</h2>
                 <p className="text-xs text-gray-400">Jump back in</p>
@@ -366,7 +366,7 @@ const Dashboard: React.FC = () => {
 
             {/* Top Scorers */}
             {topScorers.length > 0 && (
-              <div className="card-modern overflow-hidden">
+              <div className="card-lift overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
                   <div>
                     <h2 className="text-lg font-bold text-white">🏅 Top Scorers</h2>
@@ -409,7 +409,7 @@ const Dashboard: React.FC = () => {
 
             {/* Top Assists (compact) */}
             {topAssists.length > 0 && (
-              <div className="card-modern overflow-hidden">
+              <div className="card-lift overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 to-transparent">
                   <h2 className="text-lg font-bold text-white">🎯 Playmakers</h2>
                   <p className="text-xs text-gray-400">Top assist providers</p>

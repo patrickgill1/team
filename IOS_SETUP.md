@@ -41,6 +41,29 @@ rm -rf ios && npm run ios:add
 
 > **Capacitor version note:** This branch pins Capacitor 7.x because Capacitor 8 requires Node 22+. CRA / react-scripts 5 is happiest on Node 20, so we stay there.
 
+## ⚠ .env.local is required for local builds
+
+CRA inlines `REACT_APP_*` env vars **at build time**. Vercel sets them on their build server, but locally there's nothing — so a `npm run build` here produces a bundle with empty Firebase config, which throws on init and renders a blank screen in the simulator.
+
+Two ways to populate `.env.local`:
+
+```bash
+# Option A — pull from Vercel (recommended, no copy/paste)
+npx vercel link        # one-time
+npx vercel env pull .env.local
+
+# Option B — copy from Vercel dashboard manually
+cp .env.example .env.local
+# edit .env.local and fill in REACT_APP_FIREBASE_* values
+```
+
+After either, **always re-sync**:
+```bash
+npm run ios:sync
+```
+
+`.env.local` is git-ignored. Don't commit it.
+
 ## Day-to-day workflow
 
 ```bash

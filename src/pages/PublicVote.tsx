@@ -186,8 +186,44 @@ const PositionBadge: React.FC<{ position?: string }> = ({ position }) => {
   );
 };
 
+// ─── Confetti test mode ───────────────────────────────────────────────────────
+// Hit any /vote/:votingId URL with ?confettitest=1 (or the bare /vote/test path)
+// to preview the confetti without writing a vote to Firestore.
+const ConfettiTest: React.FC = () => {
+  const [active, setActive] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setActive(false), 2200);
+    return () => clearTimeout(t);
+  }, [active]);
+  return (
+    <div className="min-h-screen bg-[#f0f4f8] flex items-center justify-center p-4">
+      <ConfettiCanvas active={active} />
+      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full text-center border border-gray-100 relative z-10">
+        <div className="w-14 h-14 rounded-full bg-[#f0f9ff] flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">🎉</span>
+        </div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Fire FC</p>
+        <h1 className="text-xl font-black text-gray-900 mb-2">Confetti test</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Preview the post-vote confetti without submitting an actual vote.
+        </p>
+        <button
+          onClick={() => { setActive(false); requestAnimationFrame(() => setActive(true)); }}
+          className="w-full bg-[#159BE3] text-white font-bold py-3 rounded-xl hover:bg-[#0d7bc4] transition-colors"
+        >
+          Replay confetti
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const PublicVote: React.FC = () => {
   const { votingId } = useParams<{ votingId: string }>();
+  // Test-mode bypass: ?confettitest=1 (or votingId === 'test')
+  const isConfettiTest =
+    votingId === 'test' ||
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('confettitest') === '1');
   const [voting, setVoting] = useState<MatchVoting | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [myChildId, setMyChildId] = useState<string>('');
@@ -204,6 +240,7 @@ const PublicVote: React.FC = () => {
 
   // ── Real-time listener ──────────────────────────────────────────────────────
   useEffect(() => {
+    if (isConfettiTest) { setLoading(false); return; }
     if (!votingId) return;
     setLoading(true);
     const unsub = onSnapshot(
@@ -364,7 +401,10 @@ const PublicVote: React.FC = () => {
   const results = getVoteResults();
   const totalVotes = voting?.votes.length || 0;
 
-  // \u2500\u2500 Loading / Error \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ── Loading / Error ───────────────────────────────────────────────────────
+  if (isConfettiTest) {
+    return <ConfettiTest />;
+  }
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f0f4f8] flex items-center justify-center">

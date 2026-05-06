@@ -433,10 +433,9 @@ const PlayerMediaPage: React.FC = () => {
 
       setUploadProgress(100);
 
-      // Email parents of subject player + any tagged players (one batch per upload session)
+      // Email + push parents of subject player + any tagged players
       try {
-        const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch } = await import('../utils/notify');
-        const subjectPlayer = players.find(p => p.id === uploadPlayerId);
+        const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch, sendPushToPlayerParents } = await import('../utils/notify');
         const isVideo = Array.from(uploadFiles).some((f: File) => f.type.startsWith('video/'));
         const playerIdsToNotify = Array.from(new Set([uploadPlayerId, ...uploadTaggedPlayers]));
         const messages: any[] = [];
@@ -456,9 +455,15 @@ const PlayerMediaPage: React.FC = () => {
             sentTo.add(p.email);
             messages.push({ to: p.email, subject, html });
           }
+          // Push to parents who have the app — silent for those who don't.
+          sendPushToPlayerParents(pid, {
+            title: `${player.name}: new ${isVideo ? 'clip' : 'photo'} 📸`,
+            body: uploadCaption.trim() || `Uploaded by ${userData.name}`,
+            path: `/player/${pid}`,
+          }, 'clip');
         }
         if (messages.length > 0) sendEmailBatch(messages);
-      } catch (e) { console.warn('clip email failed', e); }
+      } catch (e) { console.warn('clip notify failed', e); }
 
       resetUploadForm();
       setShowUploadModal(false);
@@ -852,12 +857,12 @@ const PlayerMediaPage: React.FC = () => {
       };
       await updateDocument(collection, docId, update);
 
-      // Email parents of NEWLY tagged players only (skip already-tagged + subject player)
+      // Email + push parents of NEWLY tagged players only
       try {
         const prevTaggedIds: string[] = (selectedMedia as any).taggedPlayerIds || [];
         const newlyTagged = taggedPlayerIds.filter(id => !prevTaggedIds.includes(id));
         if (newlyTagged.length > 0 && userData) {
-          const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch } = await import('../utils/notify');
+          const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch, sendPushToPlayerParents } = await import('../utils/notify');
           const isVideo = (selectedMedia as any).type === 'video';
           const messages: any[] = [];
           const sentTo = new Set<string>();
@@ -876,10 +881,15 @@ const PlayerMediaPage: React.FC = () => {
               sentTo.add(p.email);
               messages.push({ to: p.email, subject, html });
             }
+            sendPushToPlayerParents(pid, {
+              title: `${tp.name} tagged in a ${isVideo ? 'clip' : 'photo'} 📸`,
+              body: (selectedMedia as any).caption || `Tagged by ${userData.name}`,
+              path: `/player/${pid}`,
+            }, 'clip');
           }
           if (messages.length > 0) sendEmailBatch(messages);
         }
-      } catch (e) { console.warn('tag-add email failed', e); }
+      } catch (e) { console.warn('tag-add notify failed', e); }
 
       // Update local state
       const localPatch: any = { tags: editingTags, taggedPlayerIds, goalScorerId: newScorerId, assistByIds: newAssistIds, statsCredited: !!willBumpScorerId, statsCreditedAssistIds: willBumpAssistIds, gameId: newGameId, isOwnGoal };

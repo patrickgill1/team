@@ -50,36 +50,48 @@ export async function initNativeShell(): Promise<void> {
   }
 }
 
-// Push notifications — call this AFTER the user is signed in, so we know
-// which Firestore user record to attach the device token to.
+// Push notifications — call this AFTER the user is signed in, so the FCM
+// token can be saved to the user's Firestore doc. Uses
+// @capacitor-firebase/messaging which returns FCM tokens directly (instead
+// of raw APNs tokens), so the existing Worker /send-push endpoint works
+// unchanged on iOS.
 export async function registerPushNotifications(
-  onToken: (token: string) => void | Promise<void>,
+  saveToken: (token: string) => void | Promise<void>,
 ): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   try {
-    const { PushNotifications } = await import('@capacitor/push-notifications');
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
 
-    const perm = await PushNotifications.requestPermissions();
-    if (perm.receive !== 'granted') return;
+    // iOS prompts for permission here. On Android 13+ this also prompts.
+    const perm = await FirebaseMessaging.requestPermissions();
+    if (perm.receive !== 'granted') {
+      console.info('Push permission not granted:', perm.receive);
+      return;
+    }
 
-    await PushNotifications.register();
+    // Get the current FCM token (registers with APNs under the hood on iOS).
+    const { token } = await FirebaseMessaging.getToken();
+    if (token) await saveToken(token);
 
-    PushNotifications.addListener('registration', (t) => {
-      onToken(t.value);
+    // Re-save if the token changes (e.g. on app reinstall, restore).
+    await FirebaseMessaging.addListener('tokenReceived', async (e) => {
+      if (e?.token) await saveToken(e.token);
     });
-    PushNotifications.addListener('registrationError', (err) => {
-      console.warn('Push registration error', err);
+
+    // Foreground notifications — iOS already shows banners via the
+    // presentationOptions in capacitor.config.ts; hook here for in-app UI.
+    await FirebaseMessaging.addListener('notificationReceived', (n) => {
+      console.debug('Push received in foreground', n);
     });
-    PushNotifications.addListener('pushNotificationReceived', (n) => {
-      // Foreground push — iOS will show the banner via presentationOptions
-      // in capacitor.config.ts. Hook here if you want in-app toasts.
-      console.debug('Push received', n);
-    });
-    PushNotifications.addListener('pushNotificationActionPerformed', (a) => {
-      // User tapped a notification. Route to the right place if the payload
-      // includes a `path` (e.g. `/vote/<id>`).
-      const path = (a.notification.data as any)?.path;
-      if (typeof path === 'string' && path.startsWith('/')) {
+
+    // User tapped a notification. Route to the right place if payload
+    // includes `path` (e.g. `/vote/<id>` or `/player/<id>`).
+    await FirebaseMessaging.addListener('notificationActionPerformed', (a) => {
+      const data = (a?.notification as any)?.data;
+      const path = typeof data?.path === 'string' ? data.path
+                : typeof data?.url === 'string' ? new URL(data.url, window.location.origin).pathname + new URL(data.url, window.location.origin).search
+                : null;
+      if (path && path.startsWith('/')) {
         window.history.pushState({}, '', path);
         window.dispatchEvent(new PopStateEvent('popstate'));
       }

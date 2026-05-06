@@ -195,6 +195,30 @@ export async function sendPushToUsers(
   }
 }
 
+/**
+ * Resolve a player's parent UIDs and fan out a push notification to them.
+ * Mirrors getParentEmailsForPlayer + sendEmail, but for FCM push. Parents
+ * who haven't installed the app (no fcmTokens) silently get nothing.
+ */
+export async function sendPushToPlayerParents(
+  playerId: string,
+  msg: { title: string; body: string; url?: string; path?: string },
+  prefKey: EmailPrefKey,
+): Promise<boolean> {
+  try {
+    const playerSnap = await getDoc(doc(db, 'players', playerId));
+    if (!playerSnap.exists()) return false;
+    const player: any = playerSnap.data();
+    const candidateUids: string[] = Array.isArray(player.parentIds) ? [...player.parentIds] : [];
+    if (player.parentId && !candidateUids.includes(player.parentId)) candidateUids.push(player.parentId);
+    if (candidateUids.length === 0) return false;
+    return await sendPushToUsers(candidateUids, msg, { prefKey });
+  } catch (err) {
+    console.warn('[notify] sendPushToPlayerParents failed', err);
+    return false;
+  }
+}
+
 const APP_BASE = (typeof window !== 'undefined' && window.location?.origin) || 'https://firefc16.com';
 
 const BRAND_NAVY = '#1e3a5f';

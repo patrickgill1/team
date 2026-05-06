@@ -364,10 +364,10 @@ const PlayerOfMatch: React.FC = () => {
         winner: winners.length > 0 ? winners[0] : undefined,
       });
 
-      // Email each winner's parents
+      // Email + push each winner's parents
       try {
         if (winners.length > 0) {
-          const { getParentEmailsForPlayer, tplPotmWin, sendEmailBatch } = await import('../utils/notify');
+          const { getParentEmailsForPlayer, tplPotmWin, sendEmailBatch, sendPushToPlayerParents } = await import('../utils/notify');
           const isCoWin = winners.length > 1;
           const messages: any[] = [];
           for (const w of winners) {
@@ -379,10 +379,17 @@ const PlayerOfMatch: React.FC = () => {
               isCoWin,
             });
             for (const p of parents) messages.push({ to: p.email, subject, html });
+
+            // Native push to parents who have the app installed.
+            sendPushToPlayerParents(w.playerId, {
+              title: isCoWin ? `${w.playerName} is co-Player of the Match! 🏆` : `${w.playerName} is Player of the Match! 🏆`,
+              body: `${w.voteCount} vote${w.voteCount === 1 ? '' : 's'} · ${activeVoting.gameTitle}`,
+              path: `/player/${w.playerId}`,
+            }, 'potm');
           }
           if (messages.length > 0) sendEmailBatch(messages);
         }
-      } catch (e) { console.warn('POTM email failed', e); }
+      } catch (e) { console.warn('POTM notify failed', e); }
 
       loadData();
     } catch (error) {

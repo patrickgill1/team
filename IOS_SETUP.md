@@ -92,16 +92,61 @@ You only need `ios:add` once. After that, every code change is just `ios:sync` (
 
 Until that's set up, links open in Safari like today. The custom scheme (`firefc://...`) works without any web-side config.
 
-## Push notifications (the big iOS-specific piece)
+## Push notifications
 
-Apple Push Notification service (APNs) flow:
+**Good news:** the entire pipeline is already wired in this branch.
 
-1. **APNs auth key** in [Apple Developer console](https://developer.apple.com/account/resources/authkeys/list) — download the `.p8` file, note the Key ID + Team ID.
-2. Hand the `.p8` to your Cloudflare Worker (the same one already sending email via Resend). Push a message to `https://api.push.apple.com/3/device/<token>` signed with a JWT made from the `.p8`.
-3. On the client, after sign-in, call `registerPushNotifications((token) => saveTokenToFirestore(token))` and store it on the user doc.
-4. When you want to notify a user, look up their token and POST to APNs from the Worker.
+- Worker has `/send-push` (FCM HTTP v1, JWT-signed). No changes needed.
+- `notify.ts` has `sendPushToUsers()` and `sendPushToPlayerParents()`.
+- Client-side: `nativeShell.ts` calls `@capacitor-firebase/messaging` after sign-in, saves the FCM token to `users/<uid>.fcmTokens` via arrayUnion.
+- Triggers: POTM win, dev plan, clip upload, parent whisper all fan out push notifications alongside the existing email.
 
-There's a small adapter to write inside the Worker (~50 lines of JS) — happy to scaffold that as a follow-up.
+### One-time platform setup (what you need to do once):
+
+1. **Generate an APNs Auth Key** in [Apple Developer Console → Keys](https://developer.apple.com/account/resources/authkeys/list).
+   - "+" → Enable **Apple Push Notifications service (APNs)** → continue
+   - Download the `.p8` file (you only get one chance — save it somewhere safe)
+   - Note the **Key ID** (10-char string) and your **Apple Team ID** (top-right of Apple Dev console)
+
+2. **Upload the .p8 to Firebase**:
+   - Firebase Console → Project Settings → **Cloud Messaging** tab
+   - "Apple app configuration" → upload the `.p8` + Key ID + Team ID + your iOS bundle ID (`com.firefc.team`)
+   - Save
+
+3. **Enable Push Notifications in Xcode**:
+   - Open `ios/App/App.xcworkspace` in Xcode
+   - Select the `App` target → "Signing & Capabilities"
+   - Click "+ Capability" → add **Push Notifications**
+   - Click "+ Capability" → add **Background Modes** → check "Remote notifications"
+   - This adds `aps-environment` to the entitlements file
+
+4. **Test**: build to a real device (push doesn't work on simulator), sign in, look at the user's Firestore doc — `fcmTokens` array should have one entry. Trigger a POTM close or a clip upload and the device should buzz within 1-2 seconds.
+
+### Native Google sign-in setup
+
+The Google sign-in flow needs a separate iOS OAuth client (the web one doesn't work in the WebView).
+
+1. [Google Cloud Console → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials)
+2. "+ CREATE CREDENTIALS" → "OAuth client ID" → Application type: **iOS**
+   - Name: "Fire FC iOS"
+   - Bundle ID: `com.firefc.team`
+3. Copy the generated **iOS client ID** (looks like `1234567890-abc...apps.googleusercontent.com`)
+4. Open it again to find the **iOS URL scheme** — Google reverses the client ID into a URL scheme like `com.googleusercontent.apps.1234567890-abc`
+5. In Xcode → `App` target → Info → "URL Types" → "+", paste the reversed client ID into "URL Schemes"
+6. Open `ios/App/App/Info.plist` (also visible in Xcode project navigator) and verify the URL scheme entry is there.
+
+The plugin reads the iOS client ID from `GoogleService-Info.plist` if you have one, or you can hardcode it. Easiest path: download `GoogleService-Info.plist` from Firebase Console → Project Settings → "Your apps" → iOS app → drag it into the Xcode project at `ios/App/App/` (next to `Info.plist`). Make sure "Copy items if needed" is checked and the App target is selected.
+
+### Sign in with Apple setup
+
+Apple requires this whenever an app offers third-party sign-in (like Google).
+
+1. [Apple Developer Console → Identifiers](https://developer.apple.com/account/resources/identifiers/list) → click your app's identifier (`com.firefc.team`)
+2. Scroll to capabilities, check **Sign In with Apple** → Save
+3. In Xcode → App target → Signing & Capabilities → "+ Capability" → **Sign In with Apple**
+4. Firebase Console → Authentication → Sign-in method → enable **Apple** provider → enter your Services ID (or just toggle on; Firebase auto-derives from your bundle ID for native iOS)
+
+The branch already has the "Continue with Apple" button on `SimpleAuth` — it only renders on the iOS app, hidden on web.
 
 ## Things that already work because the app is web
 

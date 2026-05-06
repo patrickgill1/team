@@ -37,7 +37,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
     setSending(true);
     setResult(null);
     try {
-      const { getParentEmailsForPlayer, tplCoachWhisper, sendEmailBatch } = await import('../../utils/notify');
+      const { getParentEmailsForPlayer, tplCoachWhisper, sendEmailBatch, sendPushToPlayerParents } = await import('../../utils/notify');
       const parents = await getParentEmailsForPlayer(player.id, 'devPlan');
       if (parents.length === 0) {
         setResult({ ok: false, count: 0, reason: 'No parent emails found for this player.' });
@@ -55,6 +55,12 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
       });
       const messages = parents.map(p => ({ to: p.email, subject, html }));
       const ok = await sendEmailBatch(messages);
+      // Push too — kids will see it on their own device.
+      sendPushToPlayerParents(player.id, {
+        title: `Coach ${userData.name?.split(' ')[0] || 'note'} → ${player.name}`,
+        body: message.trim().slice(0, 140),
+        path: `/player/${player.id}`,
+      }, 'devPlan');
       setResult({ ok, count: parents.length, reason: ok ? undefined : 'Send failed — check email settings.' });
       if (ok) {
         setTimeout(() => { onClose(); setResult(null); setMessage(''); }, 1500);

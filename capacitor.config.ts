@@ -19,10 +19,9 @@ const config: CapacitorConfig = {
     // (default 'App'). Leaving it unset so `cap run ios` finds the scheme.
   },
   server: {
-    // Universal links / deep links resolve from these hostnames. Add any
-    // production domain you want the app to claim. Apple-association file
-    // (apple-app-site-association) must be served from each.
-    hostname: 'firefc16.com',
+    // NOTE: leaving hostname unset so Capacitor serves the bundled web build
+    // from capacitor://localhost. Setting hostname to a real domain causes
+    // WKWebView to attempt fetching from that domain instead of local files.
     androidScheme: 'https',
     // For local development you can flip this to your dev box and live-reload
     // the React app inside the iOS simulator. Leave commented for releases.

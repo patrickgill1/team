@@ -15,7 +15,8 @@ const config: CapacitorConfig = {
     // Use the system status bar style (light text on our dark hero gradient).
     // The plugin actually drives this at runtime — see initStatusBar() below.
     limitsNavigationsToAppBoundDomains: false,
-    scheme: 'FireFC',
+    // NOTE: `ios.scheme` here would override the Xcode build scheme name
+    // (default 'App'). Leaving it unset so `cap run ios` finds the scheme.
   },
   server: {
     // Universal links / deep links resolve from these hostnames. Add any

@@ -12,6 +12,9 @@ export async function initNativeShell(): Promise<void> {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setBackgroundColor({ color: '#0f172a' });
+    // Keep the WebView *below* the status bar so the notch / Dynamic Island
+    // doesn't draw on top of the page content.
+    await StatusBar.setOverlaysWebView({ overlay: false });
   } catch (err) {
     console.warn('StatusBar init failed', err);
   }

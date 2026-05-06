@@ -1019,20 +1019,19 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                             placeholder="What did you work on?"
                             autoFocus
                           />
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center space-x-1">
-                              <span className="text-xs text-gray-600">Duration:</span>
-                              <input
-                                type="number"
-                                value={logMinutes}
-                                onChange={e => setLogMinutes(e.target.value)}
-                                className="w-20 text-sm px-2 py-1.5 border border-cyan-100 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                                placeholder="Min"
-                                min="1"
-                              />
-                              <span className="text-xs text-gray-500">minutes</span>
-                            </div>
-                            <div className="flex-1" />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-600 whitespace-nowrap">Duration:</span>
+                            <input
+                              type="number"
+                              value={logMinutes}
+                              onChange={e => setLogMinutes(e.target.value)}
+                              className="flex-1 min-w-0 text-sm px-2 py-1.5 border border-cyan-100 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                              placeholder="Min"
+                              min="1"
+                            />
+                            <span className="text-xs text-gray-500 whitespace-nowrap">min</span>
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-1">
                             <button onClick={() => { setLogGoalId(null); setLogNote(''); setLogMinutes(''); }} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
                             <button onClick={handleSubmitLog} disabled={!logNote.trim()} className="text-sm bg-cyan-600 text-white px-4 py-1.5 rounded-lg hover:bg-cyan-700 disabled:opacity-50 font-medium">Save</button>
                           </div>

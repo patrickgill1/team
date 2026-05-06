@@ -1,7 +1,13 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  getAuth,
+  initializeAuth,
+  indexedDBLocalPersistence,
+  type Auth,
+} from 'firebase/auth';
+import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { Capacitor } from '@capacitor/core';
 
 // Debug: Log environment variables to check they're loading correctly
 console.log('Firebase Config Debug:', {
@@ -32,12 +38,46 @@ if (!firebaseConfig.storageBucket) {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const isNative = Capacitor.isNativePlatform();
+
+// Auth: on Capacitor's capacitor://localhost scheme, the default persistence
+// heuristic can hang. Force IndexedDB persistence explicitly so sign-in
+// resolves the same way it does on web.
+let authInstance: Auth;
+if (isNative) {
+  try {
+    authInstance = initializeAuth(app, { persistence: indexedDBLocalPersistence });
+  } catch (err) {
+    // initializeAuth throws if Auth is already initialized for this app —
+    // fall back to getAuth in that case (e.g. HMR / re-imports).
+    console.warn('initializeAuth fallback to getAuth:', err);
+    authInstance = getAuth(app);
+  }
+} else {
+  authInstance = getAuth(app);
+}
+export const auth = authInstance;
+
+// Firestore: WebSocket / WebChannel streaming negotiates poorly inside the
+// iOS WKWebView. Force long-polling on native so reads/writes don't hang.
+let dbInstance: Firestore;
+if (isNative) {
+  try {
+    dbInstance = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    });
+  } catch (err) {
+    console.warn('initializeFirestore fallback to getFirestore:', err);
+    dbInstance = getFirestore(app);
+  }
+} else {
+  dbInstance = getFirestore(app);
+}
+export const db = dbInstance;
+
 export const storage = getStorage(app);
 
 // Debug: Log storage bucket info
-console.log('Firebase Storage initialized with bucket:', firebaseConfig.storageBucket);
+console.log('Firebase Storage initialized with bucket:', firebaseConfig.storageBucket, '| native:', isNative);
 
 export default app;

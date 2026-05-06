@@ -18,18 +18,28 @@ The `ios/` Xcode project is **not** generated yet — that's a one-time native s
 
 **Prerequisites** (macOS only):
 
-1. **Xcode** (free from the App Store, ~12 GB)
-2. **CocoaPods**: `sudo gem install cocoapods` *or* `brew install cocoapods`
-3. **Apple Developer account** ($99/yr) — required to ship to TestFlight / App Store. You can build to the simulator without it.
+1. **Xcode** (free from the App Store, ~12 GB) — the *full* app, not just Command Line Tools. Capacitor's `pod install` step calls `xcodebuild` which only ships with Xcode.app.
+2. After Xcode finishes installing, open it once to accept the license, then point `xcode-select` at it:
+   ```bash
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   sudo xcodebuild -runFirstLaunch
+   ```
+3. **CocoaPods**: `brew install cocoapods` (already installed if `pod --version` works).
+4. **Apple Developer account** ($99/yr) — required to ship to TestFlight / App Store. The simulator works without it.
 
-**Generate the iOS project:**
+**Project state in this branch:** `npm run ios:add` has already been run, so the `ios/` directory is checked in with the generated Xcode project, Podfile, Pods lockfile, and your web build copied into `ios/App/App/public/`. You don't need to re-run `ios:add` — just sync after every code change:
 
 ```bash
-npm run build         # produce ./build/ that Capacitor will bundle
-npm run ios:add       # creates ./ios/, runs pod install, syncs the web build
+npm run ios:sync       # rebuild React + copy into the iOS bundle
 ```
 
-After this completes you'll have an `ios/` directory with `App/App.xcworkspace` — this is the Xcode project you'd open / sign / submit.
+If you ever delete `ios/` or want to regenerate from scratch:
+
+```bash
+rm -rf ios && npm run ios:add
+```
+
+> **Capacitor version note:** This branch pins Capacitor 7.x because Capacitor 8 requires Node 22+. CRA / react-scripts 5 is happiest on Node 20, so we stay there.
 
 ## Day-to-day workflow
 

@@ -62,7 +62,7 @@ interface ConfettiParticle {
 
 const CONFETTI_COLORS = ['#159BE3','#0d7bc4','#ffffff','#000000','#38bdf8','#7dd3fc','#bae6fd'];
 
-const ConfettiCanvas: React.FC<{ active: boolean }> = ({ active }) => {
+const ConfettiCanvas: React.FC<{ active: boolean }> = React.memo(({ active }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particles = useRef<ConfettiParticle[]>([]);
   const rafRef = useRef<number>(0);
@@ -71,20 +71,21 @@ const ConfettiCanvas: React.FC<{ active: boolean }> = ({ active }) => {
     if (!active) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Render at 1x DPR — confetti is in motion, the pixelation isn't visible,
+    // and 2x DPR quadruples per-frame pixel work which causes mobile chop.
     const w = window.innerWidth;
     const h = window.innerHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
+    canvas.width = w;
+    canvas.height = h;
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    ctx.scale(dpr, dpr);
 
+    const COUNT = w < 640 ? 60 : 90;
     particles.current = [];
-    for (let i = 0; i < 110; i++) {
+    for (let i = 0; i < COUNT; i++) {
       particles.current.push({
         x: w / 2 + (Math.random() - 0.5) * 240,
         y: h * 0.55,
@@ -98,25 +99,34 @@ const ConfettiCanvas: React.FC<{ active: boolean }> = ({ active }) => {
       });
     }
 
+    const DEG2RAD = Math.PI / 180;
     const animate = () => {
       ctx.clearRect(0, 0, w, h);
-      particles.current = particles.current.filter(p => p.alpha > 0.02 && p.y < h + 40);
-      particles.current.forEach(p => {
+      const arr = particles.current;
+      let writeIdx = 0;
+      for (let i = 0; i < arr.length; i++) {
+        const p = arr[i];
         p.x += p.vx;
         p.vy += 0.65;
         p.y += p.vy;
         p.angle += p.spin;
         p.alpha -= 0.022;
         p.vx *= 0.99;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.alpha);
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.angle * Math.PI) / 180);
+        if (p.alpha <= 0.02 || p.y > h + 40) continue;
+        // setTransform avoids the save/restore overhead per particle.
+        const rad = p.angle * DEG2RAD;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        ctx.setTransform(cos, sin, -sin, cos, p.x, p.y);
+        ctx.globalAlpha = p.alpha;
         ctx.fillStyle = p.color;
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.5);
-        ctx.restore();
-      });
-      if (particles.current.length > 0) {
+        arr[writeIdx++] = p;
+      }
+      arr.length = writeIdx;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      if (writeIdx > 0) {
         rafRef.current = requestAnimationFrame(animate);
       } else {
         ctx.clearRect(0, 0, w, h);
@@ -136,7 +146,7 @@ const ConfettiCanvas: React.FC<{ active: boolean }> = ({ active }) => {
       }}
     />
   );
-};
+});
 
 // ─── Animated progress bar ────────────────────────────────────────────────────
 const AnimatedBar: React.FC<{ percentage: number; isLeader: boolean }> = ({ percentage, isLeader }) => {

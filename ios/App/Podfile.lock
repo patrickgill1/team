@@ -12,10 +12,17 @@ PODS:
   - CapacitorCamera (7.0.5):
     - Capacitor
   - CapacitorCordova (7.6.2)
+  - CapacitorFirebaseAuthentication (5.4.1):
+    - Capacitor
+    - CapacitorFirebaseAuthentication/Lite (= 5.4.1)
+    - FirebaseAuth (~> 10.8)
   - CapacitorFirebaseAuthentication/Google (5.4.1):
     - Capacitor
     - FirebaseAuth (~> 10.8)
     - GoogleSignIn (= 7.0.0)
+  - CapacitorFirebaseAuthentication/Lite (5.4.1):
+    - Capacitor
+    - FirebaseAuth (~> 10.8)
   - CapacitorFirebaseMessaging (5.4.1):
     - Capacitor
     - FirebaseMessaging (~> 10.8)
@@ -107,6 +114,7 @@ DEPENDENCIES:
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorCamera (from `../../node_modules/@capacitor/camera`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorFirebaseAuthentication (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseAuthentication/Google (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseMessaging (from `../../node_modules/@capacitor-firebase/messaging`)"
   - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
@@ -185,6 +193,6 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
 
-PODFILE CHECKSUM: 2dee1f7e2764ad47295e134644898df9af3c85b4
+PODFILE CHECKSUM: ec39a8e1e84f56d0805067a2effef5d460990b69
 
 COCOAPODS: 1.16.2

@@ -44,6 +44,13 @@ const config: CapacitorConfig = {
       // Don't resize the WebView when the keyboard pops — let CSS handle it.
       resize: 'native',
     },
+    FirebaseAuthentication: {
+      // We sign into the web Firebase SDK ourselves with the credential the
+      // native plugin returns; otherwise the native iOS Firebase Auth would
+      // be signed in but the WebView's auth instance would still be empty.
+      skipNativeAuth: true,
+      providers: ['apple.com', 'google.com'],
+    },
   },
 };
 

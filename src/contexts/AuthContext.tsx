@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
+import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -7,6 +7,8 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   GoogleAuthProvider,
+  OAuthProvider,
+  signInWithCredential,
   signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
@@ -168,11 +170,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let user;
       if (Capacitor.isNativePlatform()) {
         const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
-        await FirebaseAuthentication.signInWithGoogle();
-        // The plugin signs in to the Firebase Auth instance automatically;
-        // pull the current user from our existing auth instance.
-        user = auth.currentUser;
-        if (!user) throw new Error('native Google sign-in did not return a user');
+        // Plugin runs the native Google Sign-In sheet and returns an idToken;
+        // we then sign into the *web* Firebase SDK with that credential so
+        // onAuthStateChanged fires inside the WebView.
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential?.idToken;
+        if (!idToken) throw new Error('native Google sign-in returned no idToken');
+        const credential = GoogleAuthProvider.credential(idToken);
+        const cred = await signInWithCredential(auth, credential);
+        user = cred.user;
       } else {
         const provider = new GoogleAuthProvider();
         provider.addScope('email');
@@ -361,9 +367,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Sign in with Apple is only available in the iOS app.');
       }
       const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
-      await FirebaseAuthentication.signInWithApple();
-      const user = auth.currentUser;
-      if (!user) throw new Error('native Apple sign-in did not return a user');
+      // Native Apple sheet → idToken + nonce; we bridge into the web SDK so
+      // onAuthStateChanged fires inside the WebView.
+      const result = await FirebaseAuthentication.signInWithApple();
+      const idToken = result.credential?.idToken;
+      if (!idToken) throw new Error('native Apple sign-in returned no idToken');
+      const provider = new OAuthProvider('apple.com');
+      const credential = provider.credential({
+        idToken,
+        rawNonce: result.credential?.nonce,
+      });
+      const cred = await signInWithCredential(auth, credential);
+      const user = cred.user;
 
       // Create the Firestore user doc on first sign-in.
       let userData = await getUserData(user.uid);

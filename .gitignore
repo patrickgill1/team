@@ -74,6 +74,7 @@ build/
 *firebase-adminsdk*.json
 serviceAccountKey.json
 firebase-admin.json
+scripts/firebase-service-account.json
 
 # Local migration scratch
 scripts/.local/

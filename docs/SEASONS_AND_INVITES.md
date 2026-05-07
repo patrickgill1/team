@@ -302,14 +302,32 @@ Smaller than the iOS push migration because most of the work is data-shape, not 
 
 ---
 
-## Open questions
+## Decisions (resolved 2026-05-07)
 
-1. **Should parents who join via a player invite be auto-`approved: true`?** I'd say yes — holding the link is the trust signal.
-2. **Do we let assistant coaches generate parent invites?** Probably yes — they manage their assigned players. Head coach can revoke.
-3. **What's the default season length?** Most clubs have Fall + Spring sessions. Should "End Season" default to today as the end date, with a "you can edit this later" note?
-4. **Should clips be sharable to past parents who've left?** I.e., if a kid was on Fire FC 2023 and the parent's account was archived, can they still log in and view? Lean yes — login still works, they just see their kid's profile (read-only for past seasons).
-5. **POTM voting — is it tied to a season?** Probably yes (a vote belongs to a game which belongs to a season). When viewing past-season votings, no one can vote — they're frozen.
-6. **What about the existing `approved` admin flow?** With invite links being the approval signal, the approval queue mostly empties out. We can leave the existing UI in place for legacy edge cases.
+1. ✅ **Invite link consumption auto-approves the user.** Holding the link IS the trust signal. `approvalStatus = 'auto'` for invite-link signups; `'pending'` for any legacy self-signup.
+2. ✅ **Assistant coaches AND team managers can generate parent invites.** Adds a new role `team_manager` alongside `coach` and `parent`. Team managers have most of the staff-management permissions (invites, roster, attendance) but not coaching-specific writes (POTM creation, dev plans, clip stat credits — those stay coach-only). Head coach can promote a parent to team manager from Parent Directory.
+3. ✅ **Default season cadence: Fall + Spring, both ending mid-May.** Tryouts always in summer (no active season Jun–Aug). "End Season" defaults end date to May 15. Next season is created on demand after tryouts conclude.
+4. ✅ **Past parents keep read-only access for now.** Once data volume becomes a concern, add a "Download archive" button that zips their kid's clips/awards into one file they can keep — then we can purge stale accounts. Not v1.
+5. ✅ **POTM voting stays manual-stop.** Coach hits "Close Voting" on their own schedule. We're not adding auto-stop on next game. Each voting still gets a `seasonId` for archival.
+6. ✅ **No live pending invites to migrate.** Anyone stuck mid-signup just messages the coach for a fresh link. Migration script does NOT delete or modify any existing players or auth records — only adds new fields. The legacy `approved: boolean` field stays in place; we just stop relying on it.
+
+## New role: `team_manager`
+
+| Capability | parent | team_manager | assistant_coach | head_coach |
+| --- | --- | --- | --- | --- |
+| View team data | ✓ | ✓ | ✓ | ✓ |
+| Edit own profile | ✓ | ✓ | ✓ | ✓ |
+| Generate parent invites | | ✓ | ✓ | ✓ |
+| Generate coach/team-manager invites | | | | ✓ |
+| Edit roster (add/remove/edit players) | | ✓ | ✓ | ✓ |
+| Take attendance | | ✓ | ✓ | ✓ |
+| Schedule events / send announcements | | ✓ | ✓ | ✓ |
+| Create POTM voting | | | ✓ | ✓ |
+| Tag clips / award stats | | | ✓ | ✓ |
+| Create dev plans | | | ✓ | ✓ |
+| Promote/demote staff, end season | | | | ✓ |
+
+Code-side gate: `isTeamStaff(role)` returns true for `team_manager | coach`; `isCoach(role)` stays coach-only for the coaching-specific writes.
 
 ---
 

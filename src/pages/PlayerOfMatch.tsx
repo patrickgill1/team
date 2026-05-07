@@ -251,10 +251,11 @@ const PlayerOfMatch: React.FC = () => {
     // Creating new voting
     if (!pendingVotingData) return;
     try {
-      const voting = {
+      const { withSeasonId } = await import('../utils/seasons');
+      const voting = await withSeasonId({
         ...pendingVotingData,
         eligiblePlayerIds: Array.from(attendancePlayerIds),
-      };
+      });
       const newId = await addDocument('match_votings', voting);
       setShowAttendanceStep(false);
       setPendingVotingData(null);

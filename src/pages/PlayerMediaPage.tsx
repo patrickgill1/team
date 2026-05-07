@@ -359,7 +359,11 @@ const PlayerMediaPage: React.FC = () => {
           updatedAt: new Date(),
         };
 
-        const newMediaId = await addPlayerMedia(mediaPayload);
+        // Stamp the active season so this clip filters into the right season bucket.
+        const { withSeasonId } = await import('../utils/seasons');
+        const stampedMedia = await withSeasonId(mediaPayload);
+
+        const newMediaId = await addPlayerMedia(stampedMedia);
 
         // We only credit the FIRST file of a multi-file upload to avoid double-
         // counting when a coach drops in 5 angles of the same goal.

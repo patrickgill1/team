@@ -6,6 +6,7 @@ import { Team, Player, CoachInvite, Invite } from '../types';
 import { isCoach } from '../utils/helpers';
 import { createStaffInvite } from '../utils/invites';
 import InviteShareModal from '../components/common/InviteShareModal';
+import EndSeasonModal from '../components/team/EndSeasonModal';
 
 const TeamManagement: React.FC = () => {
   const { userData } = useAuth();
@@ -47,6 +48,9 @@ const TeamManagement: React.FC = () => {
   // New share-link invite (Phase 3 invites redesign)
   const [activeShareInvite, setActiveShareInvite] = useState<Invite | null>(null);
   const [generatingShareInvite, setGeneratingShareInvite] = useState(false);
+
+  // End-of-season flow
+  const [endSeasonOpen, setEndSeasonOpen] = useState(false);
 
   const generateShareInvite = async (role: 'assistant_coach' | 'team_manager') => {
     if (!userData || !selectedTeamId) return;
@@ -463,6 +467,14 @@ const TeamManagement: React.FC = () => {
                 <span>Share manager link</span>
               </button>
               <button
+                onClick={() => setEndSeasonOpen(true)}
+                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                title="Archive the active season and pick which players carry over"
+              >
+                <span>🏁</span>
+                <span>End Season</span>
+              </button>
+              <button
                 onClick={() => { resetForm(); setShowCreateModal(true); }}
                 className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
               >
@@ -688,6 +700,13 @@ const TeamManagement: React.FC = () => {
           invite={activeShareInvite}
           open={!!activeShareInvite}
           onClose={() => setActiveShareInvite(null)}
+        />
+
+        <EndSeasonModal
+          isOpen={endSeasonOpen}
+          onClose={() => setEndSeasonOpen(false)}
+          teamId={selectedTeamId}
+          onComplete={() => { /* roster refresh happens via real-time listeners */ }}
         />
 
         {/* Invite Coach Modal */}

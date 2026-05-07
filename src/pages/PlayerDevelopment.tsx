@@ -125,7 +125,8 @@ const PlayerDevelopment: React.FC = () => {
       }));
 
       try {
-        await addDevelopmentPlan({
+        const { withSeasonId } = await import('../utils/seasons');
+        const planPayload = await withSeasonId({
           playerId: pid,
           playerName: player.name,
           teamId: selectedTeamId,
@@ -138,6 +139,7 @@ const PlayerDevelopment: React.FC = () => {
           createdByName: userData.name,
           updatedAt: new Date(),
         });
+        await addDevelopmentPlan(planPayload as any);
         createdCount++;
 
         // Email + push parents per player (fire-and-forget)

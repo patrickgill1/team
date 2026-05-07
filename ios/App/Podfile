@@ -11,7 +11,10 @@ install! 'cocoapods', :disable_input_output_paths => true
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorFirebaseAuthentication', :path => '../../node_modules/@capacitor-firebase/authentication'
+  # Use the /Google subspec — sets -DRGCFA_INCLUDE_GOOGLE which compiles in
+  # the Google sign-in handler (and pulls GoogleSignIn 7.0.0 transitively).
+  # The default 'Lite' subspec excludes Google entirely.
+  pod 'CapacitorFirebaseAuthentication', :path => '../../node_modules/@capacitor-firebase/authentication', :subspecs => ['Google']
   pod 'CapacitorFirebaseMessaging', :path => '../../node_modules/@capacitor-firebase/messaging'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
   pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
@@ -24,10 +27,6 @@ end
 
 target 'App' do
   capacitor_pods
-  # @capacitor-firebase/authentication v5 ships as 'Lite' by default which
-  # omits third-party providers. Pulling GoogleSignIn here makes the plugin's
-  # native Google flow active (it's gated by `#if canImport(GoogleSignIn)`).
-  pod 'GoogleSignIn', '~> 7.0'
 end
 
 post_install do |installer|

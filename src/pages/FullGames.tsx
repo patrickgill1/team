@@ -208,7 +208,8 @@ const FullGames: React.FC = () => {
       if (editingId) {
         await updateDocument('full_games', editingId, payload);
       } else {
-        await addDocument('full_games', payload);
+        const { withSeasonId } = await import('../utils/seasons');
+        await addDocument('full_games', await withSeasonId(payload));
       }
       setShowForm(false);
       resetForm();

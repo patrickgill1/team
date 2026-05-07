@@ -250,7 +250,8 @@ const GameDay: React.FC = () => {
           redCards: (prev.redCards || 0) + c.red,
           gamesPlayed: (prev.gamesPlayed || 0) + 1,
         });
-        await addGameStat({
+        const { withSeasonId } = await import('../utils/seasons');
+        const gsPayload = await withSeasonId({
           playerId: pid,
           playerName: c.name,
           gameId: eventId!,
@@ -265,7 +266,8 @@ const GameDay: React.FC = () => {
           recordedBy: userData?.uid,
           recordedByName: userData?.name || 'Coach',
           teamId: event.teamId,
-        } as any);
+        });
+        await addGameStat(gsPayload as any);
       }
     } catch (err) {
       console.error('Failed to write season stats:', err);

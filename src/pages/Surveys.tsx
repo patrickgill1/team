@@ -135,7 +135,8 @@ const Surveys: React.FC = () => {
       surveyData.updatedAt = new Date();
       await updateDocument('surveys', editingSurvey.id, surveyData);
     } else {
-      await addDocument('surveys', surveyData);
+      const { withSeasonId } = await import('../utils/seasons');
+      await addDocument('surveys', await withSeasonId(surveyData));
     }
 
     resetBuilder();

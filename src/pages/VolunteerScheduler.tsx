@@ -129,7 +129,8 @@ const VolunteerScheduler: React.FC = () => {
         createdAt: new Date()
       };
 
-      await addDocument('volunteer_opportunities', opportunity);
+      const { withSeasonId } = await import('../utils/seasons');
+      await addDocument('volunteer_opportunities', await withSeasonId(opportunity));
       setShowCreateModal(false);
       setNewOpportunity({
         type: 'snacks',

@@ -594,8 +594,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('No user data found for:', user.uid);
             setUserData(null);
             
-            if (user.providerData.some(p => p.providerId === 'google.com')) {
-              console.log('Google user detected, waiting for Firestore document…');
+            // Federated providers (Google, Apple) — the signInWith… caller
+            // creates the Firestore user doc *after* Firebase Auth fires
+            // onAuthStateChanged, so wait + retry instead of signing them
+            // straight back out.
+            const isFederated = user.providerData.some(p => p.providerId === 'google.com' || p.providerId === 'apple.com');
+            if (isFederated) {
+              console.log('Federated user detected, waiting for Firestore document…', user.providerData.map(p => p.providerId));
               setLoading(false); // unblock while we wait
               setTimeout(async () => {
                 try {
@@ -605,11 +610,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setUserData(retryUserData);
                     runBackgroundTasks(retryUserData, user.uid);
                   } else {
-                    console.log('Still no Firestore data for Google user, signing out');
+                    console.log('Still no Firestore data for federated user, signing out');
                     await signOut(auth);
                   }
                 } catch (retryError) {
-                  console.error('Retry error for Google user:', retryError);
+                  console.error('Retry error for federated user:', retryError);
                   await signOut(auth);
                 }
               }, 2000);

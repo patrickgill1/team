@@ -24,7 +24,10 @@ end
 
 target 'App' do
   capacitor_pods
-  # Add your Pods here
+  # @capacitor-firebase/authentication v5 ships as 'Lite' by default which
+  # omits third-party providers. Pulling GoogleSignIn here makes the plugin's
+  # native Google flow active (it's gated by `#if canImport(GoogleSignIn)`).
+  pod 'GoogleSignIn', '~> 7.0'
 end
 
 post_install do |installer|

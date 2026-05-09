@@ -3,10 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { Player, PlayerMedia, DevelopmentPlan } from '../types';
+import { Player, PlayerMedia, DevelopmentPlan, Season } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
+import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 
 interface MatchVoting {
   id: string;
@@ -35,6 +36,26 @@ const PlayerProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
   const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
   const [showWhisper, setShowWhisper] = useState(false);
+
+  // Season selector — null = current/active season; 'lifetime' = career; otherwise specific seasonId
+  const [allSeasons, setAllSeasons] = useState<Season[]>([]);
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | 'lifetime'>('current');
+  const [seasonMenuOpen, setSeasonMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!selectedTeamId) return;
+    let cancelled = false;
+    Promise.all([
+      getActiveSeasonForTeam(selectedTeamId),
+      getAllSeasonsForTeam(selectedTeamId),
+    ]).then(([active, all]) => {
+      if (cancelled) return;
+      setActiveSeason(active);
+      setAllSeasons(all);
+    });
+    return () => { cancelled = true; };
+  }, [selectedTeamId]);
 
   useEffect(() => {
     if (playerId && selectedTeamId) loadProfile();
@@ -336,25 +357,93 @@ const PlayerProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* 4-up stats */}
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
-            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-              <div className="text-2xl sm:text-3xl font-black text-emerald-300">{player.stats?.goals || 0}</div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Goals</div>
+          {/* Season chip — only render if there's more than one season worth of data */}
+          {(allSeasons.length > 1 || activeSeason) && (
+            <div className="relative inline-block mb-3">
+              <button
+                onClick={() => setSeasonMenuOpen((v) => !v)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 hover:bg-white/15 text-[11px] font-bold uppercase tracking-wider text-white/85 transition backdrop-blur"
+              >
+                {selectedSeasonId === 'lifetime'
+                  ? 'Career · All-time'
+                  : selectedSeasonId === 'current' || (activeSeason && selectedSeasonId === activeSeason.id)
+                    ? `Current · ${activeSeason?.name || 'this season'}`
+                    : allSeasons.find(s => s.id === selectedSeasonId)?.name || 'Season'}
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {seasonMenuOpen && (
+                <div className="absolute left-0 top-full mt-2 z-30 min-w-[200px] rounded-xl bg-slate-900/95 backdrop-blur ring-1 ring-white/15 shadow-xl py-1">
+                  {activeSeason && (
+                    <button
+                      onClick={() => { setSelectedSeasonId('current'); setSeasonMenuOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === 'current' ? 'text-cyan-300 font-semibold' : 'text-white/85'}`}
+                    >
+                      Current · {activeSeason.name}
+                    </button>
+                  )}
+                  {allSeasons.filter(s => !s.isActive).map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => { setSelectedSeasonId(s.id); setSeasonMenuOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === s.id ? 'text-cyan-300 font-semibold' : 'text-white/85'}`}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                  <div className="border-t border-white/10 my-1" />
+                  <button
+                    onClick={() => { setSelectedSeasonId('lifetime'); setSeasonMenuOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === 'lifetime' ? 'text-cyan-300 font-semibold' : 'text-white/85'}`}
+                  >
+                    🏆 Career · All-time
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-              <div className="text-2xl sm:text-3xl font-black text-cyan-300">{player.stats?.assists || 0}</div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Assists</div>
-            </div>
-            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-              <div className="text-2xl sm:text-3xl font-black text-amber-300">{votingWins.length}</div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">POTM</div>
-            </div>
-            <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-              <div className="text-2xl sm:text-3xl font-black text-violet-300">{media.length}</div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Clips</div>
-            </div>
-          </div>
+          )}
+
+          {/* 4-up stats — filtered by season chip */}
+          {(() => {
+            const lifetime = getPlayerLifetimeStats(player as any);
+            const seasonForStats =
+              selectedSeasonId === 'lifetime' ? null :
+              selectedSeasonId === 'current' ? activeSeason?.id : selectedSeasonId;
+            const s = seasonForStats === 'lifetime' || selectedSeasonId === 'lifetime'
+              ? lifetime
+              : getPlayerStats(player as any, seasonForStats);
+            const showCareerStrip = selectedSeasonId !== 'lifetime' && (lifetime.goals > 0 || lifetime.assists > 0 || lifetime.gamesPlayed > 0);
+            return (
+              <>
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                  <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-300">{s.goals || 0}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Goals</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl font-black text-cyan-300">{s.assists || 0}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Assists</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl font-black text-amber-300">{votingWins.length}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">POTM</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
+                    <div className="text-2xl sm:text-3xl font-black text-violet-300">{media.length}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Clips</div>
+                  </div>
+                </div>
+                {showCareerStrip && (
+                  <p className="mt-3 text-[11px] text-white/60 font-medium tracking-wide">
+                    Career: {lifetime.goals} goals · {lifetime.assists} assists
+                    {lifetime.gamesPlayed > 0 ? ` · ${lifetime.gamesPlayed} games` : ''}
+                    {allSeasons.length > 0 ? ` across ${allSeasons.length} season${allSeasons.length === 1 ? '' : 's'}` : ''}
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -1019,20 +1108,19 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                             placeholder="What did you work on?"
                             autoFocus
                           />
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center space-x-1">
-                              <span className="text-xs text-gray-600">Duration:</span>
-                              <input
-                                type="number"
-                                value={logMinutes}
-                                onChange={e => setLogMinutes(e.target.value)}
-                                className="w-20 text-sm px-2 py-1.5 border border-cyan-100 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                                placeholder="Min"
-                                min="1"
-                              />
-                              <span className="text-xs text-gray-500">minutes</span>
-                            </div>
-                            <div className="flex-1" />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-600 whitespace-nowrap">Duration:</span>
+                            <input
+                              type="number"
+                              value={logMinutes}
+                              onChange={e => setLogMinutes(e.target.value)}
+                              className="flex-1 min-w-0 text-sm px-2 py-1.5 border border-cyan-100 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                              placeholder="Min"
+                              min="1"
+                            />
+                            <span className="text-xs text-gray-500 whitespace-nowrap">min</span>
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-1">
                             <button onClick={() => { setLogGoalId(null); setLogNote(''); setLogMinutes(''); }} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
                             <button onClick={handleSubmitLog} disabled={!logNote.trim()} className="text-sm bg-cyan-600 text-white px-4 py-1.5 rounded-lg hover:bg-cyan-700 disabled:opacity-50 font-medium">Save</button>
                           </div>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
+import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -7,6 +7,8 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   GoogleAuthProvider,
+  OAuthProvider,
+  signInWithCredential,
   signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
@@ -50,6 +52,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: Omit<UserData, 'uid'>) => Promise<void>;
   signInWithGoogle: (inviteTeamId?: string) => Promise<void>;
+  signInWithApple: (inviteTeamId?: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
@@ -158,15 +161,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Starting Google sign-in...', inviteTeamId ? `with invite team: ${inviteTeamId}` : '');
       setLoading(true);
       setError(null);
-      
-      const provider = new GoogleAuthProvider();
-      // Add custom parameters for better user experience
-      provider.addScope('email');
-      provider.addScope('profile');
-      
-      // Use popup for better mobile experience
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+
+      // Native iOS path: use the Capacitor Firebase Authentication plugin
+      // which calls Google's native iOS Sign-In SDK (avoids the broken web
+      // popup flow under capacitor:// origin). Falls through to the web
+      // popup path on browsers.
+      const { Capacitor } = await import('@capacitor/core');
+      let user;
+      if (Capacitor.isNativePlatform()) {
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        // Plugin runs the native Google Sign-In sheet and returns an idToken;
+        // we then sign into the *web* Firebase SDK with that credential so
+        // onAuthStateChanged fires inside the WebView.
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential?.idToken;
+        if (!idToken) throw new Error('native Google sign-in returned no idToken');
+        const credential = GoogleAuthProvider.credential(idToken);
+        const cred = await signInWithCredential(auth, credential);
+        user = cred.user;
+      } else {
+        const provider = new GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        const result = await signInWithPopup(auth, provider);
+        user = result.user;
+      }
       
       console.log('Google sign-in successful:', user.uid, user.email);
       
@@ -333,9 +352,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Sign in with Apple — native only (Apple Store requires it whenever the
+  // app offers third-party sign-in like Google). Uses the same Capacitor
+  // Firebase Authentication plugin and follows the same downstream flow as
+  // Google: onAuthStateChanged fires, a Firestore user doc gets created if
+  // the uid is new.
+  const signInWithApple = async (inviteTeamId?: string): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { Capacitor } = await import('@capacitor/core');
+      if (!Capacitor.isNativePlatform()) {
+        throw new Error('Sign in with Apple is only available in the iOS app.');
+      }
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+      // Native Apple sheet → idToken + nonce; we bridge into the web SDK so
+      // onAuthStateChanged fires inside the WebView.
+      const result = await FirebaseAuthentication.signInWithApple();
+      const idToken = result.credential?.idToken;
+      if (!idToken) throw new Error('native Apple sign-in returned no idToken');
+      const provider = new OAuthProvider('apple.com');
+      const credential = provider.credential({
+        idToken,
+        rawNonce: result.credential?.nonce,
+      });
+      const cred = await signInWithCredential(auth, credential);
+      const user = cred.user;
+
+      // Create the Firestore user doc on first sign-in.
+      let userData = await getUserData(user.uid);
+      if (!userData) {
+        const effectiveTeamId = inviteTeamId || DEFAULT_TEAM_ID;
+        const fullName = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
+        const newUserData: any = {
+          uid: user.uid,
+          email: user.email || '',
+          name: fullName,
+          role: 'parent',
+          teamId: effectiveTeamId,
+          teamIds: [effectiveTeamId],
+          isActive: true,
+          approved: false,
+          profilePhotoUrl: user.photoURL || null,
+          authProvider: 'apple',
+          privacy: { showPhone: true, showEmail: true, showAddress: false },
+        };
+        await createUser(newUserData);
+      }
+    } catch (error: any) {
+      console.error('Apple sign-in error:', error);
+      const msg = error?.message?.includes('canceled') || error?.code === 'cancelled'
+        ? 'Sign-in was cancelled'
+        : (error?.message || 'Apple sign-in failed. Please try again.');
+      setError(msg);
+      setLoading(false);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       setError(null);
+      // Sign out of native providers too so the next launch is clean.
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+          await FirebaseAuthentication.signOut().catch(() => {});
+        }
+      } catch { /* ignore */ }
       await signOut(auth);
       setUserData(null);
     } catch (error) {
@@ -387,6 +473,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Background tasks that should NOT block the loading spinner
   const runBackgroundTasks = (userData: UserData, userId: string) => {
+    // Native push notifications — register with FCM and save the device token
+    // to the user doc so the Cloudflare Worker can target this device. No-op
+    // on web. Imports lazily so the web bundle doesn't pay for the plugin.
+    import('../utils/nativeShell').then(({ registerPushNotifications }) => {
+      registerPushNotifications(async (token: string) => {
+        try {
+          await updateDoc(doc(db, 'users', userId), { fcmTokens: arrayUnion(token) });
+        } catch (err) {
+          console.warn('Failed to save fcmToken:', err);
+        }
+      });
+    }).catch(err => console.warn('nativeShell import failed', err));
+
     // Auto-fix temp team IDs
     if (userData.teamId?.startsWith('temp_')) {
       updateDocument('users', userId, {
@@ -495,8 +594,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('No user data found for:', user.uid);
             setUserData(null);
             
-            if (user.providerData.some(p => p.providerId === 'google.com')) {
-              console.log('Google user detected, waiting for Firestore document…');
+            // Federated providers (Google, Apple) — the signInWith… caller
+            // creates the Firestore user doc *after* Firebase Auth fires
+            // onAuthStateChanged, so wait + retry instead of signing them
+            // straight back out.
+            const isFederated = user.providerData.some(p => p.providerId === 'google.com' || p.providerId === 'apple.com');
+            if (isFederated) {
+              console.log('Federated user detected, waiting for Firestore document…', user.providerData.map(p => p.providerId));
               setLoading(false); // unblock while we wait
               setTimeout(async () => {
                 try {
@@ -506,11 +610,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setUserData(retryUserData);
                     runBackgroundTasks(retryUserData, user.uid);
                   } else {
-                    console.log('Still no Firestore data for Google user, signing out');
+                    console.log('Still no Firestore data for federated user, signing out');
                     await signOut(auth);
                   }
                 } catch (retryError) {
-                  console.error('Retry error for Google user:', retryError);
+                  console.error('Retry error for federated user:', retryError);
                   await signOut(auth);
                 }
               }, 2000);
@@ -546,6 +650,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithApple,
     logout,
     resetPassword
   };

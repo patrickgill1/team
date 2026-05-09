@@ -16,6 +16,7 @@ import PublicGame from './pages/PublicGame';
 import PlayerJoin from './pages/PlayerJoin';
 
 // Lazy load all other pages
+const InviteJoin = React.lazy(() => import('./pages/InviteJoin'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Players = React.lazy(() => import('./pages/Players'));
 const Stats = React.lazy(() => import('./pages/Stats'));
@@ -190,6 +191,8 @@ function App() {
               <Route path="/setup" element={<Navigate to="/auth" replace />} />
               <Route path="/vote/:votingId" element={<PublicVote />} />
               <Route path="/join" element={<PlayerJoin />} />
+              {/* New invite-link flow (Phase 3 of seasons + invites redesign) */}
+              <Route path="/join/:inviteId" element={<InviteJoin />} />
               <Route path="/coach-join" element={<CoachJoin />} />
               <Route path="/media/:mediaId" element={<SharedMedia />} />
               <Route path="/survey/:surveyId" element={<PublicSurvey />} />

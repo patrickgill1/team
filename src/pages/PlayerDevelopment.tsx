@@ -125,7 +125,8 @@ const PlayerDevelopment: React.FC = () => {
       }));
 
       try {
-        await addDevelopmentPlan({
+        const { withSeasonId } = await import('../utils/seasons');
+        const planPayload = await withSeasonId({
           playerId: pid,
           playerName: player.name,
           teamId: selectedTeamId,
@@ -138,11 +139,12 @@ const PlayerDevelopment: React.FC = () => {
           createdByName: userData.name,
           updatedAt: new Date(),
         });
+        await addDevelopmentPlan(planPayload as any);
         createdCount++;
 
-        // Email parents per player (fire-and-forget)
+        // Email + push parents per player (fire-and-forget)
         try {
-          const { getParentEmailsForPlayer, tplDevPlan, sendEmailBatch } = await import('../utils/notify');
+          const { getParentEmailsForPlayer, tplDevPlan, sendEmailBatch, sendPushToPlayerParents } = await import('../utils/notify');
           const parents = await getParentEmailsForPlayer(pid, 'devPlan');
           if (parents.length > 0) {
             const { subject, html } = tplDevPlan({
@@ -153,7 +155,12 @@ const PlayerDevelopment: React.FC = () => {
             });
             sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
           }
-        } catch (e) { console.warn('dev plan email failed', e); }
+          sendPushToPlayerParents(pid, {
+            title: `${player.name}: new development plan 🎯`,
+            body: `${planTitle.trim()} · ${goals.length} goal${goals.length === 1 ? '' : 's'}`,
+            path: `/development`,
+          }, 'devPlan');
+        } catch (e) { console.warn('dev plan notify failed', e); }
       } catch (error) {
         console.error('Error creating development plan for', pid, error);
         failedCount++;

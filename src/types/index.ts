@@ -1,13 +1,21 @@
+export type UserRole = 'coach' | 'parent' | 'team_manager';
+export type ApprovalStatus = 'auto' | 'pending' | 'approved' | 'rejected';
+
 export interface User {
   uid: string;
   id?: string;
   email: string;
   name: string;
-  role: 'coach' | 'parent';
+  role: UserRole;
   teamId: string;
   teamIds?: string[]; // All teams this user belongs to
   coachLevel?: 'head_coach' | 'assistant_coach'; // For coaches only
-  approved?: boolean;
+  approved?: boolean; // legacy — use approvalStatus going forward
+  approvalStatus?: ApprovalStatus;
+  approvedAt?: Date;
+  approvedBy?: string;
+  invitedBy?: string; // uid of staff member who shared the invite link
+  invitedVia?: string; // invite doc id
   createdAt: Date;
   updatedAt?: Date;
   isActive: boolean;
@@ -30,11 +38,14 @@ export interface UserData {
   id?: string;
   email: string;
   name: string;
-  role: 'coach' | 'parent';
+  role: UserRole;
   teamId: string;
   teamIds?: string[]; // All teams this user belongs to
   coachLevel?: 'head_coach' | 'assistant_coach';
-  approved?: boolean;
+  approved?: boolean; // legacy
+  approvalStatus?: ApprovalStatus;
+  invitedBy?: string;
+  invitedVia?: string;
   createdAt: Date;
   phoneNumber?: string;
   address?: string;
@@ -45,6 +56,13 @@ export interface UserData {
     showEmail: boolean;
     showAddress: boolean;
   };
+}
+
+export interface SeasonMembership {
+  seasonId: string;
+  teamId: string;
+  jerseyNumber?: number;
+  position?: string;
 }
 
 export interface Player {
@@ -62,10 +80,41 @@ export interface Player {
   profilePhotoUrl?: string | null;
   emergencyContacts?: EmergencyContact[];
   medicalInfo?: string;
-  stats?: PlayerStats;
+  stats?: PlayerStats; // legacy aggregate, retained during transition
+  statsBySeasonId?: Record<string, PlayerStats>;
+  statsLifetime?: PlayerStats; // optional cache, sum of statsBySeasonId
+  seasonMemberships?: SeasonMembership[];
   createdAt: Date;
   updatedAt?: Date;
   inviteCode?: string;
+}
+
+export interface Season {
+  id: string;
+  teamId: string;
+  clubId?: string; // future Club Portal hook
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  archivedAt?: Date;
+  createdAt: Date;
+}
+
+export interface Invite {
+  id: string; // also the URL slug — short, unguessable
+  type: 'player' | 'coach' | 'team_manager';
+  teamId: string;
+  playerId?: string;        // type === 'player'
+  role?: 'assistant_coach' | 'head_coach' | 'team_manager'; // type !== 'player'
+  createdBy: string;
+  createdAt: Date;
+  expiresAt: Date;
+  maxUses: number | null;   // null = unlimited
+  usedCount: number;
+  usedBy?: string[];        // uids that consumed it
+  revokedAt?: Date;
+  note?: string;            // optional human label, e.g. "Tournament parents"
 }
 
 export interface EmergencyContact {

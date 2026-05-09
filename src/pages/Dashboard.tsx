@@ -8,6 +8,7 @@ import { Player, News, CalendarEvent, PlayerMedia as PlayerMediaType } from '../
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import NewsList from '../components/news/NewsList';
+import { useActiveSeason } from '../hooks/useActiveSeason';
 
 const Dashboard: React.FC = () => {
   const { userData } = useAuth();
@@ -25,6 +26,7 @@ const Dashboard: React.FC = () => {
   const [media, setMedia] = useState<PlayerMediaType[]>([]);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  const { season: activeSeason } = useActiveSeason();
 
   useEffect(() => {
     const load = async () => {
@@ -162,9 +164,16 @@ const Dashboard: React.FC = () => {
           <div className="absolute -bottom-20 -left-10 w-72 h-72 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
           <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
             <div className="sm:col-span-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                {selectedTeam?.name || 'Your Team'}
+              <div className="inline-flex flex-wrap items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-xs font-bold uppercase tracking-wider backdrop-blur">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  {selectedTeam?.name || 'Your Team'}
+                </span>
+                {activeSeason && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 ring-1 ring-white/15 text-[11px] font-bold uppercase tracking-wider text-white/80 backdrop-blur">
+                    {activeSeason.name}
+                  </span>
+                )}
               </div>
               <h2 className="text-2xl sm:text-3xl font-black leading-tight mb-2">
                 Season at a glance

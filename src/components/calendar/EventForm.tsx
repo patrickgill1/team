@@ -296,7 +296,9 @@ const EventForm: React.FC<EventFormProps> = ({
             docData.recurrence = formData.recurrence;
             docData.recurrenceUntil = new Date(`${formData.recurrenceUntil}T${formData.time}`);
           }
-          const eventId = await addDocument('events', docData);
+          const { withSeasonId } = await import('../../utils/seasons');
+          const stamped = await withSeasonId(docData);
+          const eventId = await addDocument('events', stamped);
           if (i === 0) firstId = eventId;
 
           // Only attach attendance/volunteer items to the first occurrence to avoid spamming.

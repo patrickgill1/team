@@ -170,7 +170,8 @@ const AttendanceTracker: React.FC = () => {
           ? statusValue as 'present' | 'absent' | 'late' | 'excused'
           : 'present';
         
-        const record: Omit<AttendanceRecord, 'id'> = {
+        const { withSeasonId } = await import('../utils/seasons');
+        const record = await withSeasonId({
           eventId: selectedEvent,
           playerId: player.id,
           playerName: player.name,
@@ -179,7 +180,7 @@ const AttendanceTracker: React.FC = () => {
           recordedByName: userData.name,
           teamId: selectedTeamId,
           createdAt: new Date()
-        };
+        }) as Omit<AttendanceRecord, 'id'>;
 
         const recordId = await addDocument('attendance_records', record);
         newRecords.push({

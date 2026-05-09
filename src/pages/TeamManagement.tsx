@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { Team, Player, CoachInvite } from '../types';
+import { Team, Player, CoachInvite, Invite } from '../types';
 import { isCoach } from '../utils/helpers';
+import { createStaffInvite } from '../utils/invites';
+import InviteShareModal from '../components/common/InviteShareModal';
+import EndSeasonModal from '../components/team/EndSeasonModal';
 
 const TeamManagement: React.FC = () => {
   const { userData } = useAuth();
@@ -41,6 +44,31 @@ const TeamManagement: React.FC = () => {
   const [showTransferModal, setShowTransferModal] = useState<Team | null>(null);
   const [teamCoaches, setTeamCoaches] = useState<any[]>([]);
   const [transferTargetId, setTransferTargetId] = useState('');
+
+  // New share-link invite (Phase 3 invites redesign)
+  const [activeShareInvite, setActiveShareInvite] = useState<Invite | null>(null);
+  const [generatingShareInvite, setGeneratingShareInvite] = useState(false);
+
+  // End-of-season flow
+  const [endSeasonOpen, setEndSeasonOpen] = useState(false);
+
+  const generateShareInvite = async (role: 'assistant_coach' | 'team_manager') => {
+    if (!userData || !selectedTeamId) return;
+    setGeneratingShareInvite(true);
+    try {
+      const inv = await createStaffInvite({
+        teamId: selectedTeamId,
+        role,
+        createdBy: userData.uid,
+      });
+      setActiveShareInvite(inv);
+    } catch (err) {
+      console.error('createStaffInvite failed', err);
+      alert('Could not generate invite link.');
+    } finally {
+      setGeneratingShareInvite(false);
+    }
+  };
 
   // Add coach to another team
   const [showAddCoachToTeamModal, setShowAddCoachToTeamModal] = useState(false);
@@ -418,7 +446,33 @@ const TeamManagement: React.FC = () => {
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
               >
                 <span>👨‍🏫</span>
-                <span>Invite Coach</span>
+                <span>Invite Coach (email)</span>
+              </button>
+              <button
+                onClick={() => generateShareInvite('assistant_coach')}
+                disabled={generatingShareInvite}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50"
+                title="Generate a share link for an assistant coach"
+              >
+                <span>✉</span>
+                <span>{generatingShareInvite ? '…' : 'Share coach link'}</span>
+              </button>
+              <button
+                onClick={() => generateShareInvite('team_manager')}
+                disabled={generatingShareInvite}
+                className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50"
+                title="Generate a share link for a team manager"
+              >
+                <span>📋</span>
+                <span>Share manager link</span>
+              </button>
+              <button
+                onClick={() => setEndSeasonOpen(true)}
+                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                title="Archive the active season and pick which players carry over"
+              >
+                <span>🏁</span>
+                <span>End Season</span>
               </button>
               <button
                 onClick={() => { resetForm(); setShowCreateModal(true); }}
@@ -641,6 +695,19 @@ const TeamManagement: React.FC = () => {
             </div>
           </div>
         )}
+
+        <InviteShareModal
+          invite={activeShareInvite}
+          open={!!activeShareInvite}
+          onClose={() => setActiveShareInvite(null)}
+        />
+
+        <EndSeasonModal
+          isOpen={endSeasonOpen}
+          onClose={() => setEndSeasonOpen(false)}
+          teamId={selectedTeamId}
+          onComplete={() => { /* roster refresh happens via real-time listeners */ }}
+        />
 
         {/* Invite Coach Modal */}
         {showInviteCoachModal && (

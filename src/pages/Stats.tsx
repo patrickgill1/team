@@ -7,6 +7,8 @@ import { isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import StatsTracker from '../components/stats/StatsTracker';
 import StatsDisplay from '../components/stats/StatsDisplay';
+import { useActiveSeason } from '../hooks/useActiveSeason';
+import { getPlayerStats, getPlayerLifetimeStats } from '../utils/seasons';
 
 const Stats: React.FC = () => {
   const { userData } = useAuth();
@@ -21,6 +23,8 @@ const Stats: React.FC = () => {
   const [adjustingPlayerId, setAdjustingPlayerId] = useState<string | null>(null);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  const { season: activeSeason } = useActiveSeason();
+  const [statsScope, setStatsScope] = useState<'current' | 'lifetime'>('current');
 
   useEffect(() => {
     const loadPlayers = async () => {
@@ -178,13 +182,34 @@ const Stats: React.FC = () => {
             {activeTab === 'overview' ? (
               /* Statistics Overview */
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">Team Performance</h3>
                     <p className="text-sm text-gray-600">
                       View detailed statistics for all players and games
                     </p>
                   </div>
+                  {/* Season scope chip — only shown when there's a season system in place */}
+                  {activeSeason && (
+                    <div className="flex bg-gray-100 rounded-full p-1 ring-1 ring-gray-200">
+                      <button
+                        onClick={() => setStatsScope('current')}
+                        className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                          statsScope === 'current' ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        Current · {activeSeason.name}
+                      </button>
+                      <button
+                        onClick={() => setStatsScope('lifetime')}
+                        className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                          statsScope === 'lifetime' ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        🏆 Career
+                      </button>
+                    </div>
+                  )}
                   
                   {/* Quick Stats Button for Parents */}
                   {!isUserCoach && players.length > 0 && (
@@ -294,20 +319,27 @@ const Stats: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2 text-center">
-                            <div>
-                              <div className="text-lg font-bold text-cyan-600">{player.stats?.goals || 0}</div>
-                              <div className="text-xs text-gray-600">Goals</div>
-                            </div>
-                            <div>
-                              <div className="text-lg font-bold text-emerald-600">{player.stats?.assists || 0}</div>
-                              <div className="text-xs text-gray-600">Assists</div>
-                            </div>
-                            <div>
-                              <div className="text-lg font-bold text-purple-600">{player.stats?.saves || 0}</div>
-                              <div className="text-xs text-gray-600">Saves</div>
-                            </div>
-                          </div>
+                          {(() => {
+                            const s = statsScope === 'lifetime'
+                              ? getPlayerLifetimeStats(player as any)
+                              : getPlayerStats(player as any, activeSeason?.id);
+                            return (
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                <div>
+                                  <div className="text-lg font-bold text-cyan-600">{s.goals || 0}</div>
+                                  <div className="text-xs text-gray-600">Goals</div>
+                                </div>
+                                <div>
+                                  <div className="text-lg font-bold text-emerald-600">{s.assists || 0}</div>
+                                  <div className="text-xs text-gray-600">Assists</div>
+                                </div>
+                                <div>
+                                  <div className="text-lg font-bold text-purple-600">{s.saves || 0}</div>
+                                  <div className="text-xs text-gray-600">Saves</div>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between gap-2">
@@ -386,7 +418,8 @@ const Stats: React.FC = () => {
                 // up the change for shared players. The 'adjust_' gameId
                 // prefix tells the aggregator to apply gamesPlayed as a
                 // delta rather than +1.
-                await addGameStat({
+                const { withSeasonId } = await import('../utils/seasons');
+                const adjustPayload = await withSeasonId({
                   playerId: player.id,
                   playerName: player.name,
                   gameId: `adjust_${Date.now()}_${player.id}`,
@@ -403,7 +436,8 @@ const Stats: React.FC = () => {
                   recordedByName: userData?.name || 'Coach',
                   teamId: selectedTeamId,
                   isCorrection: true,
-                } as any);
+                });
+                await addGameStat(adjustPayload as any);
                 // Also update the global aggregate for non-shared players /
                 // legacy displays. For shared players this is a best-effort
                 // mirror; team-scoped views will use the correction record.

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Player } from '../../types';
+import { Player, Invite } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
-import { isCoach } from '../../utils/helpers';
+import { isCoach, isTeamStaff } from '../../utils/helpers';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
+import { createPlayerInvite } from '../../utils/invites';
+import InviteShareModal from '../common/InviteShareModal';
 
 interface PlayerCardProps {
   player: Player;
@@ -50,9 +52,31 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const { deleteDocument } = useFirestore();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [activeInvite, setActiveInvite] = useState<Invite | null>(null);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserStaff = userData ? isTeamStaff(userData.role) : false;
   const canEdit = isUserCoach && showActions;
+  const canInviteParents = isUserStaff && showActions;
+
+  const handleInviteParent = async () => {
+    if (!userData) return;
+    setGeneratingInvite(true);
+    try {
+      const inv = await createPlayerInvite({
+        teamId: player.teamId,
+        playerId: player.id,
+        createdBy: userData.uid,
+      });
+      setActiveInvite(inv);
+    } catch (err) {
+      console.error('Failed to create invite', err);
+      alert('Could not generate invite link. Try again.');
+    } finally {
+      setGeneratingInvite(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -191,6 +215,16 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             >
               View Profile →
             </Link>
+            {canInviteParents && (
+              <button
+                onClick={handleInviteParent}
+                disabled={generatingInvite}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-cyan-400/20 ring-1 ring-cyan-300/40 text-cyan-200 hover:bg-cyan-400/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
+                title="Generate a one-tap link to share with a parent"
+              >
+                {generatingInvite ? '…' : '✉ Invite Parent'}
+              </button>
+            )}
             {isUserCoach && userData && (
               <button
                 onClick={toggleMyChild}
@@ -248,6 +282,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           )}
         </div>
       </div>
+
+      <InviteShareModal
+        invite={activeInvite}
+        open={!!activeInvite}
+        onClose={() => setActiveInvite(null)}
+        playerName={player.name}
+      />
 
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (

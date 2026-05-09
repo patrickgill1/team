@@ -82,6 +82,14 @@ export const isCoach = (userRole: string): boolean => {
   return userRole === 'coach';
 };
 
+// Team managers and coaches share most management permissions (generating
+// invites, viewing rosters, etc.) but only coaches can affect coaching data
+// like POTM, dev plans, attendance. Use this when a screen needs the broader
+// "any team staff member" gate.
+export const isTeamStaff = (userRole: string): boolean => {
+  return userRole === 'coach' || userRole === 'team_manager';
+};
+
 // Hardcoded super-admin (app owner). Can do anything in the UI,
 // regardless of role/coachLevel — including removing other head coaches.
 const OWNER_EMAILS = ['patrickgill4@gmail.com'];

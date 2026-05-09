@@ -8,6 +8,7 @@ import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { createPlayerInvite } from '../../utils/invites';
 import InviteShareModal from '../common/InviteShareModal';
+import { reactivatePlayerForCurrentSeason } from '../../utils/seasons';
 
 interface PlayerCardProps {
   player: Player;
@@ -206,6 +207,29 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             <MiniStat label="Saves" value={player.stats?.saves || 0} accent="amber" />
             <MiniStat label="Games" value={player.stats?.gamesPlayed || 0} accent="violet" />
           </div>
+
+          {/* Inactive-player banner + reactivate */}
+          {!player.isActive && isUserCoach && (
+            <div className="rounded-xl bg-amber-400/10 ring-1 ring-amber-300/30 p-3 mb-3 flex items-center justify-between gap-3 backdrop-blur">
+              <div>
+                <p className="text-xs uppercase tracking-widest font-bold text-amber-200">Past Player</p>
+                <p className="text-xs text-white/70 mt-0.5">Profile + clips + history preserved.</p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await reactivatePlayerForCurrentSeason(player.id, player.teamId, player.jerseyNumber, player.position);
+                  } catch (err) {
+                    console.error('Reactivate failed', err);
+                    alert('Could not reactivate. Try again.');
+                  }
+                }}
+                className="px-3 py-2 rounded-full bg-emerald-400/20 ring-1 ring-emerald-300/40 text-emerald-200 hover:bg-emerald-400/30 text-xs font-semibold backdrop-blur transition whitespace-nowrap"
+              >
+                ↺ Bring Back
+              </button>
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 items-center">

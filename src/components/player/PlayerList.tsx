@@ -25,6 +25,8 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
   const [sortBy, setSortBy] = useState<'name' | 'jerseyNumber' | 'position' | 'goals'>('jerseyNumber');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
+  const [inactivePlayers, setInactivePlayers] = useState<Player[]>([]);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -69,6 +71,30 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
     return () => unsub();
   }, [selectedTeamId]);
+
+  // Optionally subscribe to inactive players when the toggle is on.
+  useEffect(() => {
+    if (!selectedTeamId || !showInactive) {
+      setInactivePlayers([]);
+      return;
+    }
+    const q = query(collection(db, 'players'), where('isActive', '==', false));
+    const unsub = onSnapshot(q, (snap) => {
+      const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
+      const teamPlayers = all.filter((p: any) => {
+        if (p.teamIds && Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
+        if (p.teamId === selectedTeamId) return true;
+        return false;
+      });
+      teamPlayers.sort((a: any, b: any) => (a.jerseyNumber || 999) - (b.jerseyNumber || 999));
+      setInactivePlayers(teamPlayers.map((p: any) => ({
+        ...p,
+        createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt || Date.now()),
+        dateOfBirth: p.dateOfBirth?.toDate ? p.dateOfBirth.toDate() : (p.dateOfBirth ? new Date(p.dateOfBirth) : undefined),
+      })));
+    });
+    return () => unsub();
+  }, [selectedTeamId, showInactive]);
 
   // Filter and sort players
   useEffect(() => {
@@ -231,18 +257,31 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
         {/* Add Player Button (Coach only) */}
         {isUserCoach && (
-          <button
-            onClick={() => {
-              setEditingPlayer(null);
-              setIsAddPlayerOpen(true);
-            }}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200 flex items-center space-x-2 shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Player</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowInactive((v) => !v)}
+              className={`px-3 py-2 rounded-xl text-sm font-semibold transition border ${
+                showInactive
+                  ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+              title="Show inactive (returning) players"
+            >
+              {showInactive ? `📋 Inactive (${inactivePlayers.length})` : 'Past Players'}
+            </button>
+            <button
+              onClick={() => {
+                setEditingPlayer(null);
+                setIsAddPlayerOpen(true);
+              }}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-200 flex items-center space-x-2 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add Player</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -284,6 +323,30 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
             />
           ))}
         </div>
+      )}
+
+      {/* Inactive players (toggle, coach-only) */}
+      {showInactive && inactivePlayers.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 mt-4">
+            <h3 className="text-base font-bold text-gray-700">Past Players ({inactivePlayers.length})</h3>
+            <span className="text-xs text-gray-500">Click "Bring Back" to add a returning player to the current season</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-80">
+            {inactivePlayers.map((player) => (
+              <PlayerCard
+                key={player.id}
+                player={player}
+                onEdit={handleEditPlayer}
+                onDelete={handlePlayerDeleted}
+                showActions={true}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {showInactive && inactivePlayers.length === 0 && (
+        <div className="text-center py-8 text-sm text-gray-500">No inactive players for this team.</div>
       )}
 
       {/* Add/Edit Player Modal */}

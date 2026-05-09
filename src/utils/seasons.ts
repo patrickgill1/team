@@ -135,3 +135,28 @@ export async function withSeasonId<T extends { teamId?: string; seasonId?: strin
   const season = await getActiveSeasonForTeam(payload.teamId);
   return season ? { ...payload, seasonId: season.id } : payload;
 }
+
+/**
+ * Bring an inactive player back: flip isActive=true and append a
+ * seasonMembership for the current active season (so they show up on the
+ * roster + their stats start a fresh per-season bucket without losing
+ * historical buckets).
+ */
+export async function reactivatePlayerForCurrentSeason(playerId: string, teamId: string, jerseyNumber?: number, position?: string): Promise<void> {
+  const season = await getActiveSeasonForTeam(teamId);
+  const playerRef = doc(db, 'players', playerId);
+  const update: Record<string, any> = { isActive: true };
+  if (season) {
+    // Read current memberships to avoid duplicates.
+    const snap = await getDoc(playerRef);
+    const existing: any[] = (snap.data() as any)?.seasonMemberships || [];
+    const already = existing.some((m) => m && m.seasonId === season.id && m.teamId === teamId);
+    if (!already) {
+      update.seasonMemberships = [
+        ...existing,
+        { seasonId: season.id, teamId, jerseyNumber, position },
+      ];
+    }
+  }
+  await updateDoc(playerRef, update);
+}

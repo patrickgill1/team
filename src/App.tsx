@@ -13,6 +13,7 @@ import SimpleAuth from './pages/SimpleAuth';
 import PublicVote from './pages/PublicVote';
 import PublicSurvey from './pages/PublicSurvey';
 import PublicGame from './pages/PublicGame';
+import PublicEvent from './pages/PublicEvent';
 import PlayerJoin from './pages/PlayerJoin';
 
 // Lazy load all other pages
@@ -197,6 +198,7 @@ function App() {
               <Route path="/media/:mediaId" element={<SharedMedia />} />
               <Route path="/survey/:surveyId" element={<PublicSurvey />} />
               <Route path="/game/:gameId" element={<PublicGame />} />
+              <Route path="/event/:eventId" element={<PublicEvent />} />
             
             {/* Root redirect - goes to dashboard if authenticated, auth if not */}
             <Route path="/" element={

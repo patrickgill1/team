@@ -635,14 +635,9 @@ const EventCard: React.FC<EventCardProps> = ({
 
   const handleShare = async () => {
     const url = `${window.location.origin}/event/${event.id}`;
-    const shareData = {
-      title: event.title,
-      text: `${event.title} — ${formatDateTime(event.date)}${event.location ? ` @ ${event.location}` : ''}`,
-      url,
-    };
     try {
       if (typeof navigator !== 'undefined' && (navigator as any).share) {
-        await (navigator as any).share(shareData);
+        await (navigator as any).share({ url });
         return;
       }
     } catch {

@@ -792,11 +792,16 @@ const RsvpBar: React.FC<{
   const [showList, setShowList] = useState<null | 'going' | 'maybe' | 'no'>(null);
   if (event.type !== 'game' && event.type !== 'practice' && event.type !== 'event') return null;
   const rsvps = event.rsvps || {};
-  const entries = Object.entries(rsvps);
+  const publicRsvps = (event as any).publicRsvps || {};
+  type Entry = { id: string; status: 'going' | 'maybe' | 'no'; name: string; isGuest: boolean };
+  const entries: Entry[] = [
+    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, status: v.status, name: v.name, isGuest: false })),
+    ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isGuest: true })),
+  ];
   const counts = {
-    going: entries.filter(([, v]: any) => v.status === 'going').length,
-    maybe: entries.filter(([, v]: any) => v.status === 'maybe').length,
-    no: entries.filter(([, v]: any) => v.status === 'no').length,
+    going: entries.filter(e => e.status === 'going').length,
+    maybe: entries.filter(e => e.status === 'maybe').length,
+    no: entries.filter(e => e.status === 'no').length,
   };
   const my = userUid ? rsvps[userUid]?.status : undefined;
   const btn = (status: 'going' | 'maybe' | 'no', label: string, icon: string, color: string) => (
@@ -856,18 +861,23 @@ const RsvpBar: React.FC<{
               <button onClick={() => setShowList(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
             </div>
             <div className="overflow-y-auto flex-1">
-              {entries.filter(([, v]: any) => v.status === showList).length === 0 ? (
+              {entries.filter(e => e.status === showList).length === 0 ? (
                 <p className="px-4 py-6 text-center text-sm text-gray-500">No one yet.</p>
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {entries
-                    .filter(([, v]: any) => v.status === showList)
-                    .map(([uid, v]: any) => (
-                      <li key={uid} className="px-4 py-2.5 flex items-center space-x-3">
+                    .filter(e => e.status === showList)
+                    .map(e => (
+                      <li key={e.id} className="px-4 py-2.5 flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                          {(v.name || '?').charAt(0).toUpperCase()}
+                          {(e.name || '?').charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-sm text-gray-800">{v.name || 'Unknown'}</span>
+                        <span className="text-sm text-gray-800 flex-1">{e.name || 'Unknown'}</span>
+                        {e.isGuest && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200" title="Responded via shared link">
+                            via link
+                          </span>
+                        )}
                       </li>
                     ))}
                 </ul>

@@ -6,6 +6,7 @@ import { CalendarEvent } from '../types';
 
 const TOKEN_KEY = 'public_event_rsvp_token';
 const NAME_KEY = 'public_event_rsvp_name';
+const COACH_KEY = 'public_event_rsvp_is_coach';
 
 const getToken = (): string => {
   let t = localStorage.getItem(TOKEN_KEY);
@@ -70,6 +71,7 @@ const PublicEvent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState<string>(localStorage.getItem(NAME_KEY) || '');
+  const [isCoach, setIsCoach] = useState<boolean>(localStorage.getItem(COACH_KEY) === '1');
   const [submitting, setSubmitting] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
@@ -124,12 +126,11 @@ const PublicEvent: React.FC = () => {
     };
   }, [event?.rsvps, event?.publicRsvps]);
 
-  const goingNames = useMemo(() => {
+  const goingPeople = useMemo(() => {
     const all = { ...(event?.rsvps || {}), ...(event?.publicRsvps || {}) };
     return Object.values(all)
-      .filter((v: any) => v.status === 'going')
-      .map((v: any) => v.name)
-      .filter(Boolean) as string[];
+      .filter((v: any) => v.status === 'going' && v.name)
+      .map((v: any) => ({ name: v.name as string, isCoach: !!v.isCoach }));
   }, [event?.rsvps, event?.publicRsvps]);
 
   const handleRsvp = async (status: 'going' | 'maybe' | 'no') => {
@@ -142,12 +143,14 @@ const PublicEvent: React.FC = () => {
     setSubmitting(true);
     try {
       localStorage.setItem(NAME_KEY, trimmed);
+      localStorage.setItem(COACH_KEY, isCoach ? '1' : '0');
       const newPublicRsvps = {
         ...(event.publicRsvps || {}),
         [token]: {
           status,
           name: trimmed,
           respondedAt: new Date(),
+          ...(isCoach ? { isCoach: true } : {}),
         },
       };
       await updateDoc(doc(db, 'events', eventId), { publicRsvps: newPublicRsvps });
@@ -283,9 +286,19 @@ const PublicEvent: React.FC = () => {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-3 py-2.5 mb-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                  className="w-full px-3 py-2.5 mb-2 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                   maxLength={60}
                 />
+
+                <label className="flex items-center gap-2 mb-3 px-1 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isCoach}
+                    onChange={e => setIsCoach(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-400"
+                  />
+                  <span className="text-xs text-slate-600">🧥 I'm a coach (tag my response)</span>
+                </label>
 
                 <div className="flex gap-2">
                   <RsvpButton status="going" label="Going" icon="✅" activeColor="bg-emerald-600" />
@@ -323,19 +336,24 @@ const PublicEvent: React.FC = () => {
               </div>
             </div>
 
-            {goingNames.length > 0 && (
+            {goingPeople.length > 0 && (
               <div className="mt-4">
                 <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1.5">
-                  Going ({goingNames.length})
+                  Going ({goingPeople.length})
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {goingNames.slice(0, 30).map((n, i) => (
-                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
-                      {n}
+                  {goingPeople.slice(0, 30).map((p, i) => (
+                    <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${
+                      p.isCoach
+                        ? 'bg-violet-50 border-violet-200 text-violet-800'
+                        : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    }`}>
+                      {p.isCoach && <span title="Coach">🧥</span>}
+                      {p.name}
                     </span>
                   ))}
-                  {goingNames.length > 30 && (
-                    <span className="text-xs text-slate-500 self-center">+{goingNames.length - 30} more</span>
+                  {goingPeople.length > 30 && (
+                    <span className="text-xs text-slate-500 self-center">+{goingPeople.length - 30} more</span>
                   )}
                 </div>
               </div>

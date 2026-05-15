@@ -190,7 +190,7 @@ export interface CalendarEvent {
   rsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; forPlayerName?: string }>;
   // Guest RSVPs from the public share link, keyed by a per-browser token. Kept
   // separate from `rsvps` so authenticated team-member RSVPs aren't overwritten.
-  publicRsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any }>;
+  publicRsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; isCoach?: boolean }>;
   // Carpool board: parents post offers ("driving 2 seats from west") or requests ("need ride from south")
   carpoolPosts?: Array<{
     id: string;

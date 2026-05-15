@@ -793,10 +793,10 @@ const RsvpBar: React.FC<{
   if (event.type !== 'game' && event.type !== 'practice' && event.type !== 'event') return null;
   const rsvps = event.rsvps || {};
   const publicRsvps = (event as any).publicRsvps || {};
-  type Entry = { id: string; status: 'going' | 'maybe' | 'no'; name: string; isGuest: boolean };
+  type Entry = { id: string; status: 'going' | 'maybe' | 'no'; name: string; isGuest: boolean; isCoach: boolean };
   const entries: Entry[] = [
-    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, status: v.status, name: v.name, isGuest: false })),
-    ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isGuest: true })),
+    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, status: v.status, name: v.name, isGuest: false, isCoach: false })),
+    ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isGuest: true, isCoach: !!v.isCoach })),
   ];
   const counts = {
     going: entries.filter(e => e.status === 'going').length,
@@ -868,13 +868,18 @@ const RsvpBar: React.FC<{
                   {entries
                     .filter(e => e.status === showList)
                     .map(e => (
-                      <li key={e.id} className="px-4 py-2.5 flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                      <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                           {(e.name || '?').charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-sm text-gray-800 flex-1">{e.name || 'Unknown'}</span>
+                        <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
+                        {e.isCoach && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200 shrink-0" title="Self-tagged as coach">
+                            🧥 coach
+                          </span>
+                        )}
                         {e.isGuest && (
-                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200" title="Responded via shared link">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0" title="Responded via shared link">
                             via link
                           </span>
                         )}

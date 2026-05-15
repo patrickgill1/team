@@ -43,6 +43,8 @@ interface Vote {
   playerName: string;
   reason?: string;
   timestamp: Date;
+  isPublicVote?: boolean;
+  isCoach?: boolean;
 }
 
 const PlayerOfMatch: React.FC = () => {
@@ -805,7 +807,16 @@ const PlayerOfMatch: React.FC = () => {
                         <tbody className="divide-y divide-gray-100">
                           {activeVoting.votes.map((v, i) => (
                             <tr key={i} className="hover:bg-gray-50">
-                              <td className="px-3 py-2 font-medium text-gray-900">{v.voterName || '—'}</td>
+                              <td className="px-3 py-2 font-medium text-gray-900">
+                                <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                  <span>{v.voterName || '—'}</span>
+                                  {v.isCoach && (
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200" title="Voted as coach">
+                                      🧥 coach
+                                    </span>
+                                  )}
+                                </span>
+                              </td>
                               <td className="px-3 py-2 text-gray-700">{v.playerName}</td>
                               <td className="px-3 py-2 text-gray-500 italic">{v.reason || '—'}</td>
                             </tr>
@@ -951,7 +962,16 @@ const PlayerOfMatch: React.FC = () => {
                                 <tbody className="divide-y divide-gray-100">
                                   {voting.votes.map((v, i) => (
                                     <tr key={i} className="hover:bg-gray-50">
-                                      <td className="px-3 py-2 font-medium text-gray-900">{v.voterName || '—'}</td>
+                                      <td className="px-3 py-2 font-medium text-gray-900">
+                                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                          <span>{v.voterName || '—'}</span>
+                                          {v.isCoach && (
+                                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200" title="Voted as coach">
+                                              🧥 coach
+                                            </span>
+                                          )}
+                                        </span>
+                                      </td>
                                       <td className="px-3 py-2 text-gray-700">{v.playerName}</td>
                                       <td className="px-3 py-2 text-gray-500 italic">{v.reason || '—'}</td>
                                     </tr>

@@ -13,6 +13,9 @@ interface Vote {
   reason?: string;
   timestamp: Date;
   isPublicVote?: boolean;
+  // Voter self-identified as a coach (e.g. assistant coach without a kid on
+  // the team) so the parent/child eligibility checks were bypassed.
+  isCoach?: boolean;
 }
 
 interface MatchVoting {
@@ -230,6 +233,7 @@ const PublicVote: React.FC = () => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
   const [voteReason, setVoteReason] = useState<string>('');
   const [voterName, setVoterName] = useState<string>(() => localStorage.getItem('potm_voter_name') || '');
+  const [iAmCoach, setIAmCoach] = useState<boolean>(() => localStorage.getItem('potm_voter_is_coach') === '1');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -308,16 +312,19 @@ const PublicVote: React.FC = () => {
   // \u2500\u2500 Handlers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const handleProceedToVote = () => {
     if (!voterName.trim()) { setError('Please enter your name.'); return; }
-    if (!myChildId) { setError('Please select which player is your child.'); return; }
-    // Check attendance eligibility
-    if (voting?.eligiblePlayerIds && voting.eligiblePlayerIds.length > 0) {
-      if (!voting.eligiblePlayerIds.includes(myChildId)) {
-        setError('Your child was marked as absent for this match. Only parents of players who were present can vote.');
-        return;
+    if (!iAmCoach) {
+      if (!myChildId) { setError('Please select which player is your child.'); return; }
+      // Check attendance eligibility
+      if (voting?.eligiblePlayerIds && voting.eligiblePlayerIds.length > 0) {
+        if (!voting.eligiblePlayerIds.includes(myChildId)) {
+          setError('Your child was marked as absent for this match. Only parents of players who were present can vote.');
+          return;
+        }
       }
     }
     setError(null);
     localStorage.setItem('potm_voter_name', voterName.trim());
+    localStorage.setItem('potm_voter_is_coach', iAmCoach ? '1' : '0');
     setStep('vote');
   };
 
@@ -325,7 +332,7 @@ const PublicVote: React.FC = () => {
     if (!voting || !selectedPlayerId || !votingId) return;
     const player = players.find(p => p.id === selectedPlayerId);
     if (!player) return;
-    if (selectedPlayerId === myChildId) { setError("You cannot vote for your own child."); return; }
+    if (!iAmCoach && selectedPlayerId === myChildId) { setError("You cannot vote for your own child."); return; }
     setSubmitting(true);
     setError(null);
     try {
@@ -340,6 +347,7 @@ const PublicVote: React.FC = () => {
         ...(reason ? { reason } : {}),
         timestamp: new Date(),
         isPublicVote: true,
+        ...(iAmCoach ? { isCoach: true } : {}),
       } as Vote;
       await updateDoc(doc(db, 'match_votings', votingId), {
         votes: arrayUnion(vote),
@@ -382,7 +390,7 @@ const PublicVote: React.FC = () => {
   };
 
   const votablePlayers = players.filter(p => {
-    if (p.id === myChildId) return false;
+    if (!iAmCoach && p.id === myChildId) return false;
     // Only show players marked as present (eligible)
     if (voting?.eligiblePlayerIds && voting.eligiblePlayerIds.length > 0) {
       return voting.eligiblePlayerIds.includes(p.id);
@@ -542,6 +550,20 @@ const PublicVote: React.FC = () => {
                   />
                 </div>
 
+                <label className="flex items-start gap-2.5 p-3 rounded-xl border-2 border-gray-200 hover:border-[#159BE3] hover:border-opacity-40 cursor-pointer select-none transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={iAmCoach}
+                    onChange={e => { setIAmCoach(e.target.checked); if (e.target.checked) { setMyChildId(''); } }}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#159BE3] focus:ring-[#159BE3]"
+                  />
+                  <div className="flex-1 text-sm">
+                    <div className="font-bold text-gray-900">🧥 I'm a coach (no child on the team)</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Skips the parent check so you can vote for any player.</div>
+                  </div>
+                </label>
+
+                {!iAmCoach && (
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
                     Your child on the team <span className="text-[#159BE3]">*</span>
@@ -593,6 +615,7 @@ const PublicVote: React.FC = () => {
                     })}
                   </div>
                 </div>
+                )}
 
                 {error && (
                   <p className="text-red-500 text-sm bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>
@@ -612,7 +635,9 @@ const PublicVote: React.FC = () => {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">Cast your vote</h2>
-                  <p className="text-gray-400 text-sm">Who was the standout player? Your child is excluded.</p>
+                  <p className="text-gray-400 text-sm">
+                    Who was the standout player?{iAmCoach ? ' Voting as 🧥 coach.' : ' Your child is excluded.'}
+                  </p>
                   {voting.eligiblePlayerIds && voting.eligiblePlayerIds.length > 0 && (
                     <p className="text-xs text-gray-400 mt-1">
                       {votablePlayers.length} eligible player{votablePlayers.length !== 1 ? 's' : ''}

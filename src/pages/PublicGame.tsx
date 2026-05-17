@@ -4,6 +4,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { FullGame } from '../types';
 import { downloadFile } from '../utils/downloadFile';
+import { getStreamDownloadUrl } from '../utils/streamUpload';
+import StreamPlayer from '../components/common/StreamPlayer';
 
 const PublicGame: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -14,11 +16,30 @@ const PublicGame: React.FC = () => {
   const [downloadPercent, setDownloadPercent] = useState(0);
 
   const handleDownload = async () => {
-    if (!game?.videoUrl || downloading) return;
+    if (!game || downloading) return;
+    if (!game.videoUrl && !game.streamUid) return;
     const filename = game.videoFileName || `${(game.title || 'game').replace(/[^a-z0-9]+/gi, '_')}.mp4`;
     setDownloading(true);
     setDownloadPercent(0);
-    const result = await downloadFile(game.videoUrl, filename, {
+
+    let sourceUrl = game.videoUrl || '';
+    if (game.streamUid) {
+      try {
+        const dl = await getStreamDownloadUrl(game.streamUid);
+        if (dl.ready) {
+          sourceUrl = dl.url;
+        } else {
+          alert(`Your download is still being prepared (${dl.percent}%). Try again in 30-60 seconds.`);
+          setDownloading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Stream download URL failed:', err);
+      }
+    }
+    if (!sourceUrl) { setDownloading(false); return; }
+
+    const result = await downloadFile(sourceUrl, filename, {
       onProgress: p => setDownloadPercent(p.percent),
     });
     setDownloading(false);
@@ -106,7 +127,14 @@ const PublicGame: React.FC = () => {
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 py-6">
         <div className="aspect-video w-full bg-black rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
-          {game.videoUrl ? (
+          {game.streamUid ? (
+            <StreamPlayer
+              uid={game.streamUid}
+              autoplay
+              title={game.title}
+              className="w-full h-full"
+            />
+          ) : game.videoUrl ? (
             <video
               src={game.videoUrl}
               className="w-full h-full"

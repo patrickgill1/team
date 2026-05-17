@@ -6,6 +6,8 @@ import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
+import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
+import StreamPlayer from '../components/common/StreamPlayer';
 
 // Extract YouTube video ID from any common YouTube URL shape.
 function extractYouTubeId(input: string): string | null {
@@ -178,7 +180,7 @@ const FullGames: React.FC = () => {
         alert('Please choose a video file (MP4, MOV, etc.).');
         return;
       }
-      payload.source = 'r2';
+      payload.source = 'stream';
       // Clear youtube fields when switching
       (payload as any).youtubeUrl = null;
       (payload as any).youtubeId = null;
@@ -186,15 +188,21 @@ const FullGames: React.FC = () => {
 
     setSaving(true);
     try {
-      // Upload to R2 first if needed
+      // Upload to Cloudflare Stream first if needed
       if (formSource === 'upload' && formFile) {
         setUploadProgress(0);
-        const result = await uploadToR2(formFile, 'full_games', p => setUploadProgress(p));
-        payload.videoUrl = result.url;
-        payload.videoKey = result.key;
+        const result = await uploadToStream(
+          formFile,
+          { name: formTitle, teamId: selectedTeamId },
+          p => setUploadProgress(p),
+        );
+        payload.streamUid = result.uid;
+        payload.videoUrl = result.hlsUrl;
         payload.videoFileName = formFile.name;
         payload.videoSize = formFile.size;
         payload.videoContentType = formFile.type;
+        // R2 fields are no longer used for new uploads.
+        (payload as any).videoKey = null;
       } else if (formSource === 'upload' && existingVideoUrl) {
         // Editing without replacing the file — keep existing video fields
         payload.videoUrl = existingVideoUrl;
@@ -308,7 +316,14 @@ const FullGames: React.FC = () => {
                       onClick={() => setSelectedGame(g)}
                       className="relative aspect-video w-full bg-black group"
                     >
-                      {g.videoUrl ? (
+                      {g.streamUid ? (
+                        <img
+                          src={streamThumbnailUrl(g.streamUid, { height: 360 })}
+                          alt={g.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : g.videoUrl ? (
                         <video
                           src={g.videoUrl}
                           className="w-full h-full object-cover"
@@ -406,7 +421,14 @@ const FullGames: React.FC = () => {
             onClick={e => e.stopPropagation()}
           >
             <div className="aspect-video w-full bg-black rounded-lg overflow-hidden">
-              {selectedGame.videoUrl ? (
+              {selectedGame.streamUid ? (
+                <StreamPlayer
+                  uid={selectedGame.streamUid}
+                  autoplay
+                  title={selectedGame.title}
+                  className="w-full h-full"
+                />
+              ) : selectedGame.videoUrl ? (
                 <video
                   src={selectedGame.videoUrl}
                   className="w-full h-full"

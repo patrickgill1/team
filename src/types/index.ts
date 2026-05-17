@@ -420,6 +420,11 @@ export interface PlayerMedia {
   teamId: string;
   url: string;
   thumbnailUrl?: string;
+  // When set, this clip is hosted on Cloudflare Stream (adaptive bitrate HLS).
+  // The legacy `url` may still point at the original R2 MP4 for backwards
+  // compatibility; players prefer Stream when present.
+  streamUid?: string;
+  streamReady?: boolean;
   type: 'photo' | 'video';
   caption?: string;
   uploadedBy: string;
@@ -471,7 +476,10 @@ export interface FullGame {
   videoFileName?: string;
   videoSize?: number;
   videoContentType?: string;
-  source?: 'youtube' | 'r2';  // discriminator; defaults inferred from fields
+  source?: 'youtube' | 'r2' | 'stream';  // discriminator; defaults inferred from fields
+  // Cloudflare Stream UID — preferred over videoUrl for new uploads.
+  streamUid?: string;
+  streamReady?: boolean;
   result?: string;          // e.g. "W 3-1", "L 2-4", "T 1-1"
   notes?: string;
   addedBy: string;

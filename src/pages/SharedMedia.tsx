@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { downloadFile } from '../utils/downloadFile';
+import { streamIframeUrl, getStreamDownloadUrl } from '../utils/streamUpload';
 
 const SharedMedia: React.FC = () => {
   const { mediaId } = useParams<{ mediaId: string }>();
@@ -18,7 +19,28 @@ const SharedMedia: React.FC = () => {
     const filename = media.fileName || `${media.playerName || 'team'}-${isVid ? 'video.mp4' : 'photo.jpg'}`;
     setDownloading(true);
     setDownloadPercent(0);
-    const result = await downloadFile(media.url, filename, {
+
+    // Stream videos: ask Cloudflare to render an MP4 download URL.
+    // First call typically returns "in progress" then "ready" within ~30s.
+    let url: string = media.url;
+    if (isVid && media.streamUid) {
+      try {
+        const dl = await getStreamDownloadUrl(media.streamUid);
+        if (dl.ready) {
+          url = dl.url;
+        } else {
+          alert('Cloudflare is still preparing the MP4 for this clip. Try again in 30–60 seconds.');
+          setDownloading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Stream download URL error', err);
+        // fall through and try the existing url (HLS) — downloadFile will
+        // fall back to opening in a new tab if the browser can't save HLS.
+      }
+    }
+
+    const result = await downloadFile(url, filename, {
       onProgress: p => setDownloadPercent(p.percent),
     });
     setDownloading(false);
@@ -130,13 +152,27 @@ const SharedMedia: React.FC = () => {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="max-w-4xl w-full">
           {isVideo ? (
-            <video
-              src={media.url}
-              controls
-              playsInline
-              preload="metadata"
-              className="w-full max-h-[80vh] rounded-lg bg-black"
-            />
+            media.streamUid ? (
+              <div className="w-full aspect-video rounded-lg overflow-hidden bg-black">
+                <iframe
+                  key={media.streamUid}
+                  src={streamIframeUrl(media.streamUid)}
+                  title={media.caption || 'Video'}
+                  loading="lazy"
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allowFullScreen
+                  className="w-full h-full block border-0"
+                />
+              </div>
+            ) : (
+              <video
+                src={media.url}
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full max-h-[80vh] rounded-lg bg-black"
+              />
+            )
           ) : (
             <img
               src={media.url}

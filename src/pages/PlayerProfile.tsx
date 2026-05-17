@@ -9,6 +9,7 @@ import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { downloadFile } from '../utils/downloadFile';
+import { streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
 
 interface MatchVoting {
   id: string;
@@ -45,7 +46,25 @@ const PlayerProfile: React.FC = () => {
     const filename = item.fileName || `${item.playerName}-${item.type}.${item.type === 'video' ? 'mp4' : 'jpg'}`;
     setDownloading(true);
     setDownloadPercent(0);
-    const result = await downloadFile(item.url, filename, {
+
+    // Stream-hosted videos: ask Cloudflare for the real MP4 URL first.
+    let sourceUrl = item.url;
+    if (item.streamUid) {
+      try {
+        const dl = await getStreamDownloadUrl(item.streamUid);
+        if (dl.ready) {
+          sourceUrl = dl.url;
+        } else {
+          setDownloading(false);
+          alert(`Your high-quality download is still being prepared (${dl.percent}% rendered). Try again in ~30 seconds.`);
+          return;
+        }
+      } catch (err) {
+        console.error('Stream download URL failed, falling back:', err);
+      }
+    }
+
+    const result = await downloadFile(sourceUrl, filename, {
       onProgress: p => setDownloadPercent(p.percent),
     });
     setDownloading(false);
@@ -657,7 +676,9 @@ const PlayerProfile: React.FC = () => {
                     >
                       {item.type === 'video' ? (
                         <>
-                          {item.thumbnailUrl ? (
+                          {item.streamUid ? (
+                            <img src={streamThumbnailUrl(item.streamUid, { height: 360 })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+                          ) : item.thumbnailUrl ? (
                             <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                           ) : (
                             <video src={`${item.url}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
@@ -733,7 +754,9 @@ const PlayerProfile: React.FC = () => {
                   >
                     {item.type === 'video' ? (
                       <>
-                        {item.thumbnailUrl ? (
+                        {item.streamUid ? (
+                          <img src={streamThumbnailUrl(item.streamUid, { height: 360 })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+                        ) : item.thumbnailUrl ? (
                           <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                         ) : (
                           <video src={`${item.url}#t=0.5`} className="w-full h-full object-cover" preload="metadata" muted playsInline />
@@ -917,13 +940,27 @@ const PlayerProfile: React.FC = () => {
             onClick={e => e.stopPropagation()}
           >
             {lightboxItem.type === 'video' ? (
-              <video
-                src={lightboxItem.url}
-                controls
-                autoPlay
-                playsInline
-                className="max-w-full max-h-[80vh] rounded-lg"
-              />
+              lightboxItem.streamUid ? (
+                <div className="w-full max-w-[min(100%,calc(80vh*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
+                  <iframe
+                    key={lightboxItem.streamUid}
+                    src={streamIframeUrl(lightboxItem.streamUid, { autoplay: true })}
+                    title={lightboxItem.caption || lightboxItem.playerName}
+                    loading="lazy"
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                    allowFullScreen
+                    className="w-full h-full block border-0"
+                  />
+                </div>
+              ) : (
+                <video
+                  src={lightboxItem.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-w-full max-h-[80vh] rounded-lg"
+                />
+              )
             ) : (
               <img
                 src={lightboxItem.url}

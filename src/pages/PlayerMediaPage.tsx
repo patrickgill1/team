@@ -8,7 +8,9 @@ import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
+import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
 import { downloadFile } from '../utils/downloadFile';
+import StreamPlayer from '../components/common/StreamPlayer';
 import FullGames from './FullGames';
 
 const ACTIVITY_TAGS = ['Goal', 'Own Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
@@ -310,17 +312,24 @@ const PlayerMediaPage: React.FC = () => {
           file = await compressImage(file);
         }
 
-        // Videos go to Cloudflare R2 (cheaper egress, better streaming).
-        // Photos stay on Firebase Storage.
+        // Videos go to Cloudflare Stream (adaptive bitrate HLS, smooth on
+        // cellular). Photos stay on Firebase Storage.
         let url: string;
+        let streamUid: string | undefined;
         if (isVideo) {
-          const folder = `player_media/${selectedTeamId}/${uploadPlayerId}`;
-          const result = await uploadToR2(file, folder, (pct) => {
-            // Map per-file progress into overall progress
-            const overall = ((i + pct / 100) / totalFiles) * 100;
-            setUploadProgress(Math.round(overall));
-          });
-          url = result.url;
+          const result = await uploadToStream(
+            file,
+            { name: uploadCaption || file.name, playerId: uploadPlayerId, teamId: selectedTeamId },
+            (pct) => {
+              const overall = ((i + pct / 100) / totalFiles) * 100;
+              setUploadProgress(Math.round(overall));
+            }
+          );
+          streamUid = result.uid;
+          // Keep a Stream HLS URL in `url` so existing players that just read
+          // `m.url` still work (Safari will play HLS natively, and we render
+          // the Stream iframe explicitly when streamUid is present).
+          url = result.hlsUrl;
         } else {
           const storagePath = `player_media/${selectedTeamId}/${uploadPlayerId}/${Date.now()}_${file.name}`;
           url = await uploadFile(file, storagePath);
@@ -359,6 +368,7 @@ const PlayerMediaPage: React.FC = () => {
           taggedPlayerIds: uploadTaggedPlayers.length > 0 ? uploadTaggedPlayers : undefined,
           gameId: uploadGameId || undefined,
           isOwnGoal: isOwnGoal ? true : undefined,
+          ...(streamUid ? { streamUid } : {}),
           updatedAt: new Date(),
         };
 
@@ -596,7 +606,29 @@ const PlayerMediaPage: React.FC = () => {
     setDownloadingId(m.id);
     setDownloadPercent(0);
     bumpEngagement(m, 'downloads');
-    const result = await downloadFile(m.url, filename, {
+
+    // Resolve the URL to download from.
+    // - Stream videos: ask Stream to render an MP4 and grab that URL.
+    // - Anything else (photos, legacy R2 videos): the existing `url` field.
+    let sourceUrl = m.url;
+    if (m.streamUid) {
+      try {
+        const dl = await getStreamDownloadUrl(m.streamUid);
+        if (dl.ready) {
+          sourceUrl = dl.url;
+        } else {
+          setDownloadingId(null);
+          alert(`Your high-quality download is still being prepared (${dl.percent}% rendered). Try again in ~30 seconds.`);
+          return;
+        }
+      } catch (err) {
+        console.error('Stream download URL failed, falling back to HLS:', err);
+        // Fall through with the HLS URL — useless as a download but at least
+        // the helper will surface a clean error to the user.
+      }
+    }
+
+    const result = await downloadFile(sourceUrl, filename, {
       onProgress: p => setDownloadPercent(p.percent),
     });
     setDownloadingId(null);
@@ -710,23 +742,27 @@ const PlayerMediaPage: React.FC = () => {
     try {
       setReplacing(true);
       setReplaceProgress(0);
-      const folder = `player_media/${selectedMedia.teamId}/${selectedMedia.playerId}`;
-      const result = await uploadToR2(file, folder, (pct) => setReplaceProgress(pct));
+      const result = await uploadToStream(
+        file,
+        { name: selectedMedia.caption || file.name, playerId: selectedMedia.playerId, teamId: selectedMedia.teamId },
+        (pct) => setReplaceProgress(pct),
+      );
 
       const collection = selectedMedia.id.startsWith('gallery_') ? 'gallery' : 'player_media';
       const docId = selectedMedia.id.startsWith('gallery_') ? selectedMedia.id.replace('gallery_', '') : selectedMedia.id;
       await updateDocument(collection, docId, {
-        url: result.url,
+        url: result.hlsUrl,
+        streamUid: result.uid,
         fileName: file.name,
         fileSize: file.size,
         contentType: file.type,
-        storageProvider: 'r2',
+        storageProvider: 'stream',
         previousUrl: selectedMedia.url,
         replacedAt: new Date(),
       });
 
       // Update local state so lightbox + grid reflect new URL immediately
-      const updated = { ...selectedMedia, url: result.url, fileName: file.name, fileSize: file.size, contentType: file.type } as PlayerMediaType;
+      const updated = { ...selectedMedia, url: result.hlsUrl, streamUid: result.uid, fileName: file.name, fileSize: file.size, contentType: file.type } as PlayerMediaType;
       setSelectedMedia(updated);
       setMedia(prev => prev.map(m => m.id === selectedMedia.id ? updated : m));
       alert('Video replaced.');
@@ -1555,14 +1591,28 @@ const PlayerMediaPage: React.FC = () => {
             </button>
             <div className="max-w-4xl w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
               {selectedMedia.type === 'video' ? (
-                <video
-                  src={selectedMedia.url}
-                  controls
-                  autoPlay
-                  playsInline
-                  preload="metadata"
-                  className="max-w-full max-h-[60vh] sm:max-h-[70vh] rounded-lg"
-                />
+                selectedMedia.streamUid ? (
+                  <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
+                    <iframe
+                      key={selectedMedia.streamUid}
+                      src={streamIframeUrl(selectedMedia.streamUid, { autoplay: true })}
+                      title={selectedMedia.caption || selectedMedia.playerName}
+                      loading="lazy"
+                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                      allowFullScreen
+                      className="w-full h-full block border-0"
+                    />
+                  </div>
+                ) : (
+                  <video
+                    src={selectedMedia.url}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    className="max-w-full max-h-[60vh] sm:max-h-[70vh] rounded-lg"
+                  />
+                )
               ) : (
                 <img
                   src={selectedMedia.url}
@@ -2086,13 +2136,22 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
       className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all hover:shadow-2xl hover:shadow-cyan-500/10 text-left"
     >
       {item.type === 'video' ? (
-        <video
-          src={`${item.url}#t=0.5`}
-          preload="metadata"
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        item.streamUid ? (
+          <img
+            src={streamThumbnailUrl(item.streamUid, { height: 360 })}
+            alt={item.caption || ''}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <video
+            src={`${item.url}#t=0.5`}
+            preload="metadata"
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )
       ) : (
         <img src={item.url} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
       )}
@@ -2142,13 +2201,22 @@ const RankedCard: React.FC<RankedCardProps> = ({ rank, item, onClick }) => {
       className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all text-left"
     >
       {item.type === 'video' ? (
-        <video
-          src={`${item.url}#t=0.5`}
-          preload="metadata"
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        item.streamUid ? (
+          <img
+            src={streamThumbnailUrl(item.streamUid, { height: 360 })}
+            alt={item.caption || ''}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <video
+            src={`${item.url}#t=0.5`}
+            preload="metadata"
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )
       ) : (
         <img src={item.url} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
       )}
@@ -2190,13 +2258,22 @@ const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, 
         <div key={item.id} className="group relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/40 transition-colors">
           <button onClick={() => onView(item)} className="w-full h-full block">
             {item.type === 'video' ? (
-              <video
-                src={`${item.url}#t=0.5`}
-                preload="metadata"
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
+              item.streamUid ? (
+                <img
+                  src={streamThumbnailUrl(item.streamUid, { height: 360 })}
+                  alt={item.caption || ''}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <video
+                  src={`${item.url}#t=0.5`}
+                  preload="metadata"
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              )
             ) : (
               <img src={item.url} alt={item.caption || ''} loading="lazy" className="w-full h-full object-cover" />
             )}

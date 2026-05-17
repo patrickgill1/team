@@ -62,5 +62,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Fire FC uses the camera to capture player photos, highlight clips, and game-day moments to share with your team.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fire FC needs access to your photos so coaches and parents can upload pictures and highlight videos to the team gallery.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fire FC saves downloaded highlight videos and photos to your photo library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Fire FC records audio along with highlight videos so cheers and commentary are captured with the clip.</string>
 </dict>
 </plist>

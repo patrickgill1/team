@@ -93,6 +93,39 @@ admin.initializeApp({
 });
 const db = admin.firestore();
 
+// ─── Firebase Storage signed-URL bridge ──────────────────────────────────────
+// Our storage.rules require auth (`request.auth != null`), so Cloudflare's
+// Stream copy endpoint can't fetch raw firebasestorage.googleapis.com URLs.
+// Generate a short-lived V4 signed URL via the Admin SDK — those bypass the
+// security rules and are world-readable for the expiry window. We hand THAT
+// to Stream.
+//
+// URLs that don't look like Firebase Storage (e.g. R2 custom-domain URLs) are
+// passed through unchanged.
+function parseFirebaseStorageUrl(url: string): { bucket: string; path: string } | null {
+  // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media&token=...
+  const m = url.match(/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/([^/]+)\/o\/([^?]+)/);
+  if (!m) return null;
+  return {
+    bucket: decodeURIComponent(m[1]),
+    path: decodeURIComponent(m[2]),
+  };
+}
+
+async function toFetchableUrl(url: string): Promise<string> {
+  const parsed = parseFirebaseStorageUrl(url);
+  if (!parsed) return url;
+  const bucket = admin.storage().bucket(parsed.bucket);
+  const [signed] = await bucket.file(parsed.path).getSignedUrl({
+    version: 'v4',
+    action: 'read',
+    // Cloudflare Stream needs the URL fetchable for the duration of its
+    // download + transcode kickoff. 2 hours is plenty for any plausible video.
+    expires: Date.now() + 2 * 60 * 60 * 1000,
+  });
+  return signed;
+}
+
 // ─── Stream API ──────────────────────────────────────────────────────────────
 interface StreamCopyResponse {
   success: boolean;
@@ -188,7 +221,9 @@ async function main() {
     }
 
     try {
-      const uid = await streamCopyFromUrl(t.url, t.name);
+      // Firebase Storage URLs need a signed-URL bridge — see toFetchableUrl().
+      const fetchable = await toFetchableUrl(t.url);
+      const uid = await streamCopyFromUrl(fetchable, t.name);
       await t.doc.ref.update({ streamUid: uid, updatedAt: new Date() });
       process.stdout.write(`  ✓ streamUid=${uid}\n`);
       migrated++;

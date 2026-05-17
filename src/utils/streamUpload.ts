@@ -111,10 +111,11 @@ export function streamIframeUrl(uid: string, opts: { autoplay?: boolean; poster?
 
 export function streamThumbnailUrl(uid: string, opts: { time?: string; height?: number } = {}): string {
   const qs = new URLSearchParams();
-  if (opts.time) qs.set('time', opts.time);
+  // Default to 1s into the video — a *lot* of phone clips start on a black
+  // fade-in frame, which makes the default time=0 poster look broken.
+  qs.set('time', opts.time || '1s');
   if (opts.height) qs.set('height', String(opts.height));
-  const q = qs.toString();
-  return `https://${customerBase()}/${uid}/thumbnails/thumbnail.jpg${q ? `?${q}` : ''}`;
+  return `https://${customerBase()}/${uid}/thumbnails/thumbnail.jpg?${qs.toString()}`;
 }
 
 // Ask the server to (a) enable MP4 download on the Stream video if not

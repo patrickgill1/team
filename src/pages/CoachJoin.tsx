@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import {
@@ -50,9 +50,14 @@ const CoachJoin: React.FC = () => {
     }
   }, [inviteCode]);
 
-  // Auto-join when authenticated
+  // Auto-join when authenticated.
+  // Guard with a ref so a transient error doesn't trigger an infinite retry
+  // loop — without this, `joining` flips back to false in the catch and the
+  // effect re-runs immediately, freezing the UI on "Joining team…".
+  const joinAttemptedRef = useRef(false);
   useEffect(() => {
-    if (currentUser && invite && !joined && !joining) {
+    if (currentUser && invite && !joined && !joining && !joinAttemptedRef.current) {
+      joinAttemptedRef.current = true;
       acceptInvite(currentUser);
     }
   }, [currentUser, invite, joined, joining]);
@@ -156,9 +161,10 @@ const CoachJoin: React.FC = () => {
 
       setJoined(true);
       setJoining(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error accepting invite:', err);
-      setError('Failed to join team. Please try again.');
+      const detail = err?.code || err?.message || String(err);
+      setError(`Failed to join team. (${detail}) — Please try again or contact the coach who sent the invite.`);
       setJoining(false);
     }
   };

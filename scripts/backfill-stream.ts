@@ -81,6 +81,28 @@ if (!accountId || !apiToken) {
   process.exit(1);
 }
 
+// Up-front token sanity check so a bad token doesn't waste the long download
+// before we discover it. Hits Cloudflare's /user/tokens/verify endpoint.
+async function preflightCfToken(): Promise<void> {
+  console.log(`Account ID: ${accountId!.slice(0, 8)}…${accountId!.slice(-4)} (len=${accountId!.length})`);
+  console.log(`API token:  ${apiToken!.slice(0, 6)}…${apiToken!.slice(-4)} (len=${apiToken!.length})`);
+  const res = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
+    headers: { Authorization: `Bearer ${apiToken}` },
+  });
+  const json: any = await res.json().catch(() => ({}));
+  if (res.ok && json?.success && json?.result?.status === 'active') {
+    console.log(`✓ Token is active (id=${String(json.result.id).slice(0, 8)}…)\n`);
+    return;
+  }
+  console.error('❌ Cloudflare token failed verification:');
+  console.error(`   status: ${res.status}`);
+  console.error(`   body:   ${JSON.stringify(json)}`);
+  console.error('   Fix: regenerate the token in Cloudflare → My Profile → API Tokens');
+  console.error('        (template: "Read and write Cloudflare Stream and Images")');
+  console.error('        and copy it into .env as CLOUDFLARE_STREAM_API_TOKEN exactly.');
+  process.exit(1);
+}
+
 // ─── Firebase Admin ──────────────────────────────────────────────────────────
 const sa = path.join(__dirname, 'firebase-service-account.json');
 if (!fs.existsSync(sa)) {
@@ -248,6 +270,8 @@ async function collectTargets(): Promise<Target[]> {
 
 async function main() {
   console.log(APPLY ? '🚀 APPLY mode — writing changes\n' : '🔍 DRY RUN — pass --apply to write\n');
+
+  if (APPLY) await preflightCfToken();
 
   const targets = await collectTargets();
   console.log(`Found ${targets.length} videos to backfill${ONLY ? ` (scope: ${ONLY})` : ''}\n`);

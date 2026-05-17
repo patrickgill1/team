@@ -35,6 +35,32 @@ import * as admin from 'firebase-admin';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// ─── .env loader ─────────────────────────────────────────────────────────────
+// Minimal dotenv: read KEY=VALUE lines from .env in the project root and
+// populate process.env for any keys not already set. Saves having to `export`
+// or prefix the command every time.
+(function loadDotEnv() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (!fs.existsSync(envPath)) return;
+  const raw = fs.readFileSync(envPath, 'utf-8');
+  for (const rawLine of raw.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    // Strip surrounding quotes if present (KEY="value" or KEY='value')
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (key && !(key in process.env)) process.env[key] = value;
+  }
+})();
+
 // ─── Args ────────────────────────────────────────────────────────────────────
 const argv = process.argv.slice(2);
 const APPLY = argv.includes('--apply');

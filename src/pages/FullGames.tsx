@@ -318,7 +318,7 @@ const FullGames: React.FC = () => {
                     >
                       {g.streamUid ? (
                         <img
-                          src={streamThumbnailUrl(g.streamUid, { height: 360 })}
+                          src={streamThumbnailUrl(g.streamUid, { height: 360, time: g.posterTimeSeconds != null ? `${g.posterTimeSeconds}s` : undefined })}
                           alt={g.title}
                           className="w-full h-full object-cover"
                           loading="lazy"

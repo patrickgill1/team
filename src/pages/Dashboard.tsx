@@ -16,7 +16,10 @@ import { streamThumbnailUrl } from '../utils/streamUpload';
 // fall back to a stored thumbnailUrl if one exists (most don't).
 function clipThumb(clip: any): string | undefined {
   if (clip?.type === 'video' && clip.streamUid) {
-    return streamThumbnailUrl(clip.streamUid, { height: 480 });
+    return streamThumbnailUrl(clip.streamUid, {
+      height: 480,
+      time: clip.posterTimeSeconds != null ? `${clip.posterTimeSeconds}s` : undefined,
+    });
   }
   if (clip?.type === 'photo') return clip.url;
   return clip?.thumbnailUrl;

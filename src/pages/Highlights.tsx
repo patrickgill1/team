@@ -189,15 +189,16 @@ const Highlights: React.FC = () => {
           <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10">
             {current?.streamUid ? (
               // Stream's iframe player handles HLS / mobile playback far better
-              // than a raw <video> with the HLS manifest URL. Tradeoff: we
-              // lose the custom click-to-pause + auto-next-on-end hooks for
-              // Stream clips (iframe events aren't directly observable).
+              // than a raw <video> with the HLS manifest URL. Auto-advance is
+              // restored via Cloudflare's Stream Player SDK (lazy-loaded inside
+              // StreamPlayer); click-to-pause stays as a Stream-built-in.
               <StreamPlayer
                 key={current.id}
                 uid={current.streamUid}
                 autoplay
                 title={current.caption || current.playerName}
                 className="w-full max-h-[75vh]"
+                onEnded={goNext}
               />
             ) : (
               <video

@@ -93,17 +93,13 @@ admin.initializeApp({
 });
 const db = admin.firestore();
 
-// ─── Firebase Storage signed-URL bridge ──────────────────────────────────────
-// Our storage.rules require auth (`request.auth != null`), so Cloudflare's
-// Stream copy endpoint can't fetch raw firebasestorage.googleapis.com URLs.
-// Generate a short-lived V4 signed URL via the Admin SDK — those bypass the
-// security rules and are world-readable for the expiry window. We hand THAT
-// to Stream.
-//
-// URLs that don't look like Firebase Storage (e.g. R2 custom-domain URLs) are
-// passed through unchanged.
+// ─── Firebase Storage source ─────────────────────────────────────────────────
+// storage.rules require auth, so Cloudflare's copy-from-URL endpoint can't
+// fetch firebasestorage.googleapis.com URLs (and the bucket-name aliasing
+// between `.firebasestorage.app` and `.appspot.com` makes signed URLs flaky
+// too). We instead download the file bytes via the Admin SDK and POST them
+// straight to Stream — no public URL needed.
 function parseFirebaseStorageUrl(url: string): { bucket: string; path: string } | null {
-  // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media&token=...
   const m = url.match(/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/([^/]+)\/o\/([^?]+)/);
   if (!m) return null;
   return {
@@ -112,18 +108,34 @@ function parseFirebaseStorageUrl(url: string): { bucket: string; path: string } 
   };
 }
 
-async function toFetchableUrl(url: string): Promise<string> {
-  const parsed = parseFirebaseStorageUrl(url);
-  if (!parsed) return url;
-  const bucket = admin.storage().bucket(parsed.bucket);
-  const [signed] = await bucket.file(parsed.path).getSignedUrl({
-    version: 'v4',
-    action: 'read',
-    // Cloudflare Stream needs the URL fetchable for the duration of its
-    // download + transcode kickoff. 2 hours is plenty for any plausible video.
-    expires: Date.now() + 2 * 60 * 60 * 1000,
-  });
-  return signed;
+const FIREBASE_BUCKET_CANDIDATES = (bucket: string): string[] => {
+  // The .firebasestorage.app suffix is a Firebase-side alias; the underlying
+  // GCS bucket may actually be <project>.appspot.com. Try both.
+  const out = [bucket];
+  if (bucket.endsWith('.firebasestorage.app')) {
+    out.push(bucket.replace(/\.firebasestorage\.app$/, '.appspot.com'));
+  } else if (bucket.endsWith('.appspot.com')) {
+    out.push(bucket.replace(/\.appspot\.com$/, '.firebasestorage.app'));
+  }
+  return out;
+};
+
+async function downloadFromFirebase(bucketName: string, filePath: string): Promise<{ buffer: Buffer; contentType: string }> {
+  let lastErr: any = null;
+  for (const candidate of FIREBASE_BUCKET_CANDIDATES(bucketName)) {
+    try {
+      const bucket = admin.storage().bucket(candidate);
+      const file = bucket.file(filePath);
+      const [exists] = await file.exists();
+      if (!exists) { lastErr = new Error(`Not found in bucket ${candidate}`); continue; }
+      const [buffer] = await file.download();
+      const [metadata] = await file.getMetadata();
+      return { buffer, contentType: String(metadata.contentType || 'video/mp4') };
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Could not download from Firebase Storage');
 }
 
 // ─── Stream API ──────────────────────────────────────────────────────────────
@@ -153,6 +165,40 @@ async function streamCopyFromUrl(url: string, name: string): Promise<string> {
     throw new Error(`Stream copy ${res.status}: ${JSON.stringify(json.errors || json)}`);
   }
   return json.result.uid;
+}
+
+// Upload a file Buffer to Cloudflare Stream via the Direct Creator Upload flow:
+// (1) ask CF for a one-time upload URL, (2) POST the file as multipart/form-data.
+// Used for sources that aren't publicly fetchable (Firebase Storage with auth-required rules).
+async function streamUploadBytes(buffer: Buffer, contentType: string, name: string): Promise<string> {
+  // 1) Mint a direct-upload URL
+  const minted = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/direct_upload`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        maxDurationSeconds: 60 * 60 * 4,
+        expiry: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        meta: { name: name.slice(0, 120) },
+        requireSignedURLs: false,
+      }),
+    }
+  );
+  const mintedJson: any = await minted.json();
+  if (!minted.ok || !mintedJson?.success || !mintedJson.result?.uploadURL || !mintedJson.result?.uid) {
+    throw new Error(`direct_upload mint ${minted.status}: ${JSON.stringify(mintedJson?.errors || mintedJson)}`);
+  }
+  const { uploadURL, uid } = mintedJson.result as { uploadURL: string; uid: string };
+
+  // 2) POST the file body as multipart/form-data
+  const form = new FormData();
+  form.append('file', new Blob([new Uint8Array(buffer)], { type: contentType }), name);
+  const up = await fetch(uploadURL, { method: 'POST', body: form });
+  if (!up.ok) {
+    throw new Error(`Stream upload ${up.status}: ${await up.text()}`);
+  }
+  return uid;
 }
 
 // ─── Worker ──────────────────────────────────────────────────────────────────
@@ -221,9 +267,19 @@ async function main() {
     }
 
     try {
-      // Firebase Storage URLs need a signed-URL bridge — see toFetchableUrl().
-      const fetchable = await toFetchableUrl(t.url);
-      const uid = await streamCopyFromUrl(fetchable, t.name);
+      let uid: string;
+      const fb = parseFirebaseStorageUrl(t.url);
+      if (fb) {
+        // Auth-protected Firebase Storage → download bytes via Admin SDK,
+        // upload directly to Stream.
+        process.stdout.write(`  ↓ downloading from Firebase Storage…\n`);
+        const { buffer, contentType } = await downloadFromFirebase(fb.bucket, fb.path);
+        process.stdout.write(`  ↑ uploading ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB to Stream…\n`);
+        uid = await streamUploadBytes(buffer, contentType, t.name);
+      } else {
+        // Public URL (R2 etc.) → tell Stream to copy directly.
+        uid = await streamCopyFromUrl(t.url, t.name);
+      }
       await t.doc.ref.update({ streamUid: uid, updatedAt: new Date() });
       process.stdout.write(`  ✓ streamUid=${uid}\n`);
       migrated++;

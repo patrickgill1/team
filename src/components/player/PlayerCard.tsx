@@ -36,9 +36,12 @@ const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cy
     accent === 'amber' ? 'text-amber-300' :
     'text-violet-300';
   return (
-    <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 text-center">
+    <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 text-center overflow-hidden">
       <div className={`text-xl sm:text-2xl font-black ${ring}`}>{value}</div>
-      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">{label}</div>
+      {/* tracking-tight + leading-none so the label fits even on the narrowest
+          card width; 'ASSISTS' was clipping to 'ASSIS' on the previous
+          tracking-wider value. */}
+      <div className="text-[9px] sm:text-[10px] uppercase tracking-tight leading-none text-white/70 font-bold mt-0.5 truncate">{label}</div>
     </div>
   );
 };
@@ -190,7 +193,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
             <div className="flex-1 min-w-0">
               <Link to={`/player/${player.id}`} className="hover:underline">
-                <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight truncate">{player.name}</h3>
+                {/* Let long names wrap to 2 lines instead of truncating to
+                    'Ryd…' / 'Hect…'. Looked broken on iPad-width cards. */}
+                <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight break-words line-clamp-2">{player.name}</h3>
               </Link>
               <p className="text-white/70 text-sm font-medium mt-0.5">
                 {player.jerseyNumber != null && !player.profilePhotoUrl ? `Jersey #${player.jerseyNumber}` : ''}

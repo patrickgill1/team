@@ -11,7 +11,7 @@ import EndSeasonModal from '../components/team/EndSeasonModal';
 const TeamManagement: React.FC = () => {
   const { userData } = useAuth();
   const { teams, refreshTeams, selectedTeamId } = useTeam();
-  const { createTeam, updateTeam, updateDocument, getDocuments, addCoachInvite, getCoachInvitesByTeam, getPlayersByTeam, deleteDocument } = useFirestore();
+  const { createTeam, updateTeam, updateDocument, getDocuments, getCoachInvitesByTeam, getPlayersByTeam, deleteDocument } = useFirestore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteCoachModal, setShowInviteCoachModal] = useState(false);
@@ -179,35 +179,28 @@ const TeamManagement: React.FC = () => {
     }
   };
 
-  const generateInviteCode = () =>
-    Math.random().toString(36).substring(2, 8).toUpperCase() +
-    Math.random().toString(36).substring(2, 6).toUpperCase();
-
   const handleInviteCoach = async () => {
     if (!userData || !selectedTeamId) return;
     const selectedTeam = teams.find(t => t.id === selectedTeamId);
     if (!selectedTeam) return;
 
+    // Use the SAME unified invite flow as the "Share coach link" button.
+    // This page used to write to /coach_invites + link to /coach-join, which
+    // had its own broken auto-join logic. Now everything funnels through
+    // /invites + /join/:id which has a proper consumeInvite transaction.
     try {
-      const code = generateInviteCode();
-      await addCoachInvite({
+      const inv = await createStaffInvite({
         teamId: selectedTeamId,
-        teamName: selectedTeam.name,
-        email: inviteEmail.trim().toLowerCase() || undefined,
-        inviteCode: code,
-        coachLevel: inviteLevel,
-        invitedBy: userData.uid,
-        invitedByName: userData.name,
-        status: 'pending',
+        role: inviteLevel === 'head_coach' ? 'head_coach' : 'assistant_coach',
+        createdBy: userData.uid,
       });
-
-      const link = `${window.location.origin}/coach-join?code=${code}`;
+      const link = `${window.location.origin}/join/${inv.id}`;
       setInviteLink(link);
       setLinkCopied(false);
       loadData();
     } catch (error) {
       console.error('Error inviting coach:', error);
-      alert('Failed to send invite. Please try again.');
+      alert('Failed to generate invite link. Please try again.');
     }
   };
 

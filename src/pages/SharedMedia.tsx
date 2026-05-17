@@ -2,12 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import { downloadFile } from '../utils/downloadFile';
 
 const SharedMedia: React.FC = () => {
   const { mediaId } = useParams<{ mediaId: string }>();
   const [media, setMedia] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadPercent, setDownloadPercent] = useState(0);
+
+  const handleDownload = async () => {
+    if (!media || downloading) return;
+    const isVid = media.type === 'video' || media.contentType?.startsWith('video/');
+    const filename = media.fileName || `${media.playerName || 'team'}-${isVid ? 'video.mp4' : 'photo.jpg'}`;
+    setDownloading(true);
+    setDownloadPercent(0);
+    const result = await downloadFile(media.url, filename, {
+      onProgress: p => setDownloadPercent(p.percent),
+    });
+    setDownloading(false);
+    setDownloadPercent(0);
+    if (result.ok === false && result.reason === 'fetch-failed') {
+      alert("Your browser couldn't save this directly. The file opened in a new tab — long-press (mobile) or right-click (desktop) to save it.");
+    }
+  };
 
   useEffect(() => {
     if (!mediaId) {
@@ -83,18 +102,27 @@ const SharedMedia: React.FC = () => {
               )}
             </div>
           </div>
-          <a
-            href={media.url}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/70 disabled:cursor-wait text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span className="hidden sm:inline">Download</span>
-          </a>
+            {downloading ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                <span className="tabular-nums">
+                  {downloadPercent > 0 ? `${downloadPercent}%` : 'Saving…'}
+                </span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span className="hidden sm:inline">Download</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 

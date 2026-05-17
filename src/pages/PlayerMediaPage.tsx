@@ -8,6 +8,7 @@ import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
+import { downloadFile } from '../utils/downloadFile';
 import FullGames from './FullGames';
 
 const ACTIVITY_TAGS = ['Goal', 'Own Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
@@ -44,6 +45,8 @@ const PlayerMediaPage: React.FC = () => {
   const [showViewersFor, setShowViewersFor] = useState<PlayerMediaType | null>(null);
   const [showDownloadersFor, setShowDownloadersFor] = useState<PlayerMediaType | null>(null);
   const [showSharersFor, setShowSharersFor] = useState<PlayerMediaType | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadPercent, setDownloadPercent] = useState<number>(0);
 
   // Upload form
   const [uploadPlayerId, setUploadPlayerId] = useState('');
@@ -584,6 +587,24 @@ const PlayerMediaPage: React.FC = () => {
       });
     } catch (error) {
       console.error(`Error recording ${field}:`, error);
+    }
+  };
+
+  const handleDownload = async (m: PlayerMediaType) => {
+    if (downloadingId) return; // one at a time
+    const filename = m.fileName || `${m.playerName}-${m.type}.${m.type === 'video' ? 'mp4' : 'jpg'}`;
+    setDownloadingId(m.id);
+    setDownloadPercent(0);
+    bumpEngagement(m, 'downloads');
+    const result = await downloadFile(m.url, filename, {
+      onProgress: p => setDownloadPercent(p.percent),
+    });
+    setDownloadingId(null);
+    setDownloadPercent(0);
+    if (result.ok === false && result.reason === 'fetch-failed') {
+      // Helper has already opened the file in a new tab as a fallback.
+      // Let the user know why their save dialog didn't appear.
+      alert("Your browser couldn't save this directly. The file opened in a new tab — long-press (mobile) or right-click (desktop) to save it.");
     }
   };
 
@@ -1600,17 +1621,26 @@ const PlayerMediaPage: React.FC = () => {
                       {selectedMedia.shareCount}
                     </button>
                   )}
-                  <a
-                    href={selectedMedia.url}
-                    download={selectedMedia.fileName || `${selectedMedia.playerName}-${selectedMedia.type}.${selectedMedia.type === 'video' ? 'mp4' : 'jpg'}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => bumpEngagement(selectedMedia, 'downloads')}
-                    className="flex items-center space-x-1.5 text-white hover:scale-110 transition-transform"
+                  <button
+                    onClick={() => handleDownload(selectedMedia)}
+                    disabled={downloadingId === selectedMedia.id}
+                    className="flex items-center space-x-1.5 text-white hover:scale-110 transition-transform disabled:opacity-70 disabled:cursor-wait"
+                    title="Save to your device"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    <span className="text-sm font-medium">Download</span>
-                  </a>
+                    {downloadingId === selectedMedia.id ? (
+                      <>
+                        <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        <span className="text-sm font-medium tabular-nums">
+                          {downloadPercent > 0 ? `${downloadPercent}%` : 'Saving…'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span className="text-sm font-medium">Download</span>
+                      </>
+                    )}
+                  </button>
                   {(selectedMedia.downloadCount || 0) > 0 && (
                     <button
                       onClick={() => setShowDownloadersFor(selectedMedia)}

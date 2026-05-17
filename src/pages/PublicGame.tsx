@@ -3,12 +3,30 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { FullGame } from '../types';
+import { downloadFile } from '../utils/downloadFile';
 
 const PublicGame: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const [game, setGame] = useState<FullGame | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadPercent, setDownloadPercent] = useState(0);
+
+  const handleDownload = async () => {
+    if (!game?.videoUrl || downloading) return;
+    const filename = game.videoFileName || `${(game.title || 'game').replace(/[^a-z0-9]+/gi, '_')}.mp4`;
+    setDownloading(true);
+    setDownloadPercent(0);
+    const result = await downloadFile(game.videoUrl, filename, {
+      onProgress: p => setDownloadPercent(p.percent),
+    });
+    setDownloading(false);
+    setDownloadPercent(0);
+    if (result.ok === false && result.reason === 'fetch-failed') {
+      alert("Your browser couldn't save this directly. The file opened in a new tab — long-press (mobile) or right-click (desktop) to save it.");
+    }
+  };
 
   useEffect(() => {
     if (!gameId) {
@@ -155,16 +173,23 @@ const PublicGame: React.FC = () => {
               <span>Share</span>
             </button>
             {game.videoUrl && (
-              <a
-                href={game.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-white/10 hover:bg-white/15 text-white text-sm font-medium rounded-lg ring-1 ring-white/15 transition-colors"
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-white/10 hover:bg-white/15 disabled:bg-white/10 disabled:cursor-wait text-white text-sm font-medium rounded-lg ring-1 ring-white/15 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
-                <span>Download</span>
-              </a>
+                {downloading ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <span className="tabular-nums">{downloadPercent > 0 ? `${downloadPercent}%` : 'Saving…'}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
+                    <span>Download</span>
+                  </>
+                )}
+              </button>
             )}
           </div>
         </div>

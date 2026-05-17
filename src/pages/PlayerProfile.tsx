@@ -8,6 +8,7 @@ import { isCoach, formatDate } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
+import { downloadFile } from '../utils/downloadFile';
 
 interface MatchVoting {
   id: string;
@@ -36,6 +37,23 @@ const PlayerProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
   const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
   const [showWhisper, setShowWhisper] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadPercent, setDownloadPercent] = useState(0);
+
+  const handleDownload = async (item: PlayerMedia) => {
+    if (downloading) return;
+    const filename = item.fileName || `${item.playerName}-${item.type}.${item.type === 'video' ? 'mp4' : 'jpg'}`;
+    setDownloading(true);
+    setDownloadPercent(0);
+    const result = await downloadFile(item.url, filename, {
+      onProgress: p => setDownloadPercent(p.percent),
+    });
+    setDownloading(false);
+    setDownloadPercent(0);
+    if (result.ok === false && result.reason === 'fetch-failed') {
+      alert("Your browser couldn't save this directly. The file opened in a new tab — long-press (mobile) or right-click (desktop) to save it.");
+    }
+  };
 
   // Season selector — null = current/active season; 'lifetime' = career; otherwise specific seasonId
   const [allSeasons, setAllSeasons] = useState<Season[]>([]);
@@ -943,16 +961,23 @@ const PlayerProfile: React.FC = () => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
                 <span>Share</span>
               </button>
-              <a
-                href={lightboxItem.url}
-                download={lightboxItem.fileName || `${lightboxItem.playerName}-${lightboxItem.type}.${lightboxItem.type === 'video' ? 'mp4' : 'jpg'}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+              <button
+                onClick={() => handleDownload(lightboxItem)}
+                disabled={downloading}
+                className="flex items-center space-x-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/10 disabled:cursor-wait text-white rounded-lg text-sm font-medium transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                <span>Download</span>
-              </a>
+                {downloading ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <span className="tabular-nums">{downloadPercent > 0 ? `${downloadPercent}%` : 'Saving…'}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <span>Download</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

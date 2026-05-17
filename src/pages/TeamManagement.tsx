@@ -278,6 +278,83 @@ const TeamManagement: React.FC = () => {
     }
   };
 
+  // Remove a player from a team they were previously shared into. Reverses the
+  // sharePlayer flow: trims the team from the player's teamIds, and for each
+  // parent of this player, drops that team from THEIR teamIds *unless* the
+  // parent still has another player on the same team (so we don't accidentally
+  // lock them out of a team they're legitimately tied to via another child).
+  const handleUnsharePlayer = async (playerId: string, teamIdToRemove: string) => {
+    const player = allPlayers.find(p => p.id === playerId);
+    if (!player) return;
+
+    const team = teams.find(t => t.id === teamIdToRemove);
+    const teamName = team?.name || 'this team';
+
+    const currentTeamIds = player.teamIds || (player.teamId ? [player.teamId] : []);
+    if (!currentTeamIds.includes(teamIdToRemove)) {
+      alert(`${player.name} is not on ${teamName}.`);
+      return;
+    }
+    if (currentTeamIds.length <= 1) {
+      alert(`${player.name} is only on ${teamName}. Move them to a different team first if you want to remove them from this one.`);
+      return;
+    }
+
+    if (!window.confirm(`Remove ${player.name} from ${teamName}? Their parents will lose access to this team unless another of their kids is also on it.`)) {
+      return;
+    }
+
+    try {
+      const newPlayerTeamIds = currentTeamIds.filter(t => t !== teamIdToRemove);
+      // If the team we're removing is the player's primary teamId, promote a
+      // remaining one. Otherwise the legacy teamId field stays in the array as
+      // a valid entry and the filter logic still finds them on the new primary.
+      const update: Record<string, unknown> = {
+        teamIds: newPlayerTeamIds,
+        updatedAt: new Date(),
+      };
+      if (player.teamId === teamIdToRemove) {
+        update.teamId = newPlayerTeamIds[0];
+      }
+      await updateDocument('players', playerId, update);
+
+      // Trim the team from each parent IF they have no other player keeping
+      // them on it.
+      if (player.parentIds?.length) {
+        const remainingPlayers = allPlayers.filter(p =>
+          p.id !== playerId &&
+          ((p.teamIds || []).includes(teamIdToRemove) || p.teamId === teamIdToRemove)
+        );
+        for (const parentId of player.parentIds) {
+          const stillTiedViaOther = remainingPlayers.some(p =>
+            p.parentIds?.includes(parentId)
+          );
+          if (stillTiedViaOther) continue;
+          try {
+            const users = await getDocuments('users', []);
+            const parent: any = users.find((u: any) => u.uid === parentId || u.id === parentId);
+            if (!parent) continue;
+            const parentTeamIds: string[] = parent.teamIds || (parent.teamId ? [parent.teamId] : []);
+            if (!parentTeamIds.includes(teamIdToRemove)) continue;
+            const newParentTeamIds = parentTeamIds.filter(t => t !== teamIdToRemove);
+            await updateDocument('users', parentId, {
+              teamIds: newParentTeamIds,
+              updatedAt: new Date(),
+            });
+          } catch (err) {
+            console.error(`Error trimming parent ${parentId} teamIds:`, err);
+          }
+        }
+      }
+
+      loadData();
+      alert(`${player.name} removed from ${teamName}.`);
+    } catch (err) {
+      console.error('Error unsharing player:', err);
+      alert('Failed to remove player from team. Please try again.');
+    }
+  };
+
   const startEditTeam = (team: Team) => {
     setEditingTeam(team);
     setTeamName(team.name);
@@ -566,7 +643,16 @@ const TeamManagement: React.FC = () => {
                       {player.position || 'No position'} {player.jerseyNumber ? `• #${player.jerseyNumber}` : ''}
                     </div>
                     {(player.teamIds?.length || 0) > 1 && (
-                      <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Shared</span>
+                      <div className="inline-flex items-center gap-1.5 mt-0.5">
+                        <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Shared</span>
+                        <button
+                          onClick={() => handleUnsharePlayer(player.id, selectedTeamId!)}
+                          className="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-medium transition-colors"
+                          title={`Remove ${player.name} from this team (keeps them on their other team(s))`}
+                        >
+                          Unshare
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

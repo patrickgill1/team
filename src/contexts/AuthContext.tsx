@@ -531,25 +531,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).catch(err => console.error('Error auto-linking parent:', err));
     }
 
-    // Sync parent teamIds with their shared players' teamIds
+    // Sync parent teamIds with their players' current teamIds.
+    // AUTHORITATIVE: replace, don't just append. Otherwise a parent who once
+    // had a player shared to Team B keeps Team B in their teamIds forever,
+    // even after we unshare the player. Authoritative set =
+    //   parent's own primary teamId ∪ union of all teamIds across all their players.
     if (userData.role === 'parent') {
       const playersRef = collection(db, 'players');
       const q2 = query(playersRef, where('parentIds', 'array-contains', userId));
       getDocs(q2).then(async (snapshot) => {
-        const parentTeamIds = new Set(userData.teamIds || (userData.teamId ? [userData.teamId] : []));
-        let needsUpdate = false;
+        const correct = new Set<string>();
+        if (userData.teamId) correct.add(userData.teamId);
         for (const playerDoc of snapshot.docs) {
           const playerData = playerDoc.data();
           const playerTeamIds = playerData.teamIds || (playerData.teamId ? [playerData.teamId] : []);
-          for (const tid of playerTeamIds) {
-            if (!parentTeamIds.has(tid)) {
-              parentTeamIds.add(tid);
-              needsUpdate = true;
-            }
-          }
+          for (const tid of playerTeamIds) correct.add(tid);
         }
-        if (needsUpdate) {
-          const newTeamIds = Array.from(parentTeamIds);
+        const newTeamIds = Array.from(correct);
+        const currentTeamIds = userData.teamIds || (userData.teamId ? [userData.teamId] : []);
+        const sameSet =
+          newTeamIds.length === currentTeamIds.length &&
+          newTeamIds.every(t => currentTeamIds.includes(t));
+        // Never write an empty set — if we somehow computed [], the parent has
+        // no players right now (e.g. mid-sign-up before linking) and we don't
+        // want to lock them out of their existing primary team.
+        if (!sameSet && newTeamIds.length > 0) {
           await updateDoc(doc(db, 'users', userId), {
             teamIds: newTeamIds,
             updatedAt: new Date()

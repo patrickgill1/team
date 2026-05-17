@@ -119,6 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const q = query(playersRef, where('parentEmails', 'array-contains', userDataWithId.email.toLowerCase()));
           const snapshot = await getDocs(q);
           let linked = false;
+          const linkedTeamIds = new Set<string>();
+          let firstPlayerPrimaryTeamId: string | null = null;
           for (const playerDoc of snapshot.docs) {
             const playerData = playerDoc.data();
             if (!playerData.parentIds?.includes(result.user.uid)) {
@@ -128,10 +130,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('Auto-linked new email parent to player:', playerDoc.id);
             }
             linked = true;
+            const pTeams: string[] = playerData.teamIds || (playerData.teamId ? [playerData.teamId] : []);
+            for (const t of pTeams) linkedTeamIds.add(t);
+            if (!firstPlayerPrimaryTeamId) {
+              firstPlayerPrimaryTeamId = playerData.teamId || pTeams[0] || null;
+            }
           }
           if (linked) {
-            await updateDoc(doc(db, 'users', result.user.uid), { approved: true });
-            console.log('Auto-approved new email parent via email match');
+            // Replace the placeholder team assignment with the team(s) of the
+            // child this account was just linked to. Previously we left teamId
+            // as DEFAULT_TEAM_ID, so a parent whose kid was on Team B would
+            // log in and see Team A by default.
+            const userPatch: Record<string, unknown> = { approved: true };
+            if (firstPlayerPrimaryTeamId && !linkedTeamIds.has(effectiveTeamId)) {
+              userPatch.teamId = firstPlayerPrimaryTeamId;
+              userPatch.teamIds = Array.from(linkedTeamIds);
+            }
+            await updateDoc(doc(db, 'users', result.user.uid), userPatch);
+            console.log('Auto-approved new email parent via email match', userPatch);
           }
         } catch (linkError) {
           console.error('Error auto-linking new email parent:', linkError);
@@ -232,6 +248,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const q = query(playersRef, where('parentEmails', 'array-contains', user.email.toLowerCase()));
             const snapshot = await getDocs(q);
             let linked = false;
+            const linkedTeamIds = new Set<string>();
+            let firstPlayerPrimaryTeamId: string | null = null;
             for (const playerDoc of snapshot.docs) {
               const playerData = playerDoc.data();
               if (!playerData.parentIds?.includes(user.uid)) {
@@ -241,11 +259,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.log('Auto-linked new Google parent to player:', playerDoc.id);
               }
               linked = true;
+              const pTeams: string[] = playerData.teamIds || (playerData.teamId ? [playerData.teamId] : []);
+              for (const t of pTeams) linkedTeamIds.add(t);
+              if (!firstPlayerPrimaryTeamId) {
+                firstPlayerPrimaryTeamId = playerData.teamId || pTeams[0] || null;
+              }
             }
             if (linked) {
-              await updateDoc(doc(db, 'users', user.uid), { approved: true });
+              // Switch the new user away from the DEFAULT_TEAM_ID placeholder
+              // onto their child's team(s) — see signUp() for the same logic.
+              const userPatch: Record<string, unknown> = { approved: true };
+              if (firstPlayerPrimaryTeamId && !linkedTeamIds.has(effectiveTeamId)) {
+                userPatch.teamId = firstPlayerPrimaryTeamId;
+                userPatch.teamIds = Array.from(linkedTeamIds);
+                (userData as any).teamId = firstPlayerPrimaryTeamId;
+                (userData as any).teamIds = Array.from(linkedTeamIds);
+              }
+              await updateDoc(doc(db, 'users', user.uid), userPatch);
               (userData as any).approved = true;
-              console.log('Auto-approved new Google parent via email match');
+              console.log('Auto-approved new Google parent via email match', userPatch);
             }
           } catch (linkError) {
             console.error('Error auto-linking new Google parent:', linkError);
@@ -552,14 +584,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sameSet =
           newTeamIds.length === currentTeamIds.length &&
           newTeamIds.every(t => currentTeamIds.includes(t));
+        // If the parent's primary teamId is no longer represented (e.g. they
+        // were created with DEFAULT_TEAM_ID but their kid is on another team,
+        // or we just unshared the only team they had access to), promote one
+        // of the valid teams to primary.
+        const primaryNeedsFix =
+          newTeamIds.length > 0 && !!userData.teamId && !correct.has(userData.teamId);
         // Never write an empty set — if we somehow computed [], the parent has
         // no players right now (e.g. mid-sign-up before linking) and we don't
         // want to lock them out of their existing primary team.
-        if (!sameSet && newTeamIds.length > 0) {
-          await updateDoc(doc(db, 'users', userId), {
+        if (newTeamIds.length > 0 && (!sameSet || primaryNeedsFix)) {
+          const patch: Record<string, unknown> = {
             teamIds: newTeamIds,
-            updatedAt: new Date()
-          }).catch(() => {});
+            updatedAt: new Date(),
+          };
+          if (primaryNeedsFix) {
+            patch.teamId = newTeamIds[0];
+            userData.teamId = newTeamIds[0];
+          }
+          await updateDoc(doc(db, 'users', userId), patch).catch(() => {});
           userData.teamIds = newTeamIds;
           setUserData({ ...userData });
         }

@@ -1,16 +1,33 @@
 {
-  "short_name": "Fire FC Boys-2016",
-  "name": "Soccer Team Management App",
+  "short_name": "Fire FC",
+  "name": "Fire FC",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#2563eb",
-  "background_color": "#ffffff",
-  "description": "Manage your soccer team with ease - track players, stats, schedule games, and share photos."
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
+  "description": "The all-in-one team app for youth soccer — calendar, highlights, stats, chat, and more."
 }

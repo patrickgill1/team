@@ -1,0 +1,196 @@
+#!/usr/bin/env tsx
+/**
+ * Backfill existing R2-hosted videos into Cloudflare Stream.
+ *
+ * For every player_media doc with type='video' AND no streamUid, and every
+ * full_games doc with videoUrl AND no streamUid:
+ *   1. Tell Cloudflare Stream to pull the video from its public R2 URL via the
+ *      "copy from URL" endpoint (no local egress/ingress — Stream fetches it
+ *      directly).
+ *   2. Wait for the UID, write it back to the Firestore doc as `streamUid`.
+ *
+ * After this runs, the app's playback paths automatically switch the affected
+ * videos to the Stream iframe (adaptive bitrate). Original R2 file is left in
+ * place so legacy direct links keep working and so we can roll back by simply
+ * clearing the streamUid field.
+ *
+ * SAFETY: dry-run by default. Pass --apply to actually write.
+ *
+ * Setup (one-time):
+ *   1. Firebase Admin service account JSON at ./scripts/firebase-service-account.json
+ *      (same file used by migrate-seasons.ts; gitignored).
+ *   2. `export CLOUDFLARE_ACCOUNT_ID=...`
+ *      `export CLOUDFLARE_STREAM_API_TOKEN=...`
+ *      (Same values as your Vercel env vars. Token needs Stream:Edit.)
+ *
+ * Usage:
+ *   npx tsx scripts/backfill-stream.ts                        # dry-run
+ *   npx tsx scripts/backfill-stream.ts --apply                # write
+ *   npx tsx scripts/backfill-stream.ts --apply --only highlights  # player_media only
+ *   npx tsx scripts/backfill-stream.ts --apply --only fullgames   # full_games only
+ *   npx tsx scripts/backfill-stream.ts --apply --limit 5      # stop after 5 docs
+ */
+
+import * as admin from 'firebase-admin';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// ─── Args ────────────────────────────────────────────────────────────────────
+const argv = process.argv.slice(2);
+const APPLY = argv.includes('--apply');
+const ONLY = (() => {
+  const i = argv.indexOf('--only');
+  return i > -1 ? argv[i + 1] : null; // 'highlights' | 'fullgames' | null (both)
+})();
+const LIMIT = (() => {
+  const i = argv.indexOf('--limit');
+  return i > -1 ? parseInt(argv[i + 1], 10) : Infinity;
+})();
+
+// ─── Env ─────────────────────────────────────────────────────────────────────
+const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+const apiToken = process.env.CLOUDFLARE_STREAM_API_TOKEN;
+if (!accountId || !apiToken) {
+  console.error('Missing env: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_STREAM_API_TOKEN must be set.');
+  process.exit(1);
+}
+
+// ─── Firebase Admin ──────────────────────────────────────────────────────────
+const sa = path.join(__dirname, 'firebase-service-account.json');
+if (!fs.existsSync(sa)) {
+  console.error(`Missing service account: ${sa}`);
+  console.error('Firebase Console → Project Settings → Service Accounts → Generate new private key.');
+  process.exit(1);
+}
+admin.initializeApp({
+  credential: admin.credential.cert(JSON.parse(fs.readFileSync(sa, 'utf-8'))),
+});
+const db = admin.firestore();
+
+// ─── Stream API ──────────────────────────────────────────────────────────────
+interface StreamCopyResponse {
+  success: boolean;
+  result?: { uid: string; status?: { state: string } };
+  errors?: unknown[];
+}
+
+async function streamCopyFromUrl(url: string, name: string): Promise<string> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/copy`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url,
+        meta: { name: name.slice(0, 120) },
+      }),
+    }
+  );
+  const json = (await res.json()) as StreamCopyResponse;
+  if (!res.ok || !json.success || !json.result?.uid) {
+    throw new Error(`Stream copy ${res.status}: ${JSON.stringify(json.errors || json)}`);
+  }
+  return json.result.uid;
+}
+
+// ─── Worker ──────────────────────────────────────────────────────────────────
+interface Target {
+  collection: string;
+  doc: admin.firestore.QueryDocumentSnapshot;
+  url: string;
+  name: string;
+}
+
+async function collectTargets(): Promise<Target[]> {
+  const targets: Target[] = [];
+
+  if (ONLY === null || ONLY === 'highlights') {
+    const snap = await db.collection('player_media').get();
+    for (const d of snap.docs) {
+      const data = d.data();
+      if (data.streamUid) continue;
+      if (data.type !== 'video') continue;
+      if (!data.url || typeof data.url !== 'string') continue;
+      targets.push({
+        collection: 'player_media',
+        doc: d,
+        url: data.url,
+        name: data.caption || data.playerName || data.fileName || d.id,
+      });
+    }
+  }
+
+  if (ONLY === null || ONLY === 'fullgames') {
+    const snap = await db.collection('full_games').get();
+    for (const d of snap.docs) {
+      const data = d.data();
+      if (data.streamUid) continue;
+      if (!data.videoUrl || typeof data.videoUrl !== 'string') continue;
+      targets.push({
+        collection: 'full_games',
+        doc: d,
+        url: data.videoUrl,
+        name: data.title || d.id,
+      });
+    }
+  }
+
+  return targets.slice(0, LIMIT);
+}
+
+async function main() {
+  console.log(APPLY ? '🚀 APPLY mode — writing changes\n' : '🔍 DRY RUN — pass --apply to write\n');
+
+  const targets = await collectTargets();
+  console.log(`Found ${targets.length} videos to backfill${ONLY ? ` (scope: ${ONLY})` : ''}\n`);
+
+  let migrated = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const t of targets) {
+    const label = `[${t.collection}/${t.doc.id}]`;
+    process.stdout.write(`${label} ${t.url.slice(0, 80)}${t.url.length > 80 ? '…' : ''}\n`);
+
+    if (!APPLY) {
+      process.stdout.write(`  → would copy "${t.name.slice(0, 60)}" into Stream\n`);
+      skipped++;
+      continue;
+    }
+
+    try {
+      const uid = await streamCopyFromUrl(t.url, t.name);
+      await t.doc.ref.update({ streamUid: uid, updatedAt: new Date() });
+      process.stdout.write(`  ✓ streamUid=${uid}\n`);
+      migrated++;
+    } catch (err: any) {
+      process.stdout.write(`  ✗ ${err.message}\n`);
+      failed++;
+    }
+
+    // Be gentle on the Stream API
+    await new Promise(r => setTimeout(r, 250));
+  }
+
+  console.log('\n──── summary ────');
+  console.log(`  migrated: ${migrated}`);
+  console.log(`  failed:   ${failed}`);
+  console.log(`  skipped:  ${skipped}`);
+  if (!APPLY) {
+    console.log('\nNote: this was a dry-run. Re-run with --apply to actually copy.');
+  } else if (migrated > 0) {
+    console.log('\nStream processes uploads asynchronously — clips will become playable');
+    console.log('within ~1–5 minutes (longer for full games). The streamUid is already');
+    console.log('on the doc, so the app will auto-switch to the Stream player on next load.');
+  }
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch(err => {
+    console.error('Fatal:', err);
+    process.exit(1);
+  });

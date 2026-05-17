@@ -1,0 +1,13 @@
+diff --git a/node_modules/@capacitor-firebase/authentication/CapacitorFirebaseAuthentication.podspec b/node_modules/@capacitor-firebase/authentication/CapacitorFirebaseAuthentication.podspec
+index 34212f1..97f114d 100644
+--- a/node_modules/@capacitor-firebase/authentication/CapacitorFirebaseAuthentication.podspec
++++ b/node_modules/@capacitor-firebase/authentication/CapacitorFirebaseAuthentication.podspec
+@@ -24,7 +24,7 @@ Pod::Spec.new do |s|
+ 
+   s.subspec 'Google' do |google|
+     google.xcconfig = { 'OTHER_SWIFT_FLAGS' => '$(inherited) -DRGCFA_INCLUDE_GOOGLE' }
+-    google.dependency 'GoogleSignIn', '7.0.0'
++    google.dependency 'GoogleSignIn', '~> 7.1'
+   end
+ 
+   s.subspec 'Facebook' do |facebook|

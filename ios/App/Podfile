@@ -28,6 +28,12 @@ target 'App' do
   # Google sign-in code (gated by -DRGCFA_INCLUDE_GOOGLE) is actually compiled
   # in. Survives future `cap sync` calls because it sits outside capacitor_pods.
   pod 'CapacitorFirebaseAuthentication', :path => '../../node_modules/@capacitor-firebase/authentication', :subspecs => ['Google']
+
+  # Force GTMAppAuth to a version with the Apple-required privacy manifest.
+  # GoogleSignIn ≥7.1 is picked up via the patched
+  # CapacitorFirebaseAuthentication podspec (see patches/), which pulls
+  # GTMAppAuth ≥4.x transitively — but we pin here as a belt-and-suspenders.
+  pod 'GTMAppAuth', '~> 4.1'
 end
 
 post_install do |installer|

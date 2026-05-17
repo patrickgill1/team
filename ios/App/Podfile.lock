@@ -19,7 +19,7 @@ PODS:
   - CapacitorFirebaseAuthentication/Google (5.4.1):
     - Capacitor
     - FirebaseAuth (~> 10.8)
-    - GoogleSignIn (= 7.0.0)
+    - GoogleSignIn (~> 7.1)
   - CapacitorFirebaseAuthentication/Lite (5.4.1):
     - Capacitor
     - FirebaseAuth (~> 10.8)
@@ -68,10 +68,10 @@ PODS:
     - GoogleUtilities/Environment (~> 7.7)
     - nanopb (< 2.30911.0, >= 2.30908.0)
     - PromisesObjC (< 3.0, >= 1.2)
-  - GoogleSignIn (7.0.0):
-    - AppAuth (~> 1.5)
-    - GTMAppAuth (< 3.0, >= 1.3)
-    - GTMSessionFetcher/Core (< 4.0, >= 1.1)
+  - GoogleSignIn (7.1.0):
+    - AppAuth (< 2.0, >= 1.7.3)
+    - GTMAppAuth (< 5.0, >= 4.1.1)
+    - GTMSessionFetcher/Core (~> 3.3)
   - GoogleUtilities/AppDelegateSwizzler (7.13.3):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
@@ -97,9 +97,9 @@ PODS:
   - GoogleUtilities/UserDefaults (7.13.3):
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
-  - GTMAppAuth (2.0.0):
-    - AppAuth/Core (~> 1.6)
-    - GTMSessionFetcher/Core (< 4.0, >= 1.5)
+  - GTMAppAuth (4.1.1):
+    - AppAuth/Core (~> 1.7)
+    - GTMSessionFetcher/Core (< 4.0, >= 3.3)
   - GTMSessionFetcher/Core (3.5.0)
   - nanopb (2.30910.0):
     - nanopb/decode (= 2.30910.0)
@@ -122,6 +122,7 @@ DEPENDENCIES:
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
+  - GTMAppAuth (~> 4.1)
 
 SPEC REPOS:
   trunk:
@@ -171,7 +172,7 @@ SPEC CHECKSUMS:
   CapacitorApp: f01a913211780e0718dae9750442c3e23f96e106
   CapacitorCamera: 9e952270be355797f769aa835bb7643a96c871fe
   CapacitorCordova: 8214697bed435f6e7c5e3ed86d1632a8c42f7d77
-  CapacitorFirebaseAuthentication: e43850fae93a034c5a9fcdf9c5adaac504231500
+  CapacitorFirebaseAuthentication: 1068a16d8ef3952a6bd4dd396557b03d26ddd8ce
   CapacitorFirebaseMessaging: ee2a6f40389a0615262c3c20c62663170d6f85e3
   CapacitorKeyboard: a2e0869edd229490ce36aed2549c0d6b95e27ee8
   CapacitorPushNotifications: b8e30637549ce91468b8c4dddbef2657be831f4c
@@ -185,14 +186,14 @@ SPEC CHECKSUMS:
   FirebaseInstallations: 913cf60d0400ebd5d6b63a28b290372ab44590dd
   FirebaseMessaging: 7b5d8033e183ab59eb5b852a53201559e976d366
   GoogleDataTransport: 6c09b596d841063d76d4288cc2d2f42cc36e1e2a
-  GoogleSignIn: b232380cf495a429b8095d3178a8d5855b42e842
+  GoogleSignIn: d4281ab6cf21542b1cfaff85c191f230b399d2db
   GoogleUtilities: ea963c370a38a8069cc5f7ba4ca849a60b6d7d15
-  GTMAppAuth: 99fb010047ba3973b7026e45393f51f27ab965ae
+  GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
 
-PODFILE CHECKSUM: ec39a8e1e84f56d0805067a2effef5d460990b69
+PODFILE CHECKSUM: 32906bba2c0723c65ccbaaaabbd99457d2bc9697
 
 COCOAPODS: 1.16.2

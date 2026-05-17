@@ -677,7 +677,7 @@ const PlayerProfile: React.FC = () => {
                       {item.type === 'video' ? (
                         <>
                           {item.streamUid ? (
-                            <img src={streamThumbnailUrl(item.streamUid, { height: 360 })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+                            <img src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                           ) : item.thumbnailUrl ? (
                             <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                           ) : (
@@ -755,7 +755,7 @@ const PlayerProfile: React.FC = () => {
                     {item.type === 'video' ? (
                       <>
                         {item.streamUid ? (
-                          <img src={streamThumbnailUrl(item.streamUid, { height: 360 })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
+                          <img src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                         ) : item.thumbnailUrl ? (
                           <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition" loading="lazy" />
                         ) : (

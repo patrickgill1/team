@@ -425,6 +425,9 @@ export interface PlayerMedia {
   // compatibility; players prefer Stream when present.
   streamUid?: string;
   streamReady?: boolean;
+  // Override Stream's default thumbnail timestamp (Stream defaults to t=0
+  // which often lands on a fade-in/transition frame). Stored in seconds.
+  posterTimeSeconds?: number;
   type: 'photo' | 'video';
   caption?: string;
   uploadedBy: string;
@@ -480,6 +483,8 @@ export interface FullGame {
   // Cloudflare Stream UID — preferred over videoUrl for new uploads.
   streamUid?: string;
   streamReady?: boolean;
+  // Override Stream's default thumbnail timestamp (defaults to t=0). Seconds.
+  posterTimeSeconds?: number;
   result?: string;          // e.g. "W 3-1", "L 2-4", "T 1-1"
   notes?: string;
   addedBy: string;

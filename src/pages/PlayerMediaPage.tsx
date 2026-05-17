@@ -10,7 +10,7 @@ import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/v
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
 import { downloadFile } from '../utils/downloadFile';
-import StreamPlayer from '../components/common/StreamPlayer';
+import StreamPlayer, { loadStreamSdk, StreamSdkPlayer } from '../components/common/StreamPlayer';
 import FullGames from './FullGames';
 
 const ACTIVITY_TAGS = ['Goal', 'Own Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
@@ -68,6 +68,11 @@ const PlayerMediaPage: React.FC = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkConsumedRef = useRef<string | null>(null);
+  // Stream player SDK plumbing — lets us read currentTime from the lightbox
+  // iframe so the coach can pick the exact frame as a custom thumbnail.
+  const lightboxIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const lightboxStreamPlayerRef = useRef<StreamSdkPlayer | null>(null);
+  const [savingThumbnail, setSavingThumbnail] = useState(false);
 
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
@@ -637,6 +642,53 @@ const PlayerMediaPage: React.FC = () => {
       // Helper has already opened the file in a new tab as a fallback.
       // Let the user know why their save dialog didn't appear.
       alert("Your browser couldn't save this directly. The file opened in a new tab — long-press (mobile) or right-click (desktop) to save it.");
+    }
+  };
+
+  // Attach the Cloudflare Stream SDK to the lightbox iframe so we can read
+  // currentTime for the "set thumbnail to this frame" action. Re-runs whenever
+  // the open clip changes.
+  useEffect(() => {
+    if (!selectedMedia?.streamUid || !lightboxIframeRef.current) {
+      lightboxStreamPlayerRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    loadStreamSdk()
+      .then(() => {
+        if (cancelled || !window.Stream || !lightboxIframeRef.current) return;
+        lightboxStreamPlayerRef.current = window.Stream(lightboxIframeRef.current);
+      })
+      .catch(err => console.warn('Stream SDK load failed — Set Thumbnail disabled', err));
+    return () => {
+      cancelled = true;
+      lightboxStreamPlayerRef.current = null;
+    };
+  }, [selectedMedia?.streamUid]);
+
+  const handleSetThumbnailFromCurrentFrame = async () => {
+    if (!selectedMedia?.streamUid) return;
+    const player = lightboxStreamPlayerRef.current;
+    if (!player) {
+      alert('Player is still loading. Wait a moment, then try again.');
+      return;
+    }
+    const t = Math.max(0, Math.floor(Number(player.currentTime) || 0));
+    setSavingThumbnail(true);
+    try {
+      await updateDocument('player_media', selectedMedia.id, {
+        posterTimeSeconds: t,
+        updatedAt: new Date(),
+      });
+      // Optimistic local update so the UI flips immediately.
+      setMedia(prev => prev.map(m => m.id === selectedMedia.id ? { ...m, posterTimeSeconds: t } : m));
+      setSelectedMedia(prev => prev && prev.id === selectedMedia.id ? { ...prev, posterTimeSeconds: t } : prev);
+      alert(`Thumbnail set to ${t}s into the clip.`);
+    } catch (err) {
+      console.error('Failed to set custom thumbnail', err);
+      alert('Could not save the thumbnail. Please try again.');
+    } finally {
+      setSavingThumbnail(false);
     }
   };
 
@@ -1594,6 +1646,7 @@ const PlayerMediaPage: React.FC = () => {
                 selectedMedia.streamUid ? (
                   <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
                     <iframe
+                      ref={lightboxIframeRef}
                       key={selectedMedia.streamUid}
                       src={streamIframeUrl(selectedMedia.streamUid, { autoplay: true })}
                       title={selectedMedia.caption || selectedMedia.playerName}
@@ -1712,6 +1765,19 @@ const PlayerMediaPage: React.FC = () => {
                           className="hidden"
                           onChange={handleReplaceVideo}
                         />
+                        {selectedMedia.streamUid && (
+                          <button
+                            onClick={handleSetThumbnailFromCurrentFrame}
+                            disabled={savingThumbnail}
+                            title="Pause the video at the frame you want, then tap this to use it as the thumbnail"
+                            className="flex items-center space-x-1.5 text-gray-300 hover:text-cyan-400 disabled:opacity-50 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span className="text-sm font-medium hidden sm:inline">
+                              {savingThumbnail ? 'Saving…' : 'Set thumbnail'}
+                            </span>
+                          </button>
+                        )}
                         <button
                           onClick={() => replaceFileInputRef.current?.click()}
                           disabled={replacing}
@@ -2138,7 +2204,7 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
       {item.type === 'video' ? (
         item.streamUid ? (
           <img
-            src={streamThumbnailUrl(item.streamUid, { height: 360 })}
+            src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })}
             alt={item.caption || ''}
             loading="lazy"
             className="absolute inset-0 w-full h-full object-cover"
@@ -2203,7 +2269,7 @@ const RankedCard: React.FC<RankedCardProps> = ({ rank, item, onClick }) => {
       {item.type === 'video' ? (
         item.streamUid ? (
           <img
-            src={streamThumbnailUrl(item.streamUid, { height: 360 })}
+            src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })}
             alt={item.caption || ''}
             loading="lazy"
             className="absolute inset-0 w-full h-full object-cover"
@@ -2260,7 +2326,7 @@ const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, 
             {item.type === 'video' ? (
               item.streamUid ? (
                 <img
-                  src={streamThumbnailUrl(item.streamUid, { height: 360 })}
+                  src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })}
                   alt={item.caption || ''}
                   loading="lazy"
                   className="w-full h-full object-cover"

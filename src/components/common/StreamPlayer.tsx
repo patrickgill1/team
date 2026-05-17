@@ -26,18 +26,25 @@ interface StreamPlayerProps {
   onEnded?: () => void;
 }
 
+export interface StreamSdkPlayer {
+  addEventListener: (event: string, handler: () => void) => void;
+  removeEventListener: (event: string, handler: () => void) => void;
+  // The Stream SDK exposes currentTime as a property getter; documented at
+  // https://developers.cloudflare.com/stream/uploading-videos/player-api/
+  currentTime: number;
+  duration?: number;
+  pause?: () => void;
+}
+
 declare global {
   interface Window {
-    Stream?: (iframe: HTMLIFrameElement) => {
-      addEventListener: (event: string, handler: () => void) => void;
-      removeEventListener: (event: string, handler: () => void) => void;
-    };
+    Stream?: (iframe: HTMLIFrameElement) => StreamSdkPlayer;
   }
 }
 
 const SDK_SRC = 'https://embed.videodelivery.net/embed/sdk.latest.js';
 let sdkPromise: Promise<void> | null = null;
-function loadStreamSdk(): Promise<void> {
+export function loadStreamSdk(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
   if (window.Stream) return Promise.resolve();
   if (sdkPromise) return sdkPromise;

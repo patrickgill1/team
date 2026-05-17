@@ -76,6 +76,22 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Invites: an unguessable doc ID acts as the capability. The /join/:id
+    // page needs to read it BEFORE the visitor signs up (to show "you're
+    // joining Team X as a coach"). Writes still require auth — consumeInvite
+    // runs after the new user authenticates.
+    match /invites/{inviteId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // Legacy collection used by the older email-based coach invite flow.
+    // Same reasoning as /invites above.
+    match /coach_invites/{inviteId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+
     // Surveys: public read for shared links, creator controls edits
     match /surveys/{surveyId} {
       allow read: if true;

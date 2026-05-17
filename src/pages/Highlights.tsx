@@ -4,6 +4,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDate } from '../utils/helpers';
+import StreamPlayer from '../components/common/StreamPlayer';
 
 const ACTIVITY_TAGS = ['Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
 
@@ -186,18 +187,32 @@ const Highlights: React.FC = () => {
       ) : (
         <div className="relative max-w-3xl mx-auto px-3 py-3">
           <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10">
-            <video
-              key={current?.id}
-              ref={videoRef}
-              src={current?.url}
-              poster={current?.thumbnailUrl}
-              className="w-full max-h-[75vh] bg-black"
-              autoPlay
-              playsInline
-              controls={false}
-              onEnded={goNext}
-              onClick={togglePlay}
-            />
+            {current?.streamUid ? (
+              // Stream's iframe player handles HLS / mobile playback far better
+              // than a raw <video> with the HLS manifest URL. Tradeoff: we
+              // lose the custom click-to-pause + auto-next-on-end hooks for
+              // Stream clips (iframe events aren't directly observable).
+              <StreamPlayer
+                key={current.id}
+                uid={current.streamUid}
+                autoplay
+                title={current.caption || current.playerName}
+                className="w-full max-h-[75vh]"
+              />
+            ) : (
+              <video
+                key={current?.id}
+                ref={videoRef}
+                src={current?.url}
+                poster={current?.thumbnailUrl}
+                className="w-full max-h-[75vh] bg-black"
+                autoPlay
+                playsInline
+                controls={false}
+                onEnded={goNext}
+                onClick={togglePlay}
+              />
+            )}
 
             {/* Top overlay: counter + progress */}
             <div className="absolute top-0 left-0 right-0 px-3 pt-2 pointer-events-none">

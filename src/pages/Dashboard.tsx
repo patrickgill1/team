@@ -9,6 +9,18 @@ import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import NewsList from '../components/news/NewsList';
 import { useActiveSeason } from '../hooks/useActiveSeason';
+import { streamThumbnailUrl } from '../utils/streamUpload';
+
+// Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
+// auto-generated JPEG poster. Photos → the photo itself. Legacy R2 videos →
+// fall back to a stored thumbnailUrl if one exists (most don't).
+function clipThumb(clip: any): string | undefined {
+  if (clip?.type === 'video' && clip.streamUid) {
+    return streamThumbnailUrl(clip.streamUid, { height: 480 });
+  }
+  if (clip?.type === 'photo') return clip.url;
+  return clip?.thumbnailUrl;
+}
 
 const Dashboard: React.FC = () => {
   const { userData } = useAuth();
@@ -501,7 +513,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; link?: { to: s
 );
 
 const ClipTile: React.FC<{ clip: any; rank: number }> = ({ clip, rank }) => {
-  const thumb = clip.thumbnailUrl || (clip.type === 'photo' ? clip.url : undefined);
+  const thumb = clipThumb(clip);
   const likes = clip.likeCount || clip.likes?.length || 0;
   return (
     <Link
@@ -533,7 +545,7 @@ const ClipTile: React.FC<{ clip: any; rank: number }> = ({ clip, rank }) => {
 };
 
 const ClipThumb: React.FC<{ clip: any }> = ({ clip }) => {
-  const thumb = clip.thumbnailUrl || (clip.type === 'photo' ? clip.url : undefined);
+  const thumb = clipThumb(clip);
   return (
     <Link
       to={`/player-media?clip=${clip.id}`}

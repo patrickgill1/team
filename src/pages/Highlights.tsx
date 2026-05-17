@@ -238,8 +238,13 @@ const Highlights: React.FC = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-full max-h-[100dvh] aspect-video">
                     <StreamPlayer
+                      // `muted` is reactive — flipping the toggle re-keys the
+                      // iframe via the query string, so the player picks up
+                      // the new state. Always autoplay when active.
+                      key={`${clip.id}-${muted ? 'm' : 'u'}`}
                       uid={clip.streamUid}
                       autoplay
+                      muted={muted}
                       title={clip.caption || clip.playerName}
                       className="w-full h-full"
                       onEnded={goNext}

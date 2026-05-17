@@ -19,6 +19,11 @@ interface StreamPlayerProps {
   uid: string;
   className?: string;
   autoplay?: boolean;
+  // Start muted. Required for autoplay to actually fire on mobile browsers,
+  // which block any video with audio from auto-starting. Pair with an
+  // unmute toggle in the host component for the TikTok-style experience.
+  muted?: boolean;
+  loop?: boolean;
   poster?: string;
   title?: string;
   // Fires when playback reaches the end. Powered by the Cloudflare Stream
@@ -63,6 +68,8 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
   uid,
   className = '',
   autoplay = false,
+  muted = false,
+  loop = false,
   poster,
   title,
   onEnded,
@@ -92,7 +99,7 @@ const StreamPlayer: React.FC<StreamPlayerProps> = ({
     <div className={`relative w-full bg-black overflow-hidden ${className}`} style={{ aspectRatio: '16 / 9' }}>
       <iframe
         ref={iframeRef}
-        src={streamIframeUrl(uid, { autoplay, poster })}
+        src={streamIframeUrl(uid, { autoplay, muted, loop, poster })}
         title={title || 'Video'}
         loading="lazy"
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"

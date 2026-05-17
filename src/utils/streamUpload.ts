@@ -100,9 +100,17 @@ export function streamHlsUrl(uid: string): string {
   return `https://${customerBase()}/${uid}/manifest/video.m3u8`;
 }
 
-export function streamIframeUrl(uid: string, opts: { autoplay?: boolean; poster?: string } = {}): string {
+export function streamIframeUrl(
+  uid: string,
+  opts: { autoplay?: boolean; muted?: boolean; loop?: boolean; poster?: string } = {}
+): string {
   const qs = new URLSearchParams();
   if (opts.autoplay) qs.set('autoplay', 'true');
+  // Mobile browsers (iOS Safari, Chrome) silently block autoplay on videos
+  // with audio. Passing muted=true lets the player auto-start; the host page
+  // can offer an unmute toggle. Without this, autoplay is essentially a no-op.
+  if (opts.muted) qs.set('muted', 'true');
+  if (opts.loop) qs.set('loop', 'true');
   if (opts.poster) qs.set('poster', opts.poster);
   const q = qs.toString();
   // Universal embed — works without the customer subdomain.

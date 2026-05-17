@@ -54,7 +54,9 @@ export async function createPlayerInvite(opts: CreatePlayerInviteOpts): Promise<
   const id = newSlug();
   const ttl = opts.ttlDays ?? DEFAULT_TTL_DAYS;
   const expiresAt = new Date(Date.now() + ttl * 24 * 3600 * 1000);
-  const inv: Omit<Invite, 'createdAt'> & { createdAt: any } = {
+  // Firestore rejects `undefined` values, so build the doc with only the
+  // fields we have. Omit `note` when the caller didn't pass one.
+  const inv: any = {
     id,
     type: 'player',
     teamId: opts.teamId,
@@ -65,17 +67,17 @@ export async function createPlayerInvite(opts: CreatePlayerInviteOpts): Promise<
     maxUses: opts.maxUses === undefined ? PLAYER_DEFAULT_USES : opts.maxUses,
     usedCount: 0,
     usedBy: [],
-    note: opts.note,
   };
+  if (opts.note) inv.note = opts.note;
   await setDoc(doc(db, COLL, id), inv);
-  return { ...inv, createdAt: new Date() };
+  return { ...inv, createdAt: new Date() } as Invite;
 }
 
 export async function createStaffInvite(opts: CreateStaffInviteOpts): Promise<Invite> {
   const id = newSlug();
   const ttl = opts.ttlDays ?? DEFAULT_TTL_DAYS;
   const expiresAt = new Date(Date.now() + ttl * 24 * 3600 * 1000);
-  const inv: Omit<Invite, 'createdAt'> & { createdAt: any } = {
+  const inv: any = {
     id,
     type: opts.role === 'team_manager' ? 'team_manager' : 'coach',
     teamId: opts.teamId,
@@ -86,10 +88,10 @@ export async function createStaffInvite(opts: CreateStaffInviteOpts): Promise<In
     maxUses: opts.maxUses === undefined ? STAFF_DEFAULT_USES : opts.maxUses,
     usedCount: 0,
     usedBy: [],
-    note: opts.note,
   };
+  if (opts.note) inv.note = opts.note;
   await setDoc(doc(db, COLL, id), inv);
-  return { ...inv, createdAt: new Date() };
+  return { ...inv, createdAt: new Date() } as Invite;
 }
 
 export interface FetchedInvite extends Invite {

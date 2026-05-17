@@ -111,9 +111,12 @@ export function streamIframeUrl(uid: string, opts: { autoplay?: boolean; poster?
 
 export function streamThumbnailUrl(uid: string, opts: { time?: string; height?: number } = {}): string {
   const qs = new URLSearchParams();
-  // Default to 1s into the video — a *lot* of phone clips start on a black
-  // fade-in frame, which makes the default time=0 poster look broken.
-  qs.set('time', opts.time || '1s');
+  // Default to 3s into the video. A *lot* of highlight clips start with an
+  // intro fade / transition banner that's solid black for the first second or
+  // two, which makes Stream's default time=0 poster look broken. 3s is past
+  // virtually all intro effects; Stream clamps past-end-of-video to the last
+  // frame so this is safe for short clips too.
+  qs.set('time', opts.time || '3s');
   if (opts.height) qs.set('height', String(opts.height));
   return `https://${customerBase()}/${uid}/thumbnails/thumbnail.jpg?${qs.toString()}`;
 }

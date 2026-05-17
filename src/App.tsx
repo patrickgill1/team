@@ -15,6 +15,7 @@ import PublicSurvey from './pages/PublicSurvey';
 import PublicGame from './pages/PublicGame';
 import PublicEvent from './pages/PublicEvent';
 import PlayerJoin from './pages/PlayerJoin';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Lazy load all other pages
 const InviteJoin = React.lazy(() => import('./pages/InviteJoin'));
@@ -199,6 +200,7 @@ function App() {
               <Route path="/survey/:surveyId" element={<PublicSurvey />} />
               <Route path="/game/:gameId" element={<PublicGame />} />
               <Route path="/event/:eventId" element={<PublicEvent />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
             
             {/* Root redirect - goes to dashboard if authenticated, auth if not */}
             <Route path="/" element={

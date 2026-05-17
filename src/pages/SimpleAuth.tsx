@@ -639,6 +639,11 @@ const SimpleAuth: React.FC = () => {
                 )}
               </div>
             </form>
+
+            <p className="mt-6 text-center text-xs text-slate-500">
+              By signing in you agree to our{' '}
+              <a href="/privacy" className="underline hover:text-slate-300">Privacy Policy</a>.
+            </p>
           </div>
         </div>
       </div>

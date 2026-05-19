@@ -12,7 +12,7 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '../hooks/useFirestore';
 
 // FIXED TEAM ID - existing team; new users get assigned here by default
@@ -55,6 +55,7 @@ interface AuthContextType {
   signInWithApple: (inviteTeamId?: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -431,7 +432,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           privacy: { showPhone: true, showEmail: true, showAddress: false },
         };
         await createUser(newUserData);
+        // Push the new doc into local state immediately so the SimpleAuth
+        // post-sign-in redirect fires without waiting for onAuthStateChanged
+        // → subscribeToUser to round-trip Firestore.
+        setUserData(newUserData);
+      } else {
+        setUserData(userData);
       }
+      setCurrentUser(user);
+      // CRITICAL: SimpleAuth gates its redirect to /dashboard on `!loading`.
+      // Without this, loading stays true forever after Apple sign-in
+      // succeeds and the user bounces back to the auth screen — which is
+      // exactly what the App Store reviewer hit on iPad Air (rejection
+      // 2.1(a), build 6).
+      setLoading(false);
     } catch (error: any) {
       console.error('Apple sign-in error:', error);
       const msg = error?.message?.includes('canceled') || error?.code === 'cancelled'
@@ -468,6 +482,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await sendPasswordResetEmail(auth, email);
     } catch (error) {
       console.error('Password reset error:', error);
+      throw error;
+    }
+  };
+
+  // Delete the user's account. Required by App Store guideline 5.1.1(v) —
+  // any app that supports account creation must let users delete from inside
+  // the app. We:
+  //   1. Delete the Firestore /users/{uid} doc so their profile + team
+  //      membership disappears immediately.
+  //   2. Delete the Firebase Auth user so the same email can sign up again
+  //      and the account credentials are gone.
+  //   3. Sign out (cleans up native session) and clear local state.
+  //
+  // Team-shared content they uploaded (photos, chat messages, RSVPs) stays
+  // visible to the team — that's content the team owns, not personal data.
+  // Coaches can manually scrub it if needed.
+  //
+  // Firebase Auth requires a recent sign-in to delete an account. If the
+  // credential is stale, Firebase throws auth/requires-recent-login; we
+  // catch that and ask the user to sign back in.
+  const deleteAccount = async (): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Not signed in.');
+    setError(null);
+    try {
+      // 1) Firestore user doc first — if Auth delete fails, at least we tried
+      //    to clear the profile data.
+      await deleteDoc(doc(db, 'users', user.uid)).catch(err => {
+        console.warn('Failed to delete /users doc, continuing with Auth delete:', err);
+      });
+
+      // 2) Firebase Auth account.
+      await user.delete();
+
+      // 3) Belt-and-suspenders: clear native session too.
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+          await FirebaseAuthentication.signOut().catch(() => {});
+        }
+      } catch { /* ignore */ }
+
+      setUserData(null);
+      setCurrentUser(null);
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      if (error?.code === 'auth/requires-recent-login') {
+        throw new Error(
+          'For security, please sign out and sign back in, then try deleting your account again.'
+        );
+      }
       throw error;
     }
   };
@@ -701,7 +767,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithGoogle,
     signInWithApple,
     logout,
-    resetPassword
+    resetPassword,
+    deleteAccount,
   };
 
   // Debug logging

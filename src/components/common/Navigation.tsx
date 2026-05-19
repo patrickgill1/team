@@ -8,12 +8,33 @@ import { isCoach } from '../../utils/helpers';
 import InviteSystem from '../../pages/InviteSystem';
 
 const Navigation: React.FC = () => {
-  const { userData, logout } = useAuth();
+  const { userData, logout, deleteAccount } = useAuth();
   const { teams, selectedTeamId, selectedTeam, setSelectedTeamId } = useTeam();
   const location = useLocation();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.trim().toLowerCase() !== 'delete') {
+      setDeleteError('Type DELETE to confirm.');
+      return;
+    }
+    setDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount();
+      // user object cleared in context; ProtectedRoute will boot us to /auth.
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Could not delete account. Please try again.');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -245,9 +266,19 @@ const Navigation: React.FC = () => {
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-white truncate">{userData?.name}</div>
-                <button onClick={handleLogout} className="text-xs text-fire-400 hover:text-red-400 transition-colors">
-                  Sign out
-                </button>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <button onClick={handleLogout} className="text-xs text-fire-400 hover:text-red-400 transition-colors">
+                    Sign out
+                  </button>
+                  <span className="text-fire-700">·</span>
+                  <button
+                    onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteError(null); }}
+                    className="text-xs text-fire-500 hover:text-red-400 transition-colors"
+                    title="Permanently delete your account and profile"
+                  >
+                    Delete account
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -421,6 +452,16 @@ const Navigation: React.FC = () => {
                 </svg>
                 <span className="font-medium">Sign out</span>
               </button>
+              <button
+                onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteError(null); setIsMoreOpen(false); }}
+                className="w-full flex items-center space-x-3 p-3 rounded-2xl text-red-700 hover:bg-red-50 transition-colors"
+                title="Permanently delete your account and profile"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span className="font-medium">Delete account</span>
+              </button>
             </div>
 
             {/* Bottom spacer for safe area */}
@@ -434,6 +475,74 @@ const Navigation: React.FC = () => {
         isOpen={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
       />
+
+      {/* Delete Account confirmation modal — required by App Store guideline 5.1.1(v) */}
+      {showDeleteAccount && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => !deletingAccount && setShowDeleteAccount(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="bg-red-50 border-b border-red-100 px-5 py-4">
+              <h2 className="text-lg font-bold text-red-900 flex items-center gap-2">
+                <span>⚠️</span> Delete your account?
+              </h2>
+            </div>
+            <div className="p-5 space-y-3 text-sm text-gray-700">
+              <p>
+                This will permanently delete your <strong>Fire FC account</strong>:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                <li>Your profile, name, email, and phone number are removed.</li>
+                <li>You'll be signed out and unable to access this team.</li>
+                <li>You can sign up again with the same email later.</li>
+              </ul>
+              <p className="text-xs text-gray-500">
+                Team-shared content you uploaded (photos, messages, RSVPs) stays
+                visible to the team — that's content the team owns. Contact your
+                coach if you want it removed too.
+              </p>
+
+              <div className="pt-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1.5">
+                  Type DELETE to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  autoCapitalize="characters"
+                  className="w-full px-3 py-2 rounded-lg border-2 border-gray-200 text-sm focus:outline-none focus:border-red-400 disabled:opacity-50"
+                  disabled={deletingAccount}
+                />
+                {deleteError && (
+                  <p className="text-red-600 text-xs mt-2">{deleteError}</p>
+                )}
+              </div>
+            </div>
+            <div className="bg-gray-50 px-5 py-3 flex justify-end gap-2 border-t border-gray-100">
+              <button
+                onClick={() => setShowDeleteAccount(false)}
+                disabled={deletingAccount}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount || deleteConfirmText.trim().toLowerCase() !== 'delete'}
+                className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deletingAccount ? 'Deleting…' : 'Delete my account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

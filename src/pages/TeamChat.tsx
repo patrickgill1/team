@@ -534,7 +534,14 @@ const TeamChat: React.FC = () => {
   // MOBILE: Single view at a time
   if (isMobile) {
     return (
-      <div className="h-screen flex flex-col bg-gray-50">
+      // Mobile chat fills the space between the top nav (3.5rem / pt-14 on
+      // main) and the bottom tab bar (5rem / pb-20). h-screen overflowed
+      // both, which hid the composer behind the bottom tabs. Using dvh so
+      // the keyboard / Safari URL chrome don't push the composer offscreen.
+      <div
+        className="flex flex-col bg-gray-50"
+        style={{ height: 'calc(100dvh - 3.5rem - 5rem)' }}
+      >
         {currentView === 'threads' ? (
           // THREADS LIST VIEW
           <div className="flex-1 flex flex-col bg-white">
@@ -818,9 +825,11 @@ const TeamChat: React.FC = () => {
     );
   }
 
-  // DESKTOP: Side-by-side layout
+  // DESKTOP: Side-by-side layout. Sidebar (lg:ml-64) means the chat fills
+  // the remaining width; height fills the viewport (no top/bottom nav on
+  // desktop). dvh so URL-bar chrome doesn't shift the layout.
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="flex bg-gray-50" style={{ height: '100dvh' }}>
       {/* Desktop Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}

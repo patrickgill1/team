@@ -492,12 +492,12 @@ const TeamManagement: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Team Management</h1>
-              <p className="text-gray-600 mt-1">Create teams, invite coaches, and share players</p>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Team Management</h1>
+              <p className="text-gray-600 mt-1 text-sm lg:text-base">Create teams, invite coaches, and share players</p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-2 lg:gap-3">
               <button
                 onClick={() => setShowAddCoachToTeamModal(true)}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"

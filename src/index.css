@@ -75,6 +75,17 @@ code {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* iOS Safari/WKWebView auto-zooms the viewport when an input/select/textarea
+   with font-size < 16px receives focus. That's the "everything gets really
+   small" effect users see when tapping a form field in a modal — the page
+   zooms IN on the input, making the rest of the layout look cramped. Force
+   16px on all form controls below the tablet breakpoint to suppress it. */
+@media screen and (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 /* Line clamp utilities */
 .line-clamp-2 {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;

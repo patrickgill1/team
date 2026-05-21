@@ -12,6 +12,8 @@ interface MessageBubbleProps {
   onToggleReaction: (m: ChatMessage, emoji: string) => void;
   /** Delete handler — only shown for the user's own messages. */
   onDelete?: (m: ChatMessage) => void;
+  /** Called when the user taps an image attachment — opens the lightbox. */
+  onImageClick?: (url: string) => void;
   formatTime: (d: any) => string;
   /** First message from this sender in a run (show avatar + name) */
   isFirstInGroup?: boolean;
@@ -63,6 +65,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReply,
   onToggleReaction,
   onDelete,
+  onImageClick,
   formatTime,
   isFirstInGroup = true,
   isLastInGroup = true,
@@ -193,28 +196,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             className={`mt-1 grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
           >
             {images.map((img, i) => (
-              <a
+              // Render the <img> directly (no <a> wrapper) so iOS's native
+              // long-press menu (Save Image / Copy / Share) still works.
+              // Tap is handled by onClick → lightbox; long-press falls
+              // through to the WebView's default behavior.
+              <img
                 key={i}
-                href={img.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <img
-                  src={img.url}
-                  alt={img.name || 'attachment'}
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => {
-                    // Hide broken images instead of letting the WebView
-                    // retry endlessly (which can crash the app on iOS).
-                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                  }}
-                  className={`rounded-2xl object-cover ${
-                    images.length === 1 ? 'max-h-72 w-auto' : 'h-32 w-full'
-                  }`}
-                />
-              </a>
+                src={img.url}
+                alt={img.name || 'attachment'}
+                loading="lazy"
+                decoding="async"
+                onClick={() => onImageClick?.(img.url)}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+                className={`rounded-2xl object-cover cursor-pointer ${
+                  images.length === 1 ? 'max-h-72 w-auto' : 'h-32 w-full'
+                }`}
+              />
             ))}
           </div>
         )}

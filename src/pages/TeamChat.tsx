@@ -657,28 +657,25 @@ const TeamChat: React.FC = () => {
         style={{
           // Top header: 3.5rem (h-14) + safe-area for the notch.
           top: 'calc(3.5rem + env(safe-area-inset-top))',
-          // Bottom anchor depends on view AND keyboard state:
-          //   - Threads list: clear the 4rem bottom-tab-bar + safe area.
-          //   - Conversation, keyboard closed: just home-indicator safe area.
-          //   - Conversation, keyboard open: dock right above the keyboard
-          //     using the height reported by Capacitor's keyboard listener.
-          // (The composer is the last flex-child of this container, so as
-          // bottom changes the composer follows along.)
-          // In conversation mode the bottom tab bar is unmounted. We anchor
-          // the chat ALL the way to the viewport bottom (bottom: 0) so the
-          // body bg can't peek through as a 'blue strip' under the composer.
-          // The composer itself adds env(safe-area-inset-bottom) padding
-          // internally so the actual input clears the home indicator.
-          // When the keyboard opens, kbInset (from visualViewport) lifts the
-          // whole container off the viewport bottom by exactly the keyboard
-          // height — works on iOS Capacitor AND the web with the same code.
+          // Anchor BOTTOM at 0 (or the bottom-tab-bar height on the
+          // threads view). Diagnostic with kb=363 / composer.top=599 /
+          // ih=860 confirmed that iOS WKWebView does NOT honor `bottom: N`
+          // changes on a position:fixed element while the keyboard is open
+          // — the container stayed pinned low and the composer ended up
+          // behind the keyboard. We now keep `bottom` stable and use
+          // padding-bottom = kbInset (set below) to push the composer up
+          // instead, which iOS DOES honor.
           bottom:
             currentView === 'chat' && selectedThread
-              ? kbInset > 0
-                ? `${kbInset}px`
-                : '0px'
+              ? '0px'
               : 'calc(4rem + env(safe-area-inset-bottom))',
-          transition: 'bottom 180ms ease',
+          // Padding pushes the flex column's contents up by the keyboard
+          // height so the composer rides above the keyboard.
+          paddingBottom:
+            currentView === 'chat' && selectedThread && kbInset > 0
+              ? `${kbInset}px`
+              : undefined,
+          transition: 'padding-bottom 180ms ease',
         }}
       >
         {currentView === 'threads' ? (

@@ -713,8 +713,10 @@ const TeamChat: React.FC = () => {
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Messages — min-h-0 is critical: without it, flex-1 won't
+                  shrink the messages div, and many messages push the composer
+                  off the bottom of the container. */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
                 {messages.map((message) => (
                   <MessageBubble
                     key={message.id}
@@ -991,7 +993,7 @@ const TeamChat: React.FC = () => {
             </div>
 
             {/* Desktop Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
               {messages.map((message) => (
                 <MessageBubble
                   key={message.id}

@@ -622,67 +622,81 @@ const TeamChat: React.FC = () => {
               </div>
             </div>
 
-            {/* Threads List */}
+            {/* Threads List — iMessage / Messages-style rows */}
             <div className="flex-1 min-h-0 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
-              {filteredThreads.map((thread) => (
-                <div
-                  key={thread.id}
-                  onClick={() => showChatView(thread)}
-                  className="p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
+              {filteredThreads.map((thread) => {
+                const isDM = (thread as any).isDM === true;
+                const displayTitle = getThreadDisplayTitle(thread);
+                const initial = (displayTitle || '?').charAt(0).toUpperCase();
+                let hh = 0;
+                for (let i = 0; i < (displayTitle || '').length; i++) hh = (hh * 31 + displayTitle.charCodeAt(i)) >>> 0;
+                const palette = ['bg-rose-500','bg-amber-500','bg-emerald-500','bg-cyan-500','bg-violet-500','bg-fuchsia-500','bg-blue-500','bg-teal-500'];
+                const avatarBg = palette[hh % palette.length];
+                const preview = thread.lastMessage?.content || (thread.description || (isDM ? 'Tap to send a message' : 'No messages yet'));
+                const ago = formatTime(thread.lastActivity);
+                return (
+                  <button
+                    key={thread.id}
+                    onClick={() => showChatView(thread)}
+                    className="w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-start gap-3"
+                  >
+                    <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold shadow-sm ${avatarBg}`}>
+                      {initial}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 truncate text-base">{getThreadDisplayTitle(thread)}</h3>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="font-semibold text-gray-900 truncate text-[15px]">{displayTitle}</span>
                         {thread.isPinned && (
-                          <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         )}
                         {thread.isPrivate && (
-                          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-700 ring-1 ring-red-200 flex-shrink-0">
+                            Coach only
+                          </span>
                         )}
+                        {isDM && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 ring-1 ring-violet-200 flex-shrink-0">
+                            DM
+                          </span>
+                        )}
+                        <span className="ml-auto text-[11px] text-gray-400 font-medium flex-shrink-0 pl-2">{ago}</span>
                       </div>
-                      
-                      {thread.description && (
-                        <p className="text-sm text-gray-600 truncate mb-2">{thread.description}</p>
-                      )}
-                      
-                      {thread.lastMessage && (
-                        <p className="text-sm text-gray-500 truncate mb-2">
-                          <span className="font-medium">{thread.lastMessage.senderName}:</span> {thread.lastMessage.content}
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">{thread.messageCount || 0} messages</span>
-                        <span className="text-xs text-gray-500">{formatTime(thread.lastActivity)}</span>
+                      <div className="text-sm text-gray-500 truncate">
+                        {thread.lastMessage?.senderName && (
+                          <span className="font-medium text-gray-700">{thread.lastMessage.senderName}: </span>
+                        )}
+                        {preview}
                       </div>
                     </div>
-                    
-                    <div className="ml-3 flex-shrink-0">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {filteredThreads.length === 0 && (
-                <div className="p-8 text-center">
-                  <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  <p className="text-gray-500 text-sm">No threads found</p>
-                  <button
-                    onClick={() => setIsCreatingThread(true)}
-                    className="mt-3 text-cyan-600 text-sm font-medium"
-                  >
-                    Create your first thread
                   </button>
+                );
+              })}
+
+              {filteredThreads.length === 0 && (
+                <div className="p-10 text-center">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-700 font-semibold mb-1">No conversations yet</p>
+                  <p className="text-gray-500 text-sm mb-4">Start a chat with a teammate or create a new team thread.</p>
+                  <div className="flex justify-center gap-2">
+                    <button
+                      onClick={() => setIsDMPickerOpen(true)}
+                      className="px-4 py-2 text-sm font-semibold rounded-full bg-violet-600 text-white hover:bg-violet-700"
+                    >
+                      💬 New DM
+                    </button>
+                    <button
+                      onClick={() => setIsCreatingThread(true)}
+                      className="px-4 py-2 text-sm font-semibold rounded-full bg-cyan-600 text-white hover:bg-cyan-700"
+                    >
+                      🧵 New thread
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

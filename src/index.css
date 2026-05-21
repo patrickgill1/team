@@ -48,6 +48,12 @@ body.chat-locked {
   touch-action: none;
 }
 
+/* When inside a specific conversation (not the threads list), hide the
+   bottom tab bar entirely so the composer can sit right above the keyboard
+   without the tabs riding up with it. Matches iMessage/Telegram/Slack —
+   you're focused on the conversation; the back arrow gets you out. */
+body.chat-conversation nav.fixed.bottom-0 { display: none; }
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }

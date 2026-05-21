@@ -78,6 +78,19 @@ const TeamChat: React.FC = () => {
     return () => { document.body.classList.remove('chat-locked'); };
   }, []);
 
+  // When the user opens a specific conversation on mobile, hide the bottom
+  // tab bar so the composer can dock right above the keyboard. The threads
+  // list view still shows the tabs (so they can switch sections from there).
+  useEffect(() => {
+    const inConversation = isMobile && currentView === 'chat' && selectedThread;
+    if (inConversation) {
+      document.body.classList.add('chat-conversation');
+    } else {
+      document.body.classList.remove('chat-conversation');
+    }
+    return () => { document.body.classList.remove('chat-conversation'); };
+  }, [isMobile, currentView, selectedThread]);
+
   // Simple navigation functions
   const showThreadsList = () => {
     console.log('Showing threads list');
@@ -554,10 +567,18 @@ const TeamChat: React.FC = () => {
         style={{
           // Top header: 3.5rem (h-14) + safe-area for the notch.
           top: 'calc(3.5rem + env(safe-area-inset-top))',
-          // Bottom tab bar in Navigation.tsx is h-16 (4rem) + safe-bottom.
-          // Match it exactly so chat content touches the nav with no gap —
-          // any mismatch shows as a gray sliver moving when scrolling.
-          bottom: 'calc(4rem + env(safe-area-inset-bottom))',
+          // Conversation view hides the bottom tab bar (see body.chat-
+          // conversation rule in index.css) so we can dock the composer at
+          // the very bottom — only the home-indicator safe area remains.
+          // Threads-list view keeps the tabs, so we still clear 4rem for
+          // their height. Capacitor's `Keyboard.resize: native` will shrink
+          // the WebView when the keyboard opens; since `bottom` is anchored
+          // to the new viewport bottom, the composer rides above the keyboard
+          // automatically with no manual recompute.
+          bottom:
+            currentView === 'chat' && selectedThread
+              ? 'env(safe-area-inset-bottom)'
+              : 'calc(4rem + env(safe-area-inset-bottom))',
         }}
       >
         {currentView === 'threads' ? (

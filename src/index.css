@@ -25,6 +25,10 @@ html, body {
      fixed bottom tab bar appears to ride up over the chat. */
   overscroll-behavior: none;
 }
+/* When the Capacitor WebView paints behind the page (e.g. the safe-area
+   region around the home indicator), default the underlying color to white
+   so we never see the WebView's own backgroundColor as a strip. */
+html { background-color: #ffffff; }
 
 body {
   margin: 0;

@@ -10,8 +10,11 @@ const config: CapacitorConfig = {
     // Allow inline media playback (otherwise videos open in fullscreen Safari)
     // and let the WebView use the same JS engine as Safari.
     contentInset: 'always',
-    // Background color while the WebView is booting / between routes.
-    backgroundColor: '#0f172a',
+    // White WebView bg so any region the page doesn't actively paint (e.g.
+    // safe-area-inset around the home indicator) doesn't show a dark navy
+    // strip behind the bottom tab bar. The page's own dark header still
+    // covers the top notch area via its own bg.
+    backgroundColor: '#ffffff',
     // Use the system status bar style (light text on our dark hero gradient).
     // The plugin actually drives this at runtime — see initStatusBar() below.
     limitsNavigationsToAppBoundDomains: false,

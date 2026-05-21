@@ -7,6 +7,7 @@ import { isCoach, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import { getShareOrigin } from '../utils/origin';
 
 // ─── Question Builder Helpers ─────────────────────────────────────────────────
 
@@ -159,7 +160,7 @@ const Surveys: React.FC = () => {
 
   // ─── Copy share link ────────────────────────────────────────────────────
   const copyShareLink = (surveyId: string) => {
-    const url = `${window.location.origin}/survey/${surveyId}`;
+    const url = `${getShareOrigin()}/survey/${surveyId}`;
     navigator.clipboard.writeText(url);
     setCopySuccess(surveyId);
     setTimeout(() => setCopySuccess(null), 2000);

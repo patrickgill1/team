@@ -17,6 +17,7 @@ import {
   serverTimestamp, arrayUnion, increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { getShareOrigin } from './origin';
 import type { Invite } from '../types';
 
 const COLL = 'invites';
@@ -215,8 +216,10 @@ export async function revokeInvite(inviteId: string): Promise<void> {
 
 /** Build the share URL — used by both Copy and SMS buttons. */
 export function inviteUrl(inviteId: string): string {
-  const origin = (typeof window !== 'undefined' && window.location?.origin) || 'https://firefc16.com';
-  return `${origin}/join/${inviteId}`;
+  // Use the canonical web origin (firefc.app) — window.location.origin on
+  // the Capacitor iOS shell is `capacitor://localhost`, which a recipient
+  // can't open.
+  return `${getShareOrigin()}/join/${inviteId}`;
 }
 
 /** Build a tel:// or sms:// link with prefilled message, for the iOS share sheet. */

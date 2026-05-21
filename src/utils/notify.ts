@@ -231,7 +231,11 @@ export async function sendPushToPlayerParents(
   }
 }
 
-const APP_BASE = (typeof window !== 'undefined' && window.location?.origin) || 'https://firefc16.com';
+// Canonical web origin for email/HTML asset URLs. We can't use
+// window.location.origin alone because on the Capacitor iOS shell it's
+// `capacitor://localhost` — any image embedded in an email would 404.
+import { getShareOrigin } from './origin';
+const APP_BASE = getShareOrigin();
 
 const BRAND_NAVY = '#1e3a5f';
 const BRAND_NAVY_DARK = '#122340';

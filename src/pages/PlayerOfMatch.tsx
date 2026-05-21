@@ -6,6 +6,7 @@ import { Player, CalendarEvent } from '../types';
 import { formatDate, isCoach } from '../utils/helpers';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import { getShareOrigin } from '../utils/origin';
 
 interface MatchVoting {
   id: string;
@@ -71,7 +72,7 @@ const PlayerOfMatch: React.FC = () => {
   const [editingVotingId, setEditingVotingId] = useState<string | null>(null);
 
   const getVoteLink = (votingId: string) =>
-    `${window.location.origin}/vote/${votingId}`;
+    `${getShareOrigin()}/vote/${votingId}`;
 
   const copyVoteLink = async (votingId: string) => {
     try {

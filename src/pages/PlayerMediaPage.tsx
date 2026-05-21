@@ -10,6 +10,7 @@ import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/v
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
 import { downloadFile } from '../utils/downloadFile';
+import { getShareOrigin } from '../utils/origin';
 import StreamPlayer, { loadStreamSdk, StreamSdkPlayer } from '../components/common/StreamPlayer';
 import FullGames from './FullGames';
 
@@ -727,7 +728,7 @@ const PlayerMediaPage: React.FC = () => {
   const handleShare = async (mediaItem: PlayerMediaType) => {
     // Use the real Firestore doc ID (strip gallery_ prefix for gallery items)
     const docId = mediaItem.id.startsWith('gallery_') ? mediaItem.id.replace('gallery_', '') : mediaItem.id;
-    const shareUrl = `${window.location.origin}/media/${encodeURIComponent(docId)}`;
+    const shareUrl = `${getShareOrigin()}/media/${encodeURIComponent(docId)}`;
     const shareData = {
       title: mediaItem.caption || `${mediaItem.playerName} - ${mediaItem.type}`,
       url: shareUrl,

@@ -5,6 +5,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { Team, Player, CoachInvite, Invite } from '../types';
 import { isCoach } from '../utils/helpers';
 import { createStaffInvite } from '../utils/invites';
+import { getShareOrigin } from '../utils/origin';
 import InviteShareModal from '../components/common/InviteShareModal';
 import EndSeasonModal from '../components/team/EndSeasonModal';
 
@@ -194,7 +195,7 @@ const TeamManagement: React.FC = () => {
         role: inviteLevel === 'head_coach' ? 'head_coach' : 'assistant_coach',
         createdBy: userData.uid,
       });
-      const link = `${window.location.origin}/join/${inv.id}`;
+      const link = `${getShareOrigin()}/join/${inv.id}`;
       setInviteLink(link);
       setLinkCopied(false);
       loadData();

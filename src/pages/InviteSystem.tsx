@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
+import { getShareOrigin } from '../utils/origin';
 
 interface InviteSystemProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ const InviteSystem: React.FC<InviteSystemProps> = ({ isOpen, onClose }) => {
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
   const generateInviteLink = () => {
-    const baseUrl = window.location.origin;
+    const baseUrl = getShareOrigin();
     const inviteCode = selectedTeamId || userData?.teamId || 'invalid';
     return `${baseUrl}/auth?invite=${inviteCode}`;
   };

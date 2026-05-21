@@ -6,6 +6,7 @@ import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDate } from '../utils/helpers';
 import StreamPlayer from '../components/common/StreamPlayer';
 import { streamThumbnailUrl } from '../utils/streamUpload';
+import { getShareOrigin } from '../utils/origin';
 
 const ACTIVITY_TAGS = ['Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
 
@@ -116,7 +117,7 @@ const Highlights: React.FC = () => {
   }, [activeIndex, filtered.length, scrollToIndex]);
 
   const share = async (clip: PlayerMediaType) => {
-    const url = `${window.location.origin}/player-media?id=${clip.id}`;
+    const url = `${getShareOrigin()}/player-media?id=${clip.id}`;
     try {
       if ((navigator as any).share) {
         await (navigator as any).share({ title: `${clip.playerName} highlight`, text: clip.caption || '', url });

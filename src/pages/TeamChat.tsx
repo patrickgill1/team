@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { where } from 'firebase/firestore';
+import { getShareOrigin } from '../utils/origin';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -398,7 +399,7 @@ const TeamChat: React.FC = () => {
           void sendPushToUsers(recipients, {
             title: pushTitle,
             body: pushBody,
-            url: `${window.location.origin}/chat?thread=${selectedThread.id}`,
+            url: `${getShareOrigin()}/chat?thread=${selectedThread.id}`,
           });
         }
       } catch (err) {
@@ -423,7 +424,7 @@ const TeamChat: React.FC = () => {
           if (targets.length > 0) {
             try {
               const { sendEmailBatch } = await import('../utils/notify');
-              const APP = window.location.origin;
+              const APP = getShareOrigin();
               const safe = content.replace(/</g, '&lt;');
               await sendEmailBatch(
                 targets.map((u) => ({

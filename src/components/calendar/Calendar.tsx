@@ -7,6 +7,7 @@ import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoach } from '../../utils/helpers';
 import EventForm from './EventForm';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
+import { getShareOrigin } from '../../utils/origin';
 
 const formatIcsDate = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -634,7 +635,7 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/event/${event.id}`;
+    const url = `${getShareOrigin()}/event/${event.id}`;
     try {
       if (typeof navigator !== 'undefined' && (navigator as any).share) {
         await (navigator as any).share({ url });

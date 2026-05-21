@@ -5,6 +5,7 @@ import { Player, PlayerStats } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
+import { getShareOrigin } from '../../utils/origin';
 
 interface AddPlayerProps {
   isOpen: boolean;
@@ -383,7 +384,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         onPlayerAdded(newPlayer);
         
         // Show invite link instead of closing
-        const link = `${window.location.origin}/join?player=${playerId}&code=${basePlayerData.inviteCode}`;
+        const link = `${getShareOrigin()}/join?player=${playerId}&code=${basePlayerData.inviteCode}`;
         setInviteLink(link);
       }
     } catch (error) {

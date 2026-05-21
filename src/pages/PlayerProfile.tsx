@@ -8,6 +8,7 @@ import { isCoach, formatDate } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
+import { getShareOrigin } from '../utils/origin';
 import { downloadFile } from '../utils/downloadFile';
 import { streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
 
@@ -242,7 +243,7 @@ const PlayerProfile: React.FC = () => {
 
   const handleShareProfile = async () => {
     if (!player) return;
-    const url = `${window.location.origin}/player/${player.id}`;
+    const url = `${getShareOrigin()}/player/${player.id}`;
     const data = { title: `${player.name} · Fire FC`, url };
     try {
       if (navigator.share) await navigator.share(data);
@@ -982,7 +983,7 @@ const PlayerProfile: React.FC = () => {
               <button
                 type="button"
                 onClick={async () => {
-                  const shareUrl = `${window.location.origin}/media/${encodeURIComponent(lightboxItem.id.replace(/^gallery_/, ''))}`;
+                  const shareUrl = `${getShareOrigin()}/media/${encodeURIComponent(lightboxItem.id.replace(/^gallery_/, ''))}`;
                   const data = { title: lightboxItem.caption || `${lightboxItem.playerName} - ${lightboxItem.type}`, url: shareUrl };
                   try {
                     if (navigator.share) await navigator.share(data);

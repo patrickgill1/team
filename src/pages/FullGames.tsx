@@ -8,6 +8,7 @@ import { isCoach, formatDate } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
 import StreamPlayer from '../components/common/StreamPlayer';
+import { getShareOrigin } from '../utils/origin';
 
 // Extract YouTube video ID from any common YouTube URL shape.
 function extractYouTubeId(input: string): string | null {
@@ -456,7 +457,7 @@ const FullGames: React.FC = () => {
               {selectedGame.notes && <p className="text-sm text-white/80 mt-2">{selectedGame.notes}</p>}
               <div className="flex flex-wrap items-center gap-3 mt-3">
                 <a
-                  href={`${window.location.origin}/game/${selectedGame.id}`}
+                  href={`${getShareOrigin()}/game/${selectedGame.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium"
@@ -476,7 +477,7 @@ const FullGames: React.FC = () => {
                 )}
                 <button
                   onClick={async () => {
-                    const url = `${window.location.origin}/game/${selectedGame.id}`;
+                    const url = `${getShareOrigin()}/game/${selectedGame.id}`;
                     const data = { title: selectedGame.title, url };
                     try {
                       if (navigator.share) await navigator.share(data);

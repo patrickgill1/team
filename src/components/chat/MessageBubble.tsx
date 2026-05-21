@@ -81,7 +81,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     grouped[r.emoji].names.push(r.userName || '');
   }
 
-  const images = (message.attachments || []).filter((a) => a.type === 'image');
+  // Be defensive: skip attachments missing a URL — historic messages
+  // can have malformed data, and rendering <img src={undefined}> in a
+  // long thread is a known way to OOM the iOS WKWebView (which is what
+  // caused the force-close on threads with photos after the 1.0 release).
+  const images = (message.attachments || []).filter(
+    (a) => a && a.type === 'image' && typeof a.url === 'string' && a.url.length > 0
+  );
   const isMentioned =
     !!currentUserName &&
     new RegExp(`@${currentUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(
@@ -197,6 +203,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <img
                   src={img.url}
                   alt={img.name || 'attachment'}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    // Hide broken images instead of letting the WebView
+                    // retry endlessly (which can crash the app on iOS).
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
                   className={`rounded-2xl object-cover ${
                     images.length === 1 ? 'max-h-72 w-auto' : 'h-32 w-full'
                   }`}

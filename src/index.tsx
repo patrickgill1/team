@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App'; // Removed explicit extension
 import { initNativeShell } from './utils/nativeShell';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Native (iOS via Capacitor) setup — no-op on web.
 initNativeShell();
@@ -13,6 +14,8 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );

@@ -7,6 +7,47 @@ import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
 import MessageComposer, { ComposerAttachment } from '../components/chat/MessageComposer';
 
+// Temporary diagnostic overlay — shows the live keyboard inset values + where
+// the composer element is actually positioned on screen. Tells us at a glance
+// whether the offset is being applied or not. Remove once chat layout stable.
+const DebugChatHud: React.FC<{ kbInset: number; vvInset: number; capInset: number }> = ({ kbInset, vvInset, capInset }) => {
+  const [composerY, setComposerY] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => {
+      const el = document.querySelector('[data-chat-composer]') as HTMLElement | null;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        setComposerY(Math.round(r.top));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    let raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 'calc(3.6rem + env(safe-area-inset-top))',
+        right: 4,
+        zIndex: 1000,
+        background: 'rgba(0,0,0,0.75)',
+        color: 'white',
+        fontSize: 10,
+        padding: '3px 6px',
+        borderRadius: 4,
+        fontFamily: 'monospace',
+        pointerEvents: 'none',
+        lineHeight: 1.3,
+      }}
+    >
+      <div>kb={kbInset} (vv={vvInset} cap={capInset})</div>
+      <div>ih={typeof window !== 'undefined' ? window.innerHeight : 0}</div>
+      <div>composer.top={composerY ?? '?'}</div>
+    </div>
+  );
+};
+
 const TeamChat: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
@@ -605,13 +646,12 @@ const TeamChat: React.FC = () => {
   // MOBILE: Single view at a time
   if (isMobile) {
     return (
-      // Fixed-position layout pinned between the top header (3.5rem +
-      // safe-area-inset-top) and the bottom tab bar (5rem +
-      // safe-area-inset-bottom). Using `fixed` instead of letting the
-      // parent's pt-14/pb-20 padding constrain us — the chat now has its
-      // own coordinate space, so layout shifts from the iOS keyboard or
-      // Safari URL chrome can't push the header behind the notch or the
-      // composer behind the tabs.
+      <>
+      {/* Debug HUD — top-right corner shows keyboard state + composer
+          position so we can see what's actually happening on-device. */}
+      <DebugChatHud kbInset={kbInset} vvInset={vvInset} capInset={capInset} />
+      {/* Fixed-position layout pinned between top header + bottom tab bar.
+          See bottom-anchor calc below for keyboard handling. */}
       <div
         className="fixed inset-x-0 flex flex-col bg-gray-50 z-10"
         style={{
@@ -959,6 +999,7 @@ const TeamChat: React.FC = () => {
         )}
         {dmPickerModal}
       </div>
+      </>
     );
   }
 

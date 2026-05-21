@@ -199,6 +199,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
 
   return (
     <div
+      data-chat-composer
       className="bg-white border-t border-gray-200 px-3 pt-2 pb-3"
       style={
         safeAreaInsetBottom

@@ -10,6 +10,8 @@ interface MessageBubbleProps {
   replyTarget?: ChatMessage | null;
   onReply: (m: ChatMessage) => void;
   onToggleReaction: (m: ChatMessage, emoji: string) => void;
+  /** Delete handler — only shown for the user's own messages. */
+  onDelete?: (m: ChatMessage) => void;
   formatTime: (d: any) => string;
   /** First message from this sender in a run (show avatar + name) */
   isFirstInGroup?: boolean;
@@ -60,6 +62,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   replyTarget,
   onReply,
   onToggleReaction,
+  onDelete,
   formatTime,
   isFirstInGroup = true,
   isLastInGroup = true,
@@ -265,6 +268,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             >
               <span>↪</span> Reply
             </button>
+            {isOwn && onDelete && (
+              <button
+                onClick={() => {
+                  onDelete(message);
+                  setActionsOpen(false);
+                }}
+                className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition flex items-center gap-3 border-t border-gray-100"
+              >
+                <span>🗑️</span> Delete
+              </button>
+            )}
             <button
               onClick={() => setActionsOpen(false)}
               className="w-full text-center px-4 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50 border-t border-gray-100"

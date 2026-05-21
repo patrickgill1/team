@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { where } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -11,13 +12,14 @@ const TeamChat: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { 
-    addChatThread, 
-    updateChatThread, 
-    addChatMessage, 
+  const {
+    addChatThread,
+    updateChatThread,
+    addChatMessage,
     subscribeToChatThreads,
     subscribeToChatMessages,
     updateDocument,
+    deleteDocument,
     getDocuments,
     getOrCreateDMThread,
   } = useFirestore();
@@ -445,6 +447,48 @@ const TeamChat: React.FC = () => {
     }
   };
 
+  const deleteMessage = async (message: ChatMessage) => {
+    if (!userData || message.senderId !== userData.uid) return;
+    if (!window.confirm('Delete this message? This cannot be undone.')) return;
+    try {
+      await deleteDocument('chat_messages', message.id);
+    } catch (err) {
+      console.error('Error deleting message:', err);
+      alert('Could not delete the message. Please try again.');
+    }
+  };
+
+  const deleteThread = async (thread: ChatThread) => {
+    if (!userData) return;
+    const isDM = (thread as any).isDM === true;
+    // Permission: coaches can delete any team thread; either DM participant
+    // can delete a DM. Parents can't delete shared team threads.
+    const canDelete =
+      isCoach || (isDM && thread.participants.includes(userData.uid));
+    if (!canDelete) return;
+    const label = isDM ? 'this conversation' : `"${thread.title}"`;
+    if (!window.confirm(`Delete ${label} for everyone? All messages will be removed and this can't be undone.`)) return;
+    try {
+      // Cascade-delete all messages in the thread. Best-effort: even if
+      // some messages fail, still try to remove the thread doc afterward.
+      const msgs: any[] = await getDocuments('chat_messages', [
+        where('threadId', '==', thread.id),
+      ]).catch(() => []);
+      await Promise.all(
+        (msgs || []).map((m) => deleteDocument('chat_messages', m.id).catch(() => null))
+      );
+      await deleteDocument('chat_threads', thread.id);
+      // If we were viewing this thread, pop back to the threads list.
+      if (selectedThread?.id === thread.id) {
+        setSelectedThread(null);
+        setCurrentView('threads');
+      }
+    } catch (err) {
+      console.error('Error deleting thread:', err);
+      alert('Could not delete this chat. Please try again.');
+    }
+  };
+
   const toggleReaction = async (message: ChatMessage, emoji: string) => {
     if (!userData) return;
     const existing = message.reactions || [];
@@ -864,6 +908,19 @@ const TeamChat: React.FC = () => {
                       <span>{selectedThread.participants.length} participants</span>
                     </div>
                   </div>
+
+                  {(isCoach || ((selectedThread as any).isDM === true && selectedThread.participants.includes(userData?.uid || ''))) && (
+                    <button
+                      onClick={() => deleteThread(selectedThread)}
+                      className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+                      aria-label="Delete chat"
+                      title="Delete chat"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -895,6 +952,7 @@ const TeamChat: React.FC = () => {
                       replyTarget={message.replyTo ? messages.find((mm) => mm.id === message.replyTo) || null : null}
                       onReply={setReplyingTo}
                       onToggleReaction={toggleReaction}
+                      onDelete={deleteMessage}
                       formatTime={formatTime}
                       isFirstInGroup={isFirstInGroup}
                       isLastInGroup={isLastInGroup}
@@ -1165,11 +1223,25 @@ const TeamChat: React.FC = () => {
                   )}
                 </div>
                 
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <span>{selectedThread.participants.length} participants</span>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 text-sm text-gray-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>{selectedThread.participants.length} participants</span>
+                  </div>
+                  {(isCoach || ((selectedThread as any).isDM === true && selectedThread.participants.includes(userData?.uid || ''))) && (
+                    <button
+                      onClick={() => deleteThread(selectedThread)}
+                      className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                      aria-label="Delete chat"
+                      title="Delete chat"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1192,6 +1264,7 @@ const TeamChat: React.FC = () => {
                     replyTarget={message.replyTo ? messages.find((mm) => mm.id === message.replyTo) || null : null}
                     onReply={setReplyingTo}
                     onToggleReaction={toggleReaction}
+                    onDelete={deleteMessage}
                     formatTime={formatTime}
                     isFirstInGroup={isFirstInGroup}
                     isLastInGroup={isLastInGroup}

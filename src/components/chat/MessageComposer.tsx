@@ -126,10 +126,8 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     }
   };
 
-  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter((f) =>
-      f.type.startsWith('image/')
-    );
+  // Common upload path used by file-picker AND paste (iOS GIF keyboard).
+  const uploadImageFiles = async (files: File[]) => {
     if (files.length === 0) return;
     setUploading(true);
     setUploadPct(0);
@@ -150,8 +148,33 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     } finally {
       setUploading(false);
       setUploadPct(0);
-      if (fileRef.current) fileRef.current.value = '';
     }
+  };
+
+  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((f) =>
+      f.type.startsWith('image/')
+    );
+    await uploadImageFiles(files);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  // Paste from clipboard — this is how the iOS GIF keyboard delivers a GIF
+  // into the input. Also handles screenshot paste from the OS clipboard.
+  const onPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items || items.length === 0) return;
+    const imageFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.kind === 'file' && it.type.startsWith('image/')) {
+        const f = it.getAsFile();
+        if (f) imageFiles.push(f);
+      }
+    }
+    if (imageFiles.length === 0) return; // fall through to default text paste
+    e.preventDefault(); // suppress the URL-like blob that some keyboards also paste
+    await uploadImageFiles(imageFiles);
   };
 
   const removePending = (idx: number) => {
@@ -170,15 +193,15 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   };
 
   return (
-    <div className="bg-white border-t border-gray-200 p-4">
+    <div className="bg-white border-t border-gray-200 px-3 pt-2 pb-3">
       {replyingTo && (
-        <div className="mb-3 p-2 bg-gray-100 rounded flex items-center justify-between">
-          <span className="text-sm text-gray-600 truncate">
-            Replying to {replyingTo.senderName}
+        <div className="mb-2 px-3 py-1.5 bg-cyan-50 ring-1 ring-cyan-200 rounded-xl flex items-center justify-between">
+          <span className="text-xs text-cyan-900 truncate">
+            <span className="font-semibold">↪ Replying to {replyingTo.senderName}</span>
           </span>
           <button
             onClick={onCancelReply}
-            className="text-gray-400 hover:text-gray-600 ml-2 flex-shrink-0"
+            className="text-cyan-600 hover:text-cyan-900 ml-2 flex-shrink-0"
             aria-label="Cancel reply"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,17 +212,17 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {pending.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2">
+        <div className="mb-2 flex flex-wrap gap-2">
           {pending.map((a, i) => (
             <div key={i} className="relative">
               <img
                 src={a.url}
                 alt={a.name}
-                className="w-16 h-16 object-cover rounded-lg border border-gray-300"
+                className="w-16 h-16 object-cover rounded-xl ring-1 ring-gray-200"
               />
               <button
                 onClick={() => removePending(i)}
-                className="absolute -top-2 -right-2 bg-gray-700 hover:bg-gray-900 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                className="absolute -top-1.5 -right-1.5 bg-gray-900 hover:bg-black text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow"
                 aria-label="Remove"
               >
                 ×
@@ -210,10 +233,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {uploading && (
-        <div className="mb-2 text-xs text-gray-500">Uploading {uploadPct}%…</div>
+        <div className="mb-1.5 text-[11px] text-gray-500">Uploading {uploadPct}%…</div>
       )}
 
-      <div className="relative flex space-x-2 items-end">
+      <div className="relative flex gap-2 items-end">
         <input
           ref={fileRef}
           type="file"
@@ -225,11 +248,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="flex-shrink-0 w-10 h-10 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 flex items-center justify-center"
-          title="Attach image"
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors"
+          title="Attach photo or GIF"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
         </button>
 
@@ -239,10 +262,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             value={text}
             onChange={onChange}
             onKeyDown={handleKey}
-            placeholder="Type a message… use @ to mention"
+            onPaste={onPaste}
+            placeholder="Message"
             rows={rows}
-            className="w-full resize-none border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-            style={{ fontSize: '16px' }}
+            className="w-full resize-none bg-gray-100 rounded-3xl px-4 py-2.5 focus:outline-none focus:bg-white focus:ring-2 focus:ring-cyan-300 text-[15px] placeholder-gray-400 leading-snug transition-colors"
+            style={{ fontSize: '16px', minHeight: '40px', maxHeight: '120px' }}
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
             <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
@@ -271,11 +295,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           onClick={doSend}
           disabled={uploading || (!text.trim() && pending.length === 0)}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center"
+          className="bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 disabled:bg-gray-300 text-white w-10 h-10 rounded-full transition-all flex-shrink-0 flex items-center justify-center shadow disabled:shadow-none disabled:cursor-not-allowed"
           aria-label="Send"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
           </svg>
         </button>
       </div>

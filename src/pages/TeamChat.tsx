@@ -552,8 +552,12 @@ const TeamChat: React.FC = () => {
       <div
         className="fixed inset-x-0 flex flex-col bg-gray-50 z-10"
         style={{
+          // Top header: 3.5rem (h-14) + safe-area for the notch.
           top: 'calc(3.5rem + env(safe-area-inset-top))',
-          bottom: 'calc(5rem + env(safe-area-inset-bottom))',
+          // Bottom tab bar in Navigation.tsx is h-16 (4rem) + safe-bottom.
+          // Match it exactly so chat content touches the nav with no gap —
+          // any mismatch shows as a gray sliver moving when scrolling.
+          bottom: 'calc(4rem + env(safe-area-inset-bottom))',
         }}
       >
         {currentView === 'threads' ? (
@@ -730,19 +734,31 @@ const TeamChat: React.FC = () => {
                 className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
                 style={{ overscrollBehavior: 'contain' }}
               >
-                {messages.map((message) => (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                    currentUserId={userData?.uid || ''}
-                    currentUserName={userData?.name || ''}
-                    replyTarget={message.replyTo ? messages.find((mm) => mm.id === message.replyTo) || null : null}
-                    onReply={setReplyingTo}
-                    onToggleReaction={toggleReaction}
-                    formatTime={formatTime}
-                    compact
-                  />
-                ))}
+                {messages.map((message, idx) => {
+                  // Compute sender-group boundaries so the bubble can render
+                  // an avatar + name only on the first message of a run, and
+                  // a timestamp only under the last.
+                  const prev = messages[idx - 1];
+                  const next = messages[idx + 1];
+                  const ts = (m: any) => (m?.timestamp instanceof Date ? m.timestamp.getTime() : new Date(m?.timestamp || 0).getTime());
+                  const GAP_MS = 5 * 60 * 1000;
+                  const isFirstInGroup = !prev || prev.senderId !== message.senderId || ts(message) - ts(prev) > GAP_MS;
+                  const isLastInGroup = !next || next.senderId !== message.senderId || ts(next) - ts(message) > GAP_MS;
+                  return (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      currentUserId={userData?.uid || ''}
+                      currentUserName={userData?.name || ''}
+                      replyTarget={message.replyTo ? messages.find((mm) => mm.id === message.replyTo) || null : null}
+                      onReply={setReplyingTo}
+                      onToggleReaction={toggleReaction}
+                      formatTime={formatTime}
+                      isFirstInGroup={isFirstInGroup}
+                      isLastInGroup={isLastInGroup}
+                    />
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
 
@@ -1007,18 +1023,28 @@ const TeamChat: React.FC = () => {
 
             {/* Desktop Messages */}
             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4" style={{ overscrollBehavior: 'contain' }}>
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  currentUserId={userData?.uid || ''}
-                  currentUserName={userData?.name || ''}
-                  replyTarget={message.replyTo ? messages.find((mm) => mm.id === message.replyTo) || null : null}
-                  onReply={setReplyingTo}
-                  onToggleReaction={toggleReaction}
-                  formatTime={formatTime}
-                />
-              ))}
+              {messages.map((message, idx) => {
+                const prev = messages[idx - 1];
+                const next = messages[idx + 1];
+                const ts = (m: any) => (m?.timestamp instanceof Date ? m.timestamp.getTime() : new Date(m?.timestamp || 0).getTime());
+                const GAP_MS = 5 * 60 * 1000;
+                const isFirstInGroup = !prev || prev.senderId !== message.senderId || ts(message) - ts(prev) > GAP_MS;
+                const isLastInGroup = !next || next.senderId !== message.senderId || ts(next) - ts(message) > GAP_MS;
+                return (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    currentUserId={userData?.uid || ''}
+                    currentUserName={userData?.name || ''}
+                    replyTarget={message.replyTo ? messages.find((mm) => mm.id === message.replyTo) || null : null}
+                    onReply={setReplyingTo}
+                    onToggleReaction={toggleReaction}
+                    formatTime={formatTime}
+                    isFirstInGroup={isFirstInGroup}
+                    isLastInGroup={isLastInGroup}
+                  />
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
 

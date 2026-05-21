@@ -78,26 +78,30 @@ const TeamChat: React.FC = () => {
     return () => { document.body.classList.remove('chat-locked'); };
   }, []);
 
-  // Track the iOS keyboard height so we can dock the composer above it
-  // manually. Capacitor's `Keyboard.resize: native` is supposed to shrink
-  // the WebView, but with a position:fixed container that fights us, the
-  // composer can still end up behind the keyboard. Listening to the
-  // keyboard event and offsetting the chat container's bottom is the
-  // belt-and-suspenders approach.
-  const [kbHeight, setKbHeight] = useState(0);
+  // Track the visual viewport — the area actually visible after the keyboard
+  // and any browser chrome push content. `window.visualViewport` is the
+  // standard web API for this, works the same on iOS Capacitor + the web,
+  // and doesn't depend on whether `Keyboard.resize: native` is shrinking
+  // the WebView (which has been unreliable in Capacitor 7).
+  //
+  // kbInset = pixels of the layout viewport currently hidden by the keyboard
+  // (or any other UI). We use it as the chat container's bottom anchor so
+  // the composer always sits exactly above the keyboard.
+  const [kbInset, setKbInset] = useState(0);
   useEffect(() => {
-    let unsub: any;
-    (async () => {
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (!Capacitor.isNativePlatform()) return;
-        const { Keyboard } = await import('@capacitor/keyboard');
-        const a = await Keyboard.addListener('keyboardWillShow', (info) => setKbHeight(info.keyboardHeight || 0));
-        const b = await Keyboard.addListener('keyboardWillHide', () => setKbHeight(0));
-        unsub = () => { a.remove(); b.remove(); };
-      } catch { /* not running in Capacitor — web ignore */ }
-    })();
-    return () => { if (unsub) unsub(); };
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKbInset(inset);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
   }, []);
 
   // When the user opens a specific conversation on mobile, hide the bottom
@@ -601,13 +605,13 @@ const TeamChat: React.FC = () => {
           // body bg can't peek through as a 'blue strip' under the composer.
           // The composer itself adds env(safe-area-inset-bottom) padding
           // internally so the actual input clears the home indicator.
-          // When the keyboard opens, kbHeight (from our Capacitor listener)
-          // lifts the whole container off the viewport bottom by exactly
-          // the keyboard height.
+          // When the keyboard opens, kbInset (from visualViewport) lifts the
+          // whole container off the viewport bottom by exactly the keyboard
+          // height — works on iOS Capacitor AND the web with the same code.
           bottom:
             currentView === 'chat' && selectedThread
-              ? kbHeight > 0
-                ? `${kbHeight}px`
+              ? kbInset > 0
+                ? `${kbInset}px`
                 : '0px'
               : 'calc(4rem + env(safe-area-inset-bottom))',
           transition: 'bottom 180ms ease',
@@ -842,7 +846,7 @@ const TeamChat: React.FC = () => {
                 onCancelReply={() => setReplyingTo(null)}
                 onSend={(c, atts) => sendMessage(c, atts)}
                 rows={2}
-                safeAreaInsetBottom={kbHeight === 0}
+                safeAreaInsetBottom={kbInset === 0}
               />
             </div>
           )

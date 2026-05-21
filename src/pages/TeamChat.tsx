@@ -78,22 +78,29 @@ const TeamChat: React.FC = () => {
     return () => { document.body.classList.remove('chat-locked'); };
   }, []);
 
-  // Track the visual viewport — the area actually visible after the keyboard
-  // and any browser chrome push content. `window.visualViewport` is the
-  // standard web API for this, works the same on iOS Capacitor + the web,
-  // and doesn't depend on whether `Keyboard.resize: native` is shrinking
-  // the WebView (which has been unreliable in Capacitor 7).
+  // Two parallel signals for "how much of the viewport is currently hidden
+  // by the keyboard," because neither one alone is reliable on iOS Capacitor:
   //
-  // kbInset = pixels of the layout viewport currently hidden by the keyboard
-  // (or any other UI). We use it as the chat container's bottom anchor so
-  // the composer always sits exactly above the keyboard.
-  const [kbInset, setKbInset] = useState(0);
+  //   1. `window.visualViewport` — standard browser API. Fires resize when
+  //      the visible region shrinks for ANY reason (keyboard, page zoom,
+  //      browser chrome). Works on web + most iOS WebKit builds.
+  //
+  //   2. Capacitor Keyboard `keyboardWillShow/Hide` — direct from the
+  //      native side. Reports keyboardHeight in CSS pixels. Works even
+  //      when visualViewport doesn't (some WebView builds don't fire it).
+  //
+  // We take the larger of the two so the composer is guaranteed to ride
+  // above the keyboard no matter which mechanism actually fired.
+  const [vvInset, setVvInset] = useState(0);
+  const [capInset, setCapInset] = useState(0);
+  const kbInset = Math.max(vvInset, capInset);
+
   useEffect(() => {
     const vv = typeof window !== 'undefined' ? window.visualViewport : null;
     if (!vv) return;
     const update = () => {
       const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKbInset(inset);
+      setVvInset(inset);
     };
     update();
     vv.addEventListener('resize', update);
@@ -102,6 +109,23 @@ const TeamChat: React.FC = () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
     };
+  }, []);
+
+  useEffect(() => {
+    let cleanup: any;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { Keyboard } = await import('@capacitor/keyboard');
+        const a = await Keyboard.addListener('keyboardWillShow', (info) => setCapInset(info.keyboardHeight || 0));
+        const b = await Keyboard.addListener('keyboardDidShow', (info) => setCapInset(info.keyboardHeight || 0));
+        const c = await Keyboard.addListener('keyboardWillHide', () => setCapInset(0));
+        const d = await Keyboard.addListener('keyboardDidHide', () => setCapInset(0));
+        cleanup = () => { a.remove(); b.remove(); c.remove(); d.remove(); };
+      } catch { /* not running in Capacitor — web ignore */ }
+    })();
+    return () => { if (cleanup) cleanup(); };
   }, []);
 
   // When the user opens a specific conversation on mobile, hide the bottom

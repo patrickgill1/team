@@ -596,11 +596,19 @@ const TeamChat: React.FC = () => {
           //     using the height reported by Capacitor's keyboard listener.
           // (The composer is the last flex-child of this container, so as
           // bottom changes the composer follows along.)
+          // In conversation mode the bottom tab bar is unmounted. We anchor
+          // the chat ALL the way to the viewport bottom (bottom: 0) so the
+          // body bg can't peek through as a 'blue strip' under the composer.
+          // The composer itself adds env(safe-area-inset-bottom) padding
+          // internally so the actual input clears the home indicator.
+          // When the keyboard opens, kbHeight (from our Capacitor listener)
+          // lifts the whole container off the viewport bottom by exactly
+          // the keyboard height.
           bottom:
             currentView === 'chat' && selectedThread
               ? kbHeight > 0
                 ? `${kbHeight}px`
-                : 'env(safe-area-inset-bottom)'
+                : '0px'
               : 'calc(4rem + env(safe-area-inset-bottom))',
           transition: 'bottom 180ms ease',
         }}
@@ -821,7 +829,11 @@ const TeamChat: React.FC = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Message Input */}
+              {/* Message Input.
+                  When the keyboard is closed we need internal safe-area
+                  padding so the input clears the home indicator. When the
+                  keyboard is open, the keyboard itself sits above the home
+                  indicator so no extra padding needed. */}
               <MessageComposer
                 threadId={selectedThread.id}
                 teamId={selectedTeamId}
@@ -830,6 +842,7 @@ const TeamChat: React.FC = () => {
                 onCancelReply={() => setReplyingTo(null)}
                 onSend={(c, atts) => sendMessage(c, atts)}
                 rows={2}
+                safeAreaInsetBottom={kbHeight === 0}
               />
             </div>
           )

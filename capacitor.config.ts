@@ -41,8 +41,13 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     Keyboard: {
-      // Don't resize the WebView when the keyboard pops — let CSS handle it.
-      resize: 'native',
+      // We handle keyboard position manually via Capacitor.Keyboard listeners
+      // in TeamChat — see kbHeight state there. The 'native' mode's WebView
+      // resize was flaky on iOS 17/18 (composer ended up behind the keyboard
+      // anyway), so we set resize to 'none' and let our own offset drive the
+      // chat container's bottom anchor. 'body' / 'ionic' both fight our
+      // position:fixed layout. 'none' = full control.
+      resize: 'none' as any,
     },
     FirebaseAuthentication: {
       // We sign into the web Firebase SDK ourselves with the credential the

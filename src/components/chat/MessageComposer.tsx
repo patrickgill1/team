@@ -22,6 +22,10 @@ interface MessageComposerProps {
   onCancelReply: () => void;
   onSend: (content: string, attachments: ComposerAttachment[]) => Promise<void> | void;
   rows?: number;
+  /** When true, pad the bottom with env(safe-area-inset-bottom) so the input
+   *  clears the iPhone home indicator. Pass false when the keyboard is open
+   *  (the keyboard already sits above the home indicator). */
+  safeAreaInsetBottom?: boolean;
 }
 
 const MessageComposer: React.FC<MessageComposerProps> = ({
@@ -32,6 +36,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   onCancelReply,
   onSend,
   rows = 2,
+  safeAreaInsetBottom = false,
 }) => {
   const [text, setText] = useState('');
   const [pending, setPending] = useState<ComposerAttachment[]>([]);
@@ -193,7 +198,14 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   };
 
   return (
-    <div className="bg-white border-t border-gray-200 px-3 pt-2 pb-3">
+    <div
+      className="bg-white border-t border-gray-200 px-3 pt-2 pb-3"
+      style={
+        safeAreaInsetBottom
+          ? { paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }
+          : undefined
+      }
+    >
       {replyingTo && (
         <div className="mb-2 px-3 py-1.5 bg-cyan-50 ring-1 ring-cyan-200 rounded-xl flex items-center justify-between">
           <span className="text-xs text-cyan-900 truncate">

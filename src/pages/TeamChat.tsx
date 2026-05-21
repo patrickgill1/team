@@ -78,6 +78,28 @@ const TeamChat: React.FC = () => {
     return () => { document.body.classList.remove('chat-locked'); };
   }, []);
 
+  // Track the iOS keyboard height so we can dock the composer above it
+  // manually. Capacitor's `Keyboard.resize: native` is supposed to shrink
+  // the WebView, but with a position:fixed container that fights us, the
+  // composer can still end up behind the keyboard. Listening to the
+  // keyboard event and offsetting the chat container's bottom is the
+  // belt-and-suspenders approach.
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    let unsub: any;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { Keyboard } = await import('@capacitor/keyboard');
+        const a = await Keyboard.addListener('keyboardWillShow', (info) => setKbHeight(info.keyboardHeight || 0));
+        const b = await Keyboard.addListener('keyboardWillHide', () => setKbHeight(0));
+        unsub = () => { a.remove(); b.remove(); };
+      } catch { /* not running in Capacitor — web ignore */ }
+    })();
+    return () => { if (unsub) unsub(); };
+  }, []);
+
   // When the user opens a specific conversation on mobile, hide the bottom
   // tab bar so the composer can dock right above the keyboard. The threads
   // list view still shows the tabs (so they can switch sections from there).
@@ -567,18 +589,20 @@ const TeamChat: React.FC = () => {
         style={{
           // Top header: 3.5rem (h-14) + safe-area for the notch.
           top: 'calc(3.5rem + env(safe-area-inset-top))',
-          // Conversation view hides the bottom tab bar (see body.chat-
-          // conversation rule in index.css) so we can dock the composer at
-          // the very bottom — only the home-indicator safe area remains.
-          // Threads-list view keeps the tabs, so we still clear 4rem for
-          // their height. Capacitor's `Keyboard.resize: native` will shrink
-          // the WebView when the keyboard opens; since `bottom` is anchored
-          // to the new viewport bottom, the composer rides above the keyboard
-          // automatically with no manual recompute.
+          // Bottom anchor depends on view AND keyboard state:
+          //   - Threads list: clear the 4rem bottom-tab-bar + safe area.
+          //   - Conversation, keyboard closed: just home-indicator safe area.
+          //   - Conversation, keyboard open: dock right above the keyboard
+          //     using the height reported by Capacitor's keyboard listener.
+          // (The composer is the last flex-child of this container, so as
+          // bottom changes the composer follows along.)
           bottom:
             currentView === 'chat' && selectedThread
-              ? 'env(safe-area-inset-bottom)'
+              ? kbHeight > 0
+                ? `${kbHeight}px`
+                : 'env(safe-area-inset-bottom)'
               : 'calc(4rem + env(safe-area-inset-bottom))',
+          transition: 'bottom 180ms ease',
         }}
       >
         {currentView === 'threads' ? (

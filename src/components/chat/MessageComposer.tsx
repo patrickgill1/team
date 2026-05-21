@@ -260,13 +260,22 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           <textarea
             ref={taRef}
             value={text}
-            onChange={onChange}
+            onChange={(e) => {
+              onChange(e);
+              // Auto-grow the textarea to fit the typed content so the user
+              // can always see what they're writing. Capped at maxHeight so a
+              // long message scrolls inside the box instead of pushing
+              // everything up.
+              const el = e.currentTarget;
+              el.style.height = 'auto';
+              el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+            }}
             onKeyDown={handleKey}
             onPaste={onPaste}
             placeholder="Message"
-            rows={rows}
-            className="w-full resize-none bg-gray-100 rounded-3xl px-4 py-2.5 focus:outline-none focus:bg-white focus:ring-2 focus:ring-cyan-300 text-[15px] placeholder-gray-400 leading-snug transition-colors"
-            style={{ fontSize: '16px', minHeight: '40px', maxHeight: '120px' }}
+            rows={1}
+            className="w-full resize-none bg-gray-100 rounded-3xl px-4 py-2.5 focus:outline-none focus:bg-white focus:ring-2 focus:ring-cyan-300 text-[15px] text-gray-900 placeholder-gray-400 leading-snug transition-colors"
+            style={{ fontSize: '16px', maxHeight: '140px' }}
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
             <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">

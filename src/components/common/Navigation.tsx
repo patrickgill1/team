@@ -1,5 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+
+// Subscribe to body class changes so React can re-render when TeamChat
+// toggles `chat-conversation` (we want to fully unmount the bottom nav
+// rather than rely on CSS specificity to hide it).
+function useBodyClass(cls: string): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      const obs = new MutationObserver(cb);
+      obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      return () => obs.disconnect();
+    },
+    () => document.body.classList.contains(cls),
+    () => false
+  );
+}
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
@@ -37,6 +52,10 @@ const Navigation: React.FC = () => {
   };
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  // When inside a chat conversation, TeamChat sets body.chat-conversation.
+  // We unmount the bottom tab bar entirely so the composer can dock at the
+  // viewport edge without the tab bar rising with the keyboard.
+  const inChatConversation = useBodyClass('chat-conversation');
 
   // Fetch linked player for parents
   const [linkedPlayer, setLinkedPlayer] = useState<{ id: string; name: string } | null>(null);
@@ -312,6 +331,7 @@ const Navigation: React.FC = () => {
       </header>
 
       {/* ===== MOBILE BOTTOM TAB BAR ===== */}
+      {!inChatConversation && (
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 safe-bottom">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           {bottomTabs.map(tab => {
@@ -345,6 +365,7 @@ const Navigation: React.FC = () => {
           })}
         </div>
       </nav>
+      )}
 
       {/* ===== MOBILE "MORE" SHEET ===== */}
       {isMoreOpen && (

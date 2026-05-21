@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -9,6 +10,7 @@ import MessageComposer, { ComposerAttachment } from '../components/chat/MessageC
 const TeamChat: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { 
     addChatThread, 
     updateChatThread, 
@@ -133,7 +135,22 @@ const TeamChat: React.FC = () => {
 
         setThreads(processedThreads);
         setLoading(false);
-        
+
+        // Honor a ?thread=<id> deep link first (push-notification tap lands here).
+        const deepLinkId = searchParams.get('thread');
+        if (deepLinkId) {
+          const target = processedThreads.find(t => t.id === deepLinkId);
+          if (target) {
+            setSelectedThread(target);
+            setCurrentView('chat');
+          }
+          // Consume the param so it doesn't keep re-firing on every threads-update.
+          const next = new URLSearchParams(searchParams);
+          next.delete('thread');
+          setSearchParams(next, { replace: true });
+          return;
+        }
+
         // NEVER auto-select a thread on mobile - always start with threads list
         if (!isMobile && processedThreads.length > 0 && !selectedThread) {
           setSelectedThread(processedThreads[0]);
@@ -255,6 +272,31 @@ const TeamChat: React.FC = () => {
           timestamp: new Date()
         }
       });
+
+      // Push to everyone in the thread except the sender. Fires on every new
+      // message — including DMs (where participants is just the two of them).
+      // No prefKey filter for now (any chat opt-out can come later).
+      try {
+        const recipients = (selectedThread.participants || []).filter(uid => uid && uid !== userData.uid);
+        if (recipients.length > 0) {
+          const { sendPushToUsers } = await import('../utils/notify');
+          const isDM = (selectedThread as any).isDM === true;
+          const pushBody = content
+            ? (content.length > 140 ? `${content.slice(0, 137)}…` : content)
+            : (attachments.length > 0 ? `📷 sent ${attachments.length} photo${attachments.length > 1 ? 's' : ''}` : 'New message');
+          const pushTitle = isDM
+            ? `${userData.name} (DM)`
+            : `${userData.name} in ${selectedThread.title}`;
+          // Fire-and-forget — never block the send on push delivery.
+          void sendPushToUsers(recipients, {
+            title: pushTitle,
+            body: pushBody,
+            url: `${window.location.origin}/chat?thread=${selectedThread.id}`,
+          });
+        }
+      } catch (err) {
+        console.warn('[chat] push notify failed', err);
+      }
 
       // Email mentioned users (best-effort, dynamic import)
       if (content) {

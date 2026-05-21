@@ -534,13 +534,22 @@ const TeamChat: React.FC = () => {
   // MOBILE: Single view at a time
   if (isMobile) {
     return (
-      // Mobile chat fills the space between the top nav (3.5rem / pt-14 on
-      // main) and the bottom tab bar (5rem / pb-20). h-screen overflowed
-      // both, which hid the composer behind the bottom tabs. Using dvh so
-      // the keyboard / Safari URL chrome don't push the composer offscreen.
+      // Mobile chat fits between the top nav and the bottom tab bar.
+      //   - main has pt-14 / pb-20 (56 / 80 px) for the nav backgrounds,
+      //   - but both nav bars add safe-area-inset padding for the notch and
+      //     home indicator, so on modern iPhones they're actually taller.
+      // Subtract both fixed heights AND the safe-area insets so the chat
+      // container fits in the genuinely visible region — composer stays
+      // above the tab bar, header stays below the notch.
+      // dvh keeps the layout stable when the iOS keyboard or URL chrome
+      // changes the visible viewport.
       <div
         className="flex flex-col bg-gray-50"
-        style={{ height: 'calc(100dvh - 3.5rem - 5rem)' }}
+        style={{
+          marginTop: 'env(safe-area-inset-top)',
+          height:
+            'calc(100dvh - 3.5rem - 5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+        }}
       >
         {currentView === 'threads' ? (
           // THREADS LIST VIEW

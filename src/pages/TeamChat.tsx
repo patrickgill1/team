@@ -70,6 +70,14 @@ const TeamChat: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Lock background scroll while the chat is mounted so the only thing that
+  // can scroll is the messages list itself. Without this, iOS rubber-bands
+  // the body and the fixed bottom tab bar appears to drift over the chat.
+  useEffect(() => {
+    document.body.classList.add('chat-locked');
+    return () => { document.body.classList.remove('chat-locked'); };
+  }, []);
+
   // Simple navigation functions
   const showThreadsList = () => {
     console.log('Showing threads list');
@@ -611,7 +619,7 @@ const TeamChat: React.FC = () => {
             </div>
 
             {/* Threads List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
               {filteredThreads.map((thread) => (
                 <div
                   key={thread.id}
@@ -715,8 +723,13 @@ const TeamChat: React.FC = () => {
 
               {/* Messages — min-h-0 is critical: without it, flex-1 won't
                   shrink the messages div, and many messages push the composer
-                  off the bottom of the container. */}
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+                  off the bottom of the container.
+                  overscroll-contain prevents the scroll from bubbling out to
+                  the body (the cause of the tab bar 'riding up'). */}
+              <div
+                className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
+                style={{ overscrollBehavior: 'contain' }}
+              >
                 {messages.map((message) => (
                   <MessageBubble
                     key={message.id}
@@ -897,7 +910,7 @@ const TeamChat: React.FC = () => {
         </div>
 
         {/* Desktop Threads List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
           {filteredThreads.map((thread) => (
             <div
               key={thread.id}
@@ -993,7 +1006,7 @@ const TeamChat: React.FC = () => {
             </div>
 
             {/* Desktop Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4" style={{ overscrollBehavior: 'contain' }}>
               {messages.map((message) => (
                 <MessageBubble
                   key={message.id}

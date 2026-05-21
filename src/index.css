@@ -19,6 +19,13 @@
   box-sizing: border-box;
 }
 
+html, body {
+  /* Stops iOS Safari/WebView elastic rubber-band — without this, scrolling
+     past the end of the messages list "stretches" the whole page and the
+     fixed bottom tab bar appears to ride up over the chat. */
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -29,6 +36,16 @@ body {
   background-color: var(--fire-ice);
   color: #111827;
   line-height: 1.6;
+}
+
+/* When the chat page is mounted, completely lock body scroll so only the
+   chat's own messages container can scroll. Applied by TeamChat via a
+   useEffect that adds/removes the class on mount/unmount. */
+body.chat-locked {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
 }
 
 code {

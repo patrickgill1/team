@@ -10,14 +10,20 @@ import MessageComposer, { ComposerAttachment } from '../components/chat/MessageC
 // Temporary diagnostic overlay — shows the live keyboard inset values + where
 // the composer element is actually positioned on screen. Tells us at a glance
 // whether the offset is being applied or not. Remove once chat layout stable.
-const DebugChatHud: React.FC<{ kbInset: number; vvInset: number; capInset: number }> = ({ kbInset, vvInset, capInset }) => {
+const DebugChatHud: React.FC<{ kbInset: number; vvInset: number; capInset: number; winHeight: number }> = ({ kbInset, vvInset, capInset, winHeight }) => {
   const [composerY, setComposerY] = useState<number | null>(null);
+  const [containerH, setContainerH] = useState<number | null>(null);
   useEffect(() => {
     const tick = () => {
       const el = document.querySelector('[data-chat-composer]') as HTMLElement | null;
       if (el) {
         const r = el.getBoundingClientRect();
         setComposerY(Math.round(r.top));
+      }
+      const c = document.querySelector('[data-chat-container]') as HTMLElement | null;
+      if (c) {
+        const r = c.getBoundingClientRect();
+        setContainerH(Math.round(r.height));
       }
       raf = requestAnimationFrame(tick);
     };
@@ -42,7 +48,8 @@ const DebugChatHud: React.FC<{ kbInset: number; vvInset: number; capInset: numbe
       }}
     >
       <div>kb={kbInset} (vv={vvInset} cap={capInset})</div>
-      <div>ih={typeof window !== 'undefined' ? window.innerHeight : 0}</div>
+      <div>ih={typeof window !== 'undefined' ? window.innerHeight : 0} win={winHeight}</div>
+      <div>cont.h={containerH ?? '?'}</div>
       <div>composer.top={composerY ?? '?'}</div>
     </div>
   );
@@ -95,13 +102,21 @@ const TeamChat: React.FC = () => {
 
   const isCoach = userData?.role === 'coach';
 
-  // Detect mobile
+  // Detect mobile + track viewport height. With Capacitor's
+  // Keyboard.resize: 'native', iOS shrinks the WebView when the keyboard
+  // appears — so window.innerHeight DOES drop from e.g. 860 → 531. But
+  // position:fixed elements with `bottom: 0` continue to anchor against
+  // the ORIGINAL viewport bottom (an iOS WKWebView quirk). We work around
+  // it by setting the chat container's height explicitly from
+  // window.innerHeight, instead of relying on CSS bottom anchoring.
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [winHeight, setWinHeight] = useState(window.innerHeight);
 
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
+      setWinHeight(window.innerHeight);
       // On desktop, always show threads view alongside chat
       if (!mobile) {
         setCurrentView('threads');
@@ -649,21 +664,27 @@ const TeamChat: React.FC = () => {
       <>
       {/* Debug HUD — top-right corner shows keyboard state + composer
           position so we can see what's actually happening on-device. */}
-      <DebugChatHud kbInset={kbInset} vvInset={vvInset} capInset={capInset} />
+      <DebugChatHud kbInset={kbInset} vvInset={vvInset} capInset={capInset} winHeight={winHeight} />
       {/* Fixed-position layout pinned between top header + bottom tab bar.
-          Keyboard handling is now done by Capacitor's `Keyboard.resize:
-          'native'` — when the keyboard opens, iOS resizes the WebView
-          itself, so `window.innerHeight` shrinks and `bottom: 0` snaps
-          above the keyboard automatically. No manual offset needed. */}
+          Capacitor Keyboard.resize: 'native' resizes the WebView when the
+          keyboard appears (window.innerHeight drops), BUT a WKWebView
+          quirk keeps `position: fixed; bottom: 0` anchored to the original
+          viewport bottom — so the composer ends up hidden behind the
+          keyboard despite ih being smaller. Workaround: set the container
+          height explicitly from winHeight (which DOES reflect the
+          keyboard) and skip `bottom`. */}
       <div
+        data-chat-container
         className="fixed inset-x-0 flex flex-col bg-gray-50 z-10"
         style={{
           // Top header: 3.5rem (h-14) + safe-area for the notch.
           top: 'calc(3.5rem + env(safe-area-inset-top))',
-          bottom:
+          // Explicit height from window.innerHeight (in CSS pixels).
+          // For threads view, also subtract the bottom tab bar height.
+          height:
             currentView === 'chat' && selectedThread
-              ? '0px'
-              : 'calc(4rem + env(safe-area-inset-bottom))',
+              ? `calc(${winHeight}px - 3.5rem - env(safe-area-inset-top))`
+              : `calc(${winHeight}px - 3.5rem - env(safe-area-inset-top) - 4rem - env(safe-area-inset-bottom))`,
         }}
       >
         {currentView === 'threads' ? (

@@ -534,21 +534,18 @@ const TeamChat: React.FC = () => {
   // MOBILE: Single view at a time
   if (isMobile) {
     return (
-      // Mobile chat fits between the top nav and the bottom tab bar.
-      //   - main has pt-14 / pb-20 (56 / 80 px) for the nav backgrounds,
-      //   - but both nav bars add safe-area-inset padding for the notch and
-      //     home indicator, so on modern iPhones they're actually taller.
-      // Subtract both fixed heights AND the safe-area insets so the chat
-      // container fits in the genuinely visible region — composer stays
-      // above the tab bar, header stays below the notch.
-      // dvh keeps the layout stable when the iOS keyboard or URL chrome
-      // changes the visible viewport.
+      // Fixed-position layout pinned between the top header (3.5rem +
+      // safe-area-inset-top) and the bottom tab bar (5rem +
+      // safe-area-inset-bottom). Using `fixed` instead of letting the
+      // parent's pt-14/pb-20 padding constrain us — the chat now has its
+      // own coordinate space, so layout shifts from the iOS keyboard or
+      // Safari URL chrome can't push the header behind the notch or the
+      // composer behind the tabs.
       <div
-        className="flex flex-col bg-gray-50"
+        className="fixed inset-x-0 flex flex-col bg-gray-50 z-10"
         style={{
-          marginTop: 'env(safe-area-inset-top)',
-          height:
-            'calc(100dvh - 3.5rem - 5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+          top: 'calc(3.5rem + env(safe-area-inset-top))',
+          bottom: 'calc(5rem + env(safe-area-inset-bottom))',
         }}
       >
         {currentView === 'threads' ? (

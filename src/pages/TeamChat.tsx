@@ -33,7 +33,7 @@ const TeamChat: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTag, setFilterTag] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; childNames?: string[] }[]>([]);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -242,14 +242,39 @@ const TeamChat: React.FC = () => {
     }
   }, [selectedTeamId, isCoach, subscribeToChatThreads, isMobile]);
 
-  // Load team members for @mention autocomplete + email
+  // Load team members for @mention autocomplete + email, plus a
+  // parentUid → [childNames] lookup so the DM picker can show which
+  // player(s) a member is connected to.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const all: any[] = await getDocuments('users', []).catch(() => []);
+        const [allUsers, allPlayers] = await Promise.all([
+          getDocuments('users', []).catch(() => []),
+          getDocuments('players', []).catch(() => []),
+        ]);
         if (cancelled) return;
-        const filtered = all
+        // Build parent → children map across the active team's roster.
+        const teamPlayers = (allPlayers as any[]).filter((p) => {
+          if (!p || p.isActive === false) return false;
+          if (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
+          if (p.teamId === selectedTeamId) return true;
+          return false;
+        });
+        const childrenByParent = new Map<string, string[]>();
+        for (const p of teamPlayers) {
+          const parents: string[] = [
+            ...(Array.isArray(p.parentIds) ? p.parentIds : []),
+            ...(p.parentId ? [p.parentId] : []),
+          ];
+          for (const parentUid of parents) {
+            if (!parentUid) continue;
+            const arr = childrenByParent.get(parentUid) || [];
+            arr.push(p.name);
+            childrenByParent.set(parentUid, arr);
+          }
+        }
+        const filtered = (allUsers as any[])
           .filter((u) => u && u.name && (
             (Array.isArray(u.teamIds) && u.teamIds.includes(selectedTeamId)) ||
             u.teamId === selectedTeamId
@@ -259,6 +284,7 @@ const TeamChat: React.FC = () => {
             name: u.name,
             role: u.role,
             email: (u.email || '').trim().toLowerCase(),
+            childNames: childrenByParent.get(u.uid || u.id) || [],
           }));
         setTeamMembers(filtered);
       } catch {
@@ -535,22 +561,29 @@ const TeamChat: React.FC = () => {
   // Reusable DM picker modal — rendered in both mobile and desktop returns.
   const dmCandidates = teamMembers
     .filter(m => m.uid && m.uid !== userData?.uid && m.name)
-    .filter(m => !dmSearch || m.name.toLowerCase().includes(dmSearch.toLowerCase()))
+    .filter(m => {
+      if (!dmSearch) return true;
+      const q = dmSearch.toLowerCase();
+      if (m.name.toLowerCase().includes(q)) return true;
+      if (m.childNames && m.childNames.some(c => c.toLowerCase().includes(q))) return true;
+      return false;
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const dmPickerModal = isDMPickerOpen ? (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
       onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); }}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-violet-50 to-white">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Direct Message</h3>
-            <p className="text-xs text-gray-500">Pick a teammate to start a private 1:1 chat.</p>
+            <p className="text-xs text-gray-500">Pick someone to start a private 1:1 chat.</p>
           </div>
           <button
             onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); }}
@@ -567,7 +600,7 @@ const TeamChat: React.FC = () => {
             type="text"
             value={dmSearch}
             onChange={e => setDmSearch(e.target.value)}
-            placeholder="Search teammates..."
+            placeholder="Search by name or player..."
             className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-base"
             style={{ fontSize: '16px' }}
             autoFocus
@@ -577,8 +610,8 @@ const TeamChat: React.FC = () => {
           {dmCandidates.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-500">
               {teamMembers.length <= 1
-                ? 'No other teammates found yet on this team.'
-                : 'No teammates match that search.'}
+                ? 'No other members on this team yet.'
+                : 'No matches for that search.'}
             </div>
           ) : (
             dmCandidates.map(m => (
@@ -588,12 +621,16 @@ const TeamChat: React.FC = () => {
                 disabled={dmStarting === m.uid}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-violet-50 active:bg-violet-100 transition-colors text-left disabled:opacity-50"
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
                   {m.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 truncate">{m.name}</p>
-                  <p className="text-xs text-gray-500 capitalize">{m.role || 'parent'}</p>
+                  {m.childNames && m.childNames.length > 0 ? (
+                    <p className="text-xs text-gray-500 truncate">{m.childNames.join(', ')}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 capitalize">{m.role || 'member'}</p>
+                  )}
                 </div>
                 {dmStarting === m.uid ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-violet-600"></div>
@@ -679,19 +716,26 @@ const TeamChat: React.FC = () => {
                 </svg>
               </div>
 
-              {/* Filters */}
+              {/* Filters. 'Coach' is the coach-only-thread filter
+                  (thread.isPrivate); hide it from parents since they
+                  can't see those threads at all. */}
               <div className="flex space-x-2">
-                {['all', 'pinned', 'private', 'direct'].map((filter) => (
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'pinned', label: 'Pinned' },
+                  { key: 'direct', label: 'DMs' },
+                  ...(isCoach ? [{ key: 'private', label: 'Coach' }] : []),
+                ].map(({ key, label }) => (
                   <button
-                    key={filter}
-                    onClick={() => setFilterTag(filter)}
+                    key={key}
+                    onClick={() => setFilterTag(key)}
                     className={`px-3 py-2 text-sm rounded-full transition-colors ${
-                      filterTag === filter
+                      filterTag === key
                         ? 'bg-cyan-50 text-cyan-700 font-medium'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -1004,17 +1048,22 @@ const TeamChat: React.FC = () => {
           </div>
 
           <div className="flex space-x-2">
-            {['all', 'pinned', 'private', 'direct'].map((filter) => (
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'pinned', label: 'Pinned' },
+              { key: 'direct', label: 'DMs' },
+              ...(isCoach ? [{ key: 'private', label: 'Coach' }] : []),
+            ].map(({ key, label }) => (
               <button
-                key={filter}
-                onClick={() => setFilterTag(filter)}
+                key={key}
+                onClick={() => setFilterTag(key)}
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                  filterTag === filter
+                  filterTag === key
                     ? 'bg-cyan-50 text-cyan-700 font-medium'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                {label}
               </button>
             ))}
           </div>

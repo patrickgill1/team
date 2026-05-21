@@ -181,13 +181,25 @@ export async function sendPushToUsers(
         }
       } catch { /* ignore */ }
     }
-    if (tokens.length === 0) return false;
+    if (tokens.length === 0) {
+      console.warn('[notify] push: no FCM tokens registered for any recipient');
+      return false;
+    }
     const res = await fetch(`${NOTIFY_URL}/send-push`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
       body: JSON.stringify({ tokens, title: msg.title, body: msg.body, url: msg.url }),
     });
-    return res.ok;
+    if (!res.ok) {
+      // Surface the actual reason so we stop guessing. Common causes:
+      //   503 fcm-not-configured  → worker missing FCM_SERVICE_ACCOUNT secret
+      //   401 unauthorized        → NOTIFY_SECRET mismatch between .env and worker
+      //   400 bad-request         → malformed body
+      const body = await res.text().catch(() => '');
+      console.warn(`[notify] push: worker returned ${res.status}`, body);
+      return false;
+    }
+    return true;
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[notify] push send threw', err);

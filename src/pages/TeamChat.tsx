@@ -7,54 +7,6 @@ import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
 import MessageComposer, { ComposerAttachment } from '../components/chat/MessageComposer';
 
-// Temporary diagnostic overlay — shows the live keyboard inset values + where
-// the composer element is actually positioned on screen. Tells us at a glance
-// whether the offset is being applied or not. Remove once chat layout stable.
-const DebugChatHud: React.FC<{ kbInset: number; vvInset: number; capInset: number; winHeight: number }> = ({ kbInset, vvInset, capInset, winHeight }) => {
-  const [composerY, setComposerY] = useState<number | null>(null);
-  const [containerH, setContainerH] = useState<number | null>(null);
-  useEffect(() => {
-    const tick = () => {
-      const el = document.querySelector('[data-chat-composer]') as HTMLElement | null;
-      if (el) {
-        const r = el.getBoundingClientRect();
-        setComposerY(Math.round(r.top));
-      }
-      const c = document.querySelector('[data-chat-container]') as HTMLElement | null;
-      if (c) {
-        const r = c.getBoundingClientRect();
-        setContainerH(Math.round(r.height));
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    let raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 'calc(3.6rem + env(safe-area-inset-top))',
-        right: 4,
-        zIndex: 1000,
-        background: 'rgba(0,0,0,0.75)',
-        color: 'white',
-        fontSize: 10,
-        padding: '3px 6px',
-        borderRadius: 4,
-        fontFamily: 'monospace',
-        pointerEvents: 'none',
-        lineHeight: 1.3,
-      }}
-    >
-      <div>kb={kbInset} (vv={vvInset} cap={capInset})</div>
-      <div>ih={typeof window !== 'undefined' ? window.innerHeight : 0} win={winHeight}</div>
-      <div>cont.h={containerH ?? '?'}</div>
-      <div>composer.top={composerY ?? '?'}</div>
-    </div>
-  );
-};
-
 const TeamChat: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
@@ -662,9 +614,6 @@ const TeamChat: React.FC = () => {
   if (isMobile) {
     return (
       <>
-      {/* Debug HUD — top-right corner shows keyboard state + composer
-          position so we can see what's actually happening on-device. */}
-      <DebugChatHud kbInset={kbInset} vvInset={vvInset} capInset={capInset} winHeight={winHeight} />
       {/* Fixed-position layout pinned between top header + bottom tab bar.
           Capacitor Keyboard.resize: 'native' resizes the WebView when the
           keyboard appears (window.innerHeight drops), BUT a WKWebView
@@ -674,7 +623,6 @@ const TeamChat: React.FC = () => {
           height explicitly from winHeight (which DOES reflect the
           keyboard) and skip `bottom`. */}
       <div
-        data-chat-container
         className="fixed inset-x-0 flex flex-col bg-gray-50 z-10 overflow-hidden"
         style={{
           // Top header: 3.5rem (h-14) + safe-area for the notch.

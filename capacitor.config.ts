@@ -7,13 +7,15 @@ const config: CapacitorConfig = {
   // CRA emits the production build into ./build, so we point at that.
   webDir: 'build',
   ios: {
-    // Allow inline media playback (otherwise videos open in fullscreen Safari)
-    // and let the WebView use the same JS engine as Safari.
-    contentInset: 'always',
-    // White WebView bg so any region the page doesn't actively paint (e.g.
-    // safe-area-inset around the home indicator) doesn't show a dark navy
-    // strip behind the bottom tab bar. The page's own dark header still
-    // covers the top notch area via its own bg.
+    // 'never' = WebView extends edge-to-edge of the screen, including
+    // under the notch and home indicator. Our app header has a `safe-top`
+    // padding (env(safe-area-inset-top)) so its navy bg paints over the
+    // notch region; the bottom tab bar has `safe-bottom` so its white bg
+    // paints into the home-indicator region. With 'always', the WebView
+    // was inset by the system and its own backgroundColor showed through
+    // the safe-area edges — that's where the white strip at the top came
+    // from. 'never' gives the page full control over both edges.
+    contentInset: 'never',
     backgroundColor: '#ffffff',
     // Use the system status bar style (light text on our dark hero gradient).
     // The plugin actually drives this at runtime — see initStatusBar() below.

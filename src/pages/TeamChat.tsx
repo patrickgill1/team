@@ -572,8 +572,17 @@ const TeamChat: React.FC = () => {
 
   const dmPickerModal = isDMPickerOpen ? (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+      className="fixed inset-0 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+      style={{
+        // zIndex via inline style — guaranteed to beat the nav (z-50)
+        // and the page header (z-40) even if Tailwind didn't ship z-[60].
+        zIndex: 100,
+        // Outer padding clears the fixed page header at top and the
+        // fixed bottom tab bar at bottom, so the modal can't visually
+        // collide with them no matter how z-stacking resolves.
+        paddingTop: 'calc(4rem + env(safe-area-inset-top))',
+        paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))',
+      }}
       onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); }}
     >
       <div

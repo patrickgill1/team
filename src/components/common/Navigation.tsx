@@ -173,6 +173,12 @@ const Navigation: React.FC = () => {
 
   const mainItems = allNavItems.filter(i => i.group === 'main');
   const appItems = allNavItems.filter(i => i.group === 'apps');
+  // The mobile "More" sheet shows everything NOT already in the bottom
+  // tab bar (so we don't duplicate Chat, Players, Dashboard, Media) but
+  // DOES include the 'main'-group items that aren't bottom tabs (Vote,
+  // linkedPlayer) so parents can still reach them on mobile.
+  const bottomTabPaths = new Set(['/dashboard', '/players', '/player-media', '/chat', '#more']);
+  const moreSheetItems = allNavItems.filter(i => !bottomTabPaths.has(i.path));
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -420,7 +426,7 @@ const Navigation: React.FC = () => {
             <div className="px-6 py-2">
               <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Apps</div>
               <div className="grid grid-cols-4 gap-3">
-                {appItems.map(item => (
+                {moreSheetItems.map(item => (
                   <Link
                     key={item.path}
                     to={item.path}

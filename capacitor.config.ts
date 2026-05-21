@@ -44,13 +44,15 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     Keyboard: {
-      // We handle keyboard position manually via Capacitor.Keyboard listeners
-      // in TeamChat — see kbHeight state there. The 'native' mode's WebView
-      // resize was flaky on iOS 17/18 (composer ended up behind the keyboard
-      // anyway), so we set resize to 'none' and let our own offset drive the
-      // chat container's bottom anchor. 'body' / 'ionic' both fight our
-      // position:fixed layout. 'none' = full control.
-      resize: 'none' as any,
+      // 'native' resizes the WebView itself when the keyboard opens —
+      // window.innerHeight drops by the keyboard height, so any
+      // position:fixed bottom-anchored element automatically rides above
+      // the keyboard with no JS offset gymnastics. This is what
+      // iMessage/Telegram/Slack effectively do via UIScrollView.
+      // (We tried 'none' + manual padding-bottom in the chat container, but
+      // diagnostic HUD showed the WebView didn't honor any of our manual
+      // offsets — composer stayed behind the keyboard at y=599.)
+      resize: 'native' as any,
     },
     FirebaseAuthentication: {
       // We sign into the web Firebase SDK ourselves with the credential the

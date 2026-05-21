@@ -651,31 +651,19 @@ const TeamChat: React.FC = () => {
           position so we can see what's actually happening on-device. */}
       <DebugChatHud kbInset={kbInset} vvInset={vvInset} capInset={capInset} />
       {/* Fixed-position layout pinned between top header + bottom tab bar.
-          See bottom-anchor calc below for keyboard handling. */}
+          Keyboard handling is now done by Capacitor's `Keyboard.resize:
+          'native'` — when the keyboard opens, iOS resizes the WebView
+          itself, so `window.innerHeight` shrinks and `bottom: 0` snaps
+          above the keyboard automatically. No manual offset needed. */}
       <div
         className="fixed inset-x-0 flex flex-col bg-gray-50 z-10"
         style={{
           // Top header: 3.5rem (h-14) + safe-area for the notch.
           top: 'calc(3.5rem + env(safe-area-inset-top))',
-          // Anchor BOTTOM at 0 (or the bottom-tab-bar height on the
-          // threads view). Diagnostic with kb=363 / composer.top=599 /
-          // ih=860 confirmed that iOS WKWebView does NOT honor `bottom: N`
-          // changes on a position:fixed element while the keyboard is open
-          // — the container stayed pinned low and the composer ended up
-          // behind the keyboard. We now keep `bottom` stable and use
-          // padding-bottom = kbInset (set below) to push the composer up
-          // instead, which iOS DOES honor.
           bottom:
             currentView === 'chat' && selectedThread
               ? '0px'
               : 'calc(4rem + env(safe-area-inset-bottom))',
-          // Padding pushes the flex column's contents up by the keyboard
-          // height so the composer rides above the keyboard.
-          paddingBottom:
-            currentView === 'chat' && selectedThread && kbInset > 0
-              ? `${kbInset}px`
-              : undefined,
-          transition: 'padding-bottom 180ms ease',
         }}
       >
         {currentView === 'threads' ? (

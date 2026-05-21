@@ -333,7 +333,7 @@ const Navigation: React.FC = () => {
       {/* ===== MOBILE BOTTOM TAB BAR ===== */}
       {!inChatConversation && (
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 safe-bottom">
-        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+        <div className="flex justify-around items-center h-12 max-w-lg mx-auto">
           {bottomTabs.map(tab => {
             const active = tab.path === '#more' ? isMoreOpen : isActive(tab.path);
             if (tab.path === '#more') {

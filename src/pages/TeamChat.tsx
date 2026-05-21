@@ -632,7 +632,7 @@ const TeamChat: React.FC = () => {
           height:
             currentView === 'chat' && selectedThread
               ? `calc(${winHeight}px - 3.5rem - env(safe-area-inset-top))`
-              : `calc(${winHeight}px - 3.5rem - env(safe-area-inset-top) - 4rem - env(safe-area-inset-bottom))`,
+              : `calc(${winHeight}px - 3.5rem - env(safe-area-inset-top) - 3rem - env(safe-area-inset-bottom))`,
         }}
       >
         {currentView === 'threads' ? (

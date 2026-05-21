@@ -200,10 +200,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   return (
     <div
       data-chat-composer
-      className="bg-white border-t border-gray-200 px-3 pt-2 pb-3"
+      className="bg-white border-t border-gray-200 px-3 pt-1.5 pb-1.5"
       style={
         safeAreaInsetBottom
-          ? { paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }
+          ? { paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom))' }
           : undefined
       }
     >

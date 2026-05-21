@@ -612,27 +612,6 @@ const TeamChat: React.FC = () => {
       // own coordinate space, so layout shifts from the iOS keyboard or
       // Safari URL chrome can't push the header behind the notch or the
       // composer behind the tabs.
-      <>
-      {/* Temporary debug HUD — top-right corner shows kbInset + vv values so
-          we can see if the keyboard offset is actually being computed and
-          applied. Remove once chat layout is verified. */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 'calc(3.6rem + env(safe-area-inset-top))',
-          right: 4,
-          zIndex: 1000,
-          background: 'rgba(0,0,0,0.7)',
-          color: 'white',
-          fontSize: 10,
-          padding: '2px 6px',
-          borderRadius: 4,
-          fontFamily: 'monospace',
-          pointerEvents: 'none',
-        }}
-      >
-        kb={kbInset} vv={vvInset} cap={capInset} ih={typeof window !== 'undefined' ? window.innerHeight : 0}
-      </div>
       <div
         className="fixed inset-x-0 flex flex-col bg-gray-50 z-10"
         style={{
@@ -980,7 +959,6 @@ const TeamChat: React.FC = () => {
         )}
         {dmPickerModal}
       </div>
-      </>
     );
   }
 

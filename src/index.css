@@ -53,8 +53,10 @@ body.chat-locked {
    without the tabs riding up with it. Matches iMessage/Telegram/Slack —
    you're focused on the conversation; the back arrow gets you out. */
 body.chat-conversation nav.fixed.bottom-0 { display: none; }
-/* And flatten the body bg to white so the fire-ice tint can't peek through
-   below the composer (where the safe-area-inset region lives). */
+/* Flatten the body bg to white on ANY chat view (threads list + conversation)
+   so the --fire-ice (#f0f9ff) tint can never peek through as a 'blue strip'
+   in the safe-area-inset region below the chat container or tab bar. */
+body.chat-locked,
 body.chat-conversation { background-color: #ffffff; }
 
 code {

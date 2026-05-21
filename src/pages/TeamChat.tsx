@@ -675,7 +675,7 @@ const TeamChat: React.FC = () => {
           keyboard) and skip `bottom`. */}
       <div
         data-chat-container
-        className="fixed inset-x-0 flex flex-col bg-gray-50 z-10"
+        className="fixed inset-x-0 flex flex-col bg-gray-50 z-10 overflow-hidden"
         style={{
           // Top header: 3.5rem (h-14) + safe-area for the notch.
           top: 'calc(3.5rem + env(safe-area-inset-top))',
@@ -689,7 +689,7 @@ const TeamChat: React.FC = () => {
       >
         {currentView === 'threads' ? (
           // THREADS LIST VIEW
-          <div className="flex-1 flex flex-col bg-white">
+          <div className="flex-1 min-h-0 flex flex-col bg-white">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between mb-4">
@@ -831,7 +831,7 @@ const TeamChat: React.FC = () => {
         ) : (
           // CHAT VIEW
           selectedThread && (
-            <div className="flex-1 flex flex-col bg-white">
+            <div className="flex-1 min-h-0 flex flex-col bg-white">
               {/* Chat Header with Back Button */}
               <div className="bg-white border-b border-gray-200 p-4">
                 <div className="flex items-center space-x-3">

@@ -139,3 +139,10 @@ export const getPlayerPositionsLabel = (player: { positions?: string[]; position
 export const isGoalkeeper = (player: { positions?: string[]; position?: string } | null | undefined): boolean => {
   return getPlayerPositions(player).some(p => p.toLowerCase() === 'goalkeeper');
 };
+
+/** True for users flagged as club admins. They get access to the /club
+ *  overview that spans every team, without losing their per-team coach
+ *  scope on their own teams. */
+export const isClubAdmin = (userData: any): boolean => {
+  return !!userData?.isClubAdmin;
+};

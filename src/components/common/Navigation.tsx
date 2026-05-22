@@ -19,7 +19,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
-import { isCoach } from '../../utils/helpers';
+import { isCoach, isClubAdmin } from '../../utils/helpers';
 import InviteSystem from '../../pages/InviteSystem';
 
 const Navigation: React.FC = () => {
@@ -52,6 +52,7 @@ const Navigation: React.FC = () => {
   };
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserClubAdmin = isClubAdmin(userData);
   // When inside a chat conversation, TeamChat sets body.chat-conversation.
   // We unmount the bottom tab bar entirely so the composer can dock at the
   // viewport edge without the tab bar rising with the keyboard.
@@ -169,6 +170,9 @@ const Navigation: React.FC = () => {
     ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', emoji: '🗒️', group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', emoji: '📋', group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Teams', path: '/teams', emoji: '⚙️', group: 'apps' as const }] : []),
+    // Club admin sees an extra entry for the cross-team overview. Hidden
+    // from regular coaches, who only see their own teams anyway.
+    ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', emoji: '🏛️', group: 'apps' as const }] : []),
   ];
 
   const mainItems = allNavItems.filter(i => i.group === 'main');

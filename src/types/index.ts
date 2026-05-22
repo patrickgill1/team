@@ -41,6 +41,10 @@ export interface UserData {
   role: UserRole;
   teamId: string;
   teamIds?: string[]; // All teams this user belongs to
+  /** When true, the user can see/manage every team in the club via /club,
+   *  on top of their normal coach scope on the teams they personally
+   *  belong to. Set manually in Firestore for now — no admin UI yet. */
+  isClubAdmin?: boolean;
   coachLevel?: 'head_coach' | 'assistant_coach';
   approved?: boolean; // legacy
   approvalStatus?: ApprovalStatus;

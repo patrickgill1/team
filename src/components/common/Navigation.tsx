@@ -169,9 +169,12 @@ const Navigation: React.FC = () => {
     ...(isUserCoach ? [{ name: 'Quick Game', path: '/game-day', emoji: '⚡', group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', emoji: '🗒️', group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', emoji: '📋', group: 'apps' as const }] : []),
-    ...(isUserCoach ? [{ name: 'Teams', path: '/teams', emoji: '⚙️', group: 'apps' as const }] : []),
-    // Club admin sees an extra entry for the cross-team overview. Hidden
-    // from regular coaches, who only see their own teams anyway.
+    // Regular coaches (not club admins) keep "Teams" as their direct
+    // entry point to edit/create their own teams. Club admins reach the
+    // same page from inside /club, so we hide this entry for them to
+    // avoid two ways into the same flow.
+    ...(isUserCoach && !isUserClubAdmin ? [{ name: 'Teams', path: '/teams', emoji: '⚙️', group: 'apps' as const }] : []),
+    // Club admin's single entry point for everything cross-team.
     ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', emoji: '🏛️', group: 'apps' as const }] : []),
   ];
 

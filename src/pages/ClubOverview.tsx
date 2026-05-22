@@ -167,7 +167,14 @@ const ClubOverview: React.FC = () => {
       />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-4">
         {/* Top action bar */}
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          <button
+            onClick={() => navigate('/teams')}
+            className="bg-white hover:bg-gray-50 ring-1 ring-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-xl text-sm shadow-sm"
+            title="Create a new team, edit team details, or end the season"
+          >
+            ⚙️ Manage teams
+          </button>
           <button
             onClick={() => setBroadcastOpen(true)}
             className="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-xl text-sm shadow-sm"

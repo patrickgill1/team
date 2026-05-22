@@ -1,20 +1,22 @@
 /**
- * Thin client for the Tenor v2 API.
- * Docs: https://developers.google.com/tenor/guides/quickstart
+ * Unified GIF search helper. Supports either Tenor (Google) or GIPHY,
+ * whichever has an API key configured. Both providers are family-safe
+ * when used with their strictest content filter — Tenor's
+ * `contentfilter=high` matches what iMessage / WhatsApp use; GIPHY's
+ * `rating=g` is their general-audience filter.
  *
- * We use `contentfilter=high` for family-friendly content (this is the
- * same filter level iMessage uses — Tenor is owned by Google and powers
- * the iOS GIF keyboard, so users see familiar moderation).
+ * Env vars (set in Vercel + .env):
+ *   REACT_APP_TENOR_API_KEY  — Tenor key (https://console.cloud.google.com/)
+ *   REACT_APP_GIPHY_API_KEY  — GIPHY key (https://developers.giphy.com/)
  *
- * The API key lives in REACT_APP_TENOR_API_KEY. Without it the picker
- * still renders, but shows a friendly "GIF search is offline" message
- * rather than spamming the console with auth errors.
+ * Tenor wins if both are set (better moderation). File name stays as
+ * `tenor.ts` so existing imports keep working.
  */
 
 export interface TenorGif {
   id: string;
   description: string;
-  /** Full-size animated gif. Use as the attachment url. */
+  /** Full-size animated gif (used as the chat attachment URL). */
   url: string;
   /** Small animated preview for the picker grid. */
   previewUrl: string;
@@ -23,11 +25,15 @@ export interface TenorGif {
   height: number;
 }
 
-const KEY = process.env.REACT_APP_TENOR_API_KEY || '';
+const TENOR_KEY = process.env.REACT_APP_TENOR_API_KEY || '';
+const GIPHY_KEY = process.env.REACT_APP_GIPHY_API_KEY || '';
 const CLIENT_KEY = 'firefc-team-app';
-const BASE = 'https://tenor.googleapis.com/v2';
 
-export const tenorEnabled = (): boolean => KEY.length > 0;
+export const tenorEnabled = (): boolean => TENOR_KEY.length > 0 || GIPHY_KEY.length > 0;
+
+// ============================================================================
+// Tenor (Google) — preferred when available, strictest content moderation
+// ============================================================================
 
 interface TenorApiResult {
   id: string;
@@ -35,11 +41,9 @@ interface TenorApiResult {
   media_formats: Record<string, { url: string; dims: [number, number]; size: number; duration: number }>;
 }
 
-function normalize(items: TenorApiResult[]): TenorGif[] {
+function normalizeTenor(items: TenorApiResult[]): TenorGif[] {
   const out: TenorGif[] = [];
   for (const r of items || []) {
-    // Prefer mediumgif for sending (smaller than original gif, still animated).
-    // Fall back to gif if it's missing.
     const full = r.media_formats.mediumgif || r.media_formats.gif;
     const preview = r.media_formats.tinygif || r.media_formats.nanogif || full;
     if (!full || !preview) continue;
@@ -55,11 +59,9 @@ function normalize(items: TenorApiResult[]): TenorGif[] {
   return out;
 }
 
-/** Search Tenor. Empty/whitespace queries return featured (trending) gifs. */
-export async function searchTenor(query: string, limit = 24): Promise<TenorGif[]> {
-  if (!tenorEnabled()) return [];
+async function searchViaTenor(query: string, limit: number): Promise<TenorGif[]> {
   const params = new URLSearchParams({
-    key: KEY,
+    key: TENOR_KEY,
     client_key: CLIENT_KEY,
     contentfilter: 'high',
     media_filter: 'tinygif,nanogif,mediumgif,gif',
@@ -67,11 +69,74 @@ export async function searchTenor(query: string, limit = 24): Promise<TenorGif[]
   });
   const path = query.trim() ? 'search' : 'featured';
   if (query.trim()) params.set('q', query.trim());
-  const res = await fetch(`${BASE}/${path}?${params.toString()}`);
+  const res = await fetch(`https://tenor.googleapis.com/v2/${path}?${params.toString()}`);
   if (!res.ok) {
     console.warn('[tenor] request failed', res.status);
     return [];
   }
   const data = await res.json();
-  return normalize(data.results || []);
+  return normalizeTenor(data.results || []);
+}
+
+// ============================================================================
+// GIPHY — fallback when Tenor isn't available. Simpler signup (no GCP).
+// ============================================================================
+
+interface GiphyApiResult {
+  id: string;
+  title?: string;
+  images: {
+    fixed_height?: { url: string; width: string; height: string };
+    fixed_width_small?: { url: string; width: string; height: string };
+    original?: { url: string; width: string; height: string };
+  };
+}
+
+function normalizeGiphy(items: GiphyApiResult[]): TenorGif[] {
+  const out: TenorGif[] = [];
+  for (const r of items || []) {
+    const full = r.images.fixed_height || r.images.original;
+    const preview = r.images.fixed_width_small || r.images.fixed_height || full;
+    if (!full || !preview) continue;
+    out.push({
+      id: r.id,
+      description: r.title || '',
+      url: full.url,
+      previewUrl: preview.url,
+      width: parseInt(preview.width, 10) || 200,
+      height: parseInt(preview.height, 10) || 200,
+    });
+  }
+  return out;
+}
+
+async function searchViaGiphy(query: string, limit: number): Promise<TenorGif[]> {
+  const params = new URLSearchParams({
+    api_key: GIPHY_KEY,
+    rating: 'g',
+    limit: String(limit),
+  });
+  const path = query.trim() ? 'search' : 'trending';
+  if (query.trim()) params.set('q', query.trim());
+  const res = await fetch(`https://api.giphy.com/v1/gifs/${path}?${params.toString()}`);
+  if (!res.ok) {
+    console.warn('[giphy] request failed', res.status);
+    return [];
+  }
+  const data = await res.json();
+  return normalizeGiphy(data.data || []);
+}
+
+// ============================================================================
+// Public API
+// ============================================================================
+
+/**
+ * Search GIFs. Empty query returns featured/trending. Provider picked
+ * based on which API key is configured; Tenor preferred when both exist.
+ */
+export async function searchTenor(query: string, limit = 24): Promise<TenorGif[]> {
+  if (TENOR_KEY) return searchViaTenor(query, limit);
+  if (GIPHY_KEY) return searchViaGiphy(query, limit);
+  return [];
 }

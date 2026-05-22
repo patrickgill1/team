@@ -53,7 +53,9 @@ const GifPicker: React.FC<Props> = ({ isOpen, onClose, onPick }) => {
       >
         <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
           <span className="font-bold text-gray-900">GIFs</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Powered by Tenor</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Powered by {process.env.REACT_APP_TENOR_API_KEY ? 'Tenor' : 'GIPHY'}
+          </span>
           <button
             onClick={onClose}
             className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
@@ -67,7 +69,7 @@ const GifPicker: React.FC<Props> = ({ isOpen, onClose, onPick }) => {
 
         {!tenorEnabled() ? (
           <div className="p-6 text-center text-sm text-gray-500">
-            GIF search is offline. (Add <code className="bg-gray-100 px-1 rounded text-xs">REACT_APP_TENOR_API_KEY</code> to enable.)
+            GIF search is offline. (Add <code className="bg-gray-100 px-1 rounded text-xs">REACT_APP_TENOR_API_KEY</code> or <code className="bg-gray-100 px-1 rounded text-xs">REACT_APP_GIPHY_API_KEY</code> to enable.)
           </div>
         ) : (
           <>

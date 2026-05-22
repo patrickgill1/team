@@ -8,6 +8,7 @@ import { formatDateTime, isCoach } from '../../utils/helpers';
 import EventForm from './EventForm';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { getShareOrigin } from '../../utils/origin';
+import ImportScheduleModal from './ImportScheduleModal';
 
 const formatIcsDate = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -78,6 +79,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
@@ -541,21 +543,33 @@ const Calendar: React.FC<CalendarProps> = ({
           </div>
         </div>
 
-        {/* Create Event Button (Coach only) */}
+        {/* Coach actions: Add Event + Import Schedule */}
         {isUserCoach && showCreateButton && (
-          <button
-            onClick={() => {
-              setEditingEvent(null);
-              setSelectedDate(null);
-              setIsEventFormOpen(true);
-            }}
-            className="bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Event</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="bg-white hover:bg-gray-50 ring-1 ring-gray-300 text-gray-700 font-semibold py-2.5 px-4 rounded-xl shadow-sm transition-all flex items-center gap-2"
+              title="Import a season schedule from a .ics file"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+              </svg>
+              <span className="hidden sm:inline">Import</span>
+            </button>
+            <button
+              onClick={() => {
+                setEditingEvent(null);
+                setSelectedDate(null);
+                setIsEventFormOpen(true);
+              }}
+              className="bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add Event</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -573,6 +587,27 @@ const Calendar: React.FC<CalendarProps> = ({
         onEventUpdated={handleEventUpdated}
         editingEvent={editingEvent}
         selectedDate={selectedDate || undefined}
+      />
+
+      {/* Schedule Import Modal */}
+      <ImportScheduleModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        existingEvents={events.map((e) => ({ title: e.title, date: e.date }))}
+        onImported={async () => {
+          // Reload events after the bulk import completes — uses the same
+          // path as the on-mount load so a fresh subscription isn't needed.
+          if (!selectedTeamId) return;
+          const all = await getDocuments('events', []);
+          const list = (all || [])
+            .filter((ev: any) => ev.teamId === selectedTeamId)
+            .map((ev: any) => ({
+              ...ev,
+              date: ev.date?.toDate ? ev.date.toDate() : new Date(ev.date),
+              createdAt: ev.createdAt?.toDate ? ev.createdAt.toDate() : new Date(ev.createdAt || Date.now()),
+            })) as CalendarEvent[];
+          setEvents(list);
+        }}
       />
     </div>
   );

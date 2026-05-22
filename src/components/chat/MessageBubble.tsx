@@ -47,12 +47,20 @@ function renderRichContent(text: string, ownTheme: boolean): string {
 }
 
 const senderColor = (name: string): string => {
-  // Stable, distinct avatar tint per sender — name hash → hue.
+  // Stable, distinct avatar tint per sender — name hash → gradient.
+  // Subtle diagonal gradient feels more polished than flat fills while
+  // staying readable on small avatars.
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   const palette = [
-    'bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-cyan-500',
-    'bg-violet-500', 'bg-fuchsia-500', 'bg-blue-500', 'bg-teal-500',
+    'bg-gradient-to-br from-rose-400 to-rose-600',
+    'bg-gradient-to-br from-amber-400 to-orange-600',
+    'bg-gradient-to-br from-emerald-400 to-emerald-600',
+    'bg-gradient-to-br from-cyan-400 to-cyan-600',
+    'bg-gradient-to-br from-violet-400 to-violet-600',
+    'bg-gradient-to-br from-fuchsia-400 to-pink-600',
+    'bg-gradient-to-br from-blue-400 to-blue-600',
+    'bg-gradient-to-br from-teal-400 to-teal-600',
   ];
   return palette[h % palette.length];
 };
@@ -100,12 +108,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // Continuous-bubble corners: middle of a run flattens the appropriate edge
   // so consecutive bubbles read as one column of speech.
   const cornerClasses = isOwn
-    ? `rounded-2xl ${isFirstInGroup ? '' : 'rounded-tr-md'} ${isLastInGroup ? '' : 'rounded-br-md'}`
-    : `rounded-2xl ${isFirstInGroup ? '' : 'rounded-tl-md'} ${isLastInGroup ? '' : 'rounded-bl-md'}`;
+    ? `rounded-[20px] ${isFirstInGroup ? '' : 'rounded-tr-md'} ${isLastInGroup ? '' : 'rounded-br-md'}`
+    : `rounded-[20px] ${isFirstInGroup ? '' : 'rounded-tl-md'} ${isLastInGroup ? '' : 'rounded-bl-md'}`;
 
+  // Sleeker bubble fills: subtle gradient on outgoing, soft fill (no
+  // ring) on incoming — closer to iMessage / modern messaging apps.
   const bubbleBg = isOwn
-    ? 'bg-cyan-600 text-white'
-    : 'bg-white text-gray-900 ring-1 ring-gray-200';
+    ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-white'
+    : 'bg-gray-100 text-gray-900';
 
   const handleTouchStart = () => {
     if (longPressTimer.current) window.clearTimeout(longPressTimer.current);

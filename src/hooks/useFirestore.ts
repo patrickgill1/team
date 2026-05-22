@@ -599,19 +599,24 @@ const getUserData = useCallback(async (uid: string) => {
     return onSnapshot(q, (querySnapshot) => {
       const messages = querySnapshot.docs.map(doc => {
         const data = doc.data();
+        // ORDER MATTERS: spread raw `data` FIRST, then layer the
+        // doc id + Firestore-Timestamp → Date conversions on top so
+        // they override the raw values. Previous order had `...data`
+        // last, which clobbered the Date conversion and made every
+        // message timestamp render as "Unknown".
         return {
+          ...data,
           id: doc.id,
           threadId: data.threadId || '',
           content: data.content || '',
           senderId: data.senderId || '',
           senderName: data.senderName || '',
           senderRole: data.senderRole || 'parent',
-          timestamp: data.timestamp?.toDate() || new Date(),
+          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
           edited: data.edited || false,
-          editedAt: data.editedAt?.toDate() || undefined,
+          editedAt: data.editedAt?.toDate?.() || undefined,
           replyTo: data.replyTo || undefined,
           teamId: data.teamId || '',
-          ...data
         } as ChatMessage;
       });
       callback(messages);

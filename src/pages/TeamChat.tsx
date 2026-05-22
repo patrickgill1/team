@@ -174,27 +174,32 @@ const TeamChat: React.FC = () => {
   };
 
   const formatTime = (date: Date | any) => {
+    // Be liberal: handle Date, Firestore Timestamp ({toDate}), epoch ms,
+    // or ISO strings. Fall back to a short readable time of the current
+    // moment ("Just now") rather than the prior "Unknown" — a chat
+    // message with no usable timestamp looks broken otherwise.
     try {
-      const dateObj = date instanceof Date ? date : new Date(date);
-      if (isNaN(dateObj.getTime())) {
-        return 'Unknown';
-      }
-      
+      let dateObj: Date;
+      if (date instanceof Date) dateObj = date;
+      else if (date && typeof date.toDate === 'function') dateObj = date.toDate();
+      else if (date) dateObj = new Date(date);
+      else return 'Just now';
+      if (isNaN(dateObj.getTime())) return 'Just now';
+
       const now = new Date();
       const diff = now.getTime() - dateObj.getTime();
-      const hours = diff / (1000 * 60 * 60);
-      
-      if (hours < 1) {
-        const minutes = Math.floor(diff / (1000 * 60));
-        return minutes < 1 ? 'Just now' : `${minutes}m ago`;
-      } else if (hours < 24) {
-        return `${Math.floor(hours)}h ago`;
-      } else {
-        return dateObj.toLocaleDateString();
-      }
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'Just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      const sameYear = dateObj.getFullYear() === now.getFullYear();
+      return dateObj.toLocaleDateString(undefined, sameYear
+        ? { month: 'short', day: 'numeric' }
+        : { month: 'short', day: 'numeric', year: 'numeric' });
     } catch (error) {
       console.error('Error formatting time:', error);
-      return 'Unknown';
+      return 'Just now';
     }
   };
 

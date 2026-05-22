@@ -269,7 +269,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <div className="mb-1.5 text-[11px] text-gray-500">Uploading {uploadPct}%…</div>
       )}
 
-      <div className="relative flex gap-2 items-end">
+      {/* Single row, baseline-aligned. All action buttons share a 36px
+          height + pill rounding so the composer reads as one continuous
+          control strip instead of mismatched bubbles. */}
+      <div className="relative flex gap-1.5 items-end">
         <input
           ref={fileRef}
           type="file"
@@ -281,8 +284,9 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors"
+          className="flex-shrink-0 w-9 h-9 mb-0.5 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-600 flex items-center justify-center transition"
           title="Attach photo"
+          aria-label="Attach photo"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -292,8 +296,9 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           <button
             type="button"
             onClick={() => setIsGifPickerOpen(true)}
-            className="flex-shrink-0 h-10 px-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-xs transition-colors"
+            className="flex-shrink-0 w-12 h-9 mb-0.5 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 flex items-center justify-center font-extrabold text-[11px] tracking-wider transition"
             title="Send a GIF"
+            aria-label="Send a GIF"
           >
             GIF
           </button>
@@ -317,8 +322,8 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             onPaste={onPaste}
             placeholder="Message"
             rows={1}
-            className="w-full resize-none bg-gray-100 rounded-3xl px-4 py-2.5 focus:outline-none focus:bg-white focus:ring-2 focus:ring-cyan-300 text-[15px] text-gray-900 placeholder-gray-400 leading-snug transition-colors"
-            style={{ fontSize: '16px', maxHeight: '140px' }}
+            className="w-full resize-none bg-gray-100 rounded-[18px] px-4 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-cyan-300 text-[15px] text-gray-900 placeholder-gray-400 leading-snug transition-colors"
+            style={{ fontSize: '16px', maxHeight: '140px', minHeight: '36px' }}
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
             <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
@@ -347,10 +352,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           onClick={doSend}
           disabled={uploading || (!text.trim() && pending.length === 0)}
-          className="bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 disabled:bg-gray-300 text-white w-10 h-10 rounded-full transition-all flex-shrink-0 flex items-center justify-center shadow disabled:shadow-none disabled:cursor-not-allowed"
+          className="flex-shrink-0 w-9 h-9 mb-0.5 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 active:scale-95 disabled:from-gray-300 disabled:to-gray-300 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
           aria-label="Send"
         >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
           </svg>
         </button>

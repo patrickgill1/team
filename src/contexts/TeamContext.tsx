@@ -40,11 +40,58 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Get all team IDs the user belongs to
+      // Club admins get every team in the database loaded so they can
+      // tap any team in /club and have the selection stick. Regular
+      // users only load the teams in their own teamIds[].
+      const teamDocs: Team[] = [];
       const userTeamIds = userData.teamIds?.length ? userData.teamIds : [userData.teamId];
 
-      // Fetch each team document
-      const teamDocs: Team[] = [];
+      if ((userData as any).isClubAdmin) {
+        try {
+          const allSnap = await getDocs(collection(db, 'teams'));
+          allSnap.forEach((docSnap) => {
+            const data = docSnap.data();
+            teamDocs.push({
+              id: docSnap.id,
+              name: data.name || 'My Team',
+              description: data.description || '',
+              logoUrl: data.logoUrl,
+              coachIds: data.coachIds || [],
+              headCoachId: data.headCoachId,
+              assistantCoachIds: data.assistantCoachIds || [],
+              playerIds: data.playerIds || [],
+              parentIds: data.parentIds || [],
+              season: data.season || '',
+              ageGroup: data.ageGroup || '',
+              league: data.league,
+              homeField: data.homeField,
+              createdAt: data.createdAt?.toDate?.() || new Date(),
+              updatedAt: data.updatedAt?.toDate?.() || undefined,
+            });
+          });
+        } catch (err) {
+          console.error('Error loading all teams for club admin:', err);
+        }
+        // Sort by name for a stable selector order.
+        teamDocs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        setTeams(teamDocs);
+        // Pick a sensible initial team: a previously-chosen one if it's
+        // still valid, then one of the admin's own teams, then the first
+        // team in the club.
+        const validIds = teamDocs.map((t) => t.id);
+        if (!selectedTeamId || !validIds.includes(selectedTeamId)) {
+          const stored = localStorage.getItem('selectedTeamId');
+          if (stored && validIds.includes(stored)) {
+            setSelectedTeamIdState(stored);
+          } else {
+            const own = userTeamIds.find((id) => validIds.includes(id));
+            setSelectedTeamIdState(own || validIds[0] || '');
+          }
+        }
+        return;
+      }
+
+      // Non-admin: original behavior — fetch one team doc per teamId.
       for (const teamId of userTeamIds) {
         if (!teamId) continue;
         try {
@@ -107,7 +154,9 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     loadTeams();
-  }, [userData?.uid, userData?.teamId, userData?.teamIds?.length]);
+    // Include isClubAdmin so the team list reloads (now all-teams or
+    // just-my-teams) the moment the flag flips, not just on next sign-in.
+  }, [userData?.uid, userData?.teamId, userData?.teamIds?.length, (userData as any)?.isClubAdmin]);
 
   // Update selected team when selectedTeamId changes
   useEffect(() => {

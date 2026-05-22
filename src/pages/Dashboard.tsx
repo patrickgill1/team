@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -238,15 +238,20 @@ const Dashboard: React.FC = () => {
     return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${time}`;
   };
 
-  // For coaches: aggregate the RSVP counts on the next event.
+  // Aggregate RSVP counts for the next event. Includes BOTH authenticated
+  // rsvps AND publicRsvps (guests who tapped the public share link without
+  // signing in) so the head-count on the hero matches reality.
   const rsvpCounts = useMemo(() => {
     const r = (nextEvent?.rsvps || {}) as Record<string, { status: string }>;
+    const pub = ((nextEvent as any)?.publicRsvps || {}) as Record<string, { status: string }>;
     let going = 0, maybe = 0, no = 0;
-    Object.values(r).forEach((v) => {
-      if (v.status === 'going') going++;
-      else if (v.status === 'maybe') maybe++;
-      else if (v.status === 'no') no++;
-    });
+    const tally = (status: string) => {
+      if (status === 'going') going++;
+      else if (status === 'maybe') maybe++;
+      else if (status === 'no') no++;
+    };
+    Object.values(r).forEach((v) => tally(v.status));
+    Object.values(pub).forEach((v) => tally(v.status));
     const responded = going + maybe + no;
     const pending = Math.max(0, players.length - responded);
     return { going, maybe, no, pending };
@@ -298,14 +303,19 @@ const Dashboard: React.FC = () => {
             counts={rsvpCounts}
           />
         ) : (
-          <div className="rounded-3xl bg-white ring-1 ring-gray-200 p-6 text-center">
-            <div className="text-4xl mb-2">📅</div>
-            <p className="font-bold text-gray-900">No upcoming events</p>
-            <p className="text-sm text-gray-500 mt-1">
-              {isUserCoach ? 'Add one to start the season.' : 'Check back soon!'}
-            </p>
+          // Slim no-event banner — keeps the page flowing into the
+          // Recent chats / Your player row instead of leaving a giant
+          // empty rectangle at the top.
+          <div className="rounded-2xl bg-white ring-1 ring-gray-200 px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl">📅</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 text-sm">No upcoming events</p>
+              <p className="text-xs text-gray-500">
+                {isUserCoach ? 'Add a practice or game to get the season started.' : 'Your coach will post one soon.'}
+              </p>
+            </div>
             {isUserCoach && (
-              <Link to="/calendar" className="inline-flex items-center gap-2 mt-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-5 rounded-full text-sm">
+              <Link to="/calendar" className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-1.5 px-3 rounded-full text-xs whitespace-nowrap">
                 ➕ Add event
               </Link>
             )}
@@ -381,14 +391,24 @@ const NextEventHero: React.FC<{
   onRsvp: (status: 'going' | 'maybe' | 'no') => void;
   counts: { going: number; maybe: number; no: number; pending: number };
 }> = ({ event, whenText, isCoach, myRsvp, onRsvp, counts }) => {
+  const navigate = useNavigate();
   const typeBg =
     event.type === 'game' ? 'from-rose-600 to-orange-600' :
     event.type === 'practice' ? 'from-cyan-600 to-blue-700' :
     'from-violet-600 to-fuchsia-700';
   const typeLabel =
     event.type === 'game' ? 'Game' : event.type === 'practice' ? 'Practice' : 'Event';
+  // Tap on the card → calendar (full event details, carpool, etc.).
+  // RSVP buttons stop propagation so they don't fire the navigation.
+  const goToCalendar = () => navigate('/calendar');
   return (
-    <section className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${typeBg} text-white shadow-xl`}>
+    <section
+      onClick={goToCalendar}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') goToCalendar(); }}
+      className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${typeBg} text-white shadow-xl cursor-pointer hover:shadow-2xl active:scale-[0.995] transition`}
+    >
       <div className="p-6 sm:p-7">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/15 ring-1 ring-white/20">
@@ -399,6 +419,12 @@ const NextEventHero: React.FC<{
               {event.homeAway === 'away' ? 'vs.' : 'vs.'} {event.opponent}
             </span>
           )}
+          <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-white/70 inline-flex items-center gap-1">
+            Open
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-black leading-tight">{event.title}</h2>
         <p className="text-white/90 text-base sm:text-lg font-semibold mt-1">{whenText}</p>
@@ -408,7 +434,7 @@ const NextEventHero: React.FC<{
 
         {/* Parent RSVP */}
         {!isCoach && (
-          <div className="mt-5">
+          <div className="mt-5" onClick={(e) => e.stopPropagation()}>
             <p className="text-[11px] font-bold uppercase tracking-wider text-white/75 mb-2">
               {myRsvp ? `You're ${myRsvp === 'going' ? 'going' : myRsvp === 'maybe' ? 'maybe' : 'not going'}` : 'Will you be there?'}
             </p>
@@ -422,7 +448,7 @@ const NextEventHero: React.FC<{
                 return (
                   <button
                     key={b.k}
-                    onClick={() => onRsvp(b.k)}
+                    onClick={(e) => { e.stopPropagation(); onRsvp(b.k); }}
                     className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
                       active
                         ? 'bg-white text-fire-900 shadow'

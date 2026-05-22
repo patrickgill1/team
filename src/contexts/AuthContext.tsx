@@ -26,6 +26,7 @@ interface UserData {
   role: 'coach' | 'parent';
   teamId: string;
   teamIds?: string[];
+  isClubAdmin?: boolean;
   coachLevel?: 'head_coach' | 'assistant_coach';
   approved?: boolean;
   createdAt: Date;
@@ -554,6 +555,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     role: data.role || 'parent',
     teamId: data.teamId || '',
     teamIds: data.teamIds || (data.teamId ? [data.teamId] : []),
+    isClubAdmin: data.isClubAdmin === true,
     coachLevel: data.coachLevel || undefined,
     createdAt: data.createdAt instanceof Date
       ? data.createdAt

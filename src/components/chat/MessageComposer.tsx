@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStorage } from '../../hooks/useStorage';
+import GifPicker from './GifPicker';
+import { tenorEnabled, TenorGif } from '../../utils/tenor';
 
 export interface ComposerAttachment {
   type: 'image';
@@ -45,6 +47,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionRange, setMentionRange] = useState<{ start: number; end: number } | null>(null);
   const [highlight, setHighlight] = useState(0);
+  const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
 
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -186,6 +189,23 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     setPending((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  // GIF picker → send the GIF straight as a chat attachment (no upload —
+  // we reuse Tenor's CDN URL, which is built for this).
+  const pickGif = async (gif: TenorGif) => {
+    const attachment: ComposerAttachment = {
+      type: 'image',
+      url: gif.url,
+      name: gif.description ? `${gif.description}.gif` : 'tenor.gif',
+      size: 0,
+    };
+    try {
+      await onSend('', [attachment]);
+    } catch (err) {
+      console.error('[chat] gif send failed', err);
+      alert('Could not send GIF.');
+    }
+  };
+
   const doSend = async () => {
     if (uploading) return;
     const content = text.trim();
@@ -262,12 +282,22 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           type="button"
           onClick={() => fileRef.current?.click()}
           className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors"
-          title="Attach photo or GIF"
+          title="Attach photo"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
         </button>
+        {tenorEnabled() && (
+          <button
+            type="button"
+            onClick={() => setIsGifPickerOpen(true)}
+            className="flex-shrink-0 h-10 px-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-xs transition-colors"
+            title="Send a GIF"
+          >
+            GIF
+          </button>
+        )}
 
         <div className="flex-1 relative">
           <textarea
@@ -325,6 +355,12 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           </svg>
         </button>
       </div>
+
+      <GifPicker
+        isOpen={isGifPickerOpen}
+        onClose={() => setIsGifPickerOpen(false)}
+        onPick={pickGif}
+      />
     </div>
   );
 };

@@ -35,7 +35,10 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     jerseyNumber: '',
-    position: 'Midfielder',
+    // Multi-position support: stored as an array. Saved both as `positions`
+    // (new field) and `position` (legacy single string = first selected) so
+    // older parts of the app that still read `position` keep working.
+    positions: ['Midfielder'] as string[],
     parentEmails: [''],
     dateOfBirth: '',
     medicalInfo: ''
@@ -165,14 +168,18 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
   useEffect(() => {
     if (editingPlayer) {
+      const existingPositions =
+        Array.isArray((editingPlayer as any).positions) && (editingPlayer as any).positions.length > 0
+          ? (editingPlayer as any).positions
+          : (editingPlayer.position ? [editingPlayer.position] : ['Midfielder']);
       setFormData({
         name: editingPlayer.name || '',
         jerseyNumber: editingPlayer.jerseyNumber?.toString() || '',
-        position: editingPlayer.position || 'Midfielder',
-        parentEmails: editingPlayer.parentEmails && editingPlayer.parentEmails.length > 0 
-          ? editingPlayer.parentEmails 
+        positions: existingPositions,
+        parentEmails: editingPlayer.parentEmails && editingPlayer.parentEmails.length > 0
+          ? editingPlayer.parentEmails
           : [''],
-        dateOfBirth: editingPlayer.dateOfBirth 
+        dateOfBirth: editingPlayer.dateOfBirth
           ? (editingPlayer.dateOfBirth.toISOString ? editingPlayer.dateOfBirth.toISOString().split('T')[0] : (editingPlayer.dateOfBirth as any).toDate ? (editingPlayer.dateOfBirth as any).toDate().toISOString().split('T')[0] : new Date(editingPlayer.dateOfBirth as any).toISOString().split('T')[0])
           : '',
         medicalInfo: editingPlayer.medicalInfo || ''
@@ -183,7 +190,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       setFormData({
         name: '',
         jerseyNumber: '',
-        position: 'Midfielder',
+        positions: ['Midfielder'],
         parentEmails: [''],
         dateOfBirth: '',
         medicalInfo: ''
@@ -339,10 +346,14 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         newTeamIds = [effectiveTeamId];
       }
 
+      const cleanPositions = (formData.positions || []).filter(p => !!p);
       const basePlayerData = {
         name: formData.name.trim(),
         jerseyNumber: formData.jerseyNumber ? parseInt(formData.jerseyNumber) : undefined,
-        position: formData.position || undefined,
+        // Save both: `positions` array (canonical) + legacy `position` string
+        // (first selected) so older readers keep working without a migration.
+        positions: cleanPositions.length > 0 ? cleanPositions : undefined,
+        position: cleanPositions[0] || undefined,
         parentIds: [], // For now, we'll implement parent assignment separately
         parentEmails: validParentEmails.length > 0 ? validParentEmails : undefined,
         dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined,
@@ -619,18 +630,38 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Position
+                Position{formData.positions.length > 1 ? 's' : ''}
               </label>
-              <select
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isSubmitting}
-              >
-                {positions.map(position => (
-                  <option key={position} value={position}>{position}</option>
-                ))}
-              </select>
+              <div className="flex flex-wrap gap-2">
+                {positions.map((p) => {
+                  const active = formData.positions.includes(p);
+                  return (
+                    <button
+                      type="button"
+                      key={p}
+                      onClick={() => {
+                        setFormData((prev) => {
+                          const has = prev.positions.includes(p);
+                          const next = has
+                            ? prev.positions.filter((x) => x !== p)
+                            : [...prev.positions, p];
+                          // Don't allow empty — keep at least one selected.
+                          return { ...prev, positions: next.length > 0 ? next : prev.positions };
+                        });
+                      }}
+                      disabled={isSubmitting}
+                      className={`px-3 py-1.5 rounded-full text-sm font-semibold ring-1 transition ${
+                        active
+                          ? 'bg-cyan-600 text-white ring-cyan-600 shadow-sm'
+                          : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Tap to select. Pick more than one if the player covers multiple positions (e.g. keeper + striker).</p>
             </div>
           </div>
 

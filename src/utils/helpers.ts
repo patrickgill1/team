@@ -117,3 +117,25 @@ export const isValidImageFile = (file: File): boolean => {
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
   return validTypes.includes(file.type) && file.size <= 5 * 1024 * 1024; // 5MB limit
 };
+
+/**
+ * Get a player's positions as an array. Reads the new `positions[]` field
+ * if present, falls back to the legacy single `position` string. Useful
+ * for forms, role-specific stat displays, etc.
+ */
+export const getPlayerPositions = (player: { positions?: string[]; position?: string } | null | undefined): string[] => {
+  if (!player) return [];
+  if (Array.isArray(player.positions) && player.positions.length > 0) return player.positions;
+  if (player.position) return [player.position];
+  return [];
+};
+
+/** Joined display label for one or more positions ("Goalkeeper · Midfielder"). */
+export const getPlayerPositionsLabel = (player: { positions?: string[]; position?: string } | null | undefined): string => {
+  return getPlayerPositions(player).join(' · ');
+};
+
+/** True if any of the player's positions is Goalkeeper. Used to show keeper-only stats. */
+export const isGoalkeeper = (player: { positions?: string[]; position?: string } | null | undefined): boolean => {
+  return getPlayerPositions(player).some(p => p.toLowerCase() === 'goalkeeper');
+};

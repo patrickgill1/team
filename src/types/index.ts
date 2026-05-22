@@ -69,7 +69,10 @@ export interface Player {
   id: string;
   name: string;
   jerseyNumber?: number;
+  /** @deprecated kept for backward compatibility with older docs; use positions[] going forward. */
   position?: string;
+  /** Multi-position support (e.g. a player who's both a keeper and a striker). */
+  positions?: string[];
   dateOfBirth?: Date;
   parentId?: string;
   parentIds?: string[];

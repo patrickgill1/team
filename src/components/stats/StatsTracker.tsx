@@ -290,19 +290,31 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Saves
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={statData.saves}
-                  onChange={(e) => updateStatValue('saves', parseInt(e.target.value) || 0)}
-                  disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              {/* Saves: keeper-only. We check selectedPlayerData rather
+                  than the player list since this card is tied to one
+                  player at a time. */}
+              {(() => {
+                const positions: string[] = Array.isArray((selectedPlayerData as any)?.positions) && (selectedPlayerData as any).positions.length > 0
+                  ? (selectedPlayerData as any).positions
+                  : (selectedPlayerData?.position ? [selectedPlayerData.position] : []);
+                const isKeeper = positions.some(p => p?.toLowerCase() === 'goalkeeper');
+                if (!isKeeper) return null;
+                return (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Saves
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={statData.saves}
+                      onChange={(e) => updateStatValue('saves', parseInt(e.target.value) || 0)}
+                      disabled={isSubmitting}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

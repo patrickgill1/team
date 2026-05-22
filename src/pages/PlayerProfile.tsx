@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { Player, PlayerMedia, DevelopmentPlan, Season } from '../types';
-import { isCoach, formatDate } from '../utils/helpers';
+import { isCoach, formatDate, isGoalkeeper, getPlayerPositionsLabel } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
@@ -345,10 +345,10 @@ const PlayerProfile: React.FC = () => {
           </div>
 
           {/* Status pill */}
-          {player.position && (
+          {(player.position || (player.positions && player.positions.length > 0)) && (
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur">
-              <span className={`w-2 h-2 rounded-full ${positionDot(player.position)} animate-pulse`} />
-              {player.position}{age ? ` · Age ${age}` : ''}
+              <span className={`w-2 h-2 rounded-full ${positionDot(player.positions?.[0] || player.position || '')} animate-pulse`} />
+              {getPlayerPositionsLabel(player)}{age ? ` · Age ${age}` : ''}
             </div>
           )}
 
@@ -395,48 +395,59 @@ const PlayerProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* Season chip — only render if there's more than one season worth of data */}
+          {/* Season toggle — keep it simple. Two primary options: "This
+              Season" and "Overall". Past seasons hide inside the dropdown
+              for the curious; most coaches/parents just want now-vs-ever. */}
           {(allSeasons.length > 1 || activeSeason) && (
-            <div className="relative inline-block mb-3">
+            <div className="mb-3 inline-flex items-center rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur p-0.5">
               <button
-                onClick={() => setSeasonMenuOpen((v) => !v)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 hover:bg-white/15 text-[11px] font-bold uppercase tracking-wider text-white/85 transition backdrop-blur"
+                onClick={() => setSelectedSeasonId('current')}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
+                  (selectedSeasonId === 'current' || (activeSeason && selectedSeasonId === activeSeason.id))
+                    ? 'bg-white text-fire-900 shadow'
+                    : 'text-white/80 hover:text-white'
+                }`}
               >
-                {selectedSeasonId === 'lifetime'
-                  ? 'Career · All-time'
-                  : selectedSeasonId === 'current' || (activeSeason && selectedSeasonId === activeSeason.id)
-                    ? `Current · ${activeSeason?.name || 'this season'}`
-                    : allSeasons.find(s => s.id === selectedSeasonId)?.name || 'Season'}
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
+                This Season
               </button>
-              {seasonMenuOpen && (
-                <div className="absolute left-0 top-full mt-2 z-30 min-w-[200px] rounded-xl bg-slate-900/95 backdrop-blur ring-1 ring-white/15 shadow-xl py-1">
-                  {activeSeason && (
-                    <button
-                      onClick={() => { setSelectedSeasonId('current'); setSeasonMenuOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === 'current' ? 'text-cyan-300 font-semibold' : 'text-white/85'}`}
-                    >
-                      Current · {activeSeason.name}
-                    </button>
-                  )}
-                  {allSeasons.filter(s => !s.isActive).map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => { setSelectedSeasonId(s.id); setSeasonMenuOpen(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === s.id ? 'text-cyan-300 font-semibold' : 'text-white/85'}`}
-                    >
-                      {s.name}
-                    </button>
-                  ))}
-                  <div className="border-t border-white/10 my-1" />
+              <button
+                onClick={() => setSelectedSeasonId('lifetime')}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
+                  selectedSeasonId === 'lifetime'
+                    ? 'bg-white text-fire-900 shadow'
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                Overall
+              </button>
+              {/* Past-season picker tucked behind a small "..." menu so it
+                  doesn't clutter the primary toggle. */}
+              {allSeasons.filter(s => !s.isActive).length > 0 && (
+                <div className="relative">
                   <button
-                    onClick={() => { setSelectedSeasonId('lifetime'); setSeasonMenuOpen(false); }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === 'lifetime' ? 'text-cyan-300 font-semibold' : 'text-white/85'}`}
+                    onClick={() => setSeasonMenuOpen(v => !v)}
+                    className={`px-2.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
+                      selectedSeasonId !== 'current' && selectedSeasonId !== 'lifetime' && (!activeSeason || selectedSeasonId !== activeSeason.id)
+                        ? 'bg-white text-fire-900 shadow'
+                        : 'text-white/80 hover:text-white'
+                    }`}
+                    aria-label="Pick another season"
                   >
-                    🏆 Career · All-time
+                    •••
                   </button>
+                  {seasonMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 z-30 min-w-[180px] rounded-xl bg-slate-900/95 backdrop-blur ring-1 ring-white/15 shadow-xl py-1">
+                      {allSeasons.filter(s => !s.isActive).map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => { setSelectedSeasonId(s.id); setSeasonMenuOpen(false); }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === s.id ? 'text-cyan-300 font-semibold' : 'text-white/85'}`}
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -569,10 +580,17 @@ const PlayerProfile: React.FC = () => {
                   <div className="text-2xl sm:text-3xl font-black text-violet-700">{player.stats?.assists || 0}</div>
                   <div className="text-[10px] sm:text-xs uppercase tracking-wider text-violet-700/70 font-bold">Assists</div>
                 </div>
-                <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 ring-1 ring-amber-100 p-3 text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-amber-700">{player.stats?.saves || 0}</div>
-                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-amber-700/70 font-bold">Saves</div>
-                </div>
+                {isGoalkeeper(player) ? (
+                  <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 ring-1 ring-amber-100 p-3 text-center">
+                    <div className="text-2xl sm:text-3xl font-black text-amber-700">{player.stats?.saves || 0}</div>
+                    <div className="text-[10px] sm:text-xs uppercase tracking-wider text-amber-700/70 font-bold">Saves</div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-gradient-to-br from-rose-50 to-rose-100/50 ring-1 ring-rose-100 p-3 text-center">
+                    <div className="text-2xl sm:text-3xl font-black text-rose-700">{(player.stats?.goals || 0) + (player.stats?.assists || 0)}</div>
+                    <div className="text-[10px] sm:text-xs uppercase tracking-wider text-rose-700/70 font-bold">G+A</div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -11,7 +11,7 @@ import EndSeasonModal from '../components/team/EndSeasonModal';
 
 const TeamManagement: React.FC = () => {
   const { userData } = useAuth();
-  const { teams, refreshTeams, selectedTeamId } = useTeam();
+  const { teams, refreshTeams, selectedTeamId, setSelectedTeamId } = useTeam();
   const { createTeam, updateTeam, updateDocument, getDocuments, getCoachInvitesByTeam, getPlayersByTeam, deleteDocument } = useFirestore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -560,50 +560,64 @@ const TeamManagement: React.FC = () => {
 
         {/* Teams Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {teams.map(team => (
-            <div key={team.id} className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all ${
-              team.id === selectedTeamId ? 'border-cyan-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-gray-300'
-            }`}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">{team.name}</h3>
-                  {team.description && (
-                    <p className="text-sm text-gray-500 mt-1">{team.description}</p>
+          {teams.map(team => {
+            const isActive = team.id === selectedTeamId;
+            return (
+              <div
+                key={team.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedTeamId(team.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTeamId(team.id); }}
+                className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all cursor-pointer hover:shadow-md active:scale-[0.99] ${
+                  isActive ? 'border-cyan-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-cyan-300'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{team.name}</h3>
+                    {team.description && (
+                      <p className="text-sm text-gray-500 mt-1">{team.description}</p>
+                    )}
+                  </div>
+                  {isActive ? (
+                    <span className="bg-cyan-50 text-cyan-700 text-xs font-medium px-2 py-1 rounded-full">Active</span>
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tap to select</span>
                   )}
                 </div>
-                {team.id === selectedTeamId && (
-                  <span className="bg-cyan-50 text-cyan-700 text-xs font-medium px-2 py-1 rounded-full">Active</span>
-                )}
-              </div>
 
-              <div className="space-y-2 text-sm text-gray-600">
-                {team.ageGroup && <div>👶 Age Group: <span className="font-medium">{team.ageGroup}</span></div>}
-                {team.season && <div>📅 Season: <span className="font-medium">{team.season}</span></div>}
-                {team.league && <div>🏟️ League: <span className="font-medium">{team.league}</span></div>}
-                <div>👥 Players: <span className="font-medium">
-                  {allPlayers.filter(p => p.teamId === team.id || p.teamIds?.includes(team.id)).length}
-                </span></div>
-                <div>👨‍🏫 Coaches: <span className="font-medium">{team.coachIds?.length || 1}</span></div>
-              </div>
+                <div className="space-y-2 text-sm text-gray-600">
+                  {team.ageGroup && <div>👶 Age Group: <span className="font-medium">{team.ageGroup}</span></div>}
+                  {team.season && <div>📅 Season: <span className="font-medium">{team.season}</span></div>}
+                  {team.league && <div>🏟️ League: <span className="font-medium">{team.league}</span></div>}
+                  <div>👥 Players: <span className="font-medium">
+                    {allPlayers.filter(p => p.teamId === team.id || p.teamIds?.includes(team.id)).length}
+                  </span></div>
+                  <div>👨‍🏫 Coaches: <span className="font-medium">{team.coachIds?.length || 1}</span></div>
+                </div>
 
-              <div className="mt-4 flex space-x-2">
-                <button
-                  onClick={() => startEditTeam(team)}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Edit
-                </button>
-                {(team.coachIds?.length || 0) > 1 && (
+                {/* Action buttons — stopPropagation so they don't also fire
+                    the card's "select team" click handler. */}
+                <div className="mt-4 flex space-x-2">
                   <button
-                    onClick={() => handleOpenTransfer(team)}
-                    className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    onClick={(e) => { e.stopPropagation(); startEditTeam(team); }}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
-                    Transfer Head Coach
+                    Edit
                   </button>
-                )}
+                  {(team.coachIds?.length || 0) > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleOpenTransfer(team); }}
+                      className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Transfer Head Coach
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Current Team Players */}

@@ -233,6 +233,8 @@ const ClubOverview: React.FC = () => {
                 teamById={teamById}
                 search={search}
                 setSearch={setSearch}
+                currentUid={userData?.uid || ''}
+                reload={reload}
               />
             )}
             {tab === 'calendar' && (
@@ -442,34 +444,67 @@ const CoachesTab: React.FC<{
   teamById: Map<string, any>;
   search: string;
   setSearch: (s: string) => void;
-}> = ({ users, teams, teamById, search, setSearch }) => {
-  const coaches = useMemo(() => {
+  currentUid: string;
+  reload: () => void;
+}> = ({ users, teams, teamById, search, setSearch, currentUid, reload }) => {
+  const { updateDocument } = useFirestore();
+  const [busyUid, setBusyUid] = useState<string | null>(null);
+
+  // We surface coaches + team_managers AND anyone with isClubAdmin so a
+  // parent who got promoted to club admin still shows up here for
+  // management (otherwise they'd be invisible).
+  const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return users
-      .filter((u) => u && (u.role === 'coach' || u.role === 'team_manager'))
+      .filter((u) => u && (u.role === 'coach' || u.role === 'team_manager' || u.isClubAdmin))
       .filter((u) => !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   }, [users, search]);
 
+  const toggleAdmin = async (u: any) => {
+    const uid = u.uid || u.id;
+    if (!uid) return;
+    const next = !u.isClubAdmin;
+    if (!next && uid === currentUid) {
+      if (!window.confirm("You're about to remove your OWN club-admin access. You'll lose access to this page until someone else re-adds you. Continue?")) return;
+    } else if (next) {
+      if (!window.confirm(`Make ${u.name || u.email} a club admin? They'll see every team and every member, and can promote others.`)) return;
+    } else {
+      if (!window.confirm(`Remove club-admin access from ${u.name || u.email}?`)) return;
+    }
+    setBusyUid(uid);
+    try {
+      await updateDocument('users', uid, { isClubAdmin: next });
+      reload();
+    } catch (err) {
+      console.error('[club] promote/demote failed', err);
+      alert('Could not update. Please try again.');
+    } finally {
+      setBusyUid(null);
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <SearchBar value={search} onChange={setSearch} placeholder="Search coaches by name or email…" />
+      <SearchBar value={search} onChange={setSearch} placeholder="Search by name or email…" />
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-fire-950">All coaches</h2>
-          <span className="text-xs text-gray-500">{coaches.length} coach{coaches.length === 1 ? '' : 'es'}</span>
+          <h2 className="font-bold text-fire-950">Coaches &amp; club admins</h2>
+          <span className="text-xs text-gray-500">{visible.length} member{visible.length === 1 ? '' : 's'}</span>
         </div>
-        {coaches.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">No coaches found.</div>
+        {visible.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-500">No coaches or admins yet.</div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {coaches.map((u: any) => {
+            {visible.map((u: any) => {
+              const uid = u.uid || u.id;
               const tIds: string[] = Array.isArray(u.teamIds) && u.teamIds.length > 0 ? u.teamIds : (u.teamId ? [u.teamId] : []);
               const teamLabels = tIds.map((id) => teamById.get(id)?.name || '').filter(Boolean);
-              const isHead = teams.some((t) => t.headCoachId === (u.uid || u.id));
+              const isHead = teams.some((t) => t.headCoachId === uid);
               const isClub = !!u.isClubAdmin;
+              const isSelf = uid === currentUid;
               return (
-                <li key={u.uid || u.id} className="px-5 py-3 flex items-center gap-3">
+                <li key={uid} className="px-5 py-3 flex items-center gap-3">
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 text-white flex items-center justify-center font-bold shadow-sm">
                     {(u.name || u.email || '?').charAt(0).toUpperCase()}
                   </div>
@@ -486,17 +521,41 @@ const CoachesTab: React.FC<{
                           Head coach
                         </span>
                       )}
+                      {u.role === 'team_manager' && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-1.5 py-0.5 rounded">
+                          Team manager
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-500 truncate mt-0.5">
                       {u.email}{teamLabels.length > 0 ? ` · ${teamLabels.join(' · ')}` : ' · Not on any team'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => toggleAdmin(u)}
+                    disabled={busyUid === uid}
+                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-semibold rounded-full transition ${
+                      isClub
+                        ? 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50'
+                        : 'bg-violet-600 hover:bg-violet-700 text-white'
+                    } ${busyUid === uid ? 'opacity-50 cursor-wait' : ''}`}
+                    title={isClub ? 'Remove club-admin access' : 'Promote to club admin'}
+                  >
+                    {busyUid === uid
+                      ? '…'
+                      : isClub
+                        ? (isSelf ? 'Remove (self)' : 'Remove admin')
+                        : 'Make admin'}
+                  </button>
                 </li>
               );
             })}
           </ul>
         )}
       </div>
+      <p className="text-xs text-gray-500 px-1">
+        Club admins can see every team, manage rosters across the club, and promote or remove other admins.
+      </p>
     </div>
   );
 };

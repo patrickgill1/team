@@ -1,38 +1,30 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { isClubAdmin } from '../utils/helpers';
+import { isClubAdmin, getPlayerPositionsLabel, formatDateTime } from '../utils/helpers';
 import Header from '../components/common/Header';
+import TransferPlayerModal from '../components/club/TransferPlayerModal';
+import BroadcastModal from '../components/club/BroadcastModal';
 
 /**
- * Club-wide overview. Visible only to users with `isClubAdmin: true`.
+ * Club-wide admin area. Gated by user.isClubAdmin. Day-to-day, the
+ * admin still acts like a regular coach on their own teams — this page
+ * is the separate "admin mode" that spans every team in the database.
  *
- * The point is to give a club director (or a head coach who also runs the
- * club) a separate "admin mode" — without contaminating the per-team
- * coach experience. Day-to-day, Patrick acts like any other coach on
- * Fire FC PG; when he wants the club view, he comes here.
+ * Tabs (top-level state, not URL-routed for simplicity):
+ *   • Overview  — teams summary
+ *   • Players   — roster pool, transfer/share player across teams
+ *   • Coaches   — every coach + which teams they're on
+ *   • Calendar  — chronological event feed across the club
+ *   • Stats     — aggregate + leaderboards
  *
- * v1 scope: table of every team with quick stats + a tap-to-focus action
- * that sets the team as the active selection and routes you to its
- * normal dashboard. Cross-team operations (transfer player, broadcast)
- * are out of scope for v1.
+ * Header has a "Broadcast" button that opens a modal to send a
+ * cross-team announcement (email + optional push).
  */
-interface ClubTeamRow {
-  id: string;
-  name: string;
-  ageGroup?: string;
-  season?: string;
-  league?: string;
-  homeField?: string;
-  headCoachId?: string;
-  coachIds: string[];
-  playerCount: number;
-  upcomingEventCount: number;
-  lastActivity?: Date;
-}
+type TabKey = 'overview' | 'players' | 'coaches' | 'calendar' | 'stats';
 
 const ClubOverview: React.FC = () => {
   const navigate = useNavigate();
@@ -40,97 +32,109 @@ const ClubOverview: React.FC = () => {
   const { setSelectedTeamId } = useTeam();
   const { getDocuments } = useFirestore();
 
-  const [rows, setRows] = useState<ClubTeamRow[]>([]);
-  const [coachNamesByUid, setCoachNamesByUid] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-
   const allowed = isClubAdmin(userData);
+
+  const [teams, setTeams] = useState<any[]>([]);
+  const [players, setPlayers] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [tab, setTab] = useState<TabKey>('overview');
+  const [search, setSearch] = useState('');
+  const [transferPlayer, setTransferPlayer] = useState<any | null>(null);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+
+  const reload = async () => {
+    setLoading(true);
+    try {
+      const [t, p, e, u] = await Promise.all([
+        getDocuments('teams', []),
+        getDocuments('players', []).catch(() => []),
+        getDocuments('events', []).catch(() => []),
+        getDocuments('users', []).catch(() => []),
+      ]);
+      setTeams(t as any[]);
+      setPlayers((p as any[]).filter((pl) => pl && pl.isActive !== false));
+      setEvents((e as any[]).map((ev: any) => ({
+        ...ev,
+        date: ev.date?.toDate ? ev.date.toDate() : new Date(ev.date),
+      })));
+      setUsers(u as any[]);
+    } catch (err) {
+      console.error('[club] load failed', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!allowed) { setLoading(false); return; }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const [teams, players, events, users] = await Promise.all([
-          getDocuments('teams', []),
-          getDocuments('players', []).catch(() => []),
-          getDocuments('events', []).catch(() => []),
-          getDocuments('users', []).catch(() => []),
-        ]);
-        if (cancelled) return;
+    reload();
+  }, [allowed]);
 
-        // Index roster + upcoming events per team. A player is on a team
-        // if its teamIds includes it OR the legacy teamId matches.
-        const playersByTeam = new Map<string, number>();
-        for (const p of players as any[]) {
-          if (!p || p.isActive === false) continue;
-          const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length > 0
-            ? p.teamIds
-            : (p.teamId ? [p.teamId] : []);
-          for (const t of tIds) playersByTeam.set(t, (playersByTeam.get(t) || 0) + 1);
-        }
+  // Indexes used across tabs.
+  const teamById = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const t of teams) m.set(t.id, t);
+    return m;
+  }, [teams]);
 
-        const now = new Date();
-        const upcomingByTeam = new Map<string, number>();
-        const lastActivityByTeam = new Map<string, Date>();
-        for (const e of events as any[]) {
-          const d = e.date?.toDate ? e.date.toDate() : new Date(e.date);
-          if (d >= now) upcomingByTeam.set(e.teamId, (upcomingByTeam.get(e.teamId) || 0) + 1);
-          const last = lastActivityByTeam.get(e.teamId);
-          if (!last || d > last) lastActivityByTeam.set(e.teamId, d);
-        }
+  const userByUid = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const u of users) {
+      if (u?.uid) m.set(u.uid, u);
+      else if (u?.id) m.set(u.id, u);
+    }
+    return m;
+  }, [users]);
 
-        // Coach name lookup so we can label rows with the head coach.
-        const names: Record<string, string> = {};
-        for (const u of users as any[]) {
-          if (u?.uid) names[u.uid] = u.name || u.email || u.uid;
-          else if (u?.id) names[u.id] = u.name || u.email || u.id;
-        }
-        setCoachNamesByUid(names);
+  const playerTeamIds = (p: any): string[] =>
+    Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds : (p.teamId ? [p.teamId] : []);
 
-        const built: ClubTeamRow[] = (teams as any[])
-          .filter((t) => t && t.id)
-          .map((t) => ({
-            id: t.id,
-            name: t.name || 'Untitled team',
-            ageGroup: t.ageGroup,
-            season: t.season,
-            league: t.league,
-            homeField: t.homeField,
-            headCoachId: t.headCoachId,
-            coachIds: Array.isArray(t.coachIds) ? t.coachIds : [],
-            playerCount: playersByTeam.get(t.id) || 0,
-            upcomingEventCount: upcomingByTeam.get(t.id) || 0,
-            lastActivity: lastActivityByTeam.get(t.id),
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        setRows(built);
-      } catch (err) {
-        console.error('[club] load failed', err);
-      } finally {
-        setLoading(false);
+  // Per-team stats used in overview + stats tabs.
+  const teamStats = useMemo(() => {
+    const out: Record<string, { players: number; upcoming: number; goals: number; assists: number; lastActivity?: Date }> = {};
+    for (const t of teams) out[t.id] = { players: 0, upcoming: 0, goals: 0, assists: 0 };
+    const now = new Date();
+    for (const p of players) {
+      const tIds = playerTeamIds(p);
+      for (const id of tIds) {
+        if (!out[id]) continue;
+        out[id].players += 1;
+        out[id].goals += p.stats?.goals || 0;
+        out[id].assists += p.stats?.assists || 0;
       }
-    })();
-    return () => { cancelled = true; };
-  }, [allowed, getDocuments]);
+    }
+    for (const ev of events) {
+      if (!out[ev.teamId]) continue;
+      const d = ev.date instanceof Date ? ev.date : new Date(ev.date);
+      if (d >= now) out[ev.teamId].upcoming += 1;
+      const cur = out[ev.teamId].lastActivity;
+      if (!cur || d > cur) out[ev.teamId].lastActivity = d;
+    }
+    return out;
+  }, [teams, players, events]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      r.name.toLowerCase().includes(q) ||
-      (r.ageGroup || '').toLowerCase().includes(q) ||
-      (r.league || '').toLowerCase().includes(q)
-    );
-  }, [rows, search]);
-
-  const totals = useMemo(() => ({
-    teams: rows.length,
-    players: rows.reduce((s, r) => s + r.playerCount, 0),
-    upcoming: rows.reduce((s, r) => s + r.upcomingEventCount, 0),
-  }), [rows]);
+  // Members (with team-resolved teamIds) for broadcast recipients.
+  const members = useMemo(() => {
+    return users
+      .map((u: any) => {
+        const uid = u.uid || u.id;
+        if (!uid) return null;
+        const teamIds: string[] = Array.isArray(u.teamIds) && u.teamIds.length > 0
+          ? u.teamIds
+          : (u.teamId ? [u.teamId] : []);
+        return {
+          uid,
+          name: u.name || u.email || 'Member',
+          email: (u.email || '').trim() || undefined,
+          role: u.role,
+          teamIds,
+        };
+      })
+      .filter(Boolean) as any[];
+  }, [users]);
 
   const goToTeam = (id: string) => {
     setSelectedTeamId(id);
@@ -146,8 +150,7 @@ const ClubOverview: React.FC = () => {
             <div className="text-4xl mb-2">🔒</div>
             <p className="font-bold text-gray-900">Club admin only</p>
             <p className="text-sm text-gray-500 mt-1">
-              This area is for users designated as club admins. Ask your club admin to
-              flip <code className="bg-gray-100 px-1 rounded text-xs">isClubAdmin</code> on
+              Ask your club admin to flip <code className="bg-gray-100 px-1 rounded text-xs">isClubAdmin</code> on
               your user record to gain access.
             </p>
           </div>
@@ -159,117 +162,572 @@ const ClubOverview: React.FC = () => {
   return (
     <div>
       <Header
-        title="Club overview"
-        subtitle={`${totals.teams} team${totals.teams === 1 ? '' : 's'} · ${totals.players} player${totals.players === 1 ? '' : 's'} · ${totals.upcoming} upcoming event${totals.upcoming === 1 ? '' : 's'}`}
+        title="Club admin"
+        subtitle={`${teams.length} team${teams.length === 1 ? '' : 's'} · ${players.length} player${players.length === 1 ? '' : 's'} · ${users.length} member${users.length === 1 ? '' : 's'}`}
       />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        {/* Search + summary tiles */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search teams, age groups, leagues…"
-            className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-[15px]"
-            style={{ fontSize: '16px' }}
-          />
-          <div className="grid grid-cols-3 gap-2 sm:w-auto">
-            <ClubSummaryStat label="Teams" value={totals.teams} />
-            <ClubSummaryStat label="Players" value={totals.players} />
-            <ClubSummaryStat label="Upcoming" value={totals.upcoming} />
-          </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+        {/* Top action bar */}
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setBroadcastOpen(true)}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-xl text-sm shadow-sm"
+          >
+            📣 Broadcast
+          </button>
         </div>
 
-        {/* Teams list */}
-        <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-bold text-fire-950">All teams</h2>
-            <span className="text-xs text-gray-500">
-              {filtered.length === rows.length ? `${rows.length} total` : `${filtered.length} of ${rows.length}`}
-            </span>
-          </div>
-          {loading ? (
-            <div className="p-8 text-center text-sm text-gray-500">Loading teams…</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-500">
-              {rows.length === 0 ? 'No teams in the club yet.' : 'No teams match that search.'}
-            </div>
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {filtered.map((r) => {
-                const headCoachName = r.headCoachId ? coachNamesByUid[r.headCoachId] : undefined;
-                return (
-                  <li key={r.id}>
-                    <button
-                      onClick={() => goToTeam(r.id)}
-                      className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition"
-                    >
-                      <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
-                        {r.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-fire-950 truncate">{r.name}</span>
-                          {r.ageGroup && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
-                              {r.ageGroup}
-                            </span>
-                          )}
-                          {r.league && (
-                            <span className="text-[10px] text-gray-500">{r.league}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">
-                          {r.playerCount} player{r.playerCount === 1 ? '' : 's'}
-                          {headCoachName ? ` · Head coach: ${headCoachName}` : ''}
-                          {r.upcomingEventCount > 0 ? ` · ${r.upcomingEventCount} upcoming` : ''}
-                        </p>
-                      </div>
-                      <svg className="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        {/* Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1">
+          {([
+            { k: 'overview', label: 'Overview' },
+            { k: 'players', label: 'Players' },
+            { k: 'coaches', label: 'Coaches' },
+            { k: 'calendar', label: 'Calendar' },
+            { k: 'stats', label: 'Stats' },
+          ] as { k: TabKey; label: string }[]).map((t) => (
+            <button
+              key={t.k}
+              onClick={() => setTab(t.k)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition ${
+                tab === t.k
+                  ? 'bg-fire-900 text-white shadow-sm'
+                  : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        {/* Club operations — links to the existing per-team management page
-            for now. Cross-team transfer / broadcast lands here later. */}
-        <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100">
-            <h2 className="font-bold text-fire-950">Club operations</h2>
-            <p className="text-xs text-gray-500">Cross-team admin actions</p>
+        {loading ? (
+          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-8 text-center text-sm text-gray-500">
+            Loading club data…
           </div>
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              onClick={() => navigate('/teams')}
-              className="text-left p-4 rounded-xl ring-1 ring-gray-200 hover:bg-cyan-50/60 hover:ring-cyan-300 transition"
-            >
-              <p className="font-bold text-fire-950">Share or move a player</p>
-              <p className="text-xs text-gray-500 mt-0.5">Roster a player on multiple teams or transfer them between teams.</p>
-            </button>
-            <button
-              onClick={() => navigate('/teams')}
-              className="text-left p-4 rounded-xl ring-1 ring-gray-200 hover:bg-emerald-50/60 hover:ring-emerald-300 transition"
-            >
-              <p className="font-bold text-fire-950">Invite a coach</p>
-              <p className="text-xs text-gray-500 mt-0.5">Add a coach to any team via email link.</p>
-            </button>
-          </div>
+        ) : (
+          <>
+            {tab === 'overview' && (
+              <OverviewTab
+                teams={teams}
+                teamStats={teamStats}
+                coachNameByUid={(uid: string) => userByUid.get(uid)?.name || ''}
+                search={search}
+                setSearch={setSearch}
+                onTeamClick={goToTeam}
+              />
+            )}
+            {tab === 'players' && (
+              <PlayersTab
+                players={players}
+                teams={teams}
+                teamById={teamById}
+                userByUid={userByUid}
+                search={search}
+                setSearch={setSearch}
+                onTransfer={(p) => setTransferPlayer(p)}
+              />
+            )}
+            {tab === 'coaches' && (
+              <CoachesTab
+                users={users}
+                teams={teams}
+                teamById={teamById}
+                search={search}
+                setSearch={setSearch}
+              />
+            )}
+            {tab === 'calendar' && (
+              <CalendarTab events={events} teamById={teamById} />
+            )}
+            {tab === 'stats' && (
+              <StatsTab players={players} teams={teams} teamStats={teamStats} />
+            )}
+          </>
+        )}
+      </div>
+
+      <TransferPlayerModal
+        isOpen={!!transferPlayer}
+        onClose={() => setTransferPlayer(null)}
+        player={transferPlayer}
+        teams={teams.map((t) => ({ id: t.id, name: t.name || 'Team', ageGroup: t.ageGroup }))}
+        onTransferred={reload}
+      />
+
+      <BroadcastModal
+        isOpen={broadcastOpen}
+        onClose={() => setBroadcastOpen(false)}
+        teams={teams.map((t) => ({ id: t.id, name: t.name || 'Team' }))}
+        members={members}
+      />
+    </div>
+  );
+};
+
+// ===========================================================================
+// Tabs
+// ===========================================================================
+
+const OverviewTab: React.FC<{
+  teams: any[];
+  teamStats: any;
+  coachNameByUid: (uid: string) => string;
+  search: string;
+  setSearch: (s: string) => void;
+  onTeamClick: (id: string) => void;
+}> = ({ teams, teamStats, coachNameByUid, search, setSearch, onTeamClick }) => {
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return teams
+      .filter((t) => !q || (t.name || '').toLowerCase().includes(q) || (t.ageGroup || '').toLowerCase().includes(q))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [teams, search]);
+
+  return (
+    <div className="space-y-3">
+      <SearchBar value={search} onChange={setSearch} placeholder="Search teams…" />
+      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-bold text-fire-950">All teams</h2>
+          <span className="text-xs text-gray-500">
+            {filtered.length === teams.length ? `${teams.length} total` : `${filtered.length} of ${teams.length}`}
+          </span>
         </div>
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-500">No teams match.</div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {filtered.map((t) => {
+              const s = teamStats[t.id] || { players: 0, upcoming: 0 };
+              const headCoach = t.headCoachId ? coachNameByUid(t.headCoachId) : '';
+              return (
+                <li key={t.id}>
+                  <button
+                    onClick={() => onTeamClick(t.id)}
+                    className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition"
+                  >
+                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                      {(t.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-fire-950 truncate">{t.name || 'Untitled team'}</span>
+                        {t.ageGroup && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                            {t.ageGroup}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 truncate mt-0.5">
+                        {s.players} player{s.players === 1 ? '' : 's'}
+                        {headCoach ? ` · Head coach: ${headCoach}` : ''}
+                        {s.upcoming > 0 ? ` · ${s.upcoming} upcoming` : ''}
+                      </p>
+                    </div>
+                    <svg className="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );
 };
 
-const ClubSummaryStat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="bg-white rounded-xl ring-1 ring-gray-200 px-3 py-2 text-center">
-    <div className="text-xl font-black text-fire-950 leading-tight">{value}</div>
-    <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500">{label}</div>
+const PlayersTab: React.FC<{
+  players: any[];
+  teams: any[];
+  teamById: Map<string, any>;
+  userByUid: Map<string, any>;
+  search: string;
+  setSearch: (s: string) => void;
+  onTransfer: (p: any) => void;
+}> = ({ players, teams, teamById, userByUid, search, setSearch, onTransfer }) => {
+  const [teamFilter, setTeamFilter] = useState<string>('');
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return players
+      .filter((p) => {
+        if (teamFilter) {
+          const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds : (p.teamId ? [p.teamId] : []);
+          if (!tIds.includes(teamFilter)) return false;
+        }
+        if (!q) return true;
+        if ((p.name || '').toLowerCase().includes(q)) return true;
+        if ((Array.isArray(p.positions) ? p.positions : (p.position ? [p.position] : [])).join(' ').toLowerCase().includes(q)) return true;
+        return false;
+      })
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [players, search, teamFilter]);
+
+  return (
+    <div className="space-y-3">
+      <SearchBar value={search} onChange={setSearch} placeholder="Search players by name or position…" />
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+        <FilterChip active={!teamFilter} onClick={() => setTeamFilter('')}>All teams</FilterChip>
+        {teams.map((t) => (
+          <FilterChip key={t.id} active={teamFilter === t.id} onClick={() => setTeamFilter(t.id)}>{t.name}</FilterChip>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-bold text-fire-950">Roster pool</h2>
+          <span className="text-xs text-gray-500">{filtered.length} player{filtered.length === 1 ? '' : 's'}</span>
+        </div>
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-500">No players match.</div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {filtered.map((p) => {
+              const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds : (p.teamId ? [p.teamId] : []);
+              const teamLabels = tIds.map((id) => teamById.get(id)?.name || '').filter(Boolean);
+              const parentIds: string[] = Array.isArray(p.parentIds) ? p.parentIds : (p.parentId ? [p.parentId] : []);
+              const parentNames = parentIds.map((u) => userByUid.get(u)?.name).filter(Boolean);
+              return (
+                <li key={p.id} className="px-5 py-3 flex items-center gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-bold shadow-sm">
+                    {p.profilePhotoUrl ? (
+                      <img src={p.profilePhotoUrl} alt={p.name} className="w-full h-full object-cover rounded-full" loading="lazy" />
+                    ) : (
+                      (p.name || '?').charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-fire-950 truncate">
+                        {p.jerseyNumber != null ? `#${p.jerseyNumber} ` : ''}{p.name || 'Player'}
+                      </span>
+                      {getPlayerPositionsLabel(p) && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {getPlayerPositionsLabel(p)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {teamLabels.length === 0 ? 'No team' : teamLabels.join(' · ')}
+                      {parentNames.length > 0 ? ` · ${parentNames.join(', ')}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Link
+                      to={`/player/${p.id}`}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-full ring-1 ring-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      View
+                    </Link>
+                    <button
+                      onClick={() => onTransfer(p)}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                    >
+                      Move
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const CoachesTab: React.FC<{
+  users: any[];
+  teams: any[];
+  teamById: Map<string, any>;
+  search: string;
+  setSearch: (s: string) => void;
+}> = ({ users, teams, teamById, search, setSearch }) => {
+  const coaches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return users
+      .filter((u) => u && (u.role === 'coach' || u.role === 'team_manager'))
+      .filter((u) => !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [users, search]);
+
+  return (
+    <div className="space-y-3">
+      <SearchBar value={search} onChange={setSearch} placeholder="Search coaches by name or email…" />
+      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-bold text-fire-950">All coaches</h2>
+          <span className="text-xs text-gray-500">{coaches.length} coach{coaches.length === 1 ? '' : 'es'}</span>
+        </div>
+        {coaches.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-500">No coaches found.</div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {coaches.map((u: any) => {
+              const tIds: string[] = Array.isArray(u.teamIds) && u.teamIds.length > 0 ? u.teamIds : (u.teamId ? [u.teamId] : []);
+              const teamLabels = tIds.map((id) => teamById.get(id)?.name || '').filter(Boolean);
+              const isHead = teams.some((t) => t.headCoachId === (u.uid || u.id));
+              const isClub = !!u.isClubAdmin;
+              return (
+                <li key={u.uid || u.id} className="px-5 py-3 flex items-center gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 text-white flex items-center justify-center font-bold shadow-sm">
+                    {(u.name || u.email || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-fire-950 truncate">{u.name || u.email}</span>
+                      {isClub && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700 bg-violet-50 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">
+                          Club admin
+                        </span>
+                      )}
+                      {isHead && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">
+                          Head coach
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {u.email}{teamLabels.length > 0 ? ` · ${teamLabels.join(' · ')}` : ' · Not on any team'}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const CalendarTab: React.FC<{
+  events: any[];
+  teamById: Map<string, any>;
+}> = ({ events, teamById }) => {
+  const [teamFilter, setTeamFilter] = useState<string>('');
+  const teamOptions = useMemo(() => Array.from(teamById.values()), [teamById]);
+  const upcoming = useMemo(() => {
+    const now = new Date();
+    return events
+      .filter((e) => (teamFilter ? e.teamId === teamFilter : true))
+      .filter((e) => (e.date instanceof Date ? e.date : new Date(e.date)) >= now)
+      .sort((a, b) => (new Date(a.date)).getTime() - (new Date(b.date)).getTime())
+      .slice(0, 50);
+  }, [events, teamFilter]);
+
+  const teamColor = (id: string): string => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    const palette = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-violet-500', 'bg-blue-500', 'bg-teal-500', 'bg-fuchsia-500'];
+    return palette[h % palette.length];
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+        <FilterChip active={!teamFilter} onClick={() => setTeamFilter('')}>All teams</FilterChip>
+        {teamOptions.map((t: any) => (
+          <FilterChip key={t.id} active={teamFilter === t.id} onClick={() => setTeamFilter(t.id)}>{t.name}</FilterChip>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-bold text-fire-950">Upcoming across the club</h2>
+          <span className="text-xs text-gray-500">{upcoming.length} event{upcoming.length === 1 ? '' : 's'}</span>
+        </div>
+        {upcoming.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-500">No upcoming events.</div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {upcoming.map((ev: any) => {
+              const t = teamById.get(ev.teamId);
+              return (
+                <li key={ev.id} className="px-5 py-3 flex items-center gap-3">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${teamColor(ev.teamId || '')} text-white flex items-center justify-center font-bold shadow-sm`}>
+                    {ev.type === 'game' ? '⚽' : ev.type === 'practice' ? '🏃' : '📅'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-fire-950 truncate">{ev.title || 'Event'}</span>
+                      {t && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {t.name}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                        {ev.type}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {formatDateTime(ev.date)}{ev.location ? ` · ${ev.location}` : ''}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const StatsTab: React.FC<{
+  players: any[];
+  teams: any[];
+  teamStats: any;
+}> = ({ players, teams, teamStats }) => {
+  const totals = useMemo(() => {
+    let goals = 0, assists = 0, games = 0, saves = 0;
+    for (const p of players) {
+      goals += p.stats?.goals || 0;
+      assists += p.stats?.assists || 0;
+      games = Math.max(games, p.stats?.gamesPlayed || 0);
+      saves += p.stats?.saves || 0;
+    }
+    return { goals, assists, games, saves };
+  }, [players]);
+
+  const teamLeaders = useMemo(() => {
+    return [...teams].sort((a, b) => (teamStats[b.id]?.goals || 0) - (teamStats[a.id]?.goals || 0));
+  }, [teams, teamStats]);
+
+  const topScorers = useMemo(() =>
+    [...players]
+      .filter((p) => (p.stats?.goals || 0) > 0)
+      .sort((a, b) => (b.stats?.goals || 0) - (a.stats?.goals || 0))
+      .slice(0, 10), [players]);
+
+  const topAssisters = useMemo(() =>
+    [...players]
+      .filter((p) => (p.stats?.assists || 0) > 0)
+      .sort((a, b) => (b.stats?.assists || 0) - (a.stats?.assists || 0))
+      .slice(0, 10), [players]);
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <BigStat icon="⚽" label="Total goals" value={totals.goals} accent="emerald" />
+        <BigStat icon="🎯" label="Total assists" value={totals.assists} accent="cyan" />
+        <BigStat icon="🛡️" label="Total saves" value={totals.saves} accent="amber" />
+        <BigStat icon="👥" label="Total players" value={players.length} accent="violet" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <LeaderboardCard title="🥇 Top scorers (club-wide)" rows={topScorers.map((p) => ({
+          name: p.name, sub: teamLabel(p, teams), value: p.stats?.goals || 0, photoUrl: p.profilePhotoUrl, id: p.id,
+        }))} />
+        <LeaderboardCard title="🎯 Top assist providers" rows={topAssisters.map((p) => ({
+          name: p.name, sub: teamLabel(p, teams), value: p.stats?.assists || 0, photoUrl: p.profilePhotoUrl, id: p.id,
+        }))} />
+      </div>
+
+      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h2 className="font-bold text-fire-950">Team leaderboard</h2>
+          <p className="text-xs text-gray-500">Ranked by goals scored</p>
+        </div>
+        <ul className="divide-y divide-gray-100">
+          {teamLeaders.map((t, i) => {
+            const s = teamStats[t.id] || { players: 0, goals: 0, assists: 0 };
+            return (
+              <li key={t.id} className="px-5 py-3 flex items-center gap-3">
+                <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 font-bold flex items-center justify-center text-sm">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 truncate">{t.name}</p>
+                  <p className="text-xs text-gray-500">{s.players} player{s.players === 1 ? '' : 's'} · {s.assists} assists</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-emerald-700 leading-tight">{s.goals}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">goals</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+// ===========================================================================
+// Small shared bits
+// ===========================================================================
+
+const SearchBar: React.FC<{ value: string; onChange: (v: string) => void; placeholder?: string }> = ({ value, onChange, placeholder }) => (
+  <input
+    type="text"
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder={placeholder}
+    className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-[15px]"
+    style={{ fontSize: '16px' }}
+  />
+);
+
+const FilterChip: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap ring-1 transition ${
+      active ? 'bg-cyan-600 text-white ring-cyan-600' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
+    }`}
+  >
+    {children}
+  </button>
+);
+
+const BigStat: React.FC<{ icon: string; label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ icon, label, value, accent }) => {
+  const accents: Record<string, string> = {
+    emerald: 'text-emerald-700 bg-emerald-50 ring-emerald-100',
+    cyan: 'text-cyan-700 bg-cyan-50 ring-cyan-100',
+    amber: 'text-amber-700 bg-amber-50 ring-amber-100',
+    violet: 'text-violet-700 bg-violet-50 ring-violet-100',
+  };
+  return (
+    <div className={`rounded-2xl px-4 py-3 ring-1 ${accents[accent]}`}>
+      <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">{label}</div>
+      <div className="text-2xl sm:text-3xl font-black leading-tight mt-0.5">{icon} {value}</div>
+    </div>
+  );
+};
+
+const LeaderboardCard: React.FC<{ title: string; rows: { id: string; name: string; sub: string; value: number; photoUrl?: string }[] }> = ({ title, rows }) => (
+  <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+    <div className="px-5 py-3 border-b border-gray-100">
+      <h3 className="font-bold text-fire-950">{title}</h3>
+    </div>
+    {rows.length === 0 ? (
+      <div className="p-6 text-center text-sm text-gray-500">No data yet.</div>
+    ) : (
+      <ul className="divide-y divide-gray-100">
+        {rows.map((r, i) => (
+          <li key={r.id}>
+            <Link to={`/player/${r.id}`} className="px-5 py-2.5 flex items-center gap-3 hover:bg-gray-50">
+              <div className={`w-7 h-7 rounded-full text-sm font-black flex items-center justify-center ${
+                i === 0 ? 'bg-amber-100 text-amber-800' : i === 1 ? 'bg-gray-200 text-gray-700' : i === 2 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {i + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 truncate">{r.name}</p>
+                <p className="text-xs text-gray-500 truncate">{r.sub}</p>
+              </div>
+              <div className="font-black text-fire-950">{r.value}</div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    )}
   </div>
 );
+
+function teamLabel(player: any, teams: any[]): string {
+  const tIds: string[] = Array.isArray(player.teamIds) && player.teamIds.length > 0 ? player.teamIds : (player.teamId ? [player.teamId] : []);
+  return tIds.map((id) => teams.find((t) => t.id === id)?.name || '').filter(Boolean).join(' · ');
+}
 
 export default ClubOverview;

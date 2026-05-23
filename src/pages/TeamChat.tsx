@@ -58,6 +58,12 @@ const TeamChat: React.FC = () => {
   // scroll to the bottom. On subsequent renders for the same thread,
   // we only smooth-scroll if the user was already at the bottom.
   const anchoredThreadIdRef = useRef<string | null>(null);
+  // Timestamp (epoch ms) marking the end of the "initial load" window
+  // after a thread opens. During this window we IGNORE onScroll
+  // events (iOS WebKit's automatic scroll anchoring fires synthetic
+  // scrolls as images load, which would otherwise flip isAtBottomRef
+  // to false and strand the user on whatever image WebKit anchored).
+  const initialLoadUntilRef = useRef<number>(0);
 
   // New thread form
   const [newThread, setNewThread] = useState<{
@@ -411,37 +417,45 @@ const TeamChat: React.FC = () => {
       scrollToBottom(false);
       isAtBottomRef.current = true;
       anchoredThreadIdRef.current = selectedThread.id;
+      // 1.5s window during which we suppress onScroll updates. Long
+      // enough for most images/GIFs to load and trigger their
+      // layout-shift reflows; short enough that an active user
+      // scrolling within ~1.5s of opening isn't ignored forever.
+      initialLoadUntilRef.current = Date.now() + 1500;
     } else if (isAtBottomRef.current) {
       scrollToBottom(true);
     }
   }, [selectedThread, messages]);
 
   // When images / GIFs inside the thread finish loading, the messages
-  // list gets taller. If the user was anchored to the bottom, re-pin
-  // them. ResizeObserver fires on every layout change of the
-  // container's content.
+  // list gets taller. ResizeObserver fires on every layout change of
+  // the container's content. During the initial-load window we ALWAYS
+  // re-pin (regardless of isAtBottomRef) so iOS's scroll-anchoring
+  // chaos can't strand the user mid-thread; after that window we only
+  // re-pin if the user is still at the bottom.
   useEffect(() => {
     const c = messagesContainerRef.current;
     if (!c || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => {
-      if (isAtBottomRef.current) {
+      const inInitialLoad = Date.now() < initialLoadUntilRef.current;
+      if (inInitialLoad || isAtBottomRef.current) {
         c.scrollTop = c.scrollHeight;
       }
     });
-    // Observe the inner content (first child of the scroll container).
     if (c.firstElementChild) ro.observe(c.firstElementChild);
     return () => ro.disconnect();
   }, [selectedThread?.id]);
 
   // Track whether the user is at the bottom of the thread so the
-  // effects above know whether to auto-scroll.
+  // effects above know whether to auto-scroll. IGNORE scrolls during
+  // the initial-load window — iOS WebKit fires synthetic scrolls
+  // (its own scroll anchoring) as images load, and those would
+  // otherwise flip the flag and strand the user mid-thread.
   const handleScroll = () => {
+    if (Date.now() < initialLoadUntilRef.current) return;
     const c = messagesContainerRef.current;
     if (!c) return;
     const distFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
-    // 80px slop — small enough that "near-bottom" still feels like
-    // "I'm reading the latest", big enough that minor layout shifts
-    // don't flip the flag.
     isAtBottomRef.current = distFromBottom < 80;
   };
 
@@ -1125,8 +1139,15 @@ const TeamChat: React.FC = () => {
               <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
-                style={{ overscrollBehavior: 'contain' }}
+                className="flex-1 min-h-0 overflow-y-auto p-4"
+                style={{
+                  overscrollBehavior: 'contain',
+                  // Disable browser's automatic scroll anchoring —
+                  // otherwise iOS picks some random visible image to
+                  // anchor on as the list reflows, jumping the user
+                  // to whichever image just had a layout change.
+                  overflowAnchor: 'none' as any,
+                }}
               >
                 {/* Inner wrapper so ResizeObserver has a stable child
                     to observe — its height changes as images load. */}
@@ -1494,7 +1515,7 @@ const TeamChat: React.FC = () => {
               ref={messagesContainerRef}
               onScroll={handleScroll}
               className="flex-1 min-h-0 overflow-y-auto p-4"
-              style={{ overscrollBehavior: 'contain' }}
+              style={{ overscrollBehavior: 'contain', overflowAnchor: 'none' as any }}
             >
               <div className="space-y-4">
               {messages.map((message, idx) => {

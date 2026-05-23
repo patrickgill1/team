@@ -36,6 +36,10 @@ interface LiveGameDoc {
   teamId: string;
   opponent: string;
   homeAway?: 'home' | 'away';
+  /** Match format: 7v7 / 9v9 / 11v11. Drives formation field sizing
+   *  + default position templates. Defaults to the team's format,
+   *  fallback '7v7'. */
+  format?: '7v7' | '9v9' | '11v11';
   ourScore: number;
   oppScore: number;
   status: 'scheduled' | 'live' | 'halftime' | 'final';
@@ -52,6 +56,10 @@ interface LiveGameDoc {
 interface OnFieldSlot {
   playerId: string;
   enteredAtSec: number; // game-clock seconds when this player came on
+  /** Position on the formation field as % of width/height. Optional —
+   *  falls back to the format's default template when unset. */
+  x?: number;
+  y?: number;
 }
 
 interface LineupState {
@@ -177,11 +185,20 @@ const GameDay: React.FC = () => {
     // Use { merge: true } so repeated calls (e.g. when patch() calls
     // ensureGameDoc again before the snapshot listener has populated
     // local `game` state) don't blow away any in-progress writes.
+    // Pull the team's standard format if one is set on the team doc;
+    // otherwise default to 7v7 (most common in youth soccer).
+    let format: '7v7' | '9v9' | '11v11' = '7v7';
+    try {
+      const teamDoc = await getDoc(doc(db, 'teams', event.teamId));
+      const f = (teamDoc.exists() && (teamDoc.data() as any).format) || '7v7';
+      if (f === '7v7' || f === '9v9' || f === '11v11') format = f;
+    } catch {}
     const initial: LiveGameDoc = {
       eventId,
       teamId: event.teamId,
       opponent: event.opponent || 'Opponent',
       homeAway: event.homeAway,
+      format,
       ourScore: 0,
       oppScore: 0,
       status: 'scheduled',
@@ -589,13 +606,53 @@ const GameDay: React.FC = () => {
           />
         )}
 
-        {/* Formation visualization — shows where the on-field players
-            are arranged. Auto-grouped by their declared positions; for
-            quickly showing parents pre-game or sharing the lineup. */}
+        {/* Formation visualization — players auto-place to a slot
+            template based on the format (7v7 / 9v9 / 11v11). Coaches
+            can drag any chip to override its position; changes persist
+            on the lineup. */}
         {status !== 'final' && lineup.onField.length > 0 && (
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-white/40 mb-2">Formation</h3>
-            <FormationView players={players} onFieldIds={lineup.onField.map(s => s.playerId)} />
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs uppercase tracking-wider text-white/40">Formation</h3>
+              {isUserCoach && (
+                <div className="inline-flex items-center bg-white/5 ring-1 ring-white/15 rounded-full p-0.5">
+                  {(['7v7', '9v9', '11v11'] as const).map((f) => {
+                    const active = (game?.format || '7v7') === f;
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => patch({ format: f })}
+                        className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full transition ${
+                          active ? 'bg-white text-fire-900 shadow' : 'text-white/70 hover:text-white'
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <FormationView
+              players={players}
+              onFieldIds={lineup.onField.map(s => s.playerId)}
+              positions={Object.fromEntries(
+                lineup.onField
+                  .filter(s => s.x != null && s.y != null)
+                  .map(s => [s.playerId, { x: s.x as number, y: s.y as number }]),
+              )}
+              format={game?.format || '7v7'}
+              onMove={async (playerId, x, y) => {
+                if (!isUserCoach) return;
+                const next: LineupState = {
+                  ...lineup,
+                  onField: lineup.onField.map(s =>
+                    s.playerId === playerId ? { ...s, x, y } : s
+                  ),
+                };
+                await persistLineup(next);
+              }}
+            />
           </section>
         )}
 

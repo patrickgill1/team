@@ -248,6 +248,8 @@ export interface Photo {
   createdAt: Date;
 }
 
+export type GameFormat = '7v7' | '9v9' | '11v11';
+
 export interface Team {
   id: string;
   name: string;
@@ -262,6 +264,9 @@ export interface Team {
   ageGroup: string;
   league?: string;
   homeField?: string;
+  /** Standard match format — used to size the field + decide how many
+   *  players auto-place into the lineup. Defaults to '7v7' if unset. */
+  format?: GameFormat;
   createdAt: Date;
   updatedAt?: Date;
 }

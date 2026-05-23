@@ -30,6 +30,7 @@ const TeamManagement: React.FC = () => {
   const [teamAgeGroup, setTeamAgeGroup] = useState('');
   const [teamLeague, setTeamLeague] = useState('');
   const [teamHomeField, setTeamHomeField] = useState('');
+  const [teamFormat, setTeamFormat] = useState<'7v7' | '9v9' | '11v11'>('7v7');
 
   // Coach invite form
   const [inviteEmail, setInviteEmail] = useState('');
@@ -137,6 +138,7 @@ const TeamManagement: React.FC = () => {
         ageGroup: teamAgeGroup.trim(),
         league: teamLeague.trim() || undefined,
         homeField: teamHomeField.trim() || undefined,
+        format: teamFormat,
         updatedAt: new Date(),
       });
 
@@ -170,6 +172,7 @@ const TeamManagement: React.FC = () => {
         ageGroup: teamAgeGroup.trim(),
         league: teamLeague.trim() || undefined,
         homeField: teamHomeField.trim() || undefined,
+        format: teamFormat,
       });
       resetForm();
       setEditingTeam(null);
@@ -357,6 +360,7 @@ const TeamManagement: React.FC = () => {
     setTeamAgeGroup(team.ageGroup);
     setTeamLeague(team.league || '');
     setTeamHomeField(team.homeField || '');
+    setTeamFormat((team as any).format || '7v7');
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -465,6 +469,7 @@ const TeamManagement: React.FC = () => {
     setTeamAgeGroup('');
     setTeamLeague('');
     setTeamHomeField('');
+    setTeamFormat('7v7');
     setEditingTeam(null);
   };
 
@@ -760,6 +765,24 @@ const TeamManagement: React.FC = () => {
                         placeholder="e.g. River Park Field 3"
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Match Format</label>
+                    <div className="inline-flex items-center bg-gray-100 ring-1 ring-gray-200 rounded-full p-0.5">
+                      {(['7v7', '9v9', '11v11'] as const).map((f) => (
+                        <button
+                          type="button"
+                          key={f}
+                          onClick={() => setTeamFormat(f)}
+                          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                            teamFormat === f ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Drives the formation field size + default player positions in the live tracker.</p>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-3 mt-6">

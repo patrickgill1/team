@@ -53,7 +53,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   showActions = true
 }) => {
   const { userData } = useAuth();
-  const { deleteDocument } = useFirestore();
+  const { updateDocument } = useFirestore();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [generatingInvite, setGeneratingInvite] = useState(false);
@@ -87,11 +87,16 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
     setIsDeleting(true);
     try {
-      await deleteDocument('players', player.id);
+      // Soft delete: mark as inactive instead of hard-deleting the doc.
+      // The Players list filters by isActive so the player visually
+      // disappears, but their record + stats + media references are
+      // preserved and can be restored from the Archived view. Prior
+      // hard-delete had no recovery path and silently lost players.
+      await updateDocument('players', player.id, { isActive: false });
       onDelete(player.id);
       setShowDeleteConfirm(false);
     } catch (error) {
-      console.error('Error deleting player:', error);
+      console.error('Error archiving player:', error);
     } finally {
       setIsDeleting(false);
     }
@@ -147,11 +152,12 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 bg-white/10 hover:bg-rose-500/40 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
-              title="Delete Player"
+              className="p-2 bg-white/10 hover:bg-amber-500/40 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+              title="Archive player (preserves stats; can be restored)"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              {/* Archive box icon (less alarming than a trash can) */}
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
               </svg>
             </button>
           </div>
@@ -331,9 +337,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-fire-950 mb-2">Delete Player</h3>
+              <h3 className="text-lg font-semibold text-fire-950 mb-2">Archive Player</h3>
               <p className="text-sm text-gray-500 mb-6">
-                Are you sure you want to delete <strong>{player.name}</strong>? This action cannot be undone and will remove all associated statistics.
+                Archive <strong>{player.name}</strong>? They'll be removed from the active roster but their stats, photos, and history are preserved. You can restore them later from the Archived view.
               </p>
               <div className="flex space-x-3">
                 <button
@@ -351,7 +357,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   {isDeleting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   ) : (
-                    'Delete'
+                    'Archive'
                   )}
                 </button>
               </div>

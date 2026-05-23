@@ -53,6 +53,11 @@ const TeamChat: React.FC = () => {
   // If false, the user has scrolled up to read history — leave them
   // alone.
   const isAtBottomRef = useRef(true);
+  // Tracks the last thread we've INITIALIZED scroll for. On the first
+  // render of a new thread (after its messages arrive), we instant-
+  // scroll to the bottom. On subsequent renders for the same thread,
+  // we only smooth-scroll if the user was already at the bottom.
+  const anchoredThreadIdRef = useRef<string | null>(null);
 
   // New thread form
   const [newThread, setNewThread] = useState<{
@@ -369,6 +374,10 @@ const TeamChat: React.FC = () => {
   // Load messages for selected thread
   useEffect(() => {
     if (selectedThread) {
+      // Clear the previous thread's messages immediately so we don't
+      // briefly render the old thread's data (which would trip the
+      // scroll-anchor effect and leave the user mid-thread).
+      setMessages([]);
       const unsubscribeMessages = subscribeToChatMessages(selectedThread.id, (messagesData) => {
         console.log('Received messages data:', messagesData);
         
@@ -387,30 +396,25 @@ const TeamChat: React.FC = () => {
     }
   }, [selectedThread, subscribeToChatMessages]);
 
-  // On thread open OR when the messages first load for a thread,
-  // jump (NOT smooth-scroll) to the bottom in a useLayoutEffect so it
-  // happens before the first paint. The user lands ON the most recent
-  // messages, not in the middle of the thread.
+  // Single scroll-anchoring effect:
+  //   - First time messages arrive for a given thread → INSTANT jump
+  //     to bottom (no smooth animation). User lands on the newest msg.
+  //   - Subsequent message updates for the same thread → smooth-scroll
+  //     ONLY if the user was already at the bottom. If they've scrolled
+  //     up to read history, leave them alone.
+  // useLayoutEffect ensures the instant jump happens before the
+  // browser paints, so there's no flash of "stuck in middle of thread".
   useLayoutEffect(() => {
     if (!selectedThread || messages.length === 0) return;
-    scrollToBottom(false);
-    isAtBottomRef.current = true;
-  // Re-run when the thread changes OR the first batch of messages
-  // for a thread arrives (length 0 → N).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedThread?.id, messages.length > 0]);
-
-  // After EVERY messages-array update, scroll to bottom ONLY if the
-  // user was already at the bottom. This means:
-  //   - You just sent a message → you stay pinned to it.
-  //   - Someone else sent a message while you were at the bottom → it
-  //     animates in and you stay pinned.
-  //   - You scrolled up to read history → new messages don't yank you
-  //     out of where you were reading.
-  useEffect(() => {
-    if (!selectedThread || messages.length === 0) return;
-    if (isAtBottomRef.current) scrollToBottom(true);
-  }, [messages, selectedThread]);
+    const isNewThread = anchoredThreadIdRef.current !== selectedThread.id;
+    if (isNewThread) {
+      scrollToBottom(false);
+      isAtBottomRef.current = true;
+      anchoredThreadIdRef.current = selectedThread.id;
+    } else if (isAtBottomRef.current) {
+      scrollToBottom(true);
+    }
+  }, [selectedThread, messages]);
 
   // When images / GIFs inside the thread finish loading, the messages
   // list gets taller. If the user was anchored to the bottom, re-pin

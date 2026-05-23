@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ChatMessage } from '../../types';
+import PollCard from './PollCard';
 
 const QUICK_REACTIONS = ['👍', '❤️', '🔥', '⚽', '🏆', '😂', '🙌', '👏'];
 
@@ -20,6 +21,8 @@ interface MessageBubbleProps {
   canPin?: boolean;
   /** Called when the user taps an image attachment — opens the lightbox. */
   onImageClick?: (url: string) => void;
+  /** Called when the user votes on a poll option in this message. */
+  onPollVote?: (messageId: string, optionId: string) => void;
   formatTime: (d: any) => string;
   /** First message from this sender in a run (show avatar + name) */
   isFirstInGroup?: boolean;
@@ -93,6 +96,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isPinned = false,
   canPin = false,
   onImageClick,
+  onPollVote,
   formatTime,
   isFirstInGroup = true,
   isLastInGroup = true,
@@ -216,6 +220,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             }`}
             style={{ wordBreak: 'break-word' }}
             dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, isOwn) }}
+          />
+        )}
+
+        {/* Inline poll card — replaces the standard text bubble when
+            a poll is attached. Renders before image attachments so the
+            poll is the visual centerpiece of the message. */}
+        {message.poll && (
+          <PollCard
+            message={message}
+            currentUserId={currentUserId}
+            ownTheme={isOwn}
+            onVote={(mid, oid) => onPollVote?.(mid, oid)}
           />
         )}
 

@@ -8,6 +8,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
 import MessageComposer, { ComposerAttachment } from '../components/chat/MessageComposer';
+import PollCard from '../components/chat/PollCard';
 
 const TeamChat: React.FC = () => {
   const { userData } = useAuth();
@@ -644,6 +645,71 @@ const TeamChat: React.FC = () => {
     }
   };
 
+  // Send a poll as a chat message. The poll is stored on the message
+  // doc (under `poll`) and rendered inline by PollCard.
+  const sendPoll = async (poll: { question: string; options: string[]; multi: boolean }) => {
+    if (!selectedThread || !userData) return;
+    const opts = poll.options.map((text, i) => ({
+      id: `${Date.now()}-${i}`,
+      text,
+      voters: [] as string[],
+    }));
+    const messageData: any = {
+      threadId: selectedThread.id,
+      content: '',
+      senderId: userData.uid,
+      senderName: userData.name,
+      senderRole: userData.role,
+      timestamp: new Date(),
+      teamId: selectedTeamId,
+      poll: { question: poll.question, options: opts, multi: !!poll.multi },
+    };
+    try {
+      await addChatMessage(messageData);
+      await updateChatThread(selectedThread.id, {
+        lastActivity: new Date(),
+        messageCount: selectedThread.messageCount + 1,
+        participants: Array.from(new Set([...selectedThread.participants, userData.uid])),
+        lastMessage: {
+          content: `📊 ${poll.question}`,
+          senderName: userData.name,
+          timestamp: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error('Poll send failed:', err);
+    }
+  };
+
+  // Cast / toggle a vote on a poll option. Single-choice polls move
+  // the user's vote when they pick a different option; multi-choice
+  // polls toggle membership in each option independently.
+  const voteOnPoll = async (messageId: string, optionId: string) => {
+    if (!userData) return;
+    const msg = messages.find((m) => m.id === messageId);
+    if (!msg || !msg.poll) return;
+    const multi = !!msg.poll.multi;
+    const nextOptions = msg.poll.options.map((o) => {
+      const has = o.voters.includes(userData.uid);
+      if (o.id === optionId) {
+        return { ...o, voters: has ? o.voters.filter((u) => u !== userData.uid) : [...o.voters, userData.uid] };
+      }
+      // For single-choice polls, voting on a different option removes
+      // the user from this one.
+      if (!multi && has) {
+        return { ...o, voters: o.voters.filter((u) => u !== userData.uid) };
+      }
+      return o;
+    });
+    try {
+      await updateDocument('chat_messages', messageId, {
+        'poll.options': nextOptions,
+      });
+    } catch (err) {
+      console.error('Vote failed:', err);
+    }
+  };
+
   // Pin/unpin a message within the active thread. Coaches can pin in
   // team threads; club admins can pin in club-scope channels.
   const togglePinMessage = async (message: ChatMessage) => {
@@ -1235,6 +1301,7 @@ const TeamChat: React.FC = () => {
                         return isUserClubAdmin;
                       })()}
                       onImageClick={(url) => setLightboxUrl(url)}
+                      onPollVote={voteOnPoll}
                       formatTime={formatTime}
                       isFirstInGroup={isFirstInGroup}
                       isLastInGroup={isLastInGroup}
@@ -1258,6 +1325,7 @@ const TeamChat: React.FC = () => {
                 replyingTo={replyingTo}
                 onCancelReply={() => setReplyingTo(null)}
                 onSend={(c, atts) => sendMessage(c, atts)}
+                onSendPoll={sendPoll}
                 rows={2}
                 safeAreaInsetBottom={kbInset === 0}
               />
@@ -1606,6 +1674,7 @@ const TeamChat: React.FC = () => {
                       return isUserClubAdmin;
                     })()}
                     onImageClick={(url) => setLightboxUrl(url)}
+                    onPollVote={voteOnPoll}
                     formatTime={formatTime}
                     isFirstInGroup={isFirstInGroup}
                     isLastInGroup={isLastInGroup}
@@ -1626,6 +1695,7 @@ const TeamChat: React.FC = () => {
                 replyingTo={replyingTo}
                 onCancelReply={() => setReplyingTo(null)}
                 onSend={(c, atts) => sendMessage(c, atts)}
+                onSendPoll={sendPoll}
                 rows={3}
               />
             )}

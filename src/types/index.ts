@@ -310,6 +310,16 @@ export interface ChatMessage {
     userId: string;
     userName: string;
   }[];
+  /** Optional inline poll — when set, the message renders as a poll card
+   *  instead of (or alongside) a text bubble. Each option carries the
+   *  list of user IDs who voted for it. */
+  poll?: {
+    question: string;
+    options: { id: string; text: string; voters: string[] }[];
+    /** If true, voters can pick more than one option. */
+    multi?: boolean;
+    closedAt?: Date | null;
+  };
   isRead?: boolean;
   createdAt: Date;
   updatedAt?: Date;

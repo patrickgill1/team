@@ -64,11 +64,14 @@ const downloadEventIcs = (event: CalendarEvent) => {
 interface CalendarProps {
   viewMode?: 'month' | 'list';
   showCreateButton?: boolean;
+  /** If set, the list view will scroll the matching event card into view. */
+  focusEventId?: string;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ 
+const Calendar: React.FC<CalendarProps> = ({
   viewMode: initialViewMode = 'month',
-  showCreateButton = true 
+  showCreateButton = true,
+  focusEventId,
 }) => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
@@ -116,6 +119,17 @@ const Calendar: React.FC<CalendarProps> = ({
 
     loadEvents();
   }, [selectedTeamId, getDocuments]);
+
+  // When a focusEventId is set in the URL (e.g. coming from the home
+  // hero), scroll the matching event card into view after the list
+  // renders. Wrapped in rAF to wait for the layout pass.
+  useEffect(() => {
+    if (!focusEventId || loading || viewMode !== 'list') return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`event-${focusEventId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [focusEventId, loading, viewMode, events.length]);
 
   const handleEventUpdated = (updatedEvent: CalendarEvent) => {
     console.log('Event updated:', updatedEvent);
@@ -447,18 +461,23 @@ const Calendar: React.FC<CalendarProps> = ({
             ) : (
               <div className="space-y-4">
                 {upcomingEvents.map(event => (
-                  <EventCard
+                  <div
                     key={event.id}
-                    event={event}
-                    onEdit={handleEditEvent}
-                    onDelete={handleDeleteEvent}
-                    onRsvp={handleRsvp}
-                    onAddCarpool={handleAddCarpoolPost}
-                    onDeleteCarpool={handleDeleteCarpoolPost}
-                    userUid={userData?.uid}
-                    canEdit={isUserCoach}
-                    isDeleting={deletingIds.has(event.id)}
-                  />
+                    id={`event-${event.id}`}
+                    className={focusEventId === event.id ? 'ring-2 ring-cyan-400 ring-offset-2 rounded-2xl transition' : ''}
+                  >
+                    <EventCard
+                      event={event}
+                      onEdit={handleEditEvent}
+                      onDelete={handleDeleteEvent}
+                      onRsvp={handleRsvp}
+                      onAddCarpool={handleAddCarpoolPost}
+                      onDeleteCarpool={handleDeleteCarpoolPost}
+                      userUid={userData?.uid}
+                      canEdit={isUserCoach}
+                      isDeleting={deletingIds.has(event.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -881,20 +900,29 @@ const RsvpBar: React.FC<{
       )}
       {showList && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
+          style={{
+            zIndex: 100,
+            paddingTop: 'calc(4rem + env(safe-area-inset-top))',
+            paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))',
+          }}
           onClick={() => setShowList(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-full overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+              <h3 className="font-bold text-gray-900 text-base">
                 {showList === 'going' && `✅ Going (${counts.going})`}
                 {showList === 'maybe' && `🤔 Maybe (${counts.maybe})`}
                 {showList === 'no' && `❌ Can't make it (${counts.no})`}
               </h3>
-              <button onClick={() => setShowList(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+              <button onClick={() => setShowList(null)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             <div className="overflow-y-auto flex-1">
               {entries.filter(e => e.status === showList).length === 0 ? (

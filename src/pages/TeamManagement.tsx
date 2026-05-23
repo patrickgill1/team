@@ -497,49 +497,41 @@ const TeamManagement: React.FC = () => {
               <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Team Management</h1>
               <p className="text-gray-600 mt-1 text-sm lg:text-base">Create teams, invite coaches, and share players</p>
             </div>
-            <div className="flex flex-wrap gap-2 lg:gap-3">
-              <button
+            {/* Unified pill row: secondary actions are neutral white
+                pills with a ring; destructive (End Season) is a subtle
+                rose tint; primary "New Team" gets the brand cyan
+                gradient. Replaces the saturated rainbow of buttons. */}
+            <div className="flex flex-wrap gap-2">
+              <SecondaryAction
+                emoji="👨‍🏫"
+                label="Add Coach to Team"
                 onClick={() => setShowAddCoachToTeamModal(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-              >
-                <span>👨‍🏫</span>
-                <span>Add Coach to Team</span>
-              </button>
-              <button
+              />
+              <SecondaryAction
+                emoji="🔄"
+                label="Share Player"
                 onClick={() => setShowSharePlayerModal(true)}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-              >
-                <span>🔄</span>
-                <span>Share Player</span>
-              </button>
-              <button
+              />
+              <SecondaryAction
+                emoji="✉"
+                label="Invite Coach (email)"
                 onClick={() => setShowInviteCoachModal(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-              >
-                <span>👨‍🏫</span>
-                <span>Invite Coach (email)</span>
-              </button>
-              <button
+              />
+              <SecondaryAction
+                emoji="🔗"
+                label={generatingShareInvite ? '…' : 'Share coach link'}
                 onClick={() => generateShareInvite('assistant_coach')}
                 disabled={generatingShareInvite}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50"
-                title="Generate a share link for an assistant coach"
-              >
-                <span>✉</span>
-                <span>{generatingShareInvite ? '…' : 'Share coach link'}</span>
-              </button>
-              <button
+              />
+              <SecondaryAction
+                emoji="📋"
+                label="Share manager link"
                 onClick={() => generateShareInvite('team_manager')}
                 disabled={generatingShareInvite}
-                className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 disabled:opacity-50"
-                title="Generate a share link for a team manager"
-              >
-                <span>📋</span>
-                <span>Share manager link</span>
-              </button>
+              />
               <button
                 onClick={() => setEndSeasonOpen(true)}
-                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-sm font-semibold transition active:scale-95"
                 title="Archive the active season and pick which players carry over"
               >
                 <span>🏁</span>
@@ -547,10 +539,10 @@ const TeamManagement: React.FC = () => {
               </button>
               <button
                 onClick={() => { resetForm(); setShowCreateModal(true); }}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white text-sm font-semibold shadow-sm transition active:scale-95"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 <span>New Team</span>
               </button>
@@ -1076,5 +1068,21 @@ const TeamManagement: React.FC = () => {
     </div>
   );
 };
+
+const SecondaryAction: React.FC<{
+  emoji: string;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}> = ({ emoji, label, onClick, disabled }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white hover:bg-gray-50 text-gray-700 ring-1 ring-gray-200 hover:ring-gray-300 text-sm font-semibold transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    <span>{emoji}</span>
+    <span>{label}</span>
+  </button>
+);
 
 export default TeamManagement;

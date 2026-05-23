@@ -189,24 +189,28 @@ const Stats: React.FC = () => {
                       View detailed statistics for all players and games
                     </p>
                   </div>
-                  {/* Season scope chip — only shown when there's a season system in place */}
+                  {/* Two-button toggle — matches PlayerProfile so the
+                      app uses one vocabulary for season scope ("This
+                      Season" / "Overall"). Killed the "Current · Legacy"
+                      label which was the auto-named pre-seasons bucket
+                      bleeding into the UI. */}
                   {activeSeason && (
-                    <div className="flex bg-gray-100 rounded-full p-1 ring-1 ring-gray-200">
+                    <div className="inline-flex items-center rounded-full bg-gray-100 ring-1 ring-gray-200 p-0.5">
                       <button
                         onClick={() => setStatsScope('current')}
-                        className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
                           statsScope === 'current' ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
-                        Current · {activeSeason.name}
+                        This Season
                       </button>
                       <button
                         onClick={() => setStatsScope('lifetime')}
-                        className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
                           statsScope === 'lifetime' ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
-                        🏆 Career
+                        Overall
                       </button>
                     </div>
                   )}

@@ -398,9 +398,9 @@ const NextEventHero: React.FC<{
     'from-violet-600 to-fuchsia-700';
   const typeLabel =
     event.type === 'game' ? 'Game' : event.type === 'practice' ? 'Practice' : 'Event';
-  // Tap on the card → calendar (full event details, carpool, etc.).
+  // Tap on the card → calendar list view, scrolled to this event.
   // RSVP buttons stop propagation so they don't fire the navigation.
-  const goToCalendar = () => navigate('/calendar');
+  const goToCalendar = () => navigate(`/calendar?view=list&event=${event.id}`);
   return (
     <section
       onClick={goToCalendar}

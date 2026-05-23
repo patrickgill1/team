@@ -7,6 +7,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
+import GameRecapCard from '../components/gameday/GameRecapCard';
+import FormationView from '../components/gameday/FormationView';
 
 type StatKind = 'goal' | 'owngoal' | 'assist' | 'save' | 'yellow' | 'red' | 'sub' | 'note';
 
@@ -82,7 +84,7 @@ const GameDay: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocument, getPlayersByTeam, addGameStat, updatePlayerStats } = useFirestore();
+  const { getDocument, getPlayersByTeam, addGameStat, updatePlayerStats, addChatMessage, addChatThread, getDocuments } = useFirestore();
   const isQuickGame = !!eventId && eventId.startsWith('quick_');
   const [event, setEvent] = useState<any | null>(null);
   const [game, setGame] = useState<LiveGameDoc | null>(null);
@@ -318,6 +320,51 @@ const GameDay: React.FC = () => {
     await patch(update);
   };
 
+  // Post the recap to the team's chat. Finds an existing thread named
+  // "Game recaps" for this team, or creates one if it doesn't exist,
+  // then drops the recap text as a regular chat message. Lets parents
+  // see/react to recaps inside the app rather than just over share
+  // sheet text.
+  const postRecapToChat = async (text: string) => {
+    if (!userData || !event?.teamId) return;
+    try {
+      const existing: any[] = await getDocuments('chat_threads', []);
+      const RECAP_TITLE = 'Game recaps';
+      let recapThread = (existing || []).find(
+        (t: any) => t.teamId === event.teamId && t.title === RECAP_TITLE
+      );
+      if (!recapThread) {
+        const newId = await addChatThread({
+          title: RECAP_TITLE,
+          description: 'Auto-posted recaps after each finalized game.',
+          teamId: event.teamId,
+          createdBy: userData.uid,
+          createdByName: userData.name,
+          lastActivity: new Date(),
+          isPinned: true,
+          isPrivate: false,
+          messageCount: 0,
+          participants: [userData.uid],
+          tags: ['recap'],
+        } as any);
+        recapThread = { id: newId };
+      }
+      await addChatMessage({
+        threadId: recapThread.id,
+        content: text,
+        senderId: userData.uid,
+        senderName: userData.name,
+        senderRole: userData.role,
+        timestamp: new Date(),
+        teamId: event.teamId,
+      } as any);
+      alert('Recap posted to team chat. (Look in the "Game recaps" thread.)');
+    } catch (err) {
+      console.error('Post recap to chat failed:', err);
+      alert('Could not post the recap. Please try again.');
+    }
+  };
+
   // ─── LINEUP / SUBS ──────────────────────────────────────────────────────
   const lineup: LineupState = game?.lineup || {
     onField: [],
@@ -522,6 +569,29 @@ const GameDay: React.FC = () => {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
+        {/* Recap card — only after the game is finalized. Auto-builds
+            from the timeline + lineup minutes. Share via native share
+            sheet or post directly to a team chat thread. */}
+        {status === 'final' && game && (
+          <GameRecapCard
+            event={event}
+            game={game}
+            teamName={'Fire FC'}
+            players={players}
+            onPostToChat={postRecapToChat}
+          />
+        )}
+
+        {/* Formation visualization — shows where the on-field players
+            are arranged. Auto-grouped by their declared positions; for
+            quickly showing parents pre-game or sharing the lineup. */}
+        {status !== 'final' && lineup.onField.length > 0 && (
+          <section>
+            <h3 className="text-xs uppercase tracking-wider text-white/40 mb-2">Formation</h3>
+            <FormationView players={players} onFieldIds={lineup.onField.map(s => s.playerId)} />
+          </section>
+        )}
+
         {/* Quick action chips (coaches only) */}
         {isUserCoach && status !== 'final' && (
           <section>
@@ -657,7 +727,7 @@ const GameDay: React.FC = () => {
                               {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
                             </span>
                             <span className="flex-1 min-w-0">
-                              <span className="block text-xs font-semibold truncate flex items-center gap-1">
+                              <span className="text-xs font-semibold truncate flex items-center gap-1">
                                 {p.name}
                                 {isNext && <span className="text-[9px] bg-amber-600 px-1 rounded text-white">NEXT</span>}
                               </span>

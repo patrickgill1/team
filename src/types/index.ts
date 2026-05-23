@@ -315,11 +315,20 @@ export interface ChatMessage {
   updatedAt?: Date;
 }
 
+export type ChatScope = 'team' | 'club' | 'coaches' | 'admins';
+
 export interface ChatThread {
   id: string;
   title: string;
   description?: string;
   teamId: string;
+  /** Visibility scope:
+   *   - 'team' (default): only members of teamId can see + post.
+   *   - 'club': everyone in the club. teamId is irrelevant.
+   *   - 'coaches': coaches + team_managers across the entire club.
+   *   - 'admins': club admins only.
+   *  Created by club admins for the non-team scopes. */
+  scope?: ChatScope;
   createdBy: string;
   createdByName: string;
   createdAt: Date;

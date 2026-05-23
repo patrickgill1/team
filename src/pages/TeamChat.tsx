@@ -18,6 +18,7 @@ const TeamChat: React.FC = () => {
     updateChatThread,
     addChatMessage,
     subscribeToChatThreads,
+    subscribeToClubChatThreads,
     subscribeToChatMessages,
     updateDocument,
     deleteDocument,
@@ -27,7 +28,11 @@ const TeamChat: React.FC = () => {
   
   // Simple mobile-first state management
   const [currentView, setCurrentView] = useState<'threads' | 'chat'>('threads');
-  const [threads, setThreads] = useState<ChatThread[]>([]);
+  // Team-scoped threads (the active team's chats + DMs) and club-scoped
+  // threads (visible regardless of which team is selected). Kept in
+  // separate state slots; combined via the `threads` memo below.
+  const [teamThreads, setTeamThreads] = useState<ChatThread[]>([]);
+  const [clubThreads, setClubThreads] = useState<ChatThread[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
   const [isCreatingThread, setIsCreatingThread] = useState(false);
@@ -43,11 +48,18 @@ const TeamChat: React.FC = () => {
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
   // New thread form
-  const [newThread, setNewThread] = useState({
+  const [newThread, setNewThread] = useState<{
+    title: string;
+    description: string;
+    isPrivate: boolean;
+    scope: 'team' | 'club' | 'coaches' | 'admins';
+    tags: string[];
+  }>({
     title: '',
     description: '',
     isPrivate: false,
-    tags: [] as string[]
+    scope: 'team',
+    tags: [],
   });
 
   // Direct-message picker state
@@ -59,6 +71,7 @@ const TeamChat: React.FC = () => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const isCoach = userData?.role === 'coach';
+  const isUserClubAdmin = !!(userData as any)?.isClubAdmin;
 
   // Detect mobile + track viewport height. With Capacitor's
   // Keyboard.resize: 'native', iOS shrinks the WebView when the keyboard
@@ -203,55 +216,87 @@ const TeamChat: React.FC = () => {
     }
   };
 
-  // Load threads
+  // Subscribe to team-scoped threads for the active team.
   useEffect(() => {
-    if (selectedTeamId) {
-      setLoading(true);
-      
-      const unsubscribeThreads = subscribeToChatThreads(selectedTeamId, (threadsData) => {
-        console.log('Received threads data:', threadsData);
-        
-        const filteredThreads = threadsData.filter((thread: ChatThread) => {
-          if (thread.isPrivate && !isCoach) return false;
-          return true;
-        });
+    if (!selectedTeamId) return;
+    setLoading(true);
+    const unsubscribeThreads = subscribeToChatThreads(selectedTeamId, (threadsData) => {
+      const processed = threadsData.map(thread => ({
+        ...thread,
+        lastActivity: thread.lastActivity instanceof Date ? thread.lastActivity : new Date(thread.lastActivity || Date.now()),
+        createdAt: thread.createdAt instanceof Date ? thread.createdAt : new Date(thread.createdAt || Date.now()),
+        messageCount: thread.messageCount || 0,
+      }));
+      setTeamThreads(processed);
+      setLoading(false);
+    });
+    return () => { unsubscribeThreads(); };
+  }, [selectedTeamId, subscribeToChatThreads]);
 
-        const processedThreads = filteredThreads.map(thread => ({
-          ...thread,
-          lastActivity: thread.lastActivity instanceof Date ? thread.lastActivity : new Date(thread.lastActivity || Date.now()),
-          createdAt: thread.createdAt instanceof Date ? thread.createdAt : new Date(thread.createdAt || Date.now()),
-          messageCount: thread.messageCount || 0
-        }));
+  // Subscribe to club-scoped threads (visible regardless of selected
+  // team). Mounted once per session; role-filtering happens in the
+  // `threads` memo below.
+  useEffect(() => {
+    const unsub = subscribeToClubChatThreads((data) => {
+      const processed = data.map(thread => ({
+        ...thread,
+        lastActivity: thread.lastActivity instanceof Date ? thread.lastActivity : new Date(thread.lastActivity || Date.now()),
+        createdAt: thread.createdAt instanceof Date ? thread.createdAt : new Date(thread.createdAt || Date.now()),
+        messageCount: thread.messageCount || 0,
+      }));
+      setClubThreads(processed);
+    });
+    return () => { unsub && unsub(); };
+  }, [subscribeToClubChatThreads]);
 
-        setThreads(processedThreads);
-        setLoading(false);
-
-        // Honor a ?thread=<id> deep link first (push-notification tap lands here).
-        const deepLinkId = searchParams.get('thread');
-        if (deepLinkId) {
-          const target = processedThreads.find(t => t.id === deepLinkId);
-          if (target) {
-            setSelectedThread(target);
-            setCurrentView('chat');
-          }
-          // Consume the param so it doesn't keep re-firing on every threads-update.
-          const next = new URLSearchParams(searchParams);
-          next.delete('thread');
-          setSearchParams(next, { replace: true });
-          return;
-        }
-
-        // NEVER auto-select a thread on mobile - always start with threads list
-        if (!isMobile && processedThreads.length > 0 && !selectedThread) {
-          setSelectedThread(processedThreads[0]);
-        }
+  // Merge + role-filter. Coaches see team + club + coaches scopes.
+  // Parents see team + club. Admins see everything.
+  const threads = React.useMemo<ChatThread[]>(() => {
+    const merged: ChatThread[] = [...teamThreads, ...clubThreads];
+    // Dedup by id (a thread can appear in both subscriptions if its
+    // teamId happens to match the active team AND its scope is club —
+    // unusual but possible).
+    const byId = new Map<string, ChatThread>();
+    for (const t of merged) byId.set(t.id, t);
+    const all = Array.from(byId.values());
+    return all
+      .filter((thread: any) => {
+        const scope = thread.scope || 'team';
+        // Team-only private threads still gated by coach role.
+        if (scope === 'team' && thread.isPrivate && !isCoach) return false;
+        if (scope === 'admins' && !isUserClubAdmin) return false;
+        if (scope === 'coaches' && !isCoach && !isUserClubAdmin) return false;
+        // 'club' is visible to everyone.
+        return true;
+      })
+      .sort((a: any, b: any) => {
+        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+        return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
       });
+  }, [teamThreads, clubThreads, isCoach, isUserClubAdmin]);
 
-      return () => {
-        unsubscribeThreads();
-      };
+  // Deep-link handling (?thread=<id>) runs whenever the merged threads
+  // list refreshes; consumes the param so it doesn't re-fire.
+  useEffect(() => {
+    const deepLinkId = searchParams.get('thread');
+    if (!deepLinkId) return;
+    const target = threads.find(t => t.id === deepLinkId);
+    if (target) {
+      setSelectedThread(target);
+      setCurrentView('chat');
     }
-  }, [selectedTeamId, isCoach, subscribeToChatThreads, isMobile]);
+    const next = new URLSearchParams(searchParams);
+    next.delete('thread');
+    setSearchParams(next, { replace: true });
+  }, [threads, searchParams, setSearchParams]);
+
+  // Desktop initial selection: pick the first thread the first time the
+  // list loads, if nothing's selected yet.
+  useEffect(() => {
+    if (!isMobile && threads.length > 0 && !selectedThread) {
+      setSelectedThread(threads[0]);
+    }
+  }, [threads, isMobile, selectedThread]);
 
   // Load team members for @mention autocomplete + email, plus a
   // parentUid → [childNames] lookup so the DM picker can show which
@@ -334,23 +379,33 @@ const TeamChat: React.FC = () => {
     if (!newThread.title.trim() || !userData) return;
 
     try {
-      const threadData: Omit<ChatThread, 'id' | 'createdAt' | 'updatedAt'> = {
+      // Club-scoped threads (club / coaches / admins) aren't tied to a
+      // team — use an empty teamId so they don't get pulled into any
+      // single team's view. Only club admins can create them.
+      const scope = newThread.scope || 'team';
+      const isClubScope = scope !== 'team';
+      if (isClubScope && !isUserClubAdmin) {
+        alert('Only club admins can create club-wide channels.');
+        return;
+      }
+      const threadData: any = {
         title: newThread.title,
         description: newThread.description,
-        teamId: selectedTeamId,
+        teamId: isClubScope ? '' : selectedTeamId,
+        scope,
         createdBy: userData.uid,
         createdByName: userData.name,
         lastActivity: new Date(),
         isPinned: false,
-        isPrivate: newThread.isPrivate,
+        isPrivate: newThread.isPrivate && scope === 'team',
         messageCount: 0,
         participants: [userData.uid],
-        tags: newThread.tags
+        tags: newThread.tags,
       };
 
       await addChatThread(threadData);
-      
-      setNewThread({ title: '', description: '', isPrivate: false, tags: [] });
+
+      setNewThread({ title: '', description: '', isPrivate: false, scope: 'team', tags: [] });
       setIsCreatingThread(false);
     } catch (error) {
       console.error('Error creating thread:', error);
@@ -470,10 +525,17 @@ const TeamChat: React.FC = () => {
   const deleteThread = async (thread: ChatThread) => {
     if (!userData) return;
     const isDM = (thread as any).isDM === true;
-    // Permission: coaches can delete any team thread; either DM participant
-    // can delete a DM. Parents can't delete shared team threads.
+    const scope = (thread as any).scope || 'team';
+    // Permissions:
+    //   - DMs: either participant can delete.
+    //   - Team threads: any coach can delete.
+    //   - Club / Coaches / Admins channels: only club admins can delete
+    //     (they're cross-team artifacts, regular coaches shouldn't nuke
+    //     other teams' chat history).
     const canDelete =
-      isCoach || (isDM && thread.participants.includes(userData.uid));
+      (isDM && thread.participants.includes(userData.uid)) ||
+      (scope === 'team' && isCoach) ||
+      (scope !== 'team' && isUserClubAdmin);
     if (!canDelete) return;
     const label = isDM ? 'this conversation' : `"${thread.title}"`;
     if (!window.confirm(`Delete ${label} for everyone? All messages will be removed and this can't be undone.`)) return;
@@ -865,6 +927,21 @@ const TeamChat: React.FC = () => {
                             Coach only
                           </span>
                         )}
+                        {(thread as any).scope === 'club' && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 ring-1 ring-amber-200 flex-shrink-0">
+                            🏛️ Club
+                          </span>
+                        )}
+                        {(thread as any).scope === 'coaches' && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 ring-1 ring-blue-200 flex-shrink-0">
+                            Coaches
+                          </span>
+                        )}
+                        {(thread as any).scope === 'admins' && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-50 text-violet-800 ring-1 ring-violet-200 flex-shrink-0">
+                            Admins
+                          </span>
+                        )}
                         {isDM && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 ring-1 ring-violet-200 flex-shrink-0">
                             DM
@@ -946,7 +1023,16 @@ const TeamChat: React.FC = () => {
                     </div>
                   </div>
 
-                  {(isCoach || ((selectedThread as any).isDM === true && selectedThread.participants.includes(userData?.uid || ''))) && (
+                  {(() => {
+                    const sel: any = selectedThread;
+                    const sc = sel.scope || 'team';
+                    const isDM = sel.isDM === true;
+                    const can =
+                      (isDM && sel.participants.includes(userData?.uid || '')) ||
+                      (sc === 'team' && isCoach) ||
+                      (sc !== 'team' && isUserClubAdmin);
+                    return can;
+                  })() && (
                     <button
                       onClick={() => deleteThread(selectedThread)}
                       className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
@@ -1065,7 +1151,40 @@ const TeamChat: React.FC = () => {
                     />
                   </div>
 
-                  {isCoach && (
+                  {/* Channel scope — club admins can create cross-team
+                      channels. Regular coaches only get team scope. */}
+                  {isUserClubAdmin && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Visible to
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { k: 'team' as const, label: 'This team', desc: 'Just your selected team' },
+                          { k: 'club' as const, label: 'Whole club', desc: 'Every team, every member' },
+                          { k: 'coaches' as const, label: 'Coaches only', desc: 'All coaches club-wide' },
+                          { k: 'admins' as const, label: 'Admins only', desc: 'Club admins only' },
+                        ].map((opt) => {
+                          const active = newThread.scope === opt.k;
+                          return (
+                            <button
+                              key={opt.k}
+                              type="button"
+                              onClick={() => setNewThread(prev => ({ ...prev, scope: opt.k }))}
+                              className={`text-left p-2.5 rounded-xl ring-1 transition ${
+                                active ? 'ring-cyan-500 bg-cyan-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
+                              }`}
+                            >
+                              <p className="font-semibold text-gray-900 text-sm">{opt.label}</p>
+                              <p className="text-[11px] text-gray-500">{opt.desc}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {isCoach && newThread.scope === 'team' && (
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -1269,7 +1388,16 @@ const TeamChat: React.FC = () => {
                     </svg>
                     <span>{selectedThread.participants.length} participants</span>
                   </div>
-                  {(isCoach || ((selectedThread as any).isDM === true && selectedThread.participants.includes(userData?.uid || ''))) && (
+                  {(() => {
+                    const sel: any = selectedThread;
+                    const sc = sel.scope || 'team';
+                    const isDM = sel.isDM === true;
+                    const can =
+                      (isDM && sel.participants.includes(userData?.uid || '')) ||
+                      (sc === 'team' && isCoach) ||
+                      (sc !== 'team' && isUserClubAdmin);
+                    return can;
+                  })() && (
                     <button
                       onClick={() => deleteThread(selectedThread)}
                       className="flex items-center justify-center w-9 h-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
@@ -1384,7 +1512,36 @@ const TeamChat: React.FC = () => {
                   />
                 </div>
 
-                {isCoach && (
+                {isUserClubAdmin && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Visible to</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { k: 'team' as const, label: 'This team', desc: 'Just your selected team' },
+                        { k: 'club' as const, label: 'Whole club', desc: 'Every team, every member' },
+                        { k: 'coaches' as const, label: 'Coaches only', desc: 'All coaches club-wide' },
+                        { k: 'admins' as const, label: 'Admins only', desc: 'Club admins only' },
+                      ].map((opt) => {
+                        const active = newThread.scope === opt.k;
+                        return (
+                          <button
+                            key={opt.k}
+                            type="button"
+                            onClick={() => setNewThread(prev => ({ ...prev, scope: opt.k }))}
+                            className={`text-left p-2.5 rounded-xl ring-1 transition ${
+                              active ? 'ring-cyan-500 bg-cyan-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
+                            }`}
+                          >
+                            <p className="font-semibold text-gray-900 text-sm">{opt.label}</p>
+                            <p className="text-[11px] text-gray-500">{opt.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {isCoach && newThread.scope === 'team' && (
                   <div className="flex items-center">
                     <input
                       type="checkbox"

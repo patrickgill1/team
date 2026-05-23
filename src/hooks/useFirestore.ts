@@ -514,26 +514,68 @@ const getUserData = useCallback(async (uid: string) => {
     return onSnapshot(q, (querySnapshot) => {
       const threads = querySnapshot.docs.map(doc => {
         const data = doc.data();
+        // Same ordering as subscribeToChatMessages: spread raw `data`
+        // FIRST so the explicit Firestore-Timestamp→Date conversions
+        // win and the threads' dates aren't reverted to raw Timestamps.
         return {
+          ...data,
           id: doc.id,
           title: data.title || '',
           description: data.description || '',
           teamId: data.teamId || '',
           createdBy: data.createdBy || '',
           createdByName: data.createdByName || '',
-          createdAt: data.createdAt?.toDate() || new Date(),
-          lastActivity: data.lastActivity?.toDate() || new Date(),
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          lastActivity: data.lastActivity?.toDate?.() || new Date(),
           isPinned: data.isPinned || false,
           isPrivate: data.isPrivate || false,
           messageCount: data.messageCount || 0,
           participants: data.participants || [],
           tags: data.tags || [],
-          ...data
         } as ChatThread;
       });
       callback(threads);
     }, (error) => {
       console.error('Error in threads subscription:', error);
+    });
+  }, []);
+
+  /**
+   * Subscribe to club-wide threads — anything whose scope is one of
+   * 'club' / 'coaches' / 'admins'. These threads are NOT scoped to a
+   * teamId, so they show up regardless of which team is currently
+   * selected. Caller filters by role on the client side.
+   */
+  const subscribeToClubChatThreads = useCallback((callback: (threads: ChatThread[]) => void) => {
+    const q = query(
+      collection(db, 'chat_threads'),
+      where('scope', 'in', ['club', 'coaches', 'admins']),
+      orderBy('isPinned', 'desc'),
+      orderBy('lastActivity', 'desc')
+    );
+    return onSnapshot(q, (querySnapshot) => {
+      const threads = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          title: data.title || '',
+          description: data.description || '',
+          teamId: data.teamId || '',
+          createdBy: data.createdBy || '',
+          createdByName: data.createdByName || '',
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          lastActivity: data.lastActivity?.toDate?.() || new Date(),
+          isPinned: data.isPinned || false,
+          isPrivate: data.isPrivate || false,
+          messageCount: data.messageCount || 0,
+          participants: data.participants || [],
+          tags: data.tags || [],
+        } as ChatThread;
+      });
+      callback(threads);
+    }, (error) => {
+      console.error('Error in club threads subscription:', error);
     });
   }, []);
 
@@ -806,6 +848,7 @@ const getUserData = useCallback(async (uid: string) => {
     addChatMessage,
     getChatMessagesByThread,
     subscribeToChatThreads,
+    subscribeToClubChatThreads,
     subscribeToChatMessages,
     getOrCreateDMThread,
     // Development plan functions

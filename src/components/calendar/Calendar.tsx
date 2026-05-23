@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CalendarEvent } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
@@ -898,11 +899,14 @@ const RsvpBar: React.FC<{
           {btn('no', "Can't", '❌', 'bg-rose-600')}
         </div>
       )}
-      {showList && (
+      {/* Attendee list modal — portaled to document.body so ancestor
+          stacking contexts (rings, transforms, overflows on event cards
+          / lists) can't trap it inside the event card. */}
+      {showList && createPortal(
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
           style={{
-            zIndex: 100,
+            zIndex: 200,
             paddingTop: 'calc(4rem + env(safe-area-inset-top))',
             paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))',
           }}
@@ -953,7 +957,8 @@ const RsvpBar: React.FC<{
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

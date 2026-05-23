@@ -12,6 +12,12 @@ interface MessageBubbleProps {
   onToggleReaction: (m: ChatMessage, emoji: string) => void;
   /** Delete handler — only shown for the user's own messages. */
   onDelete?: (m: ChatMessage) => void;
+  /** Toggle pin on this message (coaches / admins only). */
+  onTogglePin?: (m: ChatMessage) => void;
+  /** Whether this message is currently pinned in its thread. */
+  isPinned?: boolean;
+  /** Whether the current user is allowed to pin/unpin in this thread. */
+  canPin?: boolean;
   /** Called when the user taps an image attachment — opens the lightbox. */
   onImageClick?: (url: string) => void;
   formatTime: (d: any) => string;
@@ -39,7 +45,17 @@ function renderRichContent(text: string, ownTheme: boolean): string {
     `<a href="$1" target="_blank" rel="noopener noreferrer" class="${linkColor} break-all">$1</a>`
   );
   const mentionColor = ownTheme ? 'bg-white/25 text-white' : 'bg-cyan-100 text-cyan-900';
-  const mentioned = linked.replace(
+  // @team is a special everyone-ping mention; render it noticeably
+  // differently so it's clear at a glance that the whole team got
+  // pinged, not just one parent.
+  const teamMentionColor = ownTheme
+    ? 'bg-amber-300 text-amber-900'
+    : 'bg-amber-100 text-amber-900 ring-1 ring-amber-200';
+  const withTeam = linked.replace(
+    /@(team|everyone)\b/gi,
+    `<span class="${teamMentionColor} font-bold px-1.5 rounded">@team</span>`
+  );
+  const mentioned = withTeam.replace(
     /@([A-Za-z][A-Za-z0-9 _'-]{0,28}[A-Za-z0-9])/g,
     `<span class="${mentionColor} font-semibold px-1 rounded">@$1</span>`
   );
@@ -73,6 +89,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReply,
   onToggleReaction,
   onDelete,
+  onTogglePin,
+  isPinned = false,
+  canPin = false,
   onImageClick,
   formatTime,
   isFirstInGroup = true,
@@ -290,6 +309,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             >
               <span>↪</span> Reply
             </button>
+            {canPin && onTogglePin && (
+              <button
+                onClick={() => {
+                  onTogglePin(message);
+                  setActionsOpen(false);
+                }}
+                className="w-full text-left px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 transition flex items-center gap-3 border-t border-gray-100"
+              >
+                <span>📌</span> {isPinned ? 'Unpin from thread' : 'Pin to thread'}
+              </button>
+            )}
             {isOwn && onDelete && (
               <button
                 onClick={() => {

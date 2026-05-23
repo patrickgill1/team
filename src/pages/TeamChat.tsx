@@ -644,6 +644,24 @@ const TeamChat: React.FC = () => {
     }
   };
 
+  // Pin/unpin a message within the active thread. Coaches can pin in
+  // team threads; club admins can pin in club-scope channels.
+  const togglePinMessage = async (message: ChatMessage) => {
+    if (!selectedThread || !userData) return;
+    const current = ((selectedThread as any).pinnedMessageIds || []) as string[];
+    const isPinned = current.includes(message.id);
+    const next = isPinned
+      ? current.filter((id) => id !== message.id)
+      : [message.id, ...current].slice(0, 10); // cap at 10 pins per thread
+    try {
+      await updateChatThread(selectedThread.id, { pinnedMessageIds: next } as any);
+      // Optimistic local update so the UI doesn't lag behind the snapshot.
+      setSelectedThread({ ...selectedThread, pinnedMessageIds: next } as any);
+    } catch (err) {
+      console.error('Pin toggle failed:', err);
+    }
+  };
+
   const toggleReaction = async (message: ChatMessage, emoji: string) => {
     if (!userData) return;
     const existing = message.reactions || [];
@@ -1131,6 +1149,43 @@ const TeamChat: React.FC = () => {
                 </div>
               </div>
 
+              {/* Pinned messages strip — collapsible bar across the top
+                  of the conversation. Tap a pinned message to scroll
+                  to it in the thread. */}
+              {(() => {
+                const pinIds: string[] = (selectedThread as any).pinnedMessageIds || [];
+                if (pinIds.length === 0) return null;
+                const pinned = pinIds
+                  .map((id) => messages.find((m) => m.id === id))
+                  .filter(Boolean) as ChatMessage[];
+                if (pinned.length === 0) return null;
+                return (
+                  <div className="bg-amber-50 border-b border-amber-100 px-3 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex-shrink-0">📌 Pinned</span>
+                    {pinned.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          const el = document.getElementById(`msg-${p.id}`);
+                          if (el && messagesContainerRef.current) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Briefly highlight the message.
+                            el.classList.add('ring-2', 'ring-amber-400', 'rounded-2xl');
+                            setTimeout(() => {
+                              el.classList.remove('ring-2', 'ring-amber-400', 'rounded-2xl');
+                            }, 1500);
+                          }
+                        }}
+                        className="text-xs bg-white ring-1 ring-amber-200 rounded-full px-2.5 py-1 flex-shrink-0 max-w-[200px] truncate text-gray-700 hover:bg-amber-100"
+                      >
+                        <span className="font-semibold text-gray-900">{p.senderName.split(' ')[0]}:</span>{' '}
+                        {(p.content || (p.attachments?.length ? '📷 photo' : 'message')).slice(0, 60)}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+
               {/* Messages — min-h-0 is critical: without it, flex-1 won't
                   shrink the messages div, and many messages push the composer
                   off the bottom of the container.
@@ -1163,8 +1218,8 @@ const TeamChat: React.FC = () => {
                   const isFirstInGroup = !prev || prev.senderId !== message.senderId || ts(message) - ts(prev) > GAP_MS;
                   const isLastInGroup = !next || next.senderId !== message.senderId || ts(next) - ts(message) > GAP_MS;
                   return (
+                    <div key={message.id} id={`msg-${message.id}`} className="transition-shadow">
                     <MessageBubble
-                      key={message.id}
                       message={message}
                       currentUserId={userData?.uid || ''}
                       currentUserName={userData?.name || ''}
@@ -1172,11 +1227,19 @@ const TeamChat: React.FC = () => {
                       onReply={setReplyingTo}
                       onToggleReaction={toggleReaction}
                       onDelete={deleteMessage}
+                      onTogglePin={togglePinMessage}
+                      isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
+                      canPin={(() => {
+                        const sc = (selectedThread as any)?.scope || 'team';
+                        if (sc === 'team') return isCoach;
+                        return isUserClubAdmin;
+                      })()}
                       onImageClick={(url) => setLightboxUrl(url)}
                       formatTime={formatTime}
                       isFirstInGroup={isFirstInGroup}
                       isLastInGroup={isLastInGroup}
                     />
+                    </div>
                   );
                 })}
                 <div ref={messagesEndRef} />
@@ -1526,8 +1589,8 @@ const TeamChat: React.FC = () => {
                 const isFirstInGroup = !prev || prev.senderId !== message.senderId || ts(message) - ts(prev) > GAP_MS;
                 const isLastInGroup = !next || next.senderId !== message.senderId || ts(next) - ts(message) > GAP_MS;
                 return (
+                  <div key={message.id} id={`msg-${message.id}`} className="transition-shadow">
                   <MessageBubble
-                    key={message.id}
                     message={message}
                     currentUserId={userData?.uid || ''}
                     currentUserName={userData?.name || ''}
@@ -1535,11 +1598,19 @@ const TeamChat: React.FC = () => {
                     onReply={setReplyingTo}
                     onToggleReaction={toggleReaction}
                     onDelete={deleteMessage}
+                    onTogglePin={togglePinMessage}
+                    isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
+                    canPin={(() => {
+                      const sc = (selectedThread as any)?.scope || 'team';
+                      if (sc === 'team') return isCoach;
+                      return isUserClubAdmin;
+                    })()}
                     onImageClick={(url) => setLightboxUrl(url)}
                     formatTime={formatTime}
                     isFirstInGroup={isFirstInGroup}
                     isLastInGroup={isLastInGroup}
                   />
+                  </div>
                 );
               })}
               <div ref={messagesEndRef} />

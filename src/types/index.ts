@@ -341,6 +341,10 @@ export interface ChatThread {
   messageCount: number;
   participants: string[]; // User IDs
   tags?: string[];
+  /** IDs of pinned messages within this thread — shown in a strip at
+   *  the top of the chat view. Order is preserved (most-recently
+   *  pinned first). */
+  pinnedMessageIds?: string[];
   color?: string; // For thread color coding
   lastMessage?: {
     content: string;

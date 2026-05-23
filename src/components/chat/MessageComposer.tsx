@@ -81,10 +81,19 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     updateMentionState(v, e.target.selectionStart || v.length);
   };
 
-  const filteredMembers = mentionQuery !== null
-    ? members
-        .filter((m) => m.name && m.name.toLowerCase().includes(mentionQuery))
-        .slice(0, 6)
+  // The mention picker always includes a synthetic "team" entry at the
+  // top — selecting it inserts `@team` which is recognized server-side
+  // (and in onSend below) as a ping-everyone trigger. Filtered by the
+  // typed query so "te…" still surfaces it.
+  const filteredMembers: Member[] = mentionQuery !== null
+    ? (() => {
+        const teamEntry: Member = { uid: '__team__', name: 'team', role: 'Everyone on this team' };
+        const teamMatches = !mentionQuery || 'team'.startsWith(mentionQuery) || 'everyone'.startsWith(mentionQuery);
+        const peopleMatches = members
+          .filter((m) => m.name && m.name.toLowerCase().includes(mentionQuery))
+          .slice(0, 6);
+        return teamMatches ? [teamEntry, ...peopleMatches].slice(0, 6) : peopleMatches;
+      })()
     : [];
 
   const insertMention = (m: Member) => {
@@ -328,24 +337,34 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
             <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
-              {filteredMembers.map((m, i) => (
-                <button
-                  key={m.uid}
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    insertMention(m);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-                    i === highlight ? 'bg-gray-100' : ''
-                  }`}
-                >
-                  <span className="font-medium text-gray-900">{m.name}</span>
-                  {m.role && (
-                    <span className="ml-2 text-xs text-gray-500">{m.role}</span>
-                  )}
-                </button>
-              ))}
+              {filteredMembers.map((m, i) => {
+                const isTeam = m.uid === '__team__';
+                return (
+                  <button
+                    key={m.uid}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      insertMention(m);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 ${
+                      i === highlight ? 'bg-gray-100' : ''
+                    }`}
+                  >
+                    {isTeam && (
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-[10px] font-bold flex-shrink-0">
+                        @
+                      </span>
+                    )}
+                    <span className={`font-medium ${isTeam ? 'text-cyan-700' : 'text-gray-900'}`}>
+                      @{m.name}
+                    </span>
+                    {m.role && (
+                      <span className="ml-auto text-xs text-gray-500">{m.role}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

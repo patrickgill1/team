@@ -166,7 +166,7 @@ const Navigation: React.FC = () => {
     { name: 'Volunteers', path: '/volunteers', emoji: '🤝', group: 'apps' },
     { name: 'Directory', path: '/directory', emoji: '📞', group: 'apps' },
     { name: 'Development', path: '/development', emoji: '📈', group: 'apps' },
-    ...(isUserCoach ? [{ name: 'Quick Game', path: '/game-day', emoji: '⚡', group: 'apps' as const }] : []),
+    ...(isUserCoach ? [{ name: 'Game Day', path: `/game-day/quick_${Date.now()}`, emoji: '🎯', group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', emoji: '🗒️', group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', emoji: '📋', group: 'apps' as const }] : []),
     // Regular coaches (not club admins) keep "Teams" as their direct

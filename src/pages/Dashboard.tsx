@@ -598,6 +598,25 @@ const TeamPulseCard: React.FC<{
         <h3 className="font-bold text-fire-950">📊 Team pulse</h3>
         <Link to="/stats" className="text-cyan-600 text-sm font-semibold">Stats →</Link>
       </div>
+      {/* Coach-only "Run a game" tile — Quick Game / Game Day tracker is
+          only discoverable via a scheduled game's calendar card today.
+          Surfacing it here means a coach who wants to track a pickup
+          scrimmage can start in two taps without making an event. */}
+      <Link
+        to={`/game-day/quick_${Date.now()}`}
+        className="mx-4 mt-3 p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-cyan-50 ring-1 ring-emerald-200 flex items-center gap-3 hover:from-emerald-100 hover:to-cyan-100 transition active:scale-[0.99]"
+      >
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 text-white flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+          🎯
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-fire-950 text-sm">Live game tracker</p>
+          <p className="text-xs text-gray-600">Score, goals & subs · works on any game</p>
+        </div>
+        <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
       <div className="p-5 space-y-3 flex-1">
         {topScorer && (
           <Link to={`/player/${topScorer.id}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-emerald-50/60 transition">

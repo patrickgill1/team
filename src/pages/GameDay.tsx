@@ -174,6 +174,9 @@ const GameDay: React.FC = () => {
   const ensureGameDoc = async (): Promise<LiveGameDoc> => {
     if (!eventId || !event) throw new Error('No event');
     if (game) return game;
+    // Use { merge: true } so repeated calls (e.g. when patch() calls
+    // ensureGameDoc again before the snapshot listener has populated
+    // local `game` state) don't blow away any in-progress writes.
     const initial: LiveGameDoc = {
       eventId,
       teamId: event.teamId,
@@ -188,7 +191,11 @@ const GameDay: React.FC = () => {
       startedBy: userData?.uid,
       startedByName: userData?.name || userData?.email || 'Coach',
     };
-    await setDoc(doc(db, 'live_games', eventId), { ...initial, updatedAt: serverTimestamp() });
+    await setDoc(
+      doc(db, 'live_games', eventId),
+      { ...initial, updatedAt: serverTimestamp() },
+      { merge: true },
+    );
     return initial;
   };
 

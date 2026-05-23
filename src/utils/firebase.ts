@@ -61,16 +61,19 @@ export const auth = authInstance;
 // Firestore: WebSocket / WebChannel streaming negotiates poorly inside the
 // iOS WKWebView. Force long-polling on native so reads/writes don't hang.
 let dbInstance: Firestore;
-if (isNative) {
-  try {
-    dbInstance = initializeFirestore(app, {
-      experimentalForceLongPolling: true,
-    });
-  } catch (err) {
-    console.warn('initializeFirestore fallback to getFirestore:', err);
-    dbInstance = getFirestore(app);
-  }
-} else {
+// `ignoreUndefinedProperties` lets us pass through objects that happen
+// to have undefined fields (e.g. an optional homeAway on a synthesized
+// quick-game event) without setDoc/updateDoc throwing. Without it,
+// writes silently fail and the UI shows no feedback — that was the bug
+// that made the Quick Game Start button look broken.
+const firestoreSettings = {
+  experimentalForceLongPolling: isNative,
+  ignoreUndefinedProperties: true,
+};
+try {
+  dbInstance = initializeFirestore(app, firestoreSettings as any);
+} catch (err) {
+  console.warn('initializeFirestore fallback to getFirestore:', err);
   dbInstance = getFirestore(app);
 }
 export const db = dbInstance;

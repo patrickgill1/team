@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { where } from 'firebase/firestore';
 import { getShareOrigin } from '../utils/origin';
@@ -45,7 +45,14 @@ const TeamChat: React.FC = () => {
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  // "Was the user at the bottom of the thread on the last render?"
+  // Updated on every scroll. If true, we auto-pin to the new bottom
+  // when new messages arrive OR when images load and reflow the list.
+  // If false, the user has scrolled up to read history — leave them
+  // alone.
+  const isAtBottomRef = useRef(true);
 
   // New thread form
   const [newThread, setNewThread] = useState<{
@@ -181,9 +188,18 @@ const TeamChat: React.FC = () => {
     setCurrentView('chat');
   };
 
-  // Scroll to bottom of messages
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Jump or animate the messages list to the bottom. Manipulating
+  // scrollTop directly is more reliable on iOS WKWebView than
+  // scrollIntoView({behavior:'smooth'}), which fights ongoing layout
+  // shifts (image loads, keyboard show/hide) and ends up choppy.
+  const scrollToBottom = (smooth = false) => {
+    const c = messagesContainerRef.current;
+    if (!c) return;
+    if (smooth) {
+      c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+    } else {
+      c.scrollTop = c.scrollHeight;
+    }
   };
 
   const formatTime = (date: Date | any) => {
@@ -371,9 +387,59 @@ const TeamChat: React.FC = () => {
     }
   }, [selectedThread, subscribeToChatMessages]);
 
+  // On thread open OR when the messages first load for a thread,
+  // jump (NOT smooth-scroll) to the bottom in a useLayoutEffect so it
+  // happens before the first paint. The user lands ON the most recent
+  // messages, not in the middle of the thread.
+  useLayoutEffect(() => {
+    if (!selectedThread || messages.length === 0) return;
+    scrollToBottom(false);
+    isAtBottomRef.current = true;
+  // Re-run when the thread changes OR the first batch of messages
+  // for a thread arrives (length 0 → N).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedThread?.id, messages.length > 0]);
+
+  // After EVERY messages-array update, scroll to bottom ONLY if the
+  // user was already at the bottom. This means:
+  //   - You just sent a message → you stay pinned to it.
+  //   - Someone else sent a message while you were at the bottom → it
+  //     animates in and you stay pinned.
+  //   - You scrolled up to read history → new messages don't yank you
+  //     out of where you were reading.
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!selectedThread || messages.length === 0) return;
+    if (isAtBottomRef.current) scrollToBottom(true);
+  }, [messages, selectedThread]);
+
+  // When images / GIFs inside the thread finish loading, the messages
+  // list gets taller. If the user was anchored to the bottom, re-pin
+  // them. ResizeObserver fires on every layout change of the
+  // container's content.
+  useEffect(() => {
+    const c = messagesContainerRef.current;
+    if (!c || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      if (isAtBottomRef.current) {
+        c.scrollTop = c.scrollHeight;
+      }
+    });
+    // Observe the inner content (first child of the scroll container).
+    if (c.firstElementChild) ro.observe(c.firstElementChild);
+    return () => ro.disconnect();
+  }, [selectedThread?.id]);
+
+  // Track whether the user is at the bottom of the thread so the
+  // effects above know whether to auto-scroll.
+  const handleScroll = () => {
+    const c = messagesContainerRef.current;
+    if (!c) return;
+    const distFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
+    // 80px slop — small enough that "near-bottom" still feels like
+    // "I'm reading the latest", big enough that minor layout shifts
+    // don't flip the flag.
+    isAtBottomRef.current = distFromBottom < 80;
+  };
 
   const createThread = async () => {
     if (!newThread.title.trim() || !userData) return;
@@ -1053,9 +1119,14 @@ const TeamChat: React.FC = () => {
                   overscroll-contain prevents the scroll from bubbling out to
                   the body (the cause of the tab bar 'riding up'). */}
               <div
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
                 className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
                 style={{ overscrollBehavior: 'contain' }}
               >
+                {/* Inner wrapper so ResizeObserver has a stable child
+                    to observe — its height changes as images load. */}
+                <div className="space-y-4">
                 {messages.map((message, idx) => {
                   // Compute sender-group boundaries so the bubble can render
                   // an avatar + name only on the first message of a run, and
@@ -1084,6 +1155,7 @@ const TeamChat: React.FC = () => {
                   );
                 })}
                 <div ref={messagesEndRef} />
+                </div>
               </div>
 
               {/* Message Input.
@@ -1414,7 +1486,13 @@ const TeamChat: React.FC = () => {
             </div>
 
             {/* Desktop Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4" style={{ overscrollBehavior: 'contain' }}>
+            <div
+              ref={messagesContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 min-h-0 overflow-y-auto p-4"
+              style={{ overscrollBehavior: 'contain' }}
+            >
+              <div className="space-y-4">
               {messages.map((message, idx) => {
                 const prev = messages[idx - 1];
                 const next = messages[idx + 1];
@@ -1440,6 +1518,7 @@ const TeamChat: React.FC = () => {
                 );
               })}
               <div ref={messagesEndRef} />
+              </div>
             </div>
 
             {/* Desktop Message Input */}

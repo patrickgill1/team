@@ -180,12 +180,49 @@ const Navigation: React.FC = () => {
 
   const mainItems = allNavItems.filter(i => i.group === 'main');
   const appItems = allNavItems.filter(i => i.group === 'apps');
-  // The mobile "More" sheet shows everything NOT already in the bottom
-  // tab bar (so we don't duplicate Chat, Players, Dashboard, Media) but
-  // DOES include the 'main'-group items that aren't bottom tabs (Vote,
-  // linkedPlayer) so parents can still reach them on mobile.
+
+  // The mobile "More" sheet groups everything NOT already in the bottom
+  // tab bar into logical sections so a parent looking for "Stats" or a
+  // coach looking for "Practice Plan" can find them by category, not
+  // by scanning a wall of 16 tiles.
   const bottomTabPaths = new Set(['/dashboard', '/players', '/player-media', '/chat', '#more']);
-  const moreSheetItems = allNavItems.filter(i => !bottomTabPaths.has(i.path));
+  const inSheet = (path: string) => !bottomTabPaths.has(path);
+  const findItem = (name: string) => allNavItems.find(i => i.name === name);
+
+  const moreSections: { label: string; items: typeof allNavItems }[] = [
+    {
+      label: 'Schedule',
+      items: ['Calendar', 'Attendance']
+        .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+    },
+    {
+      label: 'Players & stats',
+      items: [
+        linkedPlayer ? linkedPlayer.name.split(' ')[0] : null,
+        'Vote', 'Stats', 'Development',
+      ].filter(Boolean).map((n) => findItem(n as string)).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+    },
+    {
+      label: 'Media',
+      items: ['Full Games', 'Highlights']
+        .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+    },
+    {
+      label: 'Communications',
+      items: ['News', 'Surveys', 'Volunteers', 'Directory']
+        .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+    },
+    {
+      label: 'Coach tools',
+      items: ['Game Day', 'Practice Plan']
+        .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+    },
+    {
+      label: 'Admin',
+      items: ['Teams', 'Club']
+        .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+    },
+  ].filter(s => s.items.length > 0);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -429,25 +466,35 @@ const Navigation: React.FC = () => {
               </div>
             )}
 
-            {/* Apps Grid */}
-            <div className="px-6 py-2">
-              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Apps</div>
-              <div className="grid grid-cols-4 gap-3">
-                {moreSheetItems.map(item => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`flex flex-col items-center p-3 rounded-2xl transition-all ${
-                      isActive(item.path)
-                        ? 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="text-2xl mb-1">{item.emoji}</span>
-                    <span className="text-[11px] font-medium text-center leading-tight">{item.name}</span>
-                  </Link>
-                ))}
-              </div>
+            {/* Sectioned grid — easier to find things by category
+                than scanning 16 flat tiles. Sections are filtered to
+                only render when they actually have items for this
+                user's role (coaches see "Coach tools", parents don't). */}
+            <div className="px-6 py-2 space-y-5">
+              {moreSections.map((section) => (
+                <div key={section.label}>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+                    {section.label}
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsMoreOpen(false)}
+                        className={`flex flex-col items-center p-3 rounded-2xl transition-all ${
+                          isActive(item.path)
+                            ? 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200'
+                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="text-2xl mb-1">{item.emoji}</span>
+                        <span className="text-[11px] font-medium text-center leading-tight">{item.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Quick links for parent's player */}

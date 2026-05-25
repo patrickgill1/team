@@ -497,7 +497,7 @@ const TeamChat: React.FC = () => {
     }
   };
 
-  const sendMessage = async (contentArg?: string, attachmentsArg?: ComposerAttachment[]) => {
+  const sendMessage = async (contentArg?: string, attachmentsArg?: ComposerAttachment[], opts?: { requireAck?: boolean }) => {
     const content = (contentArg !== undefined ? contentArg : newMessage).trim();
     const attachments = attachmentsArg || [];
     if ((!content && attachments.length === 0) || !selectedThread || !userData) return;
@@ -514,6 +514,12 @@ const TeamChat: React.FC = () => {
       };
       if (replyingTo?.id) messageData.replyTo = replyingTo.id;
       if (attachments.length > 0) messageData.attachments = attachments;
+      // Important / acknowledgment-required messages get the sender
+      // auto-acknowledged so the recipient roster excludes them.
+      if (opts?.requireAck) {
+        messageData.requireAck = true;
+        messageData.acknowledgedBy = [userData.uid];
+      }
 
       await addChatMessage(messageData);
       
@@ -707,6 +713,22 @@ const TeamChat: React.FC = () => {
       });
     } catch (err) {
       console.error('Vote failed:', err);
+    }
+  };
+
+  // Acknowledge an important message — adds the user's uid to the
+  // message's acknowledgedBy[] array. The button on the bubble flips
+  // to a "✓ You've seen this" confirmation once acknowledged.
+  const acknowledgeMessage = async (message: ChatMessage) => {
+    if (!userData) return;
+    const current: string[] = Array.isArray((message as any).acknowledgedBy) ? (message as any).acknowledgedBy : [];
+    if (current.includes(userData.uid)) return;
+    try {
+      await updateDocument('chat_messages', message.id, {
+        acknowledgedBy: Array.from(new Set([...current, userData.uid])),
+      });
+    } catch (err) {
+      console.error('Acknowledge failed:', err);
     }
   };
 
@@ -1302,6 +1324,8 @@ const TeamChat: React.FC = () => {
                       })()}
                       onImageClick={(url) => setLightboxUrl(url)}
                       onPollVote={voteOnPoll}
+                      onAcknowledge={acknowledgeMessage}
+                      threadParticipantCount={selectedThread.participants?.length || 0}
                       formatTime={formatTime}
                       isFirstInGroup={isFirstInGroup}
                       isLastInGroup={isLastInGroup}
@@ -1324,8 +1348,9 @@ const TeamChat: React.FC = () => {
                 members={teamMembers}
                 replyingTo={replyingTo}
                 onCancelReply={() => setReplyingTo(null)}
-                onSend={(c, atts) => sendMessage(c, atts)}
+                onSend={(c, atts, opts) => sendMessage(c, atts, opts)}
                 onSendPoll={sendPoll}
+                canMarkImportant={isCoach || isUserClubAdmin}
                 rows={2}
                 safeAreaInsetBottom={kbInset === 0}
               />
@@ -1675,6 +1700,8 @@ const TeamChat: React.FC = () => {
                     })()}
                     onImageClick={(url) => setLightboxUrl(url)}
                     onPollVote={voteOnPoll}
+                    onAcknowledge={acknowledgeMessage}
+                    threadParticipantCount={selectedThread.participants?.length || 0}
                     formatTime={formatTime}
                     isFirstInGroup={isFirstInGroup}
                     isLastInGroup={isLastInGroup}
@@ -1694,8 +1721,9 @@ const TeamChat: React.FC = () => {
                 members={teamMembers}
                 replyingTo={replyingTo}
                 onCancelReply={() => setReplyingTo(null)}
-                onSend={(c, atts) => sendMessage(c, atts)}
+                onSend={(c, atts, opts) => sendMessage(c, atts, opts)}
                 onSendPoll={sendPoll}
+                canMarkImportant={isCoach || isUserClubAdmin}
                 rows={3}
               />
             )}

@@ -23,6 +23,12 @@ interface MessageBubbleProps {
   onImageClick?: (url: string) => void;
   /** Called when the user votes on a poll option in this message. */
   onPollVote?: (messageId: string, optionId: string) => void;
+  /** Called when the user taps "I see this" to acknowledge an important
+   *  message. Adds their uid to the message's acknowledgedBy[]. */
+  onAcknowledge?: (m: ChatMessage) => void;
+  /** Total participants in the thread — used to render the "5/12
+   *  acknowledged" count under important messages. */
+  threadParticipantCount?: number;
   formatTime: (d: any) => string;
   /** First message from this sender in a run (show avatar + name) */
   isFirstInGroup?: boolean;
@@ -97,6 +103,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   canPin = false,
   onImageClick,
   onPollVote,
+  onAcknowledge,
+  threadParticipantCount,
   formatTime,
   isFirstInGroup = true,
   isLastInGroup = true,
@@ -127,6 +135,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     new RegExp(`@${currentUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(
       message.content || ''
     );
+
+  // Important / acknowledgment-required state.
+  const isImportant = (message as any).requireAck === true;
+  const ackList: string[] = Array.isArray((message as any).acknowledgedBy) ? (message as any).acknowledgedBy : [];
+  const iAcked = !!currentUserId && ackList.includes(currentUserId);
 
   // Continuous-bubble corners: middle of a run flattens the appropriate edge
   // so consecutive bubbles read as one column of speech.
@@ -209,7 +222,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
 
         {/* The bubble itself */}
-        {message.content && (
+        {message.content && !isImportant && (
           <div
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -221,6 +234,60 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             style={{ wordBreak: 'break-word' }}
             dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, isOwn) }}
           />
+        )}
+
+        {/* Important / acknowledgment-required message — rendered as a
+            full-width announcement card (overrides the regular bubble).
+            Visually distinct so it doesn't get lost in the thread. */}
+        {message.content && isImportant && (
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onContextMenu={(e) => { e.preventDefault(); setActionsOpen(true); }}
+            className="w-full max-w-[340px] rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 ring-1 ring-amber-400/50 shadow-md p-3.5"
+          >
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-base">📢</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900">Important</span>
+              {!iAcked && currentUserId !== message.senderId && (
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-amber-900/70 animate-pulse">
+                  Tap to acknowledge
+                </span>
+              )}
+            </div>
+            <div
+              className="text-amber-950 text-[15px] leading-relaxed break-words"
+              style={{ wordBreak: 'break-word' }}
+              dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, false) }}
+            />
+            {/* Recipient: button to acknowledge; or confirmation if done. */}
+            {currentUserId !== message.senderId && (
+              <div className="mt-3">
+                {iAcked ? (
+                  <p className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    You've seen this
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => onAcknowledge?.(message)}
+                    className="w-full bg-amber-700 hover:bg-amber-800 active:scale-95 text-white font-bold py-2 rounded-xl text-sm shadow-sm transition"
+                  >
+                    ✓ I see this
+                  </button>
+                )}
+              </div>
+            )}
+            {/* Sender: roster of who has / hasn't acknowledged. */}
+            {currentUserId === message.senderId && (
+              <p className="mt-2 text-[11px] font-semibold text-amber-900/80">
+                {ackList.length} {threadParticipantCount ? `of ${threadParticipantCount} ` : ''}acknowledged
+              </p>
+            )}
+          </div>
         )}
 
         {/* Inline poll card — replaces the standard text bubble when

@@ -23,11 +23,15 @@ interface MessageComposerProps {
   members: Member[];
   replyingTo?: { senderName: string } | null;
   onCancelReply: () => void;
-  onSend: (content: string, attachments: ComposerAttachment[]) => Promise<void> | void;
+  onSend: (content: string, attachments: ComposerAttachment[], opts?: { requireAck?: boolean }) => Promise<void> | void;
   /** Optional poll send handler. When set, the composer shows a poll
    *  button that opens the create-poll modal. The handler is expected
    *  to add a chat_messages doc with the poll field populated. */
   onSendPoll?: (poll: { question: string; options: string[]; multi: boolean }) => Promise<void> | void;
+  /** When true, the composer shows a "📢 Important" toggle that marks
+   *  the outgoing message as requiring acknowledgment. Pass `true` for
+   *  coaches/admins; parents shouldn't be marking messages important. */
+  canMarkImportant?: boolean;
   rows?: number;
   /** When true, pad the bottom with env(safe-area-inset-bottom) so the input
    *  clears the iPhone home indicator. Pass false when the keyboard is open
@@ -43,6 +47,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   onCancelReply,
   onSend,
   onSendPoll,
+  canMarkImportant = false,
   rows = 2,
   safeAreaInsetBottom = false,
 }) => {
@@ -55,6 +60,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   const [highlight, setHighlight] = useState(0);
   const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
   const [isPollOpen, setIsPollOpen] = useState(false);
+  const [markImportant, setMarkImportant] = useState(false);
 
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -226,10 +232,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     if (uploading) return;
     const content = text.trim();
     if (!content && pending.length === 0) return;
-    await onSend(content, pending);
+    await onSend(content, pending, { requireAck: markImportant });
     setText('');
     setPending([]);
     setMentionQuery(null);
+    setMarkImportant(false);
     taRef.current?.focus();
   };
 
@@ -258,6 +265,24 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             </svg>
           </button>
         </div>
+      )}
+
+      {/* Important / require-acknowledgment toggle (coaches/admins only).
+          When on, the outgoing message renders as an announcement card
+          that asks parents to actively tap "I see this". */}
+      {canMarkImportant && (
+        <button
+          type="button"
+          onClick={() => setMarkImportant(v => !v)}
+          className={`mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+            markImportant
+              ? 'bg-amber-100 text-amber-900 ring-1 ring-amber-300'
+              : 'bg-gray-100 text-gray-600 ring-1 ring-gray-200 hover:bg-gray-200'
+          }`}
+        >
+          <span>📢</span>
+          <span>{markImportant ? 'Important — needs acknowledgment' : 'Mark as important'}</span>
+        </button>
       )}
 
       {pending.length > 0 && (

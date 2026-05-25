@@ -325,6 +325,12 @@ export interface ChatMessage {
     multi?: boolean;
     closedAt?: Date | null;
   };
+  /** When true, the message renders as an important announcement and
+   *  requires recipients to actively tap "I see this" to acknowledge.
+   *  Coaches see a roster of who has / hasn't acknowledged. */
+  requireAck?: boolean;
+  /** User IDs who have explicitly acknowledged the message. */
+  acknowledgedBy?: string[];
   isRead?: boolean;
   createdAt: Date;
   updatedAt?: Date;

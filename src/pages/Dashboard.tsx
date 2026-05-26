@@ -233,6 +233,55 @@ const Dashboard: React.FC = () => {
     const now = new Date();
     return d.toDateString() === now.toDateString();
   }, [nextEvent]);
+
+  // Birthday today: any active player whose DOB month/day matches.
+  // Surfaces as a pill below the greeting.
+  const birthdayKids = useMemo(() => {
+    const today = new Date();
+    return players.filter((p: any) => {
+      const dob = p.dateOfBirth instanceof Date ? p.dateOfBirth : (p.dateOfBirth ? new Date(p.dateOfBirth) : null);
+      if (!dob || isNaN(dob.getTime())) return false;
+      return dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
+    }).map((p: any) => {
+      const dob = p.dateOfBirth instanceof Date ? p.dateOfBirth : new Date(p.dateOfBirth);
+      // "Turning age": birthday this year minus birth year.
+      const turning = today.getFullYear() - dob.getFullYear();
+      return { id: p.id, name: p.name, turning };
+    });
+  }, [players]);
+
+  // Season countdown: weeks remaining until the active season's endDate.
+  // Subtle line under the greeting; hidden if no active season or the
+  // season is already over.
+  const seasonCountdown = useMemo(() => {
+    if (!activeSeason?.endDate) return null;
+    const end = activeSeason.endDate instanceof Date
+      ? activeSeason.endDate
+      : new Date((activeSeason.endDate as any)?.toDate?.() || activeSeason.endDate as any);
+    if (isNaN(end.getTime())) return null;
+    const ms = end.getTime() - Date.now();
+    if (ms <= 0) return null;
+    const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+    if (days <= 14) {
+      return `${days} day${days === 1 ? '' : 's'} left in ${activeSeason.name || 'the season'}`;
+    }
+    const weeks = Math.ceil(days / 7);
+    return `${weeks} weeks left in ${activeSeason.name || 'the season'}`;
+  }, [activeSeason]);
+
+  // Rain alert on the next event: precip% > 60 and event is within a week.
+  const nextEventRainAlert = useMemo(() => {
+    if (!nextEvent || !nextEventWeather) return null;
+    if (nextEventWeather.precipChance <= 60) return null;
+    const d = new Date(nextEvent.date);
+    const days = Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (days > 7) return null;
+    const isCold = nextEventWeather.tempMinF < 55;
+    if (nextEvent.type === 'practice') {
+      return isCold ? 'Bring layers — chance of rain' : 'Bring rain gear';
+    }
+    return isCold ? `${nextEventWeather.precipChance}% rain — pack layers` : `${nextEventWeather.precipChance}% chance of rain`;
+  }, [nextEvent, nextEventWeather]);
   const recentChats = chatThreads.slice(0, 3);
   // The current user's RSVP on the next event, if they've responded.
   const myRsvp = nextEvent && userData?.uid ? (nextEvent.rsvps || {})[userData.uid] : null;
@@ -332,6 +381,31 @@ const Dashboard: React.FC = () => {
         <Header title={`${greeting}, ${firstName}!`} subtitle={subtitle} />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        {/* Ambient cues right under the greeting — birthday pill,
+            season countdown. Tiny, but they make the page feel alive. */}
+        {(birthdayKids.length > 0 || seasonCountdown) && (
+          <div className="flex items-center gap-2 flex-wrap -mt-3">
+            {birthdayKids.map((k) => (
+              <Link
+                key={k.id}
+                to={`/player/${k.id}`}
+                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-100 to-pink-100 ring-1 ring-amber-300 text-amber-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm hover:shadow transition active:scale-95"
+              >
+                <span className="text-base leading-none">🎂</span>
+                <span>{k.name.split(' ')[0]} turns {k.turning} today</span>
+              </Link>
+            ))}
+            {seasonCountdown && (
+              <span className="inline-flex items-center gap-1.5 bg-white/80 ring-1 ring-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur">
+                <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path strokeLinecap="round" d="M12 7v5l3 2" />
+                </svg>
+                {seasonCountdown}
+              </span>
+            )}
+          </div>
+        )}
         {/* ── NEXT EVENT (HERO) ─────────────────────────────────── */}
         {nextEvent ? (
           <NextEventHero
@@ -343,6 +417,7 @@ const Dashboard: React.FC = () => {
             counts={rsvpCounts}
             weather={nextEventWeather}
             isGameDayToday={isGameDayToday}
+            rainAlert={nextEventRainAlert}
           />
         ) : (
           // Slim no-event banner — keeps the page flowing into the
@@ -455,7 +530,8 @@ const NextEventHero: React.FC<{
   counts: { going: number; maybe: number; no: number; pending: number };
   weather?: WeatherSummary | null;
   isGameDayToday?: boolean;
-}> = ({ event, whenText, isCoach, myRsvp, onRsvp, counts, weather, isGameDayToday }) => {
+  rainAlert?: string | null;
+}> = ({ event, whenText, isCoach, myRsvp, onRsvp, counts, weather, isGameDayToday, rainAlert }) => {
   const navigate = useNavigate();
   const goToCalendar = () => navigate(`/calendar?view=list&event=${event.id}`);
   const date = new Date(event.date);
@@ -515,23 +591,25 @@ const NextEventHero: React.FC<{
               <span className="truncate">{event.location}</span>
             </p>
           )}
-          {/* Weather forecast for the event location/date — pulled from
-              the existing Open-Meteo lookup. Only renders if we got a
-              real forecast back (within ~16 days). */}
-          {weather && (
-            <p className="text-xs text-gray-500 mt-1 inline-flex items-center gap-1 bg-gray-50 ring-1 ring-gray-200 px-2 py-0.5 rounded-full">
-              <span>{weather.icon}</span>
-              <span className="font-semibold">{Math.round(weather.tempMaxF)}°</span>
-              <span className="text-gray-400">/</span>
-              <span>{Math.round(weather.tempMinF)}°</span>
-              {weather.precipChance > 20 && (
-                <>
-                  <span className="text-gray-300">·</span>
-                  <span>💧 {weather.precipChance}%</span>
-                </>
-              )}
-            </p>
-          )}
+          {/* Weather forecast pill (subtle) + optional louder rain alert
+              if precip is heavy. Both pull from the same Open-Meteo
+              lookup; rain alert takes priority when it's worth flagging. */}
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {weather && (
+              <span className="text-xs text-gray-500 inline-flex items-center gap-1 bg-gray-50 ring-1 ring-gray-200 px-2 py-0.5 rounded-full">
+                <span>{weather.icon}</span>
+                <span className="font-semibold">{Math.round(weather.tempMaxF)}°</span>
+                <span className="text-gray-400">/</span>
+                <span>{Math.round(weather.tempMinF)}°</span>
+              </span>
+            )}
+            {rainAlert && (
+              <span className="text-xs inline-flex items-center gap-1 bg-sky-50 text-sky-800 ring-1 ring-sky-300 px-2 py-0.5 rounded-full font-bold">
+                <span>☔</span>
+                <span>{rainAlert}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Right rail: status + action */}

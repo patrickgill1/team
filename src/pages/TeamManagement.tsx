@@ -9,6 +9,7 @@ import { getShareOrigin } from '../utils/origin';
 import InviteShareModal from '../components/common/InviteShareModal';
 import EndSeasonModal from '../components/team/EndSeasonModal';
 import NewSeasonModal from '../components/team/NewSeasonModal';
+import { useActiveSeason } from '../hooks/useActiveSeason';
 
 const TeamManagement: React.FC = () => {
   const { userData } = useAuth();
@@ -55,6 +56,7 @@ const TeamManagement: React.FC = () => {
   // End-of-season flow
   const [endSeasonOpen, setEndSeasonOpen] = useState(false);
   const [newSeasonOpen, setNewSeasonOpen] = useState(false);
+  const { season: activeSeasonForSelected } = useActiveSeason();
 
   const generateShareInvite = async (role: 'assistant_coach' | 'team_manager') => {
     if (!userData || !selectedTeamId) return;
@@ -541,14 +543,18 @@ const TeamManagement: React.FC = () => {
                 label="New season"
                 onClick={() => setNewSeasonOpen(true)}
               />
-              <button
-                onClick={() => setEndSeasonOpen(true)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-sm font-semibold transition active:scale-95"
-                title="Archive the active season and pick which players carry over"
-              >
-                <span>🏁</span>
-                <span>End Season</span>
-              </button>
+              {/* Only renders when this team actually HAS an active
+                  season — otherwise "End Season" is meaningless. */}
+              {activeSeasonForSelected && (
+                <button
+                  onClick={() => setEndSeasonOpen(true)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-sm font-semibold transition active:scale-95"
+                  title={`Archive "${activeSeasonForSelected.name}" and pick which players carry over`}
+                >
+                  <span>🏁</span>
+                  <span>End {activeSeasonForSelected.name}</span>
+                </button>
+              )}
               <button
                 onClick={() => { resetForm(); setShowCreateModal(true); }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white text-sm font-semibold shadow-sm transition active:scale-95"
@@ -584,11 +590,18 @@ const TeamManagement: React.FC = () => {
                       <p className="text-sm text-gray-500 mt-1">{team.description}</p>
                     )}
                   </div>
-                  {isActive ? (
-                    <span className="bg-cyan-50 text-cyan-700 text-xs font-medium px-2 py-1 rounded-full">Active</span>
-                  ) : (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tap to select</span>
-                  )}
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    {(team as any).isActive === false && (
+                      <span className="bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ring-1 ring-gray-300">
+                        Archived
+                      </span>
+                    )}
+                    {isActive ? (
+                      <span className="bg-cyan-50 text-cyan-700 text-xs font-medium px-2 py-1 rounded-full">Active</span>
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tap to select</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-sm text-gray-600">
@@ -616,6 +629,45 @@ const TeamManagement: React.FC = () => {
                       className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Transfer Head Coach
+                    </button>
+                  )}
+                  {(team as any).isActive !== false && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const playerCount = allPlayers.filter(p => p.teamId === team.id || p.teamIds?.includes(team.id)).length;
+                        const msg = `Archive "${team.name}"?\n\n• It'll be hidden from the active team selector and dashboards.\n• All ${playerCount} players' stats, clips, chats, and events stay accessible.\n• Parents and players can still view their historical content.\n• You can restore the team later.`;
+                        if (!window.confirm(msg)) return;
+                        try {
+                          await updateDocument('teams', team.id, { isActive: false, archivedAt: new Date() } as any);
+                          await refreshTeams();
+                        } catch (err) {
+                          console.error('Archive team failed:', err);
+                          alert('Could not archive the team. Please try again.');
+                        }
+                      }}
+                      className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      title="Hide team from active rosters; history is preserved"
+                    >
+                      Archive
+                    </button>
+                  )}
+                  {(team as any).isActive === false && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!window.confirm(`Restore "${team.name}" to the active team list?`)) return;
+                        try {
+                          await updateDocument('teams', team.id, { isActive: true, archivedAt: null } as any);
+                          await refreshTeams();
+                        } catch (err) {
+                          console.error('Restore team failed:', err);
+                          alert('Could not restore the team. Please try again.');
+                        }
+                      }}
+                      className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Restore
                     </button>
                   )}
                 </div>

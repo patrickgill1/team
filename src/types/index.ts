@@ -267,6 +267,11 @@ export interface Team {
   /** Standard match format — used to size the field + decide how many
    *  players auto-place into the lineup. Defaults to '7v7' if unset. */
   format?: GameFormat;
+  /** Soft-archive flag. When false, the team is hidden from active
+   *  team selectors but all data (events, clips, stats, threads, etc.)
+   *  remains queryable for parents/players to view past content. */
+  isActive?: boolean;
+  archivedAt?: Date;
   createdAt: Date;
   updatedAt?: Date;
 }

@@ -276,16 +276,7 @@ const Dashboard: React.FC = () => {
 
   const firstName = userData?.name?.split(' ')[0] || (isUserCoach ? 'Coach' : 'Friend');
 
-  // --- NEW SUBTITLE: prefer something concrete over a generic welcome ---
-  let subtitle: string;
-  if (nextEvent) {
-    const t = nextEvent.type === 'game' ? 'game' : nextEvent.type === 'practice' ? 'practice' : 'event';
-    subtitle = `Next ${t}: ${friendlyWhen(new Date(nextEvent.date))}`;
-  } else {
-    subtitle = myPlayer
-      ? `Here's what's new with ${myPlayer.name.split(' ')[0]} and the team.`
-      : `Here's what's new with your team.`;
-  }
+  const subtitle = `Here's what's happening with your team.`;
 
   return (
     <div>
@@ -344,37 +335,50 @@ const Dashboard: React.FC = () => {
           <FeaturedHighlight clip={featuredClip} />
         )}
 
-        {/* ── REST OF UPCOMING (compact strip if more than one) ── */}
-        {upcomingEvents.length > 1 && (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-fire-950">Also coming up</h3>
-              <Link to="/calendar" className="text-cyan-600 text-sm font-semibold">View all</Link>
-            </div>
-            <ul className="divide-y divide-gray-100">
-              {upcomingEvents.slice(1).map((e) => (
-                <li key={e.id}>
-                  <Link to="/calendar" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50">
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${eventGradient(e.type)} flex items-center justify-center text-xl shadow-sm`}>
-                      {eventEmoji(e.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 truncate">{e.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{friendlyWhen(new Date(e.date))}{e.location ? ` · ${e.location}` : ''}</p>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* ── SMALL FOOTER STATS ─────────────────────────────────── */}
-        <div className="grid grid-cols-4 gap-2">
-          <FooterStat label="Players" value={players.length} />
-          <FooterStat label="Goals" value={totalGoals} />
-          <FooterStat label="Games" value={totalGames} />
-          <FooterStat label="Clips" value={totalClips} />
+        {/* ── FOOTER STATS GRID ──────────────────────────────────
+            4-up tiles with iconized accents. Match the design's
+            people / soccer ball / field / video icons in tinted
+            squares. */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <FooterStat
+            label="Players"
+            value={players.length}
+            tint="bg-slate-100 text-slate-600"
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19a3 3 0 00-6 0M12 11a4 4 0 100-8 4 4 0 000 8zm6 0a3 3 0 100-6 3 3 0 000 6zm-12 0a3 3 0 100-6 3 3 0 000 6z" />
+              </svg>
+            }
+          />
+          <FooterStat
+            label="Goals"
+            value={totalGoals}
+            tint="bg-emerald-50 text-emerald-700"
+            icon={<span className="text-base">⚽</span>}
+          />
+          <FooterStat
+            label="Games"
+            value={totalGames}
+            tint="bg-amber-50 text-amber-700"
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <rect x="3" y="6" width="18" height="12" rx="2" />
+                <line x1="12" y1="6" x2="12" y2="18" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+            }
+          />
+          <FooterStat
+            label="Clips"
+            value={totalClips}
+            tint="bg-violet-50 text-violet-700"
+            icon={
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <rect x="3" y="5" width="14" height="14" rx="2" />
+                <path d="M17 9l4-2v10l-4-2V9z" />
+              </svg>
+            }
+          />
         </div>
       </div>
     </div>
@@ -392,87 +396,112 @@ const NextEventHero: React.FC<{
   counts: { going: number; maybe: number; no: number; pending: number };
 }> = ({ event, whenText, isCoach, myRsvp, onRsvp, counts }) => {
   const navigate = useNavigate();
-  const typeBg =
-    event.type === 'game' ? 'from-rose-600 to-orange-600' :
-    event.type === 'practice' ? 'from-cyan-600 to-blue-700' :
-    'from-violet-600 to-fuchsia-700';
-  const typeLabel =
-    event.type === 'game' ? 'Game' : event.type === 'practice' ? 'Practice' : 'Event';
-  // Tap on the card → calendar list view, scrolled to this event.
-  // RSVP buttons stop propagation so they don't fire the navigation.
   const goToCalendar = () => navigate(`/calendar?view=list&event=${event.id}`);
+  const date = new Date(event.date);
+  const month = date.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+  const day = date.getDate();
+  const dow = date.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
+  const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const fullDate = `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`;
+  const tileGradient =
+    event.type === 'game' ? 'from-rose-500 to-orange-600' :
+    event.type === 'practice' ? 'from-cyan-500 to-blue-600' :
+    'from-violet-500 to-fuchsia-600';
   return (
     <section
       onClick={goToCalendar}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') goToCalendar(); }}
-      className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${typeBg} text-white shadow-xl cursor-pointer hover:shadow-2xl active:scale-[0.995] transition`}
+      className="relative overflow-hidden rounded-2xl bg-white ring-1 ring-gray-200 shadow-sm cursor-pointer hover:shadow-md active:scale-[0.995] transition"
+      style={{ borderLeft: '4px solid #06b6d4' }}
     >
-      <div className="p-6 sm:p-7">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/15 ring-1 ring-white/20">
-            {typeLabel}
-          </span>
-          {event.opponent && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
-              {event.homeAway === 'away' ? 'vs.' : 'vs.'} {event.opponent}
+      <div className="p-4 sm:p-5 flex items-stretch gap-4">
+        {/* Date tile */}
+        <div className={`flex-shrink-0 w-16 sm:w-20 rounded-xl bg-gradient-to-br ${tileGradient} text-white text-center flex flex-col justify-center shadow-sm`}>
+          <div className="text-[10px] font-bold uppercase tracking-wider opacity-90">{month}</div>
+          <div className="text-2xl sm:text-3xl font-black leading-none">{day}</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider opacity-90">{dow}</div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 mb-0.5">Next event</p>
+          <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight truncate">{event.title}</h2>
+          <p className="text-sm text-gray-600 mt-1 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="truncate">{fullDate}</span>
+          </p>
+          {event.location && (
+            <p className="text-sm text-gray-600 mt-0.5 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="truncate">{event.location}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Right rail: status + action */}
+        <div className="flex flex-col items-end justify-between gap-2 flex-shrink-0">
+          {!isCoach && myRsvp === 'going' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 text-xs font-bold whitespace-nowrap">
+              ✓ RSVP'd
             </span>
           )}
-          <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-white/70 inline-flex items-center gap-1">
-            Open
+          {!isCoach && myRsvp === 'maybe' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-200 text-xs font-bold whitespace-nowrap">
+              ? Maybe
+            </span>
+          )}
+          {!isCoach && myRsvp === 'no' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-200 text-xs font-bold whitespace-nowrap">
+              ✕ Can't
+            </span>
+          )}
+          {isCoach && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 text-xs font-bold whitespace-nowrap">
+              {counts.going} going
+            </span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); goToCalendar(); }}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-cyan-50 hover:bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200 text-xs font-bold whitespace-nowrap transition"
+          >
+            View details
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-          </span>
+          </button>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-black leading-tight">{event.title}</h2>
-        <p className="text-white/90 text-base sm:text-lg font-semibold mt-1">{whenText}</p>
-        {event.location && (
-          <p className="text-white/75 text-sm mt-1">📍 {event.location}</p>
-        )}
-
-        {/* Parent RSVP */}
-        {!isCoach && (
-          <div className="mt-5" onClick={(e) => e.stopPropagation()}>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-white/75 mb-2">
-              {myRsvp ? `You're ${myRsvp === 'going' ? 'going' : myRsvp === 'maybe' ? 'maybe' : 'not going'}` : 'Will you be there?'}
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { k: 'going' as const, label: '✅ Going' },
-                { k: 'maybe' as const, label: '🤔 Maybe' },
-                { k: 'no' as const, label: '❌ Can\'t make it' },
-              ].map((b) => {
-                const active = myRsvp === b.k;
-                return (
-                  <button
-                    key={b.k}
-                    onClick={(e) => { e.stopPropagation(); onRsvp(b.k); }}
-                    className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
-                      active
-                        ? 'bg-white text-fire-900 shadow'
-                        : 'bg-white/15 ring-1 ring-white/25 text-white hover:bg-white/25'
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Coach attendance summary */}
-        {isCoach && (
-          <div className="mt-5 grid grid-cols-4 gap-2">
-            <AttendancePill label="Going" value={counts.going} />
-            <AttendancePill label="Maybe" value={counts.maybe} />
-            <AttendancePill label="Can't" value={counts.no} />
-            <AttendancePill label="Pending" value={counts.pending} dim />
-          </div>
-        )}
       </div>
+
+      {/* Inline RSVP buttons (parent only) — render below the main row
+          when the parent hasn't RSVP'd yet, so they can do it in one
+          tap without leaving the dashboard. */}
+      {!isCoach && !myRsvp && (
+        <div className="px-4 sm:px-5 pb-4 -mt-1" onClick={(e) => e.stopPropagation()}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Will you be there?</p>
+          <div className="flex gap-1.5">
+            {[
+              { k: 'going' as const, label: '✓ Going', bg: 'bg-emerald-600 hover:bg-emerald-700' },
+              { k: 'maybe' as const, label: '? Maybe', bg: 'bg-amber-500 hover:bg-amber-600' },
+              { k: 'no' as const, label: '✕ Can\'t', bg: 'bg-rose-600 hover:bg-rose-700' },
+            ].map((b) => (
+              <button
+                key={b.k}
+                onClick={(e) => { e.stopPropagation(); onRsvp(b.k); }}
+                className={`flex-1 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-sm transition active:scale-95 ${b.bg}`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 };
@@ -488,14 +517,16 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string }> = ({ c
   return (
     <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-bold text-fire-950">💬 Recent chats</h3>
-        <Link to="/chat" className="text-cyan-600 text-sm font-semibold">Open chat</Link>
+        <h3 className="font-bold text-fire-950 flex items-center gap-2">
+          <span>💬</span> Recent chats
+        </h3>
+        <Link to="/chat" className="text-cyan-600 text-sm font-semibold">View all</Link>
       </div>
       {chats.length === 0 ? (
         <div className="p-6 text-center text-sm text-gray-500">No conversations yet.</div>
       ) : (
-        <ul className="divide-y divide-gray-100">
-          {chats.map((thread: any) => {
+        <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {chats.slice(0, 2).map((thread: any) => {
             const isDM = thread.isDM === true;
             const otherUid = isDM ? (thread.participants || []).find((u: string) => u !== userUid) : null;
             const displayTitle = isDM
@@ -507,27 +538,36 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string }> = ({ c
             const palette = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-violet-500', 'bg-blue-500', 'bg-teal-500'];
             const avatarBg = palette[hash % palette.length];
             const last = thread.lastMessage;
+            // Unread indicator: anyone sent something more recently than us
+            // having seen it. Without proper read-tracking we approximate
+            // by "the last message wasn't from me".
+            const unread = !!(last && last.senderName && last.senderName !== '');
             return (
-              <li key={thread.id}>
-                <Link to={`/chat?thread=${thread.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50">
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-full text-white font-bold flex items-center justify-center shadow-sm ${avatarBg}`}>
-                    {initial}
+              <Link
+                key={thread.id}
+                to={`/chat?thread=${thread.id}`}
+                className="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition"
+              >
+                <div className={`flex-shrink-0 w-9 h-9 rounded-full text-white font-bold text-sm flex items-center justify-center shadow-sm ${avatarBg}`}>
+                  {initial}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-1.5">
+                    <p className="font-semibold text-gray-900 text-sm truncate">{displayTitle}</p>
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">{relativeTime(new Date(thread.lastActivity))}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-gray-900 truncate">{displayTitle}</p>
-                      <span className="text-[10px] text-gray-400 flex-shrink-0">{relativeTime(new Date(thread.lastActivity))}</span>
-                    </div>
-                    <p className="text-sm text-gray-500 truncate">
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-xs text-gray-500 truncate flex-1">
                       {last?.senderName ? <span className="font-medium text-gray-700">{last.senderName}: </span> : null}
                       {last?.content || (isDM ? 'Tap to start chatting' : 'No messages yet')}
                     </p>
+                    {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-cyan-500" />}
                   </div>
-                </Link>
-              </li>
+                </div>
+              </Link>
             );
           })}
-        </ul>
+        </div>
       )}
     </div>
   );
@@ -535,49 +575,68 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string }> = ({ c
 
 const MyPlayerCard: React.FC<{ player: Player; latestThumb?: string }> = ({ player, latestThumb }) => {
   const p: any = player;
+  const position = p.positions?.[0] || p.position || 'Player';
   return (
     <Link
       to={`/player/${player.id}`}
-      className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden hover:shadow-md transition flex flex-col"
+      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 text-white shadow-lg hover:shadow-xl active:scale-[0.995] transition flex"
     >
-      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-bold text-fire-950">⚽ Your player</h3>
-        <span className="text-cyan-600 text-sm font-semibold">View profile →</span>
-      </div>
-      <div className="p-5 flex items-center gap-4">
+      {/* Subtle Fire FC logo watermark on the right */}
+      <img
+        src="/images/logo.png"
+        alt=""
+        className="absolute -right-6 top-1/2 -translate-y-1/2 w-40 h-40 opacity-[0.08] pointer-events-none"
+        aria-hidden
+      />
+      <div className="relative p-4 sm:p-5 flex items-center gap-4 w-full">
+        {/* Avatar */}
         <div className="relative flex-shrink-0">
           {p.profilePhotoUrl ? (
             <img
               src={p.profilePhotoUrl}
               alt={player.name}
-              className="w-20 h-20 rounded-2xl object-cover ring-2 ring-fire-100"
+              className="w-20 h-20 rounded-full object-cover ring-2 ring-white/20 shadow"
               loading="lazy"
             />
           ) : (
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white text-3xl font-black ring-2 ring-fire-100">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-blue-700 flex items-center justify-center text-white text-3xl font-black ring-2 ring-white/20 shadow">
               {player.name.charAt(0)}
             </div>
           )}
-          {player.jerseyNumber != null && (
-            <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-md bg-fire-900 text-white text-[10px] font-black ring-2 ring-white">
-              #{player.jerseyNumber}
-            </span>
-          )}
         </div>
+
+        {/* Name + stats */}
         <div className="flex-1 min-w-0">
-          <p className="font-black text-lg text-fire-950 truncate">{player.name}</p>
-          <p className="text-xs text-gray-500 mb-2">{player.position || 'Player'}</p>
-          <div className="flex gap-3 text-sm">
-            <span className="font-bold text-emerald-700">{player.stats?.goals || 0} <span className="text-gray-500 font-medium">goals</span></span>
-            <span className="font-bold text-cyan-700">{player.stats?.assists || 0} <span className="text-gray-500 font-medium">assists</span></span>
+          <p className="text-xl sm:text-2xl font-black leading-tight truncate">{player.name}</p>
+          <p className="text-xs text-white/70 mb-3">
+            {player.jerseyNumber != null ? `#${player.jerseyNumber} · ` : ''}{position}
+          </p>
+          <div className="flex items-end gap-4 sm:gap-6">
+            <div>
+              <p className="text-2xl font-black leading-none">{player.stats?.goals || 0}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mt-0.5">Goals</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black leading-none">{player.stats?.assists || 0}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mt-0.5">Assists</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black leading-none">{player.stats?.gamesPlayed || 0}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mt-0.5">Games</p>
+            </div>
           </div>
         </div>
-      </div>
-      {latestThumb && (
-        <div className="aspect-[16/7] bg-gray-100 overflow-hidden">
-          <img src={latestThumb} alt="" className="w-full h-full object-cover" loading="lazy" />
+
+        {/* View profile pill */}
+        <div className="flex-shrink-0 self-center">
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-fire-950 text-xs font-bold whitespace-nowrap shadow">
+            View profile
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
         </div>
-      )}
+      </div>
     </Link>
   );
 };
@@ -593,109 +652,167 @@ const TeamPulseCard: React.FC<{
   const ts: any = topScorer;
   const ta: any = topAssister;
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-bold text-fire-950">📊 Team pulse</h3>
-        <Link to="/stats" className="text-cyan-600 text-sm font-semibold">Stats →</Link>
+        <h3 className="font-bold text-fire-950 flex items-center gap-2">
+          <span>📊</span> Team pulse
+        </h3>
+        <Link to="/stats" className="text-cyan-600 text-sm font-semibold">Season stats</Link>
       </div>
-      {/* Coach-only "Run a game" tile — Quick Game / Game Day tracker is
-          only discoverable via a scheduled game's calendar card today.
-          Surfacing it here means a coach who wants to track a pickup
-          scrimmage can start in two taps without making an event. */}
+
+      {/* Live game tracker entry point — coach can start a session
+          without needing a scheduled game on the calendar. */}
       <Link
         to={`/game-day/quick_${Date.now()}`}
-        className="mx-4 mt-3 p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-cyan-50 ring-1 ring-emerald-200 flex items-center gap-3 hover:from-emerald-100 hover:to-cyan-100 transition active:scale-[0.99]"
+        className="mx-4 mt-4 p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-cyan-50 ring-1 ring-emerald-200 flex items-center gap-3 hover:from-emerald-100 hover:to-cyan-100 transition active:scale-[0.99]"
       >
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 text-white flex items-center justify-center text-lg shadow-sm flex-shrink-0">
           🎯
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-fire-950 text-sm">Live game tracker</p>
-          <p className="text-xs text-gray-600">Score, goals & subs · works on any game</p>
+          <p className="text-xs text-gray-600">Scores, goals &amp; subs · works on any game</p>
         </div>
         <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </Link>
-      <div className="p-5 space-y-3 flex-1">
-        {topScorer && (
-          <Link to={`/player/${topScorer.id}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-emerald-50/60 transition">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-amber-300 to-yellow-500 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
-              {ts.profilePhotoUrl ? (
-                <img src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
-              ) : (
-                <span>{topScorer.name.charAt(0)}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Top scorer</p>
-              <p className="font-bold text-fire-950 truncate">{topScorer.name}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-black text-emerald-700 leading-tight">{topScorer.stats?.goals || 0}</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">goals</p>
-            </div>
-          </Link>
-        )}
-        {topAssister && topAssister.id !== topScorer?.id && (
-          <Link to={`/player/${topAssister.id}`} className="flex items-center gap-3 p-2 rounded-xl hover:bg-cyan-50/60 transition">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
-              {ta.profilePhotoUrl ? (
-                <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
-              ) : (
-                <span>{topAssister.name.charAt(0)}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Top assister</p>
-              <p className="font-bold text-fire-950 truncate">{topAssister.name}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-black text-cyan-700 leading-tight">{topAssister.stats?.assists || 0}</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">assists</p>
-            </div>
-          </Link>
-        )}
-        {!topScorer && !topAssister && (
-          <p className="text-sm text-gray-500 text-center py-2">Log a game to see who's leading the team.</p>
-        )}
-      </div>
+
+      {/* Top scorer + assister — side by side */}
+      {(topScorer || topAssister) && (
+        <div className="p-4 grid grid-cols-2 gap-3">
+          {topScorer && (
+            <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-emerald-50/60 transition">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-amber-300 to-yellow-500 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
+                {ts.profilePhotoUrl ? (
+                  <img src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{topScorer.name.charAt(0)}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Top scorer</p>
+                <p className="font-bold text-fire-950 text-sm truncate">{topScorer.name}</p>
+                <p className="text-xs text-emerald-700 font-bold">
+                  <span className="font-black">{topScorer.stats?.goals || 0}</span>{' '}
+                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">goals</span>
+                </p>
+              </div>
+            </Link>
+          )}
+          {topAssister && topAssister.id !== topScorer?.id && (
+            <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-cyan-50/60 transition">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
+                {ta.profilePhotoUrl ? (
+                  <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{topAssister.name.charAt(0)}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Top assister</p>
+                <p className="font-bold text-fire-950 text-sm truncate">{topAssister.name}</p>
+                <p className="text-xs text-cyan-700 font-bold">
+                  <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
+                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">assists</span>
+                </p>
+              </div>
+            </Link>
+          )}
+        </div>
+      )}
+      {!topScorer && !topAssister && (
+        <p className="p-5 text-sm text-gray-500 text-center">Log a game to see who's leading the team.</p>
+      )}
     </div>
   );
 };
 
 const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
   const thumb = clipThumb(clip);
+  const duration = clip.durationSeconds || clip.duration;
+  const formatDuration = (s: number) => {
+    if (!s || isNaN(s)) return null;
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+  const durText = typeof duration === 'number' ? formatDuration(duration) : null;
+  // Opponent context for games: "vs <opponent>" or fall back to player name.
+  const ctxLine = clip.opponent ? `vs ${clip.opponent}` : (clip.playerName && clip.caption ? clip.playerName : null);
+  const headline = clip.caption || clip.playerName || 'Team highlight';
   return (
     <Link
       to={`/player-media?clip=${clip.id}`}
-      className="block relative overflow-hidden rounded-3xl ring-1 ring-gray-200 bg-gray-900 group"
+      className="block relative overflow-hidden rounded-2xl ring-1 ring-gray-200 bg-gray-900 group shadow-sm"
     >
-      <div className="aspect-[16/9] sm:aspect-[16/7]">
+      <div className="aspect-[16/9] sm:aspect-[16/8]">
         {thumb ? (
-          <img src={thumb} alt={clip.caption || clip.playerName} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition" loading="lazy" />
+          <img src={thumb} alt={headline} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-6xl">🎬</div>
         )}
       </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">
-          {clip.type === 'video' ? '▶ Latest highlight' : '📸 Latest photo'}
-        </p>
-        <p className="text-lg font-black truncate">{clip.caption || clip.playerName || 'Team highlight'}</p>
-        {clip.playerName && clip.caption && (
-          <p className="text-sm text-white/80 truncate">{clip.playerName}</p>
+      {/* Dim overlay so text stays readable on bright thumbnails */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/30 to-black/40" />
+
+      {/* Top-left: label + headline */}
+      <div className="absolute top-4 sm:top-5 left-4 sm:left-5 right-32 text-white">
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300 mb-1">Latest highlight</p>
+        <p className="text-2xl sm:text-3xl font-black leading-tight drop-shadow">{headline}</p>
+        {ctxLine && (
+          <p className="text-sm text-white/85 mt-0.5 drop-shadow">{ctxLine}</p>
         )}
       </div>
+
+      {/* Center play button */}
+      {clip.type === 'video' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-cyan-500/95 ring-2 ring-white/80 shadow-2xl flex items-center justify-center">
+            <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom-left: Watch clip link */}
+      <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
+        <span className="inline-flex items-center gap-1.5 text-cyan-300 font-bold text-sm drop-shadow">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+            <path d="M10 8l6 4-6 4V8z" />
+          </svg>
+          Watch clip
+        </span>
+      </div>
+
+      {/* Bottom-right: duration */}
+      {durText && (
+        <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5">
+          <span className="text-white font-mono font-bold text-sm bg-black/40 px-2 py-0.5 rounded">{durText}</span>
+        </div>
+      )}
     </Link>
   );
 };
 
-const FooterStat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="bg-white rounded-xl ring-1 ring-gray-200 px-3 py-2 text-center">
-    <div className="text-xl font-black text-fire-950 leading-tight">{value}</div>
-    <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500">{label}</div>
+const FooterStat: React.FC<{
+  label: string;
+  value: number;
+  icon?: React.ReactNode;
+  tint?: string;
+}> = ({ label, value, icon, tint = 'bg-gray-100 text-gray-600' }) => (
+  <div className="bg-white rounded-xl ring-1 ring-gray-200 px-3 py-2.5 flex items-center gap-2.5">
+    {icon && (
+      <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tint}`}>
+        {icon}
+      </div>
+    )}
+    <div className="min-w-0">
+      <div className="text-xl font-black text-fire-950 leading-none">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mt-0.5">{label}</div>
+    </div>
   </div>
 );
 

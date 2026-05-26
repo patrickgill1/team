@@ -564,6 +564,37 @@ const Calendar: React.FC<CalendarProps> = ({
           </div>
         </div>
 
+        {/* Subscribe link — anyone can grab the .ics feed URL and add
+            it to their phone calendar so new events auto-sync. */}
+        {showCreateButton && (
+          <button
+            onClick={async () => {
+              const origin = (await import('../../utils/origin')).getShareOrigin();
+              const url = `${origin}/api/calendar/${selectedTeamId}.ics`;
+              const webcal = url.replace(/^https?:/, 'webcal:');
+              const message = `Subscribe in your phone calendar:\n\n${webcal}\n\nTap the link or paste it into Calendar → "Add Subscription Calendar".`;
+              if ((navigator as any).share) {
+                try {
+                  await (navigator as any).share({ title: 'Team calendar feed', text: message, url: webcal });
+                  return;
+                } catch {}
+              }
+              try {
+                await navigator.clipboard.writeText(webcal);
+                alert('Subscription URL copied. Open Calendar → Add Subscription Calendar → paste.');
+              } catch {
+                window.prompt('Subscription URL — copy this and add to your calendar:', webcal);
+              }
+            }}
+            className="bg-white hover:bg-gray-50 ring-1 ring-gray-300 text-gray-700 font-semibold py-2.5 px-4 rounded-xl shadow-sm transition-all flex items-center gap-2"
+            title="Subscribe to this team's calendar in Apple/Google Calendar"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" transform="rotate(180 12 12)" />
+            </svg>
+            <span className="hidden sm:inline">Subscribe</span>
+          </button>
+        )}
         {/* Coach actions: Add Event + Import Schedule */}
         {isUserCoach && showCreateButton && (
           <div className="flex items-center gap-2">

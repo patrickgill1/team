@@ -11,6 +11,7 @@ import NewsList from '../components/news/NewsList';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
+import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
 // auto-generated JPEG poster. Photos → the photo itself. Legacy R2 videos →
@@ -121,6 +122,18 @@ const Dashboard: React.FC = () => {
     return () => { unsub && unsub(); };
   }, [selectedTeamId, subscribeToChatThreads, isUserCoach, userData?.uid]);
 
+  // Ambient time-of-day band that sits behind the greeting. Subtle —
+  // amber dawn / cyan day / rose dusk / indigo night — gives the page
+  // a sense of the moment without screaming.
+  const timeOfDay = useMemo(() => {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 11) return { label: 'morning', from: 'from-amber-100', via: 'via-orange-50', to: 'to-cyan-50' };
+    if (h >= 11 && h < 16) return { label: 'day', from: 'from-cyan-50', via: 'via-sky-50', to: 'to-white' };
+    if (h >= 16 && h < 19) return { label: 'afternoon', from: 'from-orange-100', via: 'via-amber-50', to: 'to-rose-50' };
+    if (h >= 19 && h < 22) return { label: 'dusk', from: 'from-rose-100', via: 'via-violet-50', to: 'to-indigo-50' };
+    return { label: 'night', from: 'from-indigo-100', via: 'via-slate-100', to: 'to-fire-50' };
+  }, []);
+
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -171,13 +184,15 @@ const Dashboard: React.FC = () => {
   }, [players]);
 
   // The parent's linked player on this team (their kid).
+  // Coaches with a kid on the team count too — the parentIds array on
+  // a player is the source of truth, regardless of the user's role.
   const myPlayer = useMemo(() => {
-    if (!userData || isUserCoach) return null;
+    if (!userData) return null;
     return players.find((p: any) =>
       (Array.isArray(p.parentIds) && p.parentIds.includes(userData.uid)) ||
       p.parentId === userData.uid
     ) || null;
-  }, [players, userData, isUserCoach]);
+  }, [players, userData]);
 
   // Most recent clip featuring my player (parents) or just the latest clip (coaches).
   const featuredClip = useMemo(() => {
@@ -192,6 +207,32 @@ const Dashboard: React.FC = () => {
   }, [media, myPlayer]);
 
   const nextEvent = upcomingEvents[0] || null;
+
+  // Weather lookup for the next event — best-effort, only renders a chip
+  // on the card if we get something back within ~16 days.
+  const [nextEventWeather, setNextEventWeather] = useState<WeatherSummary | null>(null);
+  useEffect(() => {
+    setNextEventWeather(null);
+    if (!nextEvent?.location) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const w = await getWeatherForEvent(nextEvent.location, new Date(nextEvent.date));
+        if (!cancelled) setNextEventWeather(w);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [nextEvent?.id, nextEvent?.location, nextEvent?.date]);
+
+  // Is the next event happening today + is it a game? Drives the
+  // "GAME DAY" pulse on the next-event card.
+  const isGameDayToday = useMemo(() => {
+    if (!nextEvent) return false;
+    if (nextEvent.type !== 'game') return false;
+    const d = new Date(nextEvent.date);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  }, [nextEvent]);
   const recentChats = chatThreads.slice(0, 3);
   // The current user's RSVP on the next event, if they've responded.
   const myRsvp = nextEvent && userData?.uid ? (nextEvent.rsvps || {})[userData.uid] : null;
@@ -279,8 +320,16 @@ const Dashboard: React.FC = () => {
   const subtitle = `Here's what's happening with your team.`;
 
   return (
-    <div>
-      <Header title={`${greeting}, ${firstName}!`} subtitle={subtitle} />
+    <div className="relative">
+      {/* Ambient time-of-day band — subtle gradient that fades out
+          before the content starts so it reads as a vibe, not a banner. */}
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b ${timeOfDay.from} ${timeOfDay.via} ${timeOfDay.to}`}
+        style={{ maskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)' }}
+      />
+      <div className="relative">
+        <Header title={`${greeting}, ${firstName}!`} subtitle={subtitle} />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
         {/* ── NEXT EVENT (HERO) ─────────────────────────────────── */}
@@ -292,6 +341,8 @@ const Dashboard: React.FC = () => {
             myRsvp={myRsvp?.status as any}
             onRsvp={setMyRsvp}
             counts={rsvpCounts}
+            weather={nextEventWeather}
+            isGameDayToday={isGameDayToday}
           />
         ) : (
           // Slim no-event banner — keeps the page flowing into the
@@ -313,12 +364,19 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* ── RECENT CHATS + (PARENT: Your Player) | (COACH: Team Pulse) ── */}
+        {/* Player card sits full-width when a user has a linked player
+            on this team (parent OR coach-with-kid). */}
+        {myPlayer && (
+          <MyPlayerCard player={myPlayer} latestThumb={featuredClip ? clipThumb(featuredClip) : undefined} />
+        )}
+
+        {/* ── RECENT CHATS + TEAM PULSE ──────────────────────────────
+            Coaches and admins always see Team Pulse. Parents without a
+            linked player also see Team Pulse (so non-staff still see
+            who's leading the team). */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <RecentChatsCard chats={recentChats} userUid={userData?.uid || ''} />
-          {myPlayer ? (
-            <MyPlayerCard player={myPlayer} latestThumb={featuredClip ? clipThumb(featuredClip) : undefined} />
-          ) : (
+          {(isUserCoach || !myPlayer) && (
             <TeamPulseCard
               topScorer={topScorers[0]}
               topAssister={topAssists[0]}
@@ -381,6 +439,7 @@ const Dashboard: React.FC = () => {
           />
         </div>
       </div>
+      </div>
     </div>
   );
 };
@@ -394,7 +453,9 @@ const NextEventHero: React.FC<{
   myRsvp?: 'going' | 'maybe' | 'no';
   onRsvp: (status: 'going' | 'maybe' | 'no') => void;
   counts: { going: number; maybe: number; no: number; pending: number };
-}> = ({ event, whenText, isCoach, myRsvp, onRsvp, counts }) => {
+  weather?: WeatherSummary | null;
+  isGameDayToday?: boolean;
+}> = ({ event, whenText, isCoach, myRsvp, onRsvp, counts, weather, isGameDayToday }) => {
   const navigate = useNavigate();
   const goToCalendar = () => navigate(`/calendar?view=list&event=${event.id}`);
   const date = new Date(event.date);
@@ -413,9 +474,20 @@ const NextEventHero: React.FC<{
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') goToCalendar(); }}
-      className="relative overflow-hidden rounded-2xl bg-white ring-1 ring-gray-200 shadow-sm cursor-pointer hover:shadow-md active:scale-[0.995] transition"
-      style={{ borderLeft: '4px solid #06b6d4' }}
+      className={`relative overflow-hidden rounded-2xl bg-white shadow-sm cursor-pointer hover:shadow-md active:scale-[0.995] transition ${
+        isGameDayToday
+          ? 'ring-2 ring-rose-400 ring-offset-2 shadow-[0_0_30px_-8px_rgba(244,63,94,0.55)] animate-pulse-soft'
+          : 'ring-1 ring-gray-200'
+      }`}
+      style={{ borderLeft: `4px solid ${isGameDayToday ? '#f43f5e' : '#06b6d4'}` }}
     >
+      {/* GAME DAY ribbon — pulses subtly when today's event is a game */}
+      {isGameDayToday && (
+        <span className="absolute top-2.5 right-3 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-50 ring-1 ring-rose-300 px-2 py-0.5 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+          Game day
+        </span>
+      )}
       <div className="p-4 sm:p-5 flex items-stretch gap-4">
         {/* Date tile */}
         <div className={`flex-shrink-0 w-16 sm:w-20 rounded-xl bg-gradient-to-br ${tileGradient} text-white text-center flex flex-col justify-center shadow-sm`}>
@@ -441,6 +513,23 @@ const NextEventHero: React.FC<{
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span className="truncate">{event.location}</span>
+            </p>
+          )}
+          {/* Weather forecast for the event location/date — pulled from
+              the existing Open-Meteo lookup. Only renders if we got a
+              real forecast back (within ~16 days). */}
+          {weather && (
+            <p className="text-xs text-gray-500 mt-1 inline-flex items-center gap-1 bg-gray-50 ring-1 ring-gray-200 px-2 py-0.5 rounded-full">
+              <span>{weather.icon}</span>
+              <span className="font-semibold">{Math.round(weather.tempMaxF)}°</span>
+              <span className="text-gray-400">/</span>
+              <span>{Math.round(weather.tempMinF)}°</span>
+              {weather.precipChance > 20 && (
+                <>
+                  <span className="text-gray-300">·</span>
+                  <span>💧 {weather.precipChance}%</span>
+                </>
+              )}
             </p>
           )}
         </div>

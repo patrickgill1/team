@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { collection, addDoc, doc, updateDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { clearActiveSeasonCache } from '../../utils/seasons';
+import { useAuth } from '../../hooks/useAuth';
+import { isClubAdmin } from '../../utils/helpers';
 
 interface Props {
   isOpen: boolean;
@@ -24,10 +26,14 @@ interface Props {
  * "active" flag is single-tenant per team.
  */
 const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated }) => {
+  const { userData } = useAuth();
+  const userIsClubAdmin = isClubAdmin(userData);
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [makeActive, setMakeActive] = useState(true);
+  const [applyToAll, setApplyToAll] = useState(false);
+  const [clubTeams, setClubTeams] = useState<{ id: string; name: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingActive, setExistingActive] = useState<{ id: string; name: string } | null>(null);
@@ -51,8 +57,31 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
       setEndDate(`${year}-05-31`);
     }
     setMakeActive(true);
+    setApplyToAll(false);
     setError(null);
   }, [isOpen]);
+
+  // Load all teams in the club when the user is an admin — needed for
+  // the "apply to all teams" bulk path.
+  useEffect(() => {
+    if (!isOpen || !userIsClubAdmin) { setClubTeams([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, 'teams'));
+        if (cancelled) return;
+        const ts = snap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as any) }))
+          .filter((t: any) => t.isActive !== false)
+          .map((t: any) => ({ id: t.id, name: t.name || 'Untitled' }))
+          .sort((a: any, b: any) => a.name.localeCompare(b.name));
+        setClubTeams(ts);
+      } catch (err) {
+        console.error('Club teams lookup failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, userIsClubAdmin]);
 
   // Look up the current active season so the coach knows if making this
   // one active will demote it.
@@ -101,22 +130,39 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
     setSubmitting(true);
     setError(null);
     try {
-      // 1. If we're making this season active AND there's already an
-      //    active one, demote the old one first. Keeps "active" unique
-      //    per team.
-      if (makeActive && existingActive) {
-        await updateDoc(doc(db, 'seasons', existingActive.id), { isActive: false });
+      // Resolve target team set: single (current) or every active team
+      // in the club (admin bulk mode).
+      const targetTeamIds = applyToAll && userIsClubAdmin
+        ? clubTeams.map((t) => t.id)
+        : [teamId];
+
+      // For each target team, if making active and an existing active
+      // season exists, demote it first.
+      if (makeActive) {
+        for (const tid of targetTeamIds) {
+          const activeSnap = await getDocs(query(
+            collection(db, 'seasons'),
+            where('teamId', '==', tid),
+            where('isActive', '==', true),
+          ));
+          for (const d of activeSnap.docs) {
+            await updateDoc(doc(db, 'seasons', d.id), { isActive: false });
+          }
+        }
       }
-      // 2. Create the new season doc.
-      await addDoc(collection(db, 'seasons'), {
-        teamId,
-        name: name.trim(),
-        startDate: s,
-        endDate: e,
-        isActive: !!makeActive,
-        createdAt: serverTimestamp(),
-      });
-      clearActiveSeasonCache(teamId);
+
+      // Create the new season doc(s).
+      for (const tid of targetTeamIds) {
+        await addDoc(collection(db, 'seasons'), {
+          teamId: tid,
+          name: name.trim(),
+          startDate: s,
+          endDate: e,
+          isActive: !!makeActive,
+          createdAt: serverTimestamp(),
+        });
+        clearActiveSeasonCache(tid);
+      }
       onCreated?.();
       onClose();
     } catch (err: any) {
@@ -189,6 +235,25 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
             </div>
           </div>
 
+          {userIsClubAdmin && clubTeams.length > 1 && (
+            <label className="flex items-start gap-2 text-sm text-gray-700 select-none cursor-pointer bg-violet-50 ring-1 ring-violet-200 rounded-xl p-3">
+              <input
+                type="checkbox"
+                checked={applyToAll}
+                onChange={(e) => setApplyToAll(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-violet-600"
+              />
+              <span>
+                <span className="font-semibold text-violet-900">Apply to all {clubTeams.length} teams in the club</span>
+                <span className="block text-xs text-violet-700 mt-0.5">
+                  {applyToAll
+                    ? `Creates "${name || 'season'}" as a season doc on every active team in the club.`
+                    : 'Creates this season only on the currently selected team.'}
+                </span>
+              </span>
+            </label>
+          )}
+
           <label className="flex items-start gap-2 text-sm text-gray-700 select-none cursor-pointer">
             <input
               type="checkbox"
@@ -197,10 +262,15 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
               className="mt-0.5 w-4 h-4 accent-cyan-600"
             />
             <span>
-              Make this the active season
-              {existingActive && makeActive && (
+              Make this the active season{applyToAll && userIsClubAdmin ? ' (for every team)' : ''}
+              {existingActive && makeActive && !applyToAll && (
                 <span className="block text-xs text-amber-700 mt-0.5">
                   ⚠️ Will archive <b>{existingActive.name}</b> (stats and history preserved).
+                </span>
+              )}
+              {applyToAll && makeActive && userIsClubAdmin && (
+                <span className="block text-xs text-amber-700 mt-0.5">
+                  ⚠️ Any existing active seasons on those teams will be archived first.
                 </span>
               )}
             </span>

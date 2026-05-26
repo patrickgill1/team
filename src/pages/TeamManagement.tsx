@@ -9,6 +9,7 @@ import { getShareOrigin } from '../utils/origin';
 import InviteShareModal from '../components/common/InviteShareModal';
 import EndSeasonModal from '../components/team/EndSeasonModal';
 import NewSeasonModal from '../components/team/NewSeasonModal';
+import ManageSeasonsModal from '../components/team/ManageSeasonsModal';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 
 const TeamManagement: React.FC = () => {
@@ -56,6 +57,7 @@ const TeamManagement: React.FC = () => {
   // End-of-season flow
   const [endSeasonOpen, setEndSeasonOpen] = useState(false);
   const [newSeasonOpen, setNewSeasonOpen] = useState(false);
+  const [manageSeasonsOpen, setManageSeasonsOpen] = useState(false);
   const { season: activeSeasonForSelected } = useActiveSeason();
 
   const generateShareInvite = async (role: 'assistant_coach' | 'team_manager') => {
@@ -543,6 +545,11 @@ const TeamManagement: React.FC = () => {
                 label="New season"
                 onClick={() => setNewSeasonOpen(true)}
               />
+              <SecondaryAction
+                emoji="🗂️"
+                label="Manage seasons"
+                onClick={() => setManageSeasonsOpen(true)}
+              />
               {/* Only renders when this team actually HAS an active
                   season — otherwise "End Season" is meaningless. */}
               {activeSeasonForSelected && (
@@ -880,6 +887,12 @@ const TeamManagement: React.FC = () => {
         <NewSeasonModal
           isOpen={newSeasonOpen}
           onClose={() => setNewSeasonOpen(false)}
+          teamId={selectedTeamId}
+        />
+
+        <ManageSeasonsModal
+          isOpen={manageSeasonsOpen}
+          onClose={() => setManageSeasonsOpen(false)}
           teamId={selectedTeamId}
         />
 

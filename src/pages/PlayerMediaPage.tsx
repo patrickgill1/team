@@ -13,6 +13,8 @@ import { downloadFile } from '../utils/downloadFile';
 import { getShareOrigin } from '../utils/origin';
 import StreamPlayer, { loadStreamSdk, StreamSdkPlayer } from '../components/common/StreamPlayer';
 import FullGames from './FullGames';
+import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 
 const ACTIVITY_TAGS = ['Goal', 'Own Goal', 'Assist', 'Save', 'Skill', 'Practice', 'Highlight', 'Celebration', 'Tournament', 'Training'];
 const ITEMS_PER_PAGE = 20;
@@ -40,6 +42,13 @@ const PlayerMediaPage: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [activeTab, setActiveTab] = useState<'highlights' | 'fullgames'>('highlights');
   const [searchQuery, setSearchQuery] = useState('');
+  // Media-type split — All / Videos only / Photos only.
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'video' | 'photo'>('all');
+  // For parents — their linked player. Once loaded, the page auto-
+  // selects that player so opening Media drops them straight onto their
+  // kid's clips.
+  const [parentLinkedPlayerId, setParentLinkedPlayerId] = useState<string | null>(null);
+  const [hasAutoSelectedParent, setHasAutoSelectedParent] = useState(false);
   const [replacing, setReplacing] = useState(false);
   const [replaceProgress, setReplaceProgress] = useState(0);
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +88,45 @@ const PlayerMediaPage: React.FC = () => {
     setVisibleCount(ITEMS_PER_PAGE);
     loadData();
   }, [selectedTeamId, selectedPlayerId]);
+
+  // Lookup the parent's linked player on this team so we can auto-
+  // select them when they open the page. Coaches skip this entirely.
+  useEffect(() => {
+    if (!userData?.uid || !selectedTeamId) return;
+    if (isCoach(userData.role)) return;
+    (async () => {
+      try {
+        const q = fsQuery(
+          collection(db, 'players'),
+          fsWhere('parentIds', 'array-contains', userData.uid),
+          fsWhere('isActive', '==', true),
+        );
+        const snap = await fsGetDocs(q);
+        const linked = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }))
+          .find((p: any) =>
+            (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) ||
+            p.teamId === selectedTeamId
+          );
+        if (linked) setParentLinkedPlayerId(linked.id);
+      } catch (err) {
+        console.error('Linked player lookup failed:', err);
+      }
+    })();
+  }, [userData?.uid, userData?.role, selectedTeamId]);
+
+  // Once we know the parent's linked player AND the player roster has
+  // loaded, drop them onto their kid's view automatically. Only happens
+  // once per session so a parent who manually switches to "All" doesn't
+  // get bounced back.
+  useEffect(() => {
+    if (hasAutoSelectedParent) return;
+    if (!parentLinkedPlayerId) return;
+    if (players.length === 0) return;
+    if (!searchParams.get('clip') && selectedPlayerId === 'all') {
+      setSelectedPlayerId(parentLinkedPlayerId);
+    }
+    setHasAutoSelectedParent(true);
+  }, [parentLinkedPlayerId, players.length, hasAutoSelectedParent, selectedPlayerId, searchParams]);
 
   // Deep-link: open ?clip=<id> once media has loaded.
   useEffect(() => {
@@ -1026,10 +1074,14 @@ const PlayerMediaPage: React.FC = () => {
   const playerFilteredMedia = (selectedPlayerId && selectedPlayerId !== 'all')
     ? media.filter(m => m.playerId === selectedPlayerId || (m.taggedPlayerIds || []).includes(selectedPlayerId))
     : media;
+  // Split by media type (videos / photos / both) before tags + search.
+  const typeFilteredMedia = mediaTypeFilter === 'all'
+    ? playerFilteredMedia
+    : playerFilteredMedia.filter(m => (m.type || 'video') === mediaTypeFilter);
   // Filter media by selected tags
   const tagFilteredMedia = filterTags.length > 0
-    ? playerFilteredMedia.filter(m => filterTags.some(t => m.tags?.includes(t)))
-    : playerFilteredMedia;
+    ? typeFilteredMedia.filter(m => filterTags.some(t => m.tags?.includes(t)))
+    : typeFilteredMedia;
   // Then filter by search query (caption, player name, tags, fileName)
   const allFilteredMedia = searchQuery.trim()
     ? tagFilteredMedia.filter(m => {
@@ -1233,98 +1285,103 @@ const PlayerMediaPage: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* ── STATS ROW ─────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-              <StatCard icon="🎬" label="Total Clips" value={String(totalClips)} accent="cyan" />
-              <StatCard icon="📅" label="This Season" value={String(thisSeasonCount)} accent="blue" />
-              <StatCard icon="👥" label="Players" value={String(players.length)} accent="purple" />
-              <StatCard icon="🔥" label="Most Liked" value={mostLikedItem ? (mostLikedItem.caption || mostLikedItem.playerName || 'Top Clip').slice(0, 18) : '—'} accent="orange" />
-            </div>
-
-            {/* ── RECENT HIGHLIGHTS ─────────────────────────────────── */}
-            {selectedPlayerId === 'all' && recentHighlights.length > 0 && (
-              <section className="mb-10">
-                <SectionHeader title="Recent Highlights" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentHighlights.map(item => {
-                    const player = players.find(p => p.id === item.playerId);
-                    const dateObj: any = item.createdAt;
-                    const date = dateObj?.toDate ? dateObj.toDate() : new Date(dateObj);
-                    return (
-                      <FeaturedCard
-                        key={item.id}
-                        item={item}
-                        player={player}
-                        timeAgo={timeAgo(date)}
-                        onClick={() => setSelectedMedia(item)}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* ── BROWSE BY PLAYER ──────────────────────────────────── */}
+            {/* ── STICKY NAVIGATION: Player strip + filters ───────────
+                The page is now organized around one job — find clips for
+                a player — instead of stacking featured/top/recent
+                carousels above the actual grid. Browse-by-Player is the
+                primary navigation, pinned to the top of the viewport as
+                the user scrolls. Tag and type filters sit just below it
+                in the same sticky group. */}
             {playersWithCounts.length > 0 && (
-              <section className="mb-10">
-                <SectionHeader
-                  title="Browse by Player"
-                  action={selectedPlayerId !== 'all' ? { label: 'View all', onClick: () => setSelectedPlayerId('all') } : undefined}
-                />
-                <div className="flex gap-4 overflow-x-auto pb-3 -mx-2 px-2 scrollbar-thin">
+              <div className="sticky top-0 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-3 bg-gray-950/90 backdrop-blur-md z-30 mb-4 border-b border-white/5">
+                <div className="flex gap-3 overflow-x-auto -mx-2 px-2 scrollbar-thin">
                   <button
                     onClick={() => setSelectedPlayerId('all')}
                     className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === 'all' ? 'scale-105' : ''}`}
                   >
-                    <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-2xl font-black ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === 'all' ? 'ring-cyan-400' : 'ring-transparent'}`}>
+                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-base font-black ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === 'all' ? 'ring-cyan-400' : 'ring-transparent'}`}>
                       ALL
                     </div>
-                    <span className="text-xs text-white font-medium mt-2">All</span>
-                    <span className="text-[10px] text-gray-500">{media.length} clips</span>
+                    <span className="text-[10px] text-white font-medium mt-1">All</span>
+                    <span className="text-[9px] text-gray-500">{media.length}</span>
                   </button>
-                  {playersWithCounts.map(({ player, count }) => (
+                  {/* If the user is a parent with a linked player, show them
+                      first in the strip so they're visually anchored. */}
+                  {playersWithCounts
+                    .slice()
+                    .sort((a, b) => {
+                      if (a.player.id === parentLinkedPlayerId) return -1;
+                      if (b.player.id === parentLinkedPlayerId) return 1;
+                      return 0;
+                    })
+                    .map(({ player, count }) => (
                     <button
                       key={player.id}
                       onClick={() => setSelectedPlayerId(player.id)}
                       className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === player.id ? 'scale-105' : ''}`}
                     >
-                      <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-fire-700 to-fire-900 ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-cyan-400' : 'ring-transparent'}`}>
+                      <div className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gradient-to-br from-fire-700 to-fire-900 ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-cyan-400' : 'ring-transparent'}`}>
                         {player.profilePhotoUrl ? (
                           <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white text-xl font-black">
+                          <div className="w-full h-full flex items-center justify-center text-white text-base font-black">
                             {player.jerseyNumber || player.name.charAt(0)}
                           </div>
                         )}
                         {player.profilePhotoUrl && player.jerseyNumber != null && (
-                          <span className="absolute -bottom-0.5 -right-0.5 bg-cyan-500 text-gray-950 rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow ring-2 ring-gray-950">
+                          <span className="absolute -bottom-0.5 -right-0.5 bg-cyan-500 text-gray-950 rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[9px] font-black shadow ring-2 ring-gray-950">
                             {player.jerseyNumber}
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-white font-medium mt-2 max-w-[80px] truncate">{player.name.split(' ')[0]}</span>
-                      <span className="text-[10px] text-gray-500">{count} clip{count !== 1 ? 's' : ''}</span>
+                      <span className="text-[10px] text-white font-medium mt-1 max-w-[64px] truncate">{player.name.split(' ')[0]}</span>
+                      <span className="text-[9px] text-gray-500">{count}</span>
                     </button>
                   ))}
                 </div>
-              </section>
-            )}
 
-            {/* ── TOP PLAYS THIS SEASON ─────────────────────────────── */}
-            {selectedPlayerId === 'all' && topPlaysThisSeason.length > 0 && (
-              <section className="mb-10">
-                <SectionHeader title="Top Plays This Season" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {topPlaysThisSeason.map((item, idx) => (
-                    <RankedCard
-                      key={item.id}
-                      rank={idx + 1}
-                      item={item}
-                      onClick={() => setSelectedMedia(item)}
-                    />
+                {/* Media-type toggle + tag filter chips — same sticky band */}
+                <div className="flex items-center gap-2 mt-3 overflow-x-auto scrollbar-thin">
+                  <div className="inline-flex bg-white/5 ring-1 ring-white/10 rounded-full p-0.5 flex-shrink-0">
+                    {[
+                      { k: 'all' as const, label: 'All' },
+                      { k: 'video' as const, label: '🎬 Videos' },
+                      { k: 'photo' as const, label: '📸 Photos' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.k}
+                        onClick={() => setMediaTypeFilter(opt.k)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
+                          mediaTypeFilter === opt.k ? 'bg-white text-fire-950' : 'text-white/70 hover:text-white'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {allMediaTags.length > 0 && allMediaTags.slice(0, 8).map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleFilterTag(tag)}
+                      className={`px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                        filterTags.includes(tag)
+                          ? 'bg-cyan-500 text-fire-950'
+                          : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                      }`}
+                    >
+                      {tag}
+                    </button>
                   ))}
+                  {filterTags.length > 0 && (
+                    <button
+                      onClick={() => setFilterTags([])}
+                      className="px-3 py-1 rounded-full text-[11px] font-medium text-rose-300 hover:bg-rose-500/10 flex-shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
-              </section>
+              </div>
             )}
 
             {/* ── ALL CLIPS / FILTERED VIEW ─────────────────────────── */}
@@ -1340,31 +1397,9 @@ const PlayerMediaPage: React.FC = () => {
               )}
               <SectionHeader
                 title={selectedPlayerId === 'all' ? 'All Clips' : `${players.find(p => p.id === selectedPlayerId)?.name || 'Player'}'s Clips`}
-                action={
-                  allMediaTags.length > 0
-                    ? { label: filterTags.length > 0 ? `Filters (${filterTags.length}) ✕` : 'Filter by tag', onClick: () => filterTags.length > 0 ? setFilterTags([]) : null }
-                    : undefined
-                }
               />
-
-              {/* Tag chips */}
-              {allMediaTags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                  {allMediaTags.map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleFilterTag(tag)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                        filterTags.includes(tag)
-                          ? 'bg-cyan-500 text-fire-950'
-                          : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Tag chips moved into the sticky nav above — no need to
+                  duplicate them here. */}
 
               {selectedPlayerId === 'all' ? (
                 mediaByPlayer.length > 0 ? (

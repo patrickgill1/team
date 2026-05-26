@@ -8,6 +8,7 @@ import { createStaffInvite } from '../utils/invites';
 import { getShareOrigin } from '../utils/origin';
 import InviteShareModal from '../components/common/InviteShareModal';
 import EndSeasonModal from '../components/team/EndSeasonModal';
+import NewSeasonModal from '../components/team/NewSeasonModal';
 
 const TeamManagement: React.FC = () => {
   const { userData } = useAuth();
@@ -53,6 +54,7 @@ const TeamManagement: React.FC = () => {
 
   // End-of-season flow
   const [endSeasonOpen, setEndSeasonOpen] = useState(false);
+  const [newSeasonOpen, setNewSeasonOpen] = useState(false);
 
   const generateShareInvite = async (role: 'assistant_coach' | 'team_manager') => {
     if (!userData || !selectedTeamId) return;
@@ -534,6 +536,11 @@ const TeamManagement: React.FC = () => {
                 onClick={() => generateShareInvite('team_manager')}
                 disabled={generatingShareInvite}
               />
+              <SecondaryAction
+                emoji="📅"
+                label="New season"
+                onClick={() => setNewSeasonOpen(true)}
+              />
               <button
                 onClick={() => setEndSeasonOpen(true)}
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-sm font-semibold transition active:scale-95"
@@ -816,6 +823,12 @@ const TeamManagement: React.FC = () => {
           onClose={() => setEndSeasonOpen(false)}
           teamId={selectedTeamId}
           onComplete={() => { /* roster refresh happens via real-time listeners */ }}
+        />
+
+        <NewSeasonModal
+          isOpen={newSeasonOpen}
+          onClose={() => setNewSeasonOpen(false)}
+          teamId={selectedTeamId}
         />
 
         {/* Invite Coach Modal */}

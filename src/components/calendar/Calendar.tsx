@@ -10,6 +10,7 @@ import EventForm from './EventForm';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
+import EventPhotos from './EventPhotos';
 
 const formatIcsDate = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -835,6 +836,7 @@ const EventCard: React.FC<EventCardProps> = ({
       </div>
       <RsvpBar event={event} userUid={userUid} onRsvp={onRsvp} isPast={isPast} />
       <CarpoolBar event={event} userUid={userUid} onAdd={onAddCarpool} onDelete={onDeleteCarpool} isPast={isPast} />
+      <EventPhotos eventId={event.id} teamId={event.teamId} canModerate={canEdit} />
     </div>
   );
 };

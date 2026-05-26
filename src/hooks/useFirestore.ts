@@ -394,6 +394,29 @@ const getUserData = useCallback(async (uid: string) => {
     ]);
   }, [getDocuments]);
 
+  /** Subscribe (live) to all gallery photos tagged to a specific event,
+   *  so the event card's photo strip updates as parents upload. */
+  const subscribeToEventPhotos = useCallback((eventId: string, callback: (photos: any[]) => void) => {
+    const q = query(
+      collection(db, 'gallery'),
+      where('eventId', '==', eventId),
+      orderBy('createdAt', 'desc')
+    );
+    return onSnapshot(q, (snap) => {
+      const photos = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          ...data,
+          id: d.id,
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+        };
+      });
+      callback(photos);
+    }, (err) => {
+      console.error('Event photos subscription failed:', err);
+    });
+  }, []);
+
   // ================================
   // NEW CHAT FUNCTIONS ADDED BELOW
   // ================================
@@ -841,6 +864,7 @@ const getUserData = useCallback(async (uid: string) => {
     // Gallery functions
     addPhoto,
     getPhotosByTeam,
+    subscribeToEventPhotos,
     // Chat functions
     addChatThread,
     updateChatThread,

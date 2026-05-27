@@ -198,9 +198,26 @@ export interface CalendarEvent {
   result?: string;
   // RSVPs: { uid: { status, name, respondedAt, forPlayerId? } }
   rsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; forPlayerName?: string }>;
+  // Per-player RSVPs keyed by playerId. A parent (or coach) RSVPs once
+  // per kid through this map, in addition to their own personal RSVP
+  // in `rsvps`. Coaches need attendance counts that reflect *players*
+  // not *adults*, so this is what shows up in the "Going" count for
+  // games and practices.
+  playerRsvps?: Record<string, {
+    status: 'going' | 'maybe' | 'no';
+    playerName: string;
+    byUid: string;
+    byName?: string;
+    respondedAt: any;
+  }>;
   // Guest RSVPs from the public share link, keyed by a per-browser token. Kept
   // separate from `rsvps` so authenticated team-member RSVPs aren't overwritten.
   publicRsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; isCoach?: boolean }>;
+  /** Arrive-by offset in minutes before the event start. e.g. 30 means
+   *  "arrive 30 min early". Stored as an offset (not absolute) so it
+   *  automatically shifts if the event itself is rescheduled. Useful
+   *  for games (warmups) and tournaments (check-in). */
+  arriveOffsetMinutes?: number;
   // Carpool board: parents post offers ("driving 2 seats from west") or requests ("need ride from south")
   carpoolPosts?: Array<{
     id: string;

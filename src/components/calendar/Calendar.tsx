@@ -12,6 +12,8 @@ import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
 import EventPhotos from './EventPhotos';
 import AppIcon from '../common/AppIcon';
+import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
 
 const formatIcsDate = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -27,6 +29,19 @@ const formatIcsDate = (d: Date) => {
 
 const escapeIcs = (s: string = '') =>
   s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+
+/** Build a Maps URL that opens in the user's default map app.
+ *  iOS Safari + Capacitor → Apple Maps via the maps.apple.com universal
+ *  link. Everywhere else → Google Maps. Both apps accept a free-text
+ *  query so we don't need to geocode upfront. */
+const mapsUrlFor = (location: string): string => {
+  const q = encodeURIComponent(location.trim());
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isApple = /iPhone|iPad|iPod|Macintosh/.test(ua);
+  return isApple
+    ? `https://maps.apple.com/?q=${q}`
+    : `https://www.google.com/maps/search/?api=1&query=${q}`;
+};
 
 const downloadEventIcs = (event: CalendarEvent) => {
   try {
@@ -96,6 +111,36 @@ const Calendar: React.FC<CalendarProps> = ({
   const [listTab, setListTab] = useState<'scheduled' | 'past'>('scheduled');
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+
+  // Every active player on this team that the current user is linked to
+  // as a parent. Used to render one RSVP row per kid on every event
+  // card (so a parent with two kids gets two responder rows, plus their
+  // own row). Single fetch, not per-card, to avoid N+1.
+  const [myLinkedPlayers, setMyLinkedPlayers] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    if (!userData?.uid || !selectedTeamId) { setMyLinkedPlayers([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await fsGetDocs(fsQuery(
+          collection(db, 'players'),
+          fsWhere('parentIds', 'array-contains', userData.uid),
+        ));
+        const rows = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((p: any) => p.isActive !== false)
+          .filter((p: any) =>
+            (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) ||
+            p.teamId === selectedTeamId
+          )
+          .map((p: any) => ({ id: p.id, name: p.name || 'Player' }));
+        if (!cancelled) setMyLinkedPlayers(rows);
+      } catch (err) {
+        console.error('Linked players lookup failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userData?.uid, selectedTeamId]);
 
   // Load events on component mount
   useEffect(() => {
@@ -202,6 +247,38 @@ const Calendar: React.FC<CalendarProps> = ({
       await updateDocument('events', eventId, { rsvps: newRsvps });
     } catch (err) {
       console.error('Error saving RSVP:', err);
+      setEvents(prev => prev.map(e => e.id === eventId ? ev : e));
+      alert('Failed to save RSVP.');
+    }
+  };
+
+  /** RSVP on behalf of a linked player (the kid). Stored separately from
+   *  the parent's own uid-keyed RSVP so the coach can see "Hunter going,
+   *  Patrick going" rather than just one combined answer. */
+  const handlePlayerRsvp = async (
+    eventId: string,
+    playerId: string,
+    playerName: string,
+    status: 'going' | 'maybe' | 'no',
+  ) => {
+    if (!userData) return;
+    const ev = events.find(e => e.id === eventId);
+    if (!ev) return;
+    const newPlayerRsvps = {
+      ...((ev as any).playerRsvps || {}),
+      [playerId]: {
+        status,
+        playerName,
+        byUid: userData.uid,
+        byName: userData.name || undefined,
+        respondedAt: new Date(),
+      },
+    };
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, playerRsvps: newPlayerRsvps } as any : e));
+    try {
+      await updateDocument('events', eventId, { playerRsvps: newPlayerRsvps });
+    } catch (err) {
+      console.error('Error saving player RSVP:', err);
       setEvents(prev => prev.map(e => e.id === eventId ? ev : e));
       alert('Failed to save RSVP.');
     }
@@ -497,9 +574,12 @@ const Calendar: React.FC<CalendarProps> = ({
                   onEdit={handleEditEvent}
                   onDelete={handleDeleteEvent}
                   onRsvp={handleRsvp}
+                  onPlayerRsvp={handlePlayerRsvp}
                   onAddCarpool={handleAddCarpoolPost}
                   onDeleteCarpool={handleDeleteCarpoolPost}
                   userUid={userData?.uid}
+                  userName={userData?.name}
+                  myLinkedPlayers={myLinkedPlayers}
                   canEdit={isUserCoach}
                   isDeleting={deletingIds.has(event.id)}
                   isPast={listTab === 'past'}
@@ -521,81 +601,46 @@ const Calendar: React.FC<CalendarProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-navy-900 tracking-tight">Team Calendar</h2>
-
-          {/* Month/List toggle — desktop only. On phones the month grid
-              is too cramped to be useful; the list is the right default
-              and the only mode worth showing. */}
-          <div className="hidden lg:flex bg-slate-100 rounded-xl p-1">
-            <button
-              onClick={() => setViewMode('month')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'month'
-                  ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Month
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'list'
-                  ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              List
-            </button>
-          </div>
+    <div className="space-y-4">
+      {/* Top action row — no page title here (the page Header already
+          shows "Events"); just the desktop view toggle and coach tools.
+          Calendar subscription is reached from Settings → Calendar
+          Syncing, so we don't surface a confusing chevron button here. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {/* Month/List toggle — desktop only. On phones the month grid
+            is too cramped to be useful; the list is the right default
+            and the only mode worth showing. */}
+        <div className="hidden lg:flex bg-slate-100 rounded-xl p-1 mr-auto">
+          <button
+            onClick={() => setViewMode('month')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'month'
+                ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Month
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'list'
+                ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            List
+          </button>
         </div>
 
-        {/* Subscribe link — anyone can grab the .ics feed URL and add
-            it to their phone calendar so new events auto-sync. */}
-        {showCreateButton && (
-          <button
-            onClick={async () => {
-              const origin = (await import('../../utils/origin')).getShareOrigin();
-              const url = `${origin}/api/calendar/${selectedTeamId}.ics`;
-              const webcal = url.replace(/^https?:/, 'webcal:');
-              const message = `Subscribe in your phone calendar:\n\n${webcal}\n\nTap the link or paste it into Calendar → "Add Subscription Calendar".`;
-              if ((navigator as any).share) {
-                try {
-                  await (navigator as any).share({ title: 'Team calendar feed', text: message, url: webcal });
-                  return;
-                } catch {}
-              }
-              try {
-                await navigator.clipboard.writeText(webcal);
-                alert('Subscription URL copied. Open Calendar → Add Subscription Calendar → paste.');
-              } catch {
-                window.prompt('Subscription URL — copy this and add to your calendar:', webcal);
-              }
-            }}
-            className="bg-white hover:bg-gray-50 ring-1 ring-gray-300 text-gray-700 font-semibold py-2.5 px-4 rounded-xl shadow-sm transition-all flex items-center gap-2"
-            title="Subscribe to this team's calendar in Apple/Google Calendar"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" transform="rotate(180 12 12)" />
-            </svg>
-            <span className="hidden sm:inline">Subscribe</span>
-          </button>
-        )}
-        {/* Coach actions: Add Event + Import Schedule */}
         {isUserCoach && showCreateButton && (
-          <div className="flex items-center gap-2">
+          <>
             <button
               onClick={() => setIsImportOpen(true)}
-              className="bg-white hover:bg-gray-50 ring-1 ring-gray-300 text-gray-700 font-semibold py-2.5 px-4 rounded-xl shadow-sm transition-all flex items-center gap-2"
+              className="bg-white hover:bg-gray-50 ring-1 ring-gray-300 text-gray-700 font-semibold py-2 px-3.5 rounded-xl shadow-sm transition-all flex items-center gap-2 text-sm"
               title="Import a season schedule from a .ics file"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-              </svg>
+              <AppIcon name="arrow-right" className="w-4 h-4 rotate-90" />
               <span className="hidden sm:inline">Import</span>
             </button>
             <button
@@ -604,14 +649,12 @@ const Calendar: React.FC<CalendarProps> = ({
                 setSelectedDate(null);
                 setIsEventFormOpen(true);
               }}
-              className="bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
+              className="bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2 px-4 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 text-sm"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
               <span>Add Event</span>
             </button>
-          </div>
+          </>
         )}
       </div>
 
@@ -661,9 +704,12 @@ interface EventCardProps {
   onEdit: (event: CalendarEvent) => void;
   onDelete: (eventId: string) => void;
   onRsvp?: (eventId: string, status: 'going' | 'maybe' | 'no') => void;
+  onPlayerRsvp?: (eventId: string, playerId: string, playerName: string, status: 'going' | 'maybe' | 'no') => void;
   onAddCarpool?: (eventId: string, post: { type: 'offer' | 'request'; seats?: number; location?: string; note?: string }) => void;
   onDeleteCarpool?: (eventId: string, postId: string) => void;
   userUid?: string;
+  userName?: string;
+  myLinkedPlayers?: Array<{ id: string; name: string }>;
   canEdit: boolean;
   isDeleting: boolean;
   isPast?: boolean;
@@ -690,9 +736,12 @@ const EventCard: React.FC<EventCardProps> = ({
   onEdit,
   onDelete,
   onRsvp,
+  onPlayerRsvp,
   onAddCarpool,
   onDeleteCarpool,
   userUid,
+  userName,
+  myLinkedPlayers,
   canEdit,
   isDeleting,
   isPast = false
@@ -735,11 +784,14 @@ const EventCard: React.FC<EventCardProps> = ({
     }
   };
 
-  const typeIcon: 'trophy' | 'whistle' | 'calendar' = event.type === 'game' ? 'trophy' : event.type === 'practice' ? 'whistle' : 'calendar';
+  // Custom Fire FC iconography: soccer ball for games, cone for
+  // practices, flag for "events" (anything else — tournaments, team
+  // dinners, photo day). Not borrowed from Ollie.
+  const typeIcon: 'soccer' | 'cone' | 'flag' = event.type === 'game' ? 'soccer' : event.type === 'practice' ? 'cone' : 'flag';
 
   return (
-    <div className={`rounded-2xl ring-1 overflow-hidden bg-white transition-all ${
-      isPast ? 'ring-gray-200 opacity-90' : 'ring-gray-200 hover:shadow-md'
+    <div className={`rounded-2xl ring-1 overflow-hidden bg-white shadow-sm transition-all ${
+      isPast ? 'ring-gray-300 opacity-90' : 'ring-gray-300 hover:shadow-md'
     }`}>
       <div className="flex items-stretch min-h-[120px]">
         {/* Left date stripe — colored by event type, with day/num/month
@@ -802,14 +854,27 @@ const EventCard: React.FC<EventCardProps> = ({
           {/* Meta rows — single consistent icon set, single text color */}
           <div className={`mt-2 text-sm space-y-1 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
             <div className="flex items-center gap-1.5 min-w-0">
-              <AppIcon name="calendar" className="w-4 h-4 shrink-0" />
-              <span className="truncate">{timeLabel}</span>
+              <AppIcon name="clock" className="w-4 h-4 shrink-0" />
+              <span className="truncate">
+                {timeLabel}
+                {(event as any).arriveOffsetMinutes > 0 && (() => {
+                  const arrive = new Date(dt.getTime() - (event as any).arriveOffsetMinutes * 60_000);
+                  const arriveLabel = arrive.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+                  return <span className="ml-1 text-gray-500">(arrive {arriveLabel})</span>;
+                })()}
+              </span>
             </div>
             {event.location && (
-              <div className="flex items-center gap-1.5 min-w-0">
-                <AppIcon name="phone" className="w-4 h-4 shrink-0 -rotate-90" />
-                <span className="truncate">{event.location}</span>
-              </div>
+              <a
+                href={mapsUrlFor(event.location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 min-w-0 hover:text-cyan-700 transition-colors"
+                title="Open in Maps"
+              >
+                <AppIcon name="map-pin" className="w-4 h-4 shrink-0" />
+                <span className="truncate underline decoration-dotted underline-offset-2">{event.location}</span>
+              </a>
             )}
           </div>
 
@@ -860,7 +925,15 @@ const EventCard: React.FC<EventCardProps> = ({
         </div>
       </div>
       <div className="px-4">
-        <RsvpBar event={event} userUid={userUid} onRsvp={onRsvp} isPast={isPast} />
+        <RsvpBar
+          event={event}
+          userUid={userUid}
+          userName={userName}
+          myLinkedPlayers={myLinkedPlayers}
+          onRsvp={onRsvp}
+          onPlayerRsvp={onPlayerRsvp}
+          isPast={isPast}
+        />
         <CarpoolBar event={event} userUid={userUid} onAdd={onAddCarpool} onDelete={onDeleteCarpool} isPast={isPast} />
         <EventPhotos eventId={event.id} teamId={event.teamId} canModerate={canEdit} />
       </div>
@@ -871,22 +944,45 @@ const EventCard: React.FC<EventCardProps> = ({
 const RsvpBar: React.FC<{
   event: CalendarEvent;
   userUid?: string;
+  userName?: string;
+  myLinkedPlayers?: Array<{ id: string; name: string }>;
   onRsvp?: (eventId: string, status: 'going' | 'maybe' | 'no') => void;
+  onPlayerRsvp?: (eventId: string, playerId: string, playerName: string, status: 'going' | 'maybe' | 'no') => void;
   isPast?: boolean;
-}> = ({ event, userUid, onRsvp, isPast }) => {
+}> = ({ event, userUid, userName, myLinkedPlayers = [], onRsvp, onPlayerRsvp, isPast }) => {
   const [showList, setShowList] = useState<null | 'going' | 'maybe' | 'no'>(null);
   if (event.type !== 'game' && event.type !== 'practice' && event.type !== 'event') return null;
   const rsvps = event.rsvps || {};
   const publicRsvps = (event as any).publicRsvps || {};
-  type Entry = { id: string; status: 'going' | 'maybe' | 'no'; name: string; isGuest: boolean; isCoach: boolean };
+  const playerRsvps = (event as any).playerRsvps || {};
+  type Entry = { id: string; status: 'going' | 'maybe' | 'no'; name: string; isGuest: boolean; isCoach: boolean; isPlayer: boolean };
   const entries: Entry[] = [
-    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, status: v.status, name: v.name, isGuest: false, isCoach: false })),
-    ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isGuest: true, isCoach: !!v.isCoach })),
+    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, status: v.status, name: v.name, isGuest: false, isCoach: false, isPlayer: false })),
+    ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isGuest: true, isCoach: !!v.isCoach, isPlayer: false })),
+    ...Object.entries(playerRsvps).map(([pid, v]: any) => ({ id: `p_${pid}`, status: v.status, name: v.playerName || 'Player', isGuest: false, isCoach: false, isPlayer: true })),
   ];
+  // Coaches want player attendance counts — those drive lineups. Adult
+  // RSVPs (the parent's own row) are still recorded but live in a
+  // separate strip below the player rows.
+  const playerCounts = {
+    going: Object.values(playerRsvps).filter((v: any) => v.status === 'going').length,
+    maybe: Object.values(playerRsvps).filter((v: any) => v.status === 'maybe').length,
+    no: Object.values(playerRsvps).filter((v: any) => v.status === 'no').length,
+  };
+  const adultCounts = {
+    going: Object.values(rsvps).filter((v: any) => v.status === 'going').length
+      + Object.values(publicRsvps).filter((v: any) => v.status === 'going').length,
+    maybe: Object.values(rsvps).filter((v: any) => v.status === 'maybe').length
+      + Object.values(publicRsvps).filter((v: any) => v.status === 'maybe').length,
+    no: Object.values(rsvps).filter((v: any) => v.status === 'no').length
+      + Object.values(publicRsvps).filter((v: any) => v.status === 'no').length,
+  };
+  // Combined counts surfaced at the top of the strip — total "people
+  // saying yes" across all responder types.
   const counts = {
-    going: entries.filter(e => e.status === 'going').length,
-    maybe: entries.filter(e => e.status === 'maybe').length,
-    no: entries.filter(e => e.status === 'no').length,
+    going: playerCounts.going + adultCounts.going,
+    maybe: playerCounts.maybe + adultCounts.maybe,
+    no: playerCounts.no + adultCounts.no,
   };
   const my = userUid ? rsvps[userUid]?.status : undefined;
   // Colored circle badge — matches the Ollie pattern of "green check
@@ -957,10 +1053,51 @@ const RsvpBar: React.FC<{
         </div>
       </div>
       {!isPast && (
-        <div className="flex gap-2">
-          {btn('going', 'Going', 'bg-emerald-600', 'text-white')}
-          {btn('maybe', 'Maybe', 'bg-amber-500', 'text-white')}
-          {btn('no', "Can't", 'bg-rose-600', 'text-white')}
+        <div className="space-y-2">
+          {/* One row per linked player — the parent (or coach + parent)
+              answers Going/Maybe/Can't per kid. Coaches see these as the
+              attendance signal that matters. */}
+          {myLinkedPlayers.map((p) => {
+            const current = (playerRsvps[p.id]?.status) as 'going' | 'maybe' | 'no' | undefined;
+            const pBtn = (status: 'going' | 'maybe' | 'no', label: string, color: string) => (
+              <button
+                key={status}
+                onClick={() => onPlayerRsvp && onPlayerRsvp(event.id, p.id, p.name, status)}
+                disabled={!userUid}
+                className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                  current === status
+                    ? `${color} text-white border-transparent shadow-sm`
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <StatusBadge status={status} size="sm" />
+                <span>{label}</span>
+              </button>
+            );
+            return (
+              <div key={p.id} className="flex items-center gap-2">
+                <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-gray-800 truncate" title={p.name}>{p.name}</div>
+                <div className="flex-1 flex gap-1.5">
+                  {pBtn('going', 'Going', 'bg-emerald-600')}
+                  {pBtn('maybe', 'Maybe', 'bg-amber-500')}
+                  {pBtn('no', "Can't", 'bg-rose-600')}
+                </div>
+              </div>
+            );
+          })}
+          {/* Self row — the parent's / coach's own attendance. Distinct
+              from the player row because adults aren't on the field
+              lineup, but the coach still needs to know who's coming. */}
+          <div className="flex items-center gap-2">
+            <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-gray-500 truncate">
+              {userName ? `Me · ${userName.split(' ')[0]}` : 'Me'}
+            </div>
+            <div className="flex-1 flex gap-1.5">
+              {btn('going', 'Going', 'bg-emerald-600', 'text-white')}
+              {btn('maybe', 'Maybe', 'bg-amber-500', 'text-white')}
+              {btn('no', "Can't", 'bg-rose-600', 'text-white')}
+            </div>
+          </div>
         </div>
       )}
       {/* Attendee list modal — portaled to document.body so ancestor
@@ -981,10 +1118,13 @@ const RsvpBar: React.FC<{
             onClick={e => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
-              <h3 className="font-bold text-gray-900 text-base">
-                {showList === 'going' && `✅ Going (${counts.going})`}
-                {showList === 'maybe' && `🤔 Maybe (${counts.maybe})`}
-                {showList === 'no' && `❌ Can't make it (${counts.no})`}
+              <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                <StatusBadge status={showList} size="md" />
+                <span>
+                  {showList === 'going' && `Going (${counts.going})`}
+                  {showList === 'maybe' && `Maybe (${counts.maybe})`}
+                  {showList === 'no' && `Can't make it (${counts.no})`}
+                </span>
               </h3>
               <button onClick={() => setShowList(null)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -996,28 +1136,50 @@ const RsvpBar: React.FC<{
               {entries.filter(e => e.status === showList).length === 0 ? (
                 <p className="px-4 py-6 text-center text-sm text-gray-500">No one yet.</p>
               ) : (
-                <ul className="divide-y divide-gray-100">
-                  {entries
-                    .filter(e => e.status === showList)
-                    .map(e => (
-                      <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                          {(e.name || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
-                        {e.isCoach && (
-                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200 shrink-0" title="Self-tagged as coach">
-                            🧥 coach
-                          </span>
-                        )}
-                        {e.isGuest && (
-                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0" title="Responded via shared link">
-                            via link
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                </ul>
+                <>
+                  {/* Players first — coaches read this section to know
+                      who's on the field. Adults follow as supplementary. */}
+                  {entries.some(e => e.status === showList && e.isPlayer) && (
+                    <>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Players</div>
+                      <ul className="divide-y divide-gray-100">
+                        {entries.filter(e => e.status === showList && e.isPlayer).map(e => (
+                          <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                              {(e.name || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Player'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  {entries.some(e => e.status === showList && !e.isPlayer) && (
+                    <>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Adults</div>
+                      <ul className="divide-y divide-gray-100">
+                        {entries.filter(e => e.status === showList && !e.isPlayer).map(e => (
+                          <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                              {(e.name || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
+                            {e.isCoach && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200 shrink-0">
+                                coach
+                              </span>
+                            )}
+                            {e.isGuest && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0">
+                                via link
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </div>

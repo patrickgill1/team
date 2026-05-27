@@ -36,6 +36,7 @@ const EventForm: React.FC<EventFormProps> = ({
     volunteerTypes: [] as string[], // Types of volunteers needed
     recurrence: 'none' as 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly',
     recurrenceUntil: '' as string,
+    arriveOffsetMinutes: 0,
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +59,7 @@ const EventForm: React.FC<EventFormProps> = ({
         volunteerTypes: [],
         recurrence: (editingEvent as any).recurrence || 'none',
         recurrenceUntil: untilDate ? untilDate.toISOString().split('T')[0] : '',
+        arriveOffsetMinutes: (editingEvent as any).arriveOffsetMinutes || 0,
       });
     } else {
       const defaultDate = selectedDate || new Date();
@@ -73,6 +75,7 @@ const EventForm: React.FC<EventFormProps> = ({
         volunteerTypes: [],
         recurrence: 'none',
         recurrenceUntil: '',
+        arriveOffsetMinutes: 0,
       });
     }
     setErrors({});
@@ -254,7 +257,7 @@ const EventForm: React.FC<EventFormProps> = ({
     try {
       const eventDateTime = new Date(`${formData.date}T${formData.time}`);
       
-      const eventData = {
+      const eventData: any = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         date: eventDateTime,
@@ -263,6 +266,7 @@ const EventForm: React.FC<EventFormProps> = ({
         teamId: selectedTeamId,
         createdBy: userData.uid,
         createdByName: userData.name,
+        arriveOffsetMinutes: formData.arriveOffsetMinutes > 0 ? formData.arriveOffsetMinutes : null,
         createdAt: new Date()
       };
 
@@ -330,6 +334,7 @@ const EventForm: React.FC<EventFormProps> = ({
         volunteerTypes: [],
         recurrence: 'none',
         recurrenceUntil: '',
+        arriveOffsetMinutes: 0,
       });
       onClose();
     } catch (error) {
@@ -484,9 +489,39 @@ const EventForm: React.FC<EventFormProps> = ({
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.location ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter location (e.g., Main Field, Community Center)"
+              placeholder="Enter address or place name (Main Field, 123 Park Ln)"
             />
+            <p className="text-xs text-gray-500 mt-1">Tip: an address or place name works best — the location is tappable on event cards and opens in Maps.</p>
             {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
+          </div>
+
+          {/* Arrive early — recommended for games (warmups), useful for
+              practices too. Offsets are stored so they auto-shift if the
+              event itself is rescheduled. */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Arrive early
+            </label>
+            <select
+              value={formData.arriveOffsetMinutes}
+              onChange={(e) => setFormData({ ...formData, arriveOffsetMinutes: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={0}>No arrive-early time</option>
+              <option value={15}>15 minutes early</option>
+              <option value={20}>20 minutes early</option>
+              <option value={30}>30 minutes early</option>
+              <option value={45}>45 minutes early</option>
+              <option value={60}>1 hour early</option>
+              <option value={75}>1 hr 15 min early</option>
+              <option value={90}>1 hr 30 min early</option>
+            </select>
+            {formData.arriveOffsetMinutes > 0 && formData.date && formData.time && (() => {
+              const start = new Date(`${formData.date}T${formData.time}`);
+              const arrive = new Date(start.getTime() - formData.arriveOffsetMinutes * 60_000);
+              const fmt = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+              return <p className="text-xs text-gray-500 mt-1">Players should arrive by <b>{fmt(arrive)}</b> (event starts {fmt(start)}).</p>;
+            })()}
           </div>
 
           {/* Description */}

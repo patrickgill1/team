@@ -4,11 +4,12 @@ import Header from '../components/common/Header';
 import CalendarComponent from '../components/calendar/Calendar';
 
 const CalendarPage: React.FC = () => {
-  // ?view=list — used by the Home page's "Next event" hero so taps open
-  // straight into the list view instead of dropping the user into the
-  // month grid where they have to find the event again.
+  // ?view=month — defaults to list (the right default on every device,
+  // since the month grid is too cramped on phones and parents really
+  // just want "what's next"). The opt-in ?view=month is left so a
+  // desktop bookmark of the grid still works.
   const [searchParams] = useSearchParams();
-  const view = searchParams.get('view') === 'list' ? 'list' : 'month';
+  const view = searchParams.get('view') === 'month' ? 'month' : 'list';
   const focusEventId = searchParams.get('event') || undefined;
 
   return (

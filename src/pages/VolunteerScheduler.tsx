@@ -3,6 +3,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { formatDateTime } from '../utils/helpers';
+import Header from '../components/common/Header';
+import AppIcon, { AppIconName } from '../components/common/AppIcon';
 
 interface CalendarEvent {
   id: string;
@@ -145,47 +147,56 @@ const VolunteerScheduler: React.FC = () => {
     }
   };
 
+  // Icon names map to AppIcon entries — no emoji, consistent with the
+  // rest of the app's icon language. `tint` is the chip color shown
+  // alongside the icon (kept inside the brand palette).
   const getTypeInfo = (type: string) => {
     const typeMap = {
       snacks: {
         title: 'Snacks & Drinks',
         defaultDescription: 'Provide snacks and drinks for the team',
-        icon: '🍎',
+        icon: 'check' as const,
+        tint: 'emerald',
         defaultSlots: 2,
         defaultOffset: 0
       },
       setup: {
         title: 'Setup Help',
         defaultDescription: 'Help set up equipment and field preparation',
-        icon: '⚙️',
+        icon: 'wrench' as const,
+        tint: 'fire',
         defaultSlots: 3,
         defaultOffset: -30
       },
       cleanup: {
         title: 'Cleanup',
         defaultDescription: 'Help clean up after the event',
-        icon: '🧹',
+        icon: 'trash' as const,
+        tint: 'cyan',
         defaultSlots: 2,
         defaultOffset: 120
       },
       transportation: {
         title: 'Transportation',
         defaultDescription: 'Help with player transportation',
-        icon: '🚗',
+        icon: 'map-pin' as const,
+        tint: 'navy',
         defaultSlots: 2,
         defaultOffset: -15
       },
       equipment: {
         title: 'Equipment',
         defaultDescription: 'Help manage and transport equipment',
-        icon: '⚽',
+        icon: 'soccer' as const,
+        tint: 'fire',
         defaultSlots: 2,
         defaultOffset: -30
       },
       other: {
         title: 'Other Help',
         defaultDescription: 'General volunteer help needed',
-        icon: '👥',
+        icon: 'players' as const,
+        tint: 'cyan',
         defaultSlots: 1,
         defaultOffset: 0
       }
@@ -240,20 +251,23 @@ const VolunteerScheduler: React.FC = () => {
     }
   };
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: string): AppIconName => {
     return getTypeInfo(type).icon;
   };
 
+  // Brand-aligned chip colors per type. No more purple/orange — every
+  // tint comes from the fire (cyan) / navy / emerald ramps so chips
+  // stay on-brand.
   const getTypeColor = (type: string) => {
     const colors = {
-      snacks: 'bg-orange-100 text-orange-800',
-      setup: 'bg-cyan-50 text-cyan-700',
-      cleanup: 'bg-green-100 text-green-800',
-      transportation: 'bg-purple-100 text-purple-800',
-      equipment: 'bg-red-100 text-red-800',
-      other: 'bg-gray-100 text-gray-800'
+      snacks: 'bg-emerald-50 text-emerald-700',
+      setup: 'bg-fire-50 text-fire-700',
+      cleanup: 'bg-cyan-50 text-cyan-700',
+      transportation: 'bg-navy-700/10 text-navy-800',
+      equipment: 'bg-fire-100 text-fire-800',
+      other: 'bg-gray-100 text-gray-700'
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-700';
   };
 
   const isUserSignedUp = (opportunity: VolunteerOpportunity) => {
@@ -282,53 +296,47 @@ const VolunteerScheduler: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header title="Volunteers" subtitle="Sign up to help — snacks, setup, transport, and more" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Volunteer Scheduler</h1>
-              <p className="text-gray-600 mt-1">Help make team events successful by volunteering</p>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              disabled={upcomingEvents.length === 0}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              <span>Add Volunteer Need</span>
-            </button>
-          </div>
-          
-          {upcomingEvents.length === 0 && (
-            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <div>
-                  <p className="text-yellow-800 font-medium">No upcoming events found</p>
-                  <p className="text-yellow-700 text-sm">
-                    Create events in the calendar first, then add volunteer opportunities here.
-                  </p>
-                </div>
-              </div>
-              <a 
-                href="/calendar"
-                className="mt-2 inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-              >
-                📅 Go to Calendar
-              </a>
-            </div>
-          )}
+        <div className="mb-6 flex justify-end">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            disabled={upcomingEvents.length === 0}
+            className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
+            <span>Add Volunteer Need</span>
+          </button>
         </div>
+
+        {upcomingEvents.length === 0 && (
+          <div className="mb-6 p-4 bg-fire-50 border border-fire-200 rounded-2xl">
+            <div className="flex items-start gap-3">
+              <AppIcon name="info" className="w-5 h-5 text-fire-700 mt-0.5" />
+              <div>
+                <p className="text-fire-900 font-medium">No upcoming events found</p>
+                <p className="text-fire-800/80 text-sm">
+                  Create events first, then add volunteer needs against them here.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/calendar"
+              className="mt-3 inline-flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            >
+              <AppIcon name="calendar" className="w-4 h-4" />
+              <span>Go to Events</span>
+            </a>
+          </div>
+        )}
 
         {/* Calendar Events with Volunteer Needs */}
         {upcomingEvents.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">📅 Upcoming Events</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <AppIcon name="calendar" className="w-5 h-5 text-cyan-700" />
+              <span>Upcoming events</span>
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {upcomingEvents.map(event => {
                 const eventOpps = getEventOpportunities(event.id);
@@ -344,9 +352,9 @@ const VolunteerScheduler: React.FC = () => {
                         <p className="text-sm text-gray-500">{event.location}</p>
                       </div>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        event.type === 'game' ? 'bg-red-100 text-red-800' :
-                        event.type === 'practice' ? 'bg-cyan-50 text-cyan-700' :
-                        'bg-green-100 text-green-800'
+                        event.type === 'game' ? 'bg-navy-700/10 text-navy-800' :
+                        event.type === 'practice' ? 'bg-fire-100 text-fire-800' :
+                        'bg-fire-50 text-fire-700'
                       }`}>
                         {event.type}
                       </span>
@@ -364,7 +372,10 @@ const VolunteerScheduler: React.FC = () => {
                         </div>
                         {eventOpps.map(opp => (
                           <div key={opp.id} className="text-xs text-gray-600 flex items-center justify-between">
-                            <span>{getTypeIcon(opp.type)} {opp.title}</span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <AppIcon name={getTypeIcon(opp.type)} className="w-3.5 h-3.5 text-gray-500" />
+                              <span>{opp.title}</span>
+                            </span>
                             <span>{opp.slotsBooked.length}/{opp.slotsNeeded}</span>
                           </div>
                         ))}
@@ -386,13 +397,14 @@ const VolunteerScheduler: React.FC = () => {
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                   filterType === type
-                    ? 'bg-cyan-50 text-cyan-700'
+                    ? 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {type === 'all' ? '🔍 All' : `${getTypeIcon(type)} ${type.charAt(0).toUpperCase() + type.slice(1)}`}
+                {type !== 'all' && <AppIcon name={getTypeIcon(type)} className="w-3.5 h-3.5" />}
+                <span>{type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}</span>
               </button>
             ))}
           </div>
@@ -413,8 +425,9 @@ const VolunteerScheduler: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(opportunity.type)}`}>
-                          {getTypeIcon(opportunity.type)} {opportunity.type.charAt(0).toUpperCase() + opportunity.type.slice(1)}
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(opportunity.type)}`}>
+                          <AppIcon name={getTypeIcon(opportunity.type)} className="w-3.5 h-3.5" />
+                          <span>{opportunity.type.charAt(0).toUpperCase() + opportunity.type.slice(1)}</span>
                         </span>
                         {isSignedUp && (
                           <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
@@ -562,12 +575,12 @@ const VolunteerScheduler: React.FC = () => {
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 >
-                  <option value="snacks">🍎 Snacks & Drinks</option>
-                  <option value="setup">⚙️ Setup Help</option>
-                  <option value="cleanup">🧹 Cleanup</option>
-                  <option value="transportation">🚗 Transportation</option>
-                  <option value="equipment">⚽ Equipment</option>
-                  <option value="other">👥 Other</option>
+                  <option value="snacks">Snacks & Drinks</option>
+                  <option value="setup">Setup Help</option>
+                  <option value="cleanup">Cleanup</option>
+                  <option value="transportation">Transportation</option>
+                  <option value="equipment">Equipment</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
 

@@ -640,7 +640,7 @@ const TeamManagement: React.FC = () => {
                   {(team.coachIds?.length || 0) > 1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleOpenTransfer(team); }}
-                      className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="flex-1 bg-fire-50 hover:bg-fire-100 text-fire-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Transfer Head Coach
                     </button>
@@ -722,7 +722,7 @@ const TeamManagement: React.FC = () => {
                     </div>
                     {(player.teamIds?.length || 0) > 1 && (
                       <div className="inline-flex items-center gap-1.5 mt-0.5">
-                        <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Shared</span>
+                        <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded">Shared</span>
                         <button
                           onClick={() => handleUnsharePlayer(player.id, selectedTeamId!)}
                           className="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-medium transition-colors"
@@ -1038,7 +1038,7 @@ const TeamManagement: React.FC = () => {
                   <button
                     onClick={handleTransferHeadCoach}
                     disabled={!transferTargetId}
-                    className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50"
                   >
                     Transfer Role
                   </button>
@@ -1104,7 +1104,7 @@ const TeamManagement: React.FC = () => {
                   <button
                     onClick={handleSharePlayer}
                     disabled={!selectedPlayerId || !targetTeamId}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50"
                   >
                     Share Player
                   </button>

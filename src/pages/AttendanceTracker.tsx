@@ -4,6 +4,8 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Player } from '../types';
 import { formatDate, isCoach } from '../utils/helpers';
+import Header from '../components/common/Header';
+import AppIcon from '../components/common/AppIcon';
 
 interface CalendarEvent {
   id: string;
@@ -243,71 +245,26 @@ const AttendanceTracker: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header title="Attendance" subtitle="Track who showed up to practices, games, and events" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Attendance Tracker</h1>
-              <p className="text-gray-600 mt-1">Track attendance for practices and games from your calendar</p>
-            </div>
-            {calendarEvents.length === 0 && (
-              <div className="text-right">
-                <p className="text-sm text-gray-600 mb-2">No practices or games found</p>
-                <a 
-                  href="/calendar" 
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                >
-                  📅 Create Events in Calendar
-                </a>
-              </div>
-            )}
+        {calendarEvents.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 mb-6 flex items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">No practices or games found yet.</p>
+            <a
+              href="/calendar"
+              className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              <AppIcon name="calendar" className="w-4 h-4" />
+              <span>Create events</span>
+            </a>
           </div>
-        </div>
+        )}
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="card-modern p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-cyan-50 rounded-lg">
-                <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Events</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card-modern p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Average Attendance</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.averageAttendance}%</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card-modern p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Players</p>
-                <p className="text-2xl font-bold text-gray-900">{players.length}</p>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <StatTile icon="calendar" tint="cyan" label="Total Events" value={stats.totalEvents} />
+          <StatTile icon="check" tint="emerald" label="Average Attendance" value={`${stats.averageAttendance}%`} />
+          <StatTile icon="players" tint="fire" label="Total Players" value={players.length} />
         </div>
 
         {/* Main Content */}
@@ -330,8 +287,8 @@ const AttendanceTracker: React.FC = () => {
                         const isToday = new Date(event.date).toDateString() === new Date().toDateString();
                         return (
                           <option key={event.id} value={event.id}>
-                            {isPast && !isToday ? '📜 ' : isToday ? '📅 ' : '⏰ '}
-                            {event.title} - {formatDate(event.date)}
+                            {isPast && !isToday ? 'Past · ' : isToday ? 'Today · ' : 'Upcoming · '}
+                            {event.title} — {formatDate(event.date)}
                           </option>
                         );
                       })}
@@ -358,11 +315,12 @@ const AttendanceTracker: React.FC = () => {
                           {selectedEventData.type.charAt(0).toUpperCase() + selectedEventData.type.slice(1)}
                         </span>
                       </div>
-                      <a 
-                        href="/calendar" 
-                        className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
+                      <a
+                        href="/calendar"
+                        className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 text-sm font-medium"
                       >
-                        📅 View in Calendar
+                        <AppIcon name="calendar" className="w-4 h-4" />
+                        <span>View in Events</span>
                       </a>
                     </div>
                   </div>
@@ -455,9 +413,10 @@ const AttendanceTracker: React.FC = () => {
                       </p>
                       <a
                         href="/calendar"
-                        className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                        className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition"
                       >
-                        📅 Go to Calendar
+                        <AppIcon name="calendar" className="w-4 h-4" />
+                        <span>Go to Events</span>
                       </a>
                     </div>
                   ) : (
@@ -508,5 +467,25 @@ const AttendanceTracker: React.FC = () => {
     </div>
   );
 };
+
+const TINT_BG: Record<string, string> = {
+  cyan: 'bg-cyan-50 text-cyan-700',
+  emerald: 'bg-emerald-50 text-emerald-700',
+  fire: 'bg-fire-50 text-fire-700',
+  navy: 'bg-navy-700/10 text-navy-700',
+  amber: 'bg-amber-50 text-amber-700',
+};
+
+const StatTile: React.FC<{ icon: any; tint: string; label: string; value: React.ReactNode }> = ({ icon, tint, label, value }) => (
+  <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-5 flex items-center gap-4">
+    <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${TINT_BG[tint] || TINT_BG.cyan}`}>
+      <AppIcon name={icon} className="w-5 h-5" />
+    </span>
+    <div className="min-w-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
+    </div>
+  </div>
+);
 
 export default AttendanceTracker;

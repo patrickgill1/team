@@ -5,6 +5,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
+import AppIcon from '../components/common/AppIcon';
 import StatsTracker from '../components/stats/StatsTracker';
 import StatsDisplay from '../components/stats/StatsDisplay';
 import { useActiveSeason } from '../hooks/useActiveSeason';
@@ -338,7 +339,7 @@ const Stats: React.FC = () => {
                                   <div className="text-xs text-gray-600">Assists</div>
                                 </div>
                                 <div>
-                                  <div className="text-lg font-bold text-purple-600">{s.saves || 0}</div>
+                                  <div className="text-lg font-bold text-navy-700">{s.saves || 0}</div>
                                   <div className="text-xs text-gray-600">Saves</div>
                                 </div>
                               </div>
@@ -361,7 +362,7 @@ const Stats: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setAdjustingPlayerId(player.id)}
-                            className="flex-1 inline-flex items-center justify-center text-amber-600 text-sm font-medium hover:text-amber-700"
+                            className="flex-1 inline-flex items-center justify-center text-fire-700 text-sm font-medium hover:text-fire-800"
                             title="Fix a stat mistake"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,13 +473,16 @@ interface AdjustStatsModalProps {
   onSave: (next: Player['stats']) => void | Promise<void>;
 }
 
-const STAT_FIELDS: { key: keyof Player['stats']; label: string; emoji: string; color: string }[] = [
-  { key: 'goals',       label: 'Goals',     emoji: '⚽', color: 'text-emerald-600' },
-  { key: 'assists',     label: 'Assists',   emoji: '🎯', color: 'text-cyan-600' },
-  { key: 'saves',       label: 'Saves',     emoji: '🧤', color: 'text-violet-600' },
-  { key: 'gamesPlayed', label: 'Games',     emoji: '🏆', color: 'text-amber-600' },
-  { key: 'yellowCards', label: 'Yellow',    emoji: '🟨', color: 'text-yellow-600' },
-  { key: 'redCards',    label: 'Red',       emoji: '🟥', color: 'text-red-600' },
+// Stat editor rows — brand-aligned tints (fire/cyan/navy/emerald),
+// no emoji. Yellow/red cards keep their semantic colors since those
+// match the actual referee cards they represent.
+const STAT_FIELDS: { key: keyof Player['stats']; label: string; icon: 'soccer' | 'highlight' | 'check' | 'trophy' | 'flag' | 'shield'; tint: string }[] = [
+  { key: 'goals',       label: 'Goals',     icon: 'soccer',    tint: 'text-emerald-700' },
+  { key: 'assists',     label: 'Assists',   icon: 'highlight', tint: 'text-cyan-700' },
+  { key: 'saves',       label: 'Saves',     icon: 'check',     tint: 'text-navy-700' },
+  { key: 'gamesPlayed', label: 'Games',     icon: 'trophy',    tint: 'text-fire-700' },
+  { key: 'yellowCards', label: 'Yellow',    icon: 'flag',      tint: 'text-yellow-700' },
+  { key: 'redCards',    label: 'Red',       icon: 'shield',    tint: 'text-rose-700' },
 ];
 
 const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, onSave }) => {
@@ -513,7 +517,7 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white sticky top-0">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cyan-50 to-white sticky top-0">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Fix Stats</h3>
             <p className="text-xs text-gray-500">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
@@ -532,9 +536,11 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
           </p>
           {STAT_FIELDS.map(f => (
             <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-              <div className="text-2xl w-8 text-center">{f.emoji}</div>
+              <div className={`w-9 h-9 rounded-lg bg-white ring-1 ring-gray-200 flex items-center justify-center ${f.tint}`}>
+                <AppIcon name={f.icon} className="w-5 h-5" />
+              </div>
               <div className="flex-1">
-                <p className={`text-sm font-bold ${f.color}`}>{f.label}</p>
+                <p className={`text-sm font-bold ${f.tint}`}>{f.label}</p>
                 <p className="text-[11px] text-gray-500">Currently {(cur as any)[f.key] || 0}</p>
               </div>
               <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">−</button>
@@ -543,7 +549,7 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
                 min={0}
                 value={values[f.key]}
                 onChange={e => set(String(f.key), parseInt(e.target.value || '0', 10))}
-                className="w-16 text-center font-bold text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                className="w-16 text-center font-bold text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-cyan-300"
               />
               <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">+</button>
             </div>
@@ -555,7 +561,7 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200" disabled={saving}>
             Cancel
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50">
             {saving ? 'Saving…' : 'Save correction'}
           </button>
         </div>

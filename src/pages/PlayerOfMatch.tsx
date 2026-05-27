@@ -7,6 +7,8 @@ import { formatDate, isCoach } from '../utils/helpers';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
+import Header from '../components/common/Header';
+import AppIcon from '../components/common/AppIcon';
 
 interface MatchVoting {
   id: string;
@@ -386,7 +388,7 @@ const PlayerOfMatch: React.FC = () => {
 
             // Native push to parents who have the app installed.
             sendPushToPlayerParents(w.playerId, {
-              title: isCoWin ? `${w.playerName} is co-Player of the Match! 🏆` : `${w.playerName} is Player of the Match! 🏆`,
+              title: isCoWin ? `${w.playerName} is co-Player of the Match!` : `${w.playerName} is Player of the Match!`,
               body: `${w.voteCount} vote${w.voteCount === 1 ? '' : 's'} · ${activeVoting.gameTitle}`,
               path: `/player/${w.playerId}`,
             }, 'potm');
@@ -482,27 +484,19 @@ const PlayerOfMatch: React.FC = () => {
 
   return (
     <div>
+      <Header title="Player of the Match" subtitle="Vote for outstanding performances" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-fire-950">Player of the Match</h1>
-              <p className="text-gray-600 mt-1">Vote for outstanding performances</p>
-            </div>
-            {isUserCoach && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span>Create Voting</span>
-              </button>
-            )}
+        {isUserCoach && (
+          <div className="mb-6 flex justify-end">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
+              <span>Create Voting</span>
+            </button>
           </div>
-        </div>
+        )}
 
         {/* Available Games for Voting (Coach only) */}
         {isUserCoach && (
@@ -515,7 +509,7 @@ const PlayerOfMatch: React.FC = () => {
                   </svg>
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-cyan-900 mb-2">
-                      🎯 Games Available for Player of the Match Voting
+                      Games available for Player of the Match voting
                     </h3>
                     <p className="text-sm text-cyan-700 mb-3">
                       Create voting sessions for recent or upcoming games
@@ -586,19 +580,24 @@ const PlayerOfMatch: React.FC = () => {
         {/* Active Voting */}
         {activeVoting && (
           <div className="card-modern mb-6 overflow-hidden">
-            <div className="px-6 py-4 border-b border-amber-100 bg-amber-50/60">
+            <div className="px-6 py-4 border-b border-cyan-100 bg-gradient-to-r from-cyan-50 to-white">
               <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-amber-900">🏆 Active Voting</h2>
-                  <p className="text-amber-700">{activeVoting.gameTitle} - {formatDate(activeVoting.gameDate)}</p>
-                  {activeVoting.calendarEventId && (
-                    <p className="text-sm text-amber-700/80">🔗 Linked to calendar event</p>
-                  )}
-                  {activeVoting.eligiblePlayerIds && activeVoting.eligiblePlayerIds.length > 0 && (
-                    <p className="text-sm text-amber-700/80">
-                      📋 Attendance: {activeVoting.eligiblePlayerIds.length}/{players.length} players present
-                    </p>
-                  )}
+                <div className="flex items-start gap-3 min-w-0">
+                  <span className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center shrink-0">
+                    <AppIcon name="trophy" className="w-5 h-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold text-fire-950">Active voting</h2>
+                    <p className="text-gray-700 truncate">{activeVoting.gameTitle} — {formatDate(activeVoting.gameDate)}</p>
+                    {activeVoting.calendarEventId && (
+                      <p className="text-xs text-gray-500 mt-0.5">Linked to a calendar event</p>
+                    )}
+                    {activeVoting.eligiblePlayerIds && activeVoting.eligiblePlayerIds.length > 0 && (
+                      <p className="text-xs text-gray-500">
+                        Attendance: {activeVoting.eligiblePlayerIds.length}/{players.length} players present
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -606,7 +605,7 @@ const PlayerOfMatch: React.FC = () => {
                     className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 border ${
                       linkCopied
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                        : 'bg-white border-amber-200 text-amber-800 hover:bg-amber-50'
+                        : 'bg-white border-cyan-200 text-cyan-800 hover:bg-cyan-50'
                     }`}
                     title="Copy vote link to share with parents"
                   >
@@ -777,9 +776,7 @@ const PlayerOfMatch: React.FC = () => {
                       return (
                         <div key={result.playerId}>
                           <div className="flex items-center gap-2">
-                            <span className="text-base w-6 text-center flex-shrink-0">
-                              {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
-                            </span>
+                            <PlaceBadge index={index} />
                             <span className="font-medium text-gray-900 w-36 truncate">{result.name}</span>
                             <div className="flex-1 bg-gray-100 rounded-full h-2">
                               <div
@@ -812,8 +809,8 @@ const PlayerOfMatch: React.FC = () => {
                                 <span className="inline-flex items-center gap-1.5 flex-wrap">
                                   <span>{v.voterName || '—'}</span>
                                   {v.isCoach && (
-                                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200" title="Voted as coach">
-                                      🧥 coach
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200" title="Voted as coach">
+                                      coach
                                     </span>
                                   )}
                                 </span>
@@ -888,18 +885,20 @@ const PlayerOfMatch: React.FC = () => {
                         </div>
                         {(voting.winners && voting.winners.length > 0) || voting.winner ? (
                           <div className="text-right">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-2xl">🏆</span>
+                            <div className="flex items-center gap-2">
+                              <span className="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center shrink-0">
+                                <AppIcon name="trophy" className="w-5 h-5" />
+                              </span>
                               <div>
                                 {voting.winners && voting.winners.length > 1 ? (
                                   <>
-                                    <p className="font-semibold text-yellow-600 text-sm">Co-Players of the Match ({voting.winners.length})</p>
+                                    <p className="font-semibold text-cyan-700 text-sm">Co-Players of the Match ({voting.winners.length})</p>
                                     <p className="text-xs text-gray-600">{voting.winners.map(w => w.playerName).join(', ')}</p>
                                     <p className="text-xs text-gray-500 mt-0.5">{voting.winners[0].voteCount} votes each</p>
                                   </>
                                 ) : (
                                   <>
-                                    <p className="font-semibold text-yellow-600">{(voting.winners?.[0] || voting.winner)!.playerName}</p>
+                                    <p className="font-semibold text-cyan-700">{(voting.winners?.[0] || voting.winner)!.playerName}</p>
                                     <p className="text-sm text-gray-600">{(voting.winners?.[0] || voting.winner)!.voteCount} votes</p>
                                   </>
                                 )}
@@ -916,9 +915,7 @@ const PlayerOfMatch: React.FC = () => {
                             return (
                               <div key={result.playerId}>
                                 <div className="flex items-center gap-2 py-1.5">
-                                  <span className="w-6 text-center text-base flex-shrink-0">
-                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
-                                  </span>
+                                  <PlaceBadge index={index} />
                                   <span className="font-medium text-gray-900 w-36 truncate">{result.name}</span>
                                   <div className="flex-1 bg-gray-100 rounded-full h-2">
                                     <div
@@ -967,8 +964,8 @@ const PlayerOfMatch: React.FC = () => {
                                         <span className="inline-flex items-center gap-1.5 flex-wrap">
                                           <span>{v.voterName || '—'}</span>
                                           {v.isCoach && (
-                                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200" title="Voted as coach">
-                                              🧥 coach
+                                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200" title="Voted as coach">
+                                              coach
                                             </span>
                                           )}
                                         </span>
@@ -1272,8 +1269,8 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="">—</option>
-            <option value="home">🏠 Home</option>
-            <option value="away">✈️ Away</option>
+            <option value="home">Home</option>
+            <option value="away">Away</option>
           </select>
         </div>
       </div>
@@ -1303,6 +1300,32 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
         Create Custom Voting
       </button>
     </form>
+  );
+};
+
+/** Place badge — 1st gets a brand-colored trophy chip, 2nd/3rd get
+ *  numbered chips in lighter tones. Replaces the medal emojis with
+ *  shapes that match the rest of the app's icon language. */
+const PlaceBadge: React.FC<{ index: number }> = ({ index }) => {
+  if (index === 0) {
+    return (
+      <span className="w-6 h-6 rounded-full bg-cyan-600 text-white flex items-center justify-center flex-shrink-0" title="1st">
+        <AppIcon name="trophy" className="w-3.5 h-3.5" strokeWidth={2.25} />
+      </span>
+    );
+  }
+  if (index === 1) {
+    return (
+      <span className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center text-[11px] font-bold flex-shrink-0" title="2nd">2</span>
+    );
+  }
+  if (index === 2) {
+    return (
+      <span className="w-6 h-6 rounded-full bg-cyan-50 text-cyan-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0" title="3rd">3</span>
+    );
+  }
+  return (
+    <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-[11px] font-semibold flex-shrink-0">{index + 1}</span>
   );
 };
 

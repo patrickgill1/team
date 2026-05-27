@@ -5,6 +5,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { Survey, SurveyQuestion, SurveyQuestionType, SurveyResponse } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
+import AppIcon from '../components/common/AppIcon';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
@@ -12,10 +13,10 @@ import { getShareOrigin } from '../utils/origin';
 // ─── Question Builder Helpers ─────────────────────────────────────────────────
 
 const QUESTION_TYPE_LABELS: Record<SurveyQuestionType, string> = {
-  rating: '⭐ Rating Scale',
-  text: '✏️ Free Text',
-  multiple_choice: '☑️ Multiple Choice',
-  yes_no: '👍 Yes / No',
+  rating: 'Rating Scale',
+  text: 'Free Text',
+  multiple_choice: 'Multiple Choice',
+  yes_no: 'Yes / No',
 };
 
 const HOW_AM_I_DOING_TEMPLATE: Omit<Survey, 'id' | 'teamId' | 'createdBy' | 'createdByName' | 'responseCount' | 'createdAt'> = {
@@ -442,8 +443,8 @@ const Surveys: React.FC = () => {
                           <span className="ml-1 text-amber-400 text-xl">{'★'.repeat(Number(ans.value))}{'☆'.repeat((q.maxRating || 5) - Number(ans.value))}</span>
                         </div>
                       ) : q.type === 'yes_no' ? (
-                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${ans.value === 'yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
-                          {ans.value === 'yes' ? '👍 Yes' : '👎 No'}
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${ans.value === 'yes' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {ans.value === 'yes' ? 'Yes' : 'No'}
                         </span>
                       ) : q.type === 'multiple_choice' ? (
                         <span className="inline-block bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
@@ -477,7 +478,7 @@ const Surveys: React.FC = () => {
         {/* Template Button */}
         {!editingSurvey && questions.length === 0 && (
           <button onClick={useTemplate} className="w-full card-modern p-4 mb-4 border-2 border-dashed border-cyan-300 hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors text-left">
-            <div className="font-semibold text-fire-900">📋 Use "How Am I Doing?" Template</div>
+            <div className="font-semibold text-fire-900">Use "How Am I Doing?" Template</div>
             <div className="text-sm text-fire-500 mt-1">Pre-built anonymous coach feedback survey — 5 questions ready to go</div>
           </button>
         )}
@@ -618,7 +619,9 @@ const Surveys: React.FC = () => {
 
       {surveys.length === 0 ? (
         <div className="card-modern p-8 text-center">
-          <div className="text-4xl mb-3">📋</div>
+          <div className="flex justify-center mb-3 text-fire-400">
+            <AppIcon name="survey" className="w-10 h-10" />
+          </div>
           <p className="text-fire-500">No surveys yet — create one to get started</p>
         </div>
       ) : (

@@ -219,25 +219,29 @@ const PlayerProfile: React.FC = () => {
     return Math.round((plan.goals.filter(g => g.coachVerified).length / plan.goals.length) * 100);
   };
 
+  // Development-plan category chips. All stay inside the brand palette
+  // (fire/cyan/navy + emerald for "growth"). No more violet/orange.
   const getCategoryColor = (cat: string) => {
     switch (cat) {
       case 'technical': return 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100';
-      case 'tactical': return 'bg-violet-50 text-violet-700 ring-1 ring-violet-100';
-      case 'physical': return 'bg-orange-50 text-orange-700 ring-1 ring-orange-100';
+      case 'tactical': return 'bg-navy-700/10 text-navy-800 ring-1 ring-navy-700/10';
+      case 'physical': return 'bg-fire-50 text-fire-800 ring-1 ring-fire-100';
       case 'mental': return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100';
       default: return 'bg-gray-50 text-gray-700 ring-1 ring-gray-100';
     }
   };
 
+  // Position dot — kept colorful for at-a-glance scanning but stays
+  // away from the most off-brand tones (amber, orange) where possible.
   const positionDot = (pos?: string): string => {
     switch (pos) {
-      case 'Goalkeeper': return 'bg-amber-400';
-      case 'Defender': return 'bg-sky-400';
-      case 'Midfielder': return 'bg-emerald-400';
+      case 'Goalkeeper': return 'bg-fire-400';
+      case 'Defender': return 'bg-navy-700';
+      case 'Midfielder': return 'bg-emerald-500';
       case 'Forward':
-      case 'Striker': return 'bg-rose-400';
-      case 'Winger': return 'bg-orange-400';
-      default: return 'bg-cyan-400';
+      case 'Striker': return 'bg-rose-500';
+      case 'Winger': return 'bg-cyan-500';
+      default: return 'bg-gray-400';
     }
   };
 
@@ -475,11 +479,11 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Assists</div>
                   </div>
                   <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-amber-300">{votingWins.length}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-fire-300">{votingWins.length}</div>
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">POTM</div>
                   </div>
                   <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-violet-300">{media.length}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-white">{media.length}</div>
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Clips</div>
                   </div>
                 </div>

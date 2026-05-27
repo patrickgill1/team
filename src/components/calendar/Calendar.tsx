@@ -722,19 +722,22 @@ interface EventCardProps {
   isPast?: boolean;
 }
 
-// Color palette per event type — used for the left stripe + bottom-icon
-// background, mirroring the at-a-glance type cue from the screenshots
-// (game=amber, practice=violet, neutral=cyan).
+// Color palette per event type — all three stay inside the Fire FC
+// brand (sky-blue + navy ramp), distinguished by lightness instead of
+// hue so the cards still scan at a glance without going off-brand.
+//   game     = navy-700  (most important — deep, official)
+//   practice = fire-500  (bright sky — active energy)
+//   event    = fire-700  (mid sky — social/team)
 const eventColors = (type: string) => {
   switch (type) {
     case 'game':
-      return { stripe: 'bg-amber-400', stripeText: 'text-amber-950', pill: 'bg-amber-100 text-amber-800' };
+      return { stripe: 'bg-navy-700', stripeText: 'text-white', pill: 'bg-navy-700/10 text-navy-800' };
     case 'practice':
-      return { stripe: 'bg-violet-400', stripeText: 'text-white', pill: 'bg-violet-100 text-violet-800' };
+      return { stripe: 'bg-fire-500', stripeText: 'text-white', pill: 'bg-fire-100 text-fire-800' };
     case 'event':
-      return { stripe: 'bg-emerald-400', stripeText: 'text-emerald-950', pill: 'bg-emerald-100 text-emerald-800' };
+      return { stripe: 'bg-fire-700', stripeText: 'text-white', pill: 'bg-fire-100 text-fire-800' };
     default:
-      return { stripe: 'bg-cyan-400', stripeText: 'text-white', pill: 'bg-cyan-100 text-cyan-800' };
+      return { stripe: 'bg-fire-500', stripeText: 'text-white', pill: 'bg-fire-100 text-fire-800' };
   }
 };
 

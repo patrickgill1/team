@@ -328,6 +328,11 @@ export interface ChatMessage {
   content: string;
   senderId: string;
   senderName: string;
+  /** Snapshot of the sender's avatar at send time. Snapshotting (rather
+   *  than looking up live) keeps the chat fast — no per-message user
+   *  fetch — and means avatars don't retroactively change if someone
+   *  swaps their photo later. */
+  senderPhotoUrl?: string;
   senderRole: 'coach' | 'parent';
   timestamp: Date;
   teamId: string;

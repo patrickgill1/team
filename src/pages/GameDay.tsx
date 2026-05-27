@@ -378,11 +378,12 @@ const GameDay: React.FC = () => {
         content: text,
         senderId: userData.uid,
         senderName: userData.name,
+        senderPhotoUrl: (userData as any).photoURL || undefined,
         senderRole: userData.role,
         timestamp: new Date(),
         teamId: event.teamId,
       } as any);
-      alert('Recap posted to team chat. (Look in the "Game recaps" thread.)');
+      alert('Recap posted to chat. (Look in the "Game recaps" thread.)');
     } catch (err) {
       console.error('Post recap to chat failed:', err);
       alert('Could not post the recap. Please try again.');

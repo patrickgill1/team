@@ -784,10 +784,10 @@ const EventCard: React.FC<EventCardProps> = ({
     }
   };
 
-  // Custom Fire FC iconography: soccer ball for games, cone for
-  // practices, flag for "events" (anything else — tournaments, team
-  // dinners, photo day). Not borrowed from Ollie.
-  const typeIcon: 'soccer' | 'cone' | 'flag' = event.type === 'game' ? 'soccer' : event.type === 'practice' ? 'cone' : 'flag';
+  // Custom Fire FC iconography: soccer ball for games, running figure
+  // for practices, flag for "events" (anything else — tournaments,
+  // team dinners, photo day). Not borrowed from Ollie.
+  const typeIcon: 'soccer' | 'running' | 'flag' = event.type === 'game' ? 'soccer' : event.type === 'practice' ? 'running' : 'flag';
 
   return (
     <div className={`rounded-2xl ring-1 overflow-hidden bg-white shadow-sm transition-all ${

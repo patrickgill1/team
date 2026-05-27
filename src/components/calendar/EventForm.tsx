@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CalendarEvent } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
+
+/** Lightweight typeahead row from Nominatim. We only need a label to
+ *  display + the cleaned-up address to write back to the form. */
+interface AddressSuggestion {
+  label: string;
+  address: string;
+}
 
 interface EventFormProps {
   isOpen: boolean;
@@ -41,6 +48,16 @@ const EventForm: React.FC<EventFormProps> = ({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [weather, setWeather] = useState<WeatherSummary | null>(null);
+  // Address typeahead state. We hit Nominatim (OpenStreetMap geocoder)
+  // 350ms after the user stops typing — free, no API key, ~1 req/sec
+  // policy is fine for this use case.
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  // Tracks whether the latest location change came from the user typing
+  // (vs being filled in by tapping a suggestion). Stops the typeahead
+  // from re-querying its own selection.
+  const lastSelectedAddressRef = useRef<string>('');
 
   useEffect(() => {
     if (editingEvent) {
@@ -138,6 +155,44 @@ const EventForm: React.FC<EventFormProps> = ({
     }
     return out;
   };
+
+  // Address typeahead — Nominatim (OpenStreetMap) free geocoder.
+  // Debounced 350ms after typing; skips when the value matches what
+  // the user just picked from the dropdown so we don't ghost-requery
+  // our own selection. Cancellable via AbortController.
+  useEffect(() => {
+    const q = formData.location.trim();
+    if (q.length < 3) { setAddressSuggestions([]); return; }
+    if (q === lastSelectedAddressRef.current) return;
+    const ctrl = new AbortController();
+    const handle = setTimeout(async () => {
+      try {
+        setLoadingAddresses(true);
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=us,ca`;
+        const res = await fetch(url, { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } });
+        if (!res.ok) return;
+        const data: any[] = await res.json();
+        const rows: AddressSuggestion[] = data.map((d) => {
+          const a = d.address || {};
+          // Build a short, friendly label: "Little Valley Park, St. George, UT"
+          const parts = [
+            a.amenity || a.leisure || a.shop || a.tourism || a.building || a.house_name,
+            [a.house_number, a.road].filter(Boolean).join(' '),
+            a.city || a.town || a.village || a.hamlet || a.suburb,
+            a.state_code || a.state,
+          ].filter(Boolean);
+          const label = parts.length > 0 ? parts.join(', ') : d.display_name;
+          return { label, address: d.display_name as string };
+        });
+        setAddressSuggestions(rows);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') console.warn('Address autocomplete failed', err);
+      } finally {
+        setLoadingAddresses(false);
+      }
+    }, 350);
+    return () => { clearTimeout(handle); ctrl.abort(); };
+  }, [formData.location]);
 
   // Look up weather forecast for the chosen date/location (debounced via effect deps).
   useEffect(() => {
@@ -477,21 +532,57 @@ const EventForm: React.FC<EventFormProps> = ({
             </div>
           </div>
 
-          {/* Location */}
-          <div>
+          {/* Location with Nominatim address typeahead */}
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Location *
             </label>
             <input
               type="text"
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, location: e.target.value });
+                setShowAddressSuggestions(true);
+              }}
+              onFocus={() => setShowAddressSuggestions(true)}
+              // 150ms delay before hide so clicking a suggestion lands
+              // before the dropdown unmounts.
+              onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 150)}
+              autoComplete="off"
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.location ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter address or place name (Main Field, 123 Park Ln)"
+              placeholder="Start typing an address (Park Ln, Main Field…)"
             />
-            <p className="text-xs text-gray-500 mt-1">Tip: an address or place name works best — the location is tappable on event cards and opens in Maps.</p>
+            {showAddressSuggestions && (loadingAddresses || addressSuggestions.length > 0) && (
+              <div className="absolute z-20 mt-1 w-full bg-white rounded-xl ring-1 ring-gray-200 shadow-lg overflow-hidden max-h-72 overflow-y-auto">
+                {loadingAddresses && addressSuggestions.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-gray-500">Searching…</div>
+                )}
+                {addressSuggestions.map((s, idx) => (
+                  <button
+                    key={`${s.address}_${idx}`}
+                    type="button"
+                    onMouseDown={(e) => {
+                      // mousedown fires before blur — lets the suggestion
+                      // win the race against the input's onBlur handler.
+                      e.preventDefault();
+                      lastSelectedAddressRef.current = s.address;
+                      setFormData((prev) => ({ ...prev, location: s.address }));
+                      setShowAddressSuggestions(false);
+                      setAddressSuggestions([]);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-cyan-50 transition-colors border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="text-sm font-semibold text-gray-900 truncate">{s.label}</div>
+                    {s.label !== s.address && (
+                      <div className="text-[11px] text-gray-500 truncate">{s.address}</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-1">Tip: pick a suggestion to drop a real address — tapping it on an event card opens Maps directly.</p>
             {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
           </div>
 

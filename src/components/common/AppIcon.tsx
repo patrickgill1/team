@@ -45,6 +45,7 @@ export type AppIconName =
   | 'trophy'
   | 'soccer'
   | 'cone'
+  | 'running'
   | 'flag'
   | 'map-pin'
   | 'clock';
@@ -164,12 +165,26 @@ const PATHS: Record<AppIconName, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8 L15.8 10.8 L14.4 15.2 L9.6 15.2 L8.2 10.8 Z" />
     </>
   ),
-  // Traffic cone — single triangle silhouette with one stripe. Reads
-  // as "practice cone" instantly without the hand-drawn ribbing.
+  // Traffic cone — pure triangle silhouette with two horizontal
+  // stripes inside, no floor line. Reads cleanly as "practice cone"
+  // at 20px instead of looking like an A with a base.
   cone: (
     <>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10 5h4l3.5 13h-11L10 5z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 12h7M4 21h16" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4 L18.5 19 L5.5 19 Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 11h6M7 15h10" />
+    </>
+  ),
+  // Running person, mid-stride, facing right. Head + angled torso +
+  // arms swinging opposite + legs in full stride. Cleaner read than
+  // the cone for "practice" — universally legible as motion/training.
+  running: (
+    <>
+      <circle cx="15" cy="4.75" r="1.85" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 7.5 L11 13.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 9.5 L16.5 8.5 L18.5 10" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.5 11 L9 13 L7 11" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 13.5 L14 16.5 L16.5 20.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 13.5 L6.5 17 L4.5 20.5" />
     </>
   ),
   // Triangular pennant flag — the standard "event" / "celebration"

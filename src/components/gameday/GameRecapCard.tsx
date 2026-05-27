@@ -251,7 +251,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
               onClick={() => onPostToChat(shareText)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 ring-1 ring-white/20 font-bold text-sm active:scale-95"
             >
-              💬 Post to team chat
+              💬 Post to chat
             </button>
           )}
         </div>

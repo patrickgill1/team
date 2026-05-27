@@ -508,6 +508,7 @@ const TeamChat: React.FC = () => {
         content,
         senderId: userData.uid,
         senderName: userData.name,
+        senderPhotoUrl: (userData as any).photoURL || undefined,
         senderRole: userData.role,
         timestamp: new Date(),
         teamId: selectedTeamId,
@@ -665,6 +666,7 @@ const TeamChat: React.FC = () => {
       content: '',
       senderId: userData.uid,
       senderName: userData.name,
+      senderPhotoUrl: (userData as any).photoURL || undefined,
       senderRole: userData.role,
       timestamp: new Date(),
       teamId: selectedTeamId,
@@ -1020,7 +1022,7 @@ const TeamChat: React.FC = () => {
             {/* Header */}
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Team Chat</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Messages</h2>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setIsDMPickerOpen(true)}
@@ -1489,7 +1491,7 @@ const TeamChat: React.FC = () => {
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Team Chat</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsDMPickerOpen(true)}

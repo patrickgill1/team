@@ -176,14 +176,29 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {!isOwn && (
         <div className="w-9 mr-2 flex-shrink-0 self-end">
           {isFirstInGroup && (
-            <div
-              className={`w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center shadow-sm ${senderColor(
-                message.senderName
-              )}`}
-              title={message.senderName}
-            >
-              {message.senderName.charAt(0).toUpperCase()}
-            </div>
+            (message as any).senderPhotoUrl ? (
+              <img
+                src={(message as any).senderPhotoUrl}
+                alt={message.senderName}
+                title={message.senderName}
+                className="w-8 h-8 rounded-full object-cover shadow-sm ring-1 ring-black/5"
+                onError={(e) => {
+                  // If the photo URL 404s (deleted Storage object, etc.)
+                  // hide the broken <img> so the colored-initial fallback
+                  // doesn't get crowded out.
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div
+                className={`w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center shadow-sm ${senderColor(
+                  message.senderName
+                )}`}
+                title={message.senderName}
+              >
+                {message.senderName.charAt(0).toUpperCase()}
+              </div>
+            )
           )}
         </div>
       )}

@@ -42,6 +42,7 @@ const FullGames = React.lazy(() => import('./pages/FullGames'));
 const GameDay = React.lazy(() => import('./pages/GameDay'));
 const QuickGameLauncher = React.lazy(() => import('./pages/QuickGameLauncher'));
 const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder'));
+const Settings = React.lazy(() => import('./pages/Settings'));
 
 const PageSpinner = () => (
   <div className="min-h-screen bg-fire-50 flex items-center justify-center">
@@ -381,7 +382,15 @@ function App() {
                 </AppLayout>
               </ProtectedRoute>
             } />
-            
+
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Settings />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
             {/* Catch all route - redirect to auth if not authenticated, dashboard if authenticated */}
             <Route path="*" element={
               <ProtectedRoute fallbackPath="/auth">

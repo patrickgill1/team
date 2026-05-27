@@ -10,6 +10,7 @@ import InviteShareModal from '../components/common/InviteShareModal';
 import EndSeasonModal from '../components/team/EndSeasonModal';
 import NewSeasonModal from '../components/team/NewSeasonModal';
 import ManageSeasonsModal from '../components/team/ManageSeasonsModal';
+import MediaAccessModal from '../components/team/MediaAccessModal';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 
 const TeamManagement: React.FC = () => {
@@ -58,6 +59,7 @@ const TeamManagement: React.FC = () => {
   const [endSeasonOpen, setEndSeasonOpen] = useState(false);
   const [newSeasonOpen, setNewSeasonOpen] = useState(false);
   const [manageSeasonsOpen, setManageSeasonsOpen] = useState(false);
+  const [mediaAccessOpen, setMediaAccessOpen] = useState(false);
   const { season: activeSeasonForSelected } = useActiveSeason();
 
   const generateShareInvite = async (role: 'assistant_coach' | 'team_manager') => {
@@ -550,6 +552,11 @@ const TeamManagement: React.FC = () => {
                 label="Manage seasons"
                 onClick={() => setManageSeasonsOpen(true)}
               />
+              <SecondaryAction
+                emoji="🎬"
+                label="Media access"
+                onClick={() => setMediaAccessOpen(true)}
+              />
               {/* Only renders when this team actually HAS an active
                   season — otherwise "End Season" is meaningless. */}
               {activeSeasonForSelected && (
@@ -893,6 +900,12 @@ const TeamManagement: React.FC = () => {
         <ManageSeasonsModal
           isOpen={manageSeasonsOpen}
           onClose={() => setManageSeasonsOpen(false)}
+          teamId={selectedTeamId}
+        />
+
+        <MediaAccessModal
+          isOpen={mediaAccessOpen}
+          onClose={() => setMediaAccessOpen(false)}
           teamId={selectedTeamId}
         />
 

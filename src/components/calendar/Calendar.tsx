@@ -11,6 +11,7 @@ import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
 import EventPhotos from './EventPhotos';
+import AppIcon from '../common/AppIcon';
 
 const formatIcsDate = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -71,7 +72,10 @@ interface CalendarProps {
 }
 
 const Calendar: React.FC<CalendarProps> = ({
-  viewMode: initialViewMode = 'month',
+  // On phones the big month grid is more of a status object than a tool —
+  // 95% of taps go to a single event card. Default to the list so the
+  // first thing a parent sees on /calendar is "what's next".
+  viewMode: initialViewMode = 'list',
   showCreateButton = true,
   focusEventId,
 }) => {
@@ -87,6 +91,9 @@ const Calendar: React.FC<CalendarProps> = ({
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  // In list mode, parents almost always want "what's next" (Scheduled).
+  // Past is one tap away.
+  const [listTab, setListTab] = useState<'scheduled' | 'past'>('scheduled');
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -429,97 +436,78 @@ const Calendar: React.FC<CalendarProps> = ({
       .filter(event => new Date(event.date) < new Date())
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    const showing = listTab === 'scheduled' ? upcomingEvents : pastEvents;
+
     return (
-      <div className="space-y-6">
-        {/* Upcoming Events */}
-        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70">
-          <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
-            <span className="w-1.5 h-5 bg-fire-500 rounded-full"></span>
-            <h3 className="text-base font-bold text-navy-900 tracking-tight">Upcoming</h3>
-            <span className="ml-auto text-xs font-semibold text-slate-500">{upcomingEvents.length}</span>
-          </div>
-          <div className="p-5 sm:p-6">
-            {upcomingEvents.length === 0 ? (
-              <div className="text-center py-10">
-                <div className="text-slate-300 mb-3">
-                  <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="text-slate-600 font-medium">No upcoming events scheduled</p>
-                {isUserCoach && (
-                  <button
-                    onClick={() => {
-                      setEditingEvent(null);
-                      setSelectedDate(null);
-                      setIsEventFormOpen(true);
-                    }}
-                    className="mt-4 bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm hover:shadow transition-all"
-                  >
-                    Create First Event
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {upcomingEvents.map(event => (
-                  <div
-                    key={event.id}
-                    id={`event-${event.id}`}
-                    className={focusEventId === event.id ? 'ring-2 ring-cyan-400 ring-offset-2 rounded-2xl transition' : ''}
-                  >
-                    <EventCard
-                      event={event}
-                      onEdit={handleEditEvent}
-                      onDelete={handleDeleteEvent}
-                      onRsvp={handleRsvp}
-                      onAddCarpool={handleAddCarpoolPost}
-                      onDeleteCarpool={handleDeleteCarpoolPost}
-                      userUid={userData?.uid}
-                      canEdit={isUserCoach}
-                      isDeleting={deletingIds.has(event.id)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="space-y-4">
+        {/* Scheduled / Past tab strip */}
+        <div className="flex items-center border-b border-gray-200 bg-white rounded-t-2xl">
+          <button
+            onClick={() => setListTab('scheduled')}
+            className={`flex-1 py-3 text-sm font-bold transition-colors relative ${
+              listTab === 'scheduled' ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            Scheduled <span className="ml-1 text-gray-400 text-xs font-semibold">({upcomingEvents.length})</span>
+            {listTab === 'scheduled' && <span className="absolute -bottom-px left-4 right-4 h-0.5 bg-emerald-500" />}
+          </button>
+          <button
+            onClick={() => setListTab('past')}
+            className={`flex-1 py-3 text-sm font-bold transition-colors relative ${
+              listTab === 'past' ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            Past <span className="ml-1 text-gray-400 text-xs font-semibold">({pastEvents.length})</span>
+            {listTab === 'past' && <span className="absolute -bottom-px left-4 right-4 h-0.5 bg-emerald-500" />}
+          </button>
         </div>
 
-        {/* Past Events */}
-        {pastEvents.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70">
-            <div className="px-5 sm:px-6 py-4 border-b border-slate-200/70 flex items-center gap-2">
-              <span className="w-1.5 h-5 bg-slate-300 rounded-full"></span>
-              <h3 className="text-base font-bold text-slate-700 tracking-tight">Past Events</h3>
-              <span className="ml-auto text-xs font-semibold text-slate-400">{pastEvents.length}</span>
-            </div>
-            <div className="p-5 sm:p-6">
-              <div className="space-y-4">
-                {pastEvents.slice(0, 5).map(event => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onEdit={handleEditEvent}
-                    onDelete={handleDeleteEvent}
-                    onRsvp={handleRsvp}
-                    onAddCarpool={handleAddCarpoolPost}
-                    onDeleteCarpool={handleDeleteCarpoolPost}
-                    userUid={userData?.uid}
-                    canEdit={isUserCoach}
-                    isDeleting={deletingIds.has(event.id)}
-                    isPast={true}
-                  />
-                ))}
-                {pastEvents.length > 5 && (
-                  <p className="text-sm text-slate-400 text-center pt-4 border-t border-slate-200/60">
-                    … and {pastEvents.length - 5} more past events
-                  </p>
-                )}
+        {/* Event list */}
+        <div className="space-y-3">
+          {showing.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-10 text-center">
+              <div className="text-gray-300 mb-3 flex justify-center">
+                <AppIcon name="calendar" className="w-12 h-12" />
               </div>
+              <p className="text-gray-600 font-medium">
+                {listTab === 'scheduled' ? 'No upcoming events.' : 'No past events.'}
+              </p>
+              {listTab === 'scheduled' && isUserCoach && (
+                <button
+                  onClick={() => {
+                    setEditingEvent(null);
+                    setSelectedDate(null);
+                    setIsEventFormOpen(true);
+                  }}
+                  className="mt-4 bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm hover:shadow transition-all"
+                >
+                  Create First Event
+                </button>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            showing.map(event => (
+              <div
+                key={event.id}
+                id={`event-${event.id}`}
+                className={focusEventId === event.id ? 'ring-2 ring-cyan-400 ring-offset-2 rounded-2xl transition' : ''}
+              >
+                <EventCard
+                  event={event}
+                  onEdit={handleEditEvent}
+                  onDelete={handleDeleteEvent}
+                  onRsvp={handleRsvp}
+                  onAddCarpool={handleAddCarpoolPost}
+                  onDeleteCarpool={handleDeleteCarpoolPost}
+                  userUid={userData?.uid}
+                  canEdit={isUserCoach}
+                  isDeleting={deletingIds.has(event.id)}
+                  isPast={listTab === 'past'}
+                />
+              </div>
+            ))
+          )}
+        </div>
       </div>
     );
   };
@@ -539,8 +527,10 @@ const Calendar: React.FC<CalendarProps> = ({
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-navy-900 tracking-tight">Team Calendar</h2>
 
-          {/* View Mode Toggle */}
-          <div className="flex bg-slate-100 rounded-xl p-1">
+          {/* Month/List toggle — desktop only. On phones the month grid
+              is too cramped to be useful; the list is the right default
+              and the only mode worth showing. */}
+          <div className="hidden lg:flex bg-slate-100 rounded-xl p-1">
             <button
               onClick={() => setViewMode('month')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -679,6 +669,22 @@ interface EventCardProps {
   isPast?: boolean;
 }
 
+// Color palette per event type — used for the left stripe + bottom-icon
+// background, mirroring the at-a-glance type cue from the screenshots
+// (game=amber, practice=violet, neutral=cyan).
+const eventColors = (type: string) => {
+  switch (type) {
+    case 'game':
+      return { stripe: 'bg-amber-400', stripeText: 'text-amber-950', pill: 'bg-amber-100 text-amber-800' };
+    case 'practice':
+      return { stripe: 'bg-violet-400', stripeText: 'text-white', pill: 'bg-violet-100 text-violet-800' };
+    case 'event':
+      return { stripe: 'bg-emerald-400', stripeText: 'text-emerald-950', pill: 'bg-emerald-100 text-emerald-800' };
+    default:
+      return { stripe: 'bg-cyan-400', stripeText: 'text-white', pill: 'bg-cyan-100 text-cyan-800' };
+  }
+};
+
 const EventCard: React.FC<EventCardProps> = ({
   event,
   onEdit,
@@ -703,23 +709,13 @@ const EventCard: React.FC<EventCardProps> = ({
     getWeatherForEvent(event.location || '', dt).then(w => { if (!cancelled) setWeather(w); });
     return () => { cancelled = true; };
   }, [event?.id, event?.location, event?.date, isPast]);
-  const getEventTypeIcon = (type: string) => {
-    switch (type) {
-      case 'game': return '⚽';
-      case 'practice': return '🏃';
-      case 'event': return '📅';
-      default: return '📅';
-    }
-  };
 
-  const getEventTypeColor = (type: string) => {
-    const colors = {
-      game: 'bg-rose-500/10 text-rose-700 border-rose-300/50',
-      practice: 'bg-fire-500/10 text-fire-800 border-fire-300/50',
-      event: 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50'
-    };
-    return colors[type as keyof typeof colors] || 'bg-slate-100 text-slate-700 border-slate-200';
-  };
+  const colors = eventColors(event.type);
+  const dt = event.date instanceof Date ? event.date : new Date(event.date);
+  const dayLabel = dt.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
+  const dayNum = dt.getDate();
+  const monthLabel = dt.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+  const timeLabel = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   const handleShare = async () => {
     const url = `${getShareOrigin()}/event/${event.id}`;
@@ -739,55 +735,80 @@ const EventCard: React.FC<EventCardProps> = ({
     }
   };
 
+  const typeIcon: 'trophy' | 'whistle' | 'calendar' = event.type === 'game' ? 'trophy' : event.type === 'practice' ? 'whistle' : 'calendar';
+
   return (
-    <div className={`rounded-2xl p-4 sm:p-5 transition-all ring-1 overflow-hidden ${
-      isPast
-        ? 'ring-slate-200 bg-slate-50/60'
-        : 'ring-slate-200/70 bg-white hover:ring-fire-300/60 hover:shadow-md hover:-translate-y-0.5'
+    <div className={`rounded-2xl ring-1 overflow-hidden bg-white transition-all ${
+      isPast ? 'ring-gray-200 opacity-90' : 'ring-gray-200 hover:shadow-md'
     }`}>
-      <div className="flex items-start gap-3">
-        <div className="text-2xl shrink-0 leading-none mt-0.5">{getEventTypeIcon(event.type)}</div>
-        <div className="flex-1 min-w-0">
-          {/* Title + type chip — wraps cleanly on narrow screens */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-            <h4 className={`font-semibold break-words ${isPast ? 'text-gray-600' : 'text-gray-900'}`}>
-              {event.title}
-            </h4>
-            <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full border ${getEventTypeColor(event.type)} ${
-              isPast ? 'opacity-60' : ''
-            }`}>
-              {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-            </span>
-            {(event as any).seriesId && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[11px] font-semibold" title="Part of a recurring series">
-                🔁 {(event as any).recurrence || 'recurring'}
-              </span>
+      <div className="flex items-stretch min-h-[120px]">
+        {/* Left date stripe — colored by event type, with day/num/month
+            stacked, plus a type icon pinned to the bottom (the Ollie
+            pattern). */}
+        <div className={`${colors.stripe} ${colors.stripeText} w-20 shrink-0 relative flex flex-col items-center justify-center py-3`}>
+          <span className="text-[10px] font-bold tracking-wider opacity-90">{dayLabel}</span>
+          <span className="text-2xl font-black leading-none my-0.5">{dayNum}</span>
+          <span className="text-[10px] font-bold tracking-wider opacity-90">{monthLabel}</span>
+          <span className="absolute bottom-2 left-2 opacity-80">
+            <AppIcon name={typeIcon} className="w-5 h-5" />
+          </span>
+        </div>
+
+        {/* Right content */}
+        <div className="flex-1 min-w-0 p-4 flex flex-col">
+          {/* Header row: title + type pill + recurring + coach actions */}
+          <div className="flex items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <h4 className={`font-bold text-[15px] leading-snug break-words ${isPast ? 'text-gray-700' : 'text-gray-900'}`}>
+                {event.title}
+              </h4>
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full ${colors.pill}`}>
+                  {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                </span>
+                {(event as any).seriesId && (
+                  <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-100 text-gray-700" title="Recurring">
+                    {(event as any).recurrence || 'recurring'}
+                  </span>
+                )}
+              </div>
+            </div>
+            {canEdit && !isPast && (
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => onEdit(event)}
+                  disabled={isDeleting}
+                  className="p-1.5 text-gray-400 hover:text-cyan-700 hover:bg-cyan-50 rounded-lg transition disabled:opacity-50"
+                  title="Edit"
+                >
+                  <AppIcon name="edit" className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onDelete(event.id)}
+                  disabled={isDeleting}
+                  className="p-1.5 text-gray-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition disabled:opacity-50"
+                  title="Delete"
+                >
+                  {isDeleting ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-rose-300 border-t-rose-600" />
+                  ) : (
+                    <AppIcon name="trash" className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             )}
           </div>
 
-          {/* Meta rows */}
-          <div className={`text-sm space-y-1 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
-            <div className="flex items-start gap-1.5">
-              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="break-words min-w-0">{formatDateTime(event.date)}</span>
+          {/* Meta rows — single consistent icon set, single text color */}
+          <div className={`mt-2 text-sm space-y-1 ${isPast ? 'text-gray-500' : 'text-gray-600'}`}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <AppIcon name="calendar" className="w-4 h-4 shrink-0" />
+              <span className="truncate">{timeLabel}</span>
             </div>
             {event.location && (
-              <div className="flex items-start gap-1.5">
-                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="break-words min-w-0">{event.location}</span>
-              </div>
-            )}
-            {event.createdByName && (
-              <div className="flex items-start gap-1.5">
-                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span className="break-words min-w-0">Created by {event.createdByName}</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <AppIcon name="phone" className="w-4 h-4 shrink-0 -rotate-90" />
+                <span className="truncate">{event.location}</span>
               </div>
             )}
           </div>
@@ -799,75 +820,50 @@ const EventCard: React.FC<EventCardProps> = ({
           )}
 
           {weather && (
-            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 border border-fire-200 text-navy-700 text-xs font-semibold max-w-full">
+            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-50 ring-1 ring-cyan-200 text-cyan-900 text-xs font-semibold max-w-full self-start">
               <span className="text-base leading-none shrink-0">{weather.icon}</span>
               <span className="truncate">{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F{weather.precipChance > 0 ? ` · ${weather.precipChance}% rain` : ''}</span>
             </div>
           )}
 
-          {/* Action chip row — wraps so nothing escapes the card */}
-          <div className="flex flex-wrap items-center gap-2 mt-3">
+          {/* Bottom chip row */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
             {!isPast && (
               <button
                 onClick={() => downloadEventIcs(event)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-navy-700 bg-fire-50 hover:bg-fire-100 rounded-lg border border-fire-200 transition-colors"
-                title="Download .ics calendar file"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                title="Add to my phone calendar"
               >
-                📅 Add to my calendar
+                <AppIcon name="calendar" className="w-3.5 h-3.5" />
+                <span>Add to calendar</span>
               </button>
             )}
             <button
               onClick={handleShare}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-navy-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg border border-cyan-200 transition-colors"
-              title="Share event link with RSVP"
+              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+              title="Share event link"
             >
-              🔗 Share & RSVP
+              <AppIcon name="arrow-right" className="w-3.5 h-3.5" />
+              <span>Share</span>
             </button>
             {event.type === 'game' && (
               <a
                 href={`/game-day/${event.id}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 rounded-md shadow-sm transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 rounded-full shadow-sm transition-colors"
                 title="Open Game Day live tracker"
               >
-                🎯 Game Day {isPast ? 'recap' : 'live'}
+                <AppIcon name="whistle" className="w-3.5 h-3.5" />
+                <span>Game Day {isPast ? 'recap' : 'live'}</span>
               </a>
             )}
           </div>
         </div>
-
-        {/* Edit/Delete (coach only) */}
-        {canEdit && !isPast && (
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => onEdit(event)}
-              disabled={isDeleting}
-              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
-              title="Edit Event"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => onDelete(event.id)}
-              disabled={isDeleting}
-              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
-              title="Delete Event"
-            >
-              {isDeleting ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              )}
-            </button>
-          </div>
-        )}
       </div>
-      <RsvpBar event={event} userUid={userUid} onRsvp={onRsvp} isPast={isPast} />
-      <CarpoolBar event={event} userUid={userUid} onAdd={onAddCarpool} onDelete={onDeleteCarpool} isPast={isPast} />
-      <EventPhotos eventId={event.id} teamId={event.teamId} canModerate={canEdit} />
+      <div className="px-4">
+        <RsvpBar event={event} userUid={userUid} onRsvp={onRsvp} isPast={isPast} />
+        <CarpoolBar event={event} userUid={userUid} onAdd={onAddCarpool} onDelete={onDeleteCarpool} isPast={isPast} />
+        <EventPhotos eventId={event.id} teamId={event.teamId} canModerate={canEdit} />
+      </div>
     </div>
   );
 };
@@ -893,18 +889,50 @@ const RsvpBar: React.FC<{
     no: entries.filter(e => e.status === 'no').length,
   };
   const my = userUid ? rsvps[userUid]?.status : undefined;
-  const btn = (status: 'going' | 'maybe' | 'no', label: string, icon: string, color: string) => (
+  // Colored circle badge — matches the Ollie pattern of "green check
+  // circle / red X circle / amber ? circle" at the bottom of each row,
+  // and replaces the emoji + label combo we used to ship.
+  const StatusBadge: React.FC<{ status: 'going' | 'maybe' | 'no'; size?: 'sm' | 'md' }> = ({ status, size = 'sm' }) => {
+    const cls = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+    const dim = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
+    if (status === 'going') {
+      return (
+        <span className={`${cls} rounded-full bg-emerald-500 flex items-center justify-center text-white`}>
+          <svg className={dim} fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+      );
+    }
+    if (status === 'no') {
+      return (
+        <span className={`${cls} rounded-full bg-rose-500 flex items-center justify-center text-white`}>
+          <svg className={dim} fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </span>
+      );
+    }
+    return (
+      <span className={`${cls} rounded-full bg-amber-400 flex items-center justify-center text-white text-[10px] font-bold`}>
+        ?
+      </span>
+    );
+  };
+
+  const btn = (status: 'going' | 'maybe' | 'no', label: string, color: string, activeText: string) => (
     <button
       key={status}
       onClick={() => onRsvp && onRsvp(event.id, status)}
       disabled={!userUid || isPast}
-      className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+      className={`flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
         my === status
-          ? `${color} text-white border-transparent shadow-sm`
+          ? `${color} ${activeText} border-transparent shadow-sm`
           : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
-      {icon} {label}
+      <StatusBadge status={status} size="sm" />
+      <span>{label}</span>
     </button>
   );
   return (
@@ -914,22 +942,25 @@ const RsvpBar: React.FC<{
           {isPast ? 'Final RSVPs' : 'Will you be there?'}
         </span>
         <div className="flex items-center gap-2 text-xs">
-          <button onClick={() => setShowList('going')} className="text-green-700 font-semibold hover:underline">
-            ✅ {counts.going}
+          <button onClick={() => setShowList('going')} className="inline-flex items-center gap-1 text-emerald-700 font-semibold hover:underline">
+            <StatusBadge status="going" />
+            <span>{counts.going}</span>
           </button>
-          <button onClick={() => setShowList('maybe')} className="text-amber-700 font-semibold hover:underline">
-            🤔 {counts.maybe}
+          <button onClick={() => setShowList('maybe')} className="inline-flex items-center gap-1 text-amber-700 font-semibold hover:underline">
+            <StatusBadge status="maybe" />
+            <span>{counts.maybe}</span>
           </button>
-          <button onClick={() => setShowList('no')} className="text-rose-700 font-semibold hover:underline">
-            ❌ {counts.no}
+          <button onClick={() => setShowList('no')} className="inline-flex items-center gap-1 text-rose-700 font-semibold hover:underline">
+            <StatusBadge status="no" />
+            <span>{counts.no}</span>
           </button>
         </div>
       </div>
       {!isPast && (
         <div className="flex gap-2">
-          {btn('going', 'Going', '✅', 'bg-green-600')}
-          {btn('maybe', 'Maybe', '🤔', 'bg-amber-500')}
-          {btn('no', "Can't", '❌', 'bg-rose-600')}
+          {btn('going', 'Going', 'bg-emerald-600', 'text-white')}
+          {btn('maybe', 'Maybe', 'bg-amber-500', 'text-white')}
+          {btn('no', "Can't", 'bg-rose-600', 'text-white')}
         </div>
       )}
       {/* Attendee list modal — portaled to document.body so ancestor

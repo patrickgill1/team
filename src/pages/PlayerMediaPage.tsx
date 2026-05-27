@@ -5,7 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
-import { isCoach, formatDate } from '../utils/helpers';
+import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
@@ -21,7 +21,8 @@ const ITEMS_PER_PAGE = 20;
 
 const PlayerMediaPage: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
+  const canManageMedia = canManageTeamMedia(userData, selectedTeam);
   const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
   const { uploadFile } = useStorage();
 
@@ -331,6 +332,10 @@ const PlayerMediaPage: React.FC = () => {
 
   const handleUpload = async () => {
     if (!userData || !uploadPlayerId || uploadFiles.length === 0) return;
+    if (!canManageMedia) {
+      alert('Only staff can upload clips for this team. Ask your coach to grant you upload access.');
+      return;
+    }
 
     const player = players.find(p => p.id === uploadPlayerId);
     if (!player) return;
@@ -717,6 +722,7 @@ const PlayerMediaPage: React.FC = () => {
 
   const handleSetThumbnailFromCurrentFrame = async () => {
     if (!selectedMedia?.streamUid) return;
+    if (!canManageMedia) return;
     const player = lightboxStreamPlayerRef.current;
     if (!player) {
       alert('Player is still loading. Wait a moment, then try again.');
@@ -823,6 +829,10 @@ const PlayerMediaPage: React.FC = () => {
   const handleReplaceVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedMedia) return;
+    if (!canManageMedia) {
+      alert('Only staff can replace clips for this team.');
+      return;
+    }
     if (!file.type.startsWith('video/')) {
       alert('Please choose a video file.');
       return;
@@ -909,6 +919,7 @@ const PlayerMediaPage: React.FC = () => {
 
   const handleSaveTags = async () => {
     if (!selectedMedia || editingTags === null) return;
+    if (!canManageMedia) return;
     const collection = selectedMedia.id.startsWith('gallery_') ? 'gallery' : 'player_media';
     const docId = selectedMedia.id.startsWith('gallery_') ? selectedMedia.id.replace('gallery_', '') : selectedMedia.id;
     try {
@@ -1266,15 +1277,17 @@ const PlayerMediaPage: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
                 </svg>
               </div>
-              <button
-                onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
-                className="bg-cyan-500 hover:bg-cyan-400 text-fire-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="hidden sm:inline">Upload</span>
-              </button>
+              {canManageMedia && (
+                <button
+                  onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-fire-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="hidden sm:inline">Upload</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -1838,9 +1851,9 @@ const PlayerMediaPage: React.FC = () => {
                     </button>
                   )}
                 </div>
-                {(userData?.uid === selectedMedia.uploadedBy || userData?.role === 'coach') && (
+                {(canManageMedia || userData?.uid === selectedMedia.uploadedBy) && (
                   <div className="flex items-center gap-3">
-                    {selectedMedia.type === 'video' && (
+                    {selectedMedia.type === 'video' && canManageMedia && (
                       <>
                         <input
                           ref={replaceFileInputRef}
@@ -2003,18 +2016,20 @@ const PlayerMediaPage: React.FC = () => {
                   {selectedMedia.tags && selectedMedia.tags.length > 0 && selectedMedia.tags.map(tag => (
                     <span key={tag} className="px-2 py-0.5 bg-white/15 text-white/80 rounded-full text-xs">{tag}</span>
                   ))}
-                  <button
-                    onClick={() => {
-                      setEditingTags(selectedMedia.tags || []);
-                      const m = selectedMedia as any;
-                      setEditingGoalScorerId(m.goalScorerId || selectedMedia.playerId || '');
-                      setEditingAssistByIds(m.assistByIds || []);
-                      setEditingGameId(m.gameId || '');
-                    }}
-                    className="px-2 py-0.5 border border-white/20 text-white/50 rounded-full text-xs hover:text-white/80 hover:border-white/40 transition-colors"
-                  >
-                    {selectedMedia.tags && selectedMedia.tags.length > 0 ? '✏️ Edit' : '+ Tags'}
-                  </button>
+                  {canManageMedia && (
+                    <button
+                      onClick={() => {
+                        setEditingTags(selectedMedia.tags || []);
+                        const m = selectedMedia as any;
+                        setEditingGoalScorerId(m.goalScorerId || selectedMedia.playerId || '');
+                        setEditingAssistByIds(m.assistByIds || []);
+                        setEditingGameId(m.gameId || '');
+                      }}
+                      className="px-2 py-0.5 border border-white/20 text-white/50 rounded-full text-xs hover:text-white/80 hover:border-white/40 transition-colors"
+                    >
+                      {selectedMedia.tags && selectedMedia.tags.length > 0 ? '✏️ Edit' : '+ Tags'}
+                    </button>
+                  )}
                 </div>
               )}
               <p className="text-gray-400 text-center mt-1 text-xs">

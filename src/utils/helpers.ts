@@ -146,3 +146,22 @@ export const isGoalkeeper = (player: { positions?: string[]; position?: string }
 export const isClubAdmin = (userData: any): boolean => {
   return !!userData?.isClubAdmin;
 };
+
+/** Who is allowed to upload + edit + tag + thumbnail clips on a team.
+ *  Staff (coach / team manager / club admin / owner) are always in;
+ *  parents are only in if the coach has explicitly added their uid to
+ *  team.mediaUploaders (e.g. the tracking-cam parent). Returning false
+ *  means the upload/edit UI should be hidden, not just disabled, to
+ *  avoid the "why is this button greyed out" support question. */
+export const canManageTeamMedia = (
+  userData: { uid?: string; role?: string; email?: string; isClubAdmin?: boolean } | null | undefined,
+  team: { mediaUploaders?: string[] } | null | undefined,
+): boolean => {
+  if (!userData) return false;
+  if (isOwner(userData)) return true;
+  if (isClubAdmin(userData)) return true;
+  if (userData.role && isTeamStaff(userData.role)) return true;
+  const uid = userData.uid;
+  if (uid && Array.isArray(team?.mediaUploaders) && team!.mediaUploaders!.includes(uid)) return true;
+  return false;
+};

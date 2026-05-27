@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useStorage } from '../../hooks/useStorage';
+import { useTeam } from '../../contexts/TeamContext';
+import { canManageTeamMedia } from '../../utils/helpers';
 
 interface Props {
   eventId: string;
@@ -15,14 +17,18 @@ interface Props {
 
 /**
  * Event-scoped photo gallery. Sits inside an event card on the
- * calendar. Anyone in the team can upload (parents have phones, they
- * take the pictures). Each photo carries the eventId, so the gallery
- * is automatically grouped per game / practice / tournament.
+ * calendar. Uploading is staff-only by default (see team.mediaUploaders
+ * for the per-team parent allowlist) — coaches didn't want surprise
+ * uploads they then have to moderate. Each photo carries the eventId,
+ * so the gallery is automatically grouped per game / practice /
+ * tournament.
  */
 const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) => {
   const { userData } = useAuth();
+  const { selectedTeam } = useTeam();
   const { addPhoto, subscribeToEventPhotos, deleteDocument } = useFirestore();
   const { uploadFile } = useStorage();
+  const canUpload = canManageTeamMedia(userData, selectedTeam);
   const fileRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -38,6 +44,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
   const handlePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'));
     if (files.length === 0) return;
+    if (!canUpload) return;
     setUploading(true);
     setUploadPct(0);
     try {
@@ -86,25 +93,31 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
           📸 Event photos {photos.length > 0 && <span className="text-gray-700">· {photos.length}</span>}
         </span>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handlePick}
-          className="hidden"
-        />
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="text-xs font-bold text-cyan-700 hover:text-cyan-900 disabled:opacity-50"
-        >
-          {uploading ? `Uploading ${uploadPct}%…` : '+ Add photos'}
-        </button>
+        {canUpload && (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePick}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="text-xs font-bold text-cyan-700 hover:text-cyan-900 disabled:opacity-50"
+            >
+              {uploading ? `Uploading ${uploadPct}%…` : '+ Add photos'}
+            </button>
+          </>
+        )}
       </div>
 
       {photos.length === 0 ? (
-        <p className="text-xs text-gray-400">No photos yet — be the first to add some.</p>
+        <p className="text-xs text-gray-400">
+          {canUpload ? 'No photos yet — be the first to add some.' : 'No photos yet.'}
+        </p>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
           {photos.slice(0, 8).map((p, idx) => (

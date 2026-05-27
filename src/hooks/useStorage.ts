@@ -340,9 +340,19 @@ export const usePhotoUpload = () => {
     return uploadImage(file, path, 5, onProgress);
   }, [uploadImage]);
 
+  const uploadUserPhoto = useCallback(async (
+    file: File,
+    uid: string,
+    onProgress?: (progress: UploadProgress) => void
+  ): Promise<string> => {
+    const path = `users/${uid}`;
+    return uploadImage(file, path, 5, onProgress);
+  }, [uploadImage]);
+
   return {
     uploadGalleryPhoto,
     uploadPlayerPhoto,
+    uploadUserPhoto,
     loading,
     error,
     uploadProgress

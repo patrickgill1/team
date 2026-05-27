@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useStorage } from '../../hooks/useStorage';
-import { formatDateTime } from '../../utils/helpers';
+import { formatDateTime, canManageTeamMedia } from '../../utils/helpers';
 import PhotoUpload from './PhotoUpload';
 
 interface GalleryProps {
@@ -19,7 +19,8 @@ const Gallery: React.FC<GalleryProps> = ({
   showUploadButton = true 
 }) => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
+  const canManageMedia = canManageTeamMedia(userData, selectedTeam);
   const { getPhotosByTeam, deleteDocument } = useFirestore();
   const { deleteFile } = useStorage();
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
@@ -180,7 +181,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
         </div>
 
         {/* Upload Button */}
-        {showUploadButton && (
+        {showUploadButton && canManageMedia && (
           <button
             onClick={() => setIsUploadOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2"
@@ -237,7 +238,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               ? 'No photos match your current filters.'
               : 'No photos have been uploaded to the gallery yet.'}
           </p>
-          {!searchTerm && !tagFilter && showUploadButton && (
+          {!searchTerm && !tagFilter && showUploadButton && canManageMedia && (
             <button
               onClick={() => setIsUploadOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"

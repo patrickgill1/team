@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { FullGame } from '../types';
-import { isCoach, formatDate } from '../utils/helpers';
+import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
 import StreamPlayer from '../components/common/StreamPlayer';
@@ -38,7 +38,7 @@ function extractYouTubeId(input: string): string | null {
 
 const FullGames: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
 
   const [games, setGames] = useState<FullGame[]>([]);
@@ -67,6 +67,7 @@ const FullGames: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userIsCoach = userData ? isCoach(userData.role) : false;
+  const canManageMedia = canManageTeamMedia(userData, selectedTeam);
 
   const loadGames = async () => {
     if (!selectedTeamId) {
@@ -274,7 +275,7 @@ const FullGames: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">🎬 Full Games</h1>
           <p className="text-sm text-gray-500 mt-1">Watch full match recordings hosted on Fire FC or YouTube.</p>
         </div>
-        {userIsCoach && (
+        {canManageMedia && (
           <button
             onClick={openAddForm}
             className="inline-flex items-center space-x-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
@@ -291,11 +292,11 @@ const FullGames: React.FC = () => {
           <div className="text-5xl mb-4">📺</div>
           <h3 className="text-lg font-medium text-gray-900">No Full Games Yet</h3>
           <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
-            {userIsCoach
+            {canManageMedia
               ? 'Add a YouTube link to share a full game recording with the team.'
               : 'Full game recordings will appear here once the coach adds them.'}
           </p>
-          {userIsCoach && (
+          {canManageMedia && (
             <button
               onClick={openAddForm}
               className="mt-4 inline-flex items-center bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
@@ -377,7 +378,7 @@ const FullGames: React.FC = () => {
                         >
                           Watch →
                         </button>
-                        {userIsCoach && (
+                        {canManageMedia && (
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => openEditForm(g)}

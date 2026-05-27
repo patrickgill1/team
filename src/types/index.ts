@@ -52,6 +52,9 @@ export interface UserData {
   invitedVia?: string;
   createdAt: Date;
   phoneNumber?: string;
+  /** Profile photo for the user themself (separate from any linked
+   *  player avatars). Shown in Settings, top bar, chat author rows. */
+  photoURL?: string;
   address?: string;
   emergencyContact?: string;
   emergencyPhone?: string;
@@ -272,6 +275,11 @@ export interface Team {
    *  remains queryable for parents/players to view past content. */
   isActive?: boolean;
   archivedAt?: Date;
+  /** Parent UIDs the coach has granted media-upload access to. Staff
+   *  (coach / team manager) can always upload; this opens the door for
+   *  specific parents (e.g. tracking-cam operators) without making
+   *  uploads free-for-all. */
+  mediaUploaders?: string[];
   createdAt: Date;
   updatedAt?: Date;
 }

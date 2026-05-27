@@ -21,6 +21,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { isCoach, isClubAdmin } from '../../utils/helpers';
 import InviteSystem from '../../pages/InviteSystem';
+import AppIcon from './AppIcon';
 
 const Navigation: React.FC = () => {
   const { userData, logout, deleteAccount } = useAuth();
@@ -58,10 +59,13 @@ const Navigation: React.FC = () => {
   // viewport edge without the tab bar rising with the keyboard.
   const inChatConversation = useBodyClass('chat-conversation');
 
-  // Fetch linked player for parents
-  const [linkedPlayer, setLinkedPlayer] = useState<{ id: string; name: string } | null>(null);
+  // Fetch every player linked to this user (parents of multi-kid
+  // families have, well, multiple). We surface all of them in the More
+  // sheet + Settings so a parent never has to "switch contexts" just
+  // to see their second kid.
+  const [linkedPlayers, setLinkedPlayers] = useState<Array<{ id: string; name: string }>>([]);
   useEffect(() => {
-    if (!userData?.uid) { setLinkedPlayer(null); return; }
+    if (!userData?.uid) { setLinkedPlayers([]); return; }
     (async () => {
       try {
         const q = query(
@@ -70,17 +74,14 @@ const Navigation: React.FC = () => {
           where('isActive', '==', true)
         );
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          const first = snap.docs[0];
-          setLinkedPlayer({ id: first.id, name: first.data().name });
-        } else {
-          setLinkedPlayer(null);
-        }
+        const rows = snap.docs.map(d => ({ id: d.id, name: (d.data() as any).name || 'Player' }));
+        setLinkedPlayers(rows);
       } catch (err) {
-        console.error('Error fetching linked player:', err);
+        console.error('Error fetching linked players:', err);
       }
     })();
   }, [userData?.uid]);
+  const linkedPlayer = linkedPlayers[0] || null; // back-compat for old refs
 
   // Close more menu on route change
   useEffect(() => {
@@ -144,38 +145,44 @@ const Navigation: React.FC = () => {
     },
   ];
 
-  // All app items for the sidebar and "More" sheet
-  const allNavItems = [
-    { name: 'Dashboard', path: '/dashboard', emoji: '🏠', group: 'main' },
-    { name: 'Players', path: '/players', emoji: '👥', group: 'main' },
-    { name: 'Media', path: '/player-media', emoji: '📸', group: 'main' },
-    { name: 'Vote', path: '/player-of-match', emoji: '🏆', group: 'main' },
-    ...(linkedPlayer ? [{
-      name: linkedPlayer.name.split(' ')[0],
-      path: `/player/${linkedPlayer.id}`,
-      emoji: '⚽',
+  // All app items for the sidebar and "More" sheet. `icon` is an
+  // AppIcon name — kept consistent (single stroke weight, outline)
+  // across nav and Settings to match the cleaner Ollie-style look.
+  const allNavItems: Array<{ name: string; path: string; icon: any; group: 'main' | 'apps' | 'account' }> = [
+    { name: 'Dashboard', path: '/dashboard', icon: 'home', group: 'main' },
+    { name: 'Players', path: '/players', icon: 'players', group: 'main' },
+    { name: 'Media', path: '/player-media', icon: 'media', group: 'main' },
+    { name: 'Vote', path: '/player-of-match', icon: 'trophy', group: 'main' },
+    // Multi-kid: each linked player gets their own shortcut. Use full
+    // name (not split) so two kids with the same first name still
+    // disambiguate (rare but happens — siblings nicknames overlap).
+    ...linkedPlayers.map(p => ({
+      name: p.name.split(' ')[0],
+      path: `/player/${p.id}`,
+      icon: 'soccer' as const,
       group: 'main' as const,
-    }] : []),
-    { name: 'Chat', path: '/chat', emoji: '💬', group: 'apps' },
-    { name: 'Calendar', path: '/calendar', emoji: '📅', group: 'apps' },
-    { name: 'Stats', path: '/stats', emoji: '📊', group: 'apps' },
-    { name: 'News', path: '/news', emoji: '📰', group: 'apps' },
-    { name: 'Full Games', path: '/full-games', emoji: '🎬', group: 'apps' },
-    { name: 'Highlights', path: '/highlights', emoji: '✨', group: 'apps' },
-    { name: 'Attendance', path: '/attendance', emoji: '✅', group: 'apps' },
-    { name: 'Volunteers', path: '/volunteers', emoji: '🤝', group: 'apps' },
-    { name: 'Directory', path: '/directory', emoji: '📞', group: 'apps' },
-    { name: 'Development', path: '/development', emoji: '📈', group: 'apps' },
-    ...(isUserCoach ? [{ name: 'Game Day', path: `/game-day/quick_${Date.now()}`, emoji: '🎯', group: 'apps' as const }] : []),
-    ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', emoji: '🗒️', group: 'apps' as const }] : []),
-    ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', emoji: '📋', group: 'apps' as const }] : []),
+    })),
+    { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps' },
+    { name: 'Calendar', path: '/calendar', icon: 'calendar', group: 'apps' },
+    { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps' },
+    { name: 'News', path: '/news', icon: 'news', group: 'apps' },
+    { name: 'Full Games', path: '/full-games', icon: 'film', group: 'apps' },
+    { name: 'Highlights', path: '/highlights', icon: 'highlight', group: 'apps' },
+    { name: 'Attendance', path: '/attendance', icon: 'check', group: 'apps' },
+    { name: 'Volunteers', path: '/volunteers', icon: 'handshake', group: 'apps' },
+    { name: 'Directory', path: '/directory', icon: 'phone', group: 'apps' },
+    { name: 'Development', path: '/development', icon: 'chart', group: 'apps' },
+    ...(isUserCoach ? [{ name: 'Game Day', path: `/game-day/quick_${Date.now()}`, icon: 'whistle' as const, group: 'apps' as const }] : []),
+    ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', icon: 'clipboard' as const, group: 'apps' as const }] : []),
+    ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', icon: 'survey' as const, group: 'apps' as const }] : []),
     // Regular coaches (not club admins) keep "Teams" as their direct
     // entry point to edit/create their own teams. Club admins reach the
     // same page from inside /club, so we hide this entry for them to
     // avoid two ways into the same flow.
-    ...(isUserCoach && !isUserClubAdmin ? [{ name: 'Teams', path: '/teams', emoji: '⚙️', group: 'apps' as const }] : []),
+    ...(isUserCoach && !isUserClubAdmin ? [{ name: 'Teams', path: '/teams', icon: 'gear' as const, group: 'apps' as const }] : []),
     // Club admin's single entry point for everything cross-team.
-    ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', emoji: '🏛️', group: 'apps' as const }] : []),
+    ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const }] : []),
+    { name: 'Settings', path: '/settings', icon: 'gear', group: 'account' },
   ];
 
   const mainItems = allNavItems.filter(i => i.group === 'main');
@@ -198,9 +205,11 @@ const Navigation: React.FC = () => {
     {
       label: 'Players & stats',
       items: [
-        linkedPlayer ? linkedPlayer.name.split(' ')[0] : null,
+        // Each linked kid gets their own entry — multi-kid families
+        // see both, not just the first one Firestore returned.
+        ...linkedPlayers.map(p => p.name.split(' ')[0]),
         'Vote', 'Stats', 'Development',
-      ].filter(Boolean).map((n) => findItem(n as string)).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+      ].map((n) => findItem(n as string)).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {
       label: 'Media',
@@ -286,7 +295,7 @@ const Navigation: React.FC = () => {
                   : 'text-fire-300 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <span className="text-lg flex-shrink-0">{item.emoji}</span>
+              <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
               {!sidebarCollapsed && <span>{item.name}</span>}
             </Link>
           ))}
@@ -309,7 +318,7 @@ const Navigation: React.FC = () => {
                   : 'text-fire-300 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <span className="text-lg flex-shrink-0">{item.emoji}</span>
+              <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
               {!sidebarCollapsed && <span>{item.name}</span>}
             </Link>
           ))}
@@ -329,23 +338,29 @@ const Navigation: React.FC = () => {
             </button>
           )}
           <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2`}>
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-cyan-400 to-fire-400 flex items-center justify-center text-fire-950 font-bold text-sm flex-shrink-0">
-              {userData?.name?.charAt(0).toUpperCase()}
-            </div>
+            <Link
+              to="/settings"
+              aria-label="Settings"
+              className="h-9 w-9 rounded-full overflow-hidden bg-gradient-to-br from-cyan-400 to-fire-400 flex items-center justify-center text-fire-950 font-bold text-sm flex-shrink-0"
+            >
+              {userData?.photoURL ? (
+                <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
+              ) : (
+                userData?.name?.charAt(0).toUpperCase()
+              )}
+            </Link>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white truncate">{userData?.name}</div>
+                <Link to="/settings" className="text-sm font-medium text-white truncate block hover:text-cyan-300 transition-colors">
+                  {userData?.name}
+                </Link>
                 <div className="flex items-center gap-3 mt-0.5">
+                  <Link to="/settings" className="text-xs text-fire-400 hover:text-white transition-colors">
+                    Settings
+                  </Link>
+                  <span className="text-fire-700">·</span>
                   <button onClick={handleLogout} className="text-xs text-fire-400 hover:text-red-400 transition-colors">
                     Sign out
-                  </button>
-                  <span className="text-fire-700">·</span>
-                  <button
-                    onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteError(null); }}
-                    className="text-xs text-fire-500 hover:text-red-400 transition-colors"
-                    title="Permanently delete your account and profile"
-                  >
-                    Delete account
                   </button>
                 </div>
               </div>
@@ -373,9 +388,17 @@ const Navigation: React.FC = () => {
                 ))}
               </select>
             )}
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-400 to-fire-400 flex items-center justify-center text-fire-950 font-bold text-xs">
-              {userData?.name?.charAt(0).toUpperCase()}
-            </div>
+            <Link
+              to="/settings"
+              aria-label="Settings"
+              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-fire-950 font-bold text-xs bg-gradient-to-br from-cyan-400 to-fire-400 ring-1 ring-white/20"
+            >
+              {userData?.photoURL ? (
+                <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
+              ) : (
+                userData?.name?.charAt(0).toUpperCase()
+              )}
+            </Link>
           </div>
         </div>
       </header>
@@ -466,83 +489,99 @@ const Navigation: React.FC = () => {
               </div>
             )}
 
-            {/* Sectioned grid — easier to find things by category
-                than scanning 16 flat tiles. Sections are filtered to
-                only render when they actually have items for this
-                user's role (coaches see "Coach tools", parents don't). */}
-            <div className="px-6 py-2 space-y-5">
+            {/* Sectioned list — consistent outline icons in a tinted
+                square, single-column rows like Ollie's Tools page.
+                Sections are filtered to only render when they actually
+                have items for this user's role. */}
+            <div className="px-4 py-2 space-y-5">
               {moreSections.map((section) => (
                 <div key={section.label}>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-2">
                     {section.label}
                   </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    {section.items.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsMoreOpen(false)}
-                        className={`flex flex-col items-center p-3 rounded-2xl transition-all ${
-                          isActive(item.path)
-                            ? 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200'
-                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        <span className="text-2xl mb-1">{item.emoji}</span>
-                        <span className="text-[11px] font-medium text-center leading-tight">{item.name}</span>
-                      </Link>
-                    ))}
+                  <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden divide-y divide-gray-100">
+                    {section.items.map((item) => {
+                      const active = isActive(item.path);
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsMoreOpen(false)}
+                          className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-cyan-50' : 'hover:bg-gray-50'}`}
+                        >
+                          <span className="flex items-center gap-3 min-w-0">
+                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-cyan-100 text-cyan-700' : 'bg-cyan-50 text-cyan-700'}`}>
+                              <AppIcon name={item.icon as any} className="w-5 h-5" />
+                            </span>
+                            <span className={`text-[15px] font-semibold truncate ${active ? 'text-cyan-800' : 'text-gray-900'}`}>{item.name}</span>
+                          </span>
+                          <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300 shrink-0" />
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
-            </div>
 
-            {/* Quick links for parent's player */}
-            {linkedPlayer && (
-              <div className="px-6 py-3">
-                <Link
-                  to={`/player/${linkedPlayer.id}`}
-                  className="flex items-center space-x-3 p-3 rounded-2xl bg-fire-50 border border-fire-200"
-                >
-                  <span className="text-2xl">⚽</span>
-                  <div>
-                    <div className="font-medium text-fire-900">{linkedPlayer.name}</div>
-                    <div className="text-xs text-fire-600">View player profile</div>
-                  </div>
-                </Link>
+              {/* Account section */}
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-2">
+                  Account
+                </div>
+                <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden divide-y divide-gray-100">
+                  <Link
+                    to="/settings"
+                    onClick={() => setIsMoreOpen(false)}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
+                        <AppIcon name="gear" className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] font-semibold text-gray-900">Settings</span>
+                    </span>
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+                  </Link>
+                  {isUserCoach && (
+                    <button
+                      onClick={() => { setIsInviteOpen(true); setIsMoreOpen(false); }}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-left"
+                    >
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span className="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
+                          <AppIcon name="plus" className="w-5 h-5" />
+                        </span>
+                        <span className="text-[15px] font-semibold text-gray-900">Invite Parents</span>
+                      </span>
+                      <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { handleLogout(); setIsMoreOpen(false); }}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-left"
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className="w-9 h-9 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                        <AppIcon name="logout" className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] font-semibold text-gray-900">Sign Out</span>
+                    </span>
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+                  </button>
+                  <button
+                    onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteError(null); setIsMoreOpen(false); }}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-rose-50 transition text-left"
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                        <AppIcon name="trash" className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] font-semibold text-rose-700">Delete account</span>
+                    </span>
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-rose-200" />
+                  </button>
+                </div>
               </div>
-            )}
-
-            {/* Actions */}
-            <div className="px-6 py-3 space-y-2 border-t border-gray-100">
-              {isUserCoach && (
-                <button
-                  onClick={() => { setIsInviteOpen(true); setIsMoreOpen(false); }}
-                  className="w-full flex items-center space-x-3 p-3 rounded-2xl bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition-colors"
-                >
-                  <span className="text-xl">➕</span>
-                  <span className="font-medium">Invite Parents</span>
-                </button>
-              )}
-              <button
-                onClick={() => { handleLogout(); setIsMoreOpen(false); }}
-                className="w-full flex items-center space-x-3 p-3 rounded-2xl text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-                <span className="font-medium">Sign out</span>
-              </button>
-              <button
-                onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteError(null); setIsMoreOpen(false); }}
-                className="w-full flex items-center space-x-3 p-3 rounded-2xl text-red-700 hover:bg-red-50 transition-colors"
-                title="Permanently delete your account and profile"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span className="font-medium">Delete account</span>
-              </button>
             </div>
 
             {/* Bottom spacer for safe area */}

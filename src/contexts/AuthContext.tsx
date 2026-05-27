@@ -43,6 +43,9 @@ interface UserData {
   // Google-specific properties:
   profilePhotoUrl?: string | null;
   authProvider?: 'email' | 'google';
+  // Self-uploaded user avatar (Settings → My Account). Independent of
+  // OAuth profilePhotoUrl so a user can override what Google supplied.
+  photoURL?: string;
 }
 
 interface AuthContextType {
@@ -57,6 +60,10 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  /** Re-pull the user's Firestore doc and refresh context. Call after
+   *  editing profile fields so the UI reflects the change without a
+   *  sign-out / sign-in cycle. */
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -568,7 +575,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     emergencyPhone: data.emergencyPhone || undefined,
     privacy: data.privacy || { showPhone: true, showEmail: true, showAddress: false },
     profilePhotoUrl: data.profilePhotoUrl || user.photoURL || null,
-    authProvider: data.authProvider || 'email'
+    authProvider: data.authProvider || 'email',
+    // Prefer the user's manually-uploaded avatar over the OAuth one
+    // (data.photoURL is what Settings writes; user.photoURL comes from
+    // the Firebase Auth provider).
+    photoURL: data.photoURL || data.profilePhotoUrl || user.photoURL || undefined,
   });
 
   // Background tasks that should NOT block the loading spinner
@@ -759,6 +770,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [getUserData]);
 
+  const refreshUserData = async () => {
+    if (!currentUser) return;
+    try {
+      const fresh = await getUserData(currentUser.uid) as any;
+      if (fresh) setUserData(buildUserData(fresh, currentUser));
+    } catch (err) {
+      console.warn('refreshUserData failed:', err);
+    }
+  };
+
   const value: AuthContextType = {
     currentUser,
     userData,
@@ -771,6 +792,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     resetPassword,
     deleteAccount,
+    refreshUserData,
   };
 
   // Debug logging

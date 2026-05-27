@@ -273,13 +273,17 @@ const AttendanceTracker: React.FC = () => {
           <div className="lg:col-span-2">
             <div className="card-modern">
               <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Take Attendance</h2>
+                {/* Stack on mobile so a long event name in the select
+                    can't push the row past the viewport (which was
+                    triggering horizontal scroll on the whole page). */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                  <h2 className="text-lg font-semibold text-gray-900 shrink-0">Take Attendance</h2>
                   {calendarEvents.length > 0 && (
                     <select
                       value={selectedEvent}
                       onChange={(e) => setSelectedEvent(e.target.value)}
-                      className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      className="min-w-0 max-w-full w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                      style={{ fontSize: '16px' }}
                     >
                       <option value="">Select an event...</option>
                       {calendarEvents.map(event => {
@@ -298,26 +302,29 @@ const AttendanceTracker: React.FC = () => {
               </div>
 
               {selectedEventData ? (
-                <div className="p-6">
-                  {/* Event Info */}
+                <div className="p-4 sm:p-6">
+                  {/* Event Info — wraps on narrow screens; chip colors
+                      follow the brand event palette. */}
                   <div className="mb-4 p-4 bg-cyan-50 rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-cyan-900">{selectedEventData.title}</h3>
-                        <p className="text-sm text-cyan-700">
-                          {formatDate(selectedEventData.date)} • {selectedEventData.location || 'No location specified'}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 min-w-0">
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-cyan-900 truncate">{selectedEventData.title}</h3>
+                        <p className="text-sm text-cyan-700 truncate">
+                          {formatDate(selectedEventData.date)} • {selectedEventData.location || 'No location'}
                         </p>
-                        <span className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${
-                          selectedEventData.type === 'game' 
-                            ? 'bg-red-100 text-red-800' 
-                            : 'bg-green-100 text-green-800'
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          selectedEventData.type === 'game'
+                            ? 'bg-navy-700/10 text-navy-800'
+                            : selectedEventData.type === 'practice'
+                              ? 'bg-fire-100 text-fire-800'
+                              : 'bg-fire-50 text-fire-700'
                         }`}>
                           {selectedEventData.type.charAt(0).toUpperCase() + selectedEventData.type.slice(1)}
                         </span>
                       </div>
                       <a
                         href="/calendar"
-                        className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 text-sm font-medium"
+                        className="inline-flex items-center gap-1 text-cyan-700 hover:text-cyan-800 text-sm font-semibold shrink-0"
                       >
                         <AppIcon name="calendar" className="w-4 h-4" />
                         <span>View in Events</span>
@@ -332,35 +339,41 @@ const AttendanceTracker: React.FC = () => {
                         const currentStatus = attendanceData[player.id] || 'present';
 
                         return (
-                          <div key={player.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                            <div className="flex items-center space-x-3">
-                              <div className="bg-cyan-50 rounded-full w-10 h-10 flex items-center justify-center">
-                                <span className="text-sm font-bold text-cyan-600">#{player.jerseyNumber}</span>
+                          <div key={player.id} className="p-3 border border-gray-200 rounded-lg">
+                            {/* Stack player + buttons vertically on mobile,
+                                row layout on sm+. Buttons get their own
+                                wrappable row so 4 of them can sit on a
+                                narrow screen without spilling. */}
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="bg-cyan-50 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
+                                  <span className="text-sm font-bold text-cyan-600">#{player.jerseyNumber}</span>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-gray-900 truncate">{player.name}</p>
+                                  <p className="text-sm text-gray-600 truncate">{player.position}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-medium text-gray-900">{player.name}</p>
-                                <p className="text-sm text-gray-600">{player.position}</p>
-                              </div>
-                            </div>
 
-                            <div className="flex space-x-2">
-                              {['present', 'absent', 'late', 'excused'].map(status => (
-                                <button
-                                  key={status}
-                                  onClick={() => handleAttendanceChange(player.id, status)}
-                                  disabled={!isUserCoach}
-                                  className={`px-3 py-1 rounded text-sm font-medium transition-colors duration-200 ${
-                                    currentStatus === status
-                                      ? status === 'present' ? 'bg-green-100 text-green-800'
-                                        : status === 'absent' ? 'bg-red-100 text-red-800'
-                                        : status === 'late' ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-cyan-50 text-cyan-700'
-                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                  } ${!isUserCoach ? 'cursor-not-allowed opacity-50' : ''}`}
-                                >
-                                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                                </button>
-                              ))}
+                              <div className="flex flex-wrap gap-1.5 sm:gap-2 sm:shrink-0">
+                                {['present', 'absent', 'late', 'excused'].map(status => (
+                                  <button
+                                    key={status}
+                                    onClick={() => handleAttendanceChange(player.id, status)}
+                                    disabled={!isUserCoach}
+                                    className={`flex-1 sm:flex-initial min-w-0 px-2.5 py-1 rounded text-xs sm:text-sm font-medium transition-colors ${
+                                      currentStatus === status
+                                        ? status === 'present' ? 'bg-emerald-100 text-emerald-800'
+                                          : status === 'absent' ? 'bg-rose-100 text-rose-800'
+                                          : status === 'late' ? 'bg-amber-100 text-amber-800'
+                                          : 'bg-cyan-50 text-cyan-700'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    } ${!isUserCoach ? 'cursor-not-allowed opacity-50' : ''}`}
+                                  >
+                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         );

@@ -4,6 +4,8 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink } from '../types';
 import { isCoach, formatDate } from '../utils/helpers';
+import Header from '../components/common/Header';
+import AppIcon from '../components/common/AppIcon';
 
 // Extract YouTube video ID from any common YouTube URL shape (also accepts a raw 11-char ID)
 function extractYouTubeId(input: string): string | null {
@@ -428,13 +430,15 @@ const PlayerDevelopment: React.FC = () => {
     }
   };
 
-  const getCategoryIcon = (category: string) => {
+  // Returns an AppIcon name (no emoji) — keeps the visual cue per
+  // category aligned with the rest of the app's icon language.
+  const getCategoryIcon = (category: string): any => {
     switch (category) {
-      case 'technical': return '⚽';
-      case 'tactical': return '🧠';
-      case 'physical': return '💪';
-      case 'mental': return '🎯';
-      default: return '📋';
+      case 'technical': return 'soccer';
+      case 'tactical': return 'chart';
+      case 'physical': return 'running';
+      case 'mental': return 'trophy';
+      default: return 'clipboard';
     }
   };
 
@@ -516,79 +520,59 @@ const PlayerDevelopment: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header title="Player Development" subtitle="Personalized plans that help each player grow." />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Player Development</h1>
-              <p className="text-gray-600 mt-1">Individual development plans to track player growth</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              {/* Player filter */}
-              <select
-                value={selectedPlayerId}
-                onChange={e => setSelectedPlayerId(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500"
-              >
-                <option value="all">{isUserCoach ? 'All Players' : 'All My Children'}</option>
-                {visiblePlayers.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-              {isUserCoach && (
-                <button
-                  onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(true); }}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>New Plan</span>
-                </button>
-              )}
-            </div>
+        {/* Filter + New Plan */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+              <AppIcon name="players" className="w-4 h-4" />
+            </span>
+            <select
+              value={selectedPlayerId}
+              onChange={e => setSelectedPlayerId(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              style={{ fontSize: '16px' }}
+            >
+              <option value="all">{isUserCoach ? 'All Players' : 'All My Children'}</option>
+              {visiblePlayers.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
+          {isUserCoach && (
+            <button
+              onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(true); }}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
+              <span>New Plan</span>
+            </button>
+          )}
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-cyan-600">{activePlans.length}</div>
-            <div className="text-sm text-gray-600">Active Plans</div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-emerald-600">{completedPlans.length}</div>
-            <div className="text-sm text-gray-600">Completed Plans</div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="text-2xl font-bold text-gray-600">{isUserCoach ? players.length : visiblePlayers.length}</div>
-            <div className="text-sm text-gray-600">{isUserCoach ? 'Total Players' : 'My Children'}</div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            {topStreak ? (
-              <>
-                <div className="text-2xl font-bold text-orange-600 flex items-center gap-1">
-                  <span>🔥</span>
-                  <span>{topStreak.streak}</span>
-                </div>
-                <div className="text-sm text-gray-600 truncate">Top streak — {topStreak.name}</div>
-              </>
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-gray-300">—</div>
-                <div className="text-sm text-gray-600">Top streak</div>
-              </>
-            )}
-          </div>
+        {/* Summary Stats — 2x2 on mobile, 4-up on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <DevTile icon="clipboard" tint="cyan" value={activePlans.length} label="Active Plans" />
+          <DevTile icon="check" tint="emerald" value={completedPlans.length} label="Completed" />
+          <DevTile icon="players" tint="navy" value={isUserCoach ? players.length : visiblePlayers.length} label={isUserCoach ? 'Players' : 'My Children'} />
+          <DevTile
+            icon="highlight"
+            tint="fire"
+            value={topStreak ? topStreak.streak : 0}
+            label={topStreak ? `${topStreak.name.split(' ')[0]}'s streak` : 'Top streak'}
+            badge={topStreak ? 'Keep it up!' : undefined}
+          />
         </div>
 
         {/* Needs Review Banner (coach only) */}
         {isUserCoach && activePlans.some(p => p.goals.some(g => g.readyForReview && !g.coachVerified)) && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="text-lg">🔔</span>
-              <h3 className="font-bold text-yellow-900">Goals Ready for Review</h3>
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <AppIcon name="bell" className="w-4 h-4" />
+              </span>
+              <h3 className="font-bold text-amber-900">Goals ready for your review</h3>
             </div>
             <div className="space-y-1">
               {activePlans
@@ -599,7 +583,7 @@ const PlayerDevelopment: React.FC = () => {
                     <button
                       key={p.id}
                       onClick={() => setExpandedPlanId(p.id)}
-                      className="block w-full text-left text-sm text-yellow-800 hover:text-yellow-900 hover:bg-yellow-100 px-2 py-1 rounded"
+                      className="block w-full text-left text-sm text-amber-800 hover:text-amber-900 hover:bg-amber-100 px-2 py-1 rounded"
                     >
                       <span className="font-medium">{p.playerName}</span> — {p.title} ({readyCount} goal{readyCount > 1 ? 's' : ''} ready)
                     </button>
@@ -646,7 +630,12 @@ const PlayerDevelopment: React.FC = () => {
         {/* Completed Plans */}
         {completedPlans.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">✅ Completed Plans</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                <AppIcon name="check" className="w-4 h-4" />
+              </span>
+              <span>Completed Plans</span>
+            </h2>
             <div className="space-y-4">
               {completedPlans.map(plan => (
                 <PlanCard
@@ -678,12 +667,14 @@ const PlayerDevelopment: React.FC = () => {
         )}
 
         {visiblePlans.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-            <div className="text-5xl mb-4">📋</div>
-            <h3 className="text-lg font-medium text-gray-900">No Development Plans Yet</h3>
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+            <div className="mb-3 flex justify-center text-gray-300">
+              <AppIcon name="clipboard" className="w-12 h-12" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">No development plans yet</h3>
             <p className="text-gray-600 mt-2">
               {isUserCoach
-                ? "Create individual development plans to track your players' growth."
+                ? "Create individual development plans to track each player's growth."
                 : "Your coach hasn't created any development plans yet."}
             </p>
           </div>
@@ -975,6 +966,40 @@ const PlayerDevelopment: React.FC = () => {
   );
 };
 
+// ─── Summary tile ────────────────────────────────────────────────────────────
+const DEV_TILE_TINT: Record<string, { box: string; icon: string; value: string }> = {
+  cyan:    { box: 'bg-cyan-50',     icon: 'text-cyan-700',    value: 'text-cyan-700'    },
+  emerald: { box: 'bg-emerald-50',  icon: 'text-emerald-700', value: 'text-emerald-700' },
+  navy:    { box: 'bg-navy-700/10', icon: 'text-navy-700',    value: 'text-navy-700'    },
+  fire:    { box: 'bg-fire-50',     icon: 'text-fire-700',    value: 'text-fire-700'    },
+};
+
+const DevTile: React.FC<{
+  icon: any;
+  tint: 'cyan' | 'emerald' | 'navy' | 'fire';
+  value: number;
+  label: string;
+  badge?: string;
+}> = ({ icon, tint, value, label, badge }) => {
+  const t = DEV_TILE_TINT[tint];
+  return (
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-4 flex items-center gap-3">
+      <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${t.box} ${t.icon}`}>
+        <AppIcon name={icon} className="w-5 h-5" />
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className={`text-2xl font-bold ${t.value} leading-tight tabular-nums`}>{value}</p>
+        <p className="text-xs text-gray-600 truncate">{label}</p>
+      </div>
+      {badge && (
+        <span className="px-2 py-1 rounded-full bg-fire-100 text-fire-800 text-[11px] font-bold whitespace-nowrap">
+          {badge}
+        </span>
+      )}
+    </div>
+  );
+};
+
 // ─── Plan Card Component ─────────────────────────────────────────────────────
 interface PlanCardProps {
   plan: DevelopmentPlan;
@@ -992,7 +1017,7 @@ interface PlanCardProps {
   onEdit: () => void;
   onCreateNextPlan: () => void;
   getCategoryColor: (cat: string) => string;
-  getCategoryIcon: (cat: string) => string;
+  getCategoryIcon: (cat: string) => any;
   getProgressPercentage: (plan: DevelopmentPlan) => number;
   canPlayerComplete: boolean;
   canLogPractice: boolean;
@@ -1042,28 +1067,33 @@ const PlanCard: React.FC<PlanCardProps> = ({
         onClick={onToggleExpand}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <span className="text-2xl">{getCategoryIcon(plan.category)}</span>
-            <div>
-              <h3 className="font-bold text-gray-900">{plan.title}</h3>
-              <div className="flex items-center space-x-2 mt-0.5 flex-wrap gap-y-1">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center shrink-0">
+              <AppIcon name={getCategoryIcon(plan.category)} className="w-5 h-5" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="font-bold text-gray-900 truncate">{plan.title}</h3>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <span className="text-sm text-gray-600">{plan.playerName}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${getCategoryColor(plan.category)}`}>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${getCategoryColor(plan.category)}`}>
                   {plan.category}
                 </span>
                 {plan.status === 'completed' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-emerald-700 border border-green-200">
-                    ✅ Completed
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    <AppIcon name="check" className="w-3 h-3" />
+                    <span>Completed</span>
                   </span>
                 )}
                 {readyForReviewCount > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 animate-pulse">
-                    🔔 {readyForReviewCount} ready for review
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
+                    <AppIcon name="bell" className="w-3 h-3" />
+                    <span>{readyForReviewCount} ready for review</span>
                   </span>
                 )}
                 {typeof streak === 'number' && streak >= 2 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 font-semibold" title={`${streak} consecutive verified goals`}>
-                    🔥 {streak} streak
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-fire-100 text-fire-800 border border-fire-200" title={`${streak} consecutive verified goals`}>
+                    <AppIcon name="highlight" className="w-3 h-3" />
+                    <span>{streak} streak</span>
                   </span>
                 )}
               </div>

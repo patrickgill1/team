@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+// Release signing — credentials live in android/key.properties (gitignored)
+// so passwords never hit the repo. If the file is absent (e.g. a fresh
+// clone or CI without secrets), release builds fall back to unsigned and
+// you'll get a clear "no signing config" error rather than a silent
+// debug-signed AAB. See android/key.properties.example for the format.
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "com.firefc.team"
     compileSdk rootProject.ext.compileSdkVersion
@@ -16,10 +27,26 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Only attach the release signing config when the keystore
+            // properties exist — keeps `assembleDebug` etc. working on
+            // machines without the signing secrets.
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

@@ -1,0 +1,16 @@
+# Copy this file to android/key.properties and fill in your real values.
+# key.properties is gitignored — your passwords never get committed.
+#
+# Generate the keystore first (run from the repo root):
+#   keytool -genkey -v -keystore android/firefc-release.keystore \
+#     -alias firefc -keyalg RSA -keysize 2048 -validity 10000
+#
+# BACK UP firefc-release.keystore AND these passwords somewhere permanent
+# (password manager). If you lose them you can never update the app on
+# the Play Store again.
+
+# Path to the keystore, relative to the android/ directory.
+storeFile=firefc-release.keystore
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyAlias=firefc
+keyPassword=YOUR_KEY_PASSWORD

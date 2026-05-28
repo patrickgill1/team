@@ -5,6 +5,8 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoach, truncateText } from '../../utils/helpers';
 import NewsForm from './NewsForm';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
 
 interface NewsListProps {
   searchTerm?: string;
@@ -27,6 +29,10 @@ const NewsList: React.FC<NewsListProps> = ({
   const [editingNews, setEditingNews] = useState<News | null>(null);
   const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  // uid -> photoURL for everyone who's authored an article. Looked up
+  // once per article-set change so the byline row can show real faces
+  // instead of a generic person icon.
+  const [authorPhotos, setAuthorPhotos] = useState<Record<string, string>>({});
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -43,6 +49,28 @@ const NewsList: React.FC<NewsListProps> = ({
           updatedAt: article.updatedAt?.toDate ? article.updatedAt.toDate() : new Date(article.updatedAt)
         })) as News[];
         setNews(newsWithDates);
+
+        // Resolve author photos in the background — failure is silent
+        // and the byline just falls back to the generic icon.
+        const authorIds = Array.from(new Set(
+          newsWithDates.map((n: any) => n.authorId).filter(Boolean) as string[]
+        ));
+        if (authorIds.length > 0) {
+          const photoMap: Record<string, string> = {};
+          for (let i = 0; i < authorIds.length; i += 30) {
+            const chunk = authorIds.slice(i, i + 30);
+            if (chunk.length === 0) continue;
+            try {
+              const snap = await getDocs(query(collection(db, 'users'), where('uid', 'in', chunk)));
+              snap.docs.forEach((u) => {
+                const data: any = u.data();
+                const url = data.photoURL || data.profilePhotoUrl;
+                if (url) photoMap[data.uid] = url;
+              });
+            } catch {/* ignore */ }
+          }
+          setAuthorPhotos(photoMap);
+        }
       } catch (error) {
         console.error('Error loading news:', error);
       } finally {
@@ -239,10 +267,23 @@ const NewsList: React.FC<NewsListProps> = ({
                         {article.title}
                       </h3>
                       <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <span className="flex items-center space-x-1">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
+                        <span className="flex items-center gap-2">
+                          {(() => {
+                            const photo = (article as any).authorId ? authorPhotos[(article as any).authorId] : undefined;
+                            const initial = (article.authorName || 'C').charAt(0).toUpperCase();
+                            return photo ? (
+                              <img
+                                src={photo}
+                                alt={article.authorName || 'Author'}
+                                className="w-6 h-6 rounded-full object-cover ring-1 ring-gray-200"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              <span className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-navy-700 text-white text-[10px] font-bold flex items-center justify-center">
+                                {initial}
+                              </span>
+                            );
+                          })()}
                           <span>{article.authorName || 'Coach'}</span>
                         </span>
                         <span className="flex items-center space-x-1">

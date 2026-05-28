@@ -117,6 +117,13 @@ const Calendar: React.FC<CalendarProps> = ({
   // card (so a parent with two kids gets two responder rows, plus their
   // own row). Single fetch, not per-card, to avoid N+1.
   const [myLinkedPlayers, setMyLinkedPlayers] = useState<Array<{ id: string; name: string }>>([]);
+  // uid -> photoURL for everyone on the team (parents + coaches +
+  // managers). Drives avatars in the attendee modal and the carpool
+  // board so we don't fall back to initial circles for users we know.
+  const [userPhotoMap, setUserPhotoMap] = useState<Record<string, string>>({});
+  // playerId -> profilePhotoUrl for every player on the team. Drives
+  // avatars in the attendee modal for the per-kid RSVPs.
+  const [playerPhotoMap, setPlayerPhotoMap] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!userData?.uid || !selectedTeamId) { setMyLinkedPlayers([]); return; }
     let cancelled = false;
@@ -141,6 +148,64 @@ const Calendar: React.FC<CalendarProps> = ({
     })();
     return () => { cancelled = true; };
   }, [userData?.uid, selectedTeamId]);
+
+  // Build photo lookup maps for the whole team — one Firestore query
+  // each, refreshed when the team changes. Cheap because we read
+  // these on every event card and we don't want N+1 user fetches.
+  useEffect(() => {
+    if (!selectedTeamId) { setUserPhotoMap({}); setPlayerPhotoMap({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        // Players in this team — both new teamIds[] shape and the
+        // legacy single teamId shape.
+        const [byTeamIds, byTeamId] = await Promise.all([
+          fsGetDocs(fsQuery(collection(db, 'players'), fsWhere('teamIds', 'array-contains', selectedTeamId))),
+          fsGetDocs(fsQuery(collection(db, 'players'), fsWhere('teamId', '==', selectedTeamId))),
+        ]);
+        const playerMap: Record<string, string> = {};
+        const playerIds = new Set<string>();
+        const parentIds = new Set<string>();
+        [...byTeamIds.docs, ...byTeamId.docs].forEach((d) => {
+          if (playerIds.has(d.id)) return;
+          playerIds.add(d.id);
+          const data: any = d.data();
+          if (data.profilePhotoUrl) playerMap[d.id] = data.profilePhotoUrl;
+          (data.parentIds || []).forEach((pid: string) => parentIds.add(pid));
+        });
+
+        // Coaches on the team's `coachIds` array — pull the team doc.
+        const teamSnap = await fsGetDocs(fsQuery(collection(db, 'teams'), fsWhere('__name__', '==', selectedTeamId)));
+        teamSnap.docs.forEach((t) => {
+          const data: any = t.data();
+          (data.coachIds || []).forEach((uid: string) => parentIds.add(uid));
+          (data.assistantCoachIds || []).forEach((uid: string) => parentIds.add(uid));
+          if (data.headCoachId) parentIds.add(data.headCoachId);
+        });
+
+        // Resolve uids → photoURL. Chunked because Firestore `in` caps
+        // at 30 values per query.
+        const uidArr = Array.from(parentIds);
+        const photoMap: Record<string, string> = {};
+        for (let i = 0; i < uidArr.length; i += 30) {
+          const chunk = uidArr.slice(i, i + 30);
+          if (chunk.length === 0) continue;
+          const snap = await fsGetDocs(fsQuery(collection(db, 'users'), fsWhere('uid', 'in', chunk)));
+          snap.docs.forEach((u) => {
+            const data: any = u.data();
+            const url = data.photoURL || data.profilePhotoUrl;
+            if (url) photoMap[data.uid] = url;
+          });
+        }
+        if (cancelled) return;
+        setUserPhotoMap(photoMap);
+        setPlayerPhotoMap(playerMap);
+      } catch (err) {
+        console.error('Team photo-map lookup failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTeamId]);
 
   // Load events on component mount
   useEffect(() => {
@@ -586,6 +651,8 @@ const Calendar: React.FC<CalendarProps> = ({
                   userName={userData?.name}
                   userRole={userData?.role}
                   myLinkedPlayers={myLinkedPlayers}
+                  userPhotoMap={userPhotoMap}
+                  playerPhotoMap={playerPhotoMap}
                   canEdit={isUserCoach}
                   isDeleting={deletingIds.has(event.id)}
                   isPast={listTab === 'past'}
@@ -717,6 +784,8 @@ interface EventCardProps {
   userName?: string;
   userRole?: string;
   myLinkedPlayers?: Array<{ id: string; name: string }>;
+  userPhotoMap?: Record<string, string>;
+  playerPhotoMap?: Record<string, string>;
   canEdit: boolean;
   isDeleting: boolean;
   isPast?: boolean;
@@ -753,6 +822,8 @@ const EventCard: React.FC<EventCardProps> = ({
   userName,
   userRole,
   myLinkedPlayers,
+  userPhotoMap = {},
+  playerPhotoMap = {},
   canEdit,
   isDeleting,
   isPast = false
@@ -942,11 +1013,20 @@ const EventCard: React.FC<EventCardProps> = ({
           userName={userName}
           userRole={userRole}
           myLinkedPlayers={myLinkedPlayers}
+          userPhotoMap={userPhotoMap}
+          playerPhotoMap={playerPhotoMap}
           onRsvp={onRsvp}
           onPlayerRsvp={onPlayerRsvp}
           isPast={isPast}
         />
-        <CarpoolBar event={event} userUid={userUid} onAdd={onAddCarpool} onDelete={onDeleteCarpool} isPast={isPast} />
+        <CarpoolBar
+          event={event}
+          userUid={userUid}
+          userPhotoMap={userPhotoMap}
+          onAdd={onAddCarpool}
+          onDelete={onDeleteCarpool}
+          isPast={isPast}
+        />
         <EventPhotos eventId={event.id} teamId={event.teamId} canModerate={canEdit} />
       </div>
     </div>
@@ -959,10 +1039,12 @@ const RsvpBar: React.FC<{
   userName?: string;
   userRole?: string;
   myLinkedPlayers?: Array<{ id: string; name: string }>;
+  userPhotoMap?: Record<string, string>;
+  playerPhotoMap?: Record<string, string>;
   onRsvp?: (eventId: string, status: 'going' | 'maybe' | 'no') => void;
   onPlayerRsvp?: (eventId: string, playerId: string, playerName: string, status: 'going' | 'maybe' | 'no') => void;
   isPast?: boolean;
-}> = ({ event, userUid, userName, userRole, myLinkedPlayers = [], onRsvp, onPlayerRsvp, isPast }) => {
+}> = ({ event, userUid, userName, userRole, myLinkedPlayers = [], userPhotoMap = {}, playerPhotoMap = {}, onRsvp, onPlayerRsvp, isPast }) => {
   const [showList, setShowList] = useState<null | 'going' | 'maybe' | 'no'>(null);
   if (event.type !== 'game' && event.type !== 'practice' && event.type !== 'event') return null;
   const rsvps = event.rsvps || {};
@@ -972,14 +1054,14 @@ const RsvpBar: React.FC<{
   // (it tells the head coach who's running things). A pure-parent's
   // own RSVP doesn't affect lineups, so we never count it.
   const isStaffRole = (r: any) => r === 'coach' || r === 'team_manager';
-  type Entry = { id: string; status: 'going' | 'maybe' | 'no'; name: string; isStaff: boolean; isPlayer: boolean; isGuestCoach: boolean };
+  type Entry = { id: string; uid?: string; playerId?: string; status: 'going' | 'maybe' | 'no'; name: string; isStaff: boolean; isPlayer: boolean; isGuestCoach: boolean };
   const entries: Entry[] = [
-    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, status: v.status, name: v.name, isStaff: isStaffRole(v.role), isPlayer: false, isGuestCoach: false })),
+    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, uid, status: v.status, name: v.name, isStaff: isStaffRole(v.role), isPlayer: false, isGuestCoach: false })),
     // Public-link RSVPs only count if the responder self-tagged as
     // coach — random parents replying via a share link shouldn't
     // bloat the head coach's "who's coming" total.
     ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isStaff: !!v.isCoach, isPlayer: false, isGuestCoach: !!v.isCoach })),
-    ...Object.entries(playerRsvps).map(([pid, v]: any) => ({ id: `p_${pid}`, status: v.status, name: v.playerName || 'Player', isStaff: false, isPlayer: true, isGuestCoach: false })),
+    ...Object.entries(playerRsvps).map(([pid, v]: any) => ({ id: `p_${pid}`, playerId: pid, status: v.status, name: v.playerName || 'Player', isStaff: false, isPlayer: true, isGuestCoach: false })),
   ];
   // Two counts — players for lineup math, coaches/staff for sideline
   // coverage. Parents are tracked (the kid's RSVP is theirs) but not
@@ -1168,14 +1250,22 @@ const RsvpBar: React.FC<{
                     <>
                       <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Players</div>
                       <ul className="divide-y divide-gray-100">
-                        {entries.filter(e => e.status === showList && e.isPlayer).map(e => (
-                          <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                              {(e.name || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Player'}</span>
-                          </li>
-                        ))}
+                        {entries.filter(e => e.status === showList && e.isPlayer).map(e => {
+                          const photo = e.playerId ? playerPhotoMap[e.playerId] : undefined;
+                          return (
+                            <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
+                              {photo ? (
+                                <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                                  onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                  {(e.name || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Player'}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </>
                   )}
@@ -1186,19 +1276,27 @@ const RsvpBar: React.FC<{
                     <>
                       <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Coaches & staff</div>
                       <ul className="divide-y divide-gray-100">
-                        {entries.filter(e => e.status === showList && e.isStaff).map(e => (
-                          <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                              {(e.name || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
-                            {e.isGuestCoach && (
-                              <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0">
-                                via link
-                              </span>
-                            )}
-                          </li>
-                        ))}
+                        {entries.filter(e => e.status === showList && e.isStaff).map(e => {
+                          const photo = e.uid ? userPhotoMap[e.uid] : undefined;
+                          return (
+                            <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
+                              {photo ? (
+                                <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                                  onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-navy-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                  {(e.name || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
+                              {e.isGuestCoach && (
+                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0">
+                                  via link
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </>
                   )}
@@ -1216,10 +1314,11 @@ const RsvpBar: React.FC<{
 const CarpoolBar: React.FC<{
   event: CalendarEvent;
   userUid?: string;
+  userPhotoMap?: Record<string, string>;
   onAdd?: (eventId: string, post: { type: 'offer' | 'request'; seats?: number; location?: string; note?: string }) => void;
   onDelete?: (eventId: string, postId: string) => void;
   isPast?: boolean;
-}> = ({ event, userUid, onAdd, onDelete, isPast }) => {
+}> = ({ event, userUid, userPhotoMap = {}, onAdd, onDelete, isPast }) => {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'offer' | 'request'>('offer');
   const [seats, setSeats] = useState('');
@@ -1249,7 +1348,7 @@ const CarpoolBar: React.FC<{
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between text-xs font-medium text-gray-600 hover:text-gray-800"
       >
-        <span className="uppercase tracking-wide">🚗 Carpool board</span>
+        <span className="uppercase tracking-wide">Carpool board</span>
         <span className="flex items-center gap-2 text-[11px]">
           <span className="text-emerald-700">{offerCount} offer{offerCount !== 1 ? 's' : ''}</span>
           <span className="text-amber-700">{requestCount} request{requestCount !== 1 ? 's' : ''}</span>
@@ -1261,33 +1360,48 @@ const CarpoolBar: React.FC<{
           {posts.length === 0 && (
             <p className="text-xs text-gray-400 italic">No posts yet — be the first.</p>
           )}
-          {posts.map(p => (
-            <div
-              key={p.id}
-              className={`flex items-start justify-between gap-2 p-2 rounded-lg text-xs ${
-                p.type === 'offer' ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'
-              }`}
-            >
-              <div className="flex-1">
-                <div className="font-semibold text-gray-800">
-                  {p.type === 'offer' ? '🚙 Offering ride' : '🙋 Need ride'} — {p.name}
+          {posts.map(p => {
+            const photo = userPhotoMap[p.uid];
+            return (
+              <div
+                key={p.id}
+                className={`flex items-start gap-2 p-2 rounded-lg text-xs ${
+                  p.type === 'offer' ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'
+                }`}
+              >
+                {photo ? (
+                  <img
+                    src={photo}
+                    alt={p.name}
+                    className="w-7 h-7 rounded-full object-cover ring-1 ring-white shrink-0 mt-0.5"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">
+                    {(p.name || '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-gray-800">
+                    {p.type === 'offer' ? 'Offering ride' : 'Need ride'} — {p.name}
+                  </div>
+                  <div className="text-gray-700 mt-0.5">
+                    {p.seats ? `${p.seats} seat${p.seats !== 1 ? 's' : ''}` : ''}
+                    {p.seats && p.location ? ' · ' : ''}
+                    {p.location || ''}
+                  </div>
+                  {p.note && <div className="text-gray-600 mt-0.5">{p.note}</div>}
                 </div>
-                <div className="text-gray-700 mt-0.5">
-                  {p.seats ? `${p.seats} seat${p.seats !== 1 ? 's' : ''}` : ''}
-                  {p.seats && p.location ? ' · ' : ''}
-                  {p.location || ''}
-                </div>
-                {p.note && <div className="text-gray-600 mt-0.5">{p.note}</div>}
+                {userUid === p.uid && onDelete && (
+                  <button
+                    onClick={() => onDelete(event.id, p.id)}
+                    className="text-gray-400 hover:text-red-600 text-sm leading-none"
+                    title="Delete"
+                  >✕</button>
+                )}
               </div>
-              {userUid === p.uid && onDelete && (
-                <button
-                  onClick={() => onDelete(event.id, p.id)}
-                  className="text-gray-400 hover:text-red-600 text-sm leading-none"
-                  title="Delete"
-                >✕</button>
-              )}
-            </div>
-          ))}
+            );
+          })}
           {!isPast && userUid && onAdd && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-2">
               <div className="flex gap-1">
@@ -1296,13 +1410,13 @@ const CarpoolBar: React.FC<{
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
                     type === 'offer' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200'
                   }`}
-                >🚙 Offer</button>
+                >Offer</button>
                 <button
                   onClick={() => setType('request')}
                   className={`flex-1 px-2 py-1 rounded text-xs font-medium border ${
                     type === 'request' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-200'
                   }`}
-                >🙋 Request</button>
+                >Request</button>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <input

@@ -17,9 +17,8 @@ import AppIcon from './AppIcon';
 const STORAGE_KEY = 'firefc.installBannerDismissedAt';
 const DISMISS_REMINDER_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 
-// Replace once the apps are live. The iOS link can stay as a `web`
-// universal link to firefc.app's store page if you set one up later.
-const APP_STORE_URL = 'https://apps.apple.com/app/idPLACEHOLDER_APP_STORE_ID';
+// Fire FC on the App Store (Apple ID 6770324158).
+const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
 
 const isCapacitor = () => {
@@ -42,11 +41,9 @@ const detectPlatform = (): Platform => {
   return null;
 };
 
-// Flip these once the apps ship and you have the real store URLs.
-// IOS_STORE_LIVE: set to true after replacing PLACEHOLDER_APP_STORE_ID
-// in APP_STORE_URL above with the real App Store Connect Apple ID.
+// IOS_STORE_LIVE: on — Fire FC is live on the App Store.
 // ANDROID_STORE_LIVE: set to true after the Play Store listing is live.
-const IOS_STORE_LIVE = false;
+const IOS_STORE_LIVE = true;
 const ANDROID_STORE_LIVE = false;
 
 const InstallAppBanner: React.FC = () => {

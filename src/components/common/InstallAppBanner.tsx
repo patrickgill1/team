@@ -41,6 +41,20 @@ const detectPlatform = (): Platform => {
   return null;
 };
 
+// iOS Safari shows Apple's native Smart App Banner (from the
+// apple-itunes-app meta tag), which is the better experience there —
+// it flips to "Open" if the app is installed and is the iOS
+// convention. So we suppress OUR banner on iOS Safari to avoid two
+// stacked prompts, but keep it for iOS Chrome/Firefox/etc (where
+// Apple's banner never renders) and for Android later.
+const isIOSSafari = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const ios = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+  const safari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA|mercury/.test(ua);
+  return ios && safari;
+};
+
 // IOS_STORE_LIVE: on — Fire FC is live on the App Store.
 // ANDROID_STORE_LIVE: set to true after the Play Store listing is live.
 const IOS_STORE_LIVE = true;
@@ -67,6 +81,8 @@ const InstallAppBanner: React.FC = () => {
     // the app" when there isn't one to install is worse than no banner.
     if (detected === 'android' && !ANDROID_STORE_LIVE) return;
     if (detected === 'ios' && !IOS_STORE_LIVE) return;
+    // Don't double up with Apple's native Smart App Banner.
+    if (detected === 'ios' && isIOSSafari()) return;
 
     setPlatform(detected);
     setVisible(true);

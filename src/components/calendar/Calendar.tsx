@@ -1054,18 +1054,20 @@ const RsvpBar: React.FC<{
   // (it tells the head coach who's running things). A pure-parent's
   // own RSVP doesn't affect lineups, so we never count it.
   const isStaffRole = (r: any) => r === 'coach' || r === 'team_manager';
-  type Entry = { id: string; uid?: string; playerId?: string; status: 'going' | 'maybe' | 'no'; name: string; isStaff: boolean; isPlayer: boolean; isGuestCoach: boolean };
+  // isGuest = responded via the public share link (no account).
+  type Entry = { id: string; uid?: string; playerId?: string; status: 'going' | 'maybe' | 'no'; name: string; isStaff: boolean; isPlayer: boolean; isGuest: boolean };
   const entries: Entry[] = [
-    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, uid, status: v.status, name: v.name, isStaff: isStaffRole(v.role), isPlayer: false, isGuestCoach: false })),
-    // Public-link RSVPs only count if the responder self-tagged as
-    // coach — random parents replying via a share link shouldn't
-    // bloat the head coach's "who's coming" total.
-    ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isStaff: !!v.isCoach, isPlayer: false, isGuestCoach: !!v.isCoach })),
-    ...Object.entries(playerRsvps).map(([pid, v]: any) => ({ id: `p_${pid}`, playerId: pid, status: v.status, name: v.playerName || 'Player', isStaff: false, isPlayer: true, isGuestCoach: false })),
+    ...Object.entries(rsvps).map(([uid, v]: any) => ({ id: uid, uid, status: v.status, name: v.name, isStaff: isStaffRole(v.role), isPlayer: false, isGuest: false })),
+    // Public-link RSVPs. They only count toward the COACH headline if
+    // the responder self-tagged as coach, but every one of them is
+    // still shown in the attendee modal so the coach can see exactly
+    // who replied via the shared link (and who declined).
+    ...Object.entries(publicRsvps).map(([token, v]: any) => ({ id: `g_${token}`, status: v.status, name: v.name, isStaff: !!v.isCoach, isPlayer: false, isGuest: true })),
+    ...Object.entries(playerRsvps).map(([pid, v]: any) => ({ id: `p_${pid}`, playerId: pid, status: v.status, name: v.playerName || 'Player', isStaff: false, isPlayer: true, isGuest: false })),
   ];
-  // Two counts — players for lineup math, coaches/staff for sideline
-  // coverage. Parents are tracked (the kid's RSVP is theirs) but not
-  // shown as their own count.
+  // Headline counts shown on the event card: players for lineup math,
+  // coaches/staff for sideline coverage. Parents/guests are tracked
+  // and fully listed in the modal but don't inflate these two numbers.
   const playerCounts = {
     going: Object.values(playerRsvps).filter((v: any) => v.status === 'going').length,
     maybe: Object.values(playerRsvps).filter((v: any) => v.status === 'maybe').length,
@@ -1076,6 +1078,11 @@ const RsvpBar: React.FC<{
     maybe: entries.filter(e => e.isStaff && e.status === 'maybe').length,
     no: entries.filter(e => e.isStaff && e.status === 'no').length,
   };
+  // "Others" = parents/guests who responded but aren't a player or a
+  // coach. Surfaced in the modal (especially "Can't make it") so the
+  // coach can always see who declined, app or share-link.
+  const otherCount = (status: 'going' | 'maybe' | 'no') =>
+    entries.filter(e => e.status === status && !e.isPlayer && !e.isStaff).length;
   const my = userUid ? rsvps[userUid]?.status : undefined;
   // Only show the "Me" row for staff. A pure parent RSVPing for
   // themself doesn't help anyone plan — their kid's RSVP is the
@@ -1127,34 +1134,59 @@ const RsvpBar: React.FC<{
       <span>{label}</span>
     </button>
   );
+  // Total responders per status across everyone (players + staff +
+  // parents/guests) — drives the tappable Going / Maybe / Can't pills
+  // so the coach can open any list, including who declined.
+  const totalFor = (status: 'going' | 'maybe' | 'no') =>
+    entries.filter(e => e.status === status).length;
+
   return (
     <div className="mt-3 pt-3 border-t border-gray-100">
-      <div className="flex items-center justify-between mb-2 gap-2">
+      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
           {isPast ? 'Final RSVPs' : 'Who’s coming?'}
         </span>
-        <div className="flex items-center gap-3 text-xs">
-          {/* Players going — the count coaches actually use to plan
-              lineups. Tap to see the names. */}
+        {/* Tap any status to see the full breakdown (players, coaches,
+            and parents/guests — including who responded via the share
+            link). All three are reachable now, not just Going. */}
+        <div className="flex items-center gap-2 text-xs">
           <button
             onClick={() => setShowList('going')}
             className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold hover:underline"
-            title="Players going"
+            title="Going"
           >
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-[10px] font-bold">P</span>
-            <span>{playerCounts.going}</span>
+            <StatusBadge status="going" />
+            <span>{totalFor('going')}</span>
           </button>
-          {/* Coaches/staff going — distinct from players so the head
-              coach knows who's running things on the sideline. */}
           <button
-            onClick={() => setShowList('going')}
-            className="inline-flex items-center gap-1.5 text-cyan-700 font-semibold hover:underline"
-            title="Coaches/staff going"
+            onClick={() => setShowList('maybe')}
+            className="inline-flex items-center gap-1.5 text-amber-700 font-semibold hover:underline"
+            title="Maybe"
           >
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cyan-50 ring-1 ring-cyan-200 text-cyan-700 text-[10px] font-bold">C</span>
-            <span>{staffCounts.going}</span>
+            <StatusBadge status="maybe" />
+            <span>{totalFor('maybe')}</span>
+          </button>
+          <button
+            onClick={() => setShowList('no')}
+            className="inline-flex items-center gap-1.5 text-rose-700 font-semibold hover:underline"
+            title="Can't make it"
+          >
+            <StatusBadge status="no" />
+            <span>{totalFor('no')}</span>
           </button>
         </div>
+      </div>
+      {/* Player + coach headline (the planning numbers) sits just under
+          the tappable status pills so both signals are visible. */}
+      <div className="flex items-center gap-3 text-[11px] text-gray-500 mb-2">
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-[9px] font-bold">P</span>
+          {playerCounts.going} player{playerCounts.going === 1 ? '' : 's'} going
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-cyan-50 ring-1 ring-cyan-200 text-cyan-700 text-[9px] font-bold">C</span>
+          {staffCounts.going} coach{staffCounts.going === 1 ? '' : 'es'} going
+        </span>
       </div>
       {!isPast && (
         <div className="space-y-2">
@@ -1228,9 +1260,15 @@ const RsvpBar: React.FC<{
               <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
                 <StatusBadge status={showList} size="md" />
                 <span>
-                  {showList === 'going' && `Going (${playerCounts.going} players · ${staffCounts.going} coaches)`}
-                  {showList === 'maybe' && `Maybe (${playerCounts.maybe} players · ${staffCounts.maybe} coaches)`}
-                  {showList === 'no' && `Can't make it (${playerCounts.no} players · ${staffCounts.no} coaches)`}
+                  {(() => {
+                    const label = showList === 'going' ? 'Going' : showList === 'maybe' ? 'Maybe' : "Can't make it";
+                    const p = playerCounts[showList];
+                    const c = staffCounts[showList];
+                    const o = otherCount(showList);
+                    const parts = [`${p} player${p === 1 ? '' : 's'}`, `${c} coach${c === 1 ? '' : 'es'}`];
+                    if (o > 0) parts.push(`${o} other${o === 1 ? '' : 's'}`);
+                    return `${label} (${parts.join(' · ')})`;
+                  })()}
                 </span>
               </h3>
               <button onClick={() => setShowList(null)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
@@ -1240,7 +1278,7 @@ const RsvpBar: React.FC<{
               </button>
             </div>
             <div className="overflow-y-auto flex-1">
-              {entries.filter(e => e.status === showList && (e.isPlayer || e.isStaff)).length === 0 ? (
+              {entries.filter(e => e.status === showList).length === 0 ? (
                 <p className="px-4 py-6 text-center text-sm text-gray-500">No one yet.</p>
               ) : (
                 <>
@@ -1269,9 +1307,7 @@ const RsvpBar: React.FC<{
                       </ul>
                     </>
                   )}
-                  {/* Coaches/staff only — pure-parent RSVPs are
-                      intentionally hidden so the count matches what
-                      coaches actually need to plan around. */}
+                  {/* Coaches & staff. */}
                   {entries.some(e => e.status === showList && e.isStaff) && (
                     <>
                       <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Coaches & staff</div>
@@ -1289,7 +1325,40 @@ const RsvpBar: React.FC<{
                                 </div>
                               )}
                               <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
-                              {e.isGuestCoach && (
+                              {e.isGuest && (
+                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0">
+                                  via link
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  )}
+                  {/* Parents & guests — anyone who responded who isn't a
+                      player or a coach: authenticated parents replying for
+                      themselves, plus non-coach share-link responses. This
+                      is the section that was missing, so a coach couldn't
+                      see who declined or who RSVP'd from the link. */}
+                  {entries.some(e => e.status === showList && !e.isPlayer && !e.isStaff) && (
+                    <>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Parents & guests</div>
+                      <ul className="divide-y divide-gray-100">
+                        {entries.filter(e => e.status === showList && !e.isPlayer && !e.isStaff).map(e => {
+                          const photo = e.uid ? userPhotoMap[e.uid] : undefined;
+                          return (
+                            <li key={e.id} className="px-4 py-2.5 flex items-center gap-2">
+                              {photo ? (
+                                <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                                  onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                  {(e.name || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Guest'}</span>
+                              {e.isGuest && (
                                 <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0">
                                   via link
                                 </span>

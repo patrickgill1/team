@@ -9,6 +9,8 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
+import Header from '../components/common/Header';
+import AppIcon from '../components/common/AppIcon';
 
 interface Drill {
   id: string;
@@ -34,13 +36,16 @@ interface PracticePlan {
   updatedAt?: any;
 }
 
-const CATEGORY: Record<Drill['category'], { label: string; color: string; emoji: string }> = {
-  warmup:    { label: 'Warm-up',   color: 'bg-amber-100 text-amber-800 border-amber-300',     emoji: '🏃' },
-  technical: { label: 'Technical', color: 'bg-fire-100 text-fire-800 border-fire-300',         emoji: '⚽' },
-  tactical:  { label: 'Tactical',  color: 'bg-violet-100 text-violet-800 border-violet-300',   emoji: '🧠' },
-  scrimmage: { label: 'Scrimmage', color: 'bg-emerald-100 text-emerald-800 border-emerald-300', emoji: '🥅' },
-  fitness:   { label: 'Fitness',   color: 'bg-rose-100 text-rose-800 border-rose-300',         emoji: '💪' },
-  cooldown:  { label: 'Cool-down', color: 'bg-sky-100 text-sky-800 border-sky-300',            emoji: '🧘' },
+// Category descriptors — color stays inside the Fire palette (no
+// violet/amber). `icon` is an AppIcon name so we render outlines
+// instead of mixed emoji.
+const CATEGORY: Record<Drill['category'], { label: string; color: string; icon: any }> = {
+  warmup:    { label: 'Warm-up',   color: 'bg-fire-50 text-fire-800 border-fire-200',         icon: 'running' },
+  technical: { label: 'Technical', color: 'bg-cyan-50 text-cyan-800 border-cyan-200',         icon: 'soccer' },
+  tactical:  { label: 'Tactical',  color: 'bg-navy-700/10 text-navy-800 border-navy-700/20', icon: 'chart' },
+  scrimmage: { label: 'Scrimmage', color: 'bg-emerald-50 text-emerald-800 border-emerald-200', icon: 'trophy' },
+  fitness:   { label: 'Fitness',   color: 'bg-fire-100 text-fire-800 border-fire-300',        icon: 'highlight' },
+  cooldown:  { label: 'Cool-down', color: 'bg-cyan-100 text-cyan-800 border-cyan-200',        icon: 'check' },
 };
 
 const DRILL_LIBRARY: Drill[] = [
@@ -167,22 +172,18 @@ const PracticePlanBuilder: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 print:bg-white">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 text-white print:hidden">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">🗒️ Practice Plan Builder</h1>
-              <p className="text-white/70 text-sm mt-0.5">{currentTeam?.name || 'Your team'}</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => newPlan()} className="px-4 py-2 bg-white/15 hover:bg-white/25 rounded-xl font-semibold text-sm ring-1 ring-white/20">
-                + New Plan
-              </button>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 print:bg-white">
+      <div className="print:hidden">
+        <Header title="Practice Plans" subtitle="Build a timeline of drills, save it as a template, print before practice." />
+      </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex justify-end print:hidden">
+        <button
+          onClick={() => newPlan()}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-sm flex items-center gap-2"
+        >
+          <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
+          <span>New Plan</span>
+        </button>
       </div>
 
       <div className="max-w-6xl mx-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
@@ -203,7 +204,11 @@ const PracticePlanBuilder: React.FC = () => {
                       className={`w-full text-left px-3 py-2 rounded-lg text-sm ${activeId === p.id ? 'bg-fire-50 text-navy-800 ring-1 ring-fire-200' : 'hover:bg-slate-50 text-slate-700'}`}
                     >
                       <div className="font-semibold truncate flex items-center gap-1.5">
-                        {p.isTemplate && <span title="Template">📌</span>}
+                        {p.isTemplate && (
+                          <span className="text-cyan-700 shrink-0" title="Reusable template">
+                            <AppIcon name="bell" className="w-3.5 h-3.5" />
+                          </span>
+                        )}
                         {p.title}
                       </div>
                       <div className="text-[11px] text-slate-500">{p.drills.length} drill{p.drills.length === 1 ? '' : 's'} · {p.drills.reduce((s, d) => s + (d.durationMin || 0), 0)} min</div>
@@ -218,11 +223,16 @@ const PracticePlanBuilder: React.FC = () => {
         {/* Main: editor */}
         <main>
           {!active ? (
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-12 text-center">
-              <div className="text-5xl mb-3">📋</div>
-              <h2 className="font-bold text-navy-900 text-lg">Pick a plan, or create a new one</h2>
-              <p className="text-slate-500 text-sm mt-1">Build a timeline of drills, save it as a template, share with your assistants, and print before practice.</p>
-              <button onClick={() => newPlan()} className="mt-5 px-5 py-2.5 bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold rounded-xl shadow-sm">+ Create Plan</button>
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-12 text-center">
+              <div className="mb-3 flex justify-center text-gray-300">
+                <AppIcon name="clipboard" className="w-12 h-12" />
+              </div>
+              <h2 className="font-bold text-gray-900 text-lg">Pick a plan, or create a new one</h2>
+              <p className="text-gray-500 text-sm mt-1">Build a timeline of drills, save it as a template, share with your assistants, and print before practice.</p>
+              <button onClick={() => newPlan()} className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-xl shadow-sm">
+                <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
+                <span>Create Plan</span>
+              </button>
             </div>
           ) : (
             <div className="space-y-5">
@@ -266,16 +276,41 @@ const PracticePlanBuilder: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 print:hidden">
-                  <button onClick={() => setShowLibrary(true)} className="px-3 py-1.5 text-sm bg-fire-50 hover:bg-fire-100 text-navy-700 rounded-lg ring-1 ring-fire-200 font-semibold">
-                    📚 Add from library
+                  <button
+                    onClick={() => setShowLibrary(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-cyan-50 hover:bg-cyan-100 text-cyan-800 rounded-lg ring-1 ring-cyan-200 font-semibold"
+                  >
+                    <AppIcon name="clipboard" className="w-4 h-4" />
+                    <span>Add from library</span>
                   </button>
                   <button
                     onClick={() => addDrill({ id: newId(), name: 'New drill', durationMin: 10, category: 'technical' })}
-                    className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold"
-                  >+ Custom drill</button>
-                  <button onClick={() => newPlan(active)} className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">📄 Duplicate</button>
-                  <button onClick={printPlan} className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">🖨️ Print / PDF</button>
-                  <button onClick={() => active.id && removePlan(active.id)} className="ml-auto px-3 py-1.5 text-sm text-rose-600 hover:bg-rose-50 rounded-lg font-semibold">Delete</button>
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                  >
+                    <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
+                    <span>Custom drill</span>
+                  </button>
+                  <button
+                    onClick={() => newPlan(active)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                  >
+                    <AppIcon name="edit" className="w-4 h-4" />
+                    <span>Duplicate</span>
+                  </button>
+                  <button
+                    onClick={printPlan}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                  >
+                    <AppIcon name="news" className="w-4 h-4" />
+                    <span>Print / PDF</span>
+                  </button>
+                  <button
+                    onClick={() => active.id && removePlan(active.id)}
+                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-rose-600 hover:bg-rose-50 rounded-lg font-semibold"
+                  >
+                    <AppIcon name="trash" className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
                 </div>
               </div>
 
@@ -294,7 +329,10 @@ const PracticePlanBuilder: React.FC = () => {
                             <span className="text-[10px] font-mono tabular-nums text-slate-600 bg-white/60 rounded px-1.5 py-0.5">
                               {String(Math.floor(startMin / 60)).padStart(1, '0')}:{String(startMin % 60).padStart(2, '0')}
                             </span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider">{meta.emoji} {meta.label}</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
+                              <AppIcon name={meta.icon} className="w-3 h-3" />
+                              <span>{meta.label}</span>
+                            </span>
                             <input
                               value={d.name}
                               onChange={e => editDrill(d.id, { name: e.target.value })}
@@ -355,7 +393,10 @@ const PracticePlanBuilder: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden" onClick={() => setShowLibrary(false)}>
           <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-gradient-to-r from-navy-700 to-fire-700 px-5 py-3 flex items-center justify-between">
-              <h3 className="text-white font-bold">📚 Drill Library</h3>
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <AppIcon name="clipboard" className="w-5 h-5" />
+                <span>Drill Library</span>
+              </h3>
               <button onClick={() => setShowLibrary(false)} className="text-white/70 hover:text-white text-xl">✕</button>
             </div>
             <div className="p-3 space-y-2">

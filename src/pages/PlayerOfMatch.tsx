@@ -773,11 +773,13 @@ const PlayerOfMatch: React.FC = () => {
                   <div className="space-y-2">
                     {getVoteResults(activeVoting).map((result, index) => {
                       const pct = Math.round((result.count / activeVoting.votes.length) * 100);
+                      const player = players.find(p => p.id === result.playerId);
                       return (
                         <div key={result.playerId}>
                           <div className="flex items-center gap-2">
                             <PlaceBadge index={index} />
-                            <span className="font-medium text-gray-900 w-36 truncate">{result.name}</span>
+                            <ResultAvatar player={player} name={result.name} />
+                            <span className="font-medium text-gray-900 w-28 sm:w-36 truncate">{result.name}</span>
                             <div className="flex-1 bg-gray-100 rounded-full h-2">
                               <div
                                 className="h-2 rounded-full bg-cyan-500 transition-all duration-500"
@@ -912,11 +914,13 @@ const PlayerOfMatch: React.FC = () => {
                         <div className="space-y-2">
                           {results.map((result, index) => {
                             const pct = voting.votes.length > 0 ? Math.round((result.count / voting.votes.length) * 100) : 0;
+                            const player = players.find(p => p.id === result.playerId);
                             return (
                               <div key={result.playerId}>
                                 <div className="flex items-center gap-2 py-1.5">
                                   <PlaceBadge index={index} />
-                                  <span className="font-medium text-gray-900 w-36 truncate">{result.name}</span>
+                                  <ResultAvatar player={player} name={result.name} />
+                                  <span className="font-medium text-gray-900 w-28 sm:w-36 truncate">{result.name}</span>
                                   <div className="flex-1 bg-gray-100 rounded-full h-2">
                                     <div
                                       className="h-2 rounded-full bg-cyan-500"
@@ -1300,6 +1304,28 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
         Create Custom Voting
       </button>
     </form>
+  );
+};
+
+/** Small result-row avatar — shows the player's photo if we have it,
+ *  falls back to a brand-tinted initial circle. Used next to the
+ *  player name in vote results so the leaderboard reads at a glance. */
+const ResultAvatar: React.FC<{ player: Player | undefined; name: string }> = ({ player, name }) => {
+  const photo = (player as any)?.profilePhotoUrl;
+  if (photo) {
+    return (
+      <img
+        src={photo}
+        alt={name}
+        className="w-7 h-7 rounded-full object-cover ring-2 ring-white shrink-0"
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      />
+    );
+  }
+  return (
+    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-fire-400 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+      {(name || '?').charAt(0).toUpperCase()}
+    </div>
   );
 };
 

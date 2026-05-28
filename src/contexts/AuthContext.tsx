@@ -606,7 +606,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).then(() => {
         userData.teamId = DEFAULT_TEAM_ID;
         userData.teamIds = [DEFAULT_TEAM_ID];
-        setUserData({ ...userData });
+        // Merge into CURRENT state — never replace with our stale
+        // closure snapshot. Otherwise an in-flight update (e.g. the
+        // user uploaded a new profile photo in Settings) gets clobbered
+        // when this background fix resolves.
+        setUserData(prev => prev ? { ...prev, teamId: DEFAULT_TEAM_ID, teamIds: [DEFAULT_TEAM_ID] } : prev);
       }).catch(err => console.error('Error fixing temp team ID:', err));
     }
 
@@ -637,7 +641,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (linked && userData.approved === false) {
           await updateDoc(doc(db, 'users', userId), { approved: true }).catch(() => {});
           userData.approved = true;
-          setUserData({ ...userData });
+          setUserData(prev => prev ? { ...prev, approved: true } as any : prev);
         }
       }).catch(err => console.error('Error auto-linking parent:', err));
     }
@@ -683,7 +687,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           await updateDoc(doc(db, 'users', userId), patch).catch(() => {});
           userData.teamIds = newTeamIds;
-          setUserData({ ...userData });
+          // Merge — don't blast over a fresh photoURL the user just set
+          // in Settings while this background sync was running.
+          setUserData(prev => prev ? { ...prev, teamIds: newTeamIds, ...(primaryNeedsFix ? { teamId: newTeamIds[0] } : {}) } : prev);
         }
       }).catch(err => console.error('Error syncing parent teamIds:', err));
     }

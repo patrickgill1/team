@@ -346,11 +346,28 @@ const AttendanceTracker: React.FC = () => {
                                 narrow screen without spilling. */}
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
                               <div className="flex items-center gap-3 min-w-0">
-                                <div className="bg-cyan-50 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
-                                  <span className="text-sm font-bold text-cyan-600">#{player.jerseyNumber}</span>
-                                </div>
+                                {/* Real player photo when available — falls back to the
+                                    jersey-number chip so brand-new players still look
+                                    deliberate. */}
+                                {(player as any).profilePhotoUrl ? (
+                                  <img
+                                    src={(player as any).profilePhotoUrl}
+                                    alt={player.name}
+                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-cyan-100 shrink-0"
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="bg-cyan-50 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
+                                    <span className="text-sm font-bold text-cyan-600">#{player.jerseyNumber}</span>
+                                  </div>
+                                )}
                                 <div className="min-w-0">
-                                  <p className="font-medium text-gray-900 truncate">{player.name}</p>
+                                  <p className="font-medium text-gray-900 truncate">
+                                    {player.name}
+                                    {player.jerseyNumber != null && (player as any).profilePhotoUrl && (
+                                      <span className="text-xs text-gray-500 font-normal ml-1.5">#{player.jerseyNumber}</span>
+                                    )}
+                                  </p>
                                   <p className="text-sm text-gray-600 truncate">{player.position}</p>
                                 </div>
                               </div>

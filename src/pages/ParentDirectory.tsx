@@ -483,9 +483,18 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
                   {/* Avatar + name */}
                   <div className="flex items-center gap-4 mb-5">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/10 ring-2 ring-white/25 shadow-lg flex items-center justify-center backdrop-blur flex-shrink-0">
-                      <span className="text-lg sm:text-xl font-black text-white">{initials}</span>
-                    </div>
+                    {(entry.user as any).photoURL || (entry.user as any).profilePhotoUrl ? (
+                      <img
+                        src={(entry.user as any).photoURL || (entry.user as any).profilePhotoUrl}
+                        alt={entry.user.name || ''}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover ring-2 ring-white/25 shadow-lg flex-shrink-0"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/10 ring-2 ring-white/25 shadow-lg flex items-center justify-center backdrop-blur flex-shrink-0">
+                        <span className="text-lg sm:text-xl font-black text-white">{initials}</span>
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight truncate">{entry.user.name || 'Unknown'}</h3>
                       <p className="text-white/70 text-sm font-medium mt-0.5 truncate">
@@ -507,9 +516,18 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                           const playerAge = player.dateOfBirth ? new Date().getFullYear() - new Date(player.dateOfBirth).getFullYear() : null;
                           return (
                             <div key={player.id} className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-3 flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0 font-black text-sm">
-                                {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
-                              </div>
+                              {player.profilePhotoUrl ? (
+                                <img
+                                  src={player.profilePhotoUrl}
+                                  alt={player.name}
+                                  className="w-10 h-10 rounded-full object-cover ring-1 ring-white/30 flex-shrink-0"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0 font-black text-sm">
+                                  {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <p className="font-bold text-white text-sm truncate">{player.name}</p>
                                 <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-white/70">

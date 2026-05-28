@@ -426,8 +426,8 @@ const Settings: React.FC = () => {
             <SettingsRow
               icon="info"
               label="About Fire FC"
-              hint="v1.3.0"
-              onClick={() => alert('Fire FC v1.3.0 — Built by Patrick Gill for the FireFC community.')}
+              hint="v1.3.1"
+              onClick={() => alert('Fire FC v1.3.1 — Built by Patrick Gill for the FireFC community.')}
             />
           </div>
         </section>

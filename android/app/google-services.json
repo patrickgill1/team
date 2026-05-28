@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "320764293456",
+    "project_id": "soccer-team-app-7f6b4",
+    "storage_bucket": "soccer-team-app-7f6b4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320764293456:android:ac20c01faa462d152f3c55",
+        "android_client_info": {
+          "package_name": "com.firefc.team"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "320764293456-itn3ijd8pjb5g9h2q2pg8ibulr4mepm0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYP-Ep6FaeAqCNvTiUMPFF7wGdnFCnP0A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "320764293456-itn3ijd8pjb5g9h2q2pg8ibulr4mepm0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "320764293456-ht57qbbfknei6t36krvekjoo8k5jqlii.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.firefc.team"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

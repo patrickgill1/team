@@ -82,3 +82,17 @@ scripts/.local/
 # dataconnect generated files
 .dataconnect
 .vercel
+
+# Android — generated build outputs + sensitive signing material.
+# google-services.json is committed since it's a public client config
+# (the same one shipped in the AAB) but the signing keystore MUST NOT.
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/local.properties
+android/.idea/
+android/app/release/
+*.keystore
+*.jks
+key.properties

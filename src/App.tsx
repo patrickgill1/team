@@ -7,6 +7,7 @@ import { TeamProvider } from './contexts/TeamContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Navigation from './components/common/Navigation';
+import InstallAppBanner from './components/common/InstallAppBanner';
 
 // Eagerly load auth pages (needed immediately)
 import SimpleAuth from './pages/SimpleAuth';
@@ -175,6 +176,9 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <Navigation />
       {/* Main content: offset for desktop sidebar + mobile top/bottom bars */}
       <main className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0">
+        {/* Mobile-web only: prompt to install the native app. No-ops
+            inside Capacitor, on desktop, or after dismissal. */}
+        <InstallAppBanner />
         {children}
       </main>
     </div>

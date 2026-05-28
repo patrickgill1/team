@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import AppIcon from './AppIcon';
 
 /**
  * Top-of-page banner urging mobile-web users to download the native
@@ -15,7 +14,11 @@ import AppIcon from './AppIcon';
  *   - Desktop / large viewport (not an "install the app" moment)
  */
 const STORAGE_KEY = 'firefc.installBannerDismissedAt';
-const DISMISS_REMINDER_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
+const DISMISS_REMINDER_MS = 1000 * 60 * 60 * 24 * 14;  // 14 days after an X-out
+// The web can't detect whether the native iOS app is installed, so once
+// someone taps Install we assume they did and back off much longer
+// rather than nagging them on every web visit.
+const INSTALLED_SNOOZE_MS = 1000 * 60 * 60 * 24 * 180; // ~6 months after tapping Install
 
 // Fire FC on the App Store (Apple ID 6770324158).
 const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
@@ -41,20 +44,6 @@ const detectPlatform = (): Platform => {
   return null;
 };
 
-// iOS Safari shows Apple's native Smart App Banner (from the
-// apple-itunes-app meta tag), which is the better experience there —
-// it flips to "Open" if the app is installed and is the iOS
-// convention. So we suppress OUR banner on iOS Safari to avoid two
-// stacked prompts, but keep it for iOS Chrome/Firefox/etc (where
-// Apple's banner never renders) and for Android later.
-const isIOSSafari = (): boolean => {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent || '';
-  const ios = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-  const safari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA|mercury/.test(ua);
-  return ios && safari;
-};
-
 // IOS_STORE_LIVE: on — Fire FC is live on the App Store.
 // ANDROID_STORE_LIVE: set to true after the Play Store listing is live.
 const IOS_STORE_LIVE = true;
@@ -71,27 +60,27 @@ const InstallAppBanner: React.FC = () => {
     if (typeof window === 'undefined') return;
     if (window.innerWidth >= 768) return;            // not a phone screen
 
-    // Honor a recent dismissal — but show again after 2 weeks so we
-    // don't lose someone forever just because they fat-fingered the X.
-    const dismissedAt = Number(localStorage.getItem(STORAGE_KEY) || 0);
-    if (dismissedAt && Date.now() - dismissedAt < DISMISS_REMINDER_MS) return;
+    // Stored value is the epoch-ms the banner should stay hidden UNTIL.
+    // An X-out sets ~14 days; tapping Install sets ~6 months.
+    const snoozeUntil = Number(localStorage.getItem(STORAGE_KEY) || 0);
+    if (snoozeUntil && Date.now() < snoozeUntil) return;
 
     // Skip Android until the Play listing exists. Android users on the
     // web today get the full PWA-ish experience; nagging them to "install
     // the app" when there isn't one to install is worse than no banner.
     if (detected === 'android' && !ANDROID_STORE_LIVE) return;
     if (detected === 'ios' && !IOS_STORE_LIVE) return;
-    // Don't double up with Apple's native Smart App Banner.
-    if (detected === 'ios' && isIOSSafari()) return;
 
     setPlatform(detected);
     setVisible(true);
   }, []);
 
-  const dismiss = () => {
-    try { localStorage.setItem(STORAGE_KEY, String(Date.now())); } catch { /* ignore */ }
+  const snooze = (ms: number) => {
+    try { localStorage.setItem(STORAGE_KEY, String(Date.now() + ms)); } catch { /* ignore */ }
     setVisible(false);
   };
+  const dismiss = () => snooze(DISMISS_REMINDER_MS);
+  const onInstall = () => snooze(INSTALLED_SNOOZE_MS); // they're likely installing now
 
   const installUrl = platform === 'ios' ? APP_STORE_URL : PLAY_STORE_URL;
   const storeLabel = platform === 'ios' ? 'App Store' : 'Google Play';
@@ -116,6 +105,7 @@ const InstallAppBanner: React.FC = () => {
           href={installUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={onInstall}
           className="shrink-0 inline-flex items-center gap-1.5 bg-white text-navy-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition"
         >
           <span>Install</span>
@@ -126,7 +116,6 @@ const InstallAppBanner: React.FC = () => {
           title={`Hide for 14 days (open from ${storeLabel} anytime)`}
           className="shrink-0 -mr-1 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
         >
-          <AppIcon name="trash" className="w-4 h-4 hidden" />
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>

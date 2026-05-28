@@ -11,11 +11,13 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
     <!--
-      Apple Smart App Banner. iOS Safari renders a native banner at the
-      top of the page promoting the App Store install. Zero JS, dismissible.
-      app-id is Fire FC's App Store Connect Apple ID.
+      Apple's native Smart App Banner is intentionally disabled: we use
+      our own InstallAppBanner component on every mobile browser (incl.
+      iOS Safari) for consistent branding. Re-enable this line if you'd
+      rather have Apple's native banner on Safari (it can show "Open"
+      when the app is already installed, which the web banner can't):
+      <meta name="apple-itunes-app" content="app-id=6770324158" />
     -->
-    <meta name="apple-itunes-app" content="app-id=6770324158" />
 
     <title>Fire FC</title>
   </head>

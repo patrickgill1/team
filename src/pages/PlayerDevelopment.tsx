@@ -621,6 +621,7 @@ const PlayerDevelopment: React.FC = () => {
                   canPlayerComplete={!isUserCoach}
                   canLogPractice={true}
                   streak={playerStreaks[plan.playerId] || 0}
+                  playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
                 />
               ))}
             </div>
@@ -660,6 +661,7 @@ const PlayerDevelopment: React.FC = () => {
                   canPlayerComplete={false}
                   canLogPractice={false}
                   streak={playerStreaks[plan.playerId] || 0}
+                  playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
                 />
               ))}
             </div>
@@ -1022,11 +1024,12 @@ interface PlanCardProps {
   canPlayerComplete: boolean;
   canLogPractice: boolean;
   streak?: number;
+  playerPhoto?: string | null;
 }
 
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
-  onCoachNote, onReadyForReview, onAddPracticeLog, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan,
+  onCoachNote, onReadyForReview, onAddPracticeLog, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan, playerPhoto,
   getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak
 }) => {
   const progress = getProgressPercentage(plan);
@@ -1059,92 +1062,116 @@ const PlanCard: React.FC<PlanCardProps> = ({
     setLogMinutes('');
   };
 
+  const playerInitial = (plan.playerName || '?').charAt(0).toUpperCase();
+  const verifiedCount = plan.goals.filter(g => g.coachVerified).length;
+  const playerDoneCount = plan.goals.filter(g => g.playerCompleted).length;
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      {/* Header */}
+    <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${isExpanded ? 'border-cyan-300 ring-2 ring-cyan-100' : 'border-gray-200'}`}>
+      {/* Header — player avatar + name + title, with two horizontal
+          progress bars beneath. Matches the Ollie reference card. */}
       <div
         className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={onToggleExpand}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="w-10 h-10 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center shrink-0">
-              <AppIcon name={getCategoryIcon(plan.category)} className="w-5 h-5" />
+        <div className="flex items-start gap-3">
+          {/* Player avatar with category icon overlay */}
+          <div className="relative shrink-0">
+            {playerPhoto ? (
+              <img
+                src={playerPhoto}
+                alt={plan.playerName}
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-cyan-100"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-navy-700 text-white flex items-center justify-center font-bold text-base ring-2 ring-cyan-100">
+                {playerInitial}
+              </div>
+            )}
+            <span className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow ring-1 ring-gray-200 flex items-center justify-center ${getCategoryColor(plan.category).split(' ')[1]}`} title={plan.category}>
+              <AppIcon name={getCategoryIcon(plan.category)} className="w-3 h-3" />
             </span>
-            <div className="min-w-0">
-              <h3 className="font-bold text-gray-900 truncate">{plan.title}</h3>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className="text-sm text-gray-600">{plan.playerName}</span>
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${getCategoryColor(plan.category)}`}>
-                  {plan.category}
+          </div>
+
+          {/* Title + name + pills */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-gray-900 leading-tight">{plan.title}</h3>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span className="text-sm text-gray-600">{plan.playerName}</span>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${getCategoryColor(plan.category)}`}>
+                {plan.category}
+              </span>
+              {plan.status === 'completed' && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  <AppIcon name="check" className="w-3 h-3" />
+                  <span>Completed</span>
                 </span>
-                {plan.status === 'completed' && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                    <AppIcon name="check" className="w-3 h-3" />
-                    <span>Completed</span>
-                  </span>
-                )}
-                {readyForReviewCount > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
-                    <AppIcon name="bell" className="w-3 h-3" />
-                    <span>{readyForReviewCount} ready for review</span>
-                  </span>
-                )}
-                {typeof streak === 'number' && streak >= 2 && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-fire-100 text-fire-800 border border-fire-200" title={`${streak} consecutive verified goals`}>
-                    <AppIcon name="highlight" className="w-3 h-3" />
-                    <span>{streak} streak</span>
-                  </span>
-                )}
+              )}
+              {readyForReviewCount > 0 && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
+                  <AppIcon name="bell" className="w-3 h-3" />
+                  <span>{readyForReviewCount} ready</span>
+                </span>
+              )}
+              {typeof streak === 'number' && streak >= 2 && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-fire-100 text-fire-800 border border-fire-200" title={`${streak} consecutive verified goals`}>
+                  <AppIcon name="highlight" className="w-3 h-3" />
+                  <span>{streak} streak</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 shrink-0"
+            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+          >
+            <svg className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Horizontal progress bars — player progress + coach
+            verified, side-by-side. Matches the screenshot layout. */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center justify-between text-[11px] mb-1">
+                <span className="text-gray-500 font-semibold">Player progress</span>
+                <span className="text-cyan-700 font-bold tabular-nums">{playerProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-1.5">
+                <div className="h-1.5 rounded-full bg-cyan-500 transition-all duration-500" style={{ width: `${playerProgress}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-[11px] mb-1">
+                <span className="text-gray-500 font-semibold">Coach verified</span>
+                <span className={`font-bold tabular-nums ${progress === 100 ? 'text-emerald-700' : 'text-emerald-700'}`}>{progress}%</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-1.5">
+                <div className="h-1.5 rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right space-y-1.5 min-w-[8rem]">
-              <div>
-                <div className="flex items-center justify-end gap-2 text-[11px]">
-                  <span className="text-gray-500">Player</span>
-                  <span className="font-semibold text-yellow-600">{playerProgress}%</span>
-                </div>
-                <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
-                  <div className="h-1.5 rounded-full bg-yellow-400 transition-all duration-500" style={{ width: `${playerProgress}%` }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-end gap-2 text-[11px]">
-                  <span className="text-gray-500">Coach</span>
-                  <span className={`font-semibold ${progress === 100 ? 'text-emerald-600' : 'text-cyan-600'}`}>{progress}%</span>
-                </div>
-                <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
-                  <div
-                    className={`h-1.5 rounded-full transition-all duration-500 ${progress === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`}
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-              {totalTargetMinutes > 0 ? (
-                <div>
-                  <div className="flex items-center justify-end gap-2 text-[11px]">
-                    <span className="text-gray-500">🔥 Minutes</span>
-                    <span className="font-semibold text-orange-600">{totalLoggedMinutes}/{totalTargetMinutes}</span>
-                  </div>
-                  <div className="w-32 bg-gray-200 rounded-full h-1.5 mt-0.5">
-                    <div className="h-1.5 rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${minutesProgress}%` }} />
-                  </div>
-                </div>
-              ) : totalLoggedMinutes > 0 ? (
-                <div className="text-[11px] text-orange-600 font-semibold text-right">🔥 {totalLoggedMinutes} min logged</div>
-              ) : null}
-              <div className="text-[10px] text-gray-400">
-                {plan.goals.filter(g => g.playerCompleted).length}/{plan.goals.length} done · {plan.goals.filter(g => g.coachVerified).length}/{plan.goals.length} verified
-              </div>
-            </div>
-            <svg
-              className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+          <div className="mt-2 text-[11px] text-gray-500 flex items-center gap-3 justify-center">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+              {playerDoneCount}/{plan.goals.length} sessions done
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {verifiedCount}/{plan.goals.length} verified
+            </span>
+            {totalLoggedMinutes > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-fire-500" />
+                {totalTargetMinutes > 0 ? `${totalLoggedMinutes}/${totalTargetMinutes} min` : `${totalLoggedMinutes} min`}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -1153,50 +1180,34 @@ const PlanCard: React.FC<PlanCardProps> = ({
       {isExpanded && (
         <div className="border-t border-gray-200 p-4">
           {plan.description && (
-            <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
+            <div className="mb-4 bg-cyan-50/60 border border-cyan-100 rounded-2xl p-3 flex items-start gap-3">
+              <span className="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                <AppIcon name="highlight" className="w-4 h-4" />
+              </span>
+              <p className="text-sm text-gray-700 flex-1">{plan.description}</p>
+            </div>
           )}
-          
-          {/* Progress bars + Practice Summary */}
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <div className="flex justify-between text-xs text-gray-600 mb-1">
-              <span>Player self-reported: {playerProgress}%</span>
-              <span>Coach verified: {progress}%</span>
-            </div>
-            <div className="flex space-x-2">
-              <div className="flex-1">
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="h-2 rounded-full bg-yellow-400 transition-all" style={{ width: `${playerProgress}%` }} />
-                </div>
+
+          {/* Practice Summary — only if anything logged */}
+          {(() => {
+            const totalMinutes = plan.goals.reduce((sum, g) =>
+              sum + (g.practiceLog || []).reduce((s, e: any) => s + (e.minutes || 0), 0), 0);
+            const totalEntries = plan.goals.reduce((sum, g) => sum + (g.practiceLog || []).length, 0);
+            if (totalEntries === 0) return null;
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
+            return (
+              <div className="mb-4 flex items-center gap-3 text-xs">
+                <span className="inline-flex items-center gap-1.5 bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-full">
+                  <AppIcon name="clock" className="w-3.5 h-3.5" />
+                  <span className="font-semibold">
+                    {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} practiced
+                  </span>
+                </span>
+                <span className="text-gray-500">{totalEntries} session{totalEntries !== 1 ? 's' : ''} logged</span>
               </div>
-              <div className="flex-1">
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className={`h-2 rounded-full transition-all ${progress === 100 ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${progress}%` }} />
-                </div>
-              </div>
-            </div>
-            {/* Total practice summary */}
-            {(() => {
-              const totalMinutes = plan.goals.reduce((sum, g) =>
-                sum + (g.practiceLog || []).reduce((s, e: any) => s + (e.minutes || 0), 0), 0);
-              const totalEntries = plan.goals.reduce((sum, g) => sum + (g.practiceLog || []).length, 0);
-              if (totalEntries > 0) {
-                const hours = Math.floor(totalMinutes / 60);
-                const mins = totalMinutes % 60;
-                return (
-                  <div className="mt-2 flex items-center space-x-4 text-xs">
-                    <span className="inline-flex items-center space-x-1 bg-cyan-50 text-cyan-700 px-2 py-1 rounded-full">
-                      <span>⏱️</span>
-                      <span className="font-medium">
-                        {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} practiced
-                      </span>
-                    </span>
-                    <span className="text-gray-500">{totalEntries} practice session{totalEntries !== 1 ? 's' : ''} logged</span>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-          </div>
+            );
+          })()}
 
           <div className="space-y-3">
             {plan.goals.sort((a, b) => a.order - b.order).map((goal) => (
@@ -1247,13 +1258,13 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             const pct = Math.min(100, Math.round((goalMins / goal.targetMinutes) * 100));
                             const done = pct >= 100;
                             return (
-                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-green-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
-                                🔥 {goalMins}/{goal.targetMinutes} min
+                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-fire-100 text-fire-700'}`}>
+                                {goalMins}/{goal.targetMinutes} min
                               </span>
                             );
                           }
                           if (goalMins > 0) {
-                            return <span className="ml-2 text-[10px] font-semibold text-orange-600">🔥 {goalMins} min</span>;
+                            return <span className="ml-2 text-[10px] font-semibold text-fire-700">{goalMins} min</span>;
                           }
                           return null;
                         })()}
@@ -1269,7 +1280,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                 : 'bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-700'
                             }`}
                           >
-                            {goal.readyForReview ? '🔔 Waiting on Coach' : '📣 Ready for Coach Review'}
+                            {goal.readyForReview ? 'Waiting on Coach' : 'Ready for Coach Review'}
                           </button>
                         )}
                         {/* Coach verify button */}
@@ -1284,12 +1295,13 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                 : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-700'
                             }`}
                           >
-                            {goal.coachVerified ? '✅ Verified' : goal.readyForReview ? '⚡ Verify Now' : '⬜ Verify'}
+                            {goal.coachVerified ? 'Verified' : goal.readyForReview ? 'Verify Now' : 'Verify'}
                           </button>
                         )}
                         {!isCoach && goal.coachVerified && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-emerald-700 font-medium">
-                            ✅ Coach Verified
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                            <AppIcon name="check" className="w-3 h-3" />
+                            <span>Coach Verified</span>
                           </span>
                         )}
                       </div>
@@ -1300,7 +1312,10 @@ const PlanCard: React.FC<PlanCardProps> = ({
                     {(goal.duration || goal.setup || goal.instructions || goal.focus) && (
                       <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
                         {goal.duration && (
-                          <div className="text-xs text-gray-500">⏱️ <span className="font-medium text-gray-700">{goal.duration}</span></div>
+                          <div className="inline-flex items-center gap-1.5 text-xs bg-white text-gray-700 px-2 py-0.5 rounded-full ring-1 ring-gray-200">
+                            <AppIcon name="clock" className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="font-semibold">{goal.duration}</span>
+                          </div>
                         )}
                         {goal.setup && (
                           <div>
@@ -1315,8 +1330,11 @@ const PlanCard: React.FC<PlanCardProps> = ({
                           </div>
                         )}
                         {goal.focus && (
-                          <div>
-                            <div className="text-[11px] font-bold uppercase tracking-wide text-amber-600">🎯 Focus</div>
+                          <div className="bg-fire-50 ring-1 ring-fire-200 rounded-lg p-2">
+                            <div className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-fire-700">
+                              <AppIcon name="trophy" className="w-3 h-3" />
+                              <span>Focus</span>
+                            </div>
                             <p className="text-xs text-gray-700 whitespace-pre-line mt-0.5">{goal.focus}</p>
                           </div>
                         )}
@@ -1326,9 +1344,17 @@ const PlanCard: React.FC<PlanCardProps> = ({
                       <p className="text-xs text-cyan-600 mt-1 italic">Coach note: {goal.notes}</p>
                     )}
                     <div className="flex items-center space-x-3 mt-1 text-xs text-gray-400">
-                      {goal.playerCompleted && <span>📝 Player marked done</span>}
+                      {goal.playerCompleted && (
+                        <span className="inline-flex items-center gap-1">
+                          <AppIcon name="check" className="w-3 h-3" />
+                          <span>Player marked done</span>
+                        </span>
+                      )}
                       {goal.coachVerified && goal.coachVerifiedByName && (
-                        <span>✅ Verified by {goal.coachVerifiedByName}</span>
+                        <span className="inline-flex items-center gap-1 text-emerald-600">
+                          <AppIcon name="check" className="w-3 h-3" />
+                          <span>Verified by {goal.coachVerifiedByName}</span>
+                        </span>
                       )}
                     </div>
 
@@ -1337,7 +1363,10 @@ const PlanCard: React.FC<PlanCardProps> = ({
                       <div className="mt-3">
                         {goal.videoLinks && goal.videoLinks.length > 0 && (
                           <>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">📺 Watch & Learn</p>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
+                              <AppIcon name="film" className="w-3.5 h-3.5 text-gray-400" />
+                              <span>Watch & Learn</span>
+                            </p>
                             <div className="flex flex-wrap gap-2">
                               {goal.videoLinks.map(link => (
                                 <div key={link.id} className="relative group">
@@ -1362,8 +1391,8 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="aspect-video bg-gradient-to-br from-cyan-500 to-sky-700 flex items-center justify-center text-white text-xs px-2 text-center">
-                                        🔗 Open link
+                                      <div className="aspect-video bg-gradient-to-br from-cyan-500 to-navy-700 flex items-center justify-center text-white text-xs px-2 text-center">
+                                        Open link
                                       </div>
                                     )}
                                     <div className="px-2 py-1.5 bg-white">

@@ -7,6 +7,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Player, News, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
+import SkyHeader from '../components/common/SkyHeader';
 import NewsList from '../components/news/NewsList';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
@@ -121,18 +122,6 @@ const Dashboard: React.FC = () => {
     });
     return () => { unsub && unsub(); };
   }, [selectedTeamId, subscribeToChatThreads, isUserCoach, userData?.uid]);
-
-  // Ambient time-of-day band that sits behind the greeting. Subtle —
-  // amber dawn / cyan day / rose dusk / indigo night — gives the page
-  // a sense of the moment without screaming.
-  const timeOfDay = useMemo(() => {
-    const h = new Date().getHours();
-    if (h >= 5 && h < 11) return { label: 'morning', from: 'from-amber-100', via: 'via-orange-50', to: 'to-cyan-50' };
-    if (h >= 11 && h < 16) return { label: 'day', from: 'from-cyan-50', via: 'via-sky-50', to: 'to-white' };
-    if (h >= 16 && h < 19) return { label: 'afternoon', from: 'from-orange-100', via: 'via-amber-50', to: 'to-rose-50' };
-    if (h >= 19 && h < 22) return { label: 'dusk', from: 'from-rose-100', via: 'via-violet-50', to: 'to-indigo-50' };
-    return { label: 'night', from: 'from-indigo-100', via: 'via-slate-100', to: 'to-fire-50' };
-  }, []);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -370,13 +359,11 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* Ambient time-of-day band — subtle gradient that fades out
-          before the content starts so it reads as a vibe, not a banner. */}
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b ${timeOfDay.from} ${timeOfDay.via} ${timeOfDay.to}`}
-        style={{ maskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)' }}
-      />
+      {/* Ambient skyscape — sun arcs across by day, moon + stars at
+          night. Replaces the old fade-out gradient (too subtle to
+          register) with a scene that actually communicates the
+          time of day. No device location required. */}
+      <SkyHeader />
       <div className="relative">
         <Header title={`${greeting}, ${firstName}!`} subtitle={subtitle} />
 

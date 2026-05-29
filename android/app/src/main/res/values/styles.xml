@@ -25,5 +25,15 @@
              API 35+; ignored on older Android where the WebView is
              already insetted by default. -->
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+        <!-- Paint the status / nav bars and the activity window
+             background with the app's navy so the insetted strip
+             above the WebView blends into the system bar instead of
+             flashing white. Matches the runtime StatusBar plugin
+             color (#0f172a) set in src/utils/nativeShell.ts. -->
+        <item name="android:statusBarColor">#0f172a</item>
+        <item name="android:navigationBarColor">#0f172a</item>
+        <item name="android:windowBackground">#0f172a</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>

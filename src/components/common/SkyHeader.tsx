@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 
-// Tiny ambient skyscape that sits behind the dashboard greeting.
-// Replaces the old multi-palette gradient with something that
-// actually *looks* like the time of day: sun arcs across the top
-// during the day, moon + stars after sunset. No device location
-// involved — we approximate the day window as 6am→8pm in the
-// user's local clock, which is close enough for "vibe."
+// Ambient skyscape behind the dashboard greeting. Always brand-navy
+// rooted — instead of a generic weather-app sky, this reads as
+// "Fire FC's home pitch at the current time of day": floodlights
+// glow at dusk + night, a few stars come out, and a phase label
+// gives the moment a name. No device location involved.
 
 type Phase =
   | 'predawn'
-  | 'sunrise'
   | 'morning'
   | 'midday'
   | 'afternoon'
@@ -21,139 +19,112 @@ type Phase =
 interface SceneSpec {
   phase: Phase;
   label: string;
-  // tailwind gradient classes — top to bottom (sky → horizon).
+  // Top→bottom sky gradient. Always navy-anchored.
   gradient: string;
-  // hex for the sun/moon disc.
-  bodyColor: string;
-  bodyGlow: string;
-  // text color for the label, with enough contrast against the gradient.
+  // Whether the stadium floodlights are visibly on.
+  litness: 'off' | 'warming' | 'on';
+  // Whether to render the star field.
+  stars: boolean;
+  // Whether to render the moon (vs nothing during the day).
+  moon: boolean;
+  // Label text color.
   labelClass: string;
-  isNight: boolean;
 }
 
 function sceneFor(hour: number): SceneSpec {
-  if (hour < 5)
+  if (hour < 5.5)
     return {
       phase: 'night',
       label: 'Late night',
-      gradient: 'from-slate-950 via-indigo-950 to-slate-900',
-      bodyColor: '#e2e8f0',
-      bodyGlow: 'rgba(226,232,240,0.35)',
-      labelClass: 'text-slate-200',
-      isNight: true,
+      gradient: 'from-slate-950 via-slate-950 to-slate-900',
+      litness: 'on',
+      stars: true,
+      moon: true,
+      labelClass: 'text-slate-300',
     };
-  if (hour < 6.5)
+  if (hour < 7)
     return {
       phase: 'predawn',
       label: 'Pre-dawn',
-      gradient: 'from-indigo-950 via-purple-800 to-orange-300',
-      bodyColor: '#fde68a',
-      bodyGlow: 'rgba(253,230,138,0.5)',
-      labelClass: 'text-amber-100',
-      isNight: false,
-    };
-  if (hour < 8)
-    return {
-      phase: 'sunrise',
-      label: 'Sunrise',
-      gradient: 'from-orange-300 via-pink-300 to-sky-200',
-      bodyColor: '#fef3c7',
-      bodyGlow: 'rgba(254,243,199,0.7)',
-      labelClass: 'text-rose-900',
-      isNight: false,
+      gradient: 'from-slate-900 via-indigo-950 to-slate-800',
+      litness: 'on',
+      stars: true,
+      moon: false,
+      labelClass: 'text-slate-300',
     };
   if (hour < 11)
     return {
       phase: 'morning',
       label: 'Morning',
-      gradient: 'from-sky-400 via-sky-300 to-sky-100',
-      bodyColor: '#fef9c3',
-      bodyGlow: 'rgba(254,249,195,0.6)',
-      labelClass: 'text-sky-900',
-      isNight: false,
+      gradient: 'from-slate-800 via-slate-700 to-slate-600',
+      litness: 'off',
+      stars: false,
+      moon: false,
+      labelClass: 'text-slate-200',
     };
   if (hour < 14)
     return {
       phase: 'midday',
       label: 'Midday',
-      gradient: 'from-sky-500 via-sky-400 to-sky-200',
-      bodyColor: '#fef08a',
-      bodyGlow: 'rgba(254,240,138,0.65)',
-      labelClass: 'text-sky-950',
-      isNight: false,
+      gradient: 'from-slate-700 via-slate-600 to-slate-500',
+      litness: 'off',
+      stars: false,
+      moon: false,
+      labelClass: 'text-slate-100',
     };
-  if (hour < 16.5)
+  if (hour < 17)
     return {
       phase: 'afternoon',
       label: 'Afternoon',
-      gradient: 'from-sky-400 via-amber-100 to-amber-200',
-      bodyColor: '#fde68a',
-      bodyGlow: 'rgba(253,230,138,0.65)',
-      labelClass: 'text-amber-900',
-      isNight: false,
+      gradient: 'from-slate-800 via-slate-700 to-slate-600',
+      litness: 'off',
+      stars: false,
+      moon: false,
+      labelClass: 'text-slate-200',
     };
-  if (hour < 18.5)
+  if (hour < 19)
     return {
       phase: 'goldenHour',
       label: 'Golden hour',
-      gradient: 'from-amber-300 via-orange-400 to-rose-300',
-      bodyColor: '#fed7aa',
-      bodyGlow: 'rgba(254,215,170,0.75)',
-      labelClass: 'text-amber-900',
-      isNight: false,
+      gradient: 'from-slate-900 via-slate-800 to-amber-900/40',
+      litness: 'warming',
+      stars: false,
+      moon: false,
+      labelClass: 'text-amber-200',
     };
-  if (hour < 20)
+  if (hour < 20.5)
     return {
       phase: 'sunset',
       label: 'Sunset',
-      gradient: 'from-rose-400 via-orange-500 to-purple-700',
-      bodyColor: '#fdba74',
-      bodyGlow: 'rgba(253,186,116,0.7)',
-      labelClass: 'text-rose-50',
-      isNight: false,
+      gradient: 'from-slate-950 via-slate-900 to-rose-900/40',
+      litness: 'on',
+      stars: false,
+      moon: false,
+      labelClass: 'text-rose-200',
     };
-  if (hour < 21.5)
+  if (hour < 22)
     return {
       phase: 'dusk',
       label: 'Dusk',
-      gradient: 'from-purple-800 via-indigo-800 to-slate-900',
-      bodyColor: '#e9d5ff',
-      bodyGlow: 'rgba(233,213,255,0.4)',
-      labelClass: 'text-purple-100',
-      isNight: false,
+      gradient: 'from-slate-950 via-slate-900 to-slate-800',
+      litness: 'on',
+      stars: true,
+      moon: true,
+      labelClass: 'text-slate-300',
     };
   return {
     phase: 'night',
     label: 'Night',
-    gradient: 'from-slate-950 via-indigo-950 to-slate-900',
-    bodyColor: '#e2e8f0',
-    bodyGlow: 'rgba(226,232,240,0.35)',
-    labelClass: 'text-slate-200',
-    isNight: true,
+    gradient: 'from-slate-950 via-slate-950 to-slate-900',
+    litness: 'on',
+    stars: true,
+    moon: true,
+    labelClass: 'text-slate-300',
   };
 }
 
-// Sun/moon X (0..1 left→right) and Y (0..1 top→bottom, lower=higher in sky).
-// Day arc: 6am sunrise on the left, 8pm sunset on the right, peak at ~1pm.
-// Night arc: 8pm rise on the right (visually mirrored), peak at midnight.
-function bodyPosition(hour: number, isNight: boolean): { x: number; y: number } {
-  if (!isNight) {
-    const t = Math.min(1, Math.max(0, (hour - 6) / 14));
-    const x = t * 100;
-    const y = 90 - Math.sin(t * Math.PI) * 70; // arc, 90% bottom → 20% top → 90% bottom
-    return { x, y };
-  }
-  // Night: map 20→5 (next day) onto 0..1, run the moon right→left so it
-  // doesn't look like the sun re-set.
-  const nh = hour >= 20 ? hour - 20 : hour + 4;
-  const t = Math.min(1, nh / 9);
-  const x = 100 - t * 100;
-  const y = 75 - Math.sin(t * Math.PI) * 55;
-  return { x, y };
-}
-
 interface Props {
-  // Optional: pin a specific hour for previews / Storybook. Defaults to now.
+  // Optional: pin a specific hour for previews. Defaults to now.
   hourOverride?: number;
 }
 
@@ -171,64 +142,149 @@ const SkyHeader: React.FC<Props> = ({ hourOverride }) => {
       ? hourOverride
       : now.getHours() + now.getMinutes() / 60;
   const scene = sceneFor(hour);
-  const { x, y } = bodyPosition(hour, scene.isNight);
 
-  // Star field — only at night. Fixed positions so it doesn't twinkle-jitter.
-  const stars = scene.isNight ? STAR_POSITIONS : [];
+  const lampColor =
+    scene.litness === 'on'
+      ? '#fef3c7' // amber-100
+      : scene.litness === 'warming'
+      ? '#fde68a' // amber-200, slightly cooler
+      : '#475569'; // slate-600 = unlit
+  const lampGlow =
+    scene.litness === 'on'
+      ? '0 0 18px 6px rgba(254,243,199,0.55)'
+      : scene.litness === 'warming'
+      ? '0 0 10px 3px rgba(253,230,138,0.3)'
+      : 'none';
 
   return (
     <div
       aria-hidden
       className={`relative h-24 sm:h-28 overflow-hidden bg-gradient-to-b ${scene.gradient}`}
     >
-      {/* stars (night only) */}
-      {stars.map((s, i) => (
-        <span
-          key={i}
-          className="absolute rounded-full bg-white"
-          style={{
-            left: `${s.x}%`,
-            top: `${s.y}%`,
-            width: s.size,
-            height: s.size,
-            opacity: s.opacity,
-          }}
-        />
-      ))}
+      {/* Star field — only when stars=true */}
+      {scene.stars &&
+        STAR_POSITIONS.map((s, i) => (
+          <span
+            key={i}
+            className="absolute rounded-full bg-white"
+            style={{
+              left: `${s.x}%`,
+              top: `${s.y}%`,
+              width: s.size,
+              height: s.size,
+              opacity: s.opacity,
+            }}
+          />
+        ))}
 
-      {/* sun or moon */}
-      <span
-        className="absolute rounded-full"
-        style={{
-          left: `calc(${x}% - 14px)`,
-          top: `${y}%`,
-          width: 28,
-          height: 28,
-          background: scene.bodyColor,
-          boxShadow: `0 0 24px 8px ${scene.bodyGlow}`,
-        }}
-      />
-
-      {/* moon crater detail */}
-      {scene.isNight && (
+      {/* Moon — small, top-right, only at night */}
+      {scene.moon && (
         <span
           className="absolute rounded-full"
           style={{
-            left: `calc(${x}% - 6px)`,
-            top: `calc(${y}% + 4px)`,
-            width: 8,
-            height: 8,
-            background: 'rgba(100,116,139,0.45)',
+            right: '12%',
+            top: '20%',
+            width: 20,
+            height: 20,
+            background: '#e2e8f0',
+            boxShadow: '0 0 14px 4px rgba(226,232,240,0.3)',
           }}
         />
       )}
 
-      {/* horizon haze fading to the page background */}
-      <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-b from-transparent to-white/60" />
+      {/* Pitch — perspective trapezoid at the bottom 45% of the band,
+          with the center circle + halfway line as faint markings. */}
+      <svg
+        className="absolute inset-x-0 bottom-0 w-full"
+        viewBox="0 0 400 60"
+        preserveAspectRatio="none"
+        style={{ height: '55%' }}
+      >
+        {/* turf */}
+        <path
+          d="M 0 60 L 60 6 L 340 6 L 400 60 Z"
+          fill="rgba(15,23,42,0.55)"
+        />
+        {/* outline */}
+        <path
+          d="M 0 60 L 60 6 L 340 6 L 400 60"
+          fill="none"
+          stroke="rgba(148,163,184,0.35)"
+          strokeWidth="0.6"
+        />
+        {/* halfway line */}
+        <line
+          x1="200"
+          y1="6"
+          x2="200"
+          y2="60"
+          stroke="rgba(148,163,184,0.3)"
+          strokeWidth="0.5"
+        />
+        {/* center circle (squashed by perspective) */}
+        <ellipse
+          cx="200"
+          cy="33"
+          rx="42"
+          ry="10"
+          fill="none"
+          stroke="rgba(148,163,184,0.35)"
+          strokeWidth="0.5"
+        />
+      </svg>
 
-      {/* phase label */}
+      {/* Left floodlight pole + lamp */}
+      <span
+        className="absolute"
+        style={{
+          left: '8%',
+          bottom: '22%',
+          width: 1.5,
+          height: 'calc(60% - 4px)',
+          background: 'rgba(100,116,139,0.7)',
+        }}
+      />
+      <span
+        className="absolute rounded-sm"
+        style={{
+          left: 'calc(8% - 5px)',
+          top: '24%',
+          width: 12,
+          height: 4,
+          background: lampColor,
+          boxShadow: lampGlow,
+        }}
+      />
+
+      {/* Right floodlight pole + lamp */}
+      <span
+        className="absolute"
+        style={{
+          right: '8%',
+          bottom: '22%',
+          width: 1.5,
+          height: 'calc(60% - 4px)',
+          background: 'rgba(100,116,139,0.7)',
+        }}
+      />
+      <span
+        className="absolute rounded-sm"
+        style={{
+          right: 'calc(8% - 5px)',
+          top: '24%',
+          width: 12,
+          height: 4,
+          background: lampColor,
+          boxShadow: lampGlow,
+        }}
+      />
+
+      {/* Soft fade to the page background so the band joins cleanly. */}
+      <div className="absolute inset-x-0 bottom-0 h-4 bg-gradient-to-b from-transparent to-white/40" />
+
+      {/* Phase label */}
       <div
-        className={`absolute bottom-1.5 left-3 sm:left-4 text-[11px] sm:text-xs font-semibold tracking-wide uppercase ${scene.labelClass} drop-shadow-sm`}
+        className={`absolute bottom-1.5 left-3 sm:left-4 text-[10px] sm:text-[11px] font-semibold tracking-[0.15em] uppercase ${scene.labelClass}`}
       >
         {scene.label}
       </div>
@@ -237,17 +293,15 @@ const SkyHeader: React.FC<Props> = ({ hourOverride }) => {
 };
 
 const STAR_POSITIONS = [
-  { x: 8, y: 18, size: 2, opacity: 0.9 },
-  { x: 15, y: 35, size: 1, opacity: 0.7 },
-  { x: 22, y: 12, size: 1.5, opacity: 0.85 },
-  { x: 30, y: 28, size: 2, opacity: 0.8 },
-  { x: 42, y: 20, size: 1, opacity: 0.6 },
-  { x: 55, y: 14, size: 1.5, opacity: 0.85 },
-  { x: 63, y: 30, size: 2, opacity: 0.9 },
-  { x: 72, y: 22, size: 1, opacity: 0.65 },
-  { x: 80, y: 38, size: 1.5, opacity: 0.8 },
-  { x: 88, y: 16, size: 2, opacity: 0.95 },
-  { x: 92, y: 30, size: 1, opacity: 0.6 },
+  { x: 8, y: 18, size: 1.5, opacity: 0.9 },
+  { x: 18, y: 32, size: 1, opacity: 0.7 },
+  { x: 28, y: 14, size: 1.5, opacity: 0.85 },
+  { x: 38, y: 26, size: 1, opacity: 0.6 },
+  { x: 50, y: 12, size: 1.5, opacity: 0.9 },
+  { x: 58, y: 30, size: 1, opacity: 0.65 },
+  { x: 72, y: 18, size: 1.5, opacity: 0.85 },
+  { x: 82, y: 32, size: 1, opacity: 0.7 },
+  { x: 92, y: 20, size: 1.5, opacity: 0.95 },
 ];
 
 export default SkyHeader;

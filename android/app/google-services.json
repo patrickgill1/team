@@ -22,6 +22,22 @@
           }
         },
         {
+          "client_id": "320764293456-77vrl5cgkfkcebpbko5doqlm4efj3er1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.firefc.team",
+            "certificate_hash": "5cd2f692a134d6f725213cab3827843c8749a65f"
+          }
+        },
+        {
+          "client_id": "320764293456-nfpja6iphu30c8buapn2stbosufots7u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.firefc.team",
+            "certificate_hash": "54e360526783a2d739f471c294777219da0e9350"
+          }
+        },
+        {
           "client_id": "320764293456-itn3ijd8pjb5g9h2q2pg8ibulr4mepm0.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -11,6 +11,7 @@ import InstallAppBanner from './components/common/InstallAppBanner';
 
 // Eagerly load auth pages (needed immediately)
 import SimpleAuth from './pages/SimpleAuth';
+import SkyPreview from './pages/SkyPreview';
 import PublicVote from './pages/PublicVote';
 import PublicSurvey from './pages/PublicSurvey';
 import PublicGame from './pages/PublicGame';
@@ -207,6 +208,9 @@ function App() {
               <Route path="/game/:gameId" element={<PublicGame />} />
               <Route path="/event/:eventId" element={<PublicEvent />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              {/* Dev preview of the dashboard skyscape — every phase
+                  stacked. Not linked in nav; delete once the design lands. */}
+              <Route path="/_sky-preview" element={<SkyPreview />} />
             
             {/* Root redirect - goes to dashboard if authenticated, auth if not */}
             <Route path="/" element={

@@ -92,6 +92,7 @@ android/app/build/
 android/captures/
 android/local.properties
 android/.idea/
+.idea/
 android/app/release/
 *.keystore
 *.jks

@@ -13,4 +13,13 @@ ext {
     androidxJunitVersion = '1.2.1'
     androidxEspressoCoreVersion = '3.6.1'
     cordovaAndroidVersion = '10.1.1'
+
+    // @capacitor-firebase/authentication: bundle play-services-auth so
+    // Google Sign-In is available at runtime. Without this flag the
+    // plugin links play-services-auth as compileOnly (not packaged),
+    // crashing the app on launch with:
+    //   NoClassDefFoundError: com/google/android/gms/auth/api/signin/GoogleSignIn
+    // (thrown while the Firebase Auth plugin registers).
+    rgcfaIncludeGoogle = true
+    playServicesAuthVersion = '20.7.0'
 }

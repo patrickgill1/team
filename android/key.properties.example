@@ -9,8 +9,10 @@
 # (password manager). If you lose them you can never update the app on
 # the Play Store again.
 
-# Path to the keystore, relative to the android/ directory.
-storeFile=firefc-release.keystore
+# Path to the keystore. Resolved relative to android/app/, so a
+# keystore sitting at android/firefc-release.keystore needs the ../
+# prefix below.
+storeFile=../firefc-release.keystore
 storePassword=YOUR_KEYSTORE_PASSWORD
 keyAlias=firefc
 keyPassword=YOUR_KEY_PASSWORD

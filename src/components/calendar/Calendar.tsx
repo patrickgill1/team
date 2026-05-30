@@ -773,67 +773,13 @@ const Calendar: React.FC<CalendarProps> = ({
   }
 
   return (
-    <div className={viewMode === 'list' ? '' : 'space-y-4 px-4 sm:px-6 lg:px-8 py-6'}>
-      {/* Top action row — month view only (list view has its own navy
-          header with the title + plus button). Holds the month/list
-          toggle on desktop, the schedule importer, and the legacy
-          Add Event button for parity. */}
-      {viewMode === 'month' && (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {/* Month/List toggle — desktop only. On phones the month grid
-            is too cramped to be useful; the list is the right default
-            and the only mode worth showing. */}
-        <div className="hidden lg:flex bg-slate-100 rounded-xl p-1 mr-auto">
-          <button
-            onClick={() => setViewMode('month')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === 'month'
-                ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Month
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === 'list'
-                ? 'bg-white text-navy-700 shadow-sm ring-1 ring-slate-200'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            List
-          </button>
-        </div>
-
-        {isUserCoach && showCreateButton && (
-          <>
-            <button
-              onClick={() => setIsImportOpen(true)}
-              className="bg-white hover:bg-gray-50 ring-1 ring-gray-300 text-gray-700 font-semibold py-2 px-3.5 rounded-xl shadow-sm transition-all flex items-center gap-2 text-sm"
-              title="Import a season schedule from a .ics file"
-            >
-              <AppIcon name="arrow-right" className="w-4 h-4 rotate-90" />
-              <span className="hidden sm:inline">Import</span>
-            </button>
-            <button
-              onClick={() => {
-                setEditingEvent(null);
-                setSelectedDate(null);
-                setIsEventFormOpen(true);
-              }}
-              className="bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2 px-4 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 text-sm"
-            >
-              <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
-              <span>Add Event</span>
-            </button>
-          </>
-        )}
-      </div>
-      )}
-
-      {/* Calendar Content */}
-      {viewMode === 'month' ? renderMonthView() : renderListView()}
+    <div>
+      {/* List view is the only mode — the legacy month grid was a
+          desktop-only afterthought that opened bubbly EventCards
+          (whole separate UI surface to maintain) and saw almost no
+          use on mobile. The list view's own navy header carries the
+          + Add button + filters / week strip / pill nav. */}
+      {renderListView()}
 
       {/* Event Form Modal */}
       <EventForm

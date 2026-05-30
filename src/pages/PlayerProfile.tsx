@@ -37,6 +37,12 @@ const PlayerProfile: React.FC = () => {
   const [votingNominations, setVotingNominations] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
+  // Memberships for this player across every team/season they're on.
+  // Drives the per-team / per-season stats display (no more bleed).
+  const [memberships, setMemberships] = useState<any[]>([]);
+  // Which scope the Season Stats card is showing: this team this
+  // season (default), this team's career, or all-time across teams.
+  const [statsScope, setStatsScope] = useState<'team_season' | 'team_career' | 'all_time'>('team_season');
   const [lightboxItem, setLightboxItem] = useState<PlayerMedia | null>(null);
   const [showWhisper, setShowWhisper] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -126,6 +132,17 @@ const PlayerProfile: React.FC = () => {
       }
     } catch (err) {
       console.error('Error loading player:', err);
+    }
+
+    // Load this player's memberships (player × team × season rows)
+    // for the team-scoped / career / all-time stats tabs.
+    try {
+      const memDocs = await getDocuments('player_memberships', [where('playerId', '==', playerId)]);
+      setMemberships(memDocs as any[]);
+    } catch (err) {
+      // Memberships may not exist for this player if the migration didn't
+      // run for them — fall back to the legacy player.stats behavior.
+      console.warn('memberships load failed', err);
     }
 
     // Load media, plans, and votings independently so one failure doesn't block others
@@ -565,38 +582,102 @@ const PlayerProfile: React.FC = () => {
               </button>
             )}
 
-            {/* SEASON STATS */}
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-black text-gray-900">Season Stats</h2>
-                <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">All-Time</span>
-              </div>
-              <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                <div className="rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100/50 ring-1 ring-cyan-100 p-3 text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-cyan-700">{player.stats?.gamesPlayed || 0}</div>
-                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-cyan-700/70 font-bold">Games</div>
-                </div>
-                <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 ring-1 ring-emerald-100 p-3 text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-emerald-700">{player.stats?.goals || 0}</div>
-                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-emerald-700/70 font-bold">Goals</div>
-                </div>
-                <div className="rounded-xl bg-gradient-to-br from-violet-50 to-violet-100/50 ring-1 ring-violet-100 p-3 text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-violet-700">{player.stats?.assists || 0}</div>
-                  <div className="text-[10px] sm:text-xs uppercase tracking-wider text-violet-700/70 font-bold">Assists</div>
-                </div>
-                {isGoalkeeper(player) ? (
-                  <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 ring-1 ring-amber-100 p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-amber-700">{player.stats?.saves || 0}</div>
-                    <div className="text-[10px] sm:text-xs uppercase tracking-wider text-amber-700/70 font-bold">Saves</div>
+            {/* SEASON STATS — three-scope toggle (team-season, team-career,
+                all-time across every team this player's been on). Reads
+                from player_memberships (the migration's per-team-season
+                stat rows) so a player on two teams shows clean splits. */}
+            {(() => {
+              const empty = { gamesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, saves: 0, cleanSheets: 0 };
+              const sumStats = (rows: any[]) => rows.reduce((acc, m) => {
+                const s = m.stats || {};
+                acc.gamesPlayed += s.gamesPlayed || 0;
+                acc.goals += s.goals || 0;
+                acc.assists += s.assists || 0;
+                acc.saves += s.saves || 0;
+                acc.yellowCards += s.yellowCards || 0;
+                acc.redCards += s.redCards || 0;
+                acc.minutesPlayed += s.minutesPlayed || 0;
+                acc.cleanSheets += s.cleanSheets || 0;
+                return acc;
+              }, { ...empty });
+
+              const teamMems = memberships.filter((m: any) => m.teamId === selectedTeamId);
+              const activeSeasonMem = teamMems.find((m: any) => m.isActive !== false);
+              let scoped: any;
+              if (statsScope === 'all_time') {
+                scoped = memberships.length ? sumStats(memberships) : (player.stats || empty);
+              } else if (statsScope === 'team_career') {
+                scoped = teamMems.length ? sumStats(teamMems) : (player.stats || empty);
+              } else {
+                // team_season — prefer the most recent active membership on
+                // this team, fall back to teamMems sum, fall back to the
+                // legacy stats already on the player doc (team-scoped via
+                // getTeamPlayerStatsMap at load time).
+                scoped = (activeSeasonMem?.stats) || (teamMems.length ? sumStats(teamMems) : (player.stats || empty));
+              }
+
+              const scopeLabel =
+                statsScope === 'all_time' ? 'ALL-TIME'
+                : statsScope === 'team_career' ? 'THIS TEAM · CAREER'
+                : 'THIS TEAM · SEASON';
+
+              return (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Stats</h2>
+                    <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{scopeLabel}</span>
                   </div>
-                ) : (
-                  <div className="rounded-xl bg-gradient-to-br from-rose-50 to-rose-100/50 ring-1 ring-rose-100 p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-rose-700">{(player.stats?.goals || 0) + (player.stats?.assists || 0)}</div>
-                    <div className="text-[10px] sm:text-xs uppercase tracking-wider text-rose-700/70 font-bold">G+A</div>
+                  {/* Scope toggle */}
+                  <div className="flex gap-1 mb-3">
+                    {([
+                      { k: 'team_season', label: 'Season' },
+                      { k: 'team_career', label: 'Career here' },
+                      { k: 'all_time', label: 'All-time' },
+                    ] as const).map(({ k, label }) => (
+                      <button
+                        key={k}
+                        onClick={() => setStatsScope(k)}
+                        className={`flex-1 px-2 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border ${
+                          statsScope === k
+                            ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                            : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
-            </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="rounded-lg bg-cyan-50 border border-cyan-200 p-2.5 text-center">
+                      <div className="text-2xl sm:text-3xl font-black text-cyan-700">{scoped.gamesPlayed || 0}</div>
+                      <div className="text-[9px] uppercase tracking-widest text-cyan-700/70 font-bold mt-0.5">Games</div>
+                    </div>
+                    <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2.5 text-center">
+                      <div className="text-2xl sm:text-3xl font-black text-emerald-700">{scoped.goals || 0}</div>
+                      <div className="text-[9px] uppercase tracking-widest text-emerald-700/70 font-bold mt-0.5">Goals</div>
+                    </div>
+                    <div className="rounded-lg bg-violet-50 border border-violet-200 p-2.5 text-center">
+                      <div className="text-2xl sm:text-3xl font-black text-violet-700">{scoped.assists || 0}</div>
+                      <div className="text-[9px] uppercase tracking-widest text-violet-700/70 font-bold mt-0.5">Assists</div>
+                    </div>
+                    {isGoalkeeper(player) ? (
+                      <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-center">
+                        <div className="text-2xl sm:text-3xl font-black text-amber-700">{scoped.saves || 0}</div>
+                        <div className="text-[9px] uppercase tracking-widest text-amber-700/70 font-bold mt-0.5">Saves</div>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-center">
+                        <div className="text-2xl sm:text-3xl font-black text-rose-700">{(scoped.goals || 0) + (scoped.assists || 0)}</div>
+                        <div className="text-[9px] uppercase tracking-widest text-rose-700/70 font-bold mt-0.5">G+A</div>
+                      </div>
+                    )}
+                  </div>
+                  {statsScope === 'all_time' && memberships.length > 1 && (
+                    <p className="mt-2 text-[10px] text-slate-400 tracking-wide">Combined across {memberships.length} team-season{memberships.length === 1 ? '' : 's'}.</p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* PRACTICE EFFORT — when there is any */}
             {totalPracticeMinutes > 0 && (

@@ -44,6 +44,7 @@ const EventForm: React.FC<EventFormProps> = ({
     recurrence: 'none' as 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly',
     recurrenceUntil: '' as string,
     arriveOffsetMinutes: 0,
+    endTime: '' as string, // HH:mm, optional
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,6 +78,12 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: (editingEvent as any).recurrence || 'none',
         recurrenceUntil: untilDate ? untilDate.toISOString().split('T')[0] : '',
         arriveOffsetMinutes: (editingEvent as any).arriveOffsetMinutes || 0,
+        endTime: (() => {
+          const e = (editingEvent as any).endDate;
+          if (!e) return '';
+          const d = e?.toDate ? e.toDate() : new Date(e);
+          return d.toTimeString().slice(0, 5);
+        })(),
       });
     } else {
       const defaultDate = selectedDate || new Date();
@@ -93,6 +100,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: 'none',
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
+        endTime: '',
       });
     }
     setErrors({});
@@ -311,11 +319,22 @@ const EventForm: React.FC<EventFormProps> = ({
     setIsSubmitting(true);
     try {
       const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-      
+      // Optional end time: store as a real Date so cards / detail can
+      // render a range. If the user picks an end time before the start
+      // assume they meant the next day (a 11pm → 1am midnight event).
+      let endDateTime: Date | null = null;
+      if (formData.endTime) {
+        endDateTime = new Date(`${formData.date}T${formData.endTime}`);
+        if (endDateTime.getTime() <= eventDateTime.getTime()) {
+          endDateTime.setDate(endDateTime.getDate() + 1);
+        }
+      }
+
       const eventData: any = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         date: eventDateTime,
+        endDate: endDateTime,
         location: formData.location.trim(),
         type: formData.type,
         teamId: selectedTeamId,
@@ -390,6 +409,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: 'none',
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
+        endTime: '',
       });
       onClose();
     } catch (error) {
@@ -518,7 +538,7 @@ const EventForm: React.FC<EventFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Time *
+                Start time *
               </label>
               <input
                 type="time"
@@ -530,6 +550,21 @@ const EventForm: React.FC<EventFormProps> = ({
               />
               {errors.time && <p className="text-red-500 text-sm mt-1">{errors.time}</p>}
             </div>
+          </div>
+
+          {/* End time — optional. Lets us display a "9:00 AM – 10:30 AM"
+              range on the event card / detail page so parents know when
+              to actually leave. Skip and it just shows the start time. */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End time <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="time"
+              value={formData.endTime}
+              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           {/* Location with Nominatim address typeahead */}
@@ -599,9 +634,13 @@ const EventForm: React.FC<EventFormProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={0}>No arrive-early time</option>
+              <option value={5}>5 minutes early</option>
+              <option value={10}>10 minutes early</option>
               <option value={15}>15 minutes early</option>
               <option value={20}>20 minutes early</option>
+              <option value={25}>25 minutes early</option>
               <option value={30}>30 minutes early</option>
+              <option value={40}>40 minutes early</option>
               <option value={45}>45 minutes early</option>
               <option value={60}>1 hour early</option>
               <option value={75}>1 hr 15 min early</option>

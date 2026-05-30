@@ -95,6 +95,13 @@ const EventDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [weather, setWeather] = useState<WeatherSummary | null>(null);
   const [now, setNow] = useState(() => new Date());
+  // Team roster — only fetched when the viewer is a coach so we can
+  // show the merge-guest-into-roster UI without leaking the roster to
+  // parents/share-link viewers.
+  const [roster, setRoster] = useState<Array<{ id: string; name: string }>>([]);
+  // Which guest RSVP token, if any, the coach is currently merging.
+  const [mergingToken, setMergingToken] = useState<string | null>(null);
+  const [mergeBusy, setMergeBusy] = useState(false);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -124,6 +131,32 @@ const EventDetail: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [eventId, getDocument]);
+
+  // Load roster (coach only — drives the merge-into-roster picker).
+  useEffect(() => {
+    if (!isUserCoach || !selectedTeamId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs, query, where } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDocs(query(
+          collection(db, 'players'),
+          where('teamIds', 'array-contains', selectedTeamId),
+        ));
+        if (cancelled) return;
+        const list = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((p: any) => p.isActive !== false)
+          .map((p: any) => ({ id: p.id, name: p.name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setRoster(list);
+      } catch (err) {
+        console.warn('roster load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isUserCoach, selectedTeamId]);
 
   // Fetch weather (next-event window only — Open-Meteo is ~16 days out).
   useEffect(() => {
@@ -175,13 +208,13 @@ const EventDetail: React.FC = () => {
     const publicR = (event as any).publicRsvps || {};
     for (const tok of Object.keys(publicR)) {
       const r = publicR[tok];
-      if (r.status === 'going') going.push({ name: r.name, isGuest: true });
-      else if (r.status === 'maybe') maybe.push({ name: r.name, isGuest: true });
+      if (r.status === 'going') going.push({ name: r.name, isGuest: true, guestToken: tok });
+      else if (r.status === 'maybe') maybe.push({ name: r.name, isGuest: true, guestToken: tok });
     }
-    // Pending count is informational — defaults to 0 if we don't know the
-    // roster size at this level (Calendar.tsx has that data, not us).
-    return { going, maybe, pending: 0 };
-  }, [event]);
+    // Pending = roster size minus everyone with a playerRsvp.
+    const pending = Math.max(0, roster.length - Object.keys(playerR).length);
+    return { going, maybe, pending };
+  }, [event, roster.length]);
 
   const myRsvp = event && userData?.uid ? (event.rsvps || {})[userData.uid] : null;
 
@@ -211,6 +244,44 @@ const EventDetail: React.FC = () => {
       try { await navigator.share({ title: event.title, url: shareUrl }); } catch {}
     } else {
       try { await navigator.clipboard.writeText(shareUrl); alert('Share link copied'); } catch {}
+    }
+  };
+
+  // Convert a guest (share-link) RSVP into an official roster RSVP.
+  // Removes the entry from publicRsvps and adds it to playerRsvps so
+  // the player's lineup math is correct. Coach-only.
+  const mergeGuestIntoRoster = async (guestToken: string, playerId: string, playerName: string) => {
+    if (!event || !userData?.uid) return;
+    setMergeBusy(true);
+    try {
+      const publicR = { ...((event as any).publicRsvps || {}) } as Record<string, any>;
+      const guest = publicR[guestToken];
+      if (!guest) { setMergingToken(null); setMergeBusy(false); return; }
+      delete publicR[guestToken];
+      const playerR = {
+        ...((event as any).playerRsvps || {}),
+        [playerId]: {
+          status: guest.status,
+          playerName,
+          byUid: userData.uid,
+          byName: userData.name || undefined,
+          respondedAt: new Date(),
+          // Note we keep a breadcrumb so coaches can later audit which
+          // playerRsvps started life as a guest entry, in case we ever
+          // need to undo or re-merge.
+          mergedFromGuest: true,
+          mergedFromGuestName: guest.name,
+        },
+      };
+      // Optimistic.
+      setEvent({ ...event, publicRsvps: publicR, playerRsvps: playerR } as any);
+      await updateDocument('events', event.id, { publicRsvps: publicR, playerRsvps: playerR });
+      setMergingToken(null);
+    } catch (err) {
+      console.error('merge failed', err);
+      alert('Failed to merge — please try again.');
+    } finally {
+      setMergeBusy(false);
     }
   };
 
@@ -377,17 +448,63 @@ const EventDetail: React.FC = () => {
         </div>
         {buckets.going.length > 0 && (
           <ul className="mt-3 divide-y divide-slate-100">
-            {buckets.going.map((p, i) => (
-              <li key={`go-${i}`} className="py-1.5 flex items-center gap-2.5">
-                <span className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex-shrink-0" />
-                <span className="text-sm font-semibold text-slate-900 flex-1">{p.name}</span>
-                <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${
-                  p.isGuest
-                    ? 'bg-slate-100 text-slate-500 border-slate-300'
-                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                }`}>
-                  {p.isGuest ? 'GUEST' : 'ROSTER'}
-                </span>
+            {buckets.going.map((p: any, i) => (
+              <li key={`go-${i}`} className="py-1.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex-shrink-0" />
+                  <span className="text-sm font-semibold text-slate-900 flex-1 truncate">{p.name}</span>
+                  {p.isGuest && isUserCoach && roster.length > 0 && (
+                    <button
+                      onClick={() => setMergingToken(mergingToken === p.guestToken ? null : p.guestToken)}
+                      className="text-[9px] font-extrabold tracking-widest px-2 py-0.5 rounded border bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
+                    >
+                      MERGE
+                    </button>
+                  )}
+                  <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${
+                    p.isGuest
+                      ? 'bg-slate-100 text-slate-500 border-slate-300'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}>
+                    {p.isGuest ? 'GUEST' : 'ROSTER'}
+                  </span>
+                </div>
+                {p.isGuest && mergingToken === p.guestToken && (
+                  <div className="mt-2 ml-9 rounded-lg border border-cyan-200 bg-cyan-50/60 p-2">
+                    <div className="text-[11px] text-slate-700 mb-1.5">
+                      Merge <span className="font-bold">"{p.name}"</span> into roster player:
+                    </div>
+                    <div className="max-h-44 overflow-y-auto -mx-1">
+                      {roster.map(rp => {
+                        // Cheap heuristic — sort suggested matches first
+                        // (anyone whose name shares any token with the
+                        // guest name).
+                        const guestTokens = p.name.toLowerCase().split(/\s+/);
+                        const playerTokens = rp.name.toLowerCase().split(/\s+/);
+                        const matches = guestTokens.some(g => playerTokens.some(pt => pt.startsWith(g) || g.startsWith(pt)));
+                        return (
+                          <button
+                            key={rp.id}
+                            disabled={mergeBusy}
+                            onClick={() => mergeGuestIntoRoster(p.guestToken, rp.id, rp.name)}
+                            className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between hover:bg-cyan-100 disabled:opacity-50 ${
+                              matches ? 'font-bold text-cyan-900' : 'text-slate-700'
+                            }`}
+                          >
+                            <span>{rp.name}</span>
+                            {matches && <span className="text-[9px] font-extrabold tracking-widest text-cyan-600">SUGGESTED</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setMergingToken(null)}
+                      className="mt-1 w-full text-center text-[11px] font-bold text-slate-500 py-1 hover:text-slate-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

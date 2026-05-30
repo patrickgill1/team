@@ -24,12 +24,13 @@ const INSTALLED_SNOOZE_MS = 1000 * 60 * 60 * 24 * 180; // ~6 months after tappin
 const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
 
-// Pre-launch Android: recruit closed-testing volunteers via a Google
-// Group until the Play listing flips public. Anyone in the
-// firefctesters group is automatically on the Play tester list, so
-// the banner just points at the group join page. After joining, the
-// group description includes the Play opt-in URL for installing.
-const ANDROID_BETA_GROUP_URL = 'https://groups.google.com/g/firefctesters';
+// Pre-launch Android: recruit closed-testing volunteers via the Play
+// opt-in landing page. Tester list is backed by the firefctesters
+// Google Group (members of the group are automatically on the test),
+// and Google's opt-in page walks new testers through joining +
+// installing. Once ANDROID_STORE_LIVE flips true, the banner swaps
+// to the public Play Store listing URL instead.
+const ANDROID_BETA_OPTIN_URL = 'https://play.google.com/apps/testing/com.firefc.team';
 
 const isCapacitor = () => {
   if (typeof window === 'undefined') return false;
@@ -96,14 +97,14 @@ const InstallAppBanner: React.FC = () => {
   // pointing them at a Play Store listing that 404s.
   const isAndroidBeta = platform === 'android' && !ANDROID_STORE_LIVE;
   const installUrl = isAndroidBeta
-    ? ANDROID_BETA_GROUP_URL
+    ? ANDROID_BETA_OPTIN_URL
     : platform === 'ios'
     ? APP_STORE_URL
     : PLAY_STORE_URL;
   const storeLabel = isAndroidBeta ? 'beta signup' : platform === 'ios' ? 'App Store' : 'Google Play';
   const ctaTitle = isAndroidBeta ? 'Help test the Fire FC Android app' : 'Get the Fire FC app';
   const ctaSubtitle = isAndroidBeta
-    ? 'Join our tester group to get the beta on your phone.'
+    ? "We're in closed beta — tap to join + install."
     : 'Push notifications, faster, works offline.';
   const ctaButtonLabel = isAndroidBeta ? 'Join beta' : 'Install';
 

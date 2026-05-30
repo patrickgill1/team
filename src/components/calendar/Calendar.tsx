@@ -7,6 +7,8 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoach } from '../../utils/helpers';
 import EventForm from './EventForm';
+import EventListCard from './EventListCard';
+import EventWeekStrip from './EventWeekStrip';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
@@ -108,7 +110,11 @@ const Calendar: React.FC<CalendarProps> = ({
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   // In list mode, parents almost always want "what's next" (Scheduled).
   // Past is one tap away.
-  const [listTab, setListTab] = useState<'scheduled' | 'past'>('scheduled');
+  // Pill filter for the list view. "upcoming" includes everything in the
+  // future, "games"/"practice" further narrow to that type, "past" flips
+  // to history (most recent first). Default to upcoming — that's the
+  // glance most parents come to /calendar for.
+  const [listTab, setListTab] = useState<'upcoming' | 'games' | 'practice' | 'past'>('upcoming');
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -575,90 +581,159 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   const renderListView = () => {
+    const now = new Date();
     const upcomingEvents = events
-      .filter(event => new Date(event.date) >= new Date())
+      .filter(event => new Date(event.date) >= now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
     const pastEvents = events
-      .filter(event => new Date(event.date) < new Date())
+      .filter(event => new Date(event.date) < now)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const showing = listTab === 'scheduled' ? upcomingEvents : pastEvents;
+    let showing: CalendarEvent[];
+    if (listTab === 'past') showing = pastEvents;
+    else if (listTab === 'games') showing = upcomingEvents.filter(e => e.type === 'game');
+    else if (listTab === 'practice') showing = upcomingEvents.filter(e => e.type === 'practice');
+    else showing = upcomingEvents;
+
+    const pillFilters: { key: typeof listTab; label: string }[] = [
+      { key: 'upcoming', label: 'Upcoming' },
+      { key: 'games', label: 'Games' },
+      { key: 'practice', label: 'Practice' },
+      { key: 'past', label: 'Past' },
+    ];
+
+    // Build a compact card view-model per event. Reuses the rsvps/
+    // playerRsvps/publicRsvps fields already present on the doc.
+    const buildCardProps = (ev: CalendarEvent) => {
+      const playerR = (ev as any).playerRsvps || {};
+      const userR = ev.rsvps || {};
+      const publicR = (ev as any).publicRsvps || {};
+      const going: { name: string; photoURL?: string; isGuest?: boolean }[] = [];
+      let goingCount = 0, maybeCount = 0, noCount = 0;
+      const tally = (status: string) => {
+        if (status === 'going') goingCount++;
+        else if (status === 'maybe') maybeCount++;
+        else if (status === 'no') noCount++;
+      };
+      for (const pid of Object.keys(playerR)) {
+        const r = playerR[pid];
+        tally(r.status);
+        if (r.status === 'going') {
+          going.push({ name: r.playerName, photoURL: playerPhotoMap?.[pid], isGuest: false });
+        }
+      }
+      for (const uid of Object.keys(userR)) {
+        const r = userR[uid];
+        tally(r.status);
+        if (r.status === 'going') {
+          going.push({ name: r.name, photoURL: userPhotoMap?.[uid], isGuest: false });
+        }
+      }
+      for (const tok of Object.keys(publicR)) {
+        const r = publicR[tok];
+        tally(r.status);
+        if (r.status === 'going') {
+          going.push({ name: r.name, isGuest: true });
+        }
+      }
+      // Pending = roster size (from playerPhotoMap, which holds every
+      // active player on this team) minus everyone who already responded.
+      const respondedPlayers = new Set(Object.keys(playerR));
+      const rosterSize = Object.keys(playerPhotoMap || {}).length;
+      const pendingCount = Math.max(0, rosterSize - respondedPlayers.size);
+
+      const arriveMin = (ev as any).arriveOffsetMinutes as number | undefined;
+      let arriveText: string | undefined;
+      let arriveLabel: string | undefined;
+      if (typeof arriveMin === 'number' && arriveMin > 0) {
+        const arriveAt = new Date(new Date(ev.date).getTime() - arriveMin * 60_000);
+        arriveText = `Arrive ${arriveAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+        arriveLabel = `${arriveMin} MIN EARLY`;
+      }
+
+      const myRsvp = userData?.uid ? (ev.rsvps?.[userData.uid]?.status as any) : null;
+      return { goingCount, pendingCount, going, arriveText, arriveLabel, myRsvp };
+    };
 
     return (
-      <div className="space-y-4">
-        {/* Scheduled / Past tab strip */}
-        <div className="flex items-center border-b border-gray-200 bg-white rounded-t-2xl">
-          <button
-            onClick={() => setListTab('scheduled')}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative ${
-              listTab === 'scheduled' ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            Scheduled <span className="ml-1 text-gray-400 text-xs font-semibold">({upcomingEvents.length})</span>
-            {listTab === 'scheduled' && <span className="absolute -bottom-px left-4 right-4 h-0.5 bg-emerald-500" />}
-          </button>
-          <button
-            onClick={() => setListTab('past')}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative ${
-              listTab === 'past' ? 'text-emerald-700' : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            Past <span className="ml-1 text-gray-400 text-xs font-semibold">({pastEvents.length})</span>
-            {listTab === 'past' && <span className="absolute -bottom-px left-4 right-4 h-0.5 bg-emerald-500" />}
-          </button>
+      <div className="rounded-2xl overflow-hidden shadow-sm">
+        {/* Pill filters — sit on the navy header band */}
+        <div className="bg-slate-950 px-3.5 py-2.5 flex gap-1.5 overflow-x-auto">
+          {pillFilters.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setListTab(key)}
+              className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
+                listTab === key
+                  ? 'bg-cyan-500/15 text-cyan-300 border-cyan-400/40'
+                  : 'bg-slate-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Event list */}
-        <div className="space-y-3">
+        {/* Week strip — quick scan of the next 7 days */}
+        <EventWeekStrip
+          events={upcomingEvents}
+          onDayClick={(d) => {
+            // scroll to the first event on that day, if any
+            const target = upcomingEvents.find(e => {
+              const ed = new Date(e.date);
+              return ed.getFullYear() === d.getFullYear()
+                && ed.getMonth() === d.getMonth()
+                && ed.getDate() === d.getDate();
+            });
+            if (target) {
+              const el = document.getElementById(`event-${target.id}`);
+              el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
+        />
+
+        {/* Event card list */}
+        <div className="bg-gradient-to-b from-slate-800 to-slate-700 px-3 py-3.5 space-y-2.5 min-h-[200px]">
           {showing.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-10 text-center">
-              <div className="text-gray-300 mb-3 flex justify-center">
-                <AppIcon name="calendar" className="w-12 h-12" />
-              </div>
-              <p className="text-gray-600 font-medium">
-                {listTab === 'scheduled' ? 'No upcoming events.' : 'No past events.'}
+            <div className="bg-white rounded-xl ring-1 ring-gray-200 p-8 text-center">
+              <p className="text-gray-600 font-medium text-sm">
+                {listTab === 'past' ? 'No past events yet.' : 'No upcoming events.'}
               </p>
-              {listTab === 'scheduled' && isUserCoach && (
+              {listTab !== 'past' && isUserCoach && (
                 <button
                   onClick={() => {
                     setEditingEvent(null);
                     setSelectedDate(null);
                     setIsEventFormOpen(true);
                   }}
-                  className="mt-4 bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm hover:shadow transition-all"
+                  className="mt-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
                 >
-                  Create First Event
+                  Add first event
                 </button>
               )}
             </div>
           ) : (
-            showing.map(event => (
-              <div
-                key={event.id}
-                id={`event-${event.id}`}
-                className={focusEventId === event.id ? 'ring-2 ring-cyan-400 ring-offset-2 rounded-2xl transition' : ''}
-              >
-                <EventCard
-                  event={event}
-                  onEdit={handleEditEvent}
-                  onDelete={handleDeleteEvent}
-                  onRsvp={handleRsvp}
-                  onPlayerRsvp={handlePlayerRsvp}
-                  onAddCarpool={handleAddCarpoolPost}
-                  onDeleteCarpool={handleDeleteCarpoolPost}
-                  userUid={userData?.uid}
-                  userName={userData?.name}
-                  userRole={userData?.role}
-                  myLinkedPlayers={myLinkedPlayers}
-                  userPhotoMap={userPhotoMap}
-                  playerPhotoMap={playerPhotoMap}
-                  canEdit={isUserCoach}
-                  isDeleting={deletingIds.has(event.id)}
-                  isPast={listTab === 'past'}
-                />
-              </div>
-            ))
+            showing.map(event => {
+              const p = buildCardProps(event);
+              return (
+                <div
+                  key={event.id}
+                  id={`event-${event.id}`}
+                  className={focusEventId === event.id ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-800 rounded-xl' : ''}
+                >
+                  <EventListCard
+                    event={event}
+                    myRsvp={p.myRsvp}
+                    onRsvp={(status) => handleRsvp(event.id, status)}
+                    goingCount={p.goingCount}
+                    pendingCount={p.pendingCount}
+                    goingPreview={p.going.slice(0, 6)}
+                    arriveText={p.arriveText}
+                    arriveLabel={p.arriveLabel}
+                  />
+                </div>
+              );
+            })
           )}
         </div>
       </div>

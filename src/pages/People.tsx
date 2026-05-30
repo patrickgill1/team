@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
 import { useAuth } from '../hooks/useAuth';
@@ -55,7 +55,15 @@ const People: React.FC = () => {
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
-  const [teams, setTeams] = useState<Array<{ id: string; name: string }>>([]);
+  const [teams, setTeams] = useState<Array<{ id: string; name: string; clubId?: string }>>([]);
+  // Active management modal — pinned to a single person at a time.
+  const [managing, setManaging] = useState<Person | null>(null);
+  // Bulk selection mode. When on, rows show checkboxes; bulk-add action
+  // bar appears at the bottom.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkTarget, setBulkTarget] = useState<string>('');
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -89,7 +97,7 @@ const People: React.FC = () => {
           ? teamsInClub
           : (allTeams as any[]).filter(t => fallbackTeamIds.includes(t.id));
         const teamIdSet = new Set(effectiveTeams.map(t => t.id));
-        setTeams(effectiveTeams.map(t => ({ id: t.id, name: t.name })));
+        setTeams(effectiveTeams.map(t => ({ id: t.id, name: t.name, clubId: (t as any).clubId })));
 
         const out: Person[] = [];
 
@@ -226,6 +234,25 @@ const People: React.FC = () => {
           )}
         </div>
 
+        {/* Coach-only header: Select toggle for bulk actions */}
+        {isUserCoach && people.length > 0 && (
+          <div className="flex items-center justify-between -mb-1">
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">
+              {filtered.length} match{filtered.length === 1 ? '' : 'es'}
+            </span>
+            <button
+              onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()); }}
+              className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border ${
+                selectMode
+                  ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+              }`}
+            >
+              {selectMode ? 'Done' : 'Select'}
+            </button>
+          </div>
+        )}
+
         {/* Role pills */}
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {([
@@ -262,10 +289,28 @@ const People: React.FC = () => {
         ) : (
           <ul className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
             {filtered.map(p => {
+              const key = `${p.type}-${p.id}`;
               const initial = (p.name || '?').charAt(0).toUpperCase();
-              const linkTo = p.type === 'player' ? `/player/${p.id}` : undefined;
-              const Row = (
-                <li className="px-3 py-2.5 flex items-center gap-2.5 hover:bg-slate-50 transition-colors">
+              const linkTo = !selectMode && p.type === 'player' ? `/player/${p.id}` : undefined;
+              const isSelected = selectedIds.has(key);
+              const toggleSelect = () => {
+                const next = new Set(selectedIds);
+                if (next.has(key)) next.delete(key);
+                else next.add(key);
+                setSelectedIds(next);
+              };
+              const RowInner = (
+                <li
+                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-cyan-50' : 'hover:bg-slate-50'}`}
+                  onClick={selectMode ? (e) => { e.preventDefault(); toggleSelect(); } : undefined}
+                >
+                  {selectMode && (
+                    <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? 'bg-cyan-600 border-cyan-600 text-white' : 'border-slate-300'
+                    }`}>
+                      {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </span>
+                  )}
                   {p.photoURL ? (
                     <img src={p.photoURL} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                   ) : (
@@ -289,7 +334,7 @@ const People: React.FC = () => {
                         : p.email || (p.teamIds.length ? p.teamIds.map(t => teamNameById[t] || '').filter(Boolean).join(' · ') : '')}
                     </div>
                   </div>
-                  {p.teamIds.length > 0 && (
+                  {!selectMode && p.teamIds.length > 0 && (
                     <div className="hidden sm:flex flex-wrap gap-1 justify-end max-w-[200px]">
                       {p.teamIds.slice(0, 2).map(tid => (
                         <span key={tid} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
@@ -303,12 +348,20 @@ const People: React.FC = () => {
                       )}
                     </div>
                   )}
+                  {!selectMode && isUserCoach && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setManaging(p); }}
+                      className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-slate-500 border-slate-200 hover:text-slate-800 flex-shrink-0"
+                    >
+                      Manage
+                    </button>
+                  )}
                 </li>
               );
               return linkTo ? (
-                <Link to={linkTo} key={`${p.type}-${p.id}`}>{Row}</Link>
+                <Link to={linkTo} key={key}>{RowInner}</Link>
               ) : (
-                <div key={`${p.type}-${p.id}`}>{Row}</div>
+                <div key={key}>{RowInner}</div>
               );
             })}
           </ul>
@@ -320,9 +373,237 @@ const People: React.FC = () => {
           </p>
         )}
       </div>
+
+      {/* Bulk action bar — appears when in select mode + has selection */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 bg-slate-950 border-t border-cyan-500/20 px-4 py-3 flex items-center gap-3">
+          <span className="text-xs font-extrabold tracking-widest uppercase text-white flex-shrink-0">
+            {selectedIds.size} selected
+          </span>
+          <select
+            value={bulkTarget}
+            onChange={(e) => setBulkTarget(e.target.value)}
+            className="flex-1 bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-2 py-1.5"
+          >
+            <option value="">Add to team…</option>
+            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <button
+            disabled={!bulkTarget || bulkBusy}
+            onClick={async () => {
+              if (!bulkTarget) return;
+              setBulkBusy(true);
+              try {
+                const targets = filtered.filter(p => selectedIds.has(`${p.type}-${p.id}`));
+                await bulkAddToTeam(targets, bulkTarget, teams.find(t => t.id === bulkTarget));
+                // Refresh memberships on the affected people in local state.
+                setPeople(prev => prev.map(p => {
+                  if (!selectedIds.has(`${p.type}-${p.id}`)) return p;
+                  if (p.teamIds.includes(bulkTarget)) return p;
+                  return { ...p, teamIds: [...p.teamIds, bulkTarget] };
+                }));
+                setSelectedIds(new Set());
+                setBulkTarget('');
+                setSelectMode(false);
+              } catch (err) {
+                console.error('bulk add failed', err);
+                alert('Failed to add to team — try again.');
+              } finally {
+                setBulkBusy(false);
+              }
+            }}
+            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
+          >
+            {bulkBusy ? '…' : 'Add'}
+          </button>
+          <button
+            onClick={() => { setSelectMode(false); setSelectedIds(new Set()); setBulkTarget(''); }}
+            className="text-slate-400 hover:text-white text-xs font-extrabold tracking-widest uppercase"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Manage modal — single person team assignments */}
+      {managing && (
+        <ManagePersonModal
+          person={managing}
+          teams={teams}
+          onClose={() => setManaging(null)}
+          onUpdated={(updatedTeamIds) => {
+            setPeople(prev => prev.map(p =>
+              `${p.type}-${p.id}` === `${managing.type}-${managing.id}`
+                ? { ...p, teamIds: updatedTeamIds }
+                : p
+            ));
+            setManaging(null);
+          }}
+        />
+      )}
     </div>
   );
 };
+
+// ---------- Manage Person modal ----------
+const ManagePersonModal: React.FC<{
+  person: Person;
+  teams: Array<{ id: string; name: string; clubId?: string }>;
+  onClose: () => void;
+  onUpdated: (newTeamIds: string[]) => void;
+}> = ({ person, teams, onClose, onUpdated }) => {
+  const [draft, setDraft] = useState<Set<string>>(new Set(person.teamIds));
+  const [busy, setBusy] = useState(false);
+
+  const toggle = (teamId: string) => {
+    const next = new Set(draft);
+    if (next.has(teamId)) next.delete(teamId);
+    else next.add(teamId);
+    setDraft(next);
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const newTeamIds = Array.from(draft);
+      const oldTeamIds = person.teamIds;
+      const added = newTeamIds.filter(t => !oldTeamIds.includes(t));
+      const removed = oldTeamIds.filter(t => !newTeamIds.includes(t));
+
+      if (person.type === 'player') {
+        // Update player.teamIds for legacy compat
+        await updateDoc(doc(db, 'players', person.id), { teamIds: newTeamIds });
+        // Add membership rows for newly-assigned teams
+        for (const teamId of added) {
+          const team = teams.find(t => t.id === teamId);
+          const clubId = team?.clubId || 'club_unknown';
+          const memId = `mem_${person.id}_${teamId}_${'season_active'}`;
+          await addDoc(collection(db, 'player_memberships'), {
+            id: memId,
+            clubId,
+            teamId,
+            seasonId: 'season_active',
+            playerId: person.id,
+            isActive: true,
+            joinedAt: serverTimestamp(),
+          });
+        }
+        // Mark removed memberships as inactive (don't delete — preserves stats history)
+        if (removed.length) {
+          const snap = await getDocs(query(collection(db, 'player_memberships'),
+            where('playerId', '==', person.id),
+            where('teamId', 'in', removed.slice(0, 10)),
+          ));
+          const batch = writeBatch(db);
+          snap.docs.forEach(d => batch.update(d.ref, { isActive: false, leftAt: serverTimestamp() }));
+          await batch.commit();
+        }
+      } else {
+        // Staff: update user.teamIds for legacy compat
+        if (person.uid) await updateDoc(doc(db, 'users', person.uid), { teamIds: newTeamIds });
+        for (const teamId of added) {
+          const team = teams.find(t => t.id === teamId);
+          const clubId = team?.clubId || 'club_unknown';
+          await addDoc(collection(db, 'staff_memberships'), {
+            clubId, teamId, seasonId: 'season_active',
+            uid: person.uid,
+            role: person.role === 'coach' ? 'assistant_coach' : person.role,
+            isActive: true,
+            joinedAt: serverTimestamp(),
+          });
+        }
+        if (removed.length && person.uid) {
+          const snap = await getDocs(query(collection(db, 'staff_memberships'),
+            where('uid', '==', person.uid),
+            where('teamId', 'in', removed.slice(0, 10)),
+          ));
+          const batch = writeBatch(db);
+          snap.docs.forEach(d => batch.update(d.ref, { isActive: false, leftAt: serverTimestamp() }));
+          await batch.commit();
+        }
+      }
+      onUpdated(newTeamIds);
+    } catch (err) {
+      console.error('save failed', err);
+      alert('Failed to save — try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2.5">
+          {person.photoURL
+            ? <img src={person.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
+            : <span className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-white text-sm font-bold flex items-center justify-center">{(person.name||'?').charAt(0).toUpperCase()}</span>}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-slate-900 truncate">{person.name}</div>
+            <div className="text-[11px] text-slate-500 truncate">{ROLE_LABEL[person.role]}{person.email ? ` · ${person.email}` : ''}</div>
+          </div>
+        </div>
+        <div className="px-4 py-3">
+          <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-2">Teams</div>
+          <div className="space-y-1">
+            {teams.map(t => {
+              const on = draft.has(t.id);
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => toggle(t.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
+                    on ? 'bg-cyan-50 border-cyan-200 text-cyan-900' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                  }`}
+                >
+                  <span className="font-semibold">{t.name}</span>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-cyan-600 border-cyan-600 text-white' : 'border-slate-300'}`}>
+                    {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="px-4 py-3 border-t border-slate-100 flex justify-end gap-2">
+          <button onClick={onClose} className="text-xs font-bold tracking-wide text-slate-500 px-3 py-1.5">Cancel</button>
+          <button onClick={save} disabled={busy} className="text-xs font-extrabold tracking-widest uppercase bg-cyan-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
+            {busy ? '…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ---------- Bulk add ----------
+async function bulkAddToTeam(
+  targets: Person[],
+  teamId: string,
+  team?: { id: string; name: string; clubId?: string },
+) {
+  const clubId = team?.clubId || 'club_unknown';
+  for (const t of targets) {
+    if (t.teamIds.includes(teamId)) continue;
+    if (t.type === 'player') {
+      await updateDoc(doc(db, 'players', t.id), { teamIds: [...t.teamIds, teamId] });
+      await addDoc(collection(db, 'player_memberships'), {
+        clubId, teamId, seasonId: 'season_active',
+        playerId: t.id, isActive: true,
+        joinedAt: serverTimestamp(),
+      });
+    } else if (t.uid) {
+      await updateDoc(doc(db, 'users', t.uid), { teamIds: [...t.teamIds, teamId] });
+      await addDoc(collection(db, 'staff_memberships'), {
+        clubId, teamId, seasonId: 'season_active',
+        uid: t.uid,
+        role: t.role === 'coach' ? 'assistant_coach' : t.role,
+        isActive: true,
+        joinedAt: serverTimestamp(),
+      });
+    }
+  }
+}
 
 // Small helper — resolves the clubId of a team from its team doc.
 async function getClubIdForTeam(teamId: string): Promise<string | null> {

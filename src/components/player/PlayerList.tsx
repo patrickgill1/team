@@ -32,6 +32,38 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
 
   // Direct Firestore subscription — load all active players, filter by team client-side
   // This avoids composite index issues with teamIds/teamId + isActive + orderBy
+  // Map playerId → team-scoped stats from player_memberships (most
+  // recent active membership for the selected team). Used to overlay
+  // the all-team player.stats aggregate with the right team's numbers
+  // so PlayerCard tiles read clean for shared players.
+  const [teamStatsByPlayerId, setTeamStatsByPlayerId] = useState<Record<string, any>>({});
+
+  // Subscribe to memberships scoped to the selected team. Updates the
+  // stats overlay live as game stats land.
+  useEffect(() => {
+    if (!selectedTeamId) { setTeamStatsByPlayerId({}); return; }
+    const mq = query(
+      collection(db, 'player_memberships'),
+      where('teamId', '==', selectedTeamId),
+    );
+    const unsub = onSnapshot(mq, snap => {
+      const map: Record<string, any> = {};
+      for (const d of snap.docs) {
+        const data = d.data() as any;
+        if (!data.stats) continue;
+        // Prefer the most-recent active membership for this player.
+        const existing = map[data.playerId];
+        const candidateActive = data.isActive !== false;
+        const existingActive = existing && existing.__isActive !== false;
+        if (!existing || (candidateActive && !existingActive)) {
+          map[data.playerId] = { ...data.stats, __isActive: candidateActive };
+        }
+      }
+      setTeamStatsByPlayerId(map);
+    }, () => { /* non-fatal */ });
+    return () => unsub();
+  }, [selectedTeamId]);
+
   useEffect(() => {
     if (!selectedTeamId) {
       setPlayers([]);
@@ -296,15 +328,24 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 sm:gap-6">
-          {filteredPlayers.map((player) => (
-            <PlayerCard
-              key={player.id}
-              player={player}
-              onEdit={handleEditPlayer}
-              onDelete={handlePlayerDeleted}
-              showActions={true}
-            />
-          ))}
+          {filteredPlayers.map((player) => {
+            // Overlay this team's membership stats so shared players
+            // (rostered on multiple teams) show clean numbers here
+            // instead of the all-team aggregate baked into player.stats.
+            const teamStats = teamStatsByPlayerId[player.id];
+            const scoped = teamStats
+              ? { ...(player as any), stats: { ...teamStats, __isActive: undefined } }
+              : player;
+            return (
+              <PlayerCard
+                key={player.id}
+                player={scoped as Player}
+                onEdit={handleEditPlayer}
+                onDelete={handlePlayerDeleted}
+                showActions={true}
+              />
+            );
+          })}
         </div>
       )}
 

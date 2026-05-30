@@ -35,6 +35,10 @@ interface MessageBubbleProps {
   /** Last message from this sender in a run (show timestamp underneath) */
   isLastInGroup?: boolean;
   compact?: boolean;
+  /** Optional live photo lookup by senderId. Used as a fallback when
+   *  the message itself doesn't carry senderPhotoUrl (older messages
+   *  predate that field) so DMs / threads still show real avatars. */
+  getSenderPhotoUrl?: (senderId: string) => string | undefined;
 }
 
 function escapeHtml(s: string): string {
@@ -108,11 +112,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   formatTime,
   isFirstInGroup = true,
   isLastInGroup = true,
+  getSenderPhotoUrl,
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const longPressTimer = useRef<number | null>(null);
 
   const isOwn = message.senderId === currentUserId;
+  // Prefer the photoURL frozen onto the message at send time, but fall
+  // back to a live lookup so older messages still get a real avatar.
+  const resolvedPhotoUrl =
+    (message as any).senderPhotoUrl ||
+    (getSenderPhotoUrl ? getSenderPhotoUrl(message.senderId) : undefined);
 
   // Group reactions by emoji
   const grouped: Record<string, { count: number; mine: boolean; names: string[] }> = {};
@@ -176,9 +186,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {!isOwn && (
         <div className="w-9 mr-2 flex-shrink-0 self-end">
           {isFirstInGroup && (
-            (message as any).senderPhotoUrl ? (
+            resolvedPhotoUrl ? (
               <img
-                src={(message as any).senderPhotoUrl}
+                src={resolvedPhotoUrl}
                 alt={message.senderName}
                 title={message.senderName}
                 className="w-8 h-8 rounded-full object-cover shadow-sm ring-1 ring-black/5"

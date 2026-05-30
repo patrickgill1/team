@@ -821,6 +821,16 @@ const TeamChat: React.FC = () => {
     return m?.photoURL || undefined;
   };
 
+  // Live photo lookup for message bubble avatars. Older messages don't
+  // carry senderPhotoUrl on the doc itself, so MessageBubble falls back
+  // to this teamMembers-backed lookup.
+  const getSenderPhotoUrl = (senderId: string): string | undefined => {
+    if (!senderId) return undefined;
+    if (userData?.uid === senderId) return (userData as any)?.photoURL || undefined;
+    const m = teamMembers.find(tm => tm.uid === senderId);
+    return m?.photoURL || undefined;
+  };
+
   const startDM = async (member: { uid: string; name: string }) => {
     if (!userData || !selectedTeamId || dmStarting) return;
     setDmStarting(member.uid);
@@ -1018,14 +1028,16 @@ const TeamChat: React.FC = () => {
       <div
         className="fixed inset-x-0 flex flex-col bg-gray-50 z-10 overflow-hidden"
         style={{
-          // Top header: 3.5rem (h-14) + safe-area for the notch.
-          top: 'calc(3.5rem + env(safe-area-inset-top))',
+          // Mobile top bar is a flat h-14 now (no safe-top — native shell
+          // already positions the WebView below the system bar), so the
+          // chat container slots in cleanly below it.
+          top: '3.5rem',
           // Explicit height from window.innerHeight (in CSS pixels).
           // For threads view, also subtract the bottom tab bar height.
           height:
             currentView === 'chat' && selectedThread
-              ? `calc(${winHeight}px - 3.5rem - env(safe-area-inset-top))`
-              : `calc(${winHeight}px - 3.5rem - env(safe-area-inset-top) - 3rem - env(safe-area-inset-bottom))`,
+              ? `calc(${winHeight}px - 3.5rem)`
+              : `calc(${winHeight}px - 3.5rem - 3rem)`,
         }}
       >
         {currentView === 'threads' ? (
@@ -1361,6 +1373,7 @@ const TeamChat: React.FC = () => {
                       formatTime={formatTime}
                       isFirstInGroup={isFirstInGroup}
                       isLastInGroup={isLastInGroup}
+                      getSenderPhotoUrl={getSenderPhotoUrl}
                     />
                     </div>
                   );
@@ -1737,6 +1750,7 @@ const TeamChat: React.FC = () => {
                     formatTime={formatTime}
                     isFirstInGroup={isFirstInGroup}
                     isLastInGroup={isLastInGroup}
+                    getSenderPhotoUrl={getSenderPhotoUrl}
                   />
                   </div>
                 );

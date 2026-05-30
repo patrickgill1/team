@@ -26,7 +26,7 @@ const GalleryPage: React.FC = () => {
   const hasActiveFilters = searchTerm || tagFilter;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-100">
       <Header 
         title="Team Gallery" 
         subtitle="Share and view team photos and memories"

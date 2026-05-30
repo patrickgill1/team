@@ -73,6 +73,11 @@ if (!fs.existsSync(saPath)) {
 }
 admin.initializeApp({ credential: admin.credential.cert(require(saPath)) });
 const db = admin.firestore();
+// Player memberships have optional `stats` — if we didn't have a clean
+// per-season stats row to copy, the field is left undefined. Firestore
+// rejects undefined writes by default; this just drops those fields
+// instead of erroring.
+db.settings({ ignoreUndefinedProperties: true });
 
 // ---------------------------------------------------------------------
 // Types — keep loose; this is a migration script, not the app.

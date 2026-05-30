@@ -841,17 +841,19 @@ const TeamChat: React.FC = () => {
 
   // Write a read-receipt to a message. Throttled at the call site
   // (MessageBubble fires once per first-render). Optimistic + best-effort
-  // — if it fails we just keep going.
+  // — if it fails we just keep going. Targets `chat_messages` — the
+  // actual collection chat messages live in (NOT /messages, which is
+  // an unrelated legacy collection).
   const markMessageRead = async (m: ChatMessage) => {
     if (!userData?.uid) return;
     try {
       const { doc: fsDoc, updateDoc } = await import('firebase/firestore');
       const { db } = await import('../utils/firebase');
-      const ref = fsDoc(db, 'messages', m.id);
+      const ref = fsDoc(db, 'chat_messages', m.id);
       await updateDoc(ref, { [`readBy.${userData.uid}`]: Date.now() });
     } catch (err) {
-      // Older messages may not exist in /messages anymore, or rules
-      // may block; silently ignore — read receipts are non-critical.
+      // Read receipts are non-critical; ignore failures (older messages
+      // may not have the field yet).
     }
   };
 

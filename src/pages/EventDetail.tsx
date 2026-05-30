@@ -9,6 +9,7 @@ import { isCoach } from '../utils/helpers';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import EventDiscussion from '../components/calendar/EventDiscussion';
 import EventForm from '../components/calendar/EventForm';
+import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -573,23 +574,36 @@ const EventDetail: React.FC = () => {
         }}
       />
 
-      {/* CARPOOL — minimal placeholder, full carpool board ships in Phase 3 */}
-      {Array.isArray((event as any).carpoolPosts) && (event as any).carpoolPosts.length > 0 && (
-        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
-              <Icon name="car" className="w-3 h-3 text-cyan-500" />
-              Carpool
-            </div>
-            <Link to={`/calendar?event=${event.id}`} className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-600">
-              Open in calendar
-            </Link>
-          </div>
-          <div className="text-sm text-slate-600">
-            {(event as any).carpoolPosts.length} {(event as any).carpoolPosts.length === 1 ? 'post' : 'posts'} on the carpool board.
-          </div>
-        </section>
-      )}
+      {/* CARPOOL BOARD — offer / request / claim rides for this event */}
+      <CarpoolBoard
+        posts={((event as any).carpoolPosts || []) as CarpoolPost[]}
+        currentUid={userData?.uid}
+        currentName={userData?.name}
+        onAdd={async (post) => {
+          if (!event || !userData?.uid) return;
+          const entry: CarpoolPost = {
+            id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            uid: userData.uid,
+            name: userData.name || userData.email || 'Unknown',
+            type: post.type,
+            seats: post.seats,
+            location: post.location,
+            note: post.note,
+            createdAt: new Date(),
+          };
+          const next = [...(((event as any).carpoolPosts || []) as CarpoolPost[]), entry];
+          setEvent({ ...event, carpoolPosts: next } as any);
+          try { await updateDocument('events', event.id, { carpoolPosts: next }); }
+          catch (err) { console.error('carpool add failed', err); }
+        }}
+        onDelete={async (postId) => {
+          if (!event) return;
+          const next = (((event as any).carpoolPosts || []) as CarpoolPost[]).filter(p => p.id !== postId);
+          setEvent({ ...event, carpoolPosts: next } as any);
+          try { await updateDocument('events', event.id, { carpoolPosts: next }); }
+          catch (err) { console.error('carpool delete failed', err); }
+        }}
+      />
 
       {/* EDIT MODAL (coach only) */}
       {isUserCoach && (

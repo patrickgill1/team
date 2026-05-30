@@ -116,6 +116,7 @@ const Navigation: React.FC = () => {
   const allNavItems: Array<{ name: string; path: string; icon: any; group: 'main' | 'apps' | 'account' }> = [
     { name: 'Dashboard', path: '/dashboard', icon: 'home', group: 'main' },
     { name: 'Players', path: '/players', icon: 'players', group: 'main' },
+    { name: 'People', path: '/people', icon: 'phone', group: 'main' },
     { name: 'Media', path: '/player-media', icon: 'media', group: 'main' },
     { name: 'Vote', path: '/player-of-match', icon: 'trophy', group: 'main' },
     // Multi-kid: each linked player gets their own shortcut. Use full

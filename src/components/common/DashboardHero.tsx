@@ -124,17 +124,17 @@ const DashboardHero: React.FC<Props> = ({
         <ellipse cx="200" cy="44" rx="50" ry="11" fill="none" stroke="rgba(148,163,184,0.3)" strokeWidth="0.5" />
       </svg>
 
-      {/* Content */}
-      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-6 sm:pt-6 sm:pb-7">
-        <h1 className="text-lg sm:text-xl font-bold text-white">
+      {/* Content — kept compact: a glance, not a hero. */}
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-3 pb-4 sm:pt-4 sm:pb-5">
+        <h1 className="text-base sm:text-lg font-bold text-white">
           {greeting}, {firstName}!
         </h1>
-        <p className="mt-0.5 text-xs sm:text-sm text-slate-300">
+        <p className="text-[11px] sm:text-xs text-slate-300">
           Here's what's happening with your team.
         </p>
 
         {nextEvent && eventDate && (
-          <div className="mt-4 grid grid-cols-[auto_1fr_auto] gap-3 sm:gap-4 items-center">
+          <div className="mt-3 grid grid-cols-[auto_1fr_auto] gap-3 sm:gap-4 items-center">
             {/* Date badge — replaces the people circle (no more duplicate count) */}
             <Link
               to={`/event/${nextEvent.id}`}

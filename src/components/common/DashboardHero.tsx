@@ -137,7 +137,7 @@ const DashboardHero: React.FC<Props> = ({
           <div className="mt-3 grid grid-cols-[auto_1fr_auto] gap-3 sm:gap-4 items-center">
             {/* Date badge — replaces the people circle (no more duplicate count) */}
             <Link
-              to={`/event/${nextEvent.id}`}
+              to={`/calendar?event=${nextEvent.id}`}
               aria-label={`${nextEvent.title} on ${eventMonth} ${eventDay} ${eventDow}`}
               className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-slate-900/55 ring-1 ring-cyan-400/40 shadow-lg shadow-cyan-500/10"
             >
@@ -147,7 +147,7 @@ const DashboardHero: React.FC<Props> = ({
             </Link>
 
             {/* Event title + metadata (when · weather · going count) */}
-            <Link to={`/event/${nextEvent.id}`} className="min-w-0 group">
+            <Link to={`/calendar?event=${nextEvent.id}`} className="min-w-0 group">
               <p className="text-base sm:text-lg font-bold text-cyan-300 group-hover:underline leading-tight truncate">
                 {nextEvent.title}
               </p>
@@ -185,7 +185,7 @@ const DashboardHero: React.FC<Props> = ({
               </Link>
 
               <Link
-                to={`/event/${nextEvent.id}`}
+                to={`/calendar?event=${nextEvent.id}`}
                 className="flex items-center gap-2 group"
                 aria-label={`${pendingRsvpCount} awaiting RSVP`}
               >

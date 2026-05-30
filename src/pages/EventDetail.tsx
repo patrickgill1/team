@@ -1,0 +1,452 @@
+// @ts-nocheck
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { useTeam } from '../contexts/TeamContext';
+import { useFirestore } from '../hooks/useFirestore';
+import { CalendarEvent } from '../types';
+import { isCoach } from '../utils/helpers';
+import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
+
+// Authenticated event detail page — the "command center" for a single
+// event. Replaces the old inline-expanded Calendar row and the public
+// share-link page (PublicEvent) for logged-in users. Navy command-style
+// hero, RSVP buckets w/ ROSTER vs GUEST tagging, weather + carpool.
+
+const MONTHS_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const DOWS_SHORT   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+
+type RsvpStatus = 'going' | 'maybe' | 'no';
+
+interface CountdownState {
+  label: string;
+  variant: 'upcoming' | 'live' | 'past';
+}
+
+function computeCountdown(start: Date, end?: Date): CountdownState {
+  const now = Date.now();
+  const startMs = start.getTime();
+  const endMs = end ? end.getTime() : startMs + 90 * 60 * 1000; // assume 90 min if no end
+  if (now < startMs) {
+    const diff = startMs - now;
+    const minutes = Math.floor(diff / 60_000);
+    if (minutes < 60) return { label: `Starts in ${minutes}m`, variant: 'upcoming' };
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return { label: `Starts in ${hours}h`, variant: 'upcoming' };
+    const days = Math.floor(hours / 24);
+    return { label: `Starts in ${days}d`, variant: 'upcoming' };
+  }
+  if (now < endMs) {
+    return { label: 'Live now', variant: 'live' };
+  }
+  const ago = now - endMs;
+  const hoursAgo = Math.floor(ago / 3_600_000);
+  if (hoursAgo < 24) return { label: `Ended ${hoursAgo}h ago`, variant: 'past' };
+  const daysAgo = Math.floor(hoursAgo / 24);
+  return { label: `Ended ${daysAgo}d ago`, variant: 'past' };
+}
+
+function formatTimeRange(start: Date, end?: Date): string {
+  const s = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (!end) return s;
+  const e = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${s} – ${e}`;
+}
+
+const Icon: React.FC<{ name: string; className?: string }> = ({ name, className = 'w-3.5 h-3.5' }) => {
+  const common = `${className} stroke-current`;
+  switch (name) {
+    case 'arrow-left':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>;
+    case 'edit':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+    case 'check':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>;
+    case 'share':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>;
+    case 'trash':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>;
+    case 'users':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+    case 'cal':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+    case 'clock':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+    case 'pin':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-12a8 8 0 1 1 16 0c0 7.5-8 12-8 12z"/><circle cx="12" cy="10" r="3"/></svg>;
+    case 'cloud':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="17" cy="9" r="3"/><path d="M9 18h9a4 4 0 0 0 0-8 6 6 0 0 0-11.79-1.5A4 4 0 1 0 7 18h2z"/></svg>;
+    case 'car':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 17v-5l2-5h14l2 5v5h-3a2 2 0 0 1-4 0H10a2 2 0 0 1-4 0H3z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>;
+    case 'link':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
+  }
+  return null;
+};
+
+const EventDetail: React.FC = () => {
+  const { eventId } = useParams<{ eventId: string }>();
+  const navigate = useNavigate();
+  const { userData } = useAuth();
+  const { selectedTeamId } = useTeam();
+  const { getDocument, updateDocument, deleteDocument } = useFirestore();
+
+  const [event, setEvent] = useState<CalendarEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [weather, setWeather] = useState<WeatherSummary | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  const isUserCoach = userData ? isCoach(userData.role) : false;
+
+  // Re-tick the countdown each minute.
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await getDocument('events', eventId);
+        if (cancelled) return;
+        if (!raw) { setLoading(false); return; }
+        const e = raw as any;
+        setEvent({
+          ...e,
+          date: e.date?.toDate ? e.date.toDate() : new Date(e.date),
+          endDate: e.endDate?.toDate ? e.endDate.toDate() : (e.endDate ? new Date(e.endDate) : undefined),
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [eventId, getDocument]);
+
+  // Fetch weather (next-event window only — Open-Meteo is ~16 days out).
+  useEffect(() => {
+    if (!event?.location) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const w = await getWeatherForEvent(event.location, new Date(event.date));
+        if (!cancelled) setWeather(w);
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [event?.id, event?.location, event?.date]);
+
+  const eventDate = event ? new Date(event.date) : null;
+  const eventEnd = event?.endDate ? new Date(event.endDate) : undefined;
+
+  const countdown = useMemo(() => {
+    if (!eventDate) return null;
+    void now; // re-tick dependency
+    return computeCountdown(eventDate, eventEnd);
+  }, [eventDate?.getTime(), eventEnd?.getTime(), now]);
+
+  // RSVP aggregation. ROSTER = playerRsvps + authenticated parent rsvps.
+  // GUEST = publicRsvps (share-link).
+  const buckets = useMemo(() => {
+    if (!event) return { going: [], maybe: [], pending: 0 };
+    const going: { name: string; uid?: string; isGuest: boolean }[] = [];
+    const maybe: { name: string; uid?: string; isGuest: boolean }[] = [];
+    const seen = new Set<string>();
+    const playerR = (event as any).playerRsvps || {};
+    for (const pid of Object.keys(playerR)) {
+      const r = playerR[pid];
+      const key = `player:${pid}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (r.status === 'going') going.push({ name: r.playerName, isGuest: false });
+      else if (r.status === 'maybe') maybe.push({ name: r.playerName, isGuest: false });
+    }
+    const userR = event.rsvps || {};
+    for (const uid of Object.keys(userR)) {
+      const r = userR[uid];
+      const key = `user:${uid}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (r.status === 'going') going.push({ name: r.name, uid, isGuest: false });
+      else if (r.status === 'maybe') maybe.push({ name: r.name, uid, isGuest: false });
+    }
+    const publicR = (event as any).publicRsvps || {};
+    for (const tok of Object.keys(publicR)) {
+      const r = publicR[tok];
+      if (r.status === 'going') going.push({ name: r.name, isGuest: true });
+      else if (r.status === 'maybe') maybe.push({ name: r.name, isGuest: true });
+    }
+    // Pending count is informational — defaults to 0 if we don't know the
+    // roster size at this level (Calendar.tsx has that data, not us).
+    return { going, maybe, pending: 0 };
+  }, [event]);
+
+  const myRsvp = event && userData?.uid ? (event.rsvps || {})[userData.uid] : null;
+
+  const setMyRsvp = async (status: RsvpStatus) => {
+    if (!event || !userData?.uid) return;
+    const next = {
+      ...(event.rsvps || {}),
+      [userData.uid]: {
+        status,
+        name: userData.name || userData.email || 'Unknown',
+        role: (userData as any).role,
+        respondedAt: new Date(),
+      },
+    };
+    setEvent({ ...event, rsvps: next } as CalendarEvent);
+    try {
+      await updateDocument('events', event.id, { rsvps: next });
+    } catch (err) {
+      console.error('rsvp failed', err);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!event) return;
+    const shareUrl = `${window.location.origin}/event/${event.id}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: event.title, url: shareUrl }); } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(shareUrl); alert('Share link copied'); } catch {}
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!event) return;
+    if (!window.confirm(`Delete "${event.title}"? This can't be undone.`)) return;
+    try {
+      await deleteDocument('events', event.id);
+      navigate('/calendar');
+    } catch (err) {
+      console.error('delete failed', err);
+      alert('Failed to delete.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-200 border-t-cyan-500" />
+      </div>
+    );
+  }
+
+  if (!event || !eventDate) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-slate-600 mb-4">Event not found.</p>
+        <Link to="/calendar" className="text-cyan-600 font-semibold">← Back to events</Link>
+      </div>
+    );
+  }
+
+  const typeColors: Record<string, { stripe: string; chip: string }> = {
+    game: { stripe: 'from-rose-500 to-orange-500', chip: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
+    practice: { stripe: 'from-cyan-500 to-blue-600', chip: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' },
+    event: { stripe: 'from-purple-500 to-pink-500', chip: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
+  };
+  const colors = typeColors[event.type] || typeColors.event;
+
+  const countdownClass =
+    countdown?.variant === 'live'
+      ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
+      : countdown?.variant === 'past'
+      ? 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+      : 'bg-cyan-500/10 border-cyan-500/25 text-slate-200';
+  const pulseClass =
+    countdown?.variant === 'live' ? 'bg-rose-500'
+    : countdown?.variant === 'past' ? 'bg-slate-500'
+    : 'bg-cyan-400 animate-pulse';
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10 px-4 sm:px-6 pt-4 pb-5">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center hover:bg-white/10"
+            aria-label="Back"
+          >
+            <Icon name="arrow-left" className="w-4 h-4" />
+          </button>
+          {countdown && (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-extrabold tracking-widest uppercase ${countdownClass}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${pulseClass}`} />
+              {countdown.label}
+            </span>
+          )}
+          {isUserCoach ? (
+            <Link
+              to={`/calendar?event=${event.id}&edit=1`}
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center hover:bg-white/10"
+              aria-label="Edit"
+            >
+              <Icon name="edit" className="w-4 h-4" />
+            </Link>
+          ) : (
+            <span className="w-9 h-9" aria-hidden />
+          )}
+        </div>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-extrabold tracking-widest uppercase ${colors.chip}`}>
+          {event.type}
+        </span>
+        <h1 className="mt-1 text-2xl sm:text-3xl font-black text-white leading-tight">
+          {event.title}
+        </h1>
+        <p className="mt-2 text-sm text-slate-300 flex items-center gap-1.5 flex-wrap">
+          <span className="inline-flex items-center gap-1"><Icon name="cal" className="w-3 h-3 text-slate-400" /> {eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          <span className="text-slate-600">·</span>
+          <span className="inline-flex items-center gap-1"><Icon name="clock" className="w-3 h-3 text-slate-400" /> {formatTimeRange(eventDate, eventEnd)}</span>
+          {event.location && <>
+            <span className="text-slate-600">·</span>
+            <span className="inline-flex items-center gap-1"><Icon name="pin" className="w-3 h-3 text-slate-400" /> {event.location}</span>
+          </>}
+        </p>
+      </section>
+
+      {/* QUICK ACTIONS */}
+      <div className="bg-slate-50 px-4 sm:px-6 py-3 grid grid-cols-3 gap-2 border-b border-slate-200">
+        <button
+          onClick={() => setMyRsvp('going')}
+          className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase ${
+            myRsvp?.status === 'going'
+              ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm'
+              : 'bg-white border border-slate-200 text-slate-900 hover:border-emerald-400'
+          }`}
+        >
+          <Icon name="check" className="w-4 h-4" />
+          {myRsvp?.status === 'going' ? 'Going' : "I'm going"}
+        </button>
+        <button
+          onClick={handleShare}
+          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 text-xs font-bold tracking-wider uppercase hover:border-cyan-400"
+        >
+          <Icon name="share" className="w-4 h-4" />
+          Share
+        </button>
+        {isUserCoach ? (
+          <button
+            onClick={handleDelete}
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-rose-200 text-rose-700 text-xs font-bold tracking-wider uppercase hover:bg-rose-50"
+          >
+            <Icon name="trash" className="w-4 h-4" />
+            Delete
+          </button>
+        ) : (
+          <button
+            onClick={() => setMyRsvp('no')}
+            className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase ${
+              myRsvp?.status === 'no'
+                ? 'bg-slate-700 text-white'
+                : 'bg-white border border-slate-200 text-slate-900 hover:border-slate-400'
+            }`}
+          >
+            Can't go
+          </button>
+        )}
+      </div>
+
+      {/* RSVPS */}
+      <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
+            <Icon name="users" className="w-3 h-3 text-cyan-500" />
+            RSVPs
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="relative overflow-hidden rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-emerald-500" />
+            <div className="text-2xl font-black text-emerald-700 leading-none">{buckets.going.length}</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">GOING</div>
+          </div>
+          <div className="relative overflow-hidden rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-amber-500" />
+            <div className="text-2xl font-black text-amber-700 leading-none">{buckets.maybe.length}</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">MAYBE</div>
+          </div>
+          <div className="relative overflow-hidden rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />
+            <div className="text-2xl font-black text-slate-700 leading-none">{buckets.pending}</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">PENDING</div>
+          </div>
+        </div>
+        {buckets.going.length > 0 && (
+          <ul className="mt-3 divide-y divide-slate-100">
+            {buckets.going.map((p, i) => (
+              <li key={`go-${i}`} className="py-1.5 flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex-shrink-0" />
+                <span className="text-sm font-semibold text-slate-900 flex-1">{p.name}</span>
+                <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${
+                  p.isGuest
+                    ? 'bg-slate-100 text-slate-500 border-slate-300'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}>
+                  {p.isGuest ? 'GUEST' : 'ROSTER'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* WEATHER */}
+      {weather && (
+        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
+              <Icon name="cloud" className="w-3 h-3 text-cyan-500" />
+              Weather
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl" aria-hidden>{weather.icon}</span>
+            <div>
+              <div className="text-xl font-black text-slate-900 leading-none">
+                {weather.tempMaxF}° <span className="text-slate-400 font-semibold text-sm">/ {weather.tempMinF}°</span>
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1 tracking-wide uppercase">
+                {weather.label}
+                {weather.precipChance >= 20 && ` · ${weather.precipChance}% rain`}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* CARPOOL — minimal placeholder, full carpool board ships in Phase 3 */}
+      {Array.isArray((event as any).carpoolPosts) && (event as any).carpoolPosts.length > 0 && (
+        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
+              <Icon name="car" className="w-3 h-3 text-cyan-500" />
+              Carpool
+            </div>
+            <Link to={`/calendar?event=${event.id}`} className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-600">
+              Open in calendar
+            </Link>
+          </div>
+          <div className="text-sm text-slate-600">
+            {(event as any).carpoolPosts.length} {(event as any).carpoolPosts.length === 1 ? 'post' : 'posts'} on the carpool board.
+          </div>
+        </section>
+      )}
+
+      {/* DESCRIPTION */}
+      {event.description && (
+        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-1.5">
+            About
+          </div>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{event.description}</p>
+        </section>
+      )}
+    </div>
+  );
+};
+
+export default EventDetail;

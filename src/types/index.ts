@@ -190,6 +190,9 @@ export interface CalendarEvent {
   date: Date;
   location: string;
   type: 'game' | 'practice' | 'event';
+  /** Optional end time. Older events created before this field don't
+   *  have one; treat undefined as "no defined end" in the UI. */
+  endDate?: Date;
   teamId: string;
   createdBy: string;
   createdByName?: string;

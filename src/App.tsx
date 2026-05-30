@@ -44,6 +44,7 @@ const GameDay = React.lazy(() => import('./pages/GameDay'));
 const QuickGameLauncher = React.lazy(() => import('./pages/QuickGameLauncher'));
 const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder'));
 const Settings = React.lazy(() => import('./pages/Settings'));
+const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 
 const PageSpinner = () => (
   <div className="min-h-screen bg-fire-50 flex items-center justify-center">
@@ -271,6 +272,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Calendar />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/events/:eventId" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <EventDetail />
                 </AppLayout>
               </ProtectedRoute>
             } />

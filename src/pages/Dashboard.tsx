@@ -380,6 +380,7 @@ const Dashboard: React.FC = () => {
         firstName={firstName}
         nextEvent={nextEvent}
         goingCount={rsvpCounts.going}
+        pendingRsvpCount={rsvpCounts.pending}
         whenText={nextEvent ? friendlyWhen(new Date(nextEvent.date)) : ''}
         newMessagesCount={newMessagesCount}
         weather={nextEventWeather}

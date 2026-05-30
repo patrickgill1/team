@@ -7,6 +7,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { CalendarEvent } from '../types';
 import { isCoach } from '../utils/helpers';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
+import EventDiscussion from '../components/calendar/EventDiscussion';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -534,6 +535,15 @@ const EventDetail: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* DISCUSSION — per-event comment thread (doesn't clog the chat tab) */}
+      <EventDiscussion
+        eventId={event.id}
+        teamId={event.teamId}
+        userUid={userData?.uid}
+        userName={userData?.name}
+        userPhotoURL={(userData as any)?.photoURL}
+      />
 
       {/* WHAT TO BRING — coach-editable checklist, parent ticks per-uid */}
       <PackingListSection

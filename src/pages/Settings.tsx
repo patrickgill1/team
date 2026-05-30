@@ -204,7 +204,7 @@ const Settings: React.FC = () => {
   const userInitial = (userData?.name || userData?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="min-h-screen bg-slate-100 pb-12">
       {/* Page title row — sits below the global AppLayout top bar, no
           second dark header. */}
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-2 flex items-center justify-between">
@@ -235,7 +235,7 @@ const Settings: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <div className="flex items-start gap-4">
               {/* Avatar */}
               <button
@@ -349,7 +349,7 @@ const Settings: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             {loadingPlayers ? (
               <p className="text-sm text-gray-500 text-center py-4">Loading…</p>
             ) : linkedPlayers.length === 0 ? (
@@ -389,7 +389,7 @@ const Settings: React.FC = () => {
         {/* ── MANAGE ACCOUNT ────────────────────────────────────── */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-2 px-1">Manage Account</h2>
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 overflow-hidden divide-y divide-gray-100">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-gray-100">
             <SettingsRow
               icon="calendar"
               label="Calendar Syncing (Google, Apple, etc)"
@@ -434,7 +434,7 @@ const Settings: React.FC = () => {
 
         {/* ── DANGER ────────────────────────────────────────────── */}
         <section>
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 overflow-hidden divide-y divide-gray-100">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-gray-100">
             <button
               onClick={handleSignOut}
               className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition"

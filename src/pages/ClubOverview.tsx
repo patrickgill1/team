@@ -675,25 +675,25 @@ const StatsTab: React.FC<{
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <BigStat icon="⚽" label="Total goals" value={totals.goals} accent="emerald" />
-        <BigStat icon="🎯" label="Total assists" value={totals.assists} accent="cyan" />
-        <BigStat icon="🛡️" label="Total saves" value={totals.saves} accent="amber" />
-        <BigStat icon="👥" label="Total players" value={players.length} accent="violet" />
+        <BigStat icon="goal" label="Total goals" value={totals.goals} accent="emerald" />
+        <BigStat icon="target" label="Total assists" value={totals.assists} accent="cyan" />
+        <BigStat icon="shield" label="Total saves" value={totals.saves} accent="amber" />
+        <BigStat icon="users" label="Total players" value={players.length} accent="violet" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <LeaderboardCard title="🥇 Top scorers (club-wide)" rows={topScorers.map((p) => ({
+        <LeaderboardCard title="Top scorers (club-wide)" rows={topScorers.map((p) => ({
           name: p.name, sub: teamLabel(p, teams), value: p.stats?.goals || 0, photoUrl: p.profilePhotoUrl, id: p.id,
         }))} />
-        <LeaderboardCard title="🎯 Top assist providers" rows={topAssisters.map((p) => ({
+        <LeaderboardCard title="Top assist providers" rows={topAssisters.map((p) => ({
           name: p.name, sub: teamLabel(p, teams), value: p.stats?.assists || 0, photoUrl: p.profilePhotoUrl, id: p.id,
         }))} />
       </div>
 
-      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100">
-          <h2 className="font-bold text-fire-950">Team leaderboard</h2>
-          <p className="text-xs text-gray-500">Ranked by goals scored</p>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100">
+          <h2 className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Team leaderboard</h2>
+          <p className="text-[11px] text-slate-400 mt-0.5">Ranked by goals scored</p>
         </div>
         <ul className="divide-y divide-gray-100">
           {teamLeaders.map((t, i) => {
@@ -746,25 +746,45 @@ const FilterChip: React.FC<{ active: boolean; onClick: () => void; children: Rea
   </button>
 );
 
+// Monoline icon set used by BigStat tiles (consistent with the rest
+// of the new chrome — no emoji).
+const STAT_ICONS: Record<string, JSX.Element> = {
+  goal: (
+    <svg fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="w-4 h-4"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg>
+  ),
+  target: (
+    <svg fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+  ),
+  shield: (
+    <svg fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="w-4 h-4"><path d="M12 2L4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5l-8-3z"/></svg>
+  ),
+  users: (
+    <svg fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="w-4 h-4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  ),
+};
+
 const BigStat: React.FC<{ icon: string; label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ icon, label, value, accent }) => {
   const accents: Record<string, string> = {
-    emerald: 'text-emerald-700 bg-emerald-50 ring-emerald-100',
-    cyan: 'text-cyan-700 bg-cyan-50 ring-cyan-100',
-    amber: 'text-amber-700 bg-amber-50 ring-amber-100',
-    violet: 'text-violet-700 bg-violet-50 ring-violet-100',
+    emerald: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    cyan: 'text-cyan-700 bg-cyan-50 border-cyan-200',
+    amber: 'text-amber-700 bg-amber-50 border-amber-200',
+    violet: 'text-violet-700 bg-violet-50 border-violet-200',
   };
   return (
-    <div className={`rounded-2xl px-4 py-3 ring-1 ${accents[accent]}`}>
-      <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">{label}</div>
-      <div className="text-2xl sm:text-3xl font-black leading-tight mt-0.5">{icon} {value}</div>
+    <div className={`rounded-xl px-3 py-2.5 border ${accents[accent]}`}>
+      <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-widest uppercase opacity-80">
+        {STAT_ICONS[icon]}
+        {label}
+      </div>
+      <div className="text-2xl sm:text-3xl font-black leading-tight mt-1">{value}</div>
     </div>
   );
 };
 
 const LeaderboardCard: React.FC<{ title: string; rows: { id: string; name: string; sub: string; value: number; photoUrl?: string }[] }> = ({ title, rows }) => (
-  <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-    <div className="px-5 py-3 border-b border-gray-100">
-      <h3 className="font-bold text-fire-950">{title}</h3>
+  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="px-4 py-3 border-b border-slate-100">
+      <h3 className="text-xs font-extrabold tracking-widest uppercase text-slate-600">{title}</h3>
     </div>
     {rows.length === 0 ? (
       <div className="p-6 text-center text-sm text-gray-500">No data yet.</div>

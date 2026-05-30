@@ -119,76 +119,60 @@ const Stats: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header 
-        title="Team Statistics" 
-        subtitle={isUserCoach ? "Track and analyze player performance" : "View team and player statistics"}
-      />
+    <div className="min-h-screen bg-slate-100">
+      <Header title="Stats" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Error Message */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
         {loadError && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              <div>
-                <h3 className="text-sm font-medium text-yellow-800">Loading Issue</h3>
-                <p className="text-sm text-yellow-700 mt-1">{loadError}</p>
-              </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+            <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-amber-900">Loading issue</p>
+              <p className="text-xs text-amber-800 mt-0.5">{loadError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-[11px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-100 text-amber-900 hover:bg-amber-200"
+              >Refresh</button>
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm font-medium transition-colors duration-200"
-            >
-              Refresh Page
-            </button>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div className="card-modern mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="border-b border-slate-100">
+            <nav className="flex gap-1 px-3 pt-2">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                className={`px-3 py-2 rounded-t-md text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition-colors ${
                   activeTab === 'overview'
-                    ? 'border-cyan-500 text-cyan-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-cyan-500 text-cyan-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <div className="flex items-center space-x-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <span>Statistics Overview</span>
-                </div>
+                Overview
               </button>
-              
+
               {isUserCoach && (
                 <button
                   onClick={() => setActiveTab('track')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  className={`px-3 py-2 rounded-t-md text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition-colors ${
                     activeTab === 'track'
-                      ? 'border-cyan-500 text-cyan-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-cyan-500 text-cyan-700'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>Track Stats</span>
-                  </div>
+                  Track
                 </button>
               )}
             </nav>
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="p-4">
             {activeTab === 'overview' ? (
               <StatsOverview
                 players={players}

@@ -24,6 +24,20 @@ const INSTALLED_SNOOZE_MS = 1000 * 60 * 60 * 24 * 180; // ~6 months after tappin
 const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
 
+// Pre-launch Android: recruit closed-testing volunteers via email until
+// the Play listing flips public. The 12-testers-for-14-days requirement
+// has to be cleared before Google will let us open the listing, so
+// surface a "help test" CTA on Android web instead of an "install"
+// button that 404s.
+const ANDROID_BETA_EMAIL = 'support@firefc.app';
+const ANDROID_BETA_SUBJECT = 'Join the Fire FC Android beta';
+const ANDROID_BETA_BODY =
+  "Hi! I'd like to help test the Fire FC Android app.\n\n" +
+  "Here's the Gmail address tied to my Android device (we need this to add you " +
+  'to the Google Play tester list):\n\n' +
+  '<your-gmail@gmail.com>\n\n' +
+  'Thanks!';
+
 const isCapacitor = () => {
   if (typeof window === 'undefined') return false;
   // Capacitor exposes window.Capacitor inside the WKWebView / Android
@@ -65,10 +79,11 @@ const InstallAppBanner: React.FC = () => {
     const snoozeUntil = Number(localStorage.getItem(STORAGE_KEY) || 0);
     if (snoozeUntil && Date.now() < snoozeUntil) return;
 
-    // Skip Android until the Play listing exists. Android users on the
-    // web today get the full PWA-ish experience; nagging them to "install
-    // the app" when there isn't one to install is worse than no banner.
-    if (detected === 'android' && !ANDROID_STORE_LIVE) return;
+    // Android users on the web see EITHER the beta-recruitment CTA
+    // (while ANDROID_STORE_LIVE is false and we still need closed
+    // testers) OR the standard install CTA once Play goes public.
+    // Both paths use the same banner shell. iOS stays gated on the
+    // store actually being live.
     if (detected === 'ios' && !IOS_STORE_LIVE) return;
 
     setPlatform(detected);
@@ -82,10 +97,22 @@ const InstallAppBanner: React.FC = () => {
   const dismiss = () => snooze(DISMISS_REMINDER_MS);
   const onInstall = () => snooze(INSTALLED_SNOOZE_MS); // they're likely installing now
 
-  const installUrl = platform === 'ios' ? APP_STORE_URL : PLAY_STORE_URL;
-  const storeLabel = platform === 'ios' ? 'App Store' : 'Google Play';
-
   if (!visible || !platform) return null;
+
+  // Pre-launch Android beta variant — recruit testers instead of
+  // pointing them at a Play Store listing that 404s.
+  const isAndroidBeta = platform === 'android' && !ANDROID_STORE_LIVE;
+  const installUrl = isAndroidBeta
+    ? `mailto:${ANDROID_BETA_EMAIL}?subject=${encodeURIComponent(ANDROID_BETA_SUBJECT)}&body=${encodeURIComponent(ANDROID_BETA_BODY)}`
+    : platform === 'ios'
+    ? APP_STORE_URL
+    : PLAY_STORE_URL;
+  const storeLabel = isAndroidBeta ? 'beta signup' : platform === 'ios' ? 'App Store' : 'Google Play';
+  const ctaTitle = isAndroidBeta ? 'Help test the Fire FC Android app' : 'Get the Fire FC app';
+  const ctaSubtitle = isAndroidBeta
+    ? "We're recruiting beta testers — tap to email us your Gmail."
+    : 'Push notifications, faster, works offline.';
+  const ctaButtonLabel = isAndroidBeta ? 'Sign up' : 'Install';
 
   return (
     <div className="lg:hidden bg-gradient-to-r from-cyan-600 to-navy-700 text-white shadow">
@@ -96,24 +123,22 @@ const InstallAppBanner: React.FC = () => {
           className="w-9 h-9 rounded-xl bg-white/10 ring-1 ring-white/20 p-1 shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold leading-tight truncate">Get the Fire FC app</p>
-          <p className="text-[11px] text-white/80 leading-tight truncate">
-            Push notifications, faster, works offline.
-          </p>
+          <p className="text-sm font-bold leading-tight truncate">{ctaTitle}</p>
+          <p className="text-[11px] text-white/80 leading-tight truncate">{ctaSubtitle}</p>
         </div>
         <a
           href={installUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          target={isAndroidBeta ? undefined : '_blank'}
+          rel={isAndroidBeta ? undefined : 'noopener noreferrer'}
           onClick={onInstall}
           className="shrink-0 inline-flex items-center gap-1.5 bg-white text-navy-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition"
         >
-          <span>Install</span>
+          <span>{ctaButtonLabel}</span>
         </a>
         <button
           onClick={dismiss}
           aria-label="Dismiss"
-          title={`Hide for 14 days (open from ${storeLabel} anytime)`}
+          title={`Hide for 14 days (${storeLabel})`}
           className="shrink-0 -mr-1 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">

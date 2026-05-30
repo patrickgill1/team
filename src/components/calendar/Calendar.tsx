@@ -656,9 +656,33 @@ const Calendar: React.FC<CalendarProps> = ({
     };
 
     return (
-      <div className="rounded-2xl overflow-hidden shadow-sm">
-        {/* Pill filters — sit on the navy header band */}
-        <div className="bg-slate-950 px-3.5 py-2.5 flex gap-1.5 overflow-x-auto">
+      <div>
+        {/* Page header — full-bleed navy. "Events" title + plus icon
+            for new event. No subtitle (we don't need to say what
+            events are). Lives in the navy band so the page reads
+            as one continuous surface. */}
+        <div className="bg-slate-950 px-4 pt-4 pb-3 flex items-center justify-between">
+          <h1 className="text-2xl font-black text-white tracking-tight">Events</h1>
+          {isUserCoach && (
+            <button
+              onClick={() => {
+                setEditingEvent(null);
+                setSelectedDate(null);
+                setIsEventFormOpen(true);
+              }}
+              aria-label="Add event"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Pill filters — same navy continues */}
+        <div className="bg-slate-950 px-3.5 pb-2.5 flex gap-1.5 overflow-x-auto">
           {pillFilters.map(({ key, label }) => (
             <button
               key={key}
@@ -749,11 +773,12 @@ const Calendar: React.FC<CalendarProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Top action row — no page title here (the page Header already
-          shows "Events"); just the desktop view toggle and coach tools.
-          Calendar subscription is reached from Settings → Calendar
-          Syncing, so we don't surface a confusing chevron button here. */}
+    <div className={viewMode === 'list' ? '' : 'space-y-4 px-4 sm:px-6 lg:px-8 py-6'}>
+      {/* Top action row — month view only (list view has its own navy
+          header with the title + plus button). Holds the month/list
+          toggle on desktop, the schedule importer, and the legacy
+          Add Event button for parity. */}
+      {viewMode === 'month' && (
       <div className="flex flex-wrap items-center justify-end gap-2">
         {/* Month/List toggle — desktop only. On phones the month grid
             is too cramped to be useful; the list is the right default
@@ -805,6 +830,7 @@ const Calendar: React.FC<CalendarProps> = ({
           </>
         )}
       </div>
+      )}
 
       {/* Calendar Content */}
       {viewMode === 'month' ? renderMonthView() : renderListView()}

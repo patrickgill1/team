@@ -1,6 +1,5 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import Header from '../components/common/Header';
 import CalendarComponent from '../components/calendar/Calendar';
 
 const CalendarPage: React.FC = () => {
@@ -12,20 +11,18 @@ const CalendarPage: React.FC = () => {
   const view = searchParams.get('view') === 'month' ? 'month' : 'list';
   const focusEventId = searchParams.get('event') || undefined;
 
+  // No outer Header here — the Events list owns its own navy header
+  // bar so the whole page reads as one continuous surface (no
+  // "window inside a window" effect on the list view). Month-grid
+  // visitors will still see a normal page; the inner component
+  // controls its own chrome.
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header
-        title="Events"
-        subtitle="Practices, games, and team events"
+    <div className="min-h-screen bg-slate-950">
+      <CalendarComponent
+        viewMode={view}
+        showCreateButton={true}
+        focusEventId={focusEventId}
       />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <CalendarComponent
-          viewMode={view}
-          showCreateButton={true}
-          focusEventId={focusEventId}
-        />
-      </div>
     </div>
   );
 };

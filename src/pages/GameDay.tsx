@@ -329,6 +329,36 @@ const GameDay: React.FC = () => {
       update.ourScore = (game?.ourScore || 0) + 1;
     }
     await patch(update);
+
+    // Mirror the game-day event into the event's discussion thread so
+    // parents reading the event page see a live game log. Best-effort
+    // — silent fail if the event doc isn't around or rules block.
+    if (event?.id && event?.teamId && (kind === 'goal' || kind === 'owngoal' || kind === 'assist' || kind === 'yellow' || kind === 'red' || kind === 'save' || kind === 'sub')) {
+      const meta = KIND_META[kind];
+      const emoji = meta?.emoji || '⚡';
+      const verb =
+        kind === 'goal' ? 'GOAL'
+        : kind === 'owngoal' ? 'Own goal'
+        : kind === 'assist' ? 'Assist'
+        : kind === 'yellow' ? 'Yellow card'
+        : kind === 'red' ? 'Red card'
+        : kind === 'save' ? 'Save'
+        : 'Substitution';
+      const who = entry.playerName ? ` — ${entry.playerName}` : '';
+      const min = typeof minute === 'number' ? ` (${minute}')` : '';
+      try {
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        await addDoc(collection(db, 'eventComments'), {
+          eventId: event.id,
+          teamId: event.teamId,
+          authorId: 'system:gameday',
+          authorName: 'Live Game',
+          content: `${emoji} ${verb}${who}${min}`,
+          createdAt: serverTimestamp(),
+        });
+      } catch { /* non-fatal */ }
+    }
   };
 
   const removeTimelineEntry = async (id: string) => {

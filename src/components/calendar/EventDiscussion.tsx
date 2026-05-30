@@ -11,6 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
+import { sendPushToUsers } from '../../utils/notify';
 
 // Per-event discussion thread. Lives on the event page, NOT in the
 // Chat tab — keeps the chat inbox uncluttered while still giving
@@ -35,6 +36,11 @@ interface Props {
   userUid?: string;
   userName?: string;
   userPhotoURL?: string;
+  /** User IDs we should ping when a new comment is posted (everyone
+   *  who's RSVP'd going/maybe to this event, minus the commenter). */
+  notifyUids?: string[];
+  /** Event title — used in the notification text. */
+  eventTitle?: string;
 }
 
 function formatRelative(d: Date): string {
@@ -49,7 +55,7 @@ function formatRelative(d: Date): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, userPhotoURL }) => {
+const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, userPhotoURL, notifyUids, eventTitle }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
@@ -92,6 +98,19 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
       setDraft('');
       // Refocus the composer for fast multi-message bursts.
       composerRef.current?.focus();
+      // Push-notify everyone going/maybe on the event (minus the
+      // commenter). Best-effort — silent no-op if push isn't
+      // configured for the workspace.
+      if (notifyUids && notifyUids.length > 0) {
+        const targets = notifyUids.filter(u => u && u !== userUid);
+        if (targets.length > 0) {
+          sendPushToUsers(targets, {
+            title: eventTitle ? `New comment on ${eventTitle}` : 'New event comment',
+            body: `${userName}: ${content.slice(0, 140)}${content.length > 140 ? '…' : ''}`,
+            url: `/events/${eventId}`,
+          }).catch(() => { /* non-fatal */ });
+        }
+      }
     } catch (err) {
       console.error('post comment failed', err);
       alert('Failed to send — please try again.');

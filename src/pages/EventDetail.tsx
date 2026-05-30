@@ -549,13 +549,24 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
-      {/* DISCUSSION — per-event comment thread (doesn't clog the chat tab) */}
+      {/* DISCUSSION — per-event comment thread (doesn't clog the chat tab).
+          notifyUids = everyone who RSVPd going/maybe through the
+          authenticated rsvps map. Per-player RSVPs key by playerId
+          (not uid) so they're skipped; share-link guest RSVPs have no
+          uid and are skipped too — they get nothing. */}
       <EventDiscussion
         eventId={event.id}
         teamId={event.teamId}
         userUid={userData?.uid}
         userName={userData?.name}
         userPhotoURL={(userData as any)?.photoURL}
+        eventTitle={event.title}
+        notifyUids={(() => {
+          const r = (event.rsvps || {}) as Record<string, any>;
+          return Object.entries(r)
+            .filter(([, v]) => v.status === 'going' || v.status === 'maybe')
+            .map(([uid]) => uid);
+        })()}
       />
 
       {/* WHAT TO BRING — coach-editable checklist, parent ticks per-uid */}

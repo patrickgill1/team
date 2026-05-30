@@ -12,9 +12,15 @@ export async function initNativeShell(): Promise<void> {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setBackgroundColor({ color: '#0f172a' });
-    // Keep the WebView *below* the status bar so the notch / Dynamic Island
-    // doesn't draw on top of the page content.
-    await StatusBar.setOverlaysWebView({ overlay: false });
+    // setOverlaysWebView({overlay:false}) shifts the WebView down past
+    // the status bar. iOS needs this so content doesn't draw under
+    // the notch / Dynamic Island. Android does NOT need it because
+    // MainActivity already pads the activity root by the system-bar
+    // insets — calling it on Android double-pads the WebView and
+    // produces a tall empty navy strip above the app header.
+    if (Capacitor.getPlatform() === 'ios') {
+      await StatusBar.setOverlaysWebView({ overlay: false });
+    }
   } catch (err) {
     console.warn('StatusBar init failed', err);
   }

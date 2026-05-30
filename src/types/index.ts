@@ -378,6 +378,10 @@ export interface ChatMessage {
   requireAck?: boolean;
   /** User IDs who have explicitly acknowledged the message. */
   acknowledgedBy?: string[];
+  /** Read receipts. Map of uid → epoch-ms when the message first
+   *  appeared in their conversation view. Older messages predate this
+   *  field; absence ≠ unread. */
+  readBy?: Record<string, number>;
   isRead?: boolean;
   createdAt: Date;
   updatedAt?: Date;

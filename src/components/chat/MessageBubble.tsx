@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { ChatMessage } from '../../types';
 import PollCard from './PollCard';
-
-const QUICK_REACTIONS = ['👍', '❤️', '🔥', '⚽', '🏆', '😂', '🙌', '👏'];
+import EmojiPicker from './EmojiPicker';
+import ReadBySheet from './ReadBySheet';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -39,6 +39,12 @@ interface MessageBubbleProps {
    *  the message itself doesn't carry senderPhotoUrl (older messages
    *  predate that field) so DMs / threads still show real avatars. */
   getSenderPhotoUrl?: (senderId: string) => string | undefined;
+  /** Optional name lookup by uid — used to render the "Read by" list. */
+  getUserName?: (uid: string) => string | undefined;
+  /** Called once on first render of a message NOT sent by the current
+   *  user and NOT already in readBy[currentUserId]. Wires up the
+   *  read-receipt write back to Firestore from the parent. */
+  onMarkRead?: (m: ChatMessage) => void;
 }
 
 function escapeHtml(s: string): string {
@@ -113,9 +119,27 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isFirstInGroup = true,
   isLastInGroup = true,
   getSenderPhotoUrl,
+  getUserName,
+  onMarkRead,
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [readByOpen, setReadByOpen] = useState(false);
   const longPressTimer = useRef<number | null>(null);
+
+  // Mark this message as read once per render-cycle if (a) it's not
+  // ours and (b) the current user isn't already in readBy. Fires
+  // immediately — the conversation is open, the message is in the
+  // DOM, the user has effectively seen it.
+  const isOwnForRead = message.senderId === currentUserId;
+  const readBy = ((message as any).readBy || {}) as Record<string, number>;
+  const alreadyRead = currentUserId ? !!readBy[currentUserId] : true;
+  React.useEffect(() => {
+    if (!onMarkRead) return;
+    if (isOwnForRead) return;
+    if (alreadyRead) return;
+    onMarkRead(message);
+  }, [message.id, isOwnForRead, alreadyRead, onMarkRead]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isOwn = message.senderId === currentUserId;
   // Prefer the photoURL frozen onto the message at send time, but fall
@@ -385,6 +409,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       </div>
 
       {/* Action sheet — opens on long-press or right-click. Tap outside to close. */}
+      {/* Reaction affordance — small chip next to incoming bubbles that
+          opens the picker without long-press. Visible always on mobile,
+          hidden until hover on desktop. */}
+      {!isOwn && message.content && (
+        <button
+          onClick={() => setEmojiOpen(true)}
+          aria-label="React to message"
+          className="ml-1 self-end mb-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+            <line x1="19" y1="6" x2="19" y2="10"/>
+            <line x1="17" y1="8" x2="21" y2="8"/>
+          </svg>
+        </button>
+      )}
+
       {actionsOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4"
@@ -394,57 +438,102 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="grid grid-cols-4 gap-1 p-3 border-b border-gray-100">
-              {QUICK_REACTIONS.map((e) => (
+            {/* Inline 8-quick-emoji row — most common reactions, one tap
+                away. Tap "More" to open the full picker. */}
+            <div className="grid grid-cols-9 gap-0.5 p-2 border-b border-slate-100">
+              {['👍','❤️','🔥','⚽','🏆','😂','🙌','👏'].map((e) => (
                 <button
                   key={e}
-                  onClick={() => {
-                    onToggleReaction(message, e);
-                    setActionsOpen(false);
-                  }}
-                  className="text-2xl py-2 rounded-xl hover:bg-gray-100 transition active:scale-95"
-                >
-                  {e}
-                </button>
+                  onClick={() => { onToggleReaction(message, e); setActionsOpen(false); }}
+                  className="text-xl py-1.5 rounded-lg hover:bg-slate-100 active:scale-95"
+                >{e}</button>
               ))}
+              <button
+                onClick={() => { setActionsOpen(false); setEmojiOpen(true); }}
+                className="text-base py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold"
+                aria-label="More emoji"
+              >+</button>
             </div>
+
             <button
-              onClick={() => {
-                onReply(message);
-                setActionsOpen(false);
-              }}
-              className="w-full text-left px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 transition flex items-center gap-3"
+              onClick={() => { onReply(message); setActionsOpen(false); }}
+              className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-50 transition flex items-center gap-3"
             >
-              <span>↪</span> Reply
+              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+              Reply
             </button>
+
+            <button
+              onClick={() => { setActionsOpen(false); setReadByOpen(true); }}
+              className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-50 transition flex items-center gap-3 border-t border-slate-100"
+            >
+              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Read by {(message as any).readBy ? Object.keys((message as any).readBy).length : 0}
+            </button>
+
             {canPin && onTogglePin && (
               <button
-                onClick={() => {
-                  onTogglePin(message);
-                  setActionsOpen(false);
-                }}
-                className="w-full text-left px-4 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 transition flex items-center gap-3 border-t border-gray-100"
+                onClick={() => { onTogglePin(message); setActionsOpen(false); }}
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-50 transition flex items-center gap-3 border-t border-slate-100"
               >
-                <span>📌</span> {isPinned ? 'Unpin from thread' : 'Pin to thread'}
+                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z"/></svg>
+                {isPinned ? 'Unpin from thread' : 'Pin to thread'}
               </button>
             )}
+
             {isOwn && onDelete && (
               <button
-                onClick={() => {
-                  onDelete(message);
-                  setActionsOpen(false);
-                }}
-                className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition flex items-center gap-3 border-t border-gray-100"
+                onClick={() => { onDelete(message); setActionsOpen(false); }}
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition flex items-center gap-3 border-t border-slate-100"
               >
-                <span>🗑️</span> Delete
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                Delete
               </button>
             )}
+
             <button
               onClick={() => setActionsOpen(false)}
-              className="w-full text-center px-4 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50 border-t border-gray-100"
+              className="w-full text-center px-4 py-2.5 text-sm font-medium text-slate-500 hover:bg-slate-50 border-t border-slate-100"
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Full emoji picker — opened from the affordance chip OR
+          from the "+" button in the action sheet. */}
+      {emojiOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setEmojiOpen(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm">
+            <EmojiPicker
+              onPick={(emoji) => { onToggleReaction(message, emoji); setEmojiOpen(false); }}
+              onClose={() => setEmojiOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Read-by sheet — list of who's seen this message, with timestamps. */}
+      {readByOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setReadByOpen(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <ReadBySheet
+              readers={Object.entries(((message as any).readBy || {}) as Record<string, number>).map(([uid, readAt]) => ({
+                uid,
+                readAt,
+                name: getUserName ? (getUserName(uid) || 'Member') : 'Member',
+                photoURL: getSenderPhotoUrl ? getSenderPhotoUrl(uid) : undefined,
+              }))}
+              threadParticipantCount={threadParticipantCount}
+              onClose={() => setReadByOpen(false)}
+            />
           </div>
         </div>
       )}

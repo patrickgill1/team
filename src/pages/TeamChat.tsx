@@ -831,6 +831,30 @@ const TeamChat: React.FC = () => {
     return m?.photoURL || undefined;
   };
 
+  // Used by the Read-by sheet to render names for each uid in readBy.
+  const getUserName = (uid: string): string | undefined => {
+    if (!uid) return undefined;
+    if (userData?.uid === uid) return userData?.name || 'You';
+    const m = teamMembers.find(tm => tm.uid === uid);
+    return m?.name;
+  };
+
+  // Write a read-receipt to a message. Throttled at the call site
+  // (MessageBubble fires once per first-render). Optimistic + best-effort
+  // — if it fails we just keep going.
+  const markMessageRead = async (m: ChatMessage) => {
+    if (!userData?.uid) return;
+    try {
+      const { doc: fsDoc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      const ref = fsDoc(db, 'messages', m.id);
+      await updateDoc(ref, { [`readBy.${userData.uid}`]: Date.now() });
+    } catch (err) {
+      // Older messages may not exist in /messages anymore, or rules
+      // may block; silently ignore — read receipts are non-critical.
+    }
+  };
+
   const startDM = async (member: { uid: string; name: string }) => {
     if (!userData || !selectedTeamId || dmStarting) return;
     setDmStarting(member.uid);
@@ -1374,6 +1398,8 @@ const TeamChat: React.FC = () => {
                       isFirstInGroup={isFirstInGroup}
                       isLastInGroup={isLastInGroup}
                       getSenderPhotoUrl={getSenderPhotoUrl}
+                      getUserName={getUserName}
+                      onMarkRead={markMessageRead}
                     />
                     </div>
                   );
@@ -1751,6 +1777,8 @@ const TeamChat: React.FC = () => {
                     isFirstInGroup={isFirstInGroup}
                     isLastInGroup={isLastInGroup}
                     getSenderPhotoUrl={getSenderPhotoUrl}
+                      getUserName={getUserName}
+                      onMarkRead={markMessageRead}
                   />
                   </div>
                 );

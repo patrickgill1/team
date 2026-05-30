@@ -335,7 +335,14 @@ const Navigation: React.FC = () => {
       </aside>
 
       {/* ===== MOBILE TOP BAR ===== */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-fire-950 safe-top">
+      {/* No safe-top here on purpose: the native shell (Capacitor
+          StatusBar.setOverlaysWebView({overlay:false}) on iOS +
+          MainActivity inset padding on Android) already positions
+          the WebView BELOW the system bar, so env(safe-area-inset-top)
+          inside the WebView is 0 on iOS / unreliable on Android.
+          Doubling it here produced a tall empty navy strip above
+          the logo on Samsung tablets. */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-fire-950">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/dashboard" className="flex items-center space-x-2">
             <img src="/images/logo.png" alt="Fire FC" className="h-8 w-8 object-contain" />

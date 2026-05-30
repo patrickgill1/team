@@ -175,11 +175,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="min-h-screen bg-fire-50">
       <Navigation />
       {/* Main content: offset for desktop sidebar + mobile top/bottom bars */}
-      {/* Top offset matches the mobile header (h-14 + its safe-top
-          env padding) so page content never sits behind it on
-          notched/insetted devices. Bottom offset accounts for the
-          floating tab bar. */}
-      <main className="lg:ml-64 pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-20 lg:pb-0">
+      {/* Mobile header is a flat h-14 (no safe-top — native shell
+          handles system insets), so pt-14 is exactly the offset
+          we need. Bottom offset accounts for the floating tab bar. */}
+      <main className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0">
         {/* Mobile-web only: prompt to install the native app. No-ops
             inside Capacitor, on desktop, or after dismissal. */}
         <InstallAppBanner />

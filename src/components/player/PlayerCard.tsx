@@ -36,7 +36,7 @@ const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cy
     accent === 'amber' ? 'text-amber-300' :
     'text-violet-300';
   return (
-    <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 text-center overflow-hidden">
+    <div className="rounded-lg bg-white/5 border border-white/10 p-2 text-center overflow-hidden">
       <div className={`text-xl sm:text-2xl font-black ${ring}`}>{value}</div>
       {/* tracking-tight + leading-none so the label fits even on the narrowest
           card width; 'ASSISTS' was clipping to 'ASSIS' on the previous
@@ -133,10 +133,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-fire-700 via-fire-800 to-navy-900 p-5 sm:p-6 text-white shadow-2xl ring-1 ring-white/10">
-        {/* decorative blobs */}
-        <div className="absolute -top-16 -right-16 w-56 h-56 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 p-4 sm:p-5 text-white shadow-md border border-cyan-500/10">
+        {/* Faint cyan accent — keeps a hint of "card has personality"
+            without the bubbly blur-blob look. */}
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
         {/* Edit / Delete actions */}
         {canEdit && (

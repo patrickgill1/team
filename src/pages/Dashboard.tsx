@@ -410,6 +410,8 @@ const Dashboard: React.FC = () => {
         whenText={nextEvent ? friendlyWhen(new Date(nextEvent.date)) : ''}
         newMessagesCount={newMessagesCount}
         weather={nextEventWeather}
+        playerCount={players.length}
+        isCoach={isUserCoach}
       />
       <div className="relative">
 
@@ -439,27 +441,8 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         )}
-        {/* Next-event detail card — folded into the DashboardHero
-            above. Kept here as a tiny no-event prompt only. */}
-        {!nextEvent && (
-          // Slim no-event banner — keeps the page flowing into the
-          // Recent chats / Your player row instead of leaving a giant
-          // empty rectangle at the top.
-          <div className="rounded-2xl bg-white ring-1 ring-gray-200 px-4 py-3 flex items-center gap-3">
-            <span className="text-2xl">📅</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 text-sm">No upcoming events</p>
-              <p className="text-xs text-gray-500">
-                {isUserCoach ? 'Add a practice or game to get the season started.' : 'Your coach will post one soon.'}
-              </p>
-            </div>
-            {isUserCoach && (
-              <Link to="/calendar" className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-1.5 px-3 rounded-full text-xs whitespace-nowrap">
-                ➕ Add event
-              </Link>
-            )}
-          </div>
-        )}
+        {/* The no-event empty state lives in DashboardHero now — no
+            second card needed here. */}
 
         {/* Player card sits full-width when a user has a linked player
             on this team (parent OR coach-with-kid). */}

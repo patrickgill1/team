@@ -46,6 +46,10 @@ interface Props {
   whenText: string;          // pre-formatted "Tomorrow at 9:00 AM"
   newMessagesCount: number;
   weather: WeatherSummary | null;
+  /** Used by the no-event state so the hero doesn't look empty when
+   *  the team has nothing on the calendar. */
+  playerCount: number;
+  isCoach: boolean;
   hourOverride?: number;
 }
 
@@ -61,6 +65,8 @@ const DashboardHero: React.FC<Props> = ({
   whenText,
   newMessagesCount,
   weather,
+  playerCount,
+  isCoach,
   hourOverride,
 }) => {
   const [now, setNow] = useState(() => new Date());
@@ -204,8 +210,52 @@ const DashboardHero: React.FC<Props> = ({
         )}
 
         {!nextEvent && (
-          <div className="mt-4 rounded-xl bg-slate-900/40 ring-1 ring-slate-700/60 px-4 py-3 text-sm text-slate-200">
-            No upcoming events. Add one from the Events tab to get rolling.
+          <div className="mt-3 grid grid-cols-[auto_1fr_auto] gap-3 sm:gap-4 items-center">
+            {/* Left: roster badge — "X PLAYERS / ON ROSTER" so the
+                hero never reads as empty even when nothing's scheduled. */}
+            <Link
+              to="/players"
+              aria-label={`${playerCount} players on roster`}
+              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-slate-900/55 ring-1 ring-cyan-400/40 shadow-lg shadow-cyan-500/10"
+            >
+              <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{playerCount}</span>
+              <span className="text-[9px] font-semibold tracking-wider text-slate-300 mt-1">ROSTER</span>
+            </Link>
+
+            {/* Middle: friendly empty state + CTA */}
+            <div className="min-w-0">
+              <p className="text-base sm:text-lg font-bold text-cyan-300 leading-tight">All quiet for now</p>
+              <p className="mt-0.5 text-xs sm:text-sm text-slate-300">
+                No upcoming events on the calendar.
+              </p>
+              {isCoach && (
+                <Link
+                  to="/calendar"
+                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] sm:text-xs font-extrabold tracking-widest uppercase text-cyan-400 hover:text-cyan-300"
+                >
+                  + Schedule one
+                </Link>
+              )}
+            </div>
+
+            {/* Right: messages stays so the chrome doesn't collapse */}
+            <div className="flex flex-col gap-2 sm:gap-3">
+              <Link
+                to="/chat"
+                className="flex items-center gap-2 group"
+                aria-label={`${newMessagesCount} new messages`}
+              >
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 11-3.41-6.55L21 4v6h-6" />
+                  </svg>
+                </span>
+                <div className="leading-tight">
+                  <div className="text-base sm:text-lg font-bold text-white">{newMessagesCount}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-300 -mt-0.5">new messages</div>
+                </div>
+              </Link>
+            </div>
           </div>
         )}
       </div>

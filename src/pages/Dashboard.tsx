@@ -38,6 +38,7 @@ const Dashboard: React.FC = () => {
     getTeamPlayerStatsMap,
     subscribeToChatThreads,
     updateDocument,
+    getDocuments,
   } = useFirestore();
 
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,10 @@ const Dashboard: React.FC = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [media, setMedia] = useState<PlayerMediaType[]>([]);
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([]);
+  // uid → photoURL map used by the Recent Chats card to render real
+  // avatars on DMs (and any future thread types that want a per-user
+  // photo). Built once from the users collection per team selection.
+  const [userPhotoMap, setUserPhotoMap] = useState<Record<string, string>>({});
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
   const { season: activeSeason } = useActiveSeason();
@@ -101,6 +106,27 @@ const Dashboard: React.FC = () => {
     };
     load();
   }, [selectedTeamId, getPlayersByTeam, getEventsByTeam, getPlayerMediaByTeam, getTeamPlayerStatsMap]);
+
+  // Build a uid → photoURL map for the Recent Chats card so DM rows
+  // render real avatars. One-shot fetch — photos rarely change, and
+  // re-subscribing for every dashboard refresh would be wasteful.
+  useEffect(() => {
+    if (!selectedTeamId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const allUsers = await getDocuments('users', []);
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        for (const u of allUsers as any[]) {
+          const uid = u?.uid || u?.id;
+          if (uid && u?.photoURL) map[uid] = u.photoURL;
+        }
+        setUserPhotoMap(map);
+      } catch { /* fallback to colored initials — not fatal */ }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTeamId, getDocuments]);
 
   // Subscribe to chat threads so the "Recent Chats" card stays live.
   useEffect(() => {
@@ -446,7 +472,7 @@ const Dashboard: React.FC = () => {
             linked player also see Team Pulse (so non-staff still see
             who's leading the team). */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <RecentChatsCard chats={recentChats} userUid={userData?.uid || ''} />
+          <RecentChatsCard chats={recentChats} userUid={userData?.uid || ''} userPhotoMap={userPhotoMap} />
           {(isUserCoach || !myPlayer) && (
             <TeamPulseCard
               topScorer={topScorers[0]}
@@ -676,7 +702,7 @@ const AttendancePill: React.FC<{ label: string; value: number; dim?: boolean }> 
   </div>
 );
 
-const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string }> = ({ chats, userUid }) => {
+const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
   return (
     <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -700,6 +726,8 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string }> = ({ c
             for (let i = 0; i < (displayTitle || '').length; i++) hash = (hash * 31 + displayTitle.charCodeAt(i)) >>> 0;
             const palette = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-violet-500', 'bg-blue-500', 'bg-teal-500'];
             const avatarBg = palette[hash % palette.length];
+            // For DMs, show the other participant's real photo when we have it.
+            const dmPhotoUrl = isDM && otherUid ? userPhotoMap?.[otherUid] : undefined;
             const last = thread.lastMessage;
             // Unread indicator: anyone sent something more recently than us
             // having seen it. Without proper read-tracking we approximate
@@ -711,7 +739,23 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string }> = ({ c
                 to={`/chat?thread=${thread.id}`}
                 className="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition"
               >
-                <div className={`flex-shrink-0 w-9 h-9 rounded-full text-white font-bold text-sm flex items-center justify-center shadow-sm ${avatarBg}`}>
+                {dmPhotoUrl ? (
+                  <img
+                    src={dmPhotoUrl}
+                    alt={displayTitle}
+                    className="flex-shrink-0 w-9 h-9 rounded-full object-cover shadow-sm ring-1 ring-black/5"
+                    onError={(e) => {
+                      // 404'd photo → swap to the colored-initial sibling.
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      const sib = (e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement | null;
+                      if (sib) sib.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div
+                  className={`flex-shrink-0 w-9 h-9 rounded-full text-white font-bold text-sm flex items-center justify-center shadow-sm ${avatarBg}`}
+                  style={dmPhotoUrl ? { display: 'none' } : undefined}
+                >
                   {initial}
                 </div>
                 <div className="flex-1 min-w-0">

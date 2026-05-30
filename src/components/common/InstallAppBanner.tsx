@@ -24,19 +24,12 @@ const INSTALLED_SNOOZE_MS = 1000 * 60 * 60 * 24 * 180; // ~6 months after tappin
 const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
 
-// Pre-launch Android: recruit closed-testing volunteers via email until
-// the Play listing flips public. The 12-testers-for-14-days requirement
-// has to be cleared before Google will let us open the listing, so
-// surface a "help test" CTA on Android web instead of an "install"
-// button that 404s.
-const ANDROID_BETA_EMAIL = 'support@firefc.app';
-const ANDROID_BETA_SUBJECT = 'Join the Fire FC Android beta';
-const ANDROID_BETA_BODY =
-  "Hi! I'd like to help test the Fire FC Android app.\n\n" +
-  "Here's the Gmail address tied to my Android device (we need this to add you " +
-  'to the Google Play tester list):\n\n' +
-  '<your-gmail@gmail.com>\n\n' +
-  'Thanks!';
+// Pre-launch Android: recruit closed-testing volunteers via a Google
+// Group until the Play listing flips public. Anyone in the
+// firefctesters group is automatically on the Play tester list, so
+// the banner just points at the group join page. After joining, the
+// group description includes the Play opt-in URL for installing.
+const ANDROID_BETA_GROUP_URL = 'https://groups.google.com/g/firefctesters';
 
 const isCapacitor = () => {
   if (typeof window === 'undefined') return false;
@@ -103,16 +96,16 @@ const InstallAppBanner: React.FC = () => {
   // pointing them at a Play Store listing that 404s.
   const isAndroidBeta = platform === 'android' && !ANDROID_STORE_LIVE;
   const installUrl = isAndroidBeta
-    ? `mailto:${ANDROID_BETA_EMAIL}?subject=${encodeURIComponent(ANDROID_BETA_SUBJECT)}&body=${encodeURIComponent(ANDROID_BETA_BODY)}`
+    ? ANDROID_BETA_GROUP_URL
     : platform === 'ios'
     ? APP_STORE_URL
     : PLAY_STORE_URL;
   const storeLabel = isAndroidBeta ? 'beta signup' : platform === 'ios' ? 'App Store' : 'Google Play';
   const ctaTitle = isAndroidBeta ? 'Help test the Fire FC Android app' : 'Get the Fire FC app';
   const ctaSubtitle = isAndroidBeta
-    ? "We're recruiting beta testers — tap to email us your Gmail."
+    ? 'Join our tester group to get the beta on your phone.'
     : 'Push notifications, faster, works offline.';
-  const ctaButtonLabel = isAndroidBeta ? 'Sign up' : 'Install';
+  const ctaButtonLabel = isAndroidBeta ? 'Join beta' : 'Install';
 
   return (
     <div className="lg:hidden bg-gradient-to-r from-cyan-600 to-navy-700 text-white shadow">
@@ -128,8 +121,8 @@ const InstallAppBanner: React.FC = () => {
         </div>
         <a
           href={installUrl}
-          target={isAndroidBeta ? undefined : '_blank'}
-          rel={isAndroidBeta ? undefined : 'noopener noreferrer'}
+          target="_blank"
+          rel="noopener noreferrer"
           onClick={onInstall}
           className="shrink-0 inline-flex items-center gap-1.5 bg-white text-navy-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition"
         >

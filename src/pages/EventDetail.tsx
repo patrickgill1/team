@@ -8,6 +8,7 @@ import { CalendarEvent } from '../types';
 import { isCoach } from '../utils/helpers';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import EventDiscussion from '../components/calendar/EventDiscussion';
+import EventForm from '../components/calendar/EventForm';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -103,6 +104,8 @@ const EventDetail: React.FC = () => {
   // Which guest RSVP token, if any, the coach is currently merging.
   const [mergingToken, setMergingToken] = useState<string | null>(null);
   const [mergeBusy, setMergeBusy] = useState(false);
+  // Edit dialog state (coaches only).
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -352,13 +355,13 @@ const EventDetail: React.FC = () => {
             </span>
           )}
           {isUserCoach ? (
-            <Link
-              to={`/calendar?event=${event.id}&edit=1`}
+            <button
+              onClick={() => setIsEditOpen(true)}
               className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center hover:bg-white/10"
-              aria-label="Edit"
+              aria-label="Edit event"
             >
               <Icon name="edit" className="w-4 h-4" />
-            </Link>
+            </button>
           ) : (
             <span className="w-9 h-9" aria-hidden />
           )}
@@ -577,6 +580,29 @@ const EventDetail: React.FC = () => {
             {(event as any).carpoolPosts.length} {(event as any).carpoolPosts.length === 1 ? 'post' : 'posts'} on the carpool board.
           </div>
         </section>
+      )}
+
+      {/* EDIT MODAL (coach only) */}
+      {isUserCoach && (
+        <EventForm
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          onEventUpdated={(updated: any) => {
+            // Refresh the local event with the saved version so the hero
+            // / RSVP / weather all reflect the edit immediately.
+            if (updated) {
+              setEvent({
+                ...updated,
+                date: updated.date instanceof Date ? updated.date : new Date(updated.date),
+                endDate: updated.endDate
+                  ? (updated.endDate instanceof Date ? updated.endDate : new Date(updated.endDate))
+                  : undefined,
+              } as CalendarEvent);
+            }
+            setIsEditOpen(false);
+          }}
+          editingEvent={event}
+        />
       )}
 
       {/* DESCRIPTION */}

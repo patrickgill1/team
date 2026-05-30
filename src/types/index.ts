@@ -72,6 +72,70 @@ export interface SeasonMembership {
   position?: string;
 }
 
+// =====================================================================
+// CLUB / MEMBERSHIP MODEL — NEW (replaces team-owns-player)
+//
+// Players belong to a CLUB, not a team. A player is rostered onto one
+// or more teams for one or more seasons via PlayerMembership docs.
+// Stats live on the membership row (scoped to player × team × season)
+// so a player on two teams keeps two clean stat lines.
+//
+// Solo-team users get a club auto-created behind the scenes named
+// after their team, so the "club" concept is invisible unless they
+// actually start running multiple teams.
+//
+// During migration: legacy fields on Player/Team (teamIds, playerIds,
+// player.stats, etc.) are kept in sync ("dual-write") so old read
+// paths don't break. We cut them after the new paths are everywhere.
+// =====================================================================
+
+export interface Club {
+  id: string;
+  name: string;
+  /** Logo for the club shell (separate from a team's logo — Fire FC the
+   *  club vs. Fire FC PG the team). */
+  logoUrl?: string;
+  ownerUid: string;
+  /** Users with full club-admin rights. Always includes ownerUid. */
+  adminUids: string[];
+  /** Denorm cache of team IDs in this club — kept up to date on team
+   *  create/delete so we can list teams without a where() query. */
+  teamIds: string[];
+  isActive: boolean;
+  createdAt: Date;
+  archivedAt?: Date;
+}
+
+export interface PlayerMembership {
+  id: string;
+  clubId: string;     // denorm of team.clubId for query-by-club
+  teamId: string;
+  seasonId: string;
+  playerId: string;
+  jerseyNumber?: number;
+  position?: string;
+  positions?: string[];
+  isActive: boolean;
+  joinedAt: Date;
+  leftAt?: Date;
+  /** Stats scoped to THIS membership (this team, this season). The
+   *  player's career-across-everything totals are computed by summing
+   *  every membership in the UI; we don't cache them. */
+  stats?: PlayerStats;
+}
+
+export interface StaffMembership {
+  id: string;
+  clubId: string;
+  teamId: string;
+  seasonId: string;
+  uid: string;
+  role: 'head_coach' | 'assistant_coach' | 'team_manager';
+  isActive: boolean;
+  joinedAt: Date;
+  leftAt?: Date;
+}
+
 export interface Player {
   id: string;
   name: string;

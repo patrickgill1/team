@@ -354,11 +354,19 @@ const Dashboard: React.FC = () => {
     return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${time}`;
   };
 
-  // Aggregate RSVP counts for the next event. Includes BOTH authenticated
-  // rsvps AND publicRsvps (guests who tapped the public share link without
-  // signing in) so the head-count on the hero matches reality.
+  // Aggregate RSVP counts for the next event. Pulls from all three
+  // surfaces a response can land on:
+  //   1. event.playerRsvps  — per-kid RSVPs (the canonical "is the
+  //      player going" map; one entry per player, NOT per parent)
+  //   2. event.rsvps        — authenticated user RSVPs (coaches RSVPing
+  //      for themselves, parents not linked to a player)
+  //   3. event.publicRsvps  — share-link guest RSVPs
+  // We used to skip playerRsvps entirely here, which made the hero show
+  // "1 going" when 4 parents had RSVP'd their kids. EventDetail and
+  // EventListCard already count all three; this brings Dashboard in line.
   const rsvpCounts = useMemo(() => {
-    const r = (nextEvent?.rsvps || {}) as Record<string, { status: string }>;
+    const playerR = ((nextEvent as any)?.playerRsvps || {}) as Record<string, { status: string }>;
+    const userR = (nextEvent?.rsvps || {}) as Record<string, { status: string }>;
     const pub = ((nextEvent as any)?.publicRsvps || {}) as Record<string, { status: string }>;
     let going = 0, maybe = 0, no = 0;
     const tally = (status: string) => {
@@ -366,10 +374,15 @@ const Dashboard: React.FC = () => {
       else if (status === 'maybe') maybe++;
       else if (status === 'no') no++;
     };
-    Object.values(r).forEach((v) => tally(v.status));
+    Object.values(playerR).forEach((v) => tally(v.status));
+    Object.values(userR).forEach((v) => tally(v.status));
     Object.values(pub).forEach((v) => tally(v.status));
-    const responded = going + maybe + no;
-    const pending = Math.max(0, players.length - responded);
+    // Pending = roster size minus players with a recorded playerRsvp.
+    // We measure pending against playerRsvps only (not the catch-all
+    // count) so "0 going · 7 pending" reflects how many players still
+    // haven't been RSVP'd, not parents.
+    const respondedPlayers = Object.keys(playerR).length;
+    const pending = Math.max(0, players.length - respondedPlayers);
     return { going, maybe, no, pending };
   }, [nextEvent, players.length]);
 

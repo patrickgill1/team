@@ -221,6 +221,15 @@ export interface CalendarEvent {
    *  automatically shifts if the event itself is rescheduled. Useful
    *  for games (warmups) and tournaments (check-in). */
   arriveOffsetMinutes?: number;
+  /** Coach-defined packing checklist. Each parent gets their own
+   *  per-user checkmark state via packingCheckedBy keyed by uid. */
+  packingList?: Array<{
+    id: string;
+    label: string;
+  }>;
+  /** Per-parent checkmark state for the packing list. Keyed by uid
+   *  → set of item ids the parent has ticked off. */
+  packingCheckedBy?: Record<string, string[]>;
   // Carpool board: parents post offers ("driving 2 seats from west") or requests ("need ride from south")
   carpoolPosts?: Array<{
     id: string;

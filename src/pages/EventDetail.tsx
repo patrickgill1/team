@@ -535,6 +535,22 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
+      {/* WHAT TO BRING — coach-editable checklist, parent ticks per-uid */}
+      <PackingListSection
+        event={event}
+        userUid={userData?.uid}
+        isCoach={isUserCoach}
+        onSave={async (next) => {
+          if (!event) return;
+          setEvent({ ...event, ...next } as any);
+          try {
+            await updateDocument('events', event.id, next);
+          } catch (err) {
+            console.error('packing save failed', err);
+          }
+        }}
+      />
+
       {/* CARPOOL — minimal placeholder, full carpool board ships in Phase 3 */}
       {Array.isArray((event as any).carpoolPosts) && (event as any).carpoolPosts.length > 0 && (
         <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
@@ -563,6 +579,148 @@ const EventDetail: React.FC = () => {
         </section>
       )}
     </div>
+  );
+};
+
+// ---------- Packing checklist ----------
+const PackingListSection: React.FC<{
+  event: CalendarEvent;
+  userUid?: string;
+  isCoach: boolean;
+  onSave: (patch: { packingList?: any[]; packingCheckedBy?: Record<string, string[]> }) => Promise<void>;
+}> = ({ event, userUid, isCoach, onSave }) => {
+  const list = (event as any).packingList || [];
+  const checkedByAll = ((event as any).packingCheckedBy || {}) as Record<string, string[]>;
+  const myChecked = userUid ? (checkedByAll[userUid] || []) : [];
+
+  const [editing, setEditing] = useState(false);
+  const [draftLabels, setDraftLabels] = useState<string[]>(list.map((i: any) => i.label));
+  const [newLabel, setNewLabel] = useState('');
+
+  // When the user opens edit mode, snapshot the current labels.
+  useEffect(() => {
+    if (editing) setDraftLabels(list.map((i: any) => i.label));
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggle = async (itemId: string) => {
+    if (!userUid) return;
+    const nextSet = new Set(myChecked);
+    if (nextSet.has(itemId)) nextSet.delete(itemId);
+    else nextSet.add(itemId);
+    const nextChecked = { ...checkedByAll, [userUid]: Array.from(nextSet) };
+    await onSave({ packingCheckedBy: nextChecked });
+  };
+
+  const saveEdits = async () => {
+    const cleaned = draftLabels.map(l => l.trim()).filter(Boolean);
+    const nextList = cleaned.map((label, i) => {
+      // Try to keep the original id so per-parent checkmarks survive
+      // edits when the label hasn't changed.
+      const existing = list[i];
+      return { id: existing?.id || `pl_${Date.now()}_${i}`, label };
+    });
+    await onSave({ packingList: nextList });
+    setEditing(false);
+  };
+
+  // No list yet + not coach → don't render the section at all.
+  if (list.length === 0 && !isCoach) return null;
+
+  return (
+    <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
+          <svg className="w-3 h-3 text-cyan-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          What to bring
+        </div>
+        {isCoach && !editing && (
+          <button onClick={() => setEditing(true)} className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-600">
+            {list.length === 0 ? '+ Add' : 'Edit'}
+          </button>
+        )}
+        {editing && (
+          <div className="flex gap-2">
+            <button onClick={() => setEditing(false)} className="text-[11px] font-bold tracking-wide text-slate-500">Cancel</button>
+            <button onClick={saveEdits} className="text-[11px] font-extrabold tracking-widest uppercase text-emerald-600">Save</button>
+          </div>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="space-y-2">
+          {draftLabels.map((label, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                value={label}
+                onChange={(e) => {
+                  const copy = [...draftLabels];
+                  copy[i] = e.target.value;
+                  setDraftLabels(copy);
+                }}
+                className="flex-1 px-3 py-1.5 border border-slate-200 rounded-md text-sm"
+                placeholder="e.g. Cleats"
+              />
+              <button
+                onClick={() => setDraftLabels(draftLabels.filter((_, j) => j !== i))}
+                className="text-rose-500 text-xs font-bold"
+              >Remove</button>
+            </div>
+          ))}
+          <div className="flex items-center gap-2">
+            <input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newLabel.trim()) {
+                  setDraftLabels([...draftLabels, newLabel.trim()]);
+                  setNewLabel('');
+                  e.preventDefault();
+                }
+              }}
+              className="flex-1 px-3 py-1.5 border border-slate-200 rounded-md text-sm"
+              placeholder="Add an item — press Enter"
+            />
+            <button
+              onClick={() => {
+                if (newLabel.trim()) {
+                  setDraftLabels([...draftLabels, newLabel.trim()]);
+                  setNewLabel('');
+                }
+              }}
+              className="px-3 py-1.5 bg-cyan-600 text-white text-xs font-bold rounded-md"
+            >Add</button>
+          </div>
+        </div>
+      ) : list.length === 0 ? (
+        <p className="text-sm text-slate-500">No packing list set yet.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {list.map((item: any) => {
+            const isChecked = myChecked.includes(item.id);
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => toggle(item.id)}
+                  disabled={!userUid}
+                  className="w-full flex items-center gap-2.5 py-1 text-left disabled:cursor-not-allowed"
+                >
+                  <span className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                    isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'
+                  }`}>
+                    {isChecked && (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    )}
+                  </span>
+                  <span className={`text-sm ${isChecked ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                    {item.label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 };
 

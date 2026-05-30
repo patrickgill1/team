@@ -212,8 +212,13 @@ const EventDetail: React.FC = () => {
     const publicR = (event as any).publicRsvps || {};
     for (const tok of Object.keys(publicR)) {
       const r = publicR[tok];
-      if (r.status === 'going') going.push({ name: r.name, isGuest: true, guestToken: tok });
-      else if (r.status === 'maybe') maybe.push({ name: r.name, isGuest: true, guestToken: tok });
+      const entry: any = { name: r.name, isGuest: true, guestToken: tok };
+      // If the guest used the share-form autocomplete to pre-match a
+      // roster player, surface that so the coach gets a "MATCHED"
+      // pill (and the merge picker pre-suggests that player).
+      if (r.matchedPlayerId) entry.matchedPlayerId = r.matchedPlayerId;
+      if (r.status === 'going') going.push(entry);
+      else if (r.status === 'maybe') maybe.push(entry);
     }
     // Pending = roster size minus everyone with a playerRsvp.
     const pending = Math.max(0, roster.length - Object.keys(playerR).length);
@@ -460,9 +465,13 @@ const EventDetail: React.FC = () => {
                   {p.isGuest && isUserCoach && roster.length > 0 && (
                     <button
                       onClick={() => setMergingToken(mergingToken === p.guestToken ? null : p.guestToken)}
-                      className="text-[9px] font-extrabold tracking-widest px-2 py-0.5 rounded border bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
+                      className={`text-[9px] font-extrabold tracking-widest px-2 py-0.5 rounded border ${
+                        p.matchedPlayerId
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                          : 'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100'
+                      }`}
                     >
-                      MERGE
+                      {p.matchedPlayerId ? 'ACCEPT MATCH' : 'MERGE'}
                     </button>
                   )}
                   <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${

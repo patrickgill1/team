@@ -66,7 +66,10 @@ const InstallAppBanner: React.FC = () => {
     const detected = detectPlatform();
     if (!detected) return;                           // desktop / unknown
     if (typeof window === 'undefined') return;
-    if (window.innerWidth >= 768) return;            // not a phone screen
+    // Hide on real desktops (≥ 1024px / Tailwind's lg breakpoint).
+    // 768 was too aggressive — Android tablets land right at 768 in
+    // portrait and never saw the banner.
+    if (window.innerWidth >= 1024) return;
 
     // Stored value is the epoch-ms the banner should stay hidden UNTIL.
     // An X-out sets ~14 days; tapping Install sets ~6 months.

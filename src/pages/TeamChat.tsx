@@ -42,7 +42,7 @@ const TeamChat: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTag, setFilterTag] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; childNames?: string[] }[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; photoURL?: string; childNames?: string[] }[]>([]);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -368,6 +368,7 @@ const TeamChat: React.FC = () => {
             name: u.name,
             role: u.role,
             email: (u.email || '').trim().toLowerCase(),
+            photoURL: u.photoURL,
             childNames: childrenByParent.get(u.uid || u.id) || [],
           }));
         setTeamMembers(filtered);
@@ -809,6 +810,17 @@ const TeamChat: React.FC = () => {
     return thread.title.replace(/^DM:\s*/, '');
   };
 
+  // Profile photo for a thread row. DMs → the OTHER participant's photoURL.
+  // Group chats fall back to the colored-initial avatar (no real photo).
+  const getThreadPhotoUrl = (thread: ChatThread): string | undefined => {
+    const isDM = (thread as any).isDM === true;
+    if (!isDM) return undefined;
+    const otherUid = thread.participants.find(uid => uid !== userData?.uid);
+    if (!otherUid) return undefined;
+    const m = teamMembers.find(tm => tm.uid === otherUid);
+    return m?.photoURL || undefined;
+  };
+
   const startDM = async (member: { uid: string; name: string }) => {
     if (!userData || !selectedTeamId || dmStarting) return;
     setDmStarting(member.uid);
@@ -1095,6 +1107,7 @@ const TeamChat: React.FC = () => {
                 for (let i = 0; i < (displayTitle || '').length; i++) hh = (hh * 31 + displayTitle.charCodeAt(i)) >>> 0;
                 const palette = ['bg-rose-500','bg-amber-500','bg-emerald-500','bg-cyan-500','bg-violet-500','bg-fuchsia-500','bg-blue-500','bg-teal-500'];
                 const avatarBg = palette[hh % palette.length];
+                const threadPhotoUrl = getThreadPhotoUrl(thread);
                 const preview = thread.lastMessage?.content || (thread.description || (isDM ? 'Tap to send a message' : 'No messages yet'));
                 const ago = formatTime(thread.lastActivity);
                 return (
@@ -1103,7 +1116,24 @@ const TeamChat: React.FC = () => {
                     onClick={() => showChatView(thread)}
                     className="w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-start gap-3"
                   >
-                    <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold shadow-sm ${avatarBg}`}>
+                    {threadPhotoUrl ? (
+                      <img
+                        src={threadPhotoUrl}
+                        alt={displayTitle}
+                        className="w-12 h-12 rounded-full object-cover flex-shrink-0 shadow-sm ring-1 ring-black/5"
+                        onError={(e) => {
+                          // Hide a broken Storage URL so the colored
+                          // initial below it can take over instead.
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          const sib = (e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement | null;
+                          if (sib) sib.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold shadow-sm ${avatarBg}`}
+                      style={threadPhotoUrl ? { display: 'none' } : undefined}
+                    >
                       {initial}
                     </div>
                     <div className="flex-1 min-w-0">

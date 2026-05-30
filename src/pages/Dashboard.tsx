@@ -140,12 +140,6 @@ const Dashboard: React.FC = () => {
     }, 0);
   }, [chatThreads, userData?.uid]);
 
-  // "New photos" = media uploaded in the last 7 days. Photo OR video,
-  // since the dashboard surface is just "fresh stuff to look at."
-  const newPhotosCount = useMemo(() => {
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return media.filter((m: any) => new Date(m.createdAt).getTime() >= cutoff).length;
-  }, [media]);
 
   const totalGoals = players.reduce((s, p) => s + (p.stats?.goals || 0), 0);
   const totalAssists = players.reduce((s, p) => s + (p.stats?.assists || 0), 0);
@@ -388,7 +382,7 @@ const Dashboard: React.FC = () => {
         goingCount={rsvpCounts.going}
         whenText={nextEvent ? friendlyWhen(new Date(nextEvent.date)) : ''}
         newMessagesCount={newMessagesCount}
-        newPhotosCount={newPhotosCount}
+        weather={nextEventWeather}
       />
       <div className="relative">
 

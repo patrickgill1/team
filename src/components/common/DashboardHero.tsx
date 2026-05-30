@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
+import { WeatherSummary } from '../../utils/weather';
 
 // Dashboard hero — the always-navy stadium scene from SkyHeader, but
 // upgraded from a decorative band to a real summary card. Shows
@@ -56,7 +57,7 @@ interface Props {
   goingCount: number;
   whenText: string; // pre-formatted "Sat, May 30 · 9:00 AM" string
   newMessagesCount: number;
-  newPhotosCount: number;
+  weather: WeatherSummary | null;
   hourOverride?: number;
 }
 
@@ -67,7 +68,7 @@ const DashboardHero: React.FC<Props> = ({
   goingCount,
   whenText,
   newMessagesCount,
-  newPhotosCount,
+  weather,
   hourOverride,
 }) => {
   const [now, setNow] = useState(() => new Date());
@@ -225,19 +226,27 @@ const DashboardHero: React.FC<Props> = ({
                   <div className="text-[10px] sm:text-xs text-slate-300 -mt-0.5">new messages</div>
                 </div>
               </Link>
-              <Link to="/highlights" className="flex items-center gap-2 group" aria-label={`${newPhotosCount} new photos`}>
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                    <circle cx="9" cy="11" r="1.5" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 17l5-5 4 4 3-3 6 6" />
-                  </svg>
-                </span>
-                <div className="leading-tight">
-                  <div className="text-base sm:text-lg font-bold text-white">{newPhotosCount}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-300 -mt-0.5">new photos</div>
-                </div>
-              </Link>
+              {weather && (
+                <Link
+                  to={`/event/${nextEvent.id}`}
+                  className="flex items-center gap-2 group"
+                  aria-label={`Event weather ${weather.tempMaxF} high ${weather.tempMinF} low, ${weather.label}`}
+                >
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20 text-base">
+                    {weather.icon}
+                  </span>
+                  <div className="leading-tight">
+                    <div className="text-base sm:text-lg font-bold text-white">
+                      {weather.tempMaxF}° <span className="text-slate-400 font-medium">/ {weather.tempMinF}°</span>
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-slate-300 -mt-0.5">
+                      {weather.precipChance >= 30
+                        ? `${weather.precipChance}% rain`
+                        : weather.label.toLowerCase()}
+                    </div>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         )}

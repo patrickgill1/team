@@ -7,7 +7,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Player, News, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
-import SkyHeader from '../components/common/SkyHeader';
+import DashboardHero from '../components/common/DashboardHero';
 import NewsList from '../components/news/NewsList';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
@@ -129,6 +129,23 @@ const Dashboard: React.FC = () => {
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
   }, []);
+
+  // Hero summary metrics.
+  // Unread chat count = sum of per-user unread counts across visible threads.
+  const newMessagesCount = useMemo(() => {
+    if (!userData?.uid) return 0;
+    return chatThreads.reduce((sum, t: any) => {
+      const u = t?.unreadCount?.[userData.uid];
+      return sum + (typeof u === 'number' ? u : 0);
+    }, 0);
+  }, [chatThreads, userData?.uid]);
+
+  // "New photos" = media uploaded in the last 7 days. Photo OR video,
+  // since the dashboard surface is just "fresh stuff to look at."
+  const newPhotosCount = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return media.filter((m: any) => new Date(m.createdAt).getTime() >= cutoff).length;
+  }, [media]);
 
   const totalGoals = players.reduce((s, p) => s + (p.stats?.goals || 0), 0);
   const totalAssists = players.reduce((s, p) => s + (p.stats?.assists || 0), 0);
@@ -359,13 +376,21 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* Ambient skyscape — sun arcs across by day, moon + stars at
-          night. Replaces the old fade-out gradient (too subtle to
-          register) with a scene that actually communicates the
-          time of day. No device location required. */}
-      <SkyHeader />
+      {/* Stadium hero — navy scene with floodlights that toggle on
+          at dusk/night, a faint pitch silhouette, and the day's
+          most important glance-able info (next-event RSVP count,
+          unread chats, fresh photos). Replaces the standalone
+          greeting + the Next Event card. */}
+      <DashboardHero
+        greeting={greeting}
+        firstName={firstName}
+        nextEvent={nextEvent}
+        goingCount={rsvpCounts.going}
+        whenText={nextEvent ? friendlyWhen(new Date(nextEvent.date)) : ''}
+        newMessagesCount={newMessagesCount}
+        newPhotosCount={newPhotosCount}
+      />
       <div className="relative">
-        <Header title={`${greeting}, ${firstName}!`} subtitle={subtitle} />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
         {/* Ambient cues right under the greeting — birthday pill,
@@ -393,20 +418,9 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         )}
-        {/* ── NEXT EVENT (HERO) ─────────────────────────────────── */}
-        {nextEvent ? (
-          <NextEventHero
-            event={nextEvent}
-            whenText={friendlyWhen(new Date(nextEvent.date))}
-            isCoach={isUserCoach}
-            myRsvp={myRsvp?.status as any}
-            onRsvp={setMyRsvp}
-            counts={rsvpCounts}
-            weather={nextEventWeather}
-            isGameDayToday={isGameDayToday}
-            rainAlert={nextEventRainAlert}
-          />
-        ) : (
+        {/* Next-event detail card — folded into the DashboardHero
+            above. Kept here as a tiny no-event prompt only. */}
+        {!nextEvent && (
           // Slim no-event banner — keeps the page flowing into the
           // Recent chats / Your player row instead of leaving a giant
           // empty rectangle at the top.

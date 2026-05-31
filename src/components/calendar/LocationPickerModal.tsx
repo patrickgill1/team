@@ -26,22 +26,27 @@ interface Props {
   onPick: (loc: PickedLocation) => void;
 }
 
-// US-ish default center (Kansas) so the map opens to something sane
-// for a brand-new team with zero history.
 const DEFAULT_CENTER: [number, number] = [38.5, -98.0];
 const DEFAULT_ZOOM = 4;
 const PICKED_ZOOM = 16;
 
-// Lazy-load the leaflet lib only when the picker actually opens.
-// Keeps it out of the initial bundle (Leaflet is ~140KB minified).
 async function loadLeaflet() {
   const L = await import('leaflet');
   return L.default || L;
 }
 
+/**
+ * Visual location picker. ONE primary input (search at top, overlaid
+ * on the map). Picked venue shows as a card at the bottom; tap the
+ * pencil to override the auto-name. The "two text bars, which one?"
+ * problem of the previous version is gone — search and name are now
+ * one input with a clear primary/secondary hierarchy.
+ */
 const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onClose, onPick }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+
   const [name, setName] = useState<string>(initial?.name || '');
   const [address, setAddress] = useState<string>(initial?.address || '');
   const [pickedCoords, setPickedCoords] = useState<{ lat: number; lon: number } | null>(
@@ -52,8 +57,12 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
   const [suggestions, setSuggestions] = useState<GeocodeHit[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  // Once the user pans the map, suppress the auto-fill from reverse
+  // geocode overwriting their custom name. The first auto-fill from a
+  // tapped suggestion still wins.
+  const userTouchedNameRef = useRef(false);
 
-  // Reset internal state every time the modal opens.
   useEffect(() => {
     if (!isOpen) return;
     setName(initial?.name || '');
@@ -64,9 +73,11 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
     setQuery('');
     setSuggestions([]);
     setSearched(false);
+    setEditingName(false);
+    userTouchedNameRef.current = !!(initial?.name && initial.name.trim());
   }, [isOpen, initial?.lat, initial?.lon]);
 
-  // Initialize Leaflet on first render after the modal opens.
+  // Initialize Leaflet.
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current || mapRef.current) return;
     let cancelled = false;
@@ -92,21 +103,16 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
         zoomOffset: tile.zoomOffset,
       }).addTo(map);
       L.control.zoom({ position: 'bottomleft' }).addTo(map);
-
-      // When the map stops moving, treat the new center as the picked
-      // coordinate. Debounced reverse geocode follows in the next effect.
       map.on('moveend', () => {
         const c = map.getCenter();
         setPickedCoords({ lat: c.lat, lon: c.lng });
       });
-
       mapRef.current = map;
       requestAnimationFrame(() => map.invalidateSize());
     })();
     return () => { cancelled = true; };
   }, [isOpen]);
 
-  // Tear down the map when the modal closes so re-opens start clean.
   useEffect(() => {
     if (isOpen) return;
     if (mapRef.current) {
@@ -115,9 +121,7 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
     }
   }, [isOpen]);
 
-  // Reverse-geocode whenever the picked coords change (debounced).
-  // Auto-fills address; only auto-fills name if it's still empty so
-  // we don't clobber user-typed names ("Field 3", etc).
+  // Reverse-geocode whenever the map stops on new coords.
   useEffect(() => {
     if (!pickedCoords) return;
     let cancelled = false;
@@ -126,20 +130,19 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
       try {
         const hit = await geocodeReverse(pickedCoords.lat, pickedCoords.lon);
         if (cancelled || !hit) return;
-        if (hit.label && !name.trim()) setName(hit.label);
+        // Only auto-fill name when the user hasn't typed one. If they
+        // tapped a search result, that's the source of truth.
+        if (hit.label && !userTouchedNameRef.current) setName(hit.label);
         setAddress(hit.address);
       } finally {
         if (!cancelled) setReverseLoading(false);
       }
     }, 450);
     return () => { cancelled = true; clearTimeout(handle); };
-    // Intentionally not depending on `name`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickedCoords?.lat, pickedCoords?.lon]);
 
-  // Forward search — debounced typeahead. Mapbox if token present,
-  // Nominatim otherwise. Proximity bias picks up the current map
-  // viewport so results favor where the user is looking.
+  // Search input. Debounced; results show below the input.
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) { setSuggestions([]); setSearched(false); return; }
@@ -175,6 +178,7 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
   };
 
   const pickSuggestion = (s: GeocodeHit) => {
+    userTouchedNameRef.current = false;
     setName(s.label);
     setAddress(s.address);
     setPickedCoords({ lat: s.lat, lon: s.lon });
@@ -184,11 +188,6 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
     flyTo(s.lat, s.lon);
   };
 
-  // Last-resort "leave the app" escape hatch for users who searched
-  // and got zero results from our geocoder. Opens Google Maps with the
-  // query so they can find the venue, switch back, and drop the pin
-  // manually. Only shown when our results are empty — not pushed in
-  // the primary flow.
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query.trim())}`;
 
   const confirm = () => {
@@ -206,7 +205,7 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
   return (
     <div className="fixed inset-0 z-[60] bg-slate-950 flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-950">
+      <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between gap-2 border-b border-slate-800">
         <button
           type="button"
           onClick={onClose}
@@ -225,62 +224,75 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
         </button>
       </div>
 
-      {/* Search bar with suggestions */}
-      <div className="flex-shrink-0 px-3 pt-2 pb-1.5 relative bg-slate-950">
-        <div className="relative">
-          <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={hasMapbox() ? 'Search venue or address…' : 'Search venue or address (OSM)…'}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-800 border border-slate-700 text-white placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-            autoComplete="off"
-          />
-        </div>
-        {(searchLoading || suggestions.length > 0 || (searched && suggestions.length === 0)) && query.trim().length >= 2 && (
-          <div className="absolute z-10 left-3 right-3 top-full mt-1 bg-white rounded-xl shadow-xl ring-1 ring-slate-300 overflow-hidden max-h-72 overflow-y-auto">
-            {searchLoading && suggestions.length === 0 && (
-              <div className="px-3 py-2 text-xs text-slate-500">Searching…</div>
-            )}
-            {!searchLoading && searched && suggestions.length === 0 && (
-              <div className="px-3 py-2.5">
-                <div className="text-xs text-slate-700 mb-1">No matches found.</div>
-                <div className="text-[11px] text-slate-500 mb-1.5">Try panning the map and dropping the pin manually, or:</div>
-                <a
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
-                >
-                  Look it up in Google Maps →
-                </a>
-              </div>
-            )}
-            {suggestions.map((s, idx) => (
-              <button
-                key={`${s.address}_${idx}`}
-                type="button"
-                onClick={() => pickSuggestion(s)}
-                className="w-full text-left px-3 py-2 hover:bg-cyan-50 border-b border-slate-100 last:border-b-0"
-              >
-                <div className="text-sm font-semibold text-slate-900 truncate">{s.label}</div>
-                {s.label !== s.address && (
-                  <div className="text-[11px] text-slate-500 truncate">{s.address}</div>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Map area — center-pin pattern (Uber/Google Maps): the pin is
-          an overlay fixed at screen center, the MAP moves underneath.
-          Universally understood, works with any tile source. */}
+      {/* Map fills the body. Search bar floats over the top so it
+          doesn't compete with the bottom card for the role of "active
+          input." Center-pin is the manual-drop affordance. */}
       <div className="flex-1 relative">
         <div ref={mapContainerRef} className="absolute inset-0 bg-slate-200" />
 
+        {/* Floating search bar — clearly the search affordance because
+            it sits on top of the map with a magnifier icon and the
+            placeholder explicitly says "Search…". Suggestions float
+            below it. */}
+        <div className="absolute top-3 left-3 right-3 z-[1]">
+          <div className="relative">
+            <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search venue or address…"
+              className="w-full pl-9 pr-3 py-2.5 text-sm bg-white text-slate-900 placeholder-slate-400 rounded-xl shadow-lg ring-1 ring-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/60"
+              autoComplete="off"
+            />
+            {/* Provider tag — tiny chip so you can tell at a glance
+                whether Mapbox or OSM-fallback is live. Helps debug
+                "I added the token but nothing comes up" situations. */}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-extrabold tracking-widest uppercase text-slate-400 pointer-events-none">
+              {hasMapbox() ? 'Mapbox' : 'OSM'}
+            </div>
+          </div>
+
+          {(searchLoading || suggestions.length > 0 || (searched && suggestions.length === 0)) && query.trim().length >= 2 && (
+            <div className="mt-1 bg-white rounded-xl shadow-xl ring-1 ring-slate-300 overflow-hidden max-h-[40vh] overflow-y-auto">
+              {searchLoading && suggestions.length === 0 && (
+                <div className="px-3 py-2 text-xs text-slate-500">Searching…</div>
+              )}
+              {!searchLoading && searched && suggestions.length === 0 && (
+                <div className="px-3 py-2.5">
+                  <div className="text-xs text-slate-700 mb-1">No matches.</div>
+                  <div className="text-[11px] text-slate-500 mb-1.5">
+                    Pan the map and drop the pin manually, or:
+                  </div>
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
+                  >
+                    Look it up in Google Maps →
+                  </a>
+                </div>
+              )}
+              {suggestions.map((s, idx) => (
+                <button
+                  key={`${s.address}_${idx}`}
+                  type="button"
+                  onClick={() => pickSuggestion(s)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-cyan-50 border-b border-slate-100 last:border-b-0"
+                >
+                  <div className="text-sm font-semibold text-slate-900 truncate">{s.label}</div>
+                  {s.label !== s.address && (
+                    <div className="text-[11px] text-slate-500 truncate">{s.address}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Center pin — fixed at screen center, map slides under it. */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
           <div className="-translate-y-3">
             <svg className="w-8 h-8 text-rose-600 drop-shadow-lg" viewBox="0 0 24 24" fill="currentColor">
@@ -291,24 +303,55 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
         </div>
       </div>
 
-      {/* Bottom name/address card. */}
-      <div className="flex-shrink-0 bg-white border-t border-slate-200 px-4 py-3 space-y-2">
-        <div>
-          <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">
-            Name
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Little Valley Soccer Fields — Field 3"
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-          />
-        </div>
-        <div className="text-[11px] text-slate-500 min-h-[1.25rem]">
-          {reverseLoading ? 'Looking up address…'
-            : address ? <>📍 {address}</>
-            : 'Drag the map to drop the pin where you want it.'}
-        </div>
+      {/* Bottom: picked-location card. Name is shown as bold text by
+          default — tap the pencil to edit inline. This makes search
+          the obviously-primary input (top of map) and naming the
+          obviously-secondary action (only when you need to override
+          the auto-name). */}
+      <div className="flex-shrink-0 bg-white border-t border-slate-200 px-4 py-3">
+        {pickedCoords ? (
+          <div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                {editingName ? (
+                  <input
+                    ref={nameInputRef}
+                    value={name}
+                    onChange={(e) => { setName(e.target.value); userTouchedNameRef.current = true; }}
+                    onBlur={() => setEditingName(false)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setEditingName(false); } }}
+                    placeholder="e.g. Little Valley SF — Field 3"
+                    autoFocus
+                    className="w-full px-2 py-1 text-base font-bold text-slate-900 border border-cyan-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  />
+                ) : (
+                  <div className="text-base font-bold text-slate-900 leading-tight break-words">
+                    {name || <span className="italic text-slate-400">Untitled spot</span>}
+                  </div>
+                )}
+                <div className="mt-0.5 text-[11px] text-slate-500 break-words">
+                  {reverseLoading ? 'Looking up address…'
+                    : address ? <>📍 {address}</>
+                    : <span className="italic">Drag the map to pick a spot.</span>}
+                </div>
+              </div>
+              {!editingName && (
+                <button
+                  type="button"
+                  onClick={() => { setEditingName(true); requestAnimationFrame(() => nameInputRef.current?.select()); }}
+                  className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 flex-shrink-0"
+                  aria-label="Edit name"
+                >
+                  ✎ Edit name
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-slate-500 text-center py-2">
+            Search above or drag the map to drop a pin.
+          </div>
+        )}
       </div>
     </div>
   );

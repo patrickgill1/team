@@ -1439,7 +1439,13 @@ const TeamChat: React.FC = () => {
                       isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
                       canPin={(() => {
                         const sc = (selectedThread as any)?.scope || 'team';
-                        if (sc === 'team') return isCoach;
+                        // Team threads: coaches (head + assistant) AND
+                        // team managers can pin. Coach-only scope still
+                        // gates pinning to club admins.
+                        if (sc === 'team') {
+                          const r = userData?.role as string | undefined;
+                          return r === 'coach' || r === 'team_manager';
+                        }
                         return isUserClubAdmin;
                       })()}
                       onImageClick={(url) => setLightboxUrl(url)}

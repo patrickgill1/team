@@ -189,7 +189,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const handleTouchStart = () => {
     if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-    longPressTimer.current = window.setTimeout(() => setActionsOpen(true), 350);
+    // 600ms matches iOS native long-press; 350ms was firing while the
+    // user's thumb was still mid-tap and obscured the action sheet.
+    longPressTimer.current = window.setTimeout(() => setActionsOpen(true), 600);
   };
   const handleTouchEnd = () => {
     if (longPressTimer.current) {
@@ -408,25 +410,38 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </div>
 
-      {/* Action sheet — opens on long-press or right-click. Tap outside to close. */}
-      {/* Reaction affordance — small chip next to incoming bubbles that
-          opens the picker without long-press. Visible always on mobile,
-          hidden until hover on desktop. */}
-      {!isOwn && message.content && (
-        <button
-          onClick={() => setEmojiOpen(true)}
-          aria-label="React to message"
-          className="ml-1 self-end mb-0.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" y1="9" x2="9.01" y2="9"/>
-            <line x1="15" y1="9" x2="15.01" y2="9"/>
-            <line x1="19" y1="6" x2="19" y2="10"/>
-            <line x1="17" y1="8" x2="21" y2="8"/>
-          </svg>
-        </button>
+      {/* Per-message affordances — make the action sheet + reactions
+          discoverable WITHOUT requiring users to know about long-press.
+          Both icons are always visible on mobile; on desktop they fade
+          in on row hover so the timeline stays clean. */}
+      {message.content && (
+        <div className={`${isOwn ? 'mr-1 order-first' : 'ml-1'} self-end mb-0.5 flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity`}>
+          {!isOwn && (
+            <button
+              onClick={() => setEmojiOpen(true)}
+              aria-label="React to message"
+              className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm hover:text-cyan-700 hover:border-cyan-300"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                <line x1="9" y1="9" x2="9.01" y2="9"/>
+                <line x1="15" y1="9" x2="15.01" y2="9"/>
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={() => setActionsOpen(true)}
+            aria-label="Message actions"
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm hover:text-cyan-700 hover:border-cyan-300"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="5" cy="12" r="1.6"/>
+              <circle cx="12" cy="12" r="1.6"/>
+              <circle cx="19" cy="12" r="1.6"/>
+            </svg>
+          </button>
+        </div>
       )}
 
       {actionsOpen && (

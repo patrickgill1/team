@@ -32,18 +32,15 @@ const formatIcsDate = (d: Date) => {
 const escapeIcs = (s: string = '') =>
   s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
 
-/** Build a Maps URL that opens in the user's default map app.
- *  iOS Safari + Capacitor → Apple Maps via the maps.apple.com universal
- *  link. Everywhere else → Google Maps. Both apps accept a free-text
- *  query so we don't need to geocode upfront. */
-const mapsUrlFor = (location: string): string => {
-  const q = encodeURIComponent(location.trim());
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  const isApple = /iPhone|iPad|iPod|Macintosh/.test(ua);
-  return isApple
-    ? `https://maps.apple.com/?q=${q}`
-    : `https://www.google.com/maps/search/?api=1&query=${q}`;
-};
+// mapsUrlFor moved to ../../utils/maps so detail + list + public pages
+// can share the same coord-aware logic. Re-imported below.
+import { mapsUrl } from '../../utils/maps';
+const mapsUrlForEvent = (event: any): string => mapsUrl({
+  name: event.location,
+  address: event.locationAddress,
+  lat: event.locationCoords?.lat,
+  lon: event.locationCoords?.lon,
+});
 
 const downloadEventIcs = (event: CalendarEvent) => {
   try {
@@ -995,7 +992,7 @@ const EventCard: React.FC<EventCardProps> = ({
             </div>
             {event.location && (
               <a
-                href={mapsUrlFor(event.location)}
+                href={mapsUrlForEvent(event)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 min-w-0 hover:text-cyan-700 transition-colors"

@@ -300,6 +300,14 @@ export interface CalendarEvent {
   description?: string;
   date: Date;
   location: string;
+  /** Lat/lon captured at form time from the Nominatim geocoder. When
+   *  present, maps deep-links use these directly so Apple/Google Maps
+   *  land on the right pin without re-parsing the free-text name. */
+  locationCoords?: { lat: number; lon: number };
+  /** Full formatted address from the geocoder. `location` stays as the
+   *  short user-facing label (e.g. "Little Valley Park") — this is the
+   *  full street form (e.g. "2150 S 2350 E, St. George, UT"). */
+  locationAddress?: string;
   type: 'game' | 'practice' | 'event';
   /** Optional end time. Older events created before this field don't
    *  have one; treat undefined as "no defined end" in the UI. */
@@ -439,6 +447,16 @@ export interface Team {
    *  specific parents (e.g. tracking-cam operators) without making
    *  uploads free-for-all. */
   mediaUploaders?: string[];
+  /** Saved locations the team uses repeatedly — home field, away venues,
+   *  practice site. Shown on top of the event-location picker so coaches
+   *  don't retype the same address every week. */
+  favoriteLocations?: Array<{
+    name: string;
+    address?: string;
+    lat?: number;
+    lon?: number;
+    savedAt?: Date;
+  }>;
   createdAt: Date;
   updatedAt?: Date;
 }

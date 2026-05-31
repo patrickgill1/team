@@ -13,6 +13,7 @@ import {
 import { db } from '../utils/firebase';
 import { CalendarEvent } from '../types';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
+import { mapsUrl } from '../utils/maps';
 
 // Public share-link page for an event. Anyone with the URL can land
 // here without signing in, see the event details, and RSVP.
@@ -347,9 +348,14 @@ const PublicEvent: React.FC = () => {
             {event.location && <>
               <span className="text-slate-600">·</span>
               <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                href={mapsUrl({
+                  name: event.location,
+                  address: (event as any).locationAddress,
+                  lat: (event as any).locationCoords?.lat,
+                  lon: (event as any).locationCoords?.lon,
+                })}
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-cyan-300"
+                className="inline-flex items-center gap-1 hover:text-cyan-300 underline decoration-dotted underline-offset-2"
               >
                 <Icon name="pin" className="w-3 h-3 text-slate-400" /> {event.location}
               </a>

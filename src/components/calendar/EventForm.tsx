@@ -1,15 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { collection, doc, getDoc, getDocs, limit as fsLimit, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
 import { CalendarEvent } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
+import { osmEmbedUrl } from '../../utils/maps';
 
-/** Lightweight typeahead row from Nominatim. We only need a label to
- *  display + the cleaned-up address to write back to the form. */
+/** Lightweight typeahead row from Nominatim. We capture coords so the
+ *  saved event includes lat/lon — that's what makes maps deep-links
+ *  land on the right pin without re-parsing the free-text name. */
 interface AddressSuggestion {
   label: string;
   address: string;
+  lat: number;
+  lon: number;
+}
+
+/** Compact location for the Recent + Favorites quick-pick rows. */
+interface PickableLocation {
+  name: string;
+  address?: string;
+  lat?: number;
+  lon?: number;
 }
 
 interface EventFormProps {
@@ -59,12 +73,26 @@ const EventForm: React.FC<EventFormProps> = ({
   // (vs being filled in by tapping a suggestion). Stops the typeahead
   // from re-querying its own selection.
   const lastSelectedAddressRef = useRef<string>('');
+  // Coords for the currently picked location. Cleared whenever the user
+  // edits the location string by hand (so we don't persist stale coords
+  // attached to a different address).
+  const [pickedCoords, setPickedCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [pickedAddress, setPickedAddress] = useState<string>('');
+  // Team-scoped quick-pick rows.
+  const [recentLocations, setRecentLocations] = useState<PickableLocation[]>([]);
+  const [favoriteLocations, setFavoriteLocations] = useState<PickableLocation[]>([]);
+  const [savingFavorite, setSavingFavorite] = useState(false);
 
   useEffect(() => {
     if (editingEvent) {
       const eventDate = editingEvent.date instanceof Date ? editingEvent.date : (editingEvent.date as any).toDate();
       const untilRaw: any = (editingEvent as any).recurrenceUntil;
       const untilDate = untilRaw ? (untilRaw?.toDate ? untilRaw.toDate() : new Date(untilRaw)) : null;
+      // Hydrate coords + address from the existing doc so editing
+      // doesn't blow away the stored lat/lon.
+      const ec = (editingEvent as any).locationCoords;
+      setPickedCoords(ec && typeof ec.lat === 'number' ? { lat: ec.lat, lon: ec.lon } : null);
+      setPickedAddress((editingEvent as any).locationAddress || '');
       setFormData({
         title: editingEvent.title,
         description: editingEvent.description,
@@ -87,6 +115,8 @@ const EventForm: React.FC<EventFormProps> = ({
       });
     } else {
       const defaultDate = selectedDate || new Date();
+      setPickedCoords(null);
+      setPickedAddress('');
       setFormData({
         title: '',
         description: '',
@@ -164,6 +194,120 @@ const EventForm: React.FC<EventFormProps> = ({
     return out;
   };
 
+  // Quick-pick rows: pull the team's saved favorites + the locations
+  // from the last ~50 events so coaches don't retype the same address
+  // every week. Runs once when the form opens and a team is selected.
+  useEffect(() => {
+    if (!isOpen || !selectedTeamId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Team favorites first — coach explicitly starred these.
+        const teamSnap = await getDoc(doc(db, 'teams', selectedTeamId));
+        if (cancelled) return;
+        const favs: any[] = teamSnap.exists() ? ((teamSnap.data() as any).favoriteLocations || []) : [];
+        setFavoriteLocations(favs.map((f: any) => ({
+          name: f.name,
+          address: f.address,
+          lat: f.lat,
+          lon: f.lon,
+        })));
+      } catch (err) {
+        console.warn('favorite locations load failed', err);
+      }
+      try {
+        // Recent — dedupe by name, keep only entries with coords (older
+        // free-text events don't help; they'd send users to the same
+        // unreliable autocomplete situation).
+        const snap = await getDocs(query(
+          collection(db, 'events'),
+          where('teamId', '==', selectedTeamId),
+          orderBy('date', 'desc'),
+          fsLimit(50),
+        ));
+        if (cancelled) return;
+        const seen = new Set<string>();
+        const rows: PickableLocation[] = [];
+        snap.forEach(d => {
+          const data: any = d.data();
+          const name = (data.location || '').trim();
+          if (!name) return;
+          const lc = data.locationCoords;
+          if (!lc || typeof lc.lat !== 'number') return;
+          const key = name.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          rows.push({ name, address: data.locationAddress, lat: lc.lat, lon: lc.lon });
+        });
+        setRecentLocations(rows.slice(0, 6));
+      } catch (err) {
+        console.warn('recent locations load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, selectedTeamId]);
+
+  const pickLocation = (loc: PickableLocation) => {
+    lastSelectedAddressRef.current = loc.address || loc.name;
+    setFormData(prev => ({ ...prev, location: loc.name }));
+    setPickedCoords(typeof loc.lat === 'number' && typeof loc.lon === 'number' ? { lat: loc.lat, lon: loc.lon } : null);
+    setPickedAddress(loc.address || '');
+    setShowAddressSuggestions(false);
+    setAddressSuggestions([]);
+  };
+
+  const saveCurrentAsFavorite = async () => {
+    if (!selectedTeamId || !pickedCoords || !formData.location.trim()) return;
+    const next: PickableLocation = {
+      name: formData.location.trim(),
+      address: pickedAddress || undefined,
+      lat: pickedCoords.lat,
+      lon: pickedCoords.lon,
+    };
+    // No-op if already saved.
+    if (favoriteLocations.some(f => f.name.toLowerCase() === next.name.toLowerCase())) return;
+    setSavingFavorite(true);
+    try {
+      const updated = [...favoriteLocations, next];
+      await updateDoc(doc(db, 'teams', selectedTeamId), {
+        favoriteLocations: updated.map(f => ({
+          name: f.name,
+          address: f.address || null,
+          lat: f.lat ?? null,
+          lon: f.lon ?? null,
+          savedAt: new Date(),
+        })),
+      });
+      setFavoriteLocations(updated);
+    } catch (err) {
+      console.error('save favorite failed', err);
+      alert("Couldn't save that location — try again.");
+    } finally {
+      setSavingFavorite(false);
+    }
+  };
+
+  const removeFavorite = async (name: string) => {
+    if (!selectedTeamId) return;
+    setSavingFavorite(true);
+    try {
+      const updated = favoriteLocations.filter(f => f.name !== name);
+      await updateDoc(doc(db, 'teams', selectedTeamId), {
+        favoriteLocations: updated.map(f => ({
+          name: f.name,
+          address: f.address || null,
+          lat: f.lat ?? null,
+          lon: f.lon ?? null,
+        })),
+      });
+      setFavoriteLocations(updated);
+    } catch (err) {
+      console.warn('remove favorite failed', err);
+    } finally {
+      setSavingFavorite(false);
+    }
+  };
+
   // Address typeahead — Nominatim (OpenStreetMap) free geocoder.
   // Debounced 350ms after typing; skips when the value matches what
   // the user just picked from the dropdown so we don't ghost-requery
@@ -190,7 +334,12 @@ const EventForm: React.FC<EventFormProps> = ({
             a.state_code || a.state,
           ].filter(Boolean);
           const label = parts.length > 0 ? parts.join(', ') : d.display_name;
-          return { label, address: d.display_name as string };
+          return {
+            label,
+            address: d.display_name as string,
+            lat: parseFloat(d.lat),
+            lon: parseFloat(d.lon),
+          };
         });
         setAddressSuggestions(rows);
       } catch (err: any) {
@@ -336,6 +485,11 @@ const EventForm: React.FC<EventFormProps> = ({
         date: eventDateTime,
         endDate: endDateTime,
         location: formData.location.trim(),
+        // Coords + full address only when the user picked a suggestion.
+        // Freeform-typed text saves null so we don't carry stale coords
+        // from a previous selection into a new address.
+        locationCoords: pickedCoords || null,
+        locationAddress: pickedAddress || null,
         type: formData.type,
         teamId: selectedTeamId,
         createdBy: userData.uid,
@@ -567,16 +721,78 @@ const EventForm: React.FC<EventFormProps> = ({
             />
           </div>
 
-          {/* Location with Nominatim address typeahead */}
+          {/* Location with Nominatim address typeahead + saved favorites
+              + recents + a small OSM preview once a location is picked. */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Location *
             </label>
+
+            {/* Favorites — coach-starred locations the team uses repeatedly. */}
+            {favoriteLocations.length > 0 && (
+              <div className="mb-2">
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">⭐ Favorites</div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {favoriteLocations.map((f) => {
+                    const active = f.name === formData.location;
+                    return (
+                      <button
+                        key={`fav-${f.name}`}
+                        type="button"
+                        onClick={() => pickLocation(f)}
+                        className={`text-xs font-bold px-2.5 py-1.5 rounded-md border ${
+                          active
+                            ? 'bg-cyan-50 text-cyan-800 border-cyan-300'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-cyan-300'
+                        }`}
+                      >
+                        {f.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Recent — team's last unique locations w/ coords. */}
+            {recentLocations.length > 0 && (
+              <div className="mb-2">
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Recent</div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {recentLocations
+                    .filter(r => !favoriteLocations.some(f => f.name.toLowerCase() === r.name.toLowerCase()))
+                    .slice(0, 5)
+                    .map((r) => {
+                      const active = r.name === formData.location;
+                      return (
+                        <button
+                          key={`rec-${r.name}`}
+                          type="button"
+                          onClick={() => pickLocation(r)}
+                          className={`text-xs px-2.5 py-1.5 rounded-md border ${
+                            active
+                              ? 'bg-cyan-50 text-cyan-800 border-cyan-300 font-bold'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-white hover:border-cyan-300'
+                          }`}
+                        >
+                          {r.name}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             <input
               type="text"
               value={formData.location}
               onChange={(e) => {
+                // Typing by hand invalidates the picked coords — we'd be
+                // attaching them to a different place. Cleared so the save
+                // doesn't write stale lat/lon onto a new address.
                 setFormData({ ...formData, location: e.target.value });
+                setPickedCoords(null);
+                setPickedAddress('');
                 setShowAddressSuggestions(true);
               }}
               onFocus={() => setShowAddressSuggestions(true)}
@@ -587,7 +803,7 @@ const EventForm: React.FC<EventFormProps> = ({
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.location ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Start typing an address (Park Ln, Main Field…)"
+              placeholder="Search an address or venue…"
             />
             {showAddressSuggestions && (loadingAddresses || addressSuggestions.length > 0) && (
               <div className="absolute z-20 mt-1 w-full bg-white rounded-xl ring-1 ring-gray-200 shadow-lg overflow-hidden max-h-72 overflow-y-auto">
@@ -603,7 +819,9 @@ const EventForm: React.FC<EventFormProps> = ({
                       // win the race against the input's onBlur handler.
                       e.preventDefault();
                       lastSelectedAddressRef.current = s.address;
-                      setFormData((prev) => ({ ...prev, location: s.address }));
+                      setFormData((prev) => ({ ...prev, location: s.label }));
+                      setPickedCoords({ lat: s.lat, lon: s.lon });
+                      setPickedAddress(s.address);
                       setShowAddressSuggestions(false);
                       setAddressSuggestions([]);
                     }}
@@ -617,7 +835,50 @@ const EventForm: React.FC<EventFormProps> = ({
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-500 mt-1">Tip: pick a suggestion to drop a real address — tapping it on an event card opens Maps directly.</p>
+
+            {/* Map preview — only when we have coords, which is the only
+                case where the saved event can deep-link reliably. The OSM
+                embed is free, no API key, interactive (pan/zoom). */}
+            {pickedCoords && (
+              <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                <iframe
+                  title="Location preview"
+                  src={osmEmbedUrl(pickedCoords.lat, pickedCoords.lon, 16)}
+                  className="w-full h-40 block bg-slate-100"
+                  loading="lazy"
+                />
+                <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1 text-[11px] text-slate-600 truncate">
+                    {pickedAddress || formData.location}
+                  </div>
+                  {favoriteLocations.some(f => f.name.toLowerCase() === formData.location.trim().toLowerCase()) ? (
+                    <button
+                      type="button"
+                      onClick={() => removeFavorite(formData.location.trim())}
+                      disabled={savingFavorite}
+                      className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-rose-600 flex-shrink-0 disabled:opacity-50"
+                    >
+                      ⭐ Saved · Remove
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={saveCurrentAsFavorite}
+                      disabled={savingFavorite}
+                      className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 flex-shrink-0 disabled:opacity-50"
+                    >
+                      ⭐ Save to team
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!pickedCoords && formData.location.trim().length > 0 && (
+              <p className="text-xs text-amber-700 mt-1">
+                ⚠ Pick a suggestion below so Maps lands on the right pin.
+              </p>
+            )}
             {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
           </div>
 

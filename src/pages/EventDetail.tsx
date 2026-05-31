@@ -11,6 +11,7 @@ import EventDiscussion from '../components/calendar/EventDiscussion';
 import EventForm from '../components/calendar/EventForm';
 import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
 import SnackAssignment from '../components/calendar/SnackAssignment';
+import { mapsUrl, osmEmbedUrl } from '../utils/maps';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -474,7 +475,20 @@ const EventDetail: React.FC = () => {
           <span className="inline-flex items-center gap-1"><Icon name="clock" className="w-3 h-3 text-slate-400" /> {formatTimeRange(eventDate, eventEnd)}</span>
           {event.location && <>
             <span className="text-slate-600">·</span>
-            <span className="inline-flex items-center gap-1"><Icon name="pin" className="w-3 h-3 text-slate-400" /> {event.location}</span>
+            <a
+              href={mapsUrl({
+                name: event.location,
+                address: (event as any).locationAddress,
+                lat: (event as any).locationCoords?.lat,
+                lon: (event as any).locationCoords?.lon,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-200 underline decoration-dotted underline-offset-2"
+              title="Open in Maps"
+            >
+              <Icon name="pin" className="w-3 h-3" /> {event.location}
+            </a>
           </>}
         </p>
       </section>
@@ -816,6 +830,43 @@ const EventDetail: React.FC = () => {
             About
           </div>
           <p className="text-sm text-slate-700 whitespace-pre-wrap">{event.description}</p>
+        </section>
+      )}
+
+      {/* MAP — only render when we have coords (free-text-only events
+          would just embed an unhelpful Null Island view). The iframe is
+          OSM-branded but free + zero deps. Tap-targets cover "Open in
+          Maps" so users always have an escape hatch to their preferred
+          maps app. */}
+      {(event as any).locationCoords?.lat && (
+        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Map</div>
+            <a
+              href={mapsUrl({
+                name: event.location,
+                address: (event as any).locationAddress,
+                lat: (event as any).locationCoords.lat,
+                lon: (event as any).locationCoords.lon,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
+            >
+              Open in Maps →
+            </a>
+          </div>
+          <div className="rounded-xl overflow-hidden border border-slate-200">
+            <iframe
+              title="Event location"
+              src={osmEmbedUrl((event as any).locationCoords.lat, (event as any).locationCoords.lon, 16)}
+              className="w-full h-44 block bg-slate-100"
+              loading="lazy"
+            />
+          </div>
+          {(event as any).locationAddress && (
+            <p className="mt-1.5 text-[11px] text-slate-500">{(event as any).locationAddress}</p>
+          )}
         </section>
       )}
     </div>

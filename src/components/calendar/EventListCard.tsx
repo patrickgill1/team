@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
+import { mapsUrl } from '../../utils/maps';
 
 // Compact event card for the redesigned list view. Matches the v7 mock:
 // thin colored type-stripe → date badge + title + meta → info strip →
@@ -137,10 +138,22 @@ const EventListCard: React.FC<Props> = ({
               </span>
               {event.location && (<>
                 <span className="text-slate-300">·</span>
-                <span className="inline-flex items-center gap-1 truncate max-w-[140px]">
+                <a
+                  href={mapsUrl({
+                    name: event.location,
+                    address: (event as any).locationAddress,
+                    lat: (event as any).locationCoords?.lat,
+                    lon: (event as any).locationCoords?.lon,
+                  })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => { e.stopPropagation(); }}
+                  className="inline-flex items-center gap-1 truncate max-w-[140px] hover:text-cyan-700"
+                  title="Open in Maps"
+                >
                   <Icon name="pin" className="w-3 h-3 text-slate-400" />
-                  <span className="truncate">{event.location}</span>
-                </span>
+                  <span className="truncate underline decoration-dotted underline-offset-2">{event.location}</span>
+                </a>
               </>)}
               {weatherText && (<>
                 <span className="text-slate-300">·</span>

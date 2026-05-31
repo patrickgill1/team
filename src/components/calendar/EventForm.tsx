@@ -316,11 +316,35 @@ const EventForm: React.FC<EventFormProps> = ({
     const q = formData.location.trim();
     if (q.length < 3) { setAddressSuggestions([]); return; }
     if (q === lastSelectedAddressRef.current) return;
+
+    // Bias the search to a ~50-mile box around a location the team has
+    // already used. Without this, "park" returns parks from anywhere
+    // in the US — what the user complained about. Picks center in this
+    // priority: currently picked → first favorite → first recent. Falls
+    // back to unrestricted if the team has zero coord history yet.
+    let viewboxParam = '';
+    const center = pickedCoords
+      || (favoriteLocations.find(f => typeof f.lat === 'number') as any)
+      || (recentLocations.find(r => typeof r.lat === 'number') as any);
+    if (center && typeof center.lat === 'number' && typeof center.lon === 'number') {
+      // ~0.75° in each direction = ~50 miles N/S, ~45 miles E/W at mid
+      // latitudes. viewbox WITHOUT bounded=1 means Nominatim prefers
+      // results inside the box but still surfaces farther matches at
+      // lower ranks — so out-of-area tournament venues still appear
+      // for searches that have no local hit.
+      const span = 0.75;
+      const west = center.lon - span;
+      const east = center.lon + span;
+      const south = center.lat - span;
+      const north = center.lat + span;
+      viewboxParam = `&viewbox=${west},${north},${east},${south}`;
+    }
+
     const ctrl = new AbortController();
     const handle = setTimeout(async () => {
       try {
         setLoadingAddresses(true);
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=us,ca`;
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=8&countrycodes=us,ca${viewboxParam}`;
         const res = await fetch(url, { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } });
         if (!res.ok) return;
         const data: any[] = await res.json();

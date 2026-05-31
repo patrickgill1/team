@@ -2,14 +2,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, where,
+  addDoc, collection, getDocs, onSnapshot, orderBy, query, serverTimestamp, where,
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
-import type { HelpdeskTicket, TicketStatus, TicketPriority, TicketCategory } from '../types';
+import { sendPushToUsers } from '../utils/notify';
+import type { HelpdeskTicket, TicketStatus, TicketPriority, TicketCategory, Team } from '../types';
 
 const CATEGORY_LABEL: Record<TicketCategory, string> = {
   team_logistics: 'Team logistics (tryouts, games, schedule)',
@@ -33,6 +34,32 @@ const PRIORITY_CHIP: Record<TicketPriority, string> = {
   high: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
+async function notifyAdminsOfNewTicket(
+  ticketId: string,
+  subject: string,
+  authorUid: string,
+  authorName: string,
+  category: TicketCategory,
+  priority: TicketPriority,
+) {
+  try {
+    const adminSnap = await getDocs(
+      query(collection(db, 'users'), where('isClubAdmin', '==', true)),
+    );
+    const ids: string[] = [];
+    adminSnap.forEach(d => { if (d.id !== authorUid) ids.push(d.id); });
+    if (ids.length === 0) return;
+    const tag = priority === 'high' ? '[HIGH] ' : '';
+    await sendPushToUsers(ids, {
+      title: `${tag}New support ticket`,
+      body: `${authorName} · ${CATEGORY_LABEL[category]}: ${subject}`,
+      url: `/helpdesk/${ticketId}`,
+    });
+  } catch (err) {
+    console.warn('helpdesk create push failed', err);
+  }
+}
+
 function formatRel(d: Date): string {
   const diff = Date.now() - d.getTime();
   const min = Math.round(diff / 60_000);
@@ -49,12 +76,30 @@ const Helpdesk: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
   const [tickets, setTickets] = useState<HelpdeskTicket[]>([]);
+  const [teams, setTeams] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'mine'>('open');
+  const [teamFilter, setTeamFilter] = useState<string>('all');
   const [newOpen, setNewOpen] = useState(false);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
   const isAdmin = !!(userData as any)?.isClubAdmin;
+
+  // Admins get a team filter — pull the club's teams once so the chip
+  // list can show names. Non-admins don't need this query.
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'teams')));
+        setTeams(snap.docs
+          .map(d => ({ id: d.id, name: ((d.data() as any).name as string) || 'Team' }))
+          .sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        console.warn('teams fetch failed', err);
+      }
+    })();
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!userData?.uid) return;
@@ -80,11 +125,17 @@ const Helpdesk: React.FC = () => {
 
   const filtered = useMemo(() => {
     return tickets.filter(t => {
-      if (statusFilter === 'mine') return t.createdBy === userData?.uid;
-      if (statusFilter === 'open') return t.status !== 'resolved' && t.status !== 'closed';
+      // Status pill
+      if (statusFilter === 'mine' && t.createdBy !== userData?.uid) return false;
+      if (statusFilter === 'open' && (t.status === 'resolved' || t.status === 'closed')) return false;
+      // Team filter — 'unassigned' means the ticket has no teamId (general).
+      if (teamFilter !== 'all') {
+        if (teamFilter === 'unassigned') { if (t.teamId) return false; }
+        else if (t.teamId !== teamFilter) return false;
+      }
       return true;
     });
-  }, [tickets, statusFilter, userData?.uid]);
+  }, [tickets, statusFilter, teamFilter, userData?.uid]);
 
   const counts = useMemo(() => ({
     all: tickets.length,
@@ -113,24 +164,63 @@ const Helpdesk: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-3">
         {/* Filter pills (admin only) */}
         {isAdmin && (
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {([
-              { k: 'open' as const, label: `Open ${counts.open}` },
-              { k: 'all' as const, label: `All ${counts.all}` },
-              { k: 'mine' as const, label: `Mine ${counts.mine}` },
-            ]).map(({ k, label }) => (
-              <button
-                key={k}
-                onClick={() => setStatusFilter(k)}
-                className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
-                  statusFilter === k
-                    ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
-                    : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="space-y-1.5">
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {([
+                { k: 'open' as const, label: `Open ${counts.open}` },
+                { k: 'all' as const, label: `All ${counts.all}` },
+                { k: 'mine' as const, label: `Mine ${counts.mine}` },
+              ]).map(({ k, label }) => (
+                <button
+                  key={k}
+                  onClick={() => setStatusFilter(k)}
+                  className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
+                    statusFilter === k
+                      ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                      : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {teams.length > 1 && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                <button
+                  onClick={() => setTeamFilter('all')}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
+                    teamFilter === 'all'
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  }`}
+                >
+                  All teams
+                </button>
+                <button
+                  onClick={() => setTeamFilter('unassigned')}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
+                    teamFilter === 'unassigned'
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  }`}
+                >
+                  General
+                </button>
+                {teams.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTeamFilter(t.id)}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
+                      teamFilter === t.id
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                    }`}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -163,6 +253,11 @@ const Helpdesk: React.FC = () => {
                     <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
                       {CATEGORY_LABEL[t.category]}
                     </span>
+                    {isAdmin && (
+                      <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-white text-slate-500 border-slate-200">
+                        {t.teamId ? (teams.find(x => x.id === t.teamId)?.name || 'Team') : 'General'}
+                      </span>
+                    )}
                     {t.priority === 'high' && (
                       <span className={`text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border ${PRIORITY_CHIP.high}`}>
                         High priority
@@ -212,7 +307,7 @@ const NewTicketModal: React.FC<{
     if (!subject.trim() || !description.trim()) { alert('Subject and description are required.'); return; }
     setBusy(true);
     try {
-      await addDoc(collection(db, 'helpdeskTickets'), {
+      const ref = await addDoc(collection(db, 'helpdeskTickets'), {
         clubId,
         teamId: teamId || null,
         createdBy: userUid,
@@ -225,6 +320,9 @@ const NewTicketModal: React.FC<{
         status: 'open',
         createdAt: serverTimestamp(),
       });
+      // Fan out a push to every club admin (minus the author) so a new
+      // ticket doesn't sit unread until someone happens to open the app.
+      void notifyAdminsOfNewTicket(ref.id, subject.trim(), userUid, userName, category, priority);
       onCreated();
     } catch (err) {
       console.error('ticket create failed', err);

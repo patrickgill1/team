@@ -70,8 +70,30 @@ const HelpdeskTicketPage: React.FC = () => {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [statusChanging, setStatusChanging] = useState(false);
+  const [admins, setAdmins] = useState<Array<{ id: string; name: string }>>([]);
+  const [showAssignPicker, setShowAssignPicker] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   const isAdmin = !!(userData as any)?.isClubAdmin;
+
+  // Pull the small list of club admins so an assignee picker can show
+  // names instead of UIDs. Only needed for admins; parents don't see it.
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, 'users'), where('isClubAdmin', '==', true)),
+        );
+        setAdmins(snap.docs.map(d => ({
+          id: d.id,
+          name: ((d.data() as any).name as string) || 'Admin',
+        })).sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (err) {
+        console.warn('admin fetch failed', err);
+      }
+    })();
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!ticketId) return;
@@ -126,6 +148,45 @@ const HelpdeskTicketPage: React.FC = () => {
       console.error('comment post failed', err);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const assignTo = async (admin: { id: string; name: string } | null) => {
+    if (!ticket || !ticketId || !userData?.uid) return;
+    setAssigning(true);
+    try {
+      await updateDoc(doc(db, 'helpdeskTickets', ticketId), {
+        assignedTo: admin?.id || null,
+        assignedToName: admin?.name || null,
+        updatedAt: serverTimestamp(),
+        // Bump status to 'assigned' when assigning if it was still 'open'.
+        ...(admin && ticket.status === 'open' ? { status: 'assigned' } : {}),
+      });
+      // Audit-log the reassignment as a system comment.
+      await addDoc(collection(db, 'helpdeskComments'), {
+        ticketId,
+        authorId: userData.uid,
+        authorName: userData.name || 'Admin',
+        authorRole: 'admin',
+        content: admin
+          ? `Assigned to ${admin.name}`
+          : 'Unassigned',
+        createdAt: serverTimestamp(),
+      });
+      // Notify the new assignee (skip if they're assigning to themselves).
+      if (admin && admin.id !== userData.uid) {
+        void sendPushToUsers([admin.id], {
+          title: `Assigned to you: ${ticket.subject}`,
+          body: `${userData.name || 'Admin'} assigned this ticket to you.`,
+          url: `/helpdesk/${ticketId}`,
+        });
+      }
+      setShowAssignPicker(false);
+    } catch (err) {
+      console.error('assign failed', err);
+      alert("Couldn't reassign — try again.");
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -202,6 +263,52 @@ const HelpdeskTicketPage: React.FC = () => {
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2">Description</div>
           <p className="text-sm text-slate-700 whitespace-pre-wrap">{ticket.description}</p>
         </div>
+
+        {/* Assignee (admin only) */}
+        {isAdmin && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500">Assigned to</div>
+              <button
+                onClick={() => setShowAssignPicker(s => !s)}
+                disabled={assigning}
+                className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 disabled:opacity-50"
+              >
+                {showAssignPicker ? 'Cancel' : (ticket.assignedTo ? 'Change' : 'Assign')}
+              </button>
+            </div>
+            <div className="text-sm text-slate-800">
+              {ticket.assignedToName || <span className="italic text-slate-400">Unassigned</span>}
+            </div>
+            {showAssignPicker && (
+              <div className="mt-2 pt-2 border-t border-slate-100 space-y-1">
+                {admins.map(a => (
+                  <button
+                    key={a.id}
+                    onClick={() => assignTo(a)}
+                    disabled={assigning || a.id === ticket.assignedTo}
+                    className={`w-full text-left text-sm px-2 py-1.5 rounded-md ${
+                      a.id === ticket.assignedTo
+                        ? 'bg-slate-100 text-slate-400 cursor-default'
+                        : 'hover:bg-cyan-50 text-slate-800'
+                    } disabled:opacity-60`}
+                  >
+                    {a.name}{a.id === userData?.uid ? ' (me)' : ''}
+                  </button>
+                ))}
+                {ticket.assignedTo && (
+                  <button
+                    onClick={() => assignTo(null)}
+                    disabled={assigning}
+                    className="w-full text-left text-sm px-2 py-1.5 rounded-md hover:bg-rose-50 text-rose-700 disabled:opacity-60"
+                  >
+                    Unassign
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Status changer (admin or creator) */}
         {canChangeStatus && (

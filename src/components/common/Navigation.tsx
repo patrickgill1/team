@@ -20,14 +20,14 @@ import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { isCoach, isClubAdmin } from '../../utils/helpers';
-import InviteSystem from '../../pages/InviteSystem';
+// Legacy InviteSystem import removed — invites now live on /people.
 import AppIcon from './AppIcon';
 
 const Navigation: React.FC = () => {
   const { userData, logout, deleteAccount } = useAuth();
   const { teams, selectedTeamId, selectedTeam, setSelectedTeamId } = useTeam();
   const location = useLocation();
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  // isInviteOpen state removed with the legacy modal.
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
@@ -297,15 +297,16 @@ const Navigation: React.FC = () => {
         {/* Invite + User at bottom */}
         <div className="p-3 border-t border-white/10 space-y-2">
           {isUserCoach && (
-            <button
-              onClick={() => setIsInviteOpen(true)}
+            <Link
+              to="/people"
               className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-cyan-500 hover:bg-cyan-400 text-fire-950 transition-colors`}
+              title="Add a player or invite someone"
             >
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              {!sidebarCollapsed && <span>Invite</span>}
-            </button>
+              {!sidebarCollapsed && <span>Add / Invite</span>}
+            </Link>
           )}
           <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2`}>
             <Link
@@ -519,20 +520,11 @@ const Navigation: React.FC = () => {
                     </span>
                     <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
                   </Link>
-                  {isUserCoach && (
-                    <button
-                      onClick={() => { setIsInviteOpen(true); setIsMoreOpen(false); }}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-left"
-                    >
-                      <span className="flex items-center gap-3 min-w-0">
-                        <span className="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
-                          <AppIcon name="plus" className="w-5 h-5" />
-                        </span>
-                        <span className="text-[15px] font-semibold text-gray-900">Invite Parents</span>
-                      </span>
-                      <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
-                    </button>
-                  )}
+                  {/* "Invite Parents" used to live here as a separate
+                      legacy modal. It's been replaced by the unified
+                      flow on /people (+ chooser → Add player / Invite
+                      someone) so we don't surface a second entry point
+                      with worse UX. */}
                   <button
                     onClick={() => { handleLogout(); setIsMoreOpen(false); }}
                     className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-left"
@@ -567,11 +559,10 @@ const Navigation: React.FC = () => {
         </div>
       )}
 
-      {/* Invite Modal */}
-      <InviteSystem
-        isOpen={isInviteOpen}
-        onClose={() => setIsInviteOpen(false)}
-      />
+      {/* InviteSystem modal removed — the unified flow now lives on
+          /people (+ chooser → Add player / Invite someone). The
+          desktop sidebar "Add / Invite" button + the mobile More-sheet
+          "People" link both route there. */}
 
       {/* Delete Account confirmation modal — required by App Store guideline 5.1.1(v) */}
       {showDeleteAccount && (

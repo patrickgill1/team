@@ -8,6 +8,7 @@ import { Player, News, CalendarEvent, PlayerMedia as PlayerMediaType } from '../
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import DashboardHero from '../components/common/DashboardHero';
+import NotificationsBanner from '../components/common/NotificationsBanner';
 import NewsList from '../components/news/NewsList';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
@@ -429,6 +430,10 @@ const Dashboard: React.FC = () => {
       <div className="relative">
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        {/* Show the push-permission banner first when the user has no
+            FCM tokens. Self-hides when not needed. */}
+        <NotificationsBanner />
+
         {/* Ambient cues right under the greeting — birthday pill,
             season countdown. Tiny, but they make the page feel alive. */}
         {(birthdayKids.length > 0 || seasonCountdown) && (

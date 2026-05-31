@@ -56,6 +56,28 @@ export async function initNativeShell(): Promise<void> {
   }
 }
 
+/**
+ * Check current native push permission without prompting. Returns:
+ *   'granted'   — user has approved, we can fetch a token
+ *   'denied'    — user said no; OS will not re-prompt, send them to Settings
+ *   'prompt'    — never asked OR asked-and-undecided; safe to call request
+ *   'unsupported' — running in a browser, not a native shell
+ */
+export async function getPushPermissionState(): Promise<'granted' | 'denied' | 'prompt' | 'unsupported'> {
+  if (!Capacitor.isNativePlatform()) return 'unsupported';
+  try {
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+    const perm = await FirebaseMessaging.checkPermissions();
+    const r = perm.receive;
+    if (r === 'granted') return 'granted';
+    if (r === 'denied') return 'denied';
+    return 'prompt';
+  } catch (err) {
+    console.warn('checkPermissions failed', err);
+    return 'unsupported';
+  }
+}
+
 // Push notifications — call this AFTER the user is signed in, so the FCM
 // token can be saved to the user's Firestore doc. Uses
 // @capacitor-firebase/messaging which returns FCM tokens directly (instead

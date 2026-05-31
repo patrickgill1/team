@@ -108,8 +108,8 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Invite someone</div>
           <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-700">
@@ -140,7 +140,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
         </div>
 
         {/* Form */}
-        <div className="px-4 py-3 space-y-3">
+        <div className="px-4 py-3 space-y-3 overflow-y-auto flex-1">
           {kind === 'parent' ? (
             <>
               <div className="text-[11px] text-slate-500">

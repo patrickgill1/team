@@ -131,8 +131,8 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">
             {result ? 'Player added' : 'Add player'}
@@ -170,7 +170,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
             </button>
           </div>
         ) : (
-          <div className="px-4 py-3 space-y-3">
+          <div className="px-4 py-3 space-y-3 overflow-y-auto flex-1">
             {/* Name */}
             <div>
               <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Name <span className="text-rose-500">*</span></label>

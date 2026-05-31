@@ -6,6 +6,7 @@ import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
 import InvitePersonModal from '../components/people/InvitePersonModal';
 import AddPlayerModal from '../components/people/AddPlayerModal';
+import ActiveInvitesPanel from '../components/people/ActiveInvitesPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -64,6 +65,8 @@ const People: React.FC = () => {
   const [addPlayerOpen, setAddPlayerOpen] = useState(false);
   // Tiny chooser sheet that opens when you tap +.
   const [chooserOpen, setChooserOpen] = useState(false);
+  // Active invites panel — view/revoke pending invites.
+  const [invitesPanelOpen, setInvitesPanelOpen] = useState(false);
   // Lightweight cache of every player in the club for the invite
   // modal's player picker (parent invites are anchored to a player).
   const [allClubPlayers, setAllClubPlayers] = useState<any[]>([]);
@@ -246,16 +249,29 @@ const People: React.FC = () => {
         title="People"
         subtitle={people.length ? `${people.length} in your club` : undefined}
         action={
-          <button
-            onClick={() => setChooserOpen(true)}
-            aria-label="Add someone"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setInvitesPanelOpen(true)}
+              aria-label="Active invites"
+              title="Active invites"
+              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center hover:bg-white/20"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setChooserOpen(true)}
+              aria-label="Add someone"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+          </div>
         }
       />
 
@@ -515,6 +531,18 @@ const People: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Active invites list — view, copy, revoke. */}
+      {invitesPanelOpen && (
+        <ActiveInvitesPanel
+          isAdmin={isClubAdmin}
+          currentUid={userData?.uid || ''}
+          myTeamIds={(userData as any)?.teamIds || (userData?.teamId ? [userData.teamId] : [])}
+          teamNameById={Object.fromEntries(teams.map(t => [t.id, t.name]))}
+          playerNameById={Object.fromEntries(allClubPlayers.map((p: any) => [p.id, p.name]))}
+          onClose={() => setInvitesPanelOpen(false)}
+        />
       )}
 
       {/* Invite modal — parent (player-anchored) or staff (team+role) */}

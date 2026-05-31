@@ -25,13 +25,12 @@ export async function initNativeShell(): Promise<void> {
     console.warn('StatusBar init failed', err);
   }
 
-  try {
-    // Hide the launch splash once the React tree has rendered.
-    const { SplashScreen } = await import('@capacitor/splash-screen');
-    await SplashScreen.hide({ fadeOutDuration: 250 });
-  } catch (err) {
-    console.warn('SplashScreen hide failed', err);
-  }
+  // NOTE: splash dismissal moved to hideSplash() below. The old
+  // behavior hid the splash as soon as initNativeShell resolved —
+  // which fires before React first-paint, so the WebView was empty
+  // (or showed an unstyled flash) for a frame. Now we wait until
+  // App.tsx asks us to hide, after the React tree has actually
+  // committed to the DOM.
 
   try {
     // Hardware back button + URL handling. Capacitor on iOS doesn't have a
@@ -53,6 +52,21 @@ export async function initNativeShell(): Promise<void> {
     });
   } catch (err) {
     console.warn('App listener init failed', err);
+  }
+}
+
+/**
+ * Dismiss the native splash. Call this from React AFTER first paint so
+ * the user never sees an empty WebView between splash and React tree.
+ * Safe to call multiple times; SplashScreen.hide() is idempotent.
+ */
+export async function hideSplash(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { SplashScreen } = await import('@capacitor/splash-screen');
+    await SplashScreen.hide({ fadeOutDuration: 200 });
+  } catch (err) {
+    console.warn('SplashScreen hide failed', err);
   }
 }
 

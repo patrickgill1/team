@@ -50,10 +50,9 @@ const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
 const HelpdeskTicketPage = React.lazy(() => import('./pages/HelpdeskTicket'));
 
 const PageSpinner = () => (
-  <div className="min-h-screen bg-fire-50 flex items-center justify-center">
+  <div className="min-h-screen bg-slate-950 flex items-center justify-center">
     <div className="flex flex-col items-center space-y-3">
-      <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
-      <span className="text-sm text-fire-400 font-medium">Loading...</span>
+      <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-500/30 border-t-cyan-400" />
     </div>
   </div>
 );
@@ -78,7 +77,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setChecking(false);
         return;
       }
-      // Then check player link (with timeout so mobile doesn't hang)
+      // Then check player link (with timeout so mobile doesn't hang).
+      // 3s race covers typical Firestore latency (<500ms) with a wide
+      // buffer; longer than that and we'd rather show the app than make
+      // the user stare at a spinner.
       try {
         const q = query(
           collection(db, 'players'),
@@ -86,7 +88,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         );
         const snap = await Promise.race([
           getDocs(q),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
         ]);
         setGateReason(snap === null || snap.empty ? 'not-linked' : 'none');
       } catch {
@@ -96,20 +98,19 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
     checkAccess();
 
-    // Safety timeout: never leave the checking spinner up forever
+    // Hard safety ceiling — never leave the spinner up forever.
     const timer = setTimeout(() => {
       setChecking(false);
-      setGateReason('none'); // fail open
-    }, 6000);
+      setGateReason('none');
+    }, 4000);
     return () => clearTimeout(timer);
   }, [userData?.uid, userData?.role]);
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-fire-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
-          <span className="text-sm text-fire-400 font-medium">Loading...</span>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-500/30 border-t-cyan-400" />
         </div>
       </div>
     );
@@ -193,6 +194,20 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 function App() {
+  // Dismiss the native splash AFTER React has had a paint. Without
+  // this, the splash hides as soon as initNativeShell() resolves —
+  // which fires before the first React commit, so the user sees a
+  // navy WebView for a frame instead of the loading spinner. RAF
+  // guarantees we're past at least one paint.
+  useEffect(() => {
+    let cancelled = false;
+    requestAnimationFrame(() => {
+      if (cancelled) return;
+      import('./utils/nativeShell').then((m) => m.hideSplash());
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <AuthProvider>
       <TeamProvider>

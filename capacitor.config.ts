@@ -16,7 +16,10 @@ const config: CapacitorConfig = {
     // the safe-area edges — that's where the white strip at the top came
     // from. 'never' gives the page full control over both edges.
     contentInset: 'never',
-    backgroundColor: '#ffffff',
+    // Navy matches the splash + the dashboard hero, so when the splash
+    // fades out there's no visible white frame underneath the WebView
+    // before React paints. (Old value '#ffffff' caused a white flash.)
+    backgroundColor: '#0f172a',
     // Use the system status bar style (light text on our dark hero gradient).
     // The plugin actually drives this at runtime — see initStatusBar() below.
     limitsNavigationsToAppBoundDomains: false,
@@ -35,7 +38,12 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1500,
+      // Keep the splash up until React explicitly hides it (via
+      // hideSplash() called from App.tsx after first paint). The
+      // launchShowDuration is a safety ceiling — if our JS never
+      // hides the splash, Capacitor will after this long.
+      launchShowDuration: 3000,
+      autoHide: false,
       backgroundColor: '#0f172a',
       showSpinner: false,
       splashFullScreen: true,

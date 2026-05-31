@@ -43,6 +43,9 @@ const TeamChat: React.FC = () => {
   const [filterTag, setFilterTag] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; photoURL?: string; childNames?: string[] }[]>([]);
+  // teamId → teamName lookup. Used to label each thread with its
+  // team chip now that the chat tab spans every team the user is on.
+  const [teamNameById, setTeamNameById] = useState<Record<string, string>>({});
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -243,6 +246,38 @@ const TeamChat: React.FC = () => {
       return 'Just now';
     }
   };
+
+  // Fetch team names for every team the user belongs to, once.
+  // Used to render the small team chip on each thread row so the
+  // user can tell which Fire FC team a thread lives in.
+  useEffect(() => {
+    const myTeamIds = Array.from(new Set([
+      ...(userData?.teamIds || []),
+      ...(userData?.teamId ? [userData.teamId] : []),
+    ].filter(Boolean)));
+    if (myTeamIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs, query: fsQuery, where: fsWhere, documentId } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        // Firestore `in` queries cap at 30 — fine for any realistic
+        // single user's team membership.
+        const snap = await getDocs(fsQuery(
+          collection(db, 'teams'),
+          fsWhere(documentId(), 'in', myTeamIds.slice(0, 30)),
+        ));
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        for (const d of snap.docs) {
+          const data = d.data() as any;
+          map[d.id] = data?.name || '';
+        }
+        setTeamNameById(map);
+      } catch { /* non-fatal — chips just won't render */ }
+    })();
+    return () => { cancelled = true; };
+  }, [userData?.teamIds, userData?.teamId]);
 
   // Subscribe to threads across EVERY team the user belongs to. The
   // chat tab no longer hides chats / DMs based on the currently
@@ -1184,6 +1219,14 @@ const TeamChat: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="font-semibold text-gray-900 truncate text-[15px]">{displayTitle}</span>
+                        {/* Team chip — only shows when the user is on
+                            multiple teams, so the chip stays out of the
+                            way for single-team users (who don't need it). */}
+                        {Object.keys(teamNameById).length > 1 && thread.teamId && teamNameById[thread.teamId] && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 ring-1 ring-slate-200 flex-shrink-0">
+                            {teamNameById[thread.teamId]}
+                          </span>
+                        )}
                         {thread.isPinned && (
                           <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />

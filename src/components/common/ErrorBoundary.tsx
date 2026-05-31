@@ -23,6 +23,27 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Keep the stack visible in the iOS Safari Web Inspector + Vercel logs.
     console.error('[ErrorBoundary] render crashed:', error, info?.componentStack);
+
+    // Auto-recover from stale-chunk errors. When Vercel deploys a new
+    // build, hashed chunk filenames change — any open tab still
+    // holding the old index.html will 404 the next lazy-loaded route
+    // ("Loading chunk 870 failed"). A single hard reload fetches the
+    // new index.html and resolves it. We only retry once per session
+    // so an infinite loop on a real bug doesn't spin the user.
+    const msg = String(error?.message || '').toLowerCase();
+    const looksLikeStaleChunk =
+      msg.includes('loading chunk') ||
+      msg.includes('failed to fetch dynamically imported module') ||
+      msg.includes('importing a module script failed');
+    if (looksLikeStaleChunk) {
+      const KEY = 'firefc.chunkReloadAt';
+      const last = Number(sessionStorage.getItem(KEY) || 0);
+      // Don't retry more than once in 60s.
+      if (Date.now() - last > 60_000) {
+        try { sessionStorage.setItem(KEY, String(Date.now())); } catch {}
+        window.location.reload();
+      }
+    }
   }
 
   handleReload = () => {

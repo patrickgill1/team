@@ -41,6 +41,8 @@ const EventForm: React.FC<EventFormProps> = ({
     date: '',
     time: '',
     location: '',
+    fieldNumber: '',
+    homeAway: '' as '' | 'home' | 'away',
     type: 'practice' as 'game' | 'practice' | 'event',
     createAttendance: true, // New field for creating attendance
     createVolunteerOpps: false, // New field for creating volunteer opportunities
@@ -90,6 +92,8 @@ const EventForm: React.FC<EventFormProps> = ({
         date: eventDate.toISOString().split('T')[0],
         time: eventDate.toTimeString().slice(0, 5),
         location: editingEvent.location,
+        fieldNumber: (editingEvent as any).fieldNumber || '',
+        homeAway: ((editingEvent as any).homeAway as 'home' | 'away' | undefined) || '',
         type: editingEvent.type,
         createAttendance: false, // Don't auto-create for existing events
         createVolunteerOpps: false,
@@ -114,6 +118,8 @@ const EventForm: React.FC<EventFormProps> = ({
         date: defaultDate.toISOString().split('T')[0],
         time: '10:00',
         location: '',
+        fieldNumber: '',
+        homeAway: '',
         type: 'practice',
         createAttendance: true,
         createVolunteerOpps: false,
@@ -463,6 +469,8 @@ const EventForm: React.FC<EventFormProps> = ({
         // from a previous selection into a new address.
         locationCoords: pickedCoords || null,
         locationAddress: pickedAddress || null,
+        fieldNumber: formData.fieldNumber.trim() || null,
+        homeAway: formData.type === 'game' && formData.homeAway ? formData.homeAway : null,
         type: formData.type,
         teamId: selectedTeamId,
         createdBy: userData.uid,
@@ -529,6 +537,8 @@ const EventForm: React.FC<EventFormProps> = ({
         date: '',
         time: '',
         location: '',
+        fieldNumber: '',
+        homeAway: '',
         type: 'practice',
         createAttendance: true,
         createVolunteerOpps: false,
@@ -909,6 +919,64 @@ const EventForm: React.FC<EventFormProps> = ({
 
             {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
           </div>
+
+          {/* Optional field/court sub-location. Hidden in display when
+              empty so it doesn't add noise to events at single-field
+              venues. Useful at complexes like "Little Valley Soccer
+              Fields → Field 7". */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Field <span className="text-xs text-slate-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={formData.fieldNumber}
+              onChange={(e) => setFormData({ ...formData, fieldNumber: e.target.value })}
+              placeholder="e.g. Field 7"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+            />
+          </div>
+
+          {/* Home / Away — game-only. Drives the jersey-color hint on
+              event cards so parents know which kit to pack (home =
+              black, away = white per Fire FC's rules). */}
+          {formData.type === 'game' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Home or away
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, homeAway: formData.homeAway === 'home' ? '' : 'home' })}
+                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-bold transition ${
+                    formData.homeAway === 'home'
+                      ? 'bg-slate-950 text-white border-slate-950 ring-2 ring-slate-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
+                  }`}
+                >
+                  🏠 Home
+                  <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-slate-300' : 'text-slate-400'}`}>
+                    Black
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, homeAway: formData.homeAway === 'away' ? '' : 'away' })}
+                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-bold transition ${
+                    formData.homeAway === 'away'
+                      ? 'bg-white text-slate-900 border-slate-900 ring-2 ring-slate-300 shadow-inner'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
+                  }`}
+                >
+                  ✈ Away
+                  <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'away' ? 'text-slate-500' : 'text-slate-400'}`}>
+                    White
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Arrive early — recommended for games (warmups), useful for
               practices too. Offsets are stored so they auto-shift if the

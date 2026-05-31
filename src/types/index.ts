@@ -321,6 +321,9 @@ export interface CalendarEvent {
   createdByName?: string;
   opponent?: string;
   homeAway?: 'home' | 'away';
+  /** Optional sub-location at the venue — e.g. "Field 7" at a complex
+   *  with many fields. Hidden in display when not filled. */
+  fieldNumber?: string;
   result?: string;
   // RSVPs: { uid: { status, name, respondedAt, forPlayerId? } }
   rsvps?: Record<string, { status: 'going' | 'maybe' | 'no'; name: string; respondedAt: any; forPlayerName?: string }>;

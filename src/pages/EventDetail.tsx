@@ -544,6 +544,14 @@ const EventDetail: React.FC = () => {
               <Icon name="pin" className="w-3 h-3" /> {event.location}
             </a>
           </>}
+          {(event as any).fieldNumber && (
+            <>
+              <span className="text-slate-600">·</span>
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 text-[11px] font-extrabold tracking-widest uppercase">
+                {(event as any).fieldNumber}
+              </span>
+            </>
+          )}
         </p>
       </section>
 
@@ -618,6 +626,44 @@ const EventDetail: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* JERSEY BANNER — game days only. Tells parents which kit to
+          pack at a glance: home = black, away = white. */}
+      {event.type === 'game' && (event as any).homeAway && (
+        <section className={`px-4 sm:px-6 py-3 border-b ${
+          (event as any).homeAway === 'home'
+            ? 'bg-slate-950 border-slate-800'
+            : 'bg-white border-slate-200'
+        }`}>
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-base ${
+                (event as any).homeAway === 'home' ? 'bg-cyan-500/20' : 'bg-slate-100'
+              }`}>
+                {(event as any).homeAway === 'home' ? '🏠' : '✈'}
+              </span>
+              <div>
+                <div className={`text-xs font-extrabold tracking-widest uppercase ${
+                  (event as any).homeAway === 'home' ? 'text-cyan-300' : 'text-slate-600'
+                }`}>
+                  {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
+                </div>
+                <div className={`text-[11px] ${
+                  (event as any).homeAway === 'home' ? 'text-slate-400' : 'text-slate-500'
+                }`}>
+                  Wear your {(event as any).homeAway === 'home' ? 'BLACK' : 'WHITE'} jersey
+                </div>
+              </div>
+            </div>
+            {/* Visual jersey swatch */}
+            <span className={`inline-block w-8 h-8 rounded-md border-2 ${
+              (event as any).homeAway === 'home'
+                ? 'bg-slate-900 border-slate-700'
+                : 'bg-white border-slate-300'
+            }`} aria-hidden />
+          </div>
+        </section>
+      )}
 
       {/* PER-KID RSVPS — one row per linked player. Renders for anyone
           with kids on this team, so a coach-who-is-also-a-parent can

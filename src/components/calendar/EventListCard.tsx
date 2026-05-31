@@ -155,6 +155,26 @@ const EventListCard: React.FC<Props> = ({
                   <span className="truncate underline decoration-dotted underline-offset-2">{event.location}</span>
                 </a>
               </>)}
+              {(event as any).fieldNumber && (<>
+                <span className="text-slate-300">·</span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 text-[10px] font-extrabold tracking-widest uppercase ring-1 ring-cyan-200">
+                  {(event as any).fieldNumber}
+                </span>
+              </>)}
+              {event.type === 'game' && (event as any).homeAway && (<>
+                <span className="text-slate-300">·</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase">
+                  <span
+                    className={`inline-block w-2.5 h-2.5 rounded-sm border ${
+                      (event as any).homeAway === 'home'
+                        ? 'bg-slate-900 border-slate-700'
+                        : 'bg-white border-slate-300'
+                    }`}
+                    aria-hidden
+                  />
+                  <span className="text-slate-600">{(event as any).homeAway === 'home' ? 'Black' : 'White'}</span>
+                </span>
+              </>)}
               {weatherText && (<>
                 <span className="text-slate-300">·</span>
                 <span className="inline-flex items-center gap-1">

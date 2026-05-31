@@ -176,7 +176,7 @@ export async function getParentEmailsForPlayer(
 export async function sendPushToUsers(
   userIds: string[],
   msg: { title: string; body: string; url?: string },
-  opts?: { prefKey?: EmailPrefKey; pushPrefKey?: PushPrefKey }
+  opts?: { prefKey?: EmailPrefKey; pushPrefKey?: PushPrefKey; fromUid?: string }
 ): Promise<boolean> {
   if (!configured()) return false;
   if (!userIds || userIds.length === 0) return false;
@@ -200,6 +200,10 @@ export async function sendPushToUsers(
           const pprefs: PushPreferences = { ...DEFAULT_PUSH_PREFS, ...(u.pushPreferences || {}) };
           if (!pprefs[opts.pushPrefKey]) continue;
         }
+        // Recipient-side mute: this user has chosen not to be pushed
+        // when `fromUid` posts. The message still lands in the thread
+        // (mute is personal preference, not block).
+        if (opts?.fromUid && Array.isArray(u.mutedUserIds) && u.mutedUserIds.includes(opts.fromUid)) continue;
         const arr: string[] = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
         for (const t of arr) {
           if (typeof t !== 'string' || !t) continue;

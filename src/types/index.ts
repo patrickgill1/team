@@ -73,6 +73,10 @@ export interface UserData {
     broadcast?: boolean;
   };
   fcmTokens?: string[];
+  /** UIDs of other users this person has muted in chat. They still see
+   *  the messages in-thread but no push notification fires from them.
+   *  Personal preference; doesn't affect anyone else's experience. */
+  mutedUserIds?: string[];
 }
 
 export interface SeasonMembership {

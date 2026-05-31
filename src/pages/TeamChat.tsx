@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { where } from 'firebase/firestore';
+import { where, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -598,7 +599,7 @@ const TeamChat: React.FC = () => {
             title: pushTitle,
             body: pushBody,
             url: `${getShareOrigin()}/chat?thread=${selectedThread.id}`,
-          }, { pushPrefKey: 'chat' });
+          }, { pushPrefKey: 'chat', fromUid: userData.uid });
         }
       } catch (err) {
         console.warn('[chat] push notify failed', err);
@@ -1448,6 +1449,18 @@ const TeamChat: React.FC = () => {
                         }
                         return isUserClubAdmin;
                       })()}
+                      onStartDm={(uid, name) => startDM({ uid, name })}
+                      onToggleMute={async (uid, name) => {
+                        if (!userData?.uid) return;
+                        const cur: string[] = Array.isArray((userData as any).mutedUserIds) ? (userData as any).mutedUserIds : [];
+                        const next = cur.includes(uid) ? cur.filter(u => u !== uid) : [...cur, uid];
+                        try {
+                          await updateDoc(doc(db, 'users', userData.uid), { mutedUserIds: next });
+                        } catch (err) {
+                          console.warn('mute toggle failed', err);
+                        }
+                      }}
+                      isMuted={Array.isArray((userData as any)?.mutedUserIds) && (userData as any).mutedUserIds.includes(message.senderId)}
                       onImageClick={(url) => setLightboxUrl(url)}
                       onPollVote={voteOnPoll}
                       onAcknowledge={acknowledgeMessage}

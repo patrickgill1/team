@@ -6,8 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
-import { osmEmbedUrl } from '../../utils/maps';
-import LocationPickerModal from './LocationPickerModal';
+import { osmEmbedUrl, geocodeForward, hasMapbox, GeocodeHit } from '../../utils/maps';
 
 /** Compact location for the Recent + Favorites quick-pick rows. */
 interface PickableLocation {
@@ -67,7 +66,13 @@ const EventForm: React.FC<EventFormProps> = ({
   const [recentLocations, setRecentLocations] = useState<PickableLocation[]>([]);
   const [favoriteLocations, setFavoriteLocations] = useState<PickableLocation[]>([]);
   const [savingFavorite, setSavingFavorite] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // Inline autocomplete state — typing into the location input fires
+  // a debounced search via geocodeForward (Mapbox if token, OSM fallback).
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchHits, setSearchHits] = useState<GeocodeHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (editingEvent) {
@@ -291,6 +296,33 @@ const EventForm: React.FC<EventFormProps> = ({
       setSavingFavorite(false);
     }
   };
+
+  // Inline autocomplete — debounced search against geocodeForward.
+  // Mapbox when REACT_APP_MAPBOX_TOKEN is set, OSM/Nominatim otherwise.
+  // Proximity bias prefers locations near a previously-used venue.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) { setSearchHits([]); setSearched(false); return; }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const proxCenter = pickedCoords
+          || (favoriteLocations.find(f => typeof f.lat === 'number') as any)
+          || (recentLocations.find(r => typeof r.lat === 'number') as any);
+        const proximity = proxCenter && typeof proxCenter.lat === 'number'
+          ? { lat: proxCenter.lat, lon: proxCenter.lon }
+          : undefined;
+        const hits = await geocodeForward(q, { proximity });
+        if (cancelled) return;
+        setSearchHits(hits);
+        setSearched(true);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [searchQuery]);
 
   // Look up weather forecast for the chosen date/location (debounced via effect deps).
   useEffect(() => {
@@ -726,15 +758,13 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
             )}
 
-            {/* Picked-location card. Shows the current selection with
-                a thumbnail map preview, address, and Save-to-team. Tap
-                it to re-open the picker and refine. */}
+            {/* Inline autocomplete — type, get a dropdown of matches,
+                tap to pick. No map. Mapbox-backed when REACT_APP_
+                MAPBOX_TOKEN is set, OSM/Nominatim fallback otherwise.
+                Picked-location card with a small (non-interactive)
+                map thumbnail shows after a choice is made. */}
             {pickedCoords ? (
-              <button
-                type="button"
-                onClick={() => setPickerOpen(true)}
-                className="w-full text-left rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:border-cyan-400 transition-colors"
-              >
+              <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
                 <iframe
                   title="Picked location"
                   src={osmEmbedUrl(pickedCoords.lat, pickedCoords.lon, 16)}
@@ -744,30 +774,97 @@ const EventForm: React.FC<EventFormProps> = ({
                 <div className="px-3 py-2.5 bg-slate-50 border-t border-slate-200">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold text-slate-900 truncate">{formData.location}</div>
+                      <div className="text-sm font-bold text-slate-900 break-words">{formData.location}</div>
                       {pickedAddress && (
-                        <div className="text-[11px] text-slate-500 truncate mt-0.5">{pickedAddress}</div>
+                        <div className="text-[11px] text-slate-500 break-words mt-0.5">{pickedAddress}</div>
                       )}
                     </div>
-                    <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPickedCoords(null);
+                        setPickedAddress('');
+                        setFormData(prev => ({ ...prev, location: '' }));
+                        setSearchQuery('');
+                        setSearchHits([]);
+                        setSearched(false);
+                        setSearchOpen(true);
+                      }}
+                      className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 flex-shrink-0"
+                    >
                       Change ›
-                    </span>
+                    </button>
                   </div>
                 </div>
-              </button>
+              </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setPickerOpen(true)}
-                className={`w-full rounded-xl border-2 border-dashed px-3 py-4 text-center transition-colors ${
-                  errors.location
-                    ? 'border-rose-300 bg-rose-50 text-rose-700'
-                    : 'border-slate-300 bg-slate-50 text-slate-600 hover:border-cyan-400 hover:text-cyan-700'
-                }`}
-              >
-                <div className="text-base font-bold">📍 Pick on map</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">Search, drop a pin, or use your location</div>
-              </button>
+              <div className="relative">
+                <div className="relative">
+                  <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+                    onFocus={() => setSearchOpen(true)}
+                    onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                    placeholder="Search venue or address…"
+                    autoComplete="off"
+                    className={`w-full pl-9 pr-16 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
+                      errors.location ? 'border-rose-300' : 'border-slate-300'
+                    }`}
+                  />
+                  {/* Provider tag — visible at a glance whether Mapbox
+                      or OSM-fallback is doing the lookup. */}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-extrabold tracking-widest uppercase text-slate-400 pointer-events-none">
+                    {hasMapbox() ? 'Mapbox' : 'OSM'}
+                  </div>
+                </div>
+                {searchOpen && searchQuery.trim().length >= 2 && (searching || searchHits.length > 0 || searched) && (
+                  <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl ring-1 ring-slate-200 overflow-hidden max-h-80 overflow-y-auto">
+                    {searching && searchHits.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-slate-500">Searching…</div>
+                    )}
+                    {!searching && searched && searchHits.length === 0 && (
+                      <div className="px-3 py-2.5">
+                        <div className="text-xs text-slate-700 mb-1">No matches.</div>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery.trim())}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
+                        >
+                          Look it up in Google Maps →
+                        </a>
+                      </div>
+                    )}
+                    {searchHits.map((h, i) => (
+                      <button
+                        key={`${h.address}_${i}`}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          lastSelectedAddressRef.current = h.address;
+                          setFormData(prev => ({ ...prev, location: h.label }));
+                          setPickedCoords({ lat: h.lat, lon: h.lon });
+                          setPickedAddress(h.address);
+                          setSearchQuery('');
+                          setSearchHits([]);
+                          setSearched(false);
+                          setSearchOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2.5 hover:bg-cyan-50 border-b border-slate-100 last:border-b-0"
+                      >
+                        <div className="text-sm font-semibold text-slate-900 break-words">{h.label}</div>
+                        {h.label !== h.address && (
+                          <div className="text-[11px] text-slate-500 break-words">{h.address}</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {pickedCoords && (
@@ -1051,33 +1148,6 @@ const EventForm: React.FC<EventFormProps> = ({
         </form>
       </div>
 
-      {/* Full-screen visual location picker. Centers on existing pick →
-          first favorite → first recent, so it opens "near where you
-          probably want it" instead of mid-USA. */}
-      <LocationPickerModal
-        isOpen={pickerOpen}
-        initial={pickedCoords ? {
-          name: formData.location,
-          address: pickedAddress,
-          lat: pickedCoords.lat,
-          lon: pickedCoords.lon,
-        } : undefined}
-        centerHint={
-          pickedCoords
-            ? { lat: pickedCoords.lat, lon: pickedCoords.lon }
-            : (favoriteLocations.find(f => typeof f.lat === 'number') as any)
-              || (recentLocations.find(r => typeof r.lat === 'number') as any)
-              || undefined
-        }
-        onClose={() => setPickerOpen(false)}
-        onPick={(p) => {
-          lastSelectedAddressRef.current = p.address;
-          setFormData(prev => ({ ...prev, location: p.name }));
-          setPickedCoords({ lat: p.lat, lon: p.lon });
-          setPickedAddress(p.address);
-          setPickerOpen(false);
-        }}
-      />
     </div>
   );
 };

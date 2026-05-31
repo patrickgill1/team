@@ -54,6 +54,26 @@ service cloud.firestore {
         && resource.data.authorId == request.auth.uid;
     }
 
+    // Helpdesk tickets. Anyone authenticated can create / read all
+    // (visibility scoping is done client-side: regular users only see
+    // their own + open tickets they can comment on; club admins see
+    // everything). Only the author OR a club admin can edit / delete
+    // — admins need to update status/assignedTo.
+    match /helpdeskTickets/{ticketId} {
+      allow read, create: if request.auth != null;
+      allow update: if request.auth != null
+        && (resource.data.createdBy == request.auth.uid
+            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
+      allow delete: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true;
+    }
+
+    match /helpdeskComments/{commentId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && resource.data.authorId == request.auth.uid;
+    }
+
     match /player_media/{mediaId} {
       allow read: if true;
       allow write: if request.auth != null;

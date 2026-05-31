@@ -46,6 +46,8 @@ const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder
 const Settings = React.lazy(() => import('./pages/Settings'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
+const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
+const HelpdeskTicketPage = React.lazy(() => import('./pages/HelpdeskTicket'));
 
 const PageSpinner = () => (
   <div className="min-h-screen bg-fire-50 flex items-center justify-center">
@@ -281,6 +283,21 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <People />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/helpdesk" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Helpdesk />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/helpdesk/:ticketId" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <HelpdeskTicketPage />
                 </AppLayout>
               </ProtectedRoute>
             } />

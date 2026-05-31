@@ -152,6 +152,7 @@ const Navigation: React.FC = () => {
     ...(isUserCoach && !isUserClubAdmin ? [{ name: 'Teams', path: '/teams', icon: 'wrench' as const, group: 'apps' as const }] : []),
     // Club admin's single entry point for everything cross-team.
     ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const }] : []),
+    { name: 'Help desk', path: '/helpdesk', icon: 'survey', group: 'account' },
     { name: 'Settings', path: '/settings', icon: 'gear', group: 'account' },
   ];
 

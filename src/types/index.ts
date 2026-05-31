@@ -136,6 +136,43 @@ export interface StaffMembership {
   leftAt?: Date;
 }
 
+// ---------- Helpdesk ----------
+export type TicketStatus = 'open' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'normal' | 'high';
+export type TicketCategory = 'app_bug' | 'feature_request' | 'team_issue' | 'billing' | 'other';
+
+export interface HelpdeskTicket {
+  id: string;
+  clubId: string;
+  teamId?: string;
+  createdBy: string;
+  createdByName: string;
+  createdByRole?: 'parent' | 'coach' | 'team_manager' | 'admin';
+  subject: string;
+  description: string;
+  category: TicketCategory;
+  status: TicketStatus;
+  priority: TicketPriority;
+  assignedTo?: string;
+  assignedToName?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  resolvedAt?: Date;
+}
+
+export interface HelpdeskComment {
+  id: string;
+  ticketId: string;
+  authorId: string;
+  authorName: string;
+  authorRole?: string;
+  content: string;
+  /** Status changes posted by admins are stored as comments with a
+   *  `statusChange` field so the thread doubles as a full audit log. */
+  statusChange?: { from: TicketStatus; to: TicketStatus };
+  createdAt: Date;
+}
+
 export interface Player {
   id: string;
   name: string;

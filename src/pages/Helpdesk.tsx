@@ -1,0 +1,304 @@
+// @ts-nocheck
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, where,
+} from 'firebase/firestore';
+import { db } from '../utils/firebase';
+import Header from '../components/common/Header';
+import { useAuth } from '../hooks/useAuth';
+import { useTeam } from '../contexts/TeamContext';
+import { isCoach } from '../utils/helpers';
+import type { HelpdeskTicket, TicketStatus, TicketPriority, TicketCategory } from '../types';
+
+const CATEGORY_LABEL: Record<TicketCategory, string> = {
+  app_bug: 'App bug',
+  feature_request: 'Feature request',
+  team_issue: 'Team issue',
+  billing: 'Billing',
+  other: 'Other',
+};
+const STATUS_CHIP: Record<TicketStatus, string> = {
+  open: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  assigned: 'bg-amber-50 text-amber-700 border-amber-200',
+  in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
+  resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  closed: 'bg-slate-100 text-slate-500 border-slate-200',
+};
+const PRIORITY_CHIP: Record<TicketPriority, string> = {
+  low: 'bg-slate-100 text-slate-600 border-slate-200',
+  normal: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  high: 'bg-rose-50 text-rose-700 border-rose-200',
+};
+
+function formatRel(d: Date): string {
+  const diff = Date.now() - d.getTime();
+  const min = Math.round(diff / 60_000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+const Helpdesk: React.FC = () => {
+  const { userData } = useAuth();
+  const { selectedTeamId } = useTeam();
+  const [tickets, setTickets] = useState<HelpdeskTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'mine'>('open');
+  const [newOpen, setNewOpen] = useState(false);
+
+  const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isAdmin = !!(userData as any)?.isClubAdmin;
+
+  useEffect(() => {
+    if (!userData?.uid) return;
+    setLoading(true);
+    // Admins see every ticket; everyone else sees their own.
+    const q = isAdmin
+      ? query(collection(db, 'helpdeskTickets'), orderBy('createdAt', 'desc'))
+      : query(collection(db, 'helpdeskTickets'),
+          where('createdBy', '==', userData.uid),
+          orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, snap => {
+      setTickets(snap.docs.map(d => ({
+        id: d.id,
+        ...(d.data() as any),
+        createdAt: (d.data() as any).createdAt?.toDate?.() || new Date(),
+        updatedAt: (d.data() as any).updatedAt?.toDate?.(),
+        resolvedAt: (d.data() as any).resolvedAt?.toDate?.(),
+      })) as HelpdeskTicket[]);
+      setLoading(false);
+    }, () => { setLoading(false); });
+    return () => unsub();
+  }, [userData?.uid, isAdmin]);
+
+  const filtered = useMemo(() => {
+    return tickets.filter(t => {
+      if (statusFilter === 'mine') return t.createdBy === userData?.uid;
+      if (statusFilter === 'open') return t.status !== 'resolved' && t.status !== 'closed';
+      return true;
+    });
+  }, [tickets, statusFilter, userData?.uid]);
+
+  const counts = useMemo(() => ({
+    all: tickets.length,
+    open: tickets.filter(t => t.status !== 'resolved' && t.status !== 'closed').length,
+    mine: tickets.filter(t => t.createdBy === userData?.uid).length,
+  }), [tickets, userData?.uid]);
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <Header
+        title="Help desk"
+        subtitle={isAdmin ? `${counts.open} open · ${counts.all} total` : 'Submit issues or feature requests'}
+        action={
+          <button
+            onClick={() => setNewOpen(true)}
+            aria-label="New ticket"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        }
+      />
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        {/* Filter pills (admin only) */}
+        {isAdmin && (
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {([
+              { k: 'open' as const, label: `Open ${counts.open}` },
+              { k: 'all' as const, label: `All ${counts.all}` },
+              { k: 'mine' as const, label: `Mine ${counts.mine}` },
+            ]).map(({ k, label }) => (
+              <button
+                key={k}
+                onClick={() => setStatusFilter(k)}
+                className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
+                  statusFilter === k
+                    ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                    : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-200 border-t-cyan-500" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+            <p className="text-slate-500 text-sm mb-1">No tickets {statusFilter === 'open' ? 'open' : 'yet'}.</p>
+            <p className="text-[11px] text-slate-400">Tap + to submit an issue or feature request.</p>
+          </div>
+        ) : (
+          <ul className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+            {filtered.map(t => (
+              <li key={t.id}>
+                <Link to={`/helpdesk/${t.id}`} className="block px-3 py-3 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 text-sm truncate">{t.subject}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        {t.createdByName}{t.assignedToName ? ` · → ${t.assignedToName}` : ''} · {formatRel(new Date(t.createdAt))}
+                      </div>
+                    </div>
+                    <span className={`text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border ${STATUS_CHIP[t.status]} flex-shrink-0`}>
+                      {t.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
+                      {CATEGORY_LABEL[t.category]}
+                    </span>
+                    {t.priority === 'high' && (
+                      <span className={`text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border ${PRIORITY_CHIP.high}`}>
+                        High priority
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {newOpen && (
+        <NewTicketModal
+          clubId={(userData as any)?.clubId || 'club_unknown'}
+          teamId={selectedTeamId || undefined}
+          userUid={userData?.uid || ''}
+          userName={userData?.name || 'Member'}
+          userRole={isAdmin ? 'admin' : (userData?.role as any)}
+          onClose={() => setNewOpen(false)}
+          onCreated={() => setNewOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+// ---------- New ticket modal ----------
+const NewTicketModal: React.FC<{
+  clubId: string;
+  teamId?: string;
+  userUid: string;
+  userName: string;
+  userRole: any;
+  onClose: () => void;
+  onCreated: () => void;
+}> = ({ clubId, teamId, userUid, userName, userRole, onClose, onCreated }) => {
+  const [subject, setSubject] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<TicketCategory>('other');
+  const [priority, setPriority] = useState<TicketPriority>('normal');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (busy) return;
+    if (!subject.trim() || !description.trim()) { alert('Subject and description are required.'); return; }
+    setBusy(true);
+    try {
+      await addDoc(collection(db, 'helpdeskTickets'), {
+        clubId,
+        teamId: teamId || null,
+        createdBy: userUid,
+        createdByName: userName,
+        createdByRole: userRole,
+        subject: subject.trim(),
+        description: description.trim(),
+        category,
+        priority,
+        status: 'open',
+        createdAt: serverTimestamp(),
+      });
+      onCreated();
+    } catch (err) {
+      console.error('ticket create failed', err);
+      alert('Failed to submit — try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">New ticket</div>
+          <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-700">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="px-4 py-3 space-y-3">
+          <div>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Subject</label>
+            <input
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              placeholder="Short summary"
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">What's going on?</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Steps to reproduce, what you expected, etc."
+              rows={4}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Category</label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value as any)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+              >
+                {(Object.keys(CATEGORY_LABEL) as TicketCategory[]).map(k => (
+                  <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Priority</label>
+              <select
+                value={priority}
+                onChange={e => setPriority(e.target.value as any)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+              >
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+          <button
+            onClick={submit}
+            disabled={busy || !subject.trim() || !description.trim()}
+            className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/30 disabled:opacity-40"
+          >
+            {busy ? 'Submitting…' : 'Submit ticket'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Helpdesk;

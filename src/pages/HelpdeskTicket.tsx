@@ -54,7 +54,7 @@ async function notifyReply(
       title: `Support: ${ticket.subject}`,
       body: `${authorName}: ${preview}`,
       url: `/helpdesk/${ticketId}`,
-    });
+    }, { pushPrefKey: 'helpdesk' });
   } catch (err) {
     console.warn('helpdesk push failed', err);
   }
@@ -179,7 +179,7 @@ const HelpdeskTicketPage: React.FC = () => {
           title: `Assigned to you: ${ticket.subject}`,
           body: `${userData.name || 'Admin'} assigned this ticket to you.`,
           url: `/helpdesk/${ticketId}`,
-        });
+        }, { pushPrefKey: 'helpdesk' });
       }
       setShowAssignPicker(false);
     } catch (err) {

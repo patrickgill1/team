@@ -11,7 +11,7 @@
  */
 // @ts-nocheck
 
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from './firebase';
 
 const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
@@ -31,6 +31,24 @@ export const DEFAULT_EMAIL_PREFS: EmailPreferences = {
   clip: true,
   potm: true,
   digest: true,
+};
+
+// Push preferences are independent of email preferences. Parents who
+// mute the weekly digest email don't want their game-day push muted too.
+export type PushPrefKey = 'chat' | 'helpdesk' | 'events' | 'broadcast';
+
+export interface PushPreferences {
+  chat: boolean;
+  helpdesk: boolean;
+  events: boolean;
+  broadcast: boolean;
+}
+
+export const DEFAULT_PUSH_PREFS: PushPreferences = {
+  chat: true,
+  helpdesk: true,
+  events: true,
+  broadcast: true,
 };
 
 export interface NotifyMessage {
@@ -158,13 +176,16 @@ export async function getParentEmailsForPlayer(
 export async function sendPushToUsers(
   userIds: string[],
   msg: { title: string; body: string; url?: string },
-  opts?: { prefKey?: EmailPrefKey }
+  opts?: { prefKey?: EmailPrefKey; pushPrefKey?: PushPrefKey }
 ): Promise<boolean> {
   if (!configured()) return false;
   if (!userIds || userIds.length === 0) return false;
   try {
+    // tokenToUids maps each token back to all users it belongs to, so
+    // when the worker reports dead tokens we know whose user doc to clean.
     const tokens: string[] = [];
     const seen = new Set<string>();
+    const tokenToUids: Record<string, Set<string>> = {};
     for (const uid of userIds) {
       try {
         const uSnap = await getDoc(doc(db, 'users', uid));
@@ -175,9 +196,16 @@ export async function sendPushToUsers(
           const prefs: EmailPreferences = { ...DEFAULT_EMAIL_PREFS, ...(u.emailPreferences || {}) };
           if (!prefs[opts.prefKey]) continue;
         }
+        if (opts?.pushPrefKey) {
+          const pprefs: PushPreferences = { ...DEFAULT_PUSH_PREFS, ...(u.pushPreferences || {}) };
+          if (!pprefs[opts.pushPrefKey]) continue;
+        }
         const arr: string[] = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
         for (const t of arr) {
-          if (typeof t === 'string' && t && !seen.has(t)) { seen.add(t); tokens.push(t); }
+          if (typeof t !== 'string' || !t) continue;
+          if (!tokenToUids[t]) tokenToUids[t] = new Set();
+          tokenToUids[t].add(uid);
+          if (!seen.has(t)) { seen.add(t); tokens.push(t); }
         }
       } catch { /* ignore */ }
     }
@@ -191,14 +219,29 @@ export async function sendPushToUsers(
       body: JSON.stringify({ tokens, title: msg.title, body: msg.body, url: msg.url }),
     });
     if (!res.ok) {
-      // Surface the actual reason so we stop guessing. Common causes:
-      //   503 fcm-not-configured  → worker missing FCM_SERVICE_ACCOUNT secret
-      //   401 unauthorized        → NOTIFY_SECRET mismatch between .env and worker
-      //   400 bad-request         → malformed body
       const body = await res.text().catch(() => '');
       console.warn(`[notify] push: worker returned ${res.status}`, body);
       return false;
     }
+    // Worker returns { invalidTokens: [...] } for tokens FCM rejected as
+    // UNREGISTERED / NOT_FOUND. Strip those from every user doc that
+    // held them, so we stop wasting calls on dead devices forever.
+    try {
+      const data: any = await res.json();
+      const invalid: string[] = Array.isArray(data?.invalidTokens) ? data.invalidTokens : [];
+      for (const dead of invalid) {
+        const uids = tokenToUids[dead];
+        if (!uids) continue;
+        for (const uid of Array.from(uids)) {
+          try {
+            await updateDoc(doc(db, 'users', uid), { fcmTokens: arrayRemove(dead) });
+          } catch { /* ignore — best-effort cleanup */ }
+        }
+      }
+      if (invalid.length > 0) {
+        console.info(`[notify] pruned ${invalid.length} dead FCM token(s)`);
+      }
+    } catch { /* response body parse — ignore */ }
     return true;
   } catch (err) {
     // eslint-disable-next-line no-console

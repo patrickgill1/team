@@ -83,6 +83,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
         await sendPushToUsers(
           recipients.map((m) => m.uid),
           { title: subject.trim(), body: body.trim().slice(0, 200) },
+          { pushPrefKey: 'broadcast' },
         );
       }
       setResult(`Sent to ${recipients.length} recipient${recipients.length === 1 ? '' : 's'}.`);

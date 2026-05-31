@@ -10,6 +10,7 @@ import AppIcon, { AppIconName } from '../components/common/AppIcon';
 import { getShareOrigin } from '../utils/origin';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
 import { isCoach } from '../utils/helpers';
+import NotificationPreferences from '../components/common/NotificationPreferences';
 
 interface LinkedPlayer {
   id: string;
@@ -388,6 +389,11 @@ const Settings: React.FC = () => {
 
         {/* ── MANAGE ACCOUNT ────────────────────────────────────── */}
         <section>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 px-1">Notifications</h2>
+          <NotificationPreferences />
+        </section>
+
+        <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-2 px-1">Manage Account</h2>
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-gray-100">
             <SettingsRow
@@ -401,16 +407,6 @@ const Settings: React.FC = () => {
               onClick={() => {
                 window.location.href = 'mailto:support@firefc.app?subject=Fire FC%20support';
               }}
-            />
-            <SettingsRow
-              icon="bell"
-              label="Manage Notifications"
-              hint={notifPermission === 'granted' ? 'Push enabled' : notifPermission === 'denied' ? 'Push blocked in Settings' : 'Tap to enable'}
-              onClick={() => {
-                if (notifPermission === 'granted') return;
-                handleEnablePush();
-              }}
-              busy={enablingPush}
             />
             <SettingsRow
               icon="palette"

@@ -108,7 +108,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
             title: eventTitle ? `New comment on ${eventTitle}` : 'New event comment',
             body: `${userName}: ${content.slice(0, 140)}${content.length > 140 ? '…' : ''}`,
             url: `/events/${eventId}`,
-          }).catch(() => { /* non-fatal */ });
+          }, { pushPrefKey: 'events' }).catch(() => { /* non-fatal */ });
         }
       }
     } catch (err) {

@@ -54,7 +54,7 @@ async function notifyAdminsOfNewTicket(
       title: `${tag}New support ticket`,
       body: `${authorName} · ${CATEGORY_LABEL[category]}: ${subject}`,
       url: `/helpdesk/${ticketId}`,
-    });
+    }, { pushPrefKey: 'helpdesk' });
   } catch (err) {
     console.warn('helpdesk create push failed', err);
   }

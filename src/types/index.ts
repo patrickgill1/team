@@ -63,6 +63,16 @@ export interface UserData {
     showEmail: boolean;
     showAddress: boolean;
   };
+  /** Per-category push opt-outs. Independent of emailPreferences so a
+   *  parent who mutes the weekly digest email still gets game-day push.
+   *  Missing keys default to `true` (opt-out, not opt-in). */
+  pushPreferences?: {
+    chat?: boolean;
+    events?: boolean;
+    helpdesk?: boolean;
+    broadcast?: boolean;
+  };
+  fcmTokens?: string[];
 }
 
 export interface SeasonMembership {

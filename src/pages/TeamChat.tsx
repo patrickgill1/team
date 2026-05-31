@@ -598,7 +598,7 @@ const TeamChat: React.FC = () => {
             title: pushTitle,
             body: pushBody,
             url: `${getShareOrigin()}/chat?thread=${selectedThread.id}`,
-          });
+          }, { pushPrefKey: 'chat' });
         }
       } catch (err) {
         console.warn('[chat] push notify failed', err);

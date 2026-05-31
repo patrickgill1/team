@@ -345,7 +345,7 @@ const EventDetail: React.FC = () => {
               ? `${userData.name || 'Coach'}: ${reason.trim().slice(0, 140)}`
               : `${userData.name || 'Coach'} cancelled this event.`,
             url: `/events/${event.id}`,
-          });
+          }, { pushPrefKey: 'events' });
         }
       } catch (err) {
         console.warn('cancel push failed', err);
@@ -385,7 +385,7 @@ const EventDetail: React.FC = () => {
             title: `Back on: ${event.title}`,
             body: `${userData.name || 'Coach'} restored this event.`,
             url: `/events/${event.id}`,
-          });
+          }, { pushPrefKey: 'events' });
         }
       } catch (err) {
         console.warn('restore push failed', err);

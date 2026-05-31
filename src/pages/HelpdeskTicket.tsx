@@ -51,7 +51,7 @@ async function notifyReply(
     if (ids.length === 0) return;
     const preview = content.length > 120 ? `${content.slice(0, 117)}…` : content;
     await sendPushToUsers(ids, {
-      title: `Helpdesk: ${ticket.subject}`,
+      title: `Support: ${ticket.subject}`,
       body: `${authorName}: ${preview}`,
       url: `/helpdesk/${ticketId}`,
     });

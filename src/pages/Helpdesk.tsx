@@ -95,8 +95,8 @@ const Helpdesk: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-100">
       <Header
-        title="Help desk"
-        subtitle={isAdmin ? `${counts.open} open · ${counts.all} total` : 'Submit issues or feature requests'}
+        title="Club Support"
+        subtitle={isAdmin ? `${counts.open} open · ${counts.all} total` : 'Ask the club anything — logistics, issues, ideas'}
         action={
           <button
             onClick={() => setNewOpen(true)}
@@ -141,7 +141,7 @@ const Helpdesk: React.FC = () => {
         ) : filtered.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
             <p className="text-slate-500 text-sm mb-1">No tickets {statusFilter === 'open' ? 'open' : 'yet'}.</p>
-            <p className="text-[11px] text-slate-400">Tap + to submit an issue or feature request.</p>
+            <p className="text-[11px] text-slate-400">Tap + to ask a question or submit an issue.</p>
           </div>
         ) : (
           <ul className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">

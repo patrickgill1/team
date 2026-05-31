@@ -501,85 +501,45 @@ const TeamManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Team Management</h1>
-              <p className="text-gray-600 mt-1 text-sm lg:text-base">Create teams, invite coaches, and share players</p>
-            </div>
-            {/* Unified pill row: secondary actions are neutral white
-                pills with a ring; destructive (End Season) is a subtle
-                rose tint; primary "New Team" gets the brand cyan
-                gradient. Replaces the saturated rainbow of buttons. */}
-            <div className="flex flex-wrap gap-2">
-              <SecondaryAction
-                emoji="👨‍🏫"
-                label="Add Coach to Team"
-                onClick={() => setShowAddCoachToTeamModal(true)}
-              />
-              <SecondaryAction
-                emoji="🔄"
-                label="Share Player"
-                onClick={() => setShowSharePlayerModal(true)}
-              />
-              <SecondaryAction
-                emoji="✉"
-                label="Invite Coach (email)"
-                onClick={() => setShowInviteCoachModal(true)}
-              />
-              <SecondaryAction
-                emoji="🔗"
-                label={generatingShareInvite ? '…' : 'Share coach link'}
-                onClick={() => generateShareInvite('assistant_coach')}
-                disabled={generatingShareInvite}
-              />
-              <SecondaryAction
-                emoji="📋"
-                label="Share manager link"
-                onClick={() => generateShareInvite('team_manager')}
-                disabled={generatingShareInvite}
-              />
-              <SecondaryAction
-                emoji="📅"
-                label="New season"
-                onClick={() => setNewSeasonOpen(true)}
-              />
-              <SecondaryAction
-                emoji="🗂️"
-                label="Manage seasons"
-                onClick={() => setManageSeasonsOpen(true)}
-              />
-              <SecondaryAction
-                emoji="🎬"
-                label="Media access"
-                onClick={() => setMediaAccessOpen(true)}
-              />
-              {/* Only renders when this team actually HAS an active
-                  season — otherwise "End Season" is meaningless. */}
-              {activeSeasonForSelected && (
-                <button
-                  onClick={() => setEndSeasonOpen(true)}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 ring-1 ring-rose-200 text-sm font-semibold transition active:scale-95"
-                  title={`Archive "${activeSeasonForSelected.name}" and pick which players carry over`}
-                >
-                  <span>🏁</span>
-                  <span>End {activeSeasonForSelected.name}</span>
-                </button>
-              )}
-              <button
-                onClick={() => { resetForm(); setShowCreateModal(true); }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white text-sm font-semibold shadow-sm transition active:scale-95"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span>New Team</span>
-              </button>
-            </div>
+    <div className="min-h-screen bg-slate-100">
+      {/* Navy page header to match the rest of the new chrome. The
+          "+ New team" primary action sits in the header's action slot
+          (the small button on the right) — same pattern as Events. */}
+      <header className="bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Teams</h1>
+            <p className="mt-0.5 text-xs text-slate-400">Create, edit, archive. People & rosters live in <a href="/people" className="text-cyan-400 underline">People</a>.</p>
           </div>
+          <button
+            onClick={() => { resetForm(); setShowCreateModal(true); }}
+            aria-label="Add team"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500 flex-shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
+        {/* Per-team config actions — only the truly team-level stuff
+            stays here. Adding players, sharing players, inviting
+            coaches all live in the People directory now. */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex flex-wrap gap-2">
+          <SecondaryAction emoji="" label="New season" onClick={() => setNewSeasonOpen(true)} />
+          <SecondaryAction emoji="" label="Manage seasons" onClick={() => setManageSeasonsOpen(true)} />
+          <SecondaryAction emoji="" label="Media access" onClick={() => setMediaAccessOpen(true)} />
+          {activeSeasonForSelected && (
+            <button
+              onClick={() => setEndSeasonOpen(true)}
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+              title={`Archive "${activeSeasonForSelected.name}" and pick which players carry over`}
+            >
+              End {activeSeasonForSelected.name}
+            </button>
+          )}
         </div>
 
         {/* Teams Grid */}
@@ -618,15 +578,26 @@ const TeamManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2 text-sm text-gray-600">
-                  {team.ageGroup && <div>👶 Age Group: <span className="font-medium">{team.ageGroup}</span></div>}
-                  {team.season && <div>📅 Season: <span className="font-medium">{team.season}</span></div>}
-                  {team.league && <div>🏟️ League: <span className="font-medium">{team.league}</span></div>}
-                  <div>👥 Players: <span className="font-medium">
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                  {team.ageGroup && (<>
+                    <dt className="text-slate-500 uppercase tracking-wider font-bold">Age</dt>
+                    <dd className="text-slate-900 font-semibold text-right truncate">{team.ageGroup}</dd>
+                  </>)}
+                  {team.season && (<>
+                    <dt className="text-slate-500 uppercase tracking-wider font-bold">Season</dt>
+                    <dd className="text-slate-900 font-semibold text-right truncate">{team.season}</dd>
+                  </>)}
+                  {team.league && (<>
+                    <dt className="text-slate-500 uppercase tracking-wider font-bold">League</dt>
+                    <dd className="text-slate-900 font-semibold text-right truncate">{team.league}</dd>
+                  </>)}
+                  <dt className="text-slate-500 uppercase tracking-wider font-bold">Players</dt>
+                  <dd className="text-slate-900 font-semibold text-right">
                     {allPlayers.filter(p => p.teamId === team.id || p.teamIds?.includes(team.id)).length}
-                  </span></div>
-                  <div>👨‍🏫 Coaches: <span className="font-medium">{team.coachIds?.length || 1}</span></div>
-                </div>
+                  </dd>
+                  <dt className="text-slate-500 uppercase tracking-wider font-bold">Coaches</dt>
+                  <dd className="text-slate-900 font-semibold text-right">{team.coachIds?.length || 1}</dd>
+                </dl>
 
                 {/* Action buttons — stopPropagation so they don't also fire
                     the card's "select team" click handler. */}
@@ -1184,18 +1155,17 @@ const TeamManagement: React.FC = () => {
 };
 
 const SecondaryAction: React.FC<{
-  emoji: string;
+  emoji?: string;
   label: string;
   onClick: () => void;
   disabled?: boolean;
-}> = ({ emoji, label, onClick, disabled }) => (
+}> = ({ label, onClick, disabled }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white hover:bg-gray-50 text-gray-700 ring-1 ring-gray-200 hover:ring-gray-300 text-sm font-semibold transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+    className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
   >
-    <span>{emoji}</span>
-    <span>{label}</span>
+    {label}
   </button>
 );
 

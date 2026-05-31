@@ -39,9 +39,4 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <!-- Location: center the event-location map picker on the user's
-         current spot. Coarse is enough — we don't need GPS-grade
-         accuracy to drop a pin, and asking for less is friendlier. -->
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>

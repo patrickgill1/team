@@ -1,13 +1,165 @@
 // @ts-nocheck
 /**
- * Maps helpers — used for both opening the system maps app (Apple Maps
- * on iOS, Google Maps elsewhere) AND for rendering an embedded OSM
- * preview while picking a location.
+ * Maps helpers — used for opening the system maps app (Apple/Google),
+ * rendering an OSM-embed preview, and for the Mapbox-backed picker.
  *
- * When we have coordinates, deep-links use them directly so the system
- * maps app lands on the right pin first try. Free-text fallback only
- * kicks in for legacy events that pre-date coordinate capture.
+ * Mapbox is opt-in via REACT_APP_MAPBOX_TOKEN. When the token is set,
+ * the picker uses Mapbox tiles + geocoder (better venue coverage than
+ * OSM — e.g. local soccer fields that aren't in OpenStreetMap). When
+ * the token is missing, everything gracefully degrades to OSM /
+ * Nominatim, so the app keeps working with zero setup.
  */
+
+export const MAPBOX_TOKEN: string = (process.env.REACT_APP_MAPBOX_TOKEN || '').trim();
+export const hasMapbox = (): boolean => MAPBOX_TOKEN.length > 0;
+
+/** Tile-source config for the Leaflet map in the location picker. */
+export function mapTileConfig() {
+  if (hasMapbox()) {
+    return {
+      url: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`,
+      attribution: '© Mapbox © OpenStreetMap',
+      maxZoom: 20,
+      tileSize: 512,
+      zoomOffset: -1,
+    };
+  }
+  return {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap',
+    maxZoom: 19,
+    tileSize: 256,
+    zoomOffset: 0,
+  };
+}
+
+export interface GeocodeHit {
+  /** Short label like "Little Valley Soccer Fields". */
+  label: string;
+  /** Full address like "2200 S 3000 E, Washington, UT 84780". */
+  address: string;
+  lat: number;
+  lon: number;
+}
+
+/**
+ * Forward geocode (search). Mapbox when token present (way better
+ * venue coverage), Nominatim fallback. `proximity` biases results
+ * toward a point; both providers accept it.
+ */
+export async function geocodeForward(
+  q: string,
+  opts?: { proximity?: { lat: number; lon: number }; viewport?: { west: number; south: number; east: number; north: number } },
+): Promise<GeocodeHit[]> {
+  const query = q.trim();
+  if (query.length < 2) return [];
+
+  if (hasMapbox()) {
+    const params: string[] = [
+      `access_token=${MAPBOX_TOKEN}`,
+      'country=us,ca',
+      'types=poi,address,place,locality,neighborhood',
+      'limit=8',
+      'autocomplete=true',
+    ];
+    if (opts?.proximity) {
+      params.push(`proximity=${opts.proximity.lon},${opts.proximity.lat}`);
+    }
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.join('&')}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.warn('Mapbox geocode failed', res.status);
+        return [];
+      }
+      const data: any = await res.json();
+      return (data.features || []).map((f: any) => ({
+        label: f.text || f.place_name,
+        address: f.place_name || '',
+        lon: f.center?.[0],
+        lat: f.center?.[1],
+      })).filter((h: GeocodeHit) => typeof h.lat === 'number');
+    } catch (err) {
+      console.warn('Mapbox geocode threw', err);
+      return [];
+    }
+  }
+
+  // Nominatim fallback. viewbox without bounded=1 means PREFER local,
+  // but still surface far hits for searches with no local match.
+  let viewboxParam = '';
+  if (opts?.viewport) {
+    viewboxParam = `&viewbox=${opts.viewport.west},${opts.viewport.north},${opts.viewport.east},${opts.viewport.south}`;
+  } else if (opts?.proximity) {
+    const span = 0.75;
+    const c = opts.proximity;
+    viewboxParam = `&viewbox=${c.lon - span},${c.lat + span},${c.lon + span},${c.lat - span}`;
+  }
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=8&countrycodes=us,ca${viewboxParam}`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    if (!res.ok) return [];
+    const data: any[] = await res.json();
+    return data.map((d) => {
+      const a = d.address || {};
+      const parts = [
+        a.amenity || a.leisure || a.shop || a.tourism || a.building || a.house_name,
+        [a.house_number, a.road].filter(Boolean).join(' '),
+        a.city || a.town || a.village || a.hamlet || a.suburb,
+        a.state_code || a.state,
+      ].filter(Boolean);
+      return {
+        label: parts.length > 0 ? parts.join(', ') : d.display_name,
+        address: d.display_name as string,
+        lat: parseFloat(d.lat),
+        lon: parseFloat(d.lon),
+      };
+    });
+  } catch (err) {
+    console.warn('Nominatim geocode threw', err);
+    return [];
+  }
+}
+
+/** Reverse geocode (coords → label + address). Same provider rules. */
+export async function geocodeReverse(lat: number, lon: number): Promise<GeocodeHit | null> {
+  if (hasMapbox()) {
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&types=poi,address,place&limit=1`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data: any = await res.json();
+      const f = data.features?.[0];
+      if (!f) return null;
+      return {
+        label: f.text || f.place_name,
+        address: f.place_name || '',
+        lat,
+        lon,
+      };
+    } catch (err) {
+      console.warn('Mapbox reverse threw', err);
+      return null;
+    }
+  }
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    if (!res.ok) return null;
+    const data: any = await res.json();
+    const a = data.address || {};
+    const venue = a.amenity || a.leisure || a.sports_centre || a.tourism || a.building;
+    return {
+      label: venue || (data.display_name || '').split(',')[0],
+      address: data.display_name || '',
+      lat,
+      lon,
+    };
+  } catch (err) {
+    console.warn('Nominatim reverse threw', err);
+    return null;
+  }
+}
 
 export interface LocationLink {
   name: string;

@@ -70,8 +70,6 @@
 	<string>Fire FC saves downloaded highlight videos and photos to your photo library.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Fire FC records audio along with highlight videos so cheers and commentary are captured with the clip.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Used only to center the map when you pick an event location. We never store, share, or send your location anywhere.</string>
 	<!-- App only uses standard HTTPS / system-provided encryption — qualifies for
 	     the Category 5, Part 2 exemption. Setting this to false auto-marks every
 	     future build as compliant so we don't have to answer the Export

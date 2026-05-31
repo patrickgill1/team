@@ -606,80 +606,109 @@ const Surveys: React.FC = () => {
   //  LIST VIEW
   // ════════════════════════════════════════════════════════════════════════
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
-      <Header title="Surveys" subtitle="Create & share surveys with your team" />
+    <div className="min-h-screen bg-slate-100">
+      <Header
+        title="Surveys"
+        action={
+          <button
+            onClick={() => { resetBuilder(); setView('create'); }}
+            aria-label="New survey"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        }
+      />
 
-      <button
-        onClick={() => { resetBuilder(); setView('create'); }}
-        className="btn-primary w-full py-3 rounded-xl font-semibold mb-6 flex items-center justify-center gap-2"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-        New Survey
-      </button>
-
-      {surveys.length === 0 ? (
-        <div className="card-modern p-8 text-center">
-          <div className="flex justify-center mb-3 text-fire-400">
-            <AppIcon name="survey" className="w-10 h-10" />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        {surveys.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+            <p className="text-slate-500 text-sm">No surveys yet. Tap + to create one.</p>
           </div>
-          <p className="text-fire-500">No surveys yet — create one to get started</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {surveys.map(s => (
-            <div key={s.id} className="card-modern p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-fire-900 truncate">{s.title}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-fire-100 text-fire-500'}`}>
-                      {s.isActive ? 'Active' : 'Closed'}
+        ) : (
+          surveys.map(s => (
+            <div key={s.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              {/* Type stripe — active = cyan, closed = slate */}
+              <div className={`h-[3px] ${s.isActive ? 'bg-gradient-to-r from-emerald-500 to-cyan-500' : 'bg-slate-300'}`} />
+              <div className="px-4 py-3">
+                <div className="flex items-start gap-2 flex-wrap mb-1">
+                  <h3 className="font-bold text-slate-900 text-base truncate flex-1">{s.title}</h3>
+                  <span className={`text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border ${
+                    s.isActive
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}>
+                    {s.isActive ? 'Active' : 'Closed'}
+                  </span>
+                  {s.isAnonymous && (
+                    <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-violet-50 text-violet-700 border-violet-200">
+                      Anonymous
                     </span>
-                    {s.isAnonymous && <span className="text-xs bg-fire-100 text-fire-400 px-2 py-0.5 rounded-full">Anonymous</span>}
-                    <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">Results Private</span>
-                  </div>
-                  {s.description && <p className="text-sm text-fire-500 mt-1 line-clamp-2">{s.description}</p>}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-fire-400">
-                    <span>{s.questions.length} question{s.questions.length !== 1 ? 's' : ''}</span>
-                    <span>•</span>
-                    <span>{s.responseCount} response{s.responseCount !== 1 ? 's' : ''}</span>
-                    <span>•</span>
-                    <span>{formatDate(s.createdAt)}</span>
-                  </div>
+                  )}
+                  <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">
+                    Private
+                  </span>
+                </div>
+                {s.description && (
+                  <p className="text-sm text-slate-600 line-clamp-2 mt-1">{s.description}</p>
+                )}
+                <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+                  <span><span className="font-bold text-slate-700">{s.questions.length}</span> question{s.questions.length !== 1 ? 's' : ''}</span>
+                  <span className="text-slate-300">·</span>
+                  <span><span className="font-bold text-slate-700">{s.responseCount}</span> response{s.responseCount !== 1 ? 's' : ''}</span>
+                  <span className="text-slate-300">·</span>
+                  <span>{formatDate(s.createdAt)}</span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => copyShareLink(s.id)}
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 inline-flex items-center gap-1"
+                  >
+                    {copySuccess === s.id ? (
+                      <><svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Copied</>
+                    ) : (
+                      <><svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share</>
+                    )}
+                  </button>
+                  {s.createdBy === userData?.uid && (
+                    <button
+                      onClick={() => { setSelectedSurvey(s); loadResponses(s); setView('results'); }}
+                      className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400"
+                    >
+                      Results
+                    </button>
+                  )}
+                  {s.createdBy === userData?.uid && (
+                    <>
+                      <button
+                        onClick={() => startEdit(s)}
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(s)}
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400"
+                      >
+                        {s.isActive ? 'Close' : 'Reopen'}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(s.id)}
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-rose-600 border-rose-200 hover:bg-rose-50"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 mt-3 flex-wrap">
-                <button onClick={() => copyShareLink(s.id)} className="px-3 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 text-xs font-medium hover:bg-cyan-100 transition-colors flex items-center gap-1">
-                  {copySuccess === s.id ? (
-                    <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>Copied!</>
-                  ) : (
-                    <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>Share Link</>
-                  )}
-                </button>
-                {s.createdBy === userData?.uid && (
-                  <button onClick={() => { setSelectedSurvey(s); loadResponses(s); setView('results'); }} className="px-3 py-1.5 rounded-lg bg-fire-100 text-fire-700 text-xs font-medium hover:bg-fire-200 transition-colors">
-                    Results
-                  </button>
-                )}
-                {s.createdBy === userData?.uid && (
-                  <>
-                    <button onClick={() => startEdit(s)} className="px-3 py-1.5 rounded-lg bg-fire-100 text-fire-700 text-xs font-medium hover:bg-fire-200 transition-colors">
-                      Edit
-                    </button>
-                    <button onClick={() => handleToggleActive(s)} className="px-3 py-1.5 rounded-lg bg-fire-100 text-fire-700 text-xs font-medium hover:bg-fire-200 transition-colors">
-                      {s.isActive ? 'Close' : 'Reopen'}
-                    </button>
-                    <button onClick={() => handleDelete(s.id)} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors">
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 };

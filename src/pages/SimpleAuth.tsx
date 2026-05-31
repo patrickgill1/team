@@ -101,15 +101,32 @@ const SimpleAuth: React.FC = () => {
         await signIn(formData.email, formData.password);
         console.log('Login successful - waiting for auth state change');
       } else {
+        // Lockdown gate — parent signups require either:
+        //   (a) an invite code from a coach (passed via ?invite= or
+        //       typed into the form), OR
+        //   (b) their email already appears in some player.parentEmails
+        //       (i.e. a coach has added them ahead of time).
+        // Coaches can still sign up freely (they need to create teams).
+        if (formData.role !== 'coach' && !formData.inviteCode) {
+          const { collection, query, where, getDocs } = await import('firebase/firestore');
+          const { db } = await import('../utils/firebase');
+          const emailLc = formData.email.toLowerCase().trim();
+          const snap = await getDocs(query(
+            collection(db, 'players'),
+            where('parentEmails', 'array-contains', emailLc),
+          ));
+          if (snap.empty) {
+            setErrors({ submit:
+              "We couldn't find an invite for that email. Ask your coach to add your email to your player's parent list, " +
+              "or use the share link they sent you for an event RSVP."
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         const tempTeamId = formData.inviteCode || `team_${Date.now()}`;
-        
-        console.log('Attempting signup with:', {
-          email: formData.email,
-          name: formData.name,
-          role: formData.role,
-          teamId: tempTeamId
-        });
-        
+
         await signUp(formData.email, formData.password, {
           email: formData.email,
           name: formData.name,

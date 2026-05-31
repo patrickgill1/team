@@ -66,6 +66,10 @@ const People: React.FC = () => {
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isClubAdmin = !!(userData as any)?.isClubAdmin;
+  // Lock the directory to staff (coaches / managers / club admins).
+  // Parents shouldn't see the full club roster + contact info at-will.
+  const canViewDirectory = isUserCoach || isClubAdmin;
 
   useEffect(() => {
     let cancelled = false;
@@ -203,6 +207,21 @@ const People: React.FC = () => {
     for (const t of teams) m[t.id] = t.name;
     return m;
   }, [teams]);
+
+  if (!canViewDirectory) {
+    return (
+      <div className="min-h-screen bg-slate-100">
+        <Header title="People" />
+        <div className="max-w-md mx-auto px-4 py-12 text-center">
+          <p className="text-slate-700 font-semibold mb-1">This area is for coaches.</p>
+          <p className="text-slate-500 text-sm">
+            The People directory holds contact info for everyone in the club, so it's
+            limited to coaches, team managers, and club admins.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100">

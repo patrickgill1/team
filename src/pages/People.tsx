@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { addDoc, collection, doc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
+import InvitePersonModal from '../components/people/InvitePersonModal';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -58,6 +59,10 @@ const People: React.FC = () => {
   const [teams, setTeams] = useState<Array<{ id: string; name: string; clubId?: string }>>([]);
   // Active management modal — pinned to a single person at a time.
   const [managing, setManaging] = useState<Person | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  // Lightweight cache of every player in the club for the invite
+  // modal's player picker (parent invites are anchored to a player).
+  const [allClubPlayers, setAllClubPlayers] = useState<any[]>([]);
   // Bulk selection mode. When on, rows show checkboxes; bulk-add action
   // bar appears at the bottom.
   const [selectMode, setSelectMode] = useState(false);
@@ -105,6 +110,10 @@ const People: React.FC = () => {
 
         const out: Person[] = [];
 
+        // Capture every active club player for the invite modal's
+        // player picker (parent invites are player-anchored).
+        const clubPlayers: any[] = [];
+
         // Players in any of our teams
         for (const p of allPlayers as any[]) {
           const pTeamIds: string[] = Array.isArray(p.teamIds) ? p.teamIds : (p.teamId ? [p.teamId] : []);
@@ -119,7 +128,11 @@ const People: React.FC = () => {
             teamIds: intersect,
             isActive: p.isActive !== false,
           });
+          if (p.isActive !== false) {
+            clubPlayers.push({ id: p.id, name: p.name, jerseyNumber: p.jerseyNumber, teamIds: intersect, teamId: p.teamId });
+          }
         }
+        setAllClubPlayers(clubPlayers);
 
         // Users (parents/coaches/admins) on any of our teams
         for (const u of allUsers as any[]) {
@@ -225,7 +238,22 @@ const People: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Header title="People" subtitle={people.length ? `${people.length} in your club` : undefined} />
+      <Header
+        title="People"
+        subtitle={people.length ? `${people.length} in your club` : undefined}
+        action={
+          <button
+            onClick={() => setInviteOpen(true)}
+            aria-label="Invite someone"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        }
+      />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
         {/* Search + team filter */}
@@ -442,6 +470,16 @@ const People: React.FC = () => {
             Cancel
           </button>
         </div>
+      )}
+
+      {/* Invite modal — parent (player-anchored) or staff (team+role) */}
+      {inviteOpen && (
+        <InvitePersonModal
+          clubTeams={teams}
+          clubPlayers={allClubPlayers}
+          currentUid={userData?.uid || ''}
+          onClose={() => setInviteOpen(false)}
+        />
       )}
 
       {/* Manage modal — single person team assignments */}

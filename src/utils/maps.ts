@@ -1,17 +1,105 @@
 // @ts-nocheck
 /**
- * Maps helpers — used for opening the system maps app (Apple/Google),
- * rendering an OSM-embed preview, and for the Mapbox-backed picker.
+ * Maps helpers — search/reverse/tile config + maps deep-links.
  *
- * Mapbox is opt-in via REACT_APP_MAPBOX_TOKEN. When the token is set,
- * the picker uses Mapbox tiles + geocoder (better venue coverage than
- * OSM — e.g. local soccer fields that aren't in OpenStreetMap). When
- * the token is missing, everything gracefully degrades to OSM /
- * Nominatim, so the app keeps working with zero setup.
+ * Geocoding provider chain:
+ *   1. Google Places (via Cloudflare Worker proxy) — best venue
+ *      coverage, especially for new/local sports complexes that
+ *      Mapbox and OSM haven't indexed. Opt-in by setting
+ *      GOOGLE_PLACES_API_KEY on the worker; clients auto-detect by
+ *      sniffing /places/autocomplete's response.
+ *   2. Mapbox (direct from client) — good general coverage, sharper
+ *      tiles. Opt-in via REACT_APP_MAPBOX_TOKEN.
+ *   3. OSM / Nominatim — free fallback, weak venue coverage.
+ *
+ * "Best" provider wins per-call: client tries Google first, if the
+ * worker returns 503 (not configured) we cache that and skip Google
+ * for the rest of the session.
  */
+
+const NOTIFY_URL: string = (process.env.REACT_APP_NOTIFY_URL || '').trim();
+const NOTIFY_SECRET: string = (process.env.REACT_APP_NOTIFY_SECRET || '').trim();
 
 export const MAPBOX_TOKEN: string = (process.env.REACT_APP_MAPBOX_TOKEN || '').trim();
 export const hasMapbox = (): boolean => MAPBOX_TOKEN.length > 0;
+export const hasNotifyProxy = (): boolean => NOTIFY_URL.length > 0 && NOTIFY_SECRET.length > 0;
+
+// Session-scoped cache so we don't hammer the worker if Google is
+// unconfigured on this deploy. Reset by reload.
+let googleAvailable: boolean | null = null;
+
+// Mapbox-style session token for Google's autocomplete+details billing
+// session (bundles to a single $0.017 charge instead of $2.83+$17 per
+// 1000). Generated per picker session, cleared after a pick.
+let googleSessionToken: string | null = null;
+export function startGoogleSession(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    googleSessionToken = crypto.randomUUID();
+  } else {
+    googleSessionToken = `s_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+  }
+  return googleSessionToken;
+}
+export function endGoogleSession(): void {
+  googleSessionToken = null;
+}
+
+async function callProxy(path: string, body: any): Promise<any | null> {
+  if (!hasNotifyProxy()) return null;
+  try {
+    const res = await fetch(`${NOTIFY_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${NOTIFY_SECRET}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 503) {
+      // Worker says Google isn't configured. Don't retry this session.
+      googleAvailable = false;
+      return null;
+    }
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      console.warn(`[maps] proxy ${path} failed`, res.status, txt.slice(0, 120));
+      return null;
+    }
+    googleAvailable = true;
+    return await res.json();
+  } catch (err) {
+    console.warn(`[maps] proxy ${path} threw`, err);
+    return null;
+  }
+}
+
+export async function googleAutocomplete(
+  q: string,
+  proximity?: { lat: number; lon: number },
+): Promise<Array<{ placeId: string; label: string; address: string }> | null> {
+  if (googleAvailable === false) return null;
+  const body: any = { q };
+  if (proximity) { body.lat = proximity.lat; body.lon = proximity.lon; }
+  if (googleSessionToken) body.sessionToken = googleSessionToken;
+  const data = await callProxy('/places/autocomplete', body);
+  if (!data?.ok) return null;
+  return data.predictions || [];
+}
+
+export async function googleDetails(placeId: string): Promise<{ name: string; address: string; lat: number; lon: number } | null> {
+  if (googleAvailable === false) return null;
+  const body: any = { placeId };
+  if (googleSessionToken) body.sessionToken = googleSessionToken;
+  const data = await callProxy('/places/details', body);
+  if (!data?.ok || !data.place) return null;
+  // Once details lands, the billable session is over.
+  endGoogleSession();
+  return data.place;
+}
+
+/** Has the worker confirmed Google is configured this session? Returns
+ *  null until we've actually called the proxy; useful for tag UI. */
+export const isGoogleAvailable = (): boolean | null => googleAvailable;
 
 /** Tile-source config for the Leaflet map in the location picker. */
 export function mapTileConfig() {
@@ -38,14 +126,40 @@ export interface GeocodeHit {
   label: string;
   /** Full address like "2200 S 3000 E, Washington, UT 84780". */
   address: string;
+  /** lat/lon may be NaN when this hit came from Google's autocomplete
+   *  (which doesn't return coords). In that case `placeId` is set and
+   *  the caller must call geocodeResolve(placeId) to fetch coords. */
   lat: number;
   lon: number;
+  placeId?: string;
 }
 
 /**
- * Forward geocode (search). Mapbox when token present (way better
- * venue coverage), Nominatim fallback. `proximity` biases results
- * toward a point; both providers accept it.
+ * Resolve a hit that doesn't yet have coords (Google predictions). Uses
+ * Google Place Details under the current session token. Returns a fully-
+ * filled GeocodeHit. No-op for hits that already have lat/lon.
+ */
+export async function geocodeResolve(hit: GeocodeHit): Promise<GeocodeHit | null> {
+  if (typeof hit.lat === 'number' && !Number.isNaN(hit.lat)) return hit;
+  if (!hit.placeId) return null;
+  const detail = await googleDetails(hit.placeId);
+  if (!detail) return null;
+  return {
+    label: detail.name || hit.label,
+    address: detail.address || hit.address,
+    lat: detail.lat,
+    lon: detail.lon,
+  };
+}
+
+/**
+ * Forward geocode (search). Tries Google (via worker proxy) → Mapbox →
+ * Nominatim, falling forward at each step. Google has the best coverage
+ * for new/local venues (soccer fields, gyms) that Mapbox and OSM miss.
+ *
+ * Google returns predictions WITHOUT coordinates — caller must call
+ * geocodeResolve(placeId) when the user picks a row, which hits Google
+ * Place Details under the same session token for sessioned billing.
  */
 export async function geocodeForward(
   q: string,
@@ -53,6 +167,25 @@ export async function geocodeForward(
 ): Promise<GeocodeHit[]> {
   const query = q.trim();
   if (query.length < 2) return [];
+
+  // Google path — bring up its own session token if not already.
+  if (hasNotifyProxy() && googleAvailable !== false) {
+    if (!googleSessionToken) startGoogleSession();
+    const predictions = await googleAutocomplete(query, opts?.proximity);
+    if (predictions && predictions.length > 0) {
+      // Google predictions don't carry coords. We use placeId as a
+      // sentinel in lat/lon (0/0) and the consumer must call
+      // geocodeResolve() before saving. The label/address are real.
+      return predictions.map(p => ({
+        label: p.label,
+        address: p.address,
+        lat: NaN,
+        lon: NaN,
+        placeId: p.placeId,
+      }));
+    }
+    // If Google returned empty (or unavailable), fall through to Mapbox/OSM.
+  }
 
   if (hasMapbox()) {
     const params: string[] = [

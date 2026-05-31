@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
-import { osmEmbedUrl, geocodeForward, hasMapbox, GeocodeHit } from '../../utils/maps';
+import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy, isGoogleAvailable, GeocodeHit } from '../../utils/maps';
 
 /** Compact location for the Recent + Favorites quick-pick rows. */
 interface PickableLocation {
@@ -815,10 +815,16 @@ const EventForm: React.FC<EventFormProps> = ({
                       errors.location ? 'border-rose-300' : 'border-slate-300'
                     }`}
                   />
-                  {/* Provider tag — visible at a glance whether Mapbox
-                      or OSM-fallback is doing the lookup. */}
+                  {/* Provider tag — Google when the worker confirms its
+                      Places key is configured; otherwise the static
+                      provider hierarchy. Updates after the first
+                      autocomplete call resolves the worker's status. */}
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-extrabold tracking-widest uppercase text-slate-400 pointer-events-none">
-                    {hasMapbox() ? 'Mapbox' : 'OSM'}
+                    {isGoogleAvailable() === true ? 'Google'
+                      : isGoogleAvailable() === false && hasMapbox() ? 'Mapbox'
+                      : isGoogleAvailable() === false ? 'OSM'
+                      : hasNotifyProxy() ? '…'
+                      : hasMapbox() ? 'Mapbox' : 'OSM'}
                   </div>
                 </div>
                 {searchOpen && searchQuery.trim().length >= 2 && (searching || searchHits.length > 0 || searched) && (
@@ -843,12 +849,22 @@ const EventForm: React.FC<EventFormProps> = ({
                       <button
                         key={`${h.address}_${i}`}
                         type="button"
-                        onMouseDown={(e) => {
+                        onMouseDown={async (e) => {
                           e.preventDefault();
-                          lastSelectedAddressRef.current = h.address;
-                          setFormData(prev => ({ ...prev, location: h.label }));
-                          setPickedCoords({ lat: h.lat, lon: h.lon });
-                          setPickedAddress(h.address);
+                          // Google predictions don't carry coords. Resolve
+                          // via Place Details before saving so the event
+                          // ends up with a real lat/lon. Cheap (~200ms)
+                          // and bundled into the same billing session.
+                          let resolved = h;
+                          if (h.placeId || Number.isNaN(h.lat)) {
+                            const r = await geocodeResolve(h);
+                            if (!r) { alert("Couldn't pin down that place — try another."); return; }
+                            resolved = r;
+                          }
+                          lastSelectedAddressRef.current = resolved.address;
+                          setFormData(prev => ({ ...prev, location: resolved.label }));
+                          setPickedCoords({ lat: resolved.lat, lon: resolved.lon });
+                          setPickedAddress(resolved.address);
                           setSearchQuery('');
                           setSearchHits([]);
                           setSearched(false);

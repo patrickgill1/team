@@ -21,6 +21,7 @@ export interface Env {
   APP_ORIGIN: string;
   ALLOWED_ORIGINS: string;
   FCM_SERVICE_ACCOUNT?: string;
+  GOOGLE_PLACES_API_KEY?: string;
 }
 
 interface MailMessage {
@@ -144,6 +145,91 @@ export default {
       const results = await Promise.all(messages.map((m) => sendOne(m, env)));
       const sent = results.filter((r) => r.ok).length;
       return json({ ok: true, sent, failed: results.length - sent, results }, 200, cors);
+    }
+
+    // ---- Google Places proxy ------------------------------------------
+    // Why proxy: keeps the API key server-side so it can't be scraped
+    // from the client bundle. Also lets us cache common queries (TODO)
+    // and centralize rate-limit handling. Auth is the same NOTIFY_SECRET
+    // bearer pattern as the other endpoints.
+    if (url.pathname === '/places/autocomplete') {
+      if (!env.GOOGLE_PLACES_API_KEY) return json({ ok: false, error: 'google-places-not-configured' }, 503, cors);
+      const q = String(payload?.q || '').slice(0, 200);
+      if (!q || q.length < 2) return json({ ok: false, error: 'no-query' }, 400, cors);
+      // Optional bias to a point — pulls local results to the top.
+      const lat = typeof payload?.lat === 'number' ? payload.lat : undefined;
+      const lon = typeof payload?.lon === 'number' ? payload.lon : undefined;
+      // Session token is a UUID generated client-side; bundling
+      // autocomplete+details under one token reduces billing to a
+      // single $0.017 per "session" instead of per request.
+      const sessionToken = typeof payload?.sessionToken === 'string' ? payload.sessionToken : undefined;
+      const body: any = { input: q };
+      if (sessionToken) body.sessionToken = sessionToken;
+      if (typeof lat === 'number' && typeof lon === 'number') {
+        body.locationBias = { circle: { center: { latitude: lat, longitude: lon }, radius: 50000 } };
+      }
+      try {
+        const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'X-Goog-Api-Key': env.GOOGLE_PLACES_API_KEY,
+          },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          return json({ ok: false, error: `google ${res.status}`, detail: txt.slice(0, 300) }, 502, cors);
+        }
+        const data: any = await res.json();
+        // Slim payload — only what the client needs to render rows.
+        const predictions = (data.suggestions || []).map((s: any) => {
+          const p = s.placePrediction;
+          if (!p) return null;
+          return {
+            placeId: p.placeId,
+            label: p.structuredFormat?.mainText?.text || p.text?.text,
+            address: p.structuredFormat?.secondaryText?.text || p.text?.text,
+          };
+        }).filter(Boolean);
+        return json({ ok: true, predictions }, 200, cors);
+      } catch (err: any) {
+        return json({ ok: false, error: 'google-fetch-failed', detail: String(err?.message || err).slice(0, 200) }, 502, cors);
+      }
+    }
+
+    if (url.pathname === '/places/details') {
+      if (!env.GOOGLE_PLACES_API_KEY) return json({ ok: false, error: 'google-places-not-configured' }, 503, cors);
+      const placeId = String(payload?.placeId || '');
+      if (!placeId) return json({ ok: false, error: 'no-place-id' }, 400, cors);
+      const sessionToken = typeof payload?.sessionToken === 'string' ? payload.sessionToken : undefined;
+      try {
+        const headers: Record<string, string> = {
+          'X-Goog-Api-Key': env.GOOGLE_PLACES_API_KEY,
+          // Field mask — only return what we need (smaller bill).
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,location',
+        };
+        let detailsUrl = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`;
+        if (sessionToken) detailsUrl += `?sessionToken=${encodeURIComponent(sessionToken)}`;
+        const res = await fetch(detailsUrl, { headers });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          return json({ ok: false, error: `google ${res.status}`, detail: txt.slice(0, 300) }, 502, cors);
+        }
+        const data: any = await res.json();
+        return json({
+          ok: true,
+          place: {
+            placeId: data.id,
+            name: data.displayName?.text,
+            address: data.formattedAddress,
+            lat: data.location?.latitude,
+            lon: data.location?.longitude,
+          },
+        }, 200, cors);
+      } catch (err: any) {
+        return json({ ok: false, error: 'google-fetch-failed', detail: String(err?.message || err).slice(0, 200) }, 502, cors);
+      }
     }
 
     if (url.pathname === '/send-push') {

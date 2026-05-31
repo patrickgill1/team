@@ -105,6 +105,29 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Location</h2>
+          <p>
+            The App can ask your device for your current location, but <strong>only
+            when you tap "Use my location" inside the event-location picker</strong>.
+            We use it for one thing: centering the map on where you are, so you can
+            drop the event pin on the right field without scrolling there manually.
+          </p>
+          <p className="mt-2">
+            Your device location is <strong>never stored, never sent to our servers,
+            and never shared with anyone</strong>. It lives on your phone for the
+            split second it takes the map to recenter, and that's it. You can deny
+            location permission entirely and the App still works — you'll just pan
+            the map manually to your venue.
+          </p>
+          <p className="mt-2">
+            Event-venue coordinates (where games and practices happen) ARE stored on
+            the event itself so the app can render a map preview and open the right
+            spot in Apple/Google Maps. Those venue coordinates are visible to your
+            team. They are not tied to any individual user's location.
+          </p>
+        </section>
+
+        <section>
           <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Security</h2>
           <p>
             Data is transmitted over HTTPS and stored with our service providers (Google

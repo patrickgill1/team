@@ -60,6 +60,7 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
   const [suggestions, setSuggestions] = useState<NominatimSuggestion[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [showLocationHelp, setShowLocationHelp] = useState(false);
 
   // Reset internal state every time the modal opens — avoids the form
   // carrying stale picked coords between two different events.
@@ -354,29 +355,49 @@ const LocationPickerModal: React.FC<Props> = ({ isOpen, initial, centerHint, onC
           </div>
         </div>
 
-        {/* "Use my location" FAB */}
-        <button
-          type="button"
-          onClick={useMyLocation}
-          disabled={locating}
-          aria-label="Use my location"
-          className="absolute bottom-4 right-3 w-12 h-12 rounded-full bg-white shadow-lg ring-1 ring-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50"
-        >
-          <svg className={`w-5 h-5 text-cyan-700 ${locating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            {locating ? (
-              <circle cx="12" cy="12" r="9" strokeDasharray="40 60" />
-            ) : (
-              <>
-                <circle cx="12" cy="12" r="3" />
-                <circle cx="12" cy="12" r="9" />
-                <line x1="12" y1="2" x2="12" y2="4" />
-                <line x1="12" y1="20" x2="12" y2="22" />
-                <line x1="2" y1="12" x2="4" y2="12" />
-                <line x1="20" y1="12" x2="22" y2="12" />
-              </>
-            )}
-          </svg>
-        </button>
+        {/* "Use my location" FAB + a one-tap "Why?" affordance.
+            Transparent up front: device location is read for this map
+            only, never stored or sent anywhere. Users with privacy
+            anxieties can tap (?) to see exactly what we do with it
+            before they grant the permission. */}
+        <div className="absolute bottom-4 right-3 flex items-center gap-2">
+          {showLocationHelp && (
+            <div className="bg-white rounded-xl shadow-xl ring-1 ring-slate-200 px-3 py-2 max-w-[240px] text-[11px] text-slate-700 leading-snug">
+              <div className="font-bold text-slate-900 mb-1">Location stays on your device.</div>
+              We use it only to center this map on where you are. We never store it, send it anywhere, or share it.
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowLocationHelp(s => !s)}
+            aria-label="Why is location needed?"
+            className="w-7 h-7 rounded-full bg-white/90 shadow-md ring-1 ring-slate-200 flex items-center justify-center text-slate-600 hover:bg-white text-xs font-bold"
+          >
+            ?
+          </button>
+          <button
+            type="button"
+            onClick={useMyLocation}
+            disabled={locating}
+            aria-label="Use my location"
+            className="w-12 h-12 rounded-full bg-white shadow-lg ring-1 ring-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50"
+          >
+            <svg className={`w-5 h-5 text-cyan-700 ${locating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              {locating ? (
+                <circle cx="12" cy="12" r="9" strokeDasharray="40 60" />
+              ) : (
+                <>
+                  <circle cx="12" cy="12" r="3" />
+                  <circle cx="12" cy="12" r="9" />
+                  <line x1="12" y1="2" x2="12" y2="4" />
+                  <line x1="12" y1="20" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="4" y2="12" />
+                  <line x1="20" y1="12" x2="22" y2="12" />
+                </>
+              )}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Bottom name/address card. Slides up from the bottom edge; gives

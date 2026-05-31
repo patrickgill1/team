@@ -362,6 +362,17 @@ export interface CalendarEvent {
   cancelledAt?: Date;
   cancelledBy?: string;
   cancelReason?: string;
+  // Snack rotation — one player's family brings snacks for the team.
+  // assignedByName is denorm'd so the UI doesn't have to fan out
+  // user lookups just to render the assignment line.
+  snackAssignment?: {
+    playerId: string;
+    playerName: string;
+    notes?: string;
+    assignedAt: any;
+    assignedBy: string;
+    assignedByName?: string;
+  };
   // Recurring series — when set, this event is part of a generated series.
   seriesId?: string;
   recurrence?: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly';

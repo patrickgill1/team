@@ -10,6 +10,7 @@ import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import EventDiscussion from '../components/calendar/EventDiscussion';
 import EventForm from '../components/calendar/EventForm';
 import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
+import SnackAssignment from '../components/calendar/SnackAssignment';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -687,6 +688,56 @@ const EventDetail: React.FC = () => {
             .map(([uid]) => uid);
         })()}
       />
+
+      {/* SNACKS — coach assigns one family per event, family sees they're
+          up. Only renders when there's an assignment OR the viewer is a
+          coach who can create one. Push goes to assignee's parents. */}
+      {(isUserCoach || (event as any).snackAssignment) && (
+        <SnackAssignment
+          eventId={event.id}
+          teamId={event.teamId}
+          isCoach={isUserCoach}
+          assignment={(event as any).snackAssignment || null}
+          roster={roster}
+          onChange={async (next) => {
+            if (!event || !userData?.uid) return;
+            const patch = next
+              ? {
+                  snackAssignment: {
+                    playerId: next.playerId,
+                    playerName: next.playerName,
+                    notes: next.notes || null,
+                    assignedAt: new Date(),
+                    assignedBy: userData.uid,
+                    assignedByName: userData.name || null,
+                  },
+                }
+              : { snackAssignment: null };
+            setEvent({ ...event, ...patch } as any);
+            try {
+              await updateDocument('events', event.id, patch);
+              // Notify the player's parents that they're up. Only on
+              // initial assignment / reassignment to a different family.
+              if (next && next.playerId !== (event as any).snackAssignment?.playerId) {
+                try {
+                  const { sendPushToPlayerParents } = await import('../utils/notify');
+                  const eventDateTxt = new Date(event.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                  await sendPushToPlayerParents(next.playerId, {
+                    title: `Snacks: ${next.playerName.split(' ')[0]}'s family is up`,
+                    body: `${event.title} — ${eventDateTxt}${next.notes ? ` · ${next.notes}` : ''}`,
+                    url: `/events/${event.id}`,
+                  }, { pushPrefKey: 'events' });
+                } catch (err) {
+                  console.warn('snack push failed', err);
+                }
+              }
+            } catch (err) {
+              console.error('snack save failed', err);
+              alert('Failed to save snack assignment.');
+            }
+          }}
+        />
+      )}
 
       {/* WHAT TO BRING — coach-editable checklist, parent ticks per-uid */}
       <PackingListSection

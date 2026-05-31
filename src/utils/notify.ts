@@ -258,7 +258,7 @@ export async function sendPushToUsers(
 export async function sendPushToPlayerParents(
   playerId: string,
   msg: { title: string; body: string; url?: string; path?: string },
-  prefKey: EmailPrefKey,
+  opts?: EmailPrefKey | { prefKey?: EmailPrefKey; pushPrefKey?: PushPrefKey },
 ): Promise<boolean> {
   try {
     const playerSnap = await getDoc(doc(db, 'players', playerId));
@@ -267,7 +267,9 @@ export async function sendPushToPlayerParents(
     const candidateUids: string[] = Array.isArray(player.parentIds) ? [...player.parentIds] : [];
     if (player.parentId && !candidateUids.includes(player.parentId)) candidateUids.push(player.parentId);
     if (candidateUids.length === 0) return false;
-    return await sendPushToUsers(candidateUids, msg, { prefKey });
+    // Back-compat: callers used to pass just a string EmailPrefKey.
+    const normalized = typeof opts === 'string' ? { prefKey: opts } : (opts || {});
+    return await sendPushToUsers(candidateUids, msg, normalized);
   } catch (err) {
     console.warn('[notify] sendPushToPlayerParents failed', err);
     return false;

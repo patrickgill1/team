@@ -509,6 +509,19 @@ const Navigation: React.FC = () => {
                 </div>
                 <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden divide-y divide-gray-100">
                   <Link
+                    to="/helpdesk"
+                    onClick={() => setIsMoreOpen(false)}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
+                        <AppIcon name="survey" className="w-5 h-5" />
+                      </span>
+                      <span className="text-[15px] font-semibold text-gray-900">Club Support</span>
+                    </span>
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+                  </Link>
+                  <Link
                     to="/settings"
                     onClick={() => setIsMoreOpen(false)}
                     className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"

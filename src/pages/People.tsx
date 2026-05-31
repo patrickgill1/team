@@ -5,6 +5,7 @@ import { addDoc, collection, doc, getDocs, query, serverTimestamp, updateDoc, wh
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
 import InvitePersonModal from '../components/people/InvitePersonModal';
+import AddPlayerModal from '../components/people/AddPlayerModal';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -60,6 +61,9 @@ const People: React.FC = () => {
   // Active management modal — pinned to a single person at a time.
   const [managing, setManaging] = useState<Person | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false);
+  // Tiny chooser sheet that opens when you tap +.
+  const [chooserOpen, setChooserOpen] = useState(false);
   // Lightweight cache of every player in the club for the invite
   // modal's player picker (parent invites are anchored to a player).
   const [allClubPlayers, setAllClubPlayers] = useState<any[]>([]);
@@ -243,8 +247,8 @@ const People: React.FC = () => {
         subtitle={people.length ? `${people.length} in your club` : undefined}
         action={
           <button
-            onClick={() => setInviteOpen(true)}
-            aria-label="Invite someone"
+            onClick={() => setChooserOpen(true)}
+            aria-label="Add someone"
             className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -472,6 +476,47 @@ const People: React.FC = () => {
         </div>
       )}
 
+      {/* + chooser sheet — pick what kind of thing you're adding */}
+      {chooserOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={() => setChooserOpen(false)}>
+          <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100">
+              <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Add</div>
+            </div>
+            <button
+              onClick={() => { setChooserOpen(false); setAddPlayerOpen(true); }}
+              className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-3"
+            >
+              <span className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-slate-900">Add player</div>
+                <div className="text-[11px] text-slate-500">New player on the roster (+ optional parent invite)</div>
+              </div>
+            </button>
+            <button
+              onClick={() => { setChooserOpen(false); setInviteOpen(true); }}
+              className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-3"
+            >
+              <span className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              </span>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-slate-900">Invite someone</div>
+                <div className="text-[11px] text-slate-500">Parent (for an existing player) or coach / manager</div>
+              </div>
+            </button>
+            <button
+              onClick={() => setChooserOpen(false)}
+              className="w-full text-center px-4 py-2.5 text-xs font-bold tracking-wide text-slate-500 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Invite modal — parent (player-anchored) or staff (team+role) */}
       {inviteOpen && (
         <InvitePersonModal
@@ -479,6 +524,27 @@ const People: React.FC = () => {
           clubPlayers={allClubPlayers}
           currentUid={userData?.uid || ''}
           onClose={() => setInviteOpen(false)}
+        />
+      )}
+
+      {/* Add player + (optional) parent invite */}
+      {addPlayerOpen && (
+        <AddPlayerModal
+          clubTeams={teams}
+          defaultTeamId={selectedTeamId || undefined}
+          currentUid={userData?.uid || ''}
+          onClose={() => setAddPlayerOpen(false)}
+          onCreated={(player) => {
+            // Optimistically add to people list so it shows up immediately.
+            setPeople(prev => [...prev, {
+              type: 'player',
+              id: player.id,
+              name: player.name,
+              role: 'player',
+              teamIds: selectedTeamId ? [selectedTeamId] : [],
+              isActive: true,
+            } as Person]);
+          }}
         />
       )}
 

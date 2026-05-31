@@ -55,19 +55,26 @@ async function callProxy(path: string, body: any): Promise<any | null> {
       },
       body: JSON.stringify(body),
     });
-    if (res.status === 503) {
-      // Worker says Google isn't configured. Don't retry this session.
-      googleAvailable = false;
-      return null;
+    if (res.ok) {
+      googleAvailable = true;
+      return await res.json();
     }
-    if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      console.warn(`[maps] proxy ${path} failed`, res.status, txt.slice(0, 120));
-      return null;
-    }
-    googleAvailable = true;
-    return await res.json();
+    // ANY non-2xx means Google isn't actually usable on this deploy.
+    // Common causes:
+    //   503 google-places-not-configured  → worker missing the secret
+    //   404 not-found                     → worker not redeployed with
+    //                                       /places endpoints
+    //   401 unauthorized                  → NOTIFY_SECRET mismatch
+    //   502 google-fetch-failed           → upstream Google error
+    // Stop retrying this session in every case — the next provider in
+    // the chain (Mapbox → OSM) takes over and the tag goes honest.
+    googleAvailable = false;
+    const txt = await res.text().catch(() => '');
+    console.warn(`[maps] proxy ${path} → ${res.status}`, txt.slice(0, 200));
+    return null;
   } catch (err) {
+    // CORS / network / DNS fail. Also unavailable.
+    googleAvailable = false;
     console.warn(`[maps] proxy ${path} threw`, err);
     return null;
   }

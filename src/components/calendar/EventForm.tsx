@@ -7,16 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { osmEmbedUrl } from '../../utils/maps';
-
-/** Lightweight typeahead row from Nominatim. We capture coords so the
- *  saved event includes lat/lon — that's what makes maps deep-links
- *  land on the right pin without re-parsing the free-text name. */
-interface AddressSuggestion {
-  label: string;
-  address: string;
-  lat: number;
-  lon: number;
-}
+import LocationPickerModal from './LocationPickerModal';
 
 /** Compact location for the Recent + Favorites quick-pick rows. */
 interface PickableLocation {
@@ -63,12 +54,6 @@ const EventForm: React.FC<EventFormProps> = ({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [weather, setWeather] = useState<WeatherSummary | null>(null);
-  // Address typeahead state. We hit Nominatim (OpenStreetMap geocoder)
-  // 350ms after the user stops typing — free, no API key, ~1 req/sec
-  // policy is fine for this use case.
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
-  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const [loadingAddresses, setLoadingAddresses] = useState(false);
   // Tracks whether the latest location change came from the user typing
   // (vs being filled in by tapping a suggestion). Stops the typeahead
   // from re-querying its own selection.
@@ -82,6 +67,7 @@ const EventForm: React.FC<EventFormProps> = ({
   const [recentLocations, setRecentLocations] = useState<PickableLocation[]>([]);
   const [favoriteLocations, setFavoriteLocations] = useState<PickableLocation[]>([]);
   const [savingFavorite, setSavingFavorite] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (editingEvent) {
@@ -252,8 +238,6 @@ const EventForm: React.FC<EventFormProps> = ({
     setFormData(prev => ({ ...prev, location: loc.name }));
     setPickedCoords(typeof loc.lat === 'number' && typeof loc.lon === 'number' ? { lat: loc.lat, lon: loc.lon } : null);
     setPickedAddress(loc.address || '');
-    setShowAddressSuggestions(false);
-    setAddressSuggestions([]);
   };
 
   const saveCurrentAsFavorite = async () => {
@@ -307,73 +291,6 @@ const EventForm: React.FC<EventFormProps> = ({
       setSavingFavorite(false);
     }
   };
-
-  // Address typeahead — Nominatim (OpenStreetMap) free geocoder.
-  // Debounced 350ms after typing; skips when the value matches what
-  // the user just picked from the dropdown so we don't ghost-requery
-  // our own selection. Cancellable via AbortController.
-  useEffect(() => {
-    const q = formData.location.trim();
-    if (q.length < 3) { setAddressSuggestions([]); return; }
-    if (q === lastSelectedAddressRef.current) return;
-
-    // Bias the search to a ~50-mile box around a location the team has
-    // already used. Without this, "park" returns parks from anywhere
-    // in the US — what the user complained about. Picks center in this
-    // priority: currently picked → first favorite → first recent. Falls
-    // back to unrestricted if the team has zero coord history yet.
-    let viewboxParam = '';
-    const center = pickedCoords
-      || (favoriteLocations.find(f => typeof f.lat === 'number') as any)
-      || (recentLocations.find(r => typeof r.lat === 'number') as any);
-    if (center && typeof center.lat === 'number' && typeof center.lon === 'number') {
-      // ~0.75° in each direction = ~50 miles N/S, ~45 miles E/W at mid
-      // latitudes. viewbox WITHOUT bounded=1 means Nominatim prefers
-      // results inside the box but still surfaces farther matches at
-      // lower ranks — so out-of-area tournament venues still appear
-      // for searches that have no local hit.
-      const span = 0.75;
-      const west = center.lon - span;
-      const east = center.lon + span;
-      const south = center.lat - span;
-      const north = center.lat + span;
-      viewboxParam = `&viewbox=${west},${north},${east},${south}`;
-    }
-
-    const ctrl = new AbortController();
-    const handle = setTimeout(async () => {
-      try {
-        setLoadingAddresses(true);
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=8&countrycodes=us,ca${viewboxParam}`;
-        const res = await fetch(url, { signal: ctrl.signal, headers: { 'Accept-Language': 'en' } });
-        if (!res.ok) return;
-        const data: any[] = await res.json();
-        const rows: AddressSuggestion[] = data.map((d) => {
-          const a = d.address || {};
-          // Build a short, friendly label: "Little Valley Park, St. George, UT"
-          const parts = [
-            a.amenity || a.leisure || a.shop || a.tourism || a.building || a.house_name,
-            [a.house_number, a.road].filter(Boolean).join(' '),
-            a.city || a.town || a.village || a.hamlet || a.suburb,
-            a.state_code || a.state,
-          ].filter(Boolean);
-          const label = parts.length > 0 ? parts.join(', ') : d.display_name;
-          return {
-            label,
-            address: d.display_name as string,
-            lat: parseFloat(d.lat),
-            lon: parseFloat(d.lon),
-          };
-        });
-        setAddressSuggestions(rows);
-      } catch (err: any) {
-        if (err?.name !== 'AbortError') console.warn('Address autocomplete failed', err);
-      } finally {
-        setLoadingAddresses(false);
-      }
-    }, 350);
-    return () => { clearTimeout(handle); ctrl.abort(); };
-  }, [formData.location]);
 
   // Look up weather forecast for the chosen date/location (debounced via effect deps).
   useEffect(() => {
@@ -745,14 +662,17 @@ const EventForm: React.FC<EventFormProps> = ({
             />
           </div>
 
-          {/* Location with Nominatim address typeahead + saved favorites
-              + recents + a small OSM preview once a location is picked. */}
-          <div className="relative">
+          {/* Location: favorites + recents as quick picks, then a single
+              "Pick on map" CTA that opens a full-screen visual picker.
+              The map picker is the truth — typing/searching is just one
+              input path inside it. This handles the OSM coverage gaps
+              (e.g. local soccer fields not in OSM) since the user can
+              always pan + drop the pin manually. */}
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Location *
             </label>
 
-            {/* Favorites — coach-starred locations the team uses repeatedly. */}
             {favoriteLocations.length > 0 && (
               <div className="mb-2">
                 <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">⭐ Favorites</div>
@@ -778,7 +698,6 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
             )}
 
-            {/* Recent — team's last unique locations w/ coords. */}
             {recentLocations.length > 0 && (
               <div className="mb-2">
                 <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Recent</div>
@@ -807,102 +726,74 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
             )}
 
-            <input
-              type="text"
-              value={formData.location}
-              onChange={(e) => {
-                // Typing by hand invalidates the picked coords — we'd be
-                // attaching them to a different place. Cleared so the save
-                // doesn't write stale lat/lon onto a new address.
-                setFormData({ ...formData, location: e.target.value });
-                setPickedCoords(null);
-                setPickedAddress('');
-                setShowAddressSuggestions(true);
-              }}
-              onFocus={() => setShowAddressSuggestions(true)}
-              // 150ms delay before hide so clicking a suggestion lands
-              // before the dropdown unmounts.
-              onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 150)}
-              autoComplete="off"
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.location ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Search an address or venue…"
-            />
-            {showAddressSuggestions && (loadingAddresses || addressSuggestions.length > 0) && (
-              <div className="absolute z-20 mt-1 w-full bg-white rounded-xl ring-1 ring-gray-200 shadow-lg overflow-hidden max-h-72 overflow-y-auto">
-                {loadingAddresses && addressSuggestions.length === 0 && (
-                  <div className="px-3 py-2 text-xs text-gray-500">Searching…</div>
-                )}
-                {addressSuggestions.map((s, idx) => (
-                  <button
-                    key={`${s.address}_${idx}`}
-                    type="button"
-                    onMouseDown={(e) => {
-                      // mousedown fires before blur — lets the suggestion
-                      // win the race against the input's onBlur handler.
-                      e.preventDefault();
-                      lastSelectedAddressRef.current = s.address;
-                      setFormData((prev) => ({ ...prev, location: s.label }));
-                      setPickedCoords({ lat: s.lat, lon: s.lon });
-                      setPickedAddress(s.address);
-                      setShowAddressSuggestions(false);
-                      setAddressSuggestions([]);
-                    }}
-                    className="w-full text-left px-3 py-2 hover:bg-cyan-50 transition-colors border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="text-sm font-semibold text-gray-900 truncate">{s.label}</div>
-                    {s.label !== s.address && (
-                      <div className="text-[11px] text-gray-500 truncate">{s.address}</div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Map preview — only when we have coords, which is the only
-                case where the saved event can deep-link reliably. The OSM
-                embed is free, no API key, interactive (pan/zoom). */}
-            {pickedCoords && (
-              <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+            {/* Picked-location card. Shows the current selection with
+                a thumbnail map preview, address, and Save-to-team. Tap
+                it to re-open the picker and refine. */}
+            {pickedCoords ? (
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className="w-full text-left rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:border-cyan-400 transition-colors"
+              >
                 <iframe
-                  title="Location preview"
+                  title="Picked location"
                   src={osmEmbedUrl(pickedCoords.lat, pickedCoords.lon, 16)}
-                  className="w-full h-40 block bg-slate-100"
+                  className="w-full h-32 block bg-slate-100 pointer-events-none"
                   loading="lazy"
                 />
-                <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1 text-[11px] text-slate-600 truncate">
-                    {pickedAddress || formData.location}
+                <div className="px-3 py-2.5 bg-slate-50 border-t border-slate-200">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-bold text-slate-900 truncate">{formData.location}</div>
+                      {pickedAddress && (
+                        <div className="text-[11px] text-slate-500 truncate mt-0.5">{pickedAddress}</div>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 flex-shrink-0">
+                      Change ›
+                    </span>
                   </div>
-                  {favoriteLocations.some(f => f.name.toLowerCase() === formData.location.trim().toLowerCase()) ? (
-                    <button
-                      type="button"
-                      onClick={() => removeFavorite(formData.location.trim())}
-                      disabled={savingFavorite}
-                      className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-rose-600 flex-shrink-0 disabled:opacity-50"
-                    >
-                      ⭐ Saved · Remove
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={saveCurrentAsFavorite}
-                      disabled={savingFavorite}
-                      className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 flex-shrink-0 disabled:opacity-50"
-                    >
-                      ⭐ Save to team
-                    </button>
-                  )}
                 </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className={`w-full rounded-xl border-2 border-dashed px-3 py-4 text-center transition-colors ${
+                  errors.location
+                    ? 'border-rose-300 bg-rose-50 text-rose-700'
+                    : 'border-slate-300 bg-slate-50 text-slate-600 hover:border-cyan-400 hover:text-cyan-700'
+                }`}
+              >
+                <div className="text-base font-bold">📍 Pick on map</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">Search, drop a pin, or use your location</div>
+              </button>
+            )}
+
+            {pickedCoords && (
+              <div className="mt-2 flex justify-end">
+                {favoriteLocations.some(f => f.name.toLowerCase() === formData.location.trim().toLowerCase()) ? (
+                  <button
+                    type="button"
+                    onClick={() => removeFavorite(formData.location.trim())}
+                    disabled={savingFavorite}
+                    className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 hover:text-rose-600 disabled:opacity-50"
+                  >
+                    ⭐ Saved · Remove
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={saveCurrentAsFavorite}
+                    disabled={savingFavorite}
+                    className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 disabled:opacity-50"
+                  >
+                    ⭐ Save to team
+                  </button>
+                )}
               </div>
             )}
 
-            {!pickedCoords && formData.location.trim().length > 0 && (
-              <p className="text-xs text-amber-700 mt-1">
-                ⚠ Pick a suggestion below so Maps lands on the right pin.
-              </p>
-            )}
             {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
           </div>
 
@@ -1159,6 +1050,34 @@ const EventForm: React.FC<EventFormProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Full-screen visual location picker. Centers on existing pick →
+          first favorite → first recent, so it opens "near where you
+          probably want it" instead of mid-USA. */}
+      <LocationPickerModal
+        isOpen={pickerOpen}
+        initial={pickedCoords ? {
+          name: formData.location,
+          address: pickedAddress,
+          lat: pickedCoords.lat,
+          lon: pickedCoords.lon,
+        } : undefined}
+        centerHint={
+          pickedCoords
+            ? { lat: pickedCoords.lat, lon: pickedCoords.lon }
+            : (favoriteLocations.find(f => typeof f.lat === 'number') as any)
+              || (recentLocations.find(r => typeof r.lat === 'number') as any)
+              || undefined
+        }
+        onClose={() => setPickerOpen(false)}
+        onPick={(p) => {
+          lastSelectedAddressRef.current = p.address;
+          setFormData(prev => ({ ...prev, location: p.name }));
+          setPickedCoords({ lat: p.lat, lon: p.lon });
+          setPickedAddress(p.address);
+          setPickerOpen(false);
+        }}
+      />
     </div>
   );
 };

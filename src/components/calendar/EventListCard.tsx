@@ -294,11 +294,8 @@ const EventListCard: React.FC<Props> = ({
             tap in to see if they're up. */}
         {(event as any).snackAssignment?.playerName && (
           <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-slate-700">
-            <span aria-hidden>🍎</span>
-            <span>
-              <span className="text-slate-500">Snacks: </span>
-              <span className="font-bold">{(event as any).snackAssignment.playerName}</span>
-            </span>
+            <span className="text-[9px] font-extrabold tracking-widest uppercase text-slate-500">Snacks</span>
+            <span className="font-bold">{(event as any).snackAssignment.playerName}</span>
           </div>
         )}
       </div>

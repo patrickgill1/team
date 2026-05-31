@@ -90,8 +90,8 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
-          <span aria-hidden>🍎</span> Snacks
+        <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">
+          Snacks
         </div>
         {isCoach && !editing && (
           <button

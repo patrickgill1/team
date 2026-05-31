@@ -627,8 +627,9 @@ const EventDetail: React.FC = () => {
         )}
       </div>
 
-      {/* JERSEY BANNER — game days only. Tells parents which kit to
-          pack at a glance: home = black, away = white. */}
+      {/* JERSEY BANNER — game days only. The jersey swatch IS the
+          icon: a black or white square shows parents at a glance which
+          kit to pack. No decorative emoji needed. */}
       {event.type === 'game' && (event as any).homeAway && (
         <section className={`px-4 sm:px-6 py-3 border-b ${
           (event as any).homeAway === 'home'
@@ -636,31 +637,33 @@ const EventDetail: React.FC = () => {
             : 'bg-white border-slate-200'
         }`}>
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-base ${
-                (event as any).homeAway === 'home' ? 'bg-cyan-500/20' : 'bg-slate-100'
-              }`}>
-                {(event as any).homeAway === 'home' ? '🏠' : '✈'}
-              </span>
+            <div className="flex items-center gap-3">
+              {/* Jersey swatch doubles as the icon. */}
+              <span className={`inline-block w-9 h-9 rounded-md border-2 flex-shrink-0 ${
+                (event as any).homeAway === 'home'
+                  ? 'bg-slate-900 border-slate-600'
+                  : 'bg-white border-slate-300'
+              }`} aria-hidden />
               <div>
                 <div className={`text-xs font-extrabold tracking-widest uppercase ${
-                  (event as any).homeAway === 'home' ? 'text-cyan-300' : 'text-slate-600'
+                  (event as any).homeAway === 'home' ? 'text-cyan-300' : 'text-slate-700'
                 }`}>
                   {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
                 </div>
-                <div className={`text-[11px] ${
+                <div className={`text-[11px] mt-0.5 ${
                   (event as any).homeAway === 'home' ? 'text-slate-400' : 'text-slate-500'
                 }`}>
-                  Wear your {(event as any).homeAway === 'home' ? 'BLACK' : 'WHITE'} jersey
+                  Wear your <span className="font-bold">{(event as any).homeAway === 'home' ? 'black' : 'white'}</span> jersey
                 </div>
               </div>
             </div>
-            {/* Visual jersey swatch */}
-            <span className={`inline-block w-8 h-8 rounded-md border-2 ${
+            <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
               (event as any).homeAway === 'home'
-                ? 'bg-slate-900 border-slate-700'
-                : 'bg-white border-slate-300'
-            }`} aria-hidden />
+                ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/30'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            }`}>
+              {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
+            </span>
           </div>
         </section>
       )}

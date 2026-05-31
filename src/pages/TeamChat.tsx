@@ -244,11 +244,18 @@ const TeamChat: React.FC = () => {
     }
   };
 
-  // Subscribe to team-scoped threads for the active team.
+  // Subscribe to threads across EVERY team the user belongs to. The
+  // chat tab no longer hides chats / DMs based on the currently
+  // "selected team" — a single inbox surfaces everything.
   useEffect(() => {
-    if (!selectedTeamId) return;
+    const myTeamIds = Array.from(new Set([
+      ...(userData?.teamIds || []),
+      ...(userData?.teamId ? [userData.teamId] : []),
+      ...(selectedTeamId ? [selectedTeamId] : []),
+    ].filter(Boolean)));
+    if (myTeamIds.length === 0) return;
     setLoading(true);
-    const unsubscribeThreads = subscribeToChatThreads(selectedTeamId, (threadsData) => {
+    const unsubscribeThreads = subscribeToChatThreads(myTeamIds, (threadsData) => {
       const processed = threadsData.map(thread => ({
         ...thread,
         lastActivity: thread.lastActivity instanceof Date ? thread.lastActivity : new Date(thread.lastActivity || Date.now()),
@@ -259,7 +266,7 @@ const TeamChat: React.FC = () => {
       setLoading(false);
     });
     return () => { unsubscribeThreads(); };
-  }, [selectedTeamId, subscribeToChatThreads]);
+  }, [userData?.teamIds, userData?.teamId, selectedTeamId, subscribeToChatThreads]);
 
   // Subscribe to club-scoped threads (visible regardless of selected
   // team). Mounted once per session; role-filtering happens in the

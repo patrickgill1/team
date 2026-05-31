@@ -525,11 +525,17 @@ const getUserData = useCallback(async (uid: string) => {
     }
   }, []);
 
-  // Real-time chat subscriptions
-  const subscribeToChatThreads = useCallback((teamId: string, callback: (threads: ChatThread[]) => void) => {
+  // Real-time chat subscriptions. Accepts either a single teamId or
+  // an array of teamIds — the user gets every team-chat from every
+  // team they're on (and DMs created on any of those teams), so the
+  // chat tab is no longer per-team-context.
+  const subscribeToChatThreads = useCallback((teamIdOrIds: string | string[], callback: (threads: ChatThread[]) => void) => {
+    const ids = Array.isArray(teamIdOrIds) ? teamIdOrIds : [teamIdOrIds];
+    const cleanIds = ids.filter(Boolean).slice(0, 30); // Firestore in-query max
+    if (cleanIds.length === 0) { callback([]); return () => {}; }
     const q = query(
       collection(db, 'chat_threads'),
-      where('teamId', '==', teamId),
+      where('teamId', 'in', cleanIds),
       orderBy('isPinned', 'desc'),
       orderBy('lastActivity', 'desc')
     );

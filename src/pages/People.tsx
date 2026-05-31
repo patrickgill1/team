@@ -441,9 +441,12 @@ const People: React.FC = () => {
         )}
       </div>
 
-      {/* Bulk action bar — appears when in select mode + has selection */}
+      {/* Bulk action bar — appears when in select mode + has selection.
+          Sits ABOVE the mobile bottom nav (z-50 + h-12) so its controls
+          aren't covered. On desktop the nav is a side rail so bottom-0
+          is fine. safe-bottom keeps it clear of the home indicator. */}
       {selectMode && selectedIds.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 bg-slate-950 border-t border-cyan-500/20 px-4 py-3 flex items-center gap-3">
+        <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-slate-950 border-t border-cyan-500/20 px-4 py-3 flex items-center gap-3">
           <span className="text-xs font-extrabold tracking-widest uppercase text-white flex-shrink-0">
             {selectedIds.size} selected
           </span>

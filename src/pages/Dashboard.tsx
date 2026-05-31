@@ -89,7 +89,10 @@ const Dashboard: React.FC = () => {
           createdAt: e.createdAt?.toDate ? e.createdAt.toDate() : new Date(e.createdAt),
         })) as CalendarEvent[];
         const upcoming = eventsWithDates
-          .filter(ev => new Date(ev.date) >= new Date())
+          // Cancelled events still show on /calendar with a banner, but
+          // the Dashboard hero is "what's next" — surfacing a cancelled
+          // event there is misleading.
+          .filter(ev => new Date(ev.date) >= new Date() && !(ev as any).isCancelled)
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3);
         setUpcomingEvents(upcoming);

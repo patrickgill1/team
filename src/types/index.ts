@@ -344,6 +344,14 @@ export interface CalendarEvent {
   }>;
   createdAt: Date;
   updatedAt?: Date;
+  // Cancellation. Soft-delete pattern: cancelled events stay on the
+  // calendar with a CANCELLED badge so attendees see why nothing's
+  // happening, instead of the event silently disappearing. Coaches
+  // can restore by flipping the flag.
+  isCancelled?: boolean;
+  cancelledAt?: Date;
+  cancelledBy?: string;
+  cancelReason?: string;
   // Recurring series — when set, this event is part of a generated series.
   seriesId?: string;
   recurrence?: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly';

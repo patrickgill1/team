@@ -297,13 +297,102 @@ const EventDetail: React.FC = () => {
 
   const handleDelete = async () => {
     if (!event) return;
-    if (!window.confirm(`Delete "${event.title}"? This can't be undone.`)) return;
+    if (!window.confirm(`Permanently delete "${event.title}"? This removes it for everyone. Use "Cancel event" instead if you want it to stay visible with a CANCELLED badge.`)) return;
     try {
       await deleteDocument('events', event.id);
       navigate('/calendar');
     } catch (err) {
       console.error('delete failed', err);
       alert('Failed to delete.');
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!event || !userData?.uid) return;
+    const reason = window.prompt(
+      `Cancel "${event.title}"? Attendees will be notified.\n\nOptional reason (shown to everyone):`,
+      ''
+    );
+    // window.prompt returns null on Cancel button, '' on empty submit.
+    if (reason === null) return;
+    try {
+      await updateDocument('events', event.id, {
+        isCancelled: true,
+        cancelledAt: new Date(),
+        cancelledBy: userData.uid,
+        cancelReason: reason.trim() || null,
+        updatedAt: new Date(),
+      });
+      // Optimistic local refresh.
+      setEvent({
+        ...event,
+        isCancelled: true,
+        cancelledAt: new Date(),
+        cancelledBy: userData.uid,
+        cancelReason: reason.trim() || undefined,
+      } as any);
+      // Push every authenticated participant (skip public guest tokens).
+      try {
+        const recipients = new Set<string>();
+        Object.keys(event.rsvps || {}).forEach(uid => recipients.add(uid));
+        Object.values(event.playerRsvps || {}).forEach((r: any) => { if (r?.byUid) recipients.add(r.byUid); });
+        recipients.delete(userData.uid);
+        if (recipients.size > 0) {
+          const { sendPushToUsers } = await import('../utils/notify');
+          await sendPushToUsers(Array.from(recipients), {
+            title: `CANCELLED: ${event.title}`,
+            body: reason.trim()
+              ? `${userData.name || 'Coach'}: ${reason.trim().slice(0, 140)}`
+              : `${userData.name || 'Coach'} cancelled this event.`,
+            url: `/events/${event.id}`,
+          });
+        }
+      } catch (err) {
+        console.warn('cancel push failed', err);
+      }
+    } catch (err) {
+      console.error('cancel failed', err);
+      alert('Failed to cancel.');
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!event || !userData?.uid) return;
+    if (!window.confirm(`Restore "${event.title}"? Attendees will be notified it's back on.`)) return;
+    try {
+      await updateDocument('events', event.id, {
+        isCancelled: false,
+        cancelledAt: null,
+        cancelledBy: null,
+        cancelReason: null,
+        updatedAt: new Date(),
+      });
+      setEvent({
+        ...event,
+        isCancelled: false,
+        cancelledAt: undefined,
+        cancelledBy: undefined,
+        cancelReason: undefined,
+      } as any);
+      try {
+        const recipients = new Set<string>();
+        Object.keys(event.rsvps || {}).forEach(uid => recipients.add(uid));
+        Object.values(event.playerRsvps || {}).forEach((r: any) => { if (r?.byUid) recipients.add(r.byUid); });
+        recipients.delete(userData.uid);
+        if (recipients.size > 0) {
+          const { sendPushToUsers } = await import('../utils/notify');
+          await sendPushToUsers(Array.from(recipients), {
+            title: `Back on: ${event.title}`,
+            body: `${userData.name || 'Coach'} restored this event.`,
+            url: `/events/${event.id}`,
+          });
+        }
+      } catch (err) {
+        console.warn('restore push failed', err);
+      }
+    } catch (err) {
+      console.error('restore failed', err);
+      alert('Failed to restore.');
     }
   };
 
@@ -389,6 +478,26 @@ const EventDetail: React.FC = () => {
         </p>
       </section>
 
+      {/* CANCELLED banner — shown to everyone when the event has been
+          called off. Keeps the event visible so attendees see WHY
+          nothing's happening, instead of the event silently vanishing. */}
+      {event.isCancelled && (
+        <div className="bg-amber-50 border-y border-amber-200 px-4 sm:px-6 py-3">
+          <div className="flex items-start gap-3 max-w-3xl mx-auto">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-white flex-shrink-0">
+              Cancelled
+            </div>
+            <div className="text-sm text-amber-900 flex-1 min-w-0">
+              {event.cancelReason ? (
+                <p className="leading-snug">{event.cancelReason}</p>
+              ) : (
+                <p className="leading-snug italic text-amber-800">No reason given.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* QUICK ACTIONS */}
       <div className="bg-slate-50 px-4 sm:px-6 py-3 grid grid-cols-3 gap-2 border-b border-slate-200">
         <button
@@ -410,13 +519,23 @@ const EventDetail: React.FC = () => {
           Share
         </button>
         {isUserCoach ? (
-          <button
-            onClick={handleDelete}
-            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-rose-200 text-rose-700 text-xs font-bold tracking-wider uppercase hover:bg-rose-50"
-          >
-            <Icon name="trash" className="w-4 h-4" />
-            Delete
-          </button>
+          event.isCancelled ? (
+            <button
+              onClick={handleRestore}
+              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-emerald-200 text-emerald-700 text-xs font-bold tracking-wider uppercase hover:bg-emerald-50"
+            >
+              <Icon name="check" className="w-4 h-4" />
+              Restore
+            </button>
+          ) : (
+            <button
+              onClick={handleCancel}
+              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-amber-200 text-amber-700 text-xs font-bold tracking-wider uppercase hover:bg-amber-50"
+            >
+              <Icon name="trash" className="w-4 h-4" />
+              Cancel
+            </button>
+          )
         ) : (
           <button
             onClick={() => setMyRsvp('no')}

@@ -96,29 +96,38 @@ const EventListCard: React.FC<Props> = ({
     onRsvp(status);
   };
 
+  const cancelled = !!(event as any).isCancelled;
+
   return (
     <Link
       to={`/events/${event.id}`}
-      className="block rounded-xl overflow-hidden bg-white shadow-[0_6px_16px_-4px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.35)] transition-shadow"
+      className={`block rounded-xl overflow-hidden bg-white shadow-[0_6px_16px_-4px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.35)] transition-shadow ${cancelled ? 'opacity-70' : ''}`}
     >
-      {/* type stripe */}
-      <div className={`h-[3px] bg-gradient-to-r ${stripe}`} />
+      {/* type stripe — muted when cancelled so the card reads as "not happening". */}
+      <div className={`h-[3px] bg-gradient-to-r ${cancelled ? 'from-slate-400 to-slate-300' : stripe}`} />
 
       <div className="px-3.5 pt-3 pb-3">
         <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-start">
           {/* Date badge */}
-          <div className="w-[54px] h-[54px] rounded-lg bg-slate-950 border border-cyan-400/40 flex flex-col items-center justify-center flex-shrink-0">
-            <span className="text-[9px] font-extrabold tracking-widest text-cyan-300">{month}</span>
-            <span className="text-[22px] font-black text-white leading-none">{day}</span>
-            <span className="text-[8px] font-bold tracking-widest text-slate-400 mt-0.5">{dow}</span>
+          <div className={`w-[54px] h-[54px] rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${cancelled ? 'bg-slate-300 border border-slate-200' : 'bg-slate-950 border border-cyan-400/40'}`}>
+            <span className={`text-[9px] font-extrabold tracking-widest ${cancelled ? 'text-slate-500' : 'text-cyan-300'}`}>{month}</span>
+            <span className={`text-[22px] font-black leading-none ${cancelled ? 'text-slate-600 line-through decoration-2' : 'text-white'}`}>{day}</span>
+            <span className={`text-[8px] font-bold tracking-widest mt-0.5 ${cancelled ? 'text-slate-500' : 'text-slate-400'}`}>{dow}</span>
           </div>
 
           {/* Title area */}
           <div className="min-w-0">
-            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-extrabold tracking-widest uppercase ${chip}`}>
-              {event.type}
-            </span>
-            <h3 className="mt-1 text-[15px] font-extrabold text-slate-900 leading-tight tracking-tight">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-extrabold tracking-widest uppercase ${chip}`}>
+                {event.type}
+              </span>
+              {cancelled && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold tracking-widest uppercase bg-amber-600 text-white">
+                  Cancelled
+                </span>
+              )}
+            </div>
+            <h3 className={`mt-1 text-[15px] font-extrabold leading-tight tracking-tight ${cancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
               {event.title}
             </h3>
             <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">

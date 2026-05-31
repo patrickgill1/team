@@ -104,6 +104,10 @@ const EventDetail: React.FC = () => {
   // show the merge-guest-into-roster UI without leaking the roster to
   // parents/share-link viewers.
   const [roster, setRoster] = useState<Array<{ id: string; name: string }>>([]);
+  // Players linked to the current user (parent → kids). Drives the
+  // per-kid RSVP rows so a coach-who-is-also-a-parent can RSVP for
+  // themselves AND their kid in the same screen.
+  const [myLinkedPlayers, setMyLinkedPlayers] = useState<Array<{ id: string; name: string }>>([]);
   // Which guest RSVP token, if any, the coach is currently merging.
   const [mergingToken, setMergingToken] = useState<string | null>(null);
   const [mergeBusy, setMergeBusy] = useState(false);
@@ -138,6 +142,35 @@ const EventDetail: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [eventId, getDocument]);
+
+  // Load players linked to the current user — drives the per-kid
+  // RSVP rows. Any user with kids on this team (parent OR coach-with-
+  // kid) sees them. Runs for everyone, not just coaches.
+  useEffect(() => {
+    if (!userData?.uid || !event?.teamId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs, query, where } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDocs(query(
+          collection(db, 'players'),
+          where('parentIds', 'array-contains', userData.uid),
+        ));
+        if (cancelled) return;
+        const list = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((p: any) => p.isActive !== false)
+          .filter((p: any) => Array.isArray(p.teamIds) ? p.teamIds.includes(event.teamId) : true)
+          .map((p: any) => ({ id: p.id, name: p.name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setMyLinkedPlayers(list);
+      } catch (err) {
+        console.warn('linked players load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userData?.uid, event?.teamId]);
 
   // Load roster (coach only — drives the merge-into-roster picker).
   useEffect(() => {
@@ -246,6 +279,27 @@ const EventDetail: React.FC = () => {
       await updateDocument('events', event.id, { rsvps: next });
     } catch (err) {
       console.error('rsvp failed', err);
+    }
+  };
+
+  const setPlayerRsvp = async (playerId: string, playerName: string, status: RsvpStatus) => {
+    if (!event || !userData?.uid) return;
+    const next = {
+      ...((event as any).playerRsvps || {}),
+      [playerId]: {
+        status,
+        playerName,
+        byUid: userData.uid,
+        byName: userData.name || undefined,
+        respondedAt: new Date(),
+      },
+    };
+    setEvent({ ...event, playerRsvps: next } as any);
+    try {
+      await updateDocument('events', event.id, { playerRsvps: next });
+    } catch (err) {
+      console.error('player rsvp failed', err);
+      alert('Failed to save RSVP.');
     }
   };
 
@@ -564,6 +618,47 @@ const EventDetail: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* PER-KID RSVPS — one row per linked player. Renders for anyone
+          with kids on this team, so a coach-who-is-also-a-parent can
+          RSVP for themselves (Quick Actions above) AND each kid (here).
+          This was lost in the calendar → /events/:id migration. */}
+      {myLinkedPlayers.length > 0 && (
+        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
+            <Icon name="users" className="w-3 h-3 text-cyan-500" />
+            RSVP for your {myLinkedPlayers.length > 1 ? 'players' : 'player'}
+          </div>
+          <div className="space-y-2">
+            {myLinkedPlayers.map(p => {
+              const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
+              const btn = (status: RsvpStatus, label: string, active: string) => (
+                <button
+                  key={status}
+                  onClick={() => setPlayerRsvp(p.id, p.name, status)}
+                  className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                    current === status
+                      ? `${active} text-white border-transparent shadow-sm`
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <div key={p.id} className="flex items-center gap-2">
+                  <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-slate-800 truncate" title={p.name}>{p.name}</div>
+                  <div className="flex-1 flex gap-1.5">
+                    {btn('going', 'Going', 'bg-emerald-600')}
+                    {btn('maybe', 'Maybe', 'bg-amber-500')}
+                    {btn('no', "Can't", 'bg-rose-600')}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* RSVPS */}
       <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">

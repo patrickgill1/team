@@ -2,10 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where,
+  addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, where,
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
+import { sendPushToUsers } from '../utils/notify';
 import type { HelpdeskTicket, HelpdeskComment, TicketStatus } from '../types';
 
 const STATUS_OPTIONS: TicketStatus[] = ['open', 'assigned', 'in_progress', 'resolved', 'closed'];
@@ -25,6 +26,38 @@ function formatRel(d: Date): string {
   const hr = Math.round(min / 60);
   if (hr < 24) return `${hr}h ago`;
   return new Date(d).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+async function notifyReply(
+  ticket: HelpdeskTicket,
+  ticketId: string,
+  authorUid: string,
+  authorName: string,
+  content: string,
+) {
+  try {
+    const recipients = new Set<string>();
+    if (ticket.createdBy) recipients.add(ticket.createdBy);
+    if (ticket.assignedTo) recipients.add(ticket.assignedTo);
+    // Loop in every club admin so triage isn't bottlenecked on one person.
+    try {
+      const adminSnap = await getDocs(
+        query(collection(db, 'users'), where('isClubAdmin', '==', true)),
+      );
+      adminSnap.forEach(d => recipients.add(d.id));
+    } catch { /* ignore */ }
+    recipients.delete(authorUid);
+    const ids = Array.from(recipients);
+    if (ids.length === 0) return;
+    const preview = content.length > 120 ? `${content.slice(0, 117)}…` : content;
+    await sendPushToUsers(ids, {
+      title: `Helpdesk: ${ticket.subject}`,
+      body: `${authorName}: ${preview}`,
+      url: `/helpdesk/${ticketId}`,
+    });
+  } catch (err) {
+    console.warn('helpdesk push failed', err);
+  }
 }
 
 const HelpdeskTicketPage: React.FC = () => {
@@ -53,22 +86,28 @@ const HelpdeskTicketPage: React.FC = () => {
         resolvedAt: data.resolvedAt?.toDate?.(),
       } as HelpdeskTicket);
     });
+    // Sort client-side so we don't need a composite (ticketId + createdAt)
+    // Firestore index — the orderBy on a filtered field requires one
+    // and was silently failing the subscription.
     const unsubC = onSnapshot(
-      query(collection(db, 'helpdeskComments'), where('ticketId', '==', ticketId), orderBy('createdAt', 'asc')),
+      query(collection(db, 'helpdeskComments'), where('ticketId', '==', ticketId)),
       snap => {
-        setComments(snap.docs.map(d => ({
+        const list = snap.docs.map(d => ({
           id: d.id,
           ...(d.data() as any),
           createdAt: (d.data() as any).createdAt?.toDate?.() || new Date(),
-        })) as HelpdeskComment[]);
-      }, () => {}
+        })) as HelpdeskComment[];
+        list.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        setComments(list);
+      },
+      (err) => { console.warn('comments subscribe failed', err); }
     );
     return () => { unsubT(); unsubC(); };
   }, [ticketId]);
 
   const post = async () => {
     const content = draft.trim();
-    if (!content || !ticketId || !userData?.uid) return;
+    if (!content || !ticketId || !userData?.uid || !ticket) return;
     setBusy(true);
     try {
       await addDoc(collection(db, 'helpdeskComments'), {
@@ -80,6 +119,9 @@ const HelpdeskTicketPage: React.FC = () => {
         createdAt: serverTimestamp(),
       });
       setDraft('');
+      // Fan out a push to everyone tracking this ticket: creator,
+      // assignee, and every club admin — minus whoever just typed.
+      void notifyReply(ticket, ticketId, userData.uid, userData.name || 'Member', content);
     } catch (err) {
       console.error('comment post failed', err);
     } finally {

@@ -139,7 +139,7 @@ export interface StaffMembership {
 // ---------- Helpdesk ----------
 export type TicketStatus = 'open' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
 export type TicketPriority = 'low' | 'normal' | 'high';
-export type TicketCategory = 'app_bug' | 'feature_request' | 'team_issue' | 'billing' | 'other';
+export type TicketCategory = 'team_logistics' | 'team_issue' | 'general_question' | 'app_bug' | 'feature_request' | 'billing' | 'other';
 
 export interface HelpdeskTicket {
   id: string;

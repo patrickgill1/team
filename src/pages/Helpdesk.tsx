@@ -12,9 +12,11 @@ import { isCoach } from '../utils/helpers';
 import type { HelpdeskTicket, TicketStatus, TicketPriority, TicketCategory } from '../types';
 
 const CATEGORY_LABEL: Record<TicketCategory, string> = {
+  team_logistics: 'Team logistics (tryouts, games, schedule)',
+  team_issue: 'Team issue',
+  general_question: 'General question',
   app_bug: 'App bug',
   feature_request: 'Feature request',
-  team_issue: 'Team issue',
   billing: 'Billing',
   other: 'Other',
 };
@@ -201,7 +203,7 @@ const NewTicketModal: React.FC<{
 }> = ({ clubId, teamId, userUid, userName, userRole, onClose, onCreated }) => {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<TicketCategory>('other');
+  const [category, setCategory] = useState<TicketCategory>('team_logistics');
   const [priority, setPriority] = useState<TicketPriority>('normal');
   const [busy, setBusy] = useState(false);
 

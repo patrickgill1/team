@@ -613,7 +613,10 @@ const TeamChat: React.FC = () => {
       // message — including DMs (where participants is just the two of them).
       // No prefKey filter for now (any chat opt-out can come later).
       try {
-        const recipients = (selectedThread.participants || []).filter(uid => uid && uid !== userData.uid);
+        // Use effective participants so a team-wide chat reaches
+        // everyone on the team, not just the people who've previously
+        // posted (which is what `selectedThread.participants` captures).
+        const recipients = effectiveParticipants(selectedThread).filter(uid => uid && uid !== userData.uid);
         if (recipients.length > 0) {
           const { sendPushToUsers } = await import('../utils/notify');
           const isDM = (selectedThread as any).isDM === true;
@@ -704,6 +707,30 @@ const TeamChat: React.FC = () => {
     } catch {
       // Non-critical — typing indicator is best-effort.
     }
+  };
+
+  // Resolve the *effective* participants of the selected thread.
+  // The doc's `participants` field only contains users who've sent a
+  // message (it gets append-only on send), which means a team-wide
+  // chat that only 2 people have posted in reports "2 participants"
+  // and only pushes to those 2 even though the whole team can read
+  // it. For team-scoped, non-DM threads, the truth is the full team
+  // roster. DMs stay as-is. Club/coach scopes fall back to the doc
+  // value until we have a parallel directory query for those.
+  const effectiveParticipants = (thread: ChatThread | null): string[] => {
+    if (!thread) return [];
+    const isDM = (thread as any).isDM === true;
+    const scope = (thread as any).scope || 'team';
+    if (isDM) return thread.participants || [];
+    if (scope === 'team' && teamMembers.length > 0) {
+      const set = new Set<string>(teamMembers.map(m => m.uid).filter(Boolean));
+      // Union with the doc's participants — covers visitors from
+      // other teams who happen to be in the chat (rare but possible
+      // via legacy data).
+      (thread.participants || []).forEach(uid => uid && set.add(uid));
+      return Array.from(set);
+    }
+    return thread.participants || [];
   };
 
   // Visible messages = full timeline OR filtered by the in-thread
@@ -1411,7 +1438,7 @@ const TeamChat: React.FC = () => {
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      <span>{selectedThread.participants.length} participants</span>
+                      <span>{effectiveParticipants(selectedThread).length} participants</span>
                     </div>
                   </div>
 
@@ -1609,7 +1636,7 @@ const TeamChat: React.FC = () => {
                       onImageClick={(url) => setLightboxUrl(url)}
                       onPollVote={voteOnPoll}
                       onAcknowledge={acknowledgeMessage}
-                      threadParticipantCount={selectedThread.participants?.length || 0}
+                      threadParticipantCount={effectiveParticipants(selectedThread).length}
                       formatTime={formatTime}
                       isFirstInGroup={isFirstInGroup}
                       isLastInGroup={isLastInGroup}
@@ -2000,7 +2027,7 @@ const TeamChat: React.FC = () => {
                     onImageClick={(url) => setLightboxUrl(url)}
                     onPollVote={voteOnPoll}
                     onAcknowledge={acknowledgeMessage}
-                    threadParticipantCount={selectedThread.participants?.length || 0}
+                    threadParticipantCount={effectiveParticipants(selectedThread).length}
                     formatTime={formatTime}
                     isFirstInGroup={isFirstInGroup}
                     isLastInGroup={isLastInGroup}

@@ -53,6 +53,8 @@ interface MessageBubbleProps {
   onToggleMute?: (uid: string, name: string) => void;
   /** Is the target sender currently muted in this user's prefs? */
   isMuted?: boolean;
+  /** Save an edit to this message (own messages only). */
+  onEdit?: (m: ChatMessage, newContent: string) => Promise<void> | void;
 }
 
 function escapeHtml(s: string): string {
@@ -165,11 +167,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onStartDm,
   onToggleMute,
   isMuted = false,
+  onEdit,
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [readByOpen, setReadByOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const longPressTimer = useRef<number | null>(null);
 
   // Mark this message as read once per render-cycle if (a) it's not
@@ -313,25 +319,89 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Reply quote — sits above the bubble */}
+        {/* Reply quote — tappable. Scrolls to the original message and
+            flashes a ring so the eye finds it. Falls back to a static
+            "unavailable" chip when the original is gone (deleted). */}
         {message.replyTo && (
-          <div
-            className={`text-xs mb-1 px-3 py-1.5 rounded-xl max-w-full ${
+          <button
+            type="button"
+            onClick={() => {
+              if (!replyTarget) return;
+              const el = document.getElementById(`msg-${replyTarget.id}`);
+              if (!el) return;
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Flash highlight via a temporary ring; clean up after
+              // the animation so subsequent renders aren't sticky.
+              el.classList.add('ring-2', 'ring-cyan-400', 'rounded-2xl');
+              setTimeout(() => el.classList.remove('ring-2', 'ring-cyan-400', 'rounded-2xl'), 1400);
+            }}
+            disabled={!replyTarget}
+            className={`text-xs mb-1 px-3 py-1.5 rounded-xl max-w-full text-left transition-opacity ${
               isOwn ? 'bg-cyan-100 text-cyan-900' : 'bg-gray-100 text-gray-700'
-            }`}
+            } ${replyTarget ? 'hover:opacity-80 cursor-pointer' : 'cursor-default opacity-60'}`}
           >
             <div className="text-[10px] font-bold opacity-70">
               ↪ {replyTarget?.senderName || 'message'}
             </div>
             {replyTarget ? (
               <div className="truncate max-w-[260px]">
-                {(replyTarget.content || '').slice(0, 140) || (replyTarget.attachments?.length ? '📷 photo' : '')}
+                {(replyTarget.content || '').slice(0, 140) || (replyTarget.attachments?.length ? 'Photo' : '')}
               </div>
             ) : (
-              <span className="italic opacity-60">unavailable</span>
+              <span className="italic">unavailable</span>
             )}
-          </div>
+          </button>
         )}
+
+        {/* Inline edit mode — replaces the bubble with a textarea. Save
+            writes the new content + sets `edited: true`. Cancel discards. */}
+        {editing && message.content ? (
+          <div
+            className={`px-3.5 py-2 rounded-[20px] shadow-sm ${
+              isOwn ? 'bg-cyan-50 ring-1 ring-cyan-300' : 'bg-slate-50 ring-1 ring-slate-300'
+            }`}
+          >
+            <textarea
+              value={editDraft}
+              onChange={(e) => setEditDraft(e.target.value)}
+              rows={Math.min(6, Math.max(2, editDraft.split('\n').length))}
+              autoFocus
+              className="w-full bg-transparent border-0 focus:outline-none text-[15px] text-slate-900 resize-none"
+            />
+            <div className="mt-1.5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setEditing(false); setEditDraft(''); }}
+                disabled={savingEdit}
+                className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded text-slate-500 hover:text-slate-800 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const next = editDraft.trim();
+                  if (!next || next === (message.content || '').trim()) { setEditing(false); return; }
+                  if (!onEdit) { setEditing(false); return; }
+                  setSavingEdit(true);
+                  try {
+                    await onEdit(message, next);
+                    setEditing(false);
+                  } catch (err) {
+                    console.error('edit save failed', err);
+                    alert('Failed to save edit.');
+                  } finally {
+                    setSavingEdit(false);
+                  }
+                }}
+                disabled={savingEdit || !editDraft.trim()}
+                className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50"
+              >
+                {savingEdit ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        ) : (<>
 
         {/* The bubble itself */}
         {message.content && !isImportant && (
@@ -347,6 +417,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, isOwn) }}
           />
         )}
+        </>)}
 
         {/* Important / acknowledgment-required message — rendered as a
             full-width announcement card (overrides the regular bubble).
@@ -466,10 +537,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Timestamp under the last message in a run */}
+        {/* Timestamp under the last message in a run. Adds "(edited)"
+            so receivers know the content has changed since the original. */}
         {isLastInGroup && (
           <div className={`mt-0.5 text-[10px] text-gray-400 ${isOwn ? 'mr-1' : 'ml-1'}`}>
             {formatTime(message.timestamp)}
+            {message.edited && <span className="ml-1 italic">· edited</span>}
           </div>
         )}
       </div>
@@ -601,6 +674,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   label={isMuted ? `Unmute ${message.senderName.split(' ')[0]}` : `Mute ${message.senderName.split(' ')[0]}`}
                   description={isMuted ? 'Get notifications from this person again.' : "Don't get pushed when this person posts in any thread."}
                   onClick={() => { onToggleMute(message.senderId, message.senderName); setActionsOpen(false); }}
+                />
+              )}
+
+              {isOwn && onEdit && message.content && !message.poll && (
+                <ActionRow
+                  icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
+                  tone="cyan"
+                  label="Edit message"
+                  description="Fix a typo or change wording. Shows as (edited)."
+                  onClick={() => {
+                    setEditDraft(message.content || '');
+                    setEditing(true);
+                    setActionsOpen(false);
+                  }}
                 />
               )}
 

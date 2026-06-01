@@ -36,6 +36,11 @@ const TeamChat: React.FC = () => {
   const [teamThreads, setTeamThreads] = useState<ChatThread[]>([]);
   const [clubThreads, setClubThreads] = useState<ChatThread[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // In-thread search — client-side filter over already-loaded messages.
+  // No server query yet; sufficient for the typical loaded window
+  // (last ~200 msgs). Server-side full-text search is a later batch.
+  const [threadSearchOpen, setThreadSearchOpen] = useState(false);
+  const [threadSearchQuery, setThreadSearchQuery] = useState('');
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
   const [isCreatingThread, setIsCreatingThread] = useState(false);
   const [newMessage, setNewMessage] = useState('');
@@ -217,6 +222,30 @@ const TeamChat: React.FC = () => {
       c.scrollTop = c.scrollHeight;
     }
   };
+
+  // Day-grain label for the divider line above a message run.
+  // Today / Yesterday / weekday for the past week / full date older.
+  const formatDayDivider = (date: Date): string => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const days = Math.round((today.getTime() - target.getTime()) / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return date.toLocaleDateString(undefined, { weekday: 'long' });
+    const sameYear = date.getFullYear() === now.getFullYear();
+    return date.toLocaleDateString(undefined, sameYear
+      ? { month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Same-day check used by the message render loop to decide when to
+  // inject a date divider between two adjacent messages.
+  const sameLocalDay = (a: Date, b: Date): boolean => (
+    a.getFullYear() === b.getFullYear()
+      && a.getMonth() === b.getMonth()
+      && a.getDate() === b.getDate()
+  );
 
   const formatTime = (date: Date | any) => {
     // Be liberal: handle Date, Firestore Timestamp ({toDate}), epoch ms,
@@ -656,6 +685,58 @@ const TeamChat: React.FC = () => {
       console.error('Error deleting message:', err);
       alert('Could not delete the message. Please try again.');
     }
+  };
+
+  // Typing presence — write `chat_threads/{id}.typingBy[uid] = epochMs`
+  // at most once every 2.5s while the user is composing. Receivers
+  // treat any entry whose timestamp is within the last 5s as "live."
+  // This burns ~1 write per 2.5s of active typing per user; negligible.
+  const lastTypingWriteRef = useRef<number>(0);
+  const handleTyping = async () => {
+    if (!userData?.uid || !selectedThread?.id) return;
+    const now = Date.now();
+    if (now - lastTypingWriteRef.current < 2500) return;
+    lastTypingWriteRef.current = now;
+    try {
+      await updateChatThread(selectedThread.id, {
+        [`typingBy.${userData.uid}`]: { ts: now, name: userData.name || 'Member' },
+      } as any);
+    } catch {
+      // Non-critical — typing indicator is best-effort.
+    }
+  };
+
+  // Visible messages = full timeline OR filtered by the in-thread
+  // search. Search is case-insensitive substring on message content.
+  const visibleMessages: ChatMessage[] = (() => {
+    const q = threadSearchQuery.trim().toLowerCase();
+    if (!q) return messages;
+    return messages.filter(m => (m.content || '').toLowerCase().includes(q));
+  })();
+
+  // Live "X is typing…" computed from selectedThread.typingBy. Drops
+  // entries older than 5s (auto-expires without an explicit "stopped
+  // typing" write, which keeps the write volume halved).
+  const typingNames: string[] = (() => {
+    const map: Record<string, { ts: number; name: string }> = (selectedThread as any)?.typingBy || {};
+    const cutoff = Date.now() - 5000;
+    return Object.entries(map)
+      .filter(([uid, v]) => uid !== userData?.uid && v && typeof v.ts === 'number' && v.ts > cutoff)
+      .map(([_, v]) => v.name || 'Someone');
+  })();
+
+  // Own-message edit. Firestore rules already allow updates to
+  // content/edited/editedAt by the sender, so no rules change needed.
+  // Lock the field shape so we don't accidentally drop other fields.
+  const editMessage = async (message: ChatMessage, newContent: string) => {
+    if (!userData || message.senderId !== userData.uid) return;
+    const trimmed = newContent.trim();
+    if (!trimmed || trimmed === (message.content || '').trim()) return;
+    await updateDocument('chat_messages', message.id, {
+      content: trimmed,
+      edited: true,
+      editedAt: new Date(),
+    });
   };
 
   const deleteThread = async (thread: ChatThread) => {
@@ -1334,6 +1415,22 @@ const TeamChat: React.FC = () => {
                     </div>
                   </div>
 
+                  <button
+                    onClick={() => {
+                      setThreadSearchOpen(o => !o);
+                      if (threadSearchOpen) setThreadSearchQuery('');
+                    }}
+                    className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors flex-shrink-0 ${
+                      threadSearchOpen ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                    aria-label="Search messages"
+                    title="Search messages"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                  </button>
+
                   {(() => {
                     const sel: any = selectedThread;
                     const sc = sel.scope || 'team';
@@ -1356,6 +1453,21 @@ const TeamChat: React.FC = () => {
                     </button>
                   )}
                 </div>
+
+                {threadSearchOpen && (
+                  <div className="mt-2 relative">
+                    <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      autoFocus
+                      value={threadSearchQuery}
+                      onChange={(e) => setThreadSearchQuery(e.target.value)}
+                      placeholder="Search this conversation…"
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Pinned messages strip — collapsible bar across the top
@@ -1369,8 +1481,14 @@ const TeamChat: React.FC = () => {
                   .filter(Boolean) as ChatMessage[];
                 if (pinned.length === 0) return null;
                 return (
-                  <div className="bg-amber-50 border-b border-amber-100 px-3 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex-shrink-0">📌 Pinned</span>
+                  <div className="bg-amber-50 border-b border-amber-200 px-3 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase text-amber-800 flex-shrink-0">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <line x1="12" y1="17" x2="12" y2="22"/>
+                        <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z"/>
+                      </svg>
+                      Pinned
+                    </span>
                     {pinned.map((p) => (
                       <button
                         key={p.id}
@@ -1378,17 +1496,16 @@ const TeamChat: React.FC = () => {
                           const el = document.getElementById(`msg-${p.id}`);
                           if (el && messagesContainerRef.current) {
                             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            // Briefly highlight the message.
                             el.classList.add('ring-2', 'ring-amber-400', 'rounded-2xl');
                             setTimeout(() => {
                               el.classList.remove('ring-2', 'ring-amber-400', 'rounded-2xl');
                             }, 1500);
                           }
                         }}
-                        className="text-xs bg-white ring-1 ring-amber-200 rounded-full px-2.5 py-1 flex-shrink-0 max-w-[200px] truncate text-gray-700 hover:bg-amber-100"
+                        className="text-xs bg-white ring-1 ring-amber-200 rounded-full px-2.5 py-1 flex-shrink-0 max-w-[220px] truncate text-slate-700 hover:bg-amber-100"
                       >
-                        <span className="font-semibold text-gray-900">{p.senderName.split(' ')[0]}:</span>{' '}
-                        {(p.content || (p.attachments?.length ? '📷 photo' : 'message')).slice(0, 60)}
+                        <span className="font-semibold text-slate-900">{p.senderName.split(' ')[0]}:</span>{' '}
+                        {(p.content || (p.attachments?.length ? 'Photo' : 'message')).slice(0, 60)}
                       </button>
                     ))}
                   </div>
@@ -1416,18 +1533,45 @@ const TeamChat: React.FC = () => {
                 {/* Inner wrapper so ResizeObserver has a stable child
                     to observe — its height changes as images load. */}
                 <div className="space-y-4">
-                {messages.map((message, idx) => {
+                {threadSearchQuery.trim() && visibleMessages.length === 0 && (
+                  <div className="text-center text-sm text-slate-500 py-6">
+                    No messages match "{threadSearchQuery.trim()}".
+                  </div>
+                )}
+                {threadSearchQuery.trim() && visibleMessages.length > 0 && (
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 text-center mb-1">
+                    {visibleMessages.length} match{visibleMessages.length === 1 ? '' : 'es'}
+                  </div>
+                )}
+                {visibleMessages.map((message, idx) => {
                   // Compute sender-group boundaries so the bubble can render
                   // an avatar + name only on the first message of a run, and
                   // a timestamp only under the last.
-                  const prev = messages[idx - 1];
-                  const next = messages[idx + 1];
+                  const prev = visibleMessages[idx - 1];
+                  const next = visibleMessages[idx + 1];
                   const ts = (m: any) => (m?.timestamp instanceof Date ? m.timestamp.getTime() : new Date(m?.timestamp || 0).getTime());
                   const GAP_MS = 5 * 60 * 1000;
                   const isFirstInGroup = !prev || prev.senderId !== message.senderId || ts(message) - ts(prev) > GAP_MS;
                   const isLastInGroup = !next || next.senderId !== message.senderId || ts(next) - ts(message) > GAP_MS;
+                  // Day divider — show a Today / Yesterday / weekday /
+                  // full-date pill whenever the message's local day
+                  // differs from the previous message's day. First
+                  // message in the thread always gets one too.
+                  const msgDate = new Date(ts(message));
+                  const prevDate = prev ? new Date(ts(prev)) : null;
+                  const showDayDivider = !prevDate || !sameLocalDay(msgDate, prevDate);
                   return (
-                    <div key={message.id} id={`msg-${message.id}`} className="transition-shadow">
+                    <React.Fragment key={message.id}>
+                    {showDayDivider && (
+                      <div className="flex items-center gap-3 my-2">
+                        <div className="flex-1 h-px bg-slate-200" />
+                        <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 px-2">
+                          {formatDayDivider(msgDate)}
+                        </span>
+                        <div className="flex-1 h-px bg-slate-200" />
+                      </div>
+                    )}
+                    <div id={`msg-${message.id}`} className="transition-shadow">
                     <MessageBubble
                       message={message}
                       currentUserId={userData?.uid || ''}
@@ -1436,6 +1580,7 @@ const TeamChat: React.FC = () => {
                       onReply={setReplyingTo}
                       onToggleReaction={toggleReaction}
                       onDelete={deleteMessage}
+                      onEdit={editMessage}
                       onTogglePin={togglePinMessage}
                       isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
                       canPin={(() => {
@@ -1473,6 +1618,7 @@ const TeamChat: React.FC = () => {
                       onMarkRead={markMessageRead}
                     />
                     </div>
+                    </React.Fragment>
                   );
                 })}
                 <div ref={messagesEndRef} />
@@ -1484,6 +1630,15 @@ const TeamChat: React.FC = () => {
                   padding so the input clears the home indicator. When the
                   keyboard is open, the keyboard itself sits above the home
                   indicator so no extra padding needed. */}
+              {typingNames.length > 0 && (
+                <div className="px-4 pt-1.5 pb-0.5 text-[11px] text-slate-500 italic">
+                  {typingNames.length === 1
+                    ? `${typingNames[0]} is typing…`
+                    : typingNames.length === 2
+                    ? `${typingNames[0]} and ${typingNames[1]} are typing…`
+                    : `${typingNames.length} people are typing…`}
+                </div>
+              )}
               <MessageComposer
                 threadId={selectedThread.id}
                 teamId={selectedTeamId}
@@ -1495,6 +1650,7 @@ const TeamChat: React.FC = () => {
                 canMarkImportant={isCoach || isUserClubAdmin}
                 rows={2}
                 safeAreaInsetBottom={kbInset === 0}
+                onTyping={handleTyping}
               />
             </div>
           )
@@ -1833,6 +1989,7 @@ const TeamChat: React.FC = () => {
                     onReply={setReplyingTo}
                     onToggleReaction={toggleReaction}
                     onDelete={deleteMessage}
+                    onEdit={editMessage}
                     onTogglePin={togglePinMessage}
                     isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
                     canPin={(() => {

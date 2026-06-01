@@ -37,6 +37,10 @@ interface MessageComposerProps {
    *  clears the iPhone home indicator. Pass false when the keyboard is open
    *  (the keyboard already sits above the home indicator). */
   safeAreaInsetBottom?: boolean;
+  /** Fired on every keystroke with non-empty text. Parent throttles the
+   *  Firestore presence write — typing indicators are real-time but
+   *  hammering writes on every key would burn quota. */
+  onTyping?: () => void;
 }
 
 const MessageComposer: React.FC<MessageComposerProps> = ({
@@ -50,6 +54,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   canMarkImportant = false,
   rows = 2,
   safeAreaInsetBottom = false,
+  onTyping,
 }) => {
   const [text, setText] = useState('');
   const [pending, setPending] = useState<ComposerAttachment[]>([]);
@@ -92,6 +97,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     const v = e.target.value;
     setText(v);
     updateMentionState(v, e.target.selectionStart || v.length);
+    if (v.trim().length > 0 && onTyping) onTyping();
   };
 
   // The mention picker always includes a synthetic "team" entry at the

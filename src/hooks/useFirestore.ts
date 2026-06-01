@@ -619,11 +619,14 @@ const getUserData = useCallback(async (uid: string) => {
       throw new Error('Invalid DM participants');
     }
 
-    // Look for an existing DM thread between exactly these two users on this team.
+    // DMs are PEOPLE-to-PEOPLE, not team-scoped. Drop teamId from the
+    // lookup so the same pair always lands on the same thread no
+    // matter which team the user is currently viewing. (Previous bug:
+    // switching teams would spin up a duplicate DM thread for the
+    // exact same two participants.)
     try {
       const q = query(
         collection(db, 'chat_threads'),
-        where('teamId', '==', teamId),
         where('isDM', '==', true),
         where('participants', 'array-contains', me.uid)
       );

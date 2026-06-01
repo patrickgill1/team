@@ -3,6 +3,7 @@ import { ChatMessage } from '../../types';
 import PollCard from './PollCard';
 import EmojiPicker from './EmojiPicker';
 import ReadBySheet from './ReadBySheet';
+import ReactionDetailsSheet from './ReactionDetailsSheet';
 import UserProfileModal from '../common/UserProfileModal';
 
 interface MessageBubbleProps {
@@ -173,10 +174,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [readByOpen, setReadByOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [reactionsOpen, setReactionsOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const longPressTimer = useRef<number | null>(null);
+  const reactionPressTimer = useRef<number | null>(null);
+  const reactionPressFiredRef = useRef<boolean>(false);
 
   // Mark this message as read once per render-cycle if (a) it's not
   // ours and (b) the current user isn't already in readBy. Fires
@@ -513,25 +517,52 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Reaction chips beneath the bubble. Show actual names inline
-            (not just a count) so coaches can see who reacted without
-            tapping. Tap = toggle your own reaction; long-press shows
-            the title tooltip on platforms that support it. */}
+        {/* Reaction chips beneath the bubble. Compact: emoji + count.
+            Tap = toggle your own reaction. Long-press (or right-click
+            on desktop) opens a sheet listing who reacted with what. */}
         {Object.keys(grouped).length > 0 && (
           <div className={`mt-1 flex flex-wrap gap-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
             {Object.entries(grouped).map(([emoji, info]) => (
               <button
                 key={emoji}
-                onClick={() => onToggleReaction(message, emoji)}
+                onClick={() => {
+                  // Suppress the toggle if a long-press just fired.
+                  if (reactionPressFiredRef.current) {
+                    reactionPressFiredRef.current = false;
+                    return;
+                  }
+                  onToggleReaction(message, emoji);
+                }}
+                onTouchStart={() => {
+                  reactionPressFiredRef.current = false;
+                  if (reactionPressTimer.current) window.clearTimeout(reactionPressTimer.current);
+                  reactionPressTimer.current = window.setTimeout(() => {
+                    reactionPressFiredRef.current = true;
+                    setReactionsOpen(true);
+                  }, 500);
+                }}
+                onTouchEnd={() => {
+                  if (reactionPressTimer.current) {
+                    window.clearTimeout(reactionPressTimer.current);
+                    reactionPressTimer.current = null;
+                  }
+                }}
+                onTouchCancel={() => {
+                  if (reactionPressTimer.current) {
+                    window.clearTimeout(reactionPressTimer.current);
+                    reactionPressTimer.current = null;
+                  }
+                }}
+                onContextMenu={(e) => { e.preventDefault(); setReactionsOpen(true); }}
                 title={info.names.join(', ')}
-                className={`text-[11px] pl-1.5 pr-2 py-0.5 rounded-full transition-colors flex items-center gap-1 max-w-[220px] ${
+                className={`text-[11px] px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 ${
                   info.mine
                     ? 'bg-cyan-100 ring-1 ring-cyan-300 text-cyan-900'
                     : 'bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <span className="text-sm leading-none">{emoji}</span>
-                <span className="font-semibold truncate">{reactionLabel(info)}</span>
+                <span className="font-semibold tabular-nums">{info.count}</span>
               </button>
             ))}
           </div>
@@ -747,6 +778,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           uid={message.senderId}
           onClose={() => setProfileOpen(false)}
           onStartDm={onStartDm ? (uid, name) => { setProfileOpen(false); onStartDm(uid, name); } : undefined}
+        />
+      )}
+
+      {reactionsOpen && (
+        <ReactionDetailsSheet
+          message={message}
+          currentUserId={currentUserId}
+          onToggleReaction={(m, e) => {
+            onToggleReaction(m, e);
+            // Close if that was the user's last reaction across all
+            // emojis (otherwise they expect the sheet to stay open so
+            // they can keep adjusting).
+            const remaining = (m.reactions || []).filter(r => !(r.userId === currentUserId && r.emoji === e));
+            if (!remaining.some(r => r.userId === currentUserId)) setReactionsOpen(false);
+          }}
+          onClose={() => setReactionsOpen(false)}
+          getUserPhotoUrl={getSenderPhotoUrl}
         />
       )}
     </div>

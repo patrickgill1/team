@@ -193,14 +193,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     (message as any).senderPhotoUrl ||
     (getSenderPhotoUrl ? getSenderPhotoUrl(message.senderId) : undefined);
 
-  // Group reactions by emoji
+  // Group reactions by emoji. We track `mineFirstName` so "You" shows
+  // first in the chip's name list (matches iMessage / Slack convention).
   const grouped: Record<string, { count: number; mine: boolean; names: string[] }> = {};
   for (const r of message.reactions || []) {
     if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, mine: false, names: [] };
     grouped[r.emoji].count += 1;
-    if (r.userId === currentUserId) grouped[r.emoji].mine = true;
-    grouped[r.emoji].names.push(r.userName || '');
+    if (r.userId === currentUserId) {
+      grouped[r.emoji].mine = true;
+      grouped[r.emoji].names.unshift('You');
+    } else {
+      grouped[r.emoji].names.push(r.userName || 'Member');
+    }
   }
+
+  // Build the display label for a reaction chip: names inline when the
+  // list is short (1–3), name + "+N" when it's longer. Replaces the
+  // bare count — which left people guessing "who reacted?" on mobile
+  // where the title tooltip doesn't show.
+  const reactionLabel = (info: { count: number; names: string[] }): string => {
+    const names = info.names.filter(Boolean);
+    if (names.length === 0) return String(info.count);
+    if (names.length <= 2) return names.join(', ');
+    return `${names[0]}, ${names[1]} +${names.length - 2}`;
+  };
 
   // Be defensive: skip attachments missing a URL — historic messages
   // can have malformed data, and rendering <img src={undefined}> in a
@@ -426,7 +442,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Reaction chips beneath the bubble */}
+        {/* Reaction chips beneath the bubble. Show actual names inline
+            (not just a count) so coaches can see who reacted without
+            tapping. Tap = toggle your own reaction; long-press shows
+            the title tooltip on platforms that support it. */}
         {Object.keys(grouped).length > 0 && (
           <div className={`mt-1 flex flex-wrap gap-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
             {Object.entries(grouped).map(([emoji, info]) => (
@@ -434,14 +453,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 key={emoji}
                 onClick={() => onToggleReaction(message, emoji)}
                 title={info.names.join(', ')}
-                className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
+                className={`text-[11px] pl-1.5 pr-2 py-0.5 rounded-full transition-colors flex items-center gap-1 max-w-[220px] ${
                   info.mine
                     ? 'bg-cyan-100 ring-1 ring-cyan-300 text-cyan-900'
-                    : 'bg-white ring-1 ring-gray-200 text-gray-700 hover:bg-gray-50'
+                    : 'bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <span className="mr-1">{emoji}</span>
-                <span className="font-semibold tabular-nums">{info.count}</span>
+                <span className="text-sm leading-none">{emoji}</span>
+                <span className="font-semibold truncate">{reactionLabel(info)}</span>
               </button>
             ))}
           </div>

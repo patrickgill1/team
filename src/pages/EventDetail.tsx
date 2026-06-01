@@ -51,6 +51,24 @@ function computeCountdown(start: Date, end?: Date): CountdownState {
   return { label: `Ended ${daysAgo}d ago`, variant: 'past' };
 }
 
+// Stable color from name hash for initial-letter avatars in the RSVP
+// list. Same palette as chat avatars so the look is consistent.
+function rsvpAvatarColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  const palette = [
+    'from-rose-400 to-rose-600',
+    'from-amber-400 to-orange-600',
+    'from-emerald-400 to-emerald-600',
+    'from-cyan-400 to-cyan-600',
+    'from-violet-400 to-violet-600',
+    'from-fuchsia-400 to-pink-600',
+    'from-blue-400 to-blue-600',
+    'from-teal-400 to-teal-600',
+  ];
+  return palette[h % palette.length];
+}
+
 function formatTimeRange(start: Date, end?: Date): string {
   const s = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   if (!end) return s;
@@ -100,10 +118,13 @@ const EventDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [weather, setWeather] = useState<WeatherSummary | null>(null);
   const [now, setNow] = useState(() => new Date());
-  // Team roster — only fetched when the viewer is a coach so we can
-  // show the merge-guest-into-roster UI without leaking the roster to
-  // parents/share-link viewers.
-  const [roster, setRoster] = useState<Array<{ id: string; name: string }>>([]);
+  // Team roster — loaded for everyone (not just coaches) so parents
+  // also see player profile photos in the RSVP list. The coach-only
+  // merge-guest UI gates separately on isUserCoach below.
+  const [roster, setRoster] = useState<Array<{ id: string; name: string; photoURL?: string }>>([]);
+  // User photo lookup for parent RSVPs — fetched lazily once we know
+  // which uids actually RSVPed.
+  const [userPhotoMap, setUserPhotoMap] = useState<Record<string, string>>({});
   // Players linked to the current user (parent → kids). Drives the
   // per-kid RSVP rows so a coach-who-is-also-a-parent can RSVP for
   // themselves AND their kid in the same screen.
@@ -172,9 +193,11 @@ const EventDetail: React.FC = () => {
     return () => { cancelled = true; };
   }, [userData?.uid, event?.teamId]);
 
-  // Load roster (coach only — drives the merge-into-roster picker).
+  // Load roster — runs for everyone so player avatars resolve for
+  // parents too. Coach-only merge UI gates separately below.
   useEffect(() => {
-    if (!isUserCoach || !selectedTeamId) return;
+    const teamId = event?.teamId || selectedTeamId;
+    if (!teamId) return;
     let cancelled = false;
     (async () => {
       try {
@@ -182,13 +205,13 @@ const EventDetail: React.FC = () => {
         const { db } = await import('../utils/firebase');
         const snap = await getDocs(query(
           collection(db, 'players'),
-          where('teamIds', 'array-contains', selectedTeamId),
+          where('teamIds', 'array-contains', teamId),
         ));
         if (cancelled) return;
         const list = snap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) }))
           .filter((p: any) => p.isActive !== false)
-          .map((p: any) => ({ id: p.id, name: p.name }))
+          .map((p: any) => ({ id: p.id, name: p.name, photoURL: p.profilePhotoUrl || undefined }))
           .sort((a, b) => a.name.localeCompare(b.name));
         setRoster(list);
       } catch (err) {
@@ -196,7 +219,37 @@ const EventDetail: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [isUserCoach, selectedTeamId]);
+  }, [event?.teamId, selectedTeamId]);
+
+  // Lazy-fetch user photoURLs for everyone in the rsvps map so parent
+  // RSVP rows render their avatars. Diffs against the existing map so
+  // we don't re-fetch on every render.
+  useEffect(() => {
+    if (!event?.rsvps) return;
+    const uids = Object.keys(event.rsvps).filter(uid => uid && !(uid in userPhotoMap));
+    if (uids.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const next: Record<string, string> = {};
+        for (const uid of uids) {
+          try {
+            const snap = await getDoc(doc(db, 'users', uid));
+            if (snap.exists()) {
+              const u: any = snap.data();
+              next[uid] = u.photoURL || u.profilePhotoUrl || '';
+            } else {
+              next[uid] = '';
+            }
+          } catch { next[uid] = ''; }
+        }
+        if (!cancelled) setUserPhotoMap(prev => ({ ...prev, ...next }));
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [event?.rsvps, userPhotoMap]);
 
   // Fetch weather (next-event window only — Open-Meteo is ~16 days out).
   useEffect(() => {
@@ -224,8 +277,8 @@ const EventDetail: React.FC = () => {
   // GUEST = publicRsvps (share-link).
   const buckets = useMemo(() => {
     if (!event) return { going: [], maybe: [], pending: 0 };
-    const going: { name: string; uid?: string; isGuest: boolean }[] = [];
-    const maybe: { name: string; uid?: string; isGuest: boolean }[] = [];
+    const going: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
+    const maybe: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
     const seen = new Set<string>();
     const playerR = (event as any).playerRsvps || {};
     for (const pid of Object.keys(playerR)) {
@@ -233,8 +286,8 @@ const EventDetail: React.FC = () => {
       const key = `player:${pid}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      if (r.status === 'going') going.push({ name: r.playerName, isGuest: false });
-      else if (r.status === 'maybe') maybe.push({ name: r.playerName, isGuest: false });
+      if (r.status === 'going') going.push({ name: r.playerName, playerId: pid, isGuest: false });
+      else if (r.status === 'maybe') maybe.push({ name: r.playerName, playerId: pid, isGuest: false });
     }
     const userR = event.rsvps || {};
     for (const uid of Object.keys(userR)) {
@@ -260,6 +313,15 @@ const EventDetail: React.FC = () => {
     const pending = Math.max(0, roster.length - Object.keys(playerR).length);
     return { going, maybe, pending };
   }, [event, roster.length]);
+
+  // Photo lookup for an RSVP row. Players: roster.photoURL by playerId.
+  // Parents: userPhotoMap by uid. Falls back to a colored-initial
+  // gradient circle when nothing's available.
+  const photoForEntry = (p: { uid?: string; playerId?: string }): string | undefined => {
+    if (p.playerId) return roster.find(r => r.id === p.playerId)?.photoURL;
+    if (p.uid) return userPhotoMap[p.uid] || undefined;
+    return undefined;
+  };
 
   const myRsvp = event && userData?.uid ? (event.rsvps || {})[userData.uid] : null;
 
@@ -736,10 +798,23 @@ const EventDetail: React.FC = () => {
         </div>
         {buckets.going.length > 0 && (
           <ul className="mt-3 divide-y divide-slate-100">
-            {buckets.going.map((p: any, i) => (
+            {buckets.going.map((p: any, i) => {
+              const photo = photoForEntry(p);
+              return (
               <li key={`go-${i}`} className="py-1.5">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex-shrink-0" />
+                  {photo ? (
+                    <img
+                      src={photo}
+                      alt=""
+                      className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 flex-shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <span className={`w-7 h-7 rounded-full text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${rsvpAvatarColor(p.name)}`}>
+                      {(p.name || '?').charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   <span className="text-sm font-semibold text-slate-900 flex-1 truncate">{p.name}</span>
                   {p.isGuest && isUserCoach && roster.length > 0 && (
                     <button
@@ -798,7 +873,8 @@ const EventDetail: React.FC = () => {
                   </div>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>

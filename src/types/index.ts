@@ -77,6 +77,10 @@ export interface UserData {
    *  the messages in-thread but no push notification fires from them.
    *  Personal preference; doesn't affect anyone else's experience. */
   mutedUserIds?: string[];
+  /** Thread IDs this user has pinned to the top of their chat list.
+   *  Pinning is per-user — replaces the older thread-level isPinned
+   *  flag where one coach's pin pushed it up everyone's list. */
+  pinnedThreadIds?: string[];
 }
 
 export interface SeasonMembership {

@@ -13,7 +13,7 @@ import PollCard from '../components/chat/PollCard';
 
 const TeamChat: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     addChatThread,
@@ -86,7 +86,7 @@ const TeamChat: React.FC = () => {
     title: '',
     description: '',
     isPrivate: false,
-    scope: 'team',
+    scope: 'club',
     tags: [],
   });
 
@@ -333,6 +333,49 @@ const TeamChat: React.FC = () => {
     return () => { unsubscribeThreads(); };
   }, [userData?.teamIds, userData?.teamId, selectedTeamId, subscribeToChatThreads]);
 
+  // Auto-create the team chat. Every team gets exactly ONE team-scoped
+  // thread (named "<Team> Chat"). Created lazily on first chat-tab
+  // load by any signed-in team member. Guarded by a per-team ref so
+  // we don't race-create multiple while the subscription settles.
+  const ensuredTeamChatRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!userData?.uid || !selectedTeamId || loading) return;
+    if (ensuredTeamChatRef.current.has(selectedTeamId)) return;
+    const hasTeamChat = teamThreads.some(t => {
+      const scope = (t as any).scope || 'team';
+      const isDM = (t as any).isDM === true;
+      return !isDM && scope === 'team' && t.teamId === selectedTeamId;
+    });
+    if (hasTeamChat) {
+      ensuredTeamChatRef.current.add(selectedTeamId);
+      return;
+    }
+    ensuredTeamChatRef.current.add(selectedTeamId);
+    (async () => {
+      try {
+        const teamName = selectedTeam?.name || 'Team';
+        await addChatThread({
+          title: `${teamName} Chat`,
+          description: 'Team-wide conversation for parents and coaches.',
+          teamId: selectedTeamId,
+          scope: 'team',
+          createdBy: userData.uid,
+          createdByName: userData.name || 'Member',
+          lastActivity: new Date(),
+          isPinned: false,
+          isPrivate: false,
+          messageCount: 0,
+          participants: [userData.uid],
+          tags: ['team'],
+        } as any);
+      } catch (err) {
+        // Re-try next mount if it failed.
+        ensuredTeamChatRef.current.delete(selectedTeamId);
+        console.warn('[chat] auto-create team chat failed', err);
+      }
+    })();
+  }, [userData?.uid, userData?.name, selectedTeamId, selectedTeam?.name, teamThreads, loading, addChatThread]);
+
   // Subscribe to club-scoped threads (visible regardless of selected
   // team). Mounted once per session; role-filtering happens in the
   // `threads` memo below.
@@ -370,10 +413,13 @@ const TeamChat: React.FC = () => {
         return true;
       })
       .sort((a: any, b: any) => {
-        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+        // Per-user pinning beats the legacy thread-level isPinned.
+        const aP = (userData as any)?.pinnedThreadIds?.includes(a.id) || false;
+        const bP = (userData as any)?.pinnedThreadIds?.includes(b.id) || false;
+        if (aP !== bP) return aP ? -1 : 1;
         return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
       });
-  }, [teamThreads, clubThreads, isCoach, isUserClubAdmin]);
+  }, [teamThreads, clubThreads, isCoach, isUserClubAdmin, userData]);
 
   // Deep-link handling (?thread=<id>) runs whenever the merged threads
   // list refreshes; consumes the param so it doesn't re-fire.
@@ -563,7 +609,7 @@ const TeamChat: React.FC = () => {
 
       await addChatThread(threadData);
 
-      setNewThread({ title: '', description: '', isPrivate: false, scope: 'team', tags: [] });
+      setNewThread({ title: '', description: '', isPrivate: false, scope: 'club', tags: [] });
       setIsCreatingThread(false);
     } catch (error) {
       console.error('Error creating thread:', error);
@@ -921,13 +967,24 @@ const TeamChat: React.FC = () => {
     }
   };
 
+  // Per-user thread pinning — each user maintains their own list of
+  // pinned thread IDs on their user doc. Coaches can't pin "for
+  // everyone" anymore. The thread doc's legacy `isPinned` is ignored
+  // for new pins (kept for back-compat reads).
+  const myPinnedThreadIds: string[] = Array.isArray((userData as any)?.pinnedThreadIds)
+    ? (userData as any).pinnedThreadIds
+    : [];
+  const isThreadPinned = (thread: ChatThread): boolean =>
+    myPinnedThreadIds.includes(thread.id);
   const togglePinThread = async (thread: ChatThread) => {
-    if (!isCoach) return;
-
+    if (!userData?.uid) return;
+    const next = myPinnedThreadIds.includes(thread.id)
+      ? myPinnedThreadIds.filter(id => id !== thread.id)
+      : [...myPinnedThreadIds, thread.id];
     try {
-      await updateChatThread(thread.id, { isPinned: !thread.isPinned });
-    } catch (error) {
-      console.error('Error toggling pin:', error);
+      await updateDoc(doc(db, 'users', userData.uid), { pinnedThreadIds: next });
+    } catch (err) {
+      console.error('Error toggling pin:', err);
     }
   };
 
@@ -940,7 +997,7 @@ const TeamChat: React.FC = () => {
     const matchesSearch = thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          thread.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterTag === 'all' ||
-                         (filterTag === 'pinned' && thread.isPinned) ||
+                         (filterTag === 'pinned' && isThreadPinned(thread)) ||
                          (filterTag === 'private' && thread.isPrivate) ||
                          (filterTag === 'direct' && isDM) ||
                          thread.tags?.includes(filterTag);
@@ -1234,15 +1291,17 @@ const TeamChat: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </button>
-                  <button
-                    onClick={() => setIsCreatingThread(true)}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white p-2.5 rounded-lg transition-colors"
-                    title="New thread"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                  </button>
+                  {isUserClubAdmin && (
+                    <button
+                      onClick={() => setIsCreatingThread(true)}
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white p-2.5 rounded-lg transition-colors"
+                      title="New club channel"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1336,7 +1395,7 @@ const TeamChat: React.FC = () => {
                             {teamNameById[thread.teamId]}
                           </span>
                         )}
-                        {thread.isPinned && (
+                        {isThreadPinned(thread) && (
                           <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
@@ -1393,14 +1452,16 @@ const TeamChat: React.FC = () => {
                       onClick={() => setIsDMPickerOpen(true)}
                       className="px-4 py-2 text-sm font-semibold rounded-full bg-violet-600 text-white hover:bg-violet-700"
                     >
-                      💬 New DM
+                      New DM
                     </button>
-                    <button
-                      onClick={() => setIsCreatingThread(true)}
-                      className="px-4 py-2 text-sm font-semibold rounded-full bg-cyan-600 text-white hover:bg-cyan-700"
-                    >
-                      🧵 New thread
-                    </button>
+                    {isUserClubAdmin && (
+                      <button
+                        onClick={() => setIsCreatingThread(true)}
+                        className="px-4 py-2 text-sm font-semibold rounded-full bg-cyan-600 text-white hover:bg-cyan-700"
+                      >
+                        New club channel
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1425,7 +1486,7 @@ const TeamChat: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
                       <h1 className="text-lg font-semibold text-gray-900 truncate">{getThreadDisplayTitle(selectedThread)}</h1>
-                      {selectedThread.isPinned && (
+                      {isThreadPinned(selectedThread) && (
                         <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
@@ -1729,8 +1790,11 @@ const TeamChat: React.FC = () => {
                     />
                   </div>
 
-                  {/* Channel scope — club admins can create cross-team
-                      channels. Regular coaches only get team scope. */}
+                  {/* Channel scope — every team gets ONE auto-created
+                      team chat (see ensureTeamChat below). Beyond that,
+                      only club admins create channels, and only at the
+                      club / coaches / admins level. Keeps the chat
+                      surface simple: team chat, club chats, DMs.  */}
                   {isUserClubAdmin && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1738,7 +1802,6 @@ const TeamChat: React.FC = () => {
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { k: 'team' as const, label: 'This team', desc: 'Just your selected team' },
                           { k: 'club' as const, label: 'Whole club', desc: 'Every team, every member' },
                           { k: 'coaches' as const, label: 'Coaches only', desc: 'All coaches club-wide' },
                           { k: 'admins' as const, label: 'Admins only', desc: 'Club admins only' },
@@ -1825,15 +1888,17 @@ const TeamChat: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </button>
-              <button
-                onClick={() => setIsCreatingThread(true)}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white p-2 rounded-lg transition-colors"
-                title="New thread"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </button>
+              {isUserClubAdmin && (
+                <button
+                  onClick={() => setIsCreatingThread(true)}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white p-2 rounded-lg transition-colors"
+                  title="New club channel"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1886,7 +1951,7 @@ const TeamChat: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
                     <h3 className="font-medium text-gray-900 truncate">{getThreadDisplayTitle(thread)}</h3>
-                    {thread.isPinned && (
+                    {isThreadPinned(thread) && (
                       <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
@@ -1914,21 +1979,20 @@ const TeamChat: React.FC = () => {
                   </div>
                 </div>
                 
-                {isCoach && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePinThread(thread);
-                    }}
-                    className={`ml-2 p-1 rounded transition-colors ${
-                      thread.isPinned ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                    </svg>
-                  </button>
-                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePinThread(thread);
+                  }}
+                  title={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
+                  className={`ml-2 p-1 rounded transition-colors ${
+                    isThreadPinned(thread) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                </button>
               </div>
             </div>
           ))}
@@ -1945,7 +2009,7 @@ const TeamChat: React.FC = () => {
                 <div>
                   <div className="flex items-center space-x-2">
                     <h1 className="text-xl font-semibold text-gray-900">{getThreadDisplayTitle(selectedThread)}</h1>
-                    {selectedThread.isPinned && (
+                    {isThreadPinned(selectedThread) && (
                       <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>

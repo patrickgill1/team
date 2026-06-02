@@ -66,6 +66,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
   const [isPollOpen, setIsPollOpen] = useState(false);
   const [markImportant, setMarkImportant] = useState(false);
+  const [plusOpen, setPlusOpen] = useState(false);
 
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -243,6 +244,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     setPending([]);
     setMentionQuery(null);
     setMarkImportant(false);
+    // Snap the textarea back to single-row height. Without this, the
+    // inline style.height left over from auto-grow keeps the box tall
+    // until the user re-types and onChange recalculates.
+    if (taRef.current) taRef.current.style.height = '';
     taRef.current?.focus();
   };
 
@@ -273,22 +278,21 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         </div>
       )}
 
-      {/* Important / require-acknowledgment toggle (coaches/admins only).
-          When on, the outgoing message renders as an announcement card
-          that asks parents to actively tap "I see this". */}
-      {canMarkImportant && (
-        <button
-          type="button"
-          onClick={() => setMarkImportant(v => !v)}
-          className={`mb-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition ${
-            markImportant
-              ? 'bg-amber-100 text-amber-900 ring-1 ring-amber-300'
-              : 'bg-gray-100 text-gray-600 ring-1 ring-gray-200 hover:bg-gray-200'
-          }`}
-        >
-          <span>📢</span>
-          <span>{markImportant ? 'Important — needs acknowledgment' : 'Mark as important'}</span>
-        </button>
+      {/* Important — when armed, show a small dismissable chip above
+          the input so the coach can see the next message will go out
+          as an announcement. Toggle lives inside the + menu now. */}
+      {markImportant && (
+        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-amber-100 text-amber-900 ring-1 ring-amber-300">
+          <span>Marked important</span>
+          <button
+            type="button"
+            onClick={() => setMarkImportant(false)}
+            aria-label="Clear important"
+            className="text-amber-700 hover:text-amber-900"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
       )}
 
       {pending.length > 0 && (
@@ -329,41 +333,21 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           onChange={onPickFiles}
           className="hidden"
         />
+        {/* Consolidated "+" button — iMessage-style. Photo, GIF, poll,
+            and Mark-important all live in a small sheet so the bar
+            gives the textarea its full horizontal width. */}
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={() => setPlusOpen(true)}
           className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-600 flex items-center justify-center transition"
-          title="Attach photo"
-          aria-label="Attach photo"
+          title="More"
+          aria-label="More"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
         </button>
-        {tenorEnabled() && (
-          <button
-            type="button"
-            onClick={() => setIsGifPickerOpen(true)}
-            className="flex-shrink-0 w-14 h-10 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 flex items-center justify-center font-extrabold text-[11px] tracking-wider transition"
-            title="Send a GIF"
-            aria-label="Send a GIF"
-          >
-            GIF
-          </button>
-        )}
-        {onSendPoll && (
-          <button
-            type="button"
-            onClick={() => setIsPollOpen(true)}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-600 flex items-center justify-center transition"
-            title="Create a poll"
-            aria-label="Create a poll"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-          </button>
-        )}
 
         <div className="flex-1 relative">
           <textarea
@@ -431,6 +415,108 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           </svg>
         </button>
       </div>
+
+      {/* + menu sheet — bottom-sheet with the four attachment actions.
+          Each row tap closes the sheet and triggers its handler. */}
+      {plusOpen && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center sm:p-4"
+          onClick={() => setPlusOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          >
+            <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between">
+              <button
+                onClick={() => setPlusOpen(false)}
+                className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
+              >
+                Cancel
+              </button>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">Add</div>
+              <span className="w-12" aria-hidden />
+            </div>
+            <div className="divide-y divide-slate-100">
+              <button
+                type="button"
+                onClick={() => { setPlusOpen(false); fileRef.current?.click(); }}
+                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+              >
+                <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-slate-900">Photo</span>
+                  <span className="block text-[11px] text-slate-500">Send images from your library.</span>
+                </span>
+              </button>
+              {tenorEnabled() && (
+                <button
+                  type="button"
+                  onClick={() => { setPlusOpen(false); setIsGifPickerOpen(true); }}
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                >
+                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-50 text-violet-700 ring-1 ring-violet-200 flex items-center justify-center text-[10px] font-extrabold tracking-wider">
+                    GIF
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-slate-900">GIF</span>
+                    <span className="block text-[11px] text-slate-500">Search Tenor and send.</span>
+                  </span>
+                </button>
+              )}
+              {onSendPoll && (
+                <button
+                  type="button"
+                  onClick={() => { setPlusOpen(false); setIsPollOpen(true); }}
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                >
+                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <rect x="3" y="12" width="4" height="9" rx="1"/>
+                      <rect x="10" y="7" width="4" height="14" rx="1"/>
+                      <rect x="17" y="3" width="4" height="18" rx="1"/>
+                    </svg>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-slate-900">Poll</span>
+                    <span className="block text-[11px] text-slate-500">Quick yes/no or pick-an-option.</span>
+                  </span>
+                </button>
+              )}
+              {canMarkImportant && (
+                <button
+                  type="button"
+                  onClick={() => { setMarkImportant(v => !v); setPlusOpen(false); }}
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                >
+                  <span className={`flex-shrink-0 w-9 h-9 rounded-lg ring-1 flex items-center justify-center ${
+                    markImportant ? 'bg-amber-100 text-amber-800 ring-amber-300' : 'bg-amber-50 text-amber-700 ring-amber-200'
+                  }`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-slate-900">
+                      {markImportant ? 'Important (on)' : 'Mark as important'}
+                    </span>
+                    <span className="block text-[11px] text-slate-500">
+                      Requires every recipient to tap "I see this."
+                    </span>
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <GifPicker
         isOpen={isGifPickerOpen}

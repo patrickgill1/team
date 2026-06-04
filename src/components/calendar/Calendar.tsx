@@ -603,7 +603,6 @@ const Calendar: React.FC<CalendarProps> = ({
     // playerRsvps/publicRsvps fields already present on the doc.
     const buildCardProps = (ev: CalendarEvent) => {
       const playerR = (ev as any).playerRsvps || {};
-      const userR = ev.rsvps || {};
       const publicR = (ev as any).publicRsvps || {};
       const going: { name: string; photoURL?: string; isGuest?: boolean }[] = [];
       let goingCount = 0, maybeCount = 0, noCount = 0;
@@ -612,18 +611,14 @@ const Calendar: React.FC<CalendarProps> = ({
         else if (status === 'maybe') maybeCount++;
         else if (status === 'no') noCount++;
       };
+      // Counts are PLAYERS only. Adult event.rsvps no longer contribute
+      // (matches EventDetail + Dashboard so the same number shows
+      // everywhere).
       for (const pid of Object.keys(playerR)) {
         const r = playerR[pid];
         tally(r.status);
         if (r.status === 'going') {
           going.push({ name: r.playerName, photoURL: playerPhotoMap?.[pid], isGuest: false });
-        }
-      }
-      for (const uid of Object.keys(userR)) {
-        const r = userR[uid];
-        tally(r.status);
-        if (r.status === 'going') {
-          going.push({ name: r.name, photoURL: userPhotoMap?.[uid], isGuest: false });
         }
       }
       for (const tok of Object.keys(publicR)) {

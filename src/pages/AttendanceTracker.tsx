@@ -96,7 +96,16 @@ const AttendanceTracker: React.FC = () => {
       ]);
 
       const teamPlayers = playersData
-        .filter((p: any) => p.teamId === selectedTeamId && p.isActive)
+        // Players live in two shapes post-club-restructure: the legacy
+        // single `teamId` field and the multi-team `teamIds: string[]`.
+        // Match either so attendance shows the full roster regardless
+        // of which schema the doc was created under.
+        .filter((p: any) => {
+          if (p.isActive === false) return false;
+          if (p.teamId === selectedTeamId) return true;
+          if (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
+          return false;
+        })
         .map((p: any) => ({
           ...p,
           createdAt: p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt || Date.now())
@@ -104,9 +113,10 @@ const AttendanceTracker: React.FC = () => {
       setPlayers(teamPlayers);
 
       const teamEvents = eventsData
-        .filter((e: any) => 
-          e.teamId === selectedTeamId && 
-          (e.type === 'practice' || e.type === 'game')
+        .filter((e: any) =>
+          e.teamId === selectedTeamId &&
+          (e.type === 'practice' || e.type === 'game') &&
+          !e.isCancelled
         )
         .map((e: any) => ({
           ...e,

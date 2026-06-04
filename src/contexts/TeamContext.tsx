@@ -65,6 +65,10 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ageGroup: data.ageGroup || '',
               league: data.league,
               homeField: data.homeField,
+              // Read archive state so archived teams can be filtered out
+              // of the selector. isActive === false means archived.
+              isActive: data.isActive !== false,
+              archivedAt: data.archivedAt?.toDate?.() || undefined,
               createdAt: data.createdAt?.toDate?.() || new Date(),
               updatedAt: data.updatedAt?.toDate?.() || undefined,
             });
@@ -74,11 +78,15 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         // Sort by name for a stable selector order.
         teamDocs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        setTeams(teamDocs);
+        // Hide archived teams from the selector — they stay in
+        // Firestore for historical queries (stats, past photos, etc.)
+        // but should never appear in the active team picker.
+        const active = teamDocs.filter(t => t.isActive !== false);
+        setTeams(active);
         // Pick a sensible initial team: a previously-chosen one if it's
-        // still valid, then one of the admin's own teams, then the first
-        // team in the club.
-        const validIds = teamDocs.map((t) => t.id);
+        // still valid (and not archived), then one of the admin's own
+        // teams, then the first team in the club.
+        const validIds = active.map((t) => t.id);
         if (!selectedTeamId || !validIds.includes(selectedTeamId)) {
           const stored = localStorage.getItem('selectedTeamId');
           if (stored && validIds.includes(stored)) {
@@ -112,6 +120,8 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ageGroup: data.ageGroup || '',
               league: data.league,
               homeField: data.homeField,
+              isActive: data.isActive !== false,
+              archivedAt: data.archivedAt?.toDate?.() || undefined,
               createdAt: data.createdAt?.toDate?.() || new Date(),
               updatedAt: data.updatedAt?.toDate?.() || undefined,
             });
@@ -134,15 +144,21 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      setTeams(teamDocs);
+      // Hide archived teams from the selector. They stay in Firestore
+      // (and on the user's teamIds[]) for historical lookups but
+      // shouldn't appear as a switchable active team.
+      const active = teamDocs.filter(t => t.isActive !== false);
+      setTeams(active);
+      const activeIds = active.map(t => t.id);
 
-      // Auto-select first team if nothing selected or current selection invalid
-      if (!selectedTeamId || !userTeamIds.includes(selectedTeamId)) {
+      // Auto-select first ACTIVE team if nothing selected, or the
+      // current selection is invalid / archived.
+      if (!selectedTeamId || !activeIds.includes(selectedTeamId)) {
         const stored = localStorage.getItem('selectedTeamId');
-        if (stored && userTeamIds.includes(stored)) {
+        if (stored && activeIds.includes(stored)) {
           setSelectedTeamIdState(stored);
-        } else if (userTeamIds.length > 0) {
-          setSelectedTeamIdState(userTeamIds[0]);
+        } else if (activeIds.length > 0) {
+          setSelectedTeamIdState(activeIds[0]);
         }
       }
     } catch (error) {

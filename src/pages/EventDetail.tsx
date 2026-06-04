@@ -704,9 +704,50 @@ const EventDetail: React.FC = () => {
         </div>
       )}
 
-      {/* QUICK ACTIONS — for parents with linked kids these buttons
-          mark the KID(s) as going, not the parent. See
-          useKidQuickActions / handleQuickRsvp above. */}
+      {/* PER-KID RSVPS — the primary RSVP path when the viewer has
+          linked players. Sits above the personal Quick Actions so
+          parents (and coach-with-kid) see their kid's RSVP as the
+          default thing to act on. */}
+      {myLinkedPlayers.length > 0 && (
+        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
+            <Icon name="users" className="w-3 h-3 text-cyan-500" />
+            RSVP for your {myLinkedPlayers.length > 1 ? 'players' : 'player'}
+          </div>
+          <div className="space-y-2">
+            {myLinkedPlayers.map(p => {
+              const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
+              const btn = (status: RsvpStatus, label: string, active: string) => (
+                <button
+                  key={status}
+                  onClick={() => setPlayerRsvp(p.id, p.name, status)}
+                  className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                    current === status
+                      ? `${active} text-white border-transparent shadow-sm`
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <div key={p.id} className="flex items-center gap-2">
+                  <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-slate-800 truncate" title={p.name}>{p.name}</div>
+                  <div className="flex-1 flex gap-1.5">
+                    {btn('going', 'Going', 'bg-emerald-600')}
+                    {btn('maybe', 'Maybe', 'bg-amber-500')}
+                    {btn('no', "Can't", 'bg-rose-600')}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* QUICK ACTIONS — secondary RSVP path. For coach-with-kid this
+          covers their own (adult) attendance. Per-kid section above is
+          the primary one. */}
       <div className="bg-slate-50 px-4 sm:px-6 py-3 grid grid-cols-3 gap-2 border-b border-slate-200">
         <button
           onClick={() => handleQuickRsvp('going')}
@@ -795,47 +836,6 @@ const EventDetail: React.FC = () => {
             }`}>
               {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
             </span>
-          </div>
-        </section>
-      )}
-
-      {/* PER-KID RSVPS — one row per linked player. Renders for anyone
-          with kids on this team, so a coach-who-is-also-a-parent can
-          RSVP for themselves (Quick Actions above) AND each kid (here).
-          This was lost in the calendar → /events/:id migration. */}
-      {myLinkedPlayers.length > 0 && (
-        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
-            <Icon name="users" className="w-3 h-3 text-cyan-500" />
-            RSVP for your {myLinkedPlayers.length > 1 ? 'players' : 'player'}
-          </div>
-          <div className="space-y-2">
-            {myLinkedPlayers.map(p => {
-              const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
-              const btn = (status: RsvpStatus, label: string, active: string) => (
-                <button
-                  key={status}
-                  onClick={() => setPlayerRsvp(p.id, p.name, status)}
-                  className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
-                    current === status
-                      ? `${active} text-white border-transparent shadow-sm`
-                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-              return (
-                <div key={p.id} className="flex items-center gap-2">
-                  <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-slate-800 truncate" title={p.name}>{p.name}</div>
-                  <div className="flex-1 flex gap-1.5">
-                    {btn('going', 'Going', 'bg-emerald-600')}
-                    {btn('maybe', 'Maybe', 'bg-amber-500')}
-                    {btn('no', "Can't", 'bg-rose-600')}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </section>
       )}

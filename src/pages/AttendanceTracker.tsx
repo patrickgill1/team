@@ -77,7 +77,10 @@ const AttendanceTracker: React.FC = () => {
 
   useEffect(() => {
     loadAttendanceForEvent();
-  }, [selectedEvent, attendanceRecords]);
+    // Also re-seed when the event's playerRsvps map updates so an
+    // RSVP made AFTER the coach opened the page still flows through.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEvent, attendanceRecords, calendarEvents]);
 
   const loadData = async () => {
     if (!selectedTeamId) { setLoading(false); return; }
@@ -137,11 +140,26 @@ const AttendanceTracker: React.FC = () => {
 
     const eventRecords = attendanceRecords.filter(r => r.eventId === selectedEvent);
     const data: {[playerId: string]: string} = {};
-    
+
+    // Seed defaults from event RSVPs so parent-side responses show
+    // up here too — coaches no longer have to re-mark players that
+    // a parent already RSVPed. Explicit attendance records override
+    // the RSVP-derived defaults below.
+    const ev: any = calendarEvents.find(e => e.id === selectedEvent);
+    const playerRsvps: Record<string, { status?: string }> = ev?.playerRsvps || {};
+    Object.entries(playerRsvps).forEach(([pid, r]) => {
+      if (!r) return;
+      if (r.status === 'going') data[pid] = 'present';
+      else if (r.status === 'no') data[pid] = 'absent';
+      else if (r.status === 'maybe') data[pid] = 'late';
+    });
+
+    // Explicit attendance records win — a coach override beats the
+    // parent's pre-event RSVP.
     eventRecords.forEach(record => {
       data[record.playerId] = record.status;
     });
-    
+
     setAttendanceData(data);
   };
 

@@ -325,6 +325,73 @@ const EventDetail: React.FC = () => {
 
   const myRsvp = event && userData?.uid ? (event.rsvps || {})[userData.uid] : null;
 
+  // When a non-staff user has linked players, the Quick Actions
+  // Going / Can't-go buttons should RSVP the KID, not the parent —
+  // the parent's adult attendance isn't what the coach is planning
+  // around. Coaches keep their personal RSVP (they need to track
+  // their own attendance, AND they have per-kid rows below). For
+  // parents with zero linked players, fall back to personal RSVP so
+  // they still have a way to respond.
+  const useKidQuickActions = !isUserCoach && myLinkedPlayers.length > 0;
+
+  // For the button's active state when in kid-mode: only highlight
+  // when ALL linked kids share the same status, otherwise leave it
+  // neutral so the parent uses the per-kid rows for fine control.
+  const kidGroupStatus: RsvpStatus | null = (() => {
+    if (!useKidQuickActions || !event) return null;
+    const playerR = (event as any).playerRsvps || {};
+    const statuses = myLinkedPlayers.map(p => playerR[p.id]?.status as RsvpStatus | undefined);
+    if (statuses.every(s => s === 'going')) return 'going';
+    if (statuses.every(s => s === 'no')) return 'no';
+    return null;
+  })();
+
+  const handleQuickRsvp = async (status: RsvpStatus) => {
+    if (useKidQuickActions && event && userData?.uid) {
+      // Build the updated playerRsvps map in one go so a multi-kid
+      // parent doesn't see only the last kid's RSVP land (sequential
+      // setPlayerRsvp() calls would race on stale state).
+      const nextMap: Record<string, any> = { ...((event as any).playerRsvps || {}) };
+      for (const p of myLinkedPlayers) {
+        nextMap[p.id] = {
+          status,
+          playerName: p.name,
+          byUid: userData.uid,
+          byName: userData.name || undefined,
+          respondedAt: new Date(),
+        };
+      }
+      setEvent({ ...event, playerRsvps: nextMap } as any);
+      try {
+        await updateDocument('events', event.id, { playerRsvps: nextMap });
+      } catch (err) {
+        console.error('quick RSVP (kid) failed', err);
+        alert('Failed to save RSVP.');
+      }
+      return;
+    }
+    await setMyRsvp(status);
+  };
+
+  // Active status the buttons display against — kid-group when in
+  // parent-mode, parent's own RSVP otherwise.
+  const quickActiveStatus: RsvpStatus | null = useKidQuickActions
+    ? kidGroupStatus
+    : (myRsvp?.status as RsvpStatus | null) || null;
+
+  // Button label changes when we're RSVPing on behalf of a kid so
+  // there's no confusion about who's being marked going.
+  const quickGoingLabel = quickActiveStatus === 'going'
+    ? 'Going'
+    : useKidQuickActions
+      ? (myLinkedPlayers.length === 1
+          ? `${myLinkedPlayers[0].name.split(' ')[0]} going`
+          : 'All going')
+      : "I'm going";
+  const quickNoLabel = useKidQuickActions
+    ? (myLinkedPlayers.length === 1 ? "Can't go" : "None going")
+    : "Can't go";
+
   const setMyRsvp = async (status: RsvpStatus) => {
     if (!event || !userData?.uid) return;
     const next = {
@@ -637,18 +704,20 @@ const EventDetail: React.FC = () => {
         </div>
       )}
 
-      {/* QUICK ACTIONS */}
+      {/* QUICK ACTIONS — for parents with linked kids these buttons
+          mark the KID(s) as going, not the parent. See
+          useKidQuickActions / handleQuickRsvp above. */}
       <div className="bg-slate-50 px-4 sm:px-6 py-3 grid grid-cols-3 gap-2 border-b border-slate-200">
         <button
-          onClick={() => setMyRsvp('going')}
+          onClick={() => handleQuickRsvp('going')}
           className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase ${
-            myRsvp?.status === 'going'
+            quickActiveStatus === 'going'
               ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm'
               : 'bg-white border border-slate-200 text-slate-900 hover:border-emerald-400'
           }`}
         >
           <Icon name="check" className="w-4 h-4" />
-          {myRsvp?.status === 'going' ? 'Going' : "I'm going"}
+          {quickGoingLabel}
         </button>
         <button
           onClick={handleShare}
@@ -677,14 +746,14 @@ const EventDetail: React.FC = () => {
           )
         ) : (
           <button
-            onClick={() => setMyRsvp('no')}
+            onClick={() => handleQuickRsvp('no')}
             className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase ${
-              myRsvp?.status === 'no'
+              quickActiveStatus === 'no'
                 ? 'bg-slate-700 text-white'
                 : 'bg-white border border-slate-200 text-slate-900 hover:border-slate-400'
             }`}
           >
-            Can't go
+            {quickNoLabel}
           </button>
         )}
       </div>

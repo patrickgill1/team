@@ -289,15 +289,11 @@ const EventDetail: React.FC = () => {
       if (r.status === 'going') going.push({ name: r.playerName, playerId: pid, isGuest: false });
       else if (r.status === 'maybe') maybe.push({ name: r.playerName, playerId: pid, isGuest: false });
     }
-    const userR = event.rsvps || {};
-    for (const uid of Object.keys(userR)) {
-      const r = userR[uid];
-      const key = `user:${uid}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      if (r.status === 'going') going.push({ name: r.name, uid, isGuest: false });
-      else if (r.status === 'maybe') maybe.push({ name: r.name, uid, isGuest: false });
-    }
+    // Adult RSVPs (event.rsvps) intentionally NOT included. The going
+    // list is the player roster — coaches are obviously there, parents
+    // follow their kids. Tracking adult attendance just clutters the
+    // list. setMyRsvp still writes to event.rsvps for back-compat with
+    // anything that reads it, but the UI surfaces only players + guests.
     const publicR = (event as any).publicRsvps || {};
     for (const tok of Object.keys(publicR)) {
       const r = publicR[tok];
@@ -745,21 +741,11 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
-      {/* QUICK ACTIONS — secondary RSVP path. For coach-with-kid this
-          covers their own (adult) attendance. Per-kid section above is
-          the primary one. */}
-      <div className="bg-slate-50 px-4 sm:px-6 py-3 grid grid-cols-3 gap-2 border-b border-slate-200">
-        <button
-          onClick={() => handleQuickRsvp('going')}
-          className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase ${
-            quickActiveStatus === 'going'
-              ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm'
-              : 'bg-white border border-slate-200 text-slate-900 hover:border-emerald-400'
-          }`}
-        >
-          <Icon name="check" className="w-4 h-4" />
-          {quickGoingLabel}
-        </button>
+      {/* QUICK ACTIONS — adult RSVP buttons removed. RSVPs are tracked
+          per player above; coaches don't need to mark themselves going
+          (they obviously are) and parents follow their kids. This row
+          is just Share + Cancel/Restore now. */}
+      <div className={`bg-slate-50 px-4 sm:px-6 py-3 grid ${isUserCoach ? 'grid-cols-2' : 'grid-cols-1'} gap-2 border-b border-slate-200`}>
         <button
           onClick={handleShare}
           className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 text-xs font-bold tracking-wider uppercase hover:border-cyan-400"
@@ -767,7 +753,7 @@ const EventDetail: React.FC = () => {
           <Icon name="share" className="w-4 h-4" />
           Share
         </button>
-        {isUserCoach ? (
+        {isUserCoach && (
           event.isCancelled ? (
             <button
               onClick={handleRestore}
@@ -785,17 +771,6 @@ const EventDetail: React.FC = () => {
               Cancel
             </button>
           )
-        ) : (
-          <button
-            onClick={() => handleQuickRsvp('no')}
-            className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase ${
-              quickActiveStatus === 'no'
-                ? 'bg-slate-700 text-white'
-                : 'bg-white border border-slate-200 text-slate-900 hover:border-slate-400'
-            }`}
-          >
-            {quickNoLabel}
-          </button>
         )}
       </div>
 

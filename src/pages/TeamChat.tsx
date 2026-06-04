@@ -1527,9 +1527,15 @@ const TeamChat: React.FC = () => {
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="font-semibold text-gray-900 truncate text-[15px]">{displayTitle}</span>
                         {/* Team chip — only shows when the user is on
-                            multiple teams, so the chip stays out of the
-                            way for single-team users (who don't need it). */}
-                        {Object.keys(teamNameById).length > 1 && thread.teamId && teamNameById[thread.teamId] && (
+                            multiple teams AND the thread is actually
+                            team-scoped. DMs and groups aren't tied to a
+                            team in a meaningful way, so a team label
+                            there is just noise. */}
+                        {!isDM
+                          && !(thread as any).isGroup
+                          && Object.keys(teamNameById).length > 1
+                          && thread.teamId
+                          && teamNameById[thread.teamId] && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 ring-1 ring-slate-200 flex-shrink-0">
                             {teamNameById[thread.teamId]}
                           </span>

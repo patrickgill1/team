@@ -142,34 +142,20 @@ const AttendanceTracker: React.FC = () => {
     }
   };
 
+  // Pulls each player's CURRENT RSVP status straight from the event
+  // doc's playerRsvps map. This page is now a coach-side RSVP tool —
+  // it doesn't read or write the legacy attendance_records collection.
   const loadAttendanceForEvent = () => {
     if (!selectedEvent) {
       setAttendanceData({});
       return;
     }
-
-    const eventRecords = attendanceRecords.filter(r => r.eventId === selectedEvent);
-    const data: {[playerId: string]: string} = {};
-
-    // Seed defaults from event RSVPs so parent-side responses show
-    // up here too — coaches no longer have to re-mark players that
-    // a parent already RSVPed. Explicit attendance records override
-    // the RSVP-derived defaults below.
     const ev: any = calendarEvents.find(e => e.id === selectedEvent);
     const playerRsvps: Record<string, { status?: string }> = ev?.playerRsvps || {};
+    const data: { [playerId: string]: string } = {};
     Object.entries(playerRsvps).forEach(([pid, r]) => {
-      if (!r) return;
-      if (r.status === 'going') data[pid] = 'present';
-      else if (r.status === 'no') data[pid] = 'absent';
-      else if (r.status === 'maybe') data[pid] = 'late';
+      if (r?.status) data[pid] = r.status;
     });
-
-    // Explicit attendance records win — a coach override beats the
-    // parent's pre-event RSVP.
-    eventRecords.forEach(record => {
-      data[record.playerId] = record.status;
-    });
-
     setAttendanceData(data);
   };
 
@@ -180,79 +166,74 @@ const AttendanceTracker: React.FC = () => {
     }));
   };
 
+  // Writes ALL players' RSVPs back to the event's playerRsvps map in
+  // one update. The list reflects the coach's bulk-set decisions —
+  // parent-side RSVPs the coach didn't touch in this session keep
+  // their previous status because we merge instead of replacing.
   const saveAttendance = async () => {
     if (!userData || !selectedEvent) return;
-
     try {
       setSaving(true);
-      
-      // Delete existing records for this event
-      const existingRecords = attendanceRecords.filter(r => r.eventId === selectedEvent);
-      for (const record of existingRecords) {
-        await deleteDocument('attendance_records', record.id);
-      }
-
-      // Create new records
-      const newRecords = [];
+      const ev: any = calendarEvents.find(e => e.id === selectedEvent);
+      const existing: Record<string, any> = ev?.playerRsvps || {};
+      const next: Record<string, any> = { ...existing };
       for (const player of players) {
-        const statusValue = attendanceData[player.id] || 'present';
-        const status = ['present', 'absent', 'late', 'excused'].includes(statusValue) 
-          ? statusValue as 'present' | 'absent' | 'late' | 'excused'
-          : 'present';
-        
-        const { withSeasonId } = await import('../utils/seasons');
-        const record = await withSeasonId({
-          eventId: selectedEvent,
-          playerId: player.id,
-          playerName: player.name,
+        const status = attendanceData[player.id];
+        if (!status) continue; // skip "unset" rows entirely
+        next[player.id] = {
           status,
-          recordedBy: userData.uid,
-          recordedByName: userData.name,
-          teamId: selectedTeamId,
-          createdAt: new Date()
-        }) as Omit<AttendanceRecord, 'id'>;
-
-        const recordId = await addDocument('attendance_records', record);
-        newRecords.push({
-          ...record,
-          id: recordId
-        });
+          playerName: player.name,
+          byUid: userData.uid,
+          byName: userData.name,
+          respondedAt: new Date(),
+        };
       }
-
-      await loadData();
-      alert('Attendance saved successfully!');
+      await updateDocument('events', selectedEvent, { playerRsvps: next });
+      alert('RSVPs saved.');
     } catch (error) {
-      console.error('Error saving attendance:', error);
-      alert('Failed to save attendance. Please try again.');
+      console.error('Error saving RSVPs:', error);
+      alert('Failed to save RSVPs. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
+  // Per-player attendance rates, computed off each PAST event's
+  // playerRsvps map (going === present). Skips events without any
+  // recorded RSVPs so a brand-new team doesn't show 0%.
   const getAttendanceStats = () => {
+    const now = Date.now();
+    const pastEvents = calendarEvents.filter(e => {
+      const d = (e as any).date instanceof Date ? (e as any).date : new Date((e as any).date || 0);
+      return d.getTime() <= now;
+    });
     const stats = {
-      totalEvents: calendarEvents.length,
+      totalEvents: pastEvents.length,
       averageAttendance: 0,
-      playerStats: {} as {[playerId: string]: {present: number, total: number, percentage: number}}
+      playerStats: {} as { [playerId: string]: { present: number; total: number; percentage: number } },
     };
 
     players.forEach(player => {
-      const playerRecords = attendanceRecords.filter(r => r.playerId === player.id);
-      const present = playerRecords.filter(r => r.status === 'present').length;
-      const total = playerRecords.length;
-
+      let present = 0, total = 0;
+      pastEvents.forEach(ev => {
+        const r: any = (ev as any).playerRsvps?.[player.id];
+        if (!r?.status) return;
+        total++;
+        if (r.status === 'going') present++;
+      });
       stats.playerStats[player.id] = {
         present,
         total,
-        percentage: total > 0 ? Math.round((present / total) * 100) : 0
+        percentage: total > 0 ? Math.round((present / total) * 100) : 0,
       };
     });
 
-    if (calendarEvents.length > 0 && players.length > 0) {
-      const totalPresent = Object.values(stats.playerStats).reduce((sum, stat) => sum + stat.present, 0);
-      const totalPossible = attendanceRecords.length;
-      stats.averageAttendance = totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
-    }
+    const totals = Object.values(stats.playerStats);
+    const totalPresent = totals.reduce((s, st) => s + st.present, 0);
+    const totalPossible = totals.reduce((s, st) => s + st.total, 0);
+    stats.averageAttendance = totalPossible > 0
+      ? Math.round((totalPresent / totalPossible) * 100)
+      : 0;
 
     return stats;
   };
@@ -305,7 +286,7 @@ const AttendanceTracker: React.FC = () => {
                     can't push the row past the viewport (which was
                     triggering horizontal scroll on the whole page). */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
-                  <h2 className="text-lg font-semibold text-gray-900 shrink-0">Take Attendance</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 shrink-0">RSVP Players</h2>
                   {calendarEvents.length > 0 && (
                     <select
                       value={selectedEvent}
@@ -364,7 +345,7 @@ const AttendanceTracker: React.FC = () => {
                   {players.length > 0 ? (
                     <div className="space-y-3">
                       {players.map(player => {
-                        const currentStatus = attendanceData[player.id] || 'present';
+                        const currentStatus = attendanceData[player.id] || '';
 
                         return (
                           <div key={player.id} className="p-3 border border-gray-200 rounded-lg">
@@ -401,21 +382,22 @@ const AttendanceTracker: React.FC = () => {
                               </div>
 
                               <div className="flex flex-wrap gap-1.5 sm:gap-2 sm:shrink-0">
-                                {['present', 'absent', 'late', 'excused'].map(status => (
+                                {[
+                                  { key: 'going', label: 'Going', active: 'bg-emerald-100 text-emerald-800' },
+                                  { key: 'maybe', label: 'Maybe', active: 'bg-amber-100 text-amber-800' },
+                                  { key: 'no', label: "Can't", active: 'bg-rose-100 text-rose-800' },
+                                ].map(({ key, label, active }) => (
                                   <button
-                                    key={status}
-                                    onClick={() => handleAttendanceChange(player.id, status)}
+                                    key={key}
+                                    onClick={() => handleAttendanceChange(player.id, key)}
                                     disabled={!isUserCoach}
                                     className={`flex-1 sm:flex-initial min-w-0 px-2.5 py-1 rounded text-xs sm:text-sm font-medium transition-colors ${
-                                      currentStatus === status
-                                        ? status === 'present' ? 'bg-emerald-100 text-emerald-800'
-                                          : status === 'absent' ? 'bg-rose-100 text-rose-800'
-                                          : status === 'late' ? 'bg-amber-100 text-amber-800'
-                                          : 'bg-cyan-50 text-cyan-700'
+                                      currentStatus === key
+                                        ? active
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     } ${!isUserCoach ? 'cursor-not-allowed opacity-50' : ''}`}
                                   >
-                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                    {label}
                                   </button>
                                 ))}
                               </div>
@@ -450,7 +432,7 @@ const AttendanceTracker: React.FC = () => {
                             Saving...
                           </>
                         ) : (
-                          'Save Attendance'
+                          'Save RSVPs'
                         )}
                       </button>
                     </div>

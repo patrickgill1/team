@@ -92,6 +92,9 @@ const TeamChat: React.FC = () => {
 
   // Direct-message picker state
   const [isDMPickerOpen, setIsDMPickerOpen] = useState(false);
+  // Multi-select state for the chat picker. One selected → DM.
+  // Two or more → group thread. Cleared every time the picker opens.
+  const [selectedDmUids, setSelectedDmUids] = useState<Set<string>>(new Set());
   const [dmSearch, setDmSearch] = useState('');
   const [dmStarting, setDmStarting] = useState<string | null>(null);
 
@@ -766,8 +769,12 @@ const TeamChat: React.FC = () => {
   const effectiveParticipants = (thread: ChatThread | null): string[] => {
     if (!thread) return [];
     const isDM = (thread as any).isDM === true;
+    const isGroup = (thread as any).isGroup === true;
     const scope = (thread as any).scope || 'team';
-    if (isDM) return thread.participants || [];
+    // DMs and ad-hoc groups have a fixed, known participant list.
+    // Only TEAM-scoped (non-group) channels auto-expand to the full
+    // team roster.
+    if (isDM || isGroup) return thread.participants || [];
     if (scope === 'team' && teamMembers.length > 0) {
       const set = new Set<string>(teamMembers.map(m => m.uid).filter(Boolean));
       // Union with the doc's participants — covers visitors from
@@ -1100,12 +1107,104 @@ const TeamChat: React.FC = () => {
       setCurrentView('chat');
       setIsDMPickerOpen(false);
       setDmSearch('');
+      setSelectedDmUids(new Set());
     } catch (err) {
       console.error('Failed to open DM:', err);
       alert('Could not open direct message. Please try again.');
     } finally {
       setDmStarting(null);
     }
+  };
+
+  // Create an ad-hoc group thread with the current selection.
+  // Unlike DMs, groups don't dedupe — each create makes a new thread,
+  // because users may want separate group chats for different purposes
+  // with overlapping membership.
+  const startGroupChat = async () => {
+    if (!userData || !selectedTeamId) return;
+    const uids = Array.from(selectedDmUids);
+    if (uids.length < 2) return;
+    const members = uids
+      .map(uid => teamMembers.find(tm => tm.uid === uid))
+      .filter(Boolean) as Array<{ uid: string; name: string }>;
+    if (members.length !== uids.length) {
+      alert('Some selected members could not be resolved. Try again.');
+      return;
+    }
+    const allParticipants = [userData.uid, ...members.map(m => m.uid)];
+    const firstNames = [userData.name, ...members.map(m => m.name)]
+      .map(n => (n || 'Member').split(' ')[0]);
+    const title = firstNames.length <= 3
+      ? firstNames.join(', ')
+      : `${firstNames.slice(0, 2).join(', ')} +${firstNames.length - 2}`;
+    setDmStarting('group');
+    try {
+      const threadId = await addChatThread({
+        title,
+        description: '',
+        teamId: selectedTeamId,
+        createdBy: userData.uid,
+        createdByName: userData.name,
+        createdAt: new Date(),
+        lastActivity: new Date(),
+        isPinned: false,
+        isPrivate: false,
+        isDM: false,
+        // New flag so the chat UI can render group-style affordances
+        // without confusing groups with team-scoped channels.
+        isGroup: true,
+        messageCount: 0,
+        participants: allParticipants,
+        tags: ['group'],
+      } as any);
+      setSelectedThread({
+        id: threadId as string,
+        title,
+        teamId: selectedTeamId,
+        createdBy: userData.uid,
+        createdByName: userData.name,
+        createdAt: new Date(),
+        lastActivity: new Date(),
+        isPinned: false,
+        isPrivate: false,
+        messageCount: 0,
+        participants: allParticipants,
+        tags: ['group'],
+        // @ts-ignore extras
+        isGroup: true,
+      } as any);
+      setCurrentView('chat');
+      setIsDMPickerOpen(false);
+      setDmSearch('');
+      setSelectedDmUids(new Set());
+    } catch (err) {
+      console.error('Failed to create group chat:', err);
+      alert('Could not create the group. Try again.');
+    } finally {
+      setDmStarting(null);
+    }
+  };
+
+  // Dispatch the picker's "Start" button — 1 selected goes to DM,
+  // 2+ goes to group create.
+  const startSelectedChat = async () => {
+    const uids = Array.from(selectedDmUids);
+    if (uids.length === 0) return;
+    if (uids.length === 1) {
+      const m = teamMembers.find(tm => tm.uid === uids[0]);
+      if (!m) return;
+      await startDM({ uid: m.uid, name: m.name });
+      return;
+    }
+    await startGroupChat();
+  };
+
+  const toggleDmSelection = (uid: string) => {
+    setSelectedDmUids(prev => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid); else next.add(uid);
+      return next;
+    });
   };
 
   console.log('Current state:', { currentView, isMobile, selectedThread: selectedThread?.title });
@@ -1154,11 +1253,19 @@ const TeamChat: React.FC = () => {
       >
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-violet-50 to-white">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Direct Message</h3>
-            <p className="text-xs text-gray-500">Pick someone to start a private 1:1 chat.</p>
+            <h3 className="text-lg font-bold text-gray-900">
+              {selectedDmUids.size <= 1 ? 'New chat' : `New group · ${selectedDmUids.size + 1} people`}
+            </h3>
+            <p className="text-xs text-gray-500">
+              {selectedDmUids.size === 0
+                ? 'Pick one person for a DM, or several for a group chat.'
+                : selectedDmUids.size === 1
+                  ? 'Pick another person to make this a group.'
+                  : 'Tap Start to create the group chat.'}
+            </p>
           </div>
           <button
-            onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); }}
+            onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); setSelectedDmUids(new Set()); }}
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
             aria-label="Close"
           >
@@ -1186,34 +1293,66 @@ const TeamChat: React.FC = () => {
                 : 'No matches for that search.'}
             </div>
           ) : (
-            dmCandidates.map(m => (
-              <button
-                key={m.uid}
-                onClick={() => startDM({ uid: m.uid, name: m.name })}
-                disabled={dmStarting === m.uid}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-violet-50 active:bg-violet-100 transition-colors text-left disabled:opacity-50"
-              >
-                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
-                  {m.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 truncate">{m.name}</p>
-                  {m.childNames && m.childNames.length > 0 ? (
-                    <p className="text-xs text-gray-500 truncate">{m.childNames.join(', ')}</p>
-                  ) : (
-                    <p className="text-xs text-gray-500 capitalize">{m.role || 'member'}</p>
-                  )}
-                </div>
-                {dmStarting === m.uid ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-violet-600"></div>
-                ) : (
-                  <svg className="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-              </button>
-            ))
+            dmCandidates.map(m => {
+              const checked = selectedDmUids.has(m.uid);
+              return (
+                <button
+                  key={m.uid}
+                  onClick={() => toggleDmSelection(m.uid)}
+                  disabled={dmStarting === m.uid || dmStarting === 'group'}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left disabled:opacity-50 ${
+                    checked ? 'bg-violet-100 ring-1 ring-violet-300' : 'hover:bg-violet-50'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                    {m.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{m.name}</p>
+                    {m.childNames && m.childNames.length > 0 ? (
+                      <p className="text-xs text-gray-500 truncate">{m.childNames.join(', ')}</p>
+                    ) : (
+                      <p className="text-xs text-gray-500 capitalize">{m.role || 'member'}</p>
+                    )}
+                  </div>
+                  {/* Checkbox-style indicator on the right. */}
+                  <span
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      checked
+                        ? 'bg-violet-600 border-violet-600 text-white'
+                        : 'border-slate-300 bg-white'
+                    }`}
+                    aria-hidden
+                  >
+                    {checked && (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                  </span>
+                </button>
+              );
+            })
           )}
+        </div>
+
+        {/* Footer with Start button. Disabled when no one is selected;
+            label adapts to "Send DM" / "Create group". */}
+        <div className="px-4 py-3 border-t border-slate-100 bg-white">
+          <button
+            type="button"
+            onClick={startSelectedChat}
+            disabled={selectedDmUids.size === 0 || dmStarting !== null}
+            className="w-full bg-gradient-to-br from-violet-500 to-violet-700 hover:from-violet-400 hover:to-violet-600 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md transition disabled:opacity-40 flex items-center justify-center"
+          >
+            {dmStarting !== null ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/40 border-t-white" />
+            ) : selectedDmUids.size <= 1 ? (
+              'Send direct message'
+            ) : (
+              `Create group · ${selectedDmUids.size + 1} people`
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -1283,7 +1422,7 @@ const TeamChat: React.FC = () => {
                 <h2 className="text-xl font-semibold text-gray-900">Messages</h2>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setIsDMPickerOpen(true)}
+                    onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
                     className="bg-violet-600 hover:bg-violet-700 text-white p-2.5 rounded-lg transition-colors"
                     title="Direct message"
                   >
@@ -1449,7 +1588,7 @@ const TeamChat: React.FC = () => {
                   <p className="text-gray-500 text-sm mb-4">Start a chat with a teammate or create a new team thread.</p>
                   <div className="flex justify-center gap-2">
                     <button
-                      onClick={() => setIsDMPickerOpen(true)}
+                      onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
                       className="px-4 py-2 text-sm font-semibold rounded-full bg-violet-600 text-white hover:bg-violet-700"
                     >
                       New DM
@@ -1880,7 +2019,7 @@ const TeamChat: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsDMPickerOpen(true)}
+                onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
                 className="bg-violet-600 hover:bg-violet-700 text-white p-2 rounded-lg transition-colors"
                 title="Direct message"
               >

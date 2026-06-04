@@ -47,6 +47,47 @@ const TeamChat: React.FC = () => {
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTag, setFilterTag] = useState<string>('all');
+  // Sectioned-list collapse state. Keyed by section id; persisted in
+  // localStorage so it survives reloads.
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem('firefc.chatSectionsCollapsed');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
+  const toggleSection = (id: string) => {
+    setCollapsedSections(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { localStorage.setItem('firefc.chatSectionsCollapsed', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  // Per-thread visited timestamps (localStorage). Used to compute the
+  // "Unread" filter + bold/dot indicator on rows without changing
+  // Firestore schema. Updated on send AND on opening a thread.
+  const [threadVisited, setThreadVisited] = useState<Record<string, number>>(() => {
+    try {
+      const raw = localStorage.getItem('firefc.threadVisited');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  });
+  const markThreadVisited = (threadId: string) => {
+    if (!threadId) return;
+    setThreadVisited(prev => {
+      const next = { ...prev, [threadId]: Date.now() };
+      try { localStorage.setItem('firefc.threadVisited', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const isThreadUnread = (thread: ChatThread): boolean => {
+    const lastTs = thread.lastActivity instanceof Date
+      ? thread.lastActivity.getTime()
+      : new Date(thread.lastActivity || 0).getTime();
+    const seenTs = threadVisited[thread.id] || 0;
+    // Brand-new threads with no last message shouldn't be unread.
+    if (!thread.lastMessage) return false;
+    return lastTs > seenTs;
+  };
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; photoURL?: string; childNames?: string[] }[]>([]);
   // teamId → teamName lookup. Used to label each thread with its
@@ -207,9 +248,9 @@ const TeamChat: React.FC = () => {
   };
 
   const showChatView = (thread: ChatThread) => {
-    console.log('Showing chat view for thread:', thread.title);
     setSelectedThread(thread);
     setCurrentView('chat');
+    markThreadVisited(thread.id);
   };
 
   // Jump or animate the messages list to the bottom. Manipulating
@@ -657,6 +698,9 @@ const TeamChat: React.FC = () => {
           timestamp: new Date()
         }
       });
+      // Treat sending as visiting — keeps the sender's own message
+      // from registering as unread when the thread doc updates.
+      markThreadVisited(selectedThread.id);
 
       // Push to everyone in the thread except the sender. Fires on every new
       // message — including DMs (where participants is just the two of them).
@@ -1004,12 +1048,44 @@ const TeamChat: React.FC = () => {
     const matchesSearch = thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          thread.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterTag === 'all' ||
+                         (filterTag === 'unread' && isThreadUnread(thread)) ||
                          (filterTag === 'pinned' && isThreadPinned(thread)) ||
                          (filterTag === 'private' && thread.isPrivate) ||
                          (filterTag === 'direct' && isDM) ||
                          thread.tags?.includes(filterTag);
     return matchesSearch && matchesFilter;
   });
+
+  // Group threads into the visual sections the chat list renders.
+  // Each thread lands in exactly one section by this priority order:
+  //   Pinned > DMs > Groups > Team chats > Club channels
+  // Sections only render when their group has at least one match, so
+  // a parent with no group chats never sees an empty "Groups" header.
+  type SectionId = 'pinned' | 'dms' | 'groups' | 'teams' | 'club';
+  const SECTION_LABELS: Record<SectionId, string> = {
+    pinned: 'Pinned',
+    dms: 'Direct messages',
+    groups: 'Group chats',
+    teams: 'Team chats',
+    club: 'Club channels',
+  };
+  const chatSections: Array<{ id: SectionId; label: string; threads: ChatThread[] }> = (() => {
+    const buckets: Record<SectionId, ChatThread[]> = {
+      pinned: [], dms: [], groups: [], teams: [], club: [],
+    };
+    for (const t of filteredThreads) {
+      if (isThreadPinned(t)) { buckets.pinned.push(t); continue; }
+      if ((t as any).isDM === true) { buckets.dms.push(t); continue; }
+      if ((t as any).isGroup === true) { buckets.groups.push(t); continue; }
+      const scope = (t as any).scope || 'team';
+      if (scope === 'team') buckets.teams.push(t);
+      else buckets.club.push(t);
+    }
+    const order: SectionId[] = ['pinned', 'dms', 'groups', 'teams', 'club'];
+    return order
+      .filter(id => buckets[id].length > 0)
+      .map(id => ({ id, label: SECTION_LABELS[id], threads: buckets[id] }));
+  })();
 
   // Display title for a thread — for DMs, show the OTHER person's name.
   const getThreadDisplayTitle = (thread: ChatThread): string => {
@@ -1462,13 +1538,21 @@ const TeamChat: React.FC = () => {
               {/* Filters. 'Coach' is the coach-only-thread filter
                   (thread.isPrivate); hide it from parents since they
                   can't see those threads at all. */}
-              <div className="flex space-x-2">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'pinned', label: 'Pinned' },
-                  { key: 'direct', label: 'DMs' },
-                  ...(isCoach ? [{ key: 'private', label: 'Coach' }] : []),
-                ].map(({ key, label }) => (
+              <div className="flex space-x-2 overflow-x-auto">
+                {(() => {
+                  const unreadCount = filteredThreads.filter(t => isThreadUnread(t)).length
+                    // Include threads from `threads` that the active filter
+                    // is hiding so the badge reflects reality across the
+                    // whole list, not just within the current chip.
+                    || threads.filter(t => isThreadUnread(t)).length;
+                  return [
+                    { key: 'all', label: 'All' },
+                    { key: 'unread', label: unreadCount > 0 ? `Unread · ${unreadCount}` : 'Unread' },
+                    { key: 'pinned', label: 'Pinned' },
+                    { key: 'direct', label: 'DMs' },
+                    ...(isCoach ? [{ key: 'private', label: 'Coach' }] : []),
+                  ];
+                })().map(({ key, label }) => (
                   <button
                     key={key}
                     onClick={() => setFilterTag(key)}
@@ -1486,18 +1570,21 @@ const TeamChat: React.FC = () => {
 
             {/* Threads List — iMessage / Messages-style rows */}
             <div className="flex-1 min-h-0 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
-              {filteredThreads.map((thread) => {
-                const isDM = (thread as any).isDM === true;
-                const displayTitle = getThreadDisplayTitle(thread);
-                const initial = (displayTitle || '?').charAt(0).toUpperCase();
-                let hh = 0;
-                for (let i = 0; i < (displayTitle || '').length; i++) hh = (hh * 31 + displayTitle.charCodeAt(i)) >>> 0;
-                const palette = ['bg-rose-500','bg-amber-500','bg-emerald-500','bg-cyan-500','bg-violet-500','bg-fuchsia-500','bg-blue-500','bg-teal-500'];
-                const avatarBg = palette[hh % palette.length];
-                const threadPhotoUrl = getThreadPhotoUrl(thread);
-                const preview = thread.lastMessage?.content || (thread.description || (isDM ? 'Tap to send a message' : 'No messages yet'));
-                const ago = formatTime(thread.lastActivity);
-                return (
+              {(() => {
+                // Row renderer — shared between sectioned and flat layouts.
+                const renderRow = (thread: ChatThread) => {
+                  const isDM = (thread as any).isDM === true;
+                  const displayTitle = getThreadDisplayTitle(thread);
+                  const initial = (displayTitle || '?').charAt(0).toUpperCase();
+                  let hh = 0;
+                  for (let i = 0; i < (displayTitle || '').length; i++) hh = (hh * 31 + displayTitle.charCodeAt(i)) >>> 0;
+                  const palette = ['bg-rose-500','bg-amber-500','bg-emerald-500','bg-cyan-500','bg-violet-500','bg-fuchsia-500','bg-blue-500','bg-teal-500'];
+                  const avatarBg = palette[hh % palette.length];
+                  const threadPhotoUrl = getThreadPhotoUrl(thread);
+                  const preview = thread.lastMessage?.content || (thread.description || (isDM ? 'Tap to send a message' : 'No messages yet'));
+                  const ago = formatTime(thread.lastActivity);
+                  const unread = isThreadUnread(thread);
+                  return (
                   <button
                     key={thread.id}
                     onClick={() => showChatView(thread)}
@@ -1525,7 +1612,10 @@ const TeamChat: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="font-semibold text-gray-900 truncate text-[15px]">{displayTitle}</span>
+                        {unread && (
+                          <span aria-hidden className="w-2 h-2 rounded-full bg-cyan-500 flex-shrink-0" />
+                        )}
+                        <span className={`truncate text-[15px] ${unread ? 'font-extrabold text-slate-900' : 'font-semibold text-gray-900'}`}>{displayTitle}</span>
                         {/* Team chip — only shows when the user is on
                             multiple teams AND the thread is actually
                             team-scoped. DMs and groups aren't tied to a
@@ -1581,7 +1671,44 @@ const TeamChat: React.FC = () => {
                     </div>
                   </button>
                 );
-              })}
+                };
+                // Sectioned layout when on the default "All" filter,
+                // flat layout when filtering / searching (sections would
+                // just add noise when the user is already narrowing).
+                if (filterTag === 'all' && !searchQuery.trim()) {
+                  return chatSections.map(section => {
+                    const collapsed = collapsedSections[section.id] === true;
+                    const sectionUnread = section.threads.filter(t => isThreadUnread(t)).length;
+                    return (
+                      <div key={section.id}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSection(section.id)}
+                          className="w-full px-4 py-2 flex items-center justify-between bg-slate-50 border-b border-slate-200 hover:bg-slate-100"
+                        >
+                          <span className="flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase text-slate-600">
+                            {section.label}
+                            <span className="text-slate-400">{section.threads.length}</span>
+                            {sectionUnread > 0 && (
+                              <span className="px-1.5 py-0.5 rounded-full bg-cyan-500 text-white text-[9px] font-extrabold">
+                                {sectionUnread} new
+                              </span>
+                            )}
+                          </span>
+                          <svg
+                            className={`w-3.5 h-3.5 text-slate-400 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+                            fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+                        {!collapsed && section.threads.map(renderRow)}
+                      </div>
+                    );
+                  });
+                }
+                return filteredThreads.map(renderRow);
+              })()}
 
               {filteredThreads.length === 0 && (
                 <div className="p-10 text-center">

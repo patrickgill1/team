@@ -103,18 +103,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Auth user created, now creating Firestore document...');
       
-      // Use the team ID from the invite code if provided, otherwise default
-      const effectiveTeamId = (newUserData.teamId && !newUserData.teamId.startsWith('team_temp'))
-        ? newUserData.teamId
-        : DEFAULT_TEAM_ID;
+      // Only attach to a team when the signup carried a real invite-
+      // derived team id. Previously this fell back to DEFAULT_TEAM_ID
+      // for anything that smelled like a temp id, which silently
+      // attached random signups straight to Fire FC's active team.
+      // Now if no real team id is present we leave it empty and let
+      // the parent-email matcher below find the right team. If neither
+      // works, the user gets approved=false and no team — they can't
+      // see anything until a coach intentionally links them.
+      const looksReal = !!newUserData.teamId
+        && !newUserData.teamId.startsWith('team_temp')
+        && !newUserData.teamId.startsWith('team_'); // bare timestamps used to fall through
+      const effectiveTeamId = looksReal ? newUserData.teamId : '';
 
       const userDataWithId: any = {
         ...newUserData,
         uid: result.user.uid,
         teamId: effectiveTeamId,
-        teamIds: [effectiveTeamId],
+        teamIds: effectiveTeamId ? [effectiveTeamId] : [],
         isActive: true,
-        approved: newUserData.role === 'coach' ? true : false,
+        // Approved only when joining via a real invite. Self-signup
+        // (even with role=coach) starts as not-approved.
+        approved: looksReal,
+        approvalStatus: looksReal ? 'auto' : 'pending',
         authProvider: 'email'
       };
       
@@ -218,26 +229,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let userData = await getUserData(user.uid);
       
       if (!userData) {
-        // Use invite team ID if provided, otherwise default
-        const effectiveTeamId = inviteTeamId || DEFAULT_TEAM_ID;
-        console.log('New Google user, creating user document with team ID:', effectiveTeamId);
-        
+        // No DEFAULT_TEAM_ID fallback anymore — if there's no invite,
+        // we'll see if the email matches a roster parent below. If
+        // neither, the user lands with no team + approved=false,
+        // which keeps them out of any club's data.
+        const effectiveTeamId = inviteTeamId || '';
+
         // Extract name from Google profile
         const displayName = user.displayName || '';
         const nameParts = displayName.split(' ');
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         const fullName = displayName || `${firstName} ${lastName}`.trim() || 'Google User';
-        
+
         const newUserData: any = {
           uid: user.uid,
           email: user.email || '',
           name: fullName,
           role: 'parent', // Default to parent
           teamId: effectiveTeamId,
-          teamIds: [effectiveTeamId],
+          teamIds: effectiveTeamId ? [effectiveTeamId] : [],
           isActive: true,
-          approved: false,
+          approved: !!inviteTeamId,
+          approvalStatus: inviteTeamId ? 'auto' : 'pending',
           profilePhotoUrl: user.photoURL || null,
           authProvider: 'google',
           privacy: {
@@ -424,7 +438,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Create the Firestore user doc on first sign-in.
       let userData = await getUserData(user.uid);
       if (!userData) {
-        const effectiveTeamId = inviteTeamId || DEFAULT_TEAM_ID;
+        // Same lockdown as Google + email signup paths. No
+        // DEFAULT_TEAM_ID fallback. New users get a real team only
+        // when an invite carried one; otherwise team-less + pending.
+        const effectiveTeamId = inviteTeamId || '';
         const fullName = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
         const newUserData: any = {
           uid: user.uid,
@@ -432,9 +449,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: fullName,
           role: 'parent',
           teamId: effectiveTeamId,
-          teamIds: [effectiveTeamId],
+          teamIds: effectiveTeamId ? [effectiveTeamId] : [],
           isActive: true,
-          approved: false,
+          approved: !!inviteTeamId,
+          approvalStatus: inviteTeamId ? 'auto' : 'pending',
           profilePhotoUrl: user.photoURL || null,
           authProvider: 'apple',
           privacy: { showPhone: true, showEmail: true, showAddress: false },

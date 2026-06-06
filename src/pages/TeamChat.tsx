@@ -480,20 +480,58 @@ const TeamChat: React.FC = () => {
       });
   }, [teamThreads, clubThreads, isCoach, isUserClubAdmin, userData]);
 
-  // Deep-link handling (?thread=<id>) runs whenever the merged threads
-  // list refreshes; consumes the param so it doesn't re-fire.
+  // When a deep link includes &message=<id>, we stash it here and the
+  // messages-watching effect below scrolls to it once the bubble lands
+  // in the DOM. Cleared on success so we don't re-fire on the next
+  // messages snapshot.
+  const [pendingScrollMsgId, setPendingScrollMsgId] = useState<string | null>(null);
+
+  // Deep-link handling (?thread=<id>&message=<id>) runs whenever the
+  // merged threads list refreshes; consumes the params so they don't
+  // re-fire.
   useEffect(() => {
     const deepLinkId = searchParams.get('thread');
+    const msgId = searchParams.get('message');
     if (!deepLinkId) return;
     const target = threads.find(t => t.id === deepLinkId);
     if (target) {
       setSelectedThread(target);
       setCurrentView('chat');
+      if (msgId) setPendingScrollMsgId(msgId);
     }
     const next = new URLSearchParams(searchParams);
     next.delete('thread');
+    next.delete('message');
     setSearchParams(next, { replace: true });
   }, [threads, searchParams, setSearchParams]);
+
+  // Scroll to + flash-highlight a specific message once it's in the
+  // DOM. Same visual treatment as the reply-quote tap so the eye
+  // catches it. Polls a few frames in case the bubble hasn't rendered
+  // yet (messages subscription may not have caught up).
+  useEffect(() => {
+    if (!pendingScrollMsgId) return;
+    let attempts = 0;
+    const tryScroll = () => {
+      const el = document.getElementById(`msg-${pendingScrollMsgId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-amber-400', 'rounded-2xl');
+        window.setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-amber-400', 'rounded-2xl');
+        }, 1600);
+        setPendingScrollMsgId(null);
+        return;
+      }
+      attempts += 1;
+      // ~3s of polling at 200ms covers slow snapshot + image-decoded
+      // layout shifts. After that we give up — message was probably
+      // deleted or doesn't belong to this thread.
+      if (attempts < 15) window.setTimeout(tryScroll, 200);
+      else setPendingScrollMsgId(null);
+    };
+    tryScroll();
+  }, [pendingScrollMsgId, messages]);
 
   // Desktop initial selection: pick the first thread the first time the
   // list loads, if nothing's selected yet.

@@ -191,7 +191,12 @@ const Navigation: React.FC = () => {
     },
     {
       label: 'Communications',
-      items: ['News', 'Surveys', 'Volunteers', 'Directory']
+      items: ['Wall', 'News', 'Surveys', 'Volunteers', 'Directory']
+        .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
+    },
+    {
+      label: 'Team',
+      items: ['Team Store']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {

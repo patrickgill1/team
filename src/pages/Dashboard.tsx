@@ -533,7 +533,7 @@ const Dashboard: React.FC = () => {
               {wallPosts.map(p => (
                 <li key={p.id}>
                   <Link
-                    to={`/chat?thread=${encodeURIComponent(p.threadId)}`}
+                    to={`/chat?thread=${encodeURIComponent(p.threadId)}&message=${encodeURIComponent(p.id)}`}
                     className="block px-5 py-3 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-2 mb-0.5">

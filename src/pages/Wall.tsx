@@ -200,7 +200,7 @@ const Wall: React.FC = () => {
                 )}
                 <div className="px-4 py-2 border-t border-slate-100 flex items-center justify-between bg-slate-50">
                   <Link
-                    to={`/chat?thread=${encodeURIComponent(p.threadId)}`}
+                    to={`/chat?thread=${encodeURIComponent(p.threadId)}&message=${encodeURIComponent(p.id)}`}
                     className="text-xs font-bold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
                   >
                     Open in chat →

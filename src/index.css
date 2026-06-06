@@ -57,15 +57,22 @@ body.chat-locked {
    without the tabs riding up with it. Matches iMessage/Telegram/Slack —
    you're focused on the conversation; the back arrow gets you out. */
 body.chat-conversation nav.fixed.bottom-0 { display: none; }
-/* Flatten the body bg to white on ANY chat view (threads list + conversation)
-   so the --fire-ice (#f0f9ff) tint can never peek through as a 'blue strip'
-   in the safe-area-inset region below the chat container or tab bar. */
+/* Force EVERY ancestor of the chat container to white while chat is
+   open. The iOS keyboard's slightly-rounded top corners are slightly
+   blur-translucent and pick up whatever color sits behind them. Any
+   tinted layer (html bg, App wrapper bg-fire-50, etc.) shows through
+   as gray-blue quarter-circles next to the composer. Compared against
+   iMessage, where the page is pure white edge-to-edge, the only way
+   to match is to nuke every tint while .chat-locked is active. */
+html.chat-locked,
+html:has(body.chat-locked),
+html:has(body.chat-conversation) { background-color: #ffffff !important; }
 body.chat-locked,
-body.chat-conversation { background-color: #ffffff; }
-/* Also blank the App-level wrapper that paints bg-fire-50. Otherwise the
-   iOS keyboard's slightly rounded top corners reveal a pale-blue sliver
-   between the bottom of the chat container and the keyboard's top edge
-   as two tiny gray-blue quarter-circles next to the composer. */
+body.chat-conversation { background-color: #ffffff !important; }
+body.chat-locked #root,
+body.chat-conversation #root,
+body.chat-locked .App,
+body.chat-conversation .App,
 body.chat-locked .min-h-screen,
 body.chat-conversation .min-h-screen { background-color: #ffffff !important; }
 

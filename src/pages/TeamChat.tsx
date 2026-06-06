@@ -182,7 +182,14 @@ const TeamChat: React.FC = () => {
   // the body and the fixed bottom tab bar appears to drift over the chat.
   useEffect(() => {
     document.body.classList.add('chat-locked');
-    return () => { document.body.classList.remove('chat-locked'); };
+    // Also stamp the html element so the CSS rule that paints every
+    // ancestor white can match without depending on :has() (older iOS
+    // Safari builds don't have it).
+    document.documentElement.classList.add('chat-locked');
+    return () => {
+      document.body.classList.remove('chat-locked');
+      document.documentElement.classList.remove('chat-locked');
+    };
   }, []);
 
   // Two parallel signals for "how much of the viewport is currently hidden

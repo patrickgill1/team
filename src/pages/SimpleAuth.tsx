@@ -7,15 +7,13 @@ const SimpleAuth: React.FC = () => {
   const { signIn, signUp, signInWithGoogle, signInWithApple, currentUser, userData, loading, error } = useAuth();
   const isNativePlatform = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'login' | 'register' | 'setup'>('login');
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     name: '',
     role: 'parent' as 'coach' | 'parent',
-    teamName: '',
-    ageGroup: '',
     inviteCode: ''
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -54,22 +52,13 @@ const SimpleAuth: React.FC = () => {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
-    if (mode === 'register' || mode === 'setup') {
+    if (mode === 'register') {
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
 
       if (!formData.name.trim()) {
         newErrors.name = 'Name is required';
-      }
-
-      if (mode === 'setup') {
-        if (!formData.teamName.trim()) {
-          newErrors.teamName = 'Team name is required';
-        }
-        if (!formData.ageGroup) {
-          newErrors.ageGroup = 'Age group is required';
-        }
       }
     }
 
@@ -276,19 +265,16 @@ const SimpleAuth: React.FC = () => {
             <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-cyan-300/90">
               {mode === 'login' && 'Member Access'}
               {mode === 'register' && 'Team Invitation'}
-              {mode === 'setup' && 'New Team'}
             </span>
           </div>
 
           <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
             {mode === 'login' && 'Welcome Back'}
             {mode === 'register' && 'Join Your Team'}
-            {mode === 'setup' && 'Create Your Team'}
           </h2>
           <p className="text-sm sm:text-base text-slate-400 px-2">
             {mode === 'login' && 'Sign in to access your team hub'}
             {mode === 'register' && 'Create your account to join the squad'}
-            {mode === 'setup' && 'Set up a new team to get started'}
           </p>
         </div>
 
@@ -414,7 +400,7 @@ const SimpleAuth: React.FC = () => {
               </div>
 
               {/* Confirm Password (Register/Setup only) */}
-              {(mode === 'register' || mode === 'setup') && (
+              {mode === 'register' && (
                 <div>
                   <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                     Confirm Password
@@ -436,7 +422,7 @@ const SimpleAuth: React.FC = () => {
               )}
 
               {/* Name (Register/Setup only) */}
-              {(mode === 'register' || mode === 'setup') && (
+              {mode === 'register' && (
                 <div>
                   <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
                     Your Full Name
@@ -458,7 +444,7 @@ const SimpleAuth: React.FC = () => {
               )}
 
               {/* Role (Register/Setup only) - Mobile optimized */}
-              {(mode === 'register' || mode === 'setup') && (
+              {mode === 'register' && (
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">
                     I am a...
@@ -500,54 +486,6 @@ const SimpleAuth: React.FC = () => {
                 </div>
               )}
 
-              {/* Team Setup (Setup mode only) */}
-              {mode === 'setup' && (
-                <>
-                  <div>
-                    <label htmlFor="teamName" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                      Team Name
-                    </label>
-                    <input
-                      id="teamName"
-                      type="text"
-                      value={formData.teamName}
-                      onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-                      className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                        errors.teamName ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
-                      }`}
-                      placeholder="Enter team name"
-                      disabled={isSubmitting}
-                    />
-                    {errors.teamName && <p className="text-red-400 text-sm mt-1.5">{errors.teamName}</p>}
-                  </div>
-
-                  <div>
-                    <label htmlFor="ageGroup" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                      Age Group
-                    </label>
-                    <select
-                      id="ageGroup"
-                      value={formData.ageGroup}
-                      onChange={(e) => setFormData({ ...formData, ageGroup: e.target.value })}
-                      className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                        errors.ageGroup ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
-                      }`}
-                      disabled={isSubmitting}
-                    >
-                      <option value="" className="bg-slate-900">Select age group</option>
-                      <option value="U8" className="bg-slate-900">Under 8</option>
-                      <option value="U10" className="bg-slate-900">Under 10</option>
-                      <option value="U12" className="bg-slate-900">Under 12</option>
-                      <option value="U14" className="bg-slate-900">Under 14</option>
-                      <option value="U16" className="bg-slate-900">Under 16</option>
-                      <option value="U18" className="bg-slate-900">Under 18</option>
-                      <option value="Adult" className="bg-slate-900">Adult</option>
-                    </select>
-                    {errors.ageGroup && <p className="text-red-400 text-sm mt-1.5">{errors.ageGroup}</p>}
-                  </div>
-                </>
-              )}
-
               {/* Invite Code (Register mode only) */}
               {mode === 'register' && formData.inviteCode && (
                 <div className="rounded-xl p-4 bg-emerald-400/10 ring-1 ring-emerald-400/30">
@@ -583,7 +521,7 @@ const SimpleAuth: React.FC = () => {
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     <span>
-                      {mode === 'login' ? 'Signing in...' : mode === 'register' ? 'Creating account...' : 'Setting up team...'}
+                      {mode === 'login' ? 'Signing in...' : 'Creating account...'}
                     </span>
                   </>
                 ) : (
@@ -604,14 +542,6 @@ const SimpleAuth: React.FC = () => {
                         <span>Create Account</span>
                       </>
                     )}
-                    {mode === 'setup' && (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                        </svg>
-                        <span>Create Team</span>
-                      </>
-                    )}
                   </>
                 )}
               </button>
@@ -619,33 +549,20 @@ const SimpleAuth: React.FC = () => {
               {/* Mode Switching - Mobile optimized */}
               <div className="text-center space-y-3 pt-2">
                 {mode === 'login' && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-slate-400">
-                      Don't have an account?{' '}
-                      <button 
-                        type="button"
-                        onClick={() => switchMode('register')}
-                        className="font-semibold text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
-                        disabled={isSubmitting}
-                      >
-                        Join a team
-                      </button>
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      Need to create a new team?{' '}
-                      <button 
-                        type="button"
-                        onClick={() => switchMode('setup')}
-                        className="font-semibold text-violet-300 hover:text-violet-200 transition-colors duration-200"
-                        disabled={isSubmitting}
-                      >
-                        Set up your team
-                      </button>
-                    </p>
-                  </div>
+                  <p className="text-sm text-slate-400">
+                    Have an invite?{' '}
+                    <button
+                      type="button"
+                      onClick={() => switchMode('register')}
+                      className="font-semibold text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
+                      disabled={isSubmitting}
+                    >
+                      Join your team
+                    </button>
+                  </p>
                 )}
                 
-                {(mode === 'register' || mode === 'setup') && (
+                {mode === 'register' && (
                   <p className="text-sm text-slate-400">
                     Already have an account?{' '}
                     <button 

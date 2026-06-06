@@ -31,6 +31,7 @@ const AttendanceTracker = React.lazy(() => import('./pages/AttendanceTracker'));
 const PlayerOfMatch = React.lazy(() => import('./pages/PlayerOfMatch'));
 const TeamChat = React.lazy(() => import('./pages/TeamChat'));
 const Wall = React.lazy(() => import('./pages/Wall'));
+const TeamStore = React.lazy(() => import('./pages/TeamStore'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
@@ -275,6 +276,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Wall />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/store" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <TeamStore />
                 </AppLayout>
               </ProtectedRoute>
             } />

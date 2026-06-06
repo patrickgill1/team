@@ -134,6 +134,7 @@ const Navigation: React.FC = () => {
     })),
     { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps' },
     { name: 'Wall', path: '/wall', icon: 'news', group: 'apps' },
+    { name: 'Team Store', path: '/store', icon: 'soccer', group: 'apps' },
     { name: 'Calendar', path: '/calendar', icon: 'calendar', group: 'apps' },
     { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps' },
     { name: 'News', path: '/news', icon: 'news', group: 'apps' },

@@ -7,7 +7,6 @@ import { useFirestore } from '../hooks/useFirestore';
 import { CalendarEvent } from '../types';
 import { isCoach } from '../utils/helpers';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
-import EventDiscussion from '../components/calendar/EventDiscussion';
 import EventForm from '../components/calendar/EventForm';
 import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
 import SnackAssignment from '../components/calendar/SnackAssignment';
@@ -1053,25 +1052,22 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
-      {/* DISCUSSION — per-event comment thread (doesn't clog the chat tab).
-          notifyUids = everyone who RSVPd going/maybe through the
-          authenticated rsvps map. Per-player RSVPs key by playerId
-          (not uid) so they're skipped; share-link guest RSVPs have no
-          uid and are skipped too — they get nothing. */}
-      <EventDiscussion
-        eventId={event.id}
-        teamId={event.teamId}
-        userUid={userData?.uid}
-        userName={userData?.name}
-        userPhotoURL={(userData as any)?.photoURL}
-        eventTitle={event.title}
-        notifyUids={(() => {
-          const r = (event.rsvps || {}) as Record<string, any>;
-          return Object.entries(r)
-            .filter(([, v]) => v.status === 'going' || v.status === 'maybe')
-            .map(([uid]) => uid);
-        })()}
-      />
+      {/* DISCUSSION — replaced by a deep-link into the team chat. The
+          per-event thread was a parallel surface no one was using; one
+          chat per team is easier for parents to follow. */}
+      <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => navigate('/chat')}
+          className="w-full flex items-center justify-between gap-3 rounded-xl bg-slate-50 hover:bg-slate-100 ring-1 ring-slate-200 px-4 py-3 transition-colors"
+        >
+          <span className="flex items-center gap-2.5">
+            <Icon name="users" className="w-4 h-4 text-cyan-600" />
+            <span className="text-sm font-semibold text-slate-800">Discuss in team chat</span>
+          </span>
+          <Icon name="arrow-left" className="w-4 h-4 text-slate-400 rotate-180" />
+        </button>
+      </section>
 
       {/* SNACKS — coach assigns one family per event, family sees they're
           up. Only renders when there's an assignment OR the viewer is a

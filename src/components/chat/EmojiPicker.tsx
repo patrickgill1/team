@@ -4,10 +4,14 @@ import React, { useMemo, useState } from 'react';
 // still finite (no fat unicode dependency). Grouped by tab so the
 // most likely soccer-team reactions are one tap away.
 
+// Tab labels are emoji icons rather than words. Wordy tabs (TOP / FACES /
+// HANDS / HEARTS / SPORTS / OBJECTS) horizontally overflowed on small
+// phones and cut off the last category. Single-glyph tabs always fit,
+// and the picker stops feeling like a kitchen-sink dialog.
 const GROUPS: { id: string; label: string; emojis: string[] }[] = [
   {
     id: 'top',
-    label: 'Top',
+    label: '★',
     emojis: [
       '👍','❤️','🔥','⚽','🏆','😂','🙌','👏',
       '💯','🎉','😍','💪','🤩','😅','🥳','😎',
@@ -15,7 +19,7 @@ const GROUPS: { id: string; label: string; emojis: string[] }[] = [
   },
   {
     id: 'faces',
-    label: 'Faces',
+    label: '😀',
     emojis: [
       '😀','😃','😄','😆','😊','🙂','😉','😌',
       '😘','🥰','😍','🤩','😋','😛','😜','🤪',
@@ -26,7 +30,7 @@ const GROUPS: { id: string; label: string; emojis: string[] }[] = [
   },
   {
     id: 'hands',
-    label: 'Hands',
+    label: '👋',
     emojis: [
       '👍','👎','👌','🤝','🙏','👋','✋','🤘',
       '👊','✊','🤛','🤜','✌️','🤞','🤟','🫶',
@@ -35,7 +39,7 @@ const GROUPS: { id: string; label: string; emojis: string[] }[] = [
   },
   {
     id: 'hearts',
-    label: 'Hearts',
+    label: '❤️',
     emojis: [
       '❤️','🧡','💛','💚','💙','💜','🖤','🤍',
       '🤎','💖','💗','💓','💞','💕','💘','💝',
@@ -44,7 +48,7 @@ const GROUPS: { id: string; label: string; emojis: string[] }[] = [
   },
   {
     id: 'sports',
-    label: 'Sports',
+    label: '⚽',
     emojis: [
       '⚽','🥅','🏆','🥇','🥈','🥉','🏅','🎖️',
       '⛳','🎯','🏃','🤸','🏋️','🚴','🏟️','🎽',
@@ -53,7 +57,7 @@ const GROUPS: { id: string; label: string; emojis: string[] }[] = [
   },
   {
     id: 'objects',
-    label: 'Objects',
+    label: '🎉',
     emojis: [
       '🎉','🎊','🎈','🎁','🎂','🍕','🌭','🥤',
       '☕','🍺','🥃','🍿','💯','💥','⭐','🌟',
@@ -121,19 +125,18 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
 
   return (
     <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-      {/* Header — branded navy strip with a magnifier toggle. Tapping
-          the magnifier reveals the search input on demand; default is
-          collapsed so the keyboard doesn't pop up the moment the picker
-          opens (the user's "I just want to pick — get out of my way"
-          complaint). */}
-      <div className="bg-slate-950 px-3 py-2.5 flex items-center justify-between gap-2">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">React</div>
-        <div className="flex items-center gap-1">
+      {/* Lightweight header — the heavy navy strip was overpowering for
+          a small picker. Drag-handle hint up top, search + close on a
+          single row below it. The picker's purpose is obvious from
+          context; no need for a "REACT" label. */}
+      <div className="pt-1.5 pb-1 border-b border-slate-100">
+        <div className="w-9 h-1 rounded-full bg-slate-200 mx-auto mb-1" aria-hidden />
+        <div className="px-3 flex items-center justify-end gap-1">
           <button
             onClick={() => setSearchOpen(s => !s)}
             aria-label="Search emoji"
             className={`w-7 h-7 rounded-md flex items-center justify-center transition ${
-              searchOpen ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-white'
+              searchOpen ? 'bg-cyan-50 text-cyan-700' : 'text-slate-400 hover:text-slate-700'
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -143,7 +146,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-white"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -165,15 +168,18 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
         </div>
       )}
 
-      {/* Category tabs (hidden during a search) */}
+      {/* Category tabs — single-glyph icons fit on one row without
+          overflow (the old word labels cut off the last tab on small
+          phones). Active tab gets a soft cyan pill. */}
       {!filtered && (
-        <div className="flex gap-1 px-3 pt-2.5 overflow-x-auto">
+        <div className="flex justify-between px-3 pt-2">
           {GROUPS.map(g => (
             <button
               key={g.id}
               onClick={() => setActiveTab(g.id)}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase whitespace-nowrap ${
-                activeTab === g.id ? 'bg-cyan-500/15 text-cyan-700' : 'text-slate-500 hover:text-slate-800'
+              aria-label={g.id}
+              className={`flex-1 mx-0.5 h-8 rounded-lg text-base flex items-center justify-center transition ${
+                activeTab === g.id ? 'bg-cyan-50 ring-1 ring-cyan-200' : 'hover:bg-slate-50'
               }`}
             >
               {g.label}

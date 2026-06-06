@@ -502,29 +502,44 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           />
         )}
 
-        {/* Image attachments */}
+        {/* Image / GIF attachments.
+            Long-press on the wrapper opens the quick-react sheet (Patrick
+            specifically wanted reactions on GIFs — half the value of a
+            GIF is the reaction). We override iOS's native "Save Image"
+            long-press menu in exchange. Tap on the image still opens
+            the lightbox via onClick. */}
         {images.length > 0 && (
           <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
             className={`mt-1 grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
           >
             {images.map((img, i) => (
-              // Render the <img> directly (no <a> wrapper) so iOS's native
-              // long-press menu (Save Image / Copy / Share) still works.
-              // Tap is handled by onClick → lightbox; long-press falls
-              // through to the WebView's default behavior.
               <img
                 key={i}
                 src={img.url}
                 alt={img.name || 'attachment'}
                 loading="lazy"
                 decoding="async"
-                onClick={() => onImageClick?.(img.url)}
+                onClick={() => {
+                  // Don't fire the lightbox if the tap is the end of a
+                  // long-press (we already opened the react sheet).
+                  if (longPressFiredRef.current) {
+                    longPressFiredRef.current = false;
+                    return;
+                  }
+                  onImageClick?.(img.url);
+                }}
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).style.display = 'none';
                 }}
                 className={`rounded-2xl object-cover cursor-pointer ${
                   images.length === 1 ? 'max-h-72 w-auto' : 'h-32 w-full'
                 }`}
+                draggable={false}
+                style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
               />
             ))}
           </div>
@@ -594,8 +609,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {/* Single ⋯ affordance — one icon per message, always visible on
           mobile and on-hover on desktop. Tapping opens the full action
           sheet (which has a row of quick reactions at the top + every
-          other action below). One button to learn, no clutter. */}
-      {message.content && (
+          other action below). Also renders on attachment-only messages
+          (GIFs etc.) so people can still react to them. */}
+      {(message.content || images.length > 0) && (
         <button
           onClick={() => setActionsOpen(true)}
           aria-label="Message actions"

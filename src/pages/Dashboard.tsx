@@ -47,6 +47,13 @@ const Dashboard: React.FC = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [media, setMedia] = useState<PlayerMediaType[]>([]);
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([]);
+  // Wall posts = chat messages pinned to any of the team's threads.
+  // We hydrate them by fetching the chat_messages docs whose ids appear
+  // in each thread's pinnedMessageIds. Surfaced here as the team's
+  // single "announcements" surface so coaches don't have to maintain a
+  // parallel wall feed (they post once in chat with "Post to wall" on,
+  // it lands here too).
+  const [wallPosts, setWallPosts] = useState<Array<{ id: string; threadId: string; content: string; senderName: string; senderRole?: string; timestamp: Date }>>([]);
   // uid → photoURL map used by the Recent Chats card to render real
   // avatars on DMs (and any future thread types that want a per-user
   // photo). Built once from the users collection per team selection.
@@ -152,6 +159,55 @@ const Dashboard: React.FC = () => {
     });
     return () => { unsub && unsub(); };
   }, [selectedTeamId, subscribeToChatThreads, isUserCoach, userData?.uid]);
+
+  // Hydrate wall posts whenever the team's threads change. We collect
+  // every pinned message id across the active team's threads, dedupe,
+  // and fetch the chat_messages docs in batches (Firestore "in" cap
+  // is 30). Cheap because most teams have <10 pinned messages total
+  // and threads are usually 1-3.
+  useEffect(() => {
+    if (!selectedTeamId) { setWallPosts([]); return; }
+    const idToThread = new Map<string, string>();
+    for (const t of chatThreads) {
+      const ids: string[] = ((t as any).pinnedMessageIds || []) as string[];
+      for (const id of ids) if (id && !idToThread.has(id)) idToThread.set(id, t.id);
+    }
+    if (idToThread.size === 0) { setWallPosts([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs, query, where, documentId } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const ids = Array.from(idToThread.keys());
+        const fetched: any[] = [];
+        for (let i = 0; i < ids.length; i += 30) {
+          const slice = ids.slice(i, i + 30);
+          const snap = await getDocs(query(
+            collection(db, 'chat_messages'),
+            where(documentId(), 'in', slice),
+          ));
+          snap.docs.forEach(d => fetched.push({ id: d.id, ...(d.data() as any) }));
+        }
+        if (cancelled) return;
+        const posts = fetched
+          .filter(m => m.content)
+          .map(m => ({
+            id: m.id,
+            threadId: idToThread.get(m.id) || m.threadId || '',
+            content: m.content as string,
+            senderName: m.senderName as string,
+            senderRole: m.senderRole as string | undefined,
+            timestamp: m.timestamp?.toDate?.() || new Date(m.timestamp || Date.now()),
+          }))
+          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+          .slice(0, 5);
+        setWallPosts(posts);
+      } catch (err) {
+        console.warn('wall posts load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTeamId, chatThreads]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -457,6 +513,44 @@ const Dashboard: React.FC = () => {
             on this team (parent OR coach-with-kid). */}
         {myPlayer && (
           <MyPlayerCard player={myPlayer} latestThumb={featuredClip ? clipThumb(featuredClip) : undefined} />
+        )}
+
+        {/* ── TEAM WALL / ANNOUNCEMENTS ──────────────────────────────
+            Pinned messages from any of the team's chat threads, sorted
+            newest first. Surfaces here so a parent who only checks the
+            dashboard still sees announcements coaches posted in chat.
+            Tap a card → deep-links into the chat tab on that thread. */}
+        {wallPosts.length > 0 && (
+          <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-fire-950 flex items-center gap-2">
+                <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
+                Announcements
+              </h3>
+              <Link to="/chat" className="text-cyan-600 text-sm font-semibold">View all</Link>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {wallPosts.map(p => (
+                <li key={p.id}>
+                  <Link
+                    to={`/chat?thread=${encodeURIComponent(p.threadId)}`}
+                    className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-bold text-fire-950">{p.senderName}</span>
+                      {p.senderRole === 'coach' && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
+                      )}
+                      <span className="text-[11px] text-gray-400 ml-auto">
+                        {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700 line-clamp-3">{p.content}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {/* ── RECENT CHATS + TEAM PULSE ──────────────────────────────

@@ -2059,6 +2059,7 @@ const TeamChat: React.FC = () => {
                       getSenderPhotoUrl={getSenderPhotoUrl}
                       getUserName={getUserName}
                       resolveUnknownUids={resolveUnknownUids}
+                      canSeeVoters={isCoach || isUserClubAdmin}
                       onMarkRead={markMessageRead}
                     />
                     </div>
@@ -2455,6 +2456,7 @@ const TeamChat: React.FC = () => {
                     getSenderPhotoUrl={getSenderPhotoUrl}
                       getUserName={getUserName}
                       resolveUnknownUids={resolveUnknownUids}
+                      canSeeVoters={isCoach || isUserClubAdmin}
                       onMarkRead={markMessageRead}
                   />
                   </div>

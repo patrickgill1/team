@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChatMessage } from '../../types';
 
 interface Props {
@@ -6,6 +6,15 @@ interface Props {
   currentUserId: string;
   ownTheme: boolean;
   onVote: (messageId: string, optionId: string) => void;
+  /** Coach / admin gate. When true, a "Voters" button shows under the
+   *  poll that opens a per-option list of who voted. Hidden otherwise. */
+  canSeeVoters?: boolean;
+  /** Resolve a uid → display name. Same lookup used by the Seen-by
+   *  sheet — checks active-team roster then the cross-team cache. */
+  getUserName?: (uid: string) => string | undefined;
+  /** Trigger an async fetch for uids the active-team roster can't
+   *  resolve. Lets the voter list pull names for ex-teammates etc. */
+  resolveUnknownUids?: (uids: string[]) => void;
 }
 
 /**
@@ -13,8 +22,20 @@ interface Props {
  * vote (or remove your existing vote on that option). For single-choice
  * polls, voting on a different option moves your vote.
  */
-const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote }) => {
+const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, canSeeVoters, getUserName, resolveUnknownUids }) => {
   const poll = message.poll;
+  const [votersOpen, setVotersOpen] = useState(false);
+
+  // When the coach opens the voter sheet, ask the parent to resolve
+  // any uids we can't name locally — same pattern as the Seen-by sheet.
+  useEffect(() => {
+    if (!votersOpen || !resolveUnknownUids || !getUserName || !poll) return;
+    const all = new Set<string>();
+    poll.options.forEach(o => o.voters.forEach(u => all.add(u)));
+    const unknown = Array.from(all).filter(uid => !getUserName(uid));
+    if (unknown.length > 0) resolveUnknownUids(unknown);
+  }, [votersOpen, resolveUnknownUids, getUserName, poll]);
+
   if (!poll) return null;
 
   const totalVoters = new Set<string>();
@@ -63,10 +84,71 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote })
           );
         })}
       </div>
-      <p className={`mt-2 text-[11px] ${labelColor}`}>
-        {totalVoters.size} {totalVoters.size === 1 ? 'vote' : 'votes'}
-        {poll.multi ? ' · pick multiple' : ' · single choice'}
-      </p>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p className={`text-[11px] ${labelColor}`}>
+          {totalVoters.size} {totalVoters.size === 1 ? 'vote' : 'votes'}
+          {poll.multi ? ' · pick multiple' : ' · single choice'}
+        </p>
+        {canSeeVoters && totalVoters.size > 0 && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setVotersOpen(true); }}
+            className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-md transition ${
+              ownTheme
+                ? 'bg-white/15 text-white hover:bg-white/25'
+                : 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-100'
+            }`}
+          >
+            Voters
+          </button>
+        )}
+      </div>
+
+      {votersOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center sm:p-4"
+          onClick={() => setVotersOpen(false)}
+        >
+          <div
+            className="bg-white text-slate-900 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+              <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Voters</div>
+              <button
+                onClick={() => setVotersOpen(false)}
+                className="text-[10px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-slate-700"
+              >
+                Done
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {poll.options.map(opt => (
+                <div key={opt.id} className="border-b border-slate-100 last:border-b-0">
+                  <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-900 truncate">{opt.text}</span>
+                    <span className="text-[11px] font-bold tabular-nums text-slate-500 flex-shrink-0 ml-2">
+                      {opt.voters.length}
+                    </span>
+                  </div>
+                  {opt.voters.length === 0 ? (
+                    <div className="px-4 py-2 text-[12px] text-slate-400 italic">No votes yet.</div>
+                  ) : (
+                    <ul className="pb-2">
+                      {opt.voters.map(uid => (
+                        <li key={uid} className="px-4 py-1 text-sm text-slate-700">
+                          {(getUserName ? getUserName(uid) : null) || 'Member'}
+                          {uid === currentUserId && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-600">You</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

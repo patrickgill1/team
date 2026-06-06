@@ -47,6 +47,9 @@ interface MessageBubbleProps {
    *  resolve. Lets the Seen-by sheet pull names for people on OTHER
    *  teams who saw the message back when the viewer was on their team. */
   resolveUnknownUids?: (uids: string[]) => void;
+  /** Coach / admin gate for the poll's "Voters" affordance. When true,
+   *  PollCard surfaces a button that opens a per-option voter list. */
+  canSeeVoters?: boolean;
   /** Called once on first render of a message NOT sent by the current
    *  user and NOT already in readBy[currentUserId]. Wires up the
    *  read-receipt write back to Firestore from the parent. */
@@ -169,6 +172,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   getSenderPhotoUrl,
   getUserName,
   resolveUnknownUids,
+  canSeeVoters = false,
   onMarkRead,
   onStartDm,
   onToggleMute,
@@ -513,6 +517,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             currentUserId={currentUserId}
             ownTheme={isOwn}
             onVote={(mid, oid) => onPollVote?.(mid, oid)}
+            canSeeVoters={canSeeVoters}
+            getUserName={getUserName}
+            resolveUnknownUids={resolveUnknownUids}
           />
         )}
 

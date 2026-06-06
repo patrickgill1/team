@@ -9,7 +9,9 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
 } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
@@ -219,6 +221,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const provider = new GoogleAuthProvider();
         provider.addScope('email');
         provider.addScope('profile');
+        // Mobile browsers (iOS Safari + Chrome iOS especially) break
+        // the signInWithPopup flow: the popup either won't post the
+        // result back to the parent window, or the parent is GC'd
+        // when the new tab takes focus. Use signInWithRedirect on
+        // anything that smells like mobile web; the desktop popup
+        // stays for keyboard-and-mouse contexts where it works well.
+        const isMobileWeb = typeof navigator !== 'undefined'
+          && /Android|iPhone|iPad|iPod|Mobile/.test(navigator.userAgent);
+        if (isMobileWeb) {
+          // Stash the optional invite team id so we can pick it back
+          // up on return — the redirect navigates the whole tab away.
+          if (inviteTeamId) {
+            try { sessionStorage.setItem('firefc.pendingInviteTeamId', inviteTeamId); } catch { /* ignore */ }
+          }
+          await signInWithRedirect(auth, provider);
+          // signInWithRedirect navigates away; control returns via
+          // getRedirectResult in handleGoogleRedirectReturn (mounted
+          // below). Nothing more to do here.
+          return;
+        }
         const result = await signInWithPopup(auth, provider);
         user = result.user;
       }
@@ -712,6 +734,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }).catch(err => console.error('Error syncing parent teamIds:', err));
     }
   };
+
+  // Catch the return leg of signInWithRedirect (mobile browsers).
+  // Runs once on mount. If Firebase has a pending credential from a
+  // just-completed redirect, we create the Firestore user doc here
+  // — same shape as the popup path's first-time-user branch.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (cancelled || !result?.user) return;
+        const user = result.user;
+        const existing = await getUserData(user.uid);
+        if (existing) return; // onAuthStateChanged will pick this up
+
+        // Pull the invite team id we stashed before the redirect (if any).
+        let inviteTeamId = '';
+        try {
+          inviteTeamId = sessionStorage.getItem('firefc.pendingInviteTeamId') || '';
+          sessionStorage.removeItem('firefc.pendingInviteTeamId');
+        } catch { /* ignore */ }
+
+        const displayName = user.displayName || '';
+        const fullName = displayName || (user.email ? user.email.split('@')[0] : 'Member');
+        const newUserData: any = {
+          uid: user.uid,
+          email: user.email || '',
+          name: fullName,
+          role: 'parent',
+          teamId: inviteTeamId,
+          teamIds: inviteTeamId ? [inviteTeamId] : [],
+          isActive: true,
+          approved: !!inviteTeamId,
+          approvalStatus: inviteTeamId ? 'auto' : 'pending',
+          profilePhotoUrl: user.photoURL || null,
+          authProvider: 'google',
+          privacy: { showPhone: true, showEmail: true, showAddress: false },
+        };
+        await createUser(newUserData);
+
+        // Roster auto-link: same logic as the popup path so a parent
+        // who's been pre-added by a coach gets approved + on the
+        // right team without any extra steps.
+        if (user.email) {
+          try {
+            const snap = await getDocs(query(
+              collection(db, 'players'),
+              where('parentEmails', 'array-contains', user.email.toLowerCase()),
+            ));
+            const linkedTeamIds = new Set<string>();
+            let firstPlayerPrimaryTeamId: string | null = null;
+            for (const playerDoc of snap.docs) {
+              const p = playerDoc.data();
+              if (!p.parentIds?.includes(user.uid)) {
+                await updateDoc(doc(db, 'players', playerDoc.id), {
+                  parentIds: arrayUnion(user.uid),
+                });
+              }
+              const pTeams: string[] = p.teamIds || (p.teamId ? [p.teamId] : []);
+              for (const t of pTeams) linkedTeamIds.add(t);
+              if (!firstPlayerPrimaryTeamId) firstPlayerPrimaryTeamId = p.teamId || pTeams[0] || null;
+            }
+            if (snap.size > 0 && firstPlayerPrimaryTeamId) {
+              await updateDoc(doc(db, 'users', user.uid), {
+                approved: true,
+                approvalStatus: 'auto',
+                teamId: firstPlayerPrimaryTeamId,
+                teamIds: Array.from(linkedTeamIds),
+              });
+            }
+          } catch (err) {
+            console.warn('redirect-return roster link failed', err);
+          }
+        }
+      } catch (err) {
+        // No-op when there's nothing to handle. Firebase throws here
+        // if the page wasn't reached via a redirect.
+        console.warn('getRedirectResult skipped', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     // Safety timeout: if loading hasn't resolved in 8 seconds, force it off

@@ -15,6 +15,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/__/auth/:path*", "destination": "https://soccer-team-app-7f6b4.firebaseapp.com/__/auth/:path*" },
+    { "source": "/__/firebase/:path*", "destination": "https://soccer-team-app-7f6b4.firebaseapp.com/__/firebase/:path*" },
+    { "source": "/((?!api/|__/).*)", "destination": "/index.html" }
   ]
 }

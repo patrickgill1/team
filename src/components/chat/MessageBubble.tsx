@@ -819,12 +819,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           <div onClick={(e) => e.stopPropagation()}>
             <ReadBySheet
-              readers={Object.entries(((message as any).readBy || {}) as Record<string, number>).map(([uid, readAt]) => ({
-                uid,
-                readAt,
-                name: getUserName ? (getUserName(uid) || 'Member') : 'Member',
-                photoURL: getSenderPhotoUrl ? getSenderPhotoUrl(uid) : undefined,
-              }))}
+              readers={Object.entries(((message as any).readBy || {}) as Record<string, number>)
+                // Drop readers we can't resolve — these are stale read
+                // receipts from people who used to be on the team but
+                // aren't anymore. They cluttered the sheet as faceless
+                // "Member" rows. The current user always resolves
+                // (special-cased in getUserName) so their receipt is
+                // never dropped.
+                .filter(([uid]) => !getUserName || !!getUserName(uid))
+                .map(([uid, readAt]) => ({
+                  uid,
+                  readAt,
+                  name: getUserName ? (getUserName(uid) || 'Member') : 'Member',
+                  photoURL: getSenderPhotoUrl ? getSenderPhotoUrl(uid) : undefined,
+                }))}
               threadParticipantCount={threadParticipantCount}
               onClose={() => setReadByOpen(false)}
             />

@@ -820,12 +820,13 @@ const TeamChat: React.FC = () => {
     // team roster.
     if (isDM || isGroup) return thread.participants || [];
     if (scope === 'team' && teamMembers.length > 0) {
-      const set = new Set<string>(teamMembers.map(m => m.uid).filter(Boolean));
-      // Union with the doc's participants — covers visitors from
-      // other teams who happen to be in the chat (rare but possible
-      // via legacy data).
-      (thread.participants || []).forEach(uid => uid && set.add(uid));
-      return Array.from(set);
+      // Current roster ONLY. We used to union with thread.participants,
+      // but that array grows on every send and never prunes — so a
+      // parent whose kid left the team a season ago was still counted
+      // in "X participants." Worse, their stale UIDs showed up as
+      // "Member" placeholders in the Seen-by sheet. Just trust the
+      // active team roster.
+      return teamMembers.map(m => m.uid).filter(Boolean);
     }
     return thread.participants || [];
   };

@@ -175,6 +175,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [readByOpen, setReadByOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  // Long-press on the bubble opens this lightweight react-only sheet
+  // (iMessage / WhatsApp pattern). The full action menu lives on the ⋯
+  // button — one gesture per surface so they don't fight each other.
+  const [quickReactOpen, setQuickReactOpen] = useState(false);
+  // Track whether long-press fired, so the touch-end click doesn't
+  // also open the full menu or swallow the gesture.
+  const longPressFiredRef = useRef<boolean>(false);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
@@ -260,9 +267,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const handleTouchStart = () => {
     if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-    // 600ms matches iOS native long-press; 350ms was firing while the
-    // user's thumb was still mid-tap and obscured the action sheet.
-    longPressTimer.current = window.setTimeout(() => setActionsOpen(true), 600);
+    longPressFiredRef.current = false;
+    // 1000ms keeps the long-press from firing on accidental brushes
+    // (Patrick's feedback was that 600ms was too sensitive). Long-press
+    // opens the quick-react sheet only — the full action menu is the
+    // ⋯ button's job, so the two gestures don't overlap.
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFiredRef.current = true;
+      setQuickReactOpen(true);
+    }, 1000);
   };
   const handleTouchEnd = () => {
     if (longPressTimer.current) {
@@ -413,7 +426,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setActionsOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
             className={`px-3.5 py-2 leading-relaxed break-words text-[15px] shadow-sm select-text ${cornerClasses} ${bubbleBg} ${
               isMentioned && !isOwn ? 'ring-2 ring-amber-300' : ''
             }`}
@@ -431,7 +444,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setActionsOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
             className="w-full max-w-[340px] rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 ring-1 ring-amber-400/50 shadow-md p-3.5"
           >
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -594,6 +607,36 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             <circle cx="19" cy="12" r="1.8"/>
           </svg>
         </button>
+      )}
+
+      {/* Long-press / right-click quick-react sheet. Just the emoji row,
+          no menu — that's what the ⋯ button is for. Tap an emoji to
+          react and dismiss; tap + to open the full picker. */}
+      {quickReactOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center sm:p-4"
+          onClick={() => setQuickReactOpen(false)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-3 py-3 grid grid-cols-9 gap-0.5">
+              {['👍','❤️','🔥','⚽','🏆','😂','🙌','👏'].map((e) => (
+                <button
+                  key={e}
+                  onClick={() => { onToggleReaction(message, e); setQuickReactOpen(false); }}
+                  className="text-2xl py-2 rounded-lg hover:bg-slate-100 active:scale-95"
+                >{e}</button>
+              ))}
+              <button
+                onClick={() => { setQuickReactOpen(false); setEmojiOpen(true); }}
+                className="text-lg py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold"
+                aria-label="More emoji"
+              >+</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {actionsOpen && (

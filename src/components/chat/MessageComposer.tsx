@@ -157,7 +157,12 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         return;
       }
     }
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Enter always inserts a newline so people can break their
+    // messages into paragraphs without it accidentally sending. Power
+    // users on a hardware keyboard can still Cmd/Ctrl+Enter to send.
+    // The send button is the only "one tap = send" affordance on
+    // touch.
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       doSend();
     }

@@ -1568,8 +1568,13 @@ const TeamChat: React.FC = () => {
               </div>
             </div>
 
-            {/* Threads List — iMessage / Messages-style rows */}
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
+            {/* Threads List — iMessage / Messages-style rows. Bottom
+                padding clears the fixed app tab bar so the last section
+                (often Club Channels) isn't trapped under it. */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto"
+              style={{ overscrollBehavior: 'contain', paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+            >
               {(() => {
                 // Row renderer — shared between sectioned and flat layouts.
                 const renderRow = (thread: ChatThread) => {
@@ -1944,10 +1949,14 @@ const TeamChat: React.FC = () => {
                       onTogglePin={togglePinMessage}
                       isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
                       canPin={(() => {
+                        // Anyone can pin their own messages (Patrick's
+                        // ask — feels native, matches what users expect
+                        // from threads/Slack-style apps).
+                        if (message.senderId === userData?.uid) return true;
                         const sc = (selectedThread as any)?.scope || 'team';
-                        // Team threads: coaches (head + assistant) AND
-                        // team managers can pin. Coach-only scope still
-                        // gates pinning to club admins.
+                        // Pinning OTHER people's messages stays gated:
+                        // coaches + team managers in team threads, club
+                        // admins in club-scope channels.
                         if (sc === 'team') {
                           const r = userData?.role as string | undefined;
                           return r === 'coach' || r === 'team_manager';
@@ -2356,6 +2365,7 @@ const TeamChat: React.FC = () => {
                     onTogglePin={togglePinMessage}
                     isPinned={((selectedThread as any)?.pinnedMessageIds || []).includes(message.id)}
                     canPin={(() => {
+                      if (message.senderId === userData?.uid) return true;
                       const sc = (selectedThread as any)?.scope || 'team';
                       if (sc === 'team') return isCoach;
                       return isUserClubAdmin;

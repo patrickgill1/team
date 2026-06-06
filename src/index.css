@@ -62,6 +62,12 @@ body.chat-conversation nav.fixed.bottom-0 { display: none; }
    in the safe-area-inset region below the chat container or tab bar. */
 body.chat-locked,
 body.chat-conversation { background-color: #ffffff; }
+/* Also blank the App-level wrapper that paints bg-fire-50. Otherwise the
+   iOS keyboard's slightly rounded top corners reveal a pale-blue sliver
+   between the bottom of the chat container and the keyboard's top edge
+   as two tiny gray-blue quarter-circles next to the composer. */
+body.chat-locked .min-h-screen,
+body.chat-conversation .min-h-screen { background-color: #ffffff !important; }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;

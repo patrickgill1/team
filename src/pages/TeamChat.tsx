@@ -90,6 +90,14 @@ const TeamChat: React.FC = () => {
   };
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; photoURL?: string; childNames?: string[] }[]>([]);
+  // Cross-team user cache. Populated on demand by resolveUnknownUids
+  // when MessageBubble's Seen-by sheet sees a UID the active-team
+  // roster can't name (former teammates, coaches who moved teams,
+  // etc.). Persists for the session so we don't re-fetch.
+  const [crossUserCache, setCrossUserCache] = useState<Record<string, { name: string; photoURL?: string }>>({});
+  // In-flight set — keeps us from firing duplicate fetches when the
+  // same uid appears in multiple bubbles' useEffects on the same render.
+  const crossUserPendingRef = React.useRef<Set<string>>(new Set());
   // teamId → teamName lookup. Used to label each thread with its
   // team chip now that the chat tab spans every team the user is on.
   const [teamNameById, setTeamNameById] = useState<Record<string, string>>({});
@@ -1115,21 +1123,62 @@ const TeamChat: React.FC = () => {
 
   // Live photo lookup for message bubble avatars. Older messages don't
   // carry senderPhotoUrl on the doc itself, so MessageBubble falls back
-  // to this teamMembers-backed lookup.
+  // to this teamMembers-backed lookup, then to crossUserCache for users
+  // who aren't on the active team.
   const getSenderPhotoUrl = (senderId: string): string | undefined => {
     if (!senderId) return undefined;
     if (userData?.uid === senderId) return (userData as any)?.photoURL || undefined;
     const m = teamMembers.find(tm => tm.uid === senderId);
-    return m?.photoURL || undefined;
+    if (m?.photoURL) return m.photoURL;
+    return crossUserCache[senderId]?.photoURL;
   };
 
   // Used by the Read-by sheet to render names for each uid in readBy.
+  // Consults active-team roster first, then the cross-team cache so a
+  // coach viewing chat A while signed into team B still sees real names.
   const getUserName = (uid: string): string | undefined => {
     if (!uid) return undefined;
     if (userData?.uid === uid) return userData?.name || 'You';
     const m = teamMembers.find(tm => tm.uid === uid);
-    return m?.name;
+    if (m?.name) return m.name;
+    return crossUserCache[uid]?.name;
   };
+
+  // Pulled by MessageBubble when its Seen-by sheet sees UIDs the active
+  // roster can't name. Fetches users/{uid} once per uid and caches the
+  // result, which flows back through getUserName / getSenderPhotoUrl.
+  const resolveUnknownUids = React.useCallback((uids: string[]) => {
+    const pending = crossUserPendingRef.current;
+    const todo = uids.filter(u => u && !crossUserCache[u] && !pending.has(u));
+    if (todo.length === 0) return;
+    todo.forEach(u => pending.add(u));
+    (async () => {
+      try {
+        const { doc: fsDoc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const fetched: Record<string, { name: string; photoURL?: string }> = {};
+        for (const uid of todo) {
+          try {
+            const snap = await getDoc(fsDoc(db, 'users', uid));
+            if (snap.exists()) {
+              const u: any = snap.data();
+              fetched[uid] = { name: u.name || 'Member', photoURL: u.photoURL || u.profilePhotoUrl };
+            } else {
+              fetched[uid] = { name: 'Member' };
+            }
+          } catch {
+            fetched[uid] = { name: 'Member' };
+          } finally {
+            pending.delete(uid);
+          }
+        }
+        setCrossUserCache(prev => ({ ...prev, ...fetched }));
+      } catch (err) {
+        todo.forEach(u => pending.delete(u));
+        console.warn('resolveUnknownUids failed', err);
+      }
+    })();
+  }, [crossUserCache]);
 
   // Write a read-receipt to a message. Throttled at the call site
   // (MessageBubble fires once per first-render). Optimistic + best-effort
@@ -1990,6 +2039,7 @@ const TeamChat: React.FC = () => {
                       isLastInGroup={isLastInGroup}
                       getSenderPhotoUrl={getSenderPhotoUrl}
                       getUserName={getUserName}
+                      resolveUnknownUids={resolveUnknownUids}
                       onMarkRead={markMessageRead}
                     />
                     </div>
@@ -2385,6 +2435,7 @@ const TeamChat: React.FC = () => {
                     isLastInGroup={isLastInGroup}
                     getSenderPhotoUrl={getSenderPhotoUrl}
                       getUserName={getUserName}
+                      resolveUnknownUids={resolveUnknownUids}
                       onMarkRead={markMessageRead}
                   />
                   </div>

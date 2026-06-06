@@ -43,6 +43,10 @@ interface MessageBubbleProps {
   getSenderPhotoUrl?: (senderId: string) => string | undefined;
   /** Optional name lookup by uid — used to render the "Read by" list. */
   getUserName?: (uid: string) => string | undefined;
+  /** Trigger an async fetch for uids the active-team roster can't
+   *  resolve. Lets the Seen-by sheet pull names for people on OTHER
+   *  teams who saw the message back when the viewer was on their team. */
+  resolveUnknownUids?: (uids: string[]) => void;
   /** Called once on first render of a message NOT sent by the current
    *  user and NOT already in readBy[currentUserId]. Wires up the
    *  read-receipt write back to Firestore from the parent. */
@@ -164,6 +168,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isLastInGroup = true,
   getSenderPhotoUrl,
   getUserName,
+  resolveUnknownUids,
   onMarkRead,
   onStartDm,
   onToggleMute,
@@ -202,6 +207,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (alreadyRead) return;
     onMarkRead(message);
   }, [message.id, isOwnForRead, alreadyRead, onMarkRead]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the Seen-by sheet opens, ask the parent to look up any UIDs
+  // we don't already have a name for. The parent caches them, so the
+  // next render of this sheet (or any other) sees the resolved names.
+  React.useEffect(() => {
+    if (!readByOpen || !resolveUnknownUids || !getUserName) return;
+    const unknown = Object.keys(readBy).filter(uid => !getUserName(uid));
+    if (unknown.length > 0) resolveUnknownUids(unknown);
+  }, [readByOpen, resolveUnknownUids, getUserName, readBy]);
 
   const isOwn = message.senderId === currentUserId;
   // Prefer the photoURL frozen onto the message at send time, but fall
@@ -820,16 +834,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div onClick={(e) => e.stopPropagation()}>
             <ReadBySheet
               readers={Object.entries(((message as any).readBy || {}) as Record<string, number>)
-                // Drop readers we can't resolve — these are stale read
-                // receipts from people who used to be on the team but
-                // aren't anymore. They cluttered the sheet as faceless
-                // "Member" rows. The current user always resolves
-                // (special-cased in getUserName) so their receipt is
-                // never dropped.
-                .filter(([uid]) => !getUserName || !!getUserName(uid))
                 .map(([uid, readAt]) => ({
                   uid,
                   readAt,
+                  // Always show every reader, even if we can't resolve
+                  // the name from the active team roster — Patrick: "if
+                  // you have access to that chat, it should always show
+                  // who read it." Unknown UIDs trigger a cross-team
+                  // lookup via the useEffect above; once it resolves,
+                  // this re-renders with the real name in place of the
+                  // placeholder.
                   name: getUserName ? (getUserName(uid) || 'Member') : 'Member',
                   photoURL: getSenderPhotoUrl ? getSenderPhotoUrl(uid) : undefined,
                 }))}

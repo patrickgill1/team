@@ -675,7 +675,7 @@ const TeamChat: React.FC = () => {
     }
   };
 
-  const sendMessage = async (contentArg?: string, attachmentsArg?: ComposerAttachment[], opts?: { requireAck?: boolean }) => {
+  const sendMessage = async (contentArg?: string, attachmentsArg?: ComposerAttachment[], opts?: { requireAck?: boolean; pinOnSend?: boolean }) => {
     const content = (contentArg !== undefined ? contentArg : newMessage).trim();
     const attachments = attachmentsArg || [];
     if ((!content && attachments.length === 0) || !selectedThread || !userData) return;
@@ -700,9 +700,16 @@ const TeamChat: React.FC = () => {
         messageData.acknowledgedBy = [userData.uid];
       }
 
-      await addChatMessage(messageData);
-      
+      const newMessageId = await addChatMessage(messageData);
+
       const lastSnippet = content || (attachments.length > 0 ? `📷 ${attachments.length} image${attachments.length > 1 ? 's' : ''}` : '');
+      // "Post to wall" — pin the new message at send-time. Same data
+      // mechanism as the per-message Pin action, but folded into the
+      // send so coaches don't have to send-then-tap-pin. Pinned
+      // messages also feed the dashboard announcements widget.
+      const nextPinned: string[] | undefined = opts?.pinOnSend && newMessageId
+        ? [newMessageId, ...((selectedThread as any).pinnedMessageIds || [])].slice(0, 10)
+        : undefined;
       await updateChatThread(selectedThread.id, {
         lastActivity: new Date(),
         messageCount: selectedThread.messageCount + 1,
@@ -711,8 +718,12 @@ const TeamChat: React.FC = () => {
           content: lastSnippet,
           senderName: userData.name,
           timestamp: new Date()
-        }
-      });
+        },
+        ...(nextPinned ? { pinnedMessageIds: nextPinned } : {}),
+      } as any);
+      if (nextPinned) {
+        setSelectedThread({ ...selectedThread, pinnedMessageIds: nextPinned } as any);
+      }
       // Treat sending as visiting — keeps the sender's own message
       // from registering as unread when the thread doc updates.
       markThreadVisited(selectedThread.id);

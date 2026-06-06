@@ -23,7 +23,7 @@ interface MessageComposerProps {
   members: Member[];
   replyingTo?: { senderName: string } | null;
   onCancelReply: () => void;
-  onSend: (content: string, attachments: ComposerAttachment[], opts?: { requireAck?: boolean }) => Promise<void> | void;
+  onSend: (content: string, attachments: ComposerAttachment[], opts?: { requireAck?: boolean; pinOnSend?: boolean }) => Promise<void> | void;
   /** Optional poll send handler. When set, the composer shows a poll
    *  button that opens the create-poll modal. The handler is expected
    *  to add a chat_messages doc with the poll field populated. */
@@ -66,6 +66,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
   const [isPollOpen, setIsPollOpen] = useState(false);
   const [markImportant, setMarkImportant] = useState(false);
+  // "Post to wall" — when on, the message gets auto-pinned after send,
+  // which surfaces it both in the chat's pinned bar and (separately) on
+  // the team dashboard's announcements widget. Coach-only, same gate
+  // as Mark-important since the audience is identical.
+  const [postToWall, setPostToWall] = useState(false);
   const [plusOpen, setPlusOpen] = useState(false);
 
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -244,11 +249,12 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     if (uploading) return;
     const content = text.trim();
     if (!content && pending.length === 0) return;
-    await onSend(content, pending, { requireAck: markImportant });
+    await onSend(content, pending, { requireAck: markImportant, pinOnSend: postToWall });
     setText('');
     setPending([]);
     setMentionQuery(null);
     setMarkImportant(false);
+    setPostToWall(false);
     // Snap the textarea back to single-row height. Without this, the
     // inline style.height left over from auto-grow keeps the box tall
     // until the user re-types and onChange recalculates.
@@ -294,6 +300,20 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             onClick={() => setMarkImportant(false)}
             aria-label="Clear important"
             className="text-amber-700 hover:text-amber-900"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      )}
+
+      {postToWall && (
+        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-cyan-100 text-cyan-900 ring-1 ring-cyan-300">
+          <span>Posting to wall</span>
+          <button
+            type="button"
+            onClick={() => setPostToWall(false)}
+            aria-label="Clear wall post"
+            className="text-cyan-700 hover:text-cyan-900"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -514,6 +534,31 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     </span>
                     <span className="block text-[11px] text-slate-500">
                       Requires every recipient to tap "I see this."
+                    </span>
+                  </span>
+                </button>
+              )}
+              {canMarkImportant && (
+                <button
+                  type="button"
+                  onClick={() => { setPostToWall(v => !v); setPlusOpen(false); }}
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                >
+                  <span className={`flex-shrink-0 w-9 h-9 rounded-lg ring-1 flex items-center justify-center ${
+                    postToWall ? 'bg-cyan-100 text-cyan-800 ring-cyan-300' : 'bg-cyan-50 text-cyan-700 ring-cyan-200'
+                  }`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 2v6"/>
+                      <path d="M12 8l-3 3h6z"/>
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    </svg>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-slate-900">
+                      {postToWall ? 'Posting to wall (on)' : 'Post to wall'}
+                    </span>
+                    <span className="block text-[11px] text-slate-500">
+                      Pins in chat + shows on the team dashboard.
                     </span>
                   </span>
                 </button>

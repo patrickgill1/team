@@ -1523,6 +1523,18 @@ const TeamChat: React.FC = () => {
   if (isMobile) {
     return (
       <>
+      {/* Bottom-edge white sentinel. Sits BEHIND the chat container at
+          the bottom of the viewport so anything visible past the chat
+          container's bottom edge — including iOS Safari's pre-keyboard-
+          resize transitional frames — paints white. Patrick's hunch:
+          the dark "stale background" he sees through the iOS keyboard's
+          rounded top corners is one of those transitional layers, not
+          the steady-state DOM. This pins it to white regardless. */}
+      <div
+        aria-hidden
+        className="fixed inset-x-0 bottom-0 bg-white pointer-events-none"
+        style={{ height: '40vh', zIndex: 1 }}
+      />
       {/* Fixed-position layout pinned between top header + bottom tab bar.
           Capacitor Keyboard.resize: 'native' resizes the WebView when the
           keyboard appears (window.innerHeight drops), BUT a WKWebView

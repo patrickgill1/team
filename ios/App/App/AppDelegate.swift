@@ -11,6 +11,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Initialize Firebase iOS SDK from GoogleService-Info.plist so the
         // Capacitor Firebase plugins (Auth, Messaging) can find their config.
         FirebaseApp.configure()
+
+        // Force the window + root view controller backgrounds to white.
+        // Capacitor's ios.backgroundColor only paints the WKWebView itself;
+        // when Keyboard.resize: 'native' shrinks the WebView the area
+        // BEHIND the keyboard belongs to these parent views, not the
+        // WebView. Without this override that area renders in the iOS
+        // default (often dark), and bleeds through the keyboard's
+        // rounded-corner blur as the "dark blue" Patrick saw.
+        DispatchQueue.main.async {
+            self.window?.backgroundColor = .white
+            self.window?.rootViewController?.view.backgroundColor = .white
+        }
+
         return true
     }
 

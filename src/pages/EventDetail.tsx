@@ -103,6 +103,8 @@ const Icon: React.FC<{ name: string; className?: string }> = ({ name, className 
       return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 17v-5l2-5h14l2 5v5h-3a2 2 0 0 1-4 0H10a2 2 0 0 1-4 0H3z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>;
     case 'link':
       return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
+    case 'bell':
+      return <svg className={common} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
   }
   return null;
 };
@@ -134,6 +136,9 @@ const EventDetail: React.FC = () => {
   const [mergeBusy, setMergeBusy] = useState(false);
   // Edit dialog state (coaches only).
   const [isEditOpen, setIsEditOpen] = useState(false);
+  // Coach-triggered RSVP nudge. Tracks in-flight so we don't double-fire.
+  const [remindBusy, setRemindBusy] = useState(false);
+  const [remindToast, setRemindToast] = useState<string | null>(null);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -430,11 +435,41 @@ const EventDetail: React.FC = () => {
 
   const handleShare = async () => {
     if (!event) return;
-    const shareUrl = `${window.location.origin}/event/${event.id}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: event.title, url: shareUrl }); } catch {}
-    } else {
-      try { await navigator.clipboard.writeText(shareUrl); alert('Share link copied'); } catch {}
+    // window.location.origin on the Capacitor iOS shell is
+    // `capacitor://localhost` — useless to a recipient. getShareOrigin
+    // returns the real https origin baked into the build.
+    const { getShareOrigin } = await import('../utils/origin');
+    const shareUrl = `${getShareOrigin()}/event/${event.id}`;
+    const isNative = (window as any).Capacitor?.isNativePlatform?.();
+    // Native iOS WKWebView blocks navigator.share. Use the Capacitor
+    // Share plugin which bridges to UIActivityViewController on iOS
+    // and the system chooser on Android.
+    if (isNative) {
+      try {
+        const { Share } = await import('@capacitor/share');
+        await Share.share({ title: event.title, url: shareUrl, dialogTitle: 'Share event' });
+        return;
+      } catch (err: any) {
+        // "Share canceled" is a user dismiss, not an error worth
+        // surfacing. Anything else falls through to clipboard.
+        if (typeof err?.message === 'string' && /cancel/i.test(err.message)) return;
+        console.warn('native share failed, falling back', err);
+      }
+    } else if (typeof navigator !== 'undefined' && (navigator as any).share) {
+      try {
+        await (navigator as any).share({ title: event.title, url: shareUrl });
+        return;
+      } catch {
+        // user dismissed — drop through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Share link copied to clipboard!');
+    } catch {
+      // Final fallback for contexts where clipboard write is blocked
+      // (older iOS WebView, etc).
+      window.prompt('Copy this link:', shareUrl);
     }
   };
 
@@ -534,6 +569,61 @@ const EventDetail: React.FC = () => {
     } catch (err) {
       console.error('cancel failed', err);
       alert('Failed to cancel.');
+    }
+  };
+
+  // Coach-only: nudge parents of roster players who haven't RSVPed yet.
+  // Skips players already in playerRsvps (any status — going/maybe/no
+  // all count as "responded"). One push per parent UID, deduped.
+  const handleRemindPending = async () => {
+    if (!event || !userData?.uid) return;
+    if (remindBusy) return;
+    const playerR: Record<string, any> = (event as any).playerRsvps || {};
+    const pendingPlayers = roster.filter(p => !playerR[p.id]);
+    if (pendingPlayers.length === 0) {
+      setRemindToast('Everyone has already RSVPed.');
+      window.setTimeout(() => setRemindToast(null), 3500);
+      return;
+    }
+    setRemindBusy(true);
+    try {
+      const { collection, getDocs, query, where, documentId } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      const parentUids = new Set<string>();
+      // Firestore "in" caps at 30 ids per query — chunk it.
+      const ids = pendingPlayers.map(p => p.id);
+      for (let i = 0; i < ids.length; i += 30) {
+        const slice = ids.slice(i, i + 30);
+        const snap = await getDocs(query(
+          collection(db, 'players'),
+          where(documentId(), 'in', slice),
+        ));
+        snap.docs.forEach(d => {
+          const p: any = d.data();
+          if (Array.isArray(p.parentIds)) p.parentIds.forEach((u: string) => u && parentUids.add(u));
+          if (p.parentId) parentUids.add(p.parentId);
+        });
+      }
+      parentUids.delete(userData.uid);
+      if (parentUids.size === 0) {
+        setRemindToast('No parent accounts found for those players yet.');
+        window.setTimeout(() => setRemindToast(null), 4000);
+        return;
+      }
+      const { sendPushToUsers } = await import('../utils/notify');
+      await sendPushToUsers(Array.from(parentUids), {
+        title: `RSVP needed: ${event.title}`,
+        body: `${userData.name || 'Coach'} is asking — please mark your player going/maybe/can't.`,
+        url: `/events/${event.id}`,
+      }, { pushPrefKey: 'events' });
+      setRemindToast(`Reminder sent to ${parentUids.size} parent${parentUids.size === 1 ? '' : 's'}.`);
+      window.setTimeout(() => setRemindToast(null), 4000);
+    } catch (err) {
+      console.error('remind pending failed', err);
+      setRemindToast('Reminder failed — try again.');
+      window.setTimeout(() => setRemindToast(null), 4000);
+    } finally {
+      setRemindBusy(false);
     }
   };
 
@@ -840,6 +930,22 @@ const EventDetail: React.FC = () => {
             <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">PENDING</div>
           </div>
         </div>
+        {isUserCoach && buckets.pending > 0 && !event.isCancelled && (
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRemindPending}
+              disabled={remindBusy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-[11px] font-bold tracking-wider uppercase hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Icon name="bell" className="w-3.5 h-3.5" />
+              {remindBusy ? 'Sending…' : `Remind ${buckets.pending} pending`}
+            </button>
+            {remindToast && (
+              <span className="text-[11px] font-semibold text-slate-600">{remindToast}</span>
+            )}
+          </div>
+        )}
         {buckets.going.length > 0 && (
           <ul className="mt-3 divide-y divide-slate-100">
             {buckets.going.map((p: any, i) => {

@@ -1475,7 +1475,12 @@ const TeamChat: React.FC = () => {
           height explicitly from winHeight (which DOES reflect the
           keyboard) and skip `bottom`. */}
       <div
-        className="fixed inset-x-0 flex flex-col bg-gray-50 z-10 overflow-hidden"
+        // bg-white (not gray-50). Both child views already paint their
+        // own bg-white, so the container color is only visible behind
+        // the iOS keyboard's slightly-rounded top corners. Gray bled
+        // through there as two little gray quarter-circles next to the
+        // composer; white makes the seam disappear.
+        className="fixed inset-x-0 flex flex-col bg-white z-10 overflow-hidden"
         style={{
           // Mobile top bar is a flat h-14 now (no safe-top — native shell
           // already positions the WebView below the system bar), so the

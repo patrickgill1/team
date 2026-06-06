@@ -16,10 +16,12 @@ const config: CapacitorConfig = {
     // the safe-area edges — that's where the white strip at the top came
     // from. 'never' gives the page full control over both edges.
     contentInset: 'never',
-    // Navy matches the splash + the dashboard hero, so when the splash
-    // fades out there's no visible white frame underneath the WebView
-    // before React paints. (Old value '#ffffff' caused a white flash.)
-    backgroundColor: '#0f172a',
+    // White, so when iOS shrinks the WebView for the keyboard, the area
+    // behind the keyboard's rounded top corners is white instead of a
+    // dark navy underlay that bled through the corner blur. Tradeoff:
+    // a possible brief (~50-100ms) white flash on splash → first React
+    // paint. Worth it — chat is used constantly, splash is launch-only.
+    backgroundColor: '#ffffff',
     // Use the system status bar style (light text on our dark hero gradient).
     // The plugin actually drives this at runtime — see initStatusBar() below.
     limitsNavigationsToAppBoundDomains: false,

@@ -527,7 +527,7 @@ const Dashboard: React.FC = () => {
                 <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
                 Announcements
               </h3>
-              <Link to="/chat" className="text-cyan-600 text-sm font-semibold">View all</Link>
+              <Link to="/wall" className="text-cyan-600 text-sm font-semibold">View all</Link>
             </div>
             <ul className="divide-y divide-gray-100">
               {wallPosts.map(p => (

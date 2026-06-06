@@ -137,7 +137,6 @@ const Navigation: React.FC = () => {
     { name: 'Team Store', path: '/store', icon: 'soccer', group: 'apps' },
     { name: 'Calendar', path: '/calendar', icon: 'calendar', group: 'apps' },
     { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps' },
-    { name: 'News', path: '/news', icon: 'news', group: 'apps' },
     { name: 'Full Games', path: '/full-games', icon: 'film', group: 'apps' },
     { name: 'Highlights', path: '/highlights', icon: 'highlight', group: 'apps' },
     { name: 'Attendance', path: '/attendance', icon: 'check', group: 'apps' },
@@ -191,7 +190,7 @@ const Navigation: React.FC = () => {
     },
     {
       label: 'Communications',
-      items: ['Wall', 'News', 'Surveys', 'Volunteers', 'Directory']
+      items: ['Wall', 'Surveys', 'Volunteers', 'Directory']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {

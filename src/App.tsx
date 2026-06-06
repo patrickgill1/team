@@ -23,7 +23,6 @@ const InviteJoin = React.lazy(() => import('./pages/InviteJoin'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Players = React.lazy(() => import('./pages/Players'));
 const Stats = React.lazy(() => import('./pages/Stats'));
-const News = React.lazy(() => import('./pages/News'));
 const Calendar = React.lazy(() => import('./pages/CalendarPage'));
 const ParentDirectory = React.lazy(() => import('./pages/ParentDirectory'));
 const VolunteerScheduler = React.lazy(() => import('./pages/VolunteerScheduler'));
@@ -295,15 +294,7 @@ function App() {
                 </AppLayout>
               </ProtectedRoute>
             } />
-            
-            <Route path="/news" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <News />
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-            
+
             <Route path="/calendar" element={
               <ProtectedRoute>
                 <AppLayout>

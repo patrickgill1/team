@@ -18,7 +18,7 @@ import {
   limit
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
-import { Player, GameStat, News, CalendarEvent, GalleryPhoto, User, ChatThread, ChatMessage, DevelopmentPlan, PlayerMedia, CoachInvite, Team } from '../types';
+import { Player, GameStat, CalendarEvent, GalleryPhoto, User, ChatThread, ChatMessage, DevelopmentPlan, PlayerMedia, CoachInvite, Team } from '../types';
 import { cleanFirestoreData } from '../utils/helpers';
 
 export const useFirestore = () => {
@@ -319,36 +319,7 @@ const getUserData = useCallback(async (uid: string) => {
     ]);
   }, [getDocuments]);
 
-  // News-specific functions
-  const addNews = useCallback(async (newsData: Omit<News, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newsToAdd = {
-      ...newsData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isPinned: newsData.isPinned || false,
-      isPublished: newsData.isPublished || true,
-      publishedAt: new Date()
-    };
-    return addDocument('news', newsToAdd);
-  }, []);
-
-  const updateNews = useCallback(async (newsId: string, newsData: Partial<News>) => {
-    const updateData = {
-      ...newsData,
-      updatedAt: new Date()
-    };
-    return updateDocument('news', newsId, updateData);
-  }, []);
-
-  const getNewsByTeam = useCallback(async (teamId: string) => {
-    return getDocuments('news', [
-      where('teamId', '==', teamId),
-      where('isPublished', '==', true),
-      orderBy('createdAt', 'desc')
-    ]);
-  }, [getDocuments]);
-
-  // Calendar event functions with proper date conversion  
+  // Calendar event functions with proper date conversion
   const addEvent = useCallback(async (eventData: Omit<CalendarEvent, 'id' | 'createdAt'>) => {
     const eventToAdd = {
       ...eventData,
@@ -862,10 +833,6 @@ const getUserData = useCallback(async (uid: string) => {
     addGameStat,
     getStatsByPlayer,
     getStatsByGame,
-    // News functions
-    addNews,
-    updateNews,
-    getNewsByTeam,
     // Calendar functions
     addEvent,
     updateEvent,

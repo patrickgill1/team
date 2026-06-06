@@ -285,23 +285,6 @@ export interface GameStat {
   updatedAt?: Date;
 }
 
-export interface News {
-  id: string;
-  title: string;
-  content: string;
-  summary?: string;
-  authorId: string;
-  authorName: string;
-  teamId: string;
-  imageUrl?: string;
-  tags?: string[];
-  isPinned: boolean;
-  isPublished: boolean;
-  publishedAt?: Date;
-  createdAt: Date;
-  updatedAt?: Date;
-}
-
 export interface CalendarEvent {
   id: string;
   title: string;

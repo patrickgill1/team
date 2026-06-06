@@ -283,9 +283,25 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-white'
     : 'bg-gray-100 text-gray-900';
 
-  const handleTouchStart = () => {
+  // Swipe-gesture state. We resolve each touch into ONE of three modes:
+  //   null        — undetermined (the first few px of any drag)
+  //   'horizontal'— committed to a swipe (move bubble, cancel long-press)
+  //   'vertical'  — committed to a scroll (don't translate, don't fire)
+  // Once committed we don't switch, so the bubble doesn't twitch sideways
+  // when the user is mid-scroll.
+  const swipeStateRef = React.useRef<{ startX: number; startY: number; mode: null | 'horizontal' | 'vertical' }>({ startX: 0, startY: 0, mode: null });
+  const [swipeDx, setSwipeDx] = React.useState(0);
+  const SWIPE_THRESHOLD = 60;
+  const SWIPE_MAX = 100;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
     if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
     longPressFiredRef.current = false;
+    swipeStateRef.current = {
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+      mode: null,
+    };
     // 1000ms keeps the long-press from firing on accidental brushes
     // (Patrick's feedback was that 600ms was too sensitive). Long-press
     // opens the quick-react sheet only — the full action menu is the
@@ -295,19 +311,92 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       setQuickReactOpen(true);
     }, 1000);
   };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    const dx = t.clientX - swipeStateRef.current.startX;
+    const dy = t.clientY - swipeStateRef.current.startY;
+    if (swipeStateRef.current.mode === null) {
+      // Still figuring out which gesture this is. Need 8px of motion
+      // before we commit either way.
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        swipeStateRef.current.mode = 'horizontal';
+        // Movement = not a long-press. Cancel the timer before it fires.
+        if (longPressTimer.current) {
+          window.clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      } else {
+        swipeStateRef.current.mode = 'vertical';
+      }
+    }
+    if (swipeStateRef.current.mode !== 'horizontal') return;
+    // Allow right (reply) for anyone; left (delete) only if this is
+    // the user's own message and onDelete is wired.
+    const allowLeft = isOwn && !!onDelete;
+    let constrained = dx;
+    if (constrained < 0 && !allowLeft) constrained = 0;
+    // Resistance past SWIPE_MAX so the bubble doesn't fly off-screen
+    // if the user keeps dragging. Matches iOS rubber-banding.
+    if (Math.abs(constrained) > SWIPE_MAX) {
+      const sign = constrained > 0 ? 1 : -1;
+      constrained = sign * (SWIPE_MAX + (Math.abs(constrained) - SWIPE_MAX) * 0.3);
+    }
+    setSwipeDx(constrained);
+  };
+
   const handleTouchEnd = () => {
     if (longPressTimer.current) {
       window.clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    const mode = swipeStateRef.current.mode;
+    const dx = swipeDx;
+    // Spring back to neutral regardless of outcome.
+    setSwipeDx(0);
+    if (mode !== 'horizontal') return;
+    if (dx > SWIPE_THRESHOLD) {
+      onReply(message);
+    } else if (dx < -SWIPE_THRESHOLD && isOwn && onDelete) {
+      if (window.confirm('Delete this message?')) onDelete(message);
+    }
   };
+
+  // Visual feedback for the swipe: icons revealed as the bubble drags.
+  // Reply icon appears on the swipe-source side (i.e. left margin when
+  // dragging right). Trash appears on the right margin when dragging
+  // left. Opacity scales linearly to threshold.
+  const swipeProgress = Math.min(1, Math.abs(swipeDx) / SWIPE_THRESHOLD);
+  const showReplyIcon = swipeDx > 8;
+  const showDeleteIcon = swipeDx < -8 && isOwn && !!onDelete;
 
   return (
     <div
-      className={`group flex ${isOwn ? 'justify-end' : 'justify-start'} ${
+      className={`group relative flex ${isOwn ? 'justify-end' : 'justify-start'} ${
         isFirstInGroup ? 'mt-3' : 'mt-0.5'
       } px-1`}
     >
+      {/* Swipe-reveal icons — sit behind the bubble at fixed positions.
+          As the bubble translates, these become visible. */}
+      {showReplyIcon && (
+        <span
+          aria-hidden
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-cyan-500 text-white flex items-center justify-center pointer-events-none"
+          style={{ opacity: swipeProgress }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+        </span>
+      )}
+      {showDeleteIcon && (
+        <span
+          aria-hidden
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center pointer-events-none"
+          style={{ opacity: swipeProgress }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+        </span>
+      )}
       {/* Avatar gutter for incoming messages — only renders on the first
           message of a run, but always reserves the space so subsequent
           messages line up with the first one's bubble edge. */}
@@ -341,7 +430,16 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </div>
       )}
 
-      <div className={`flex flex-col max-w-[78%] ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div
+        className={`flex flex-col max-w-[78%] ${isOwn ? 'items-end' : 'items-start'}`}
+        style={{
+          transform: `translateX(${swipeDx}px)`,
+          // No transition while the finger is on the screen; spring
+          // back smoothly when released. swipeDx === 0 means released
+          // OR not yet touched, so the transition is safe either way.
+          transition: swipeDx === 0 ? 'transform 0.18s ease-out' : 'none',
+        }}
+      >
         {/* Sender name + coach pill — only on first message in a run, for incoming */}
         {!isOwn && isFirstInGroup && (
           <div className="ml-1 mb-0.5 flex items-center gap-1.5">
@@ -442,13 +540,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {message.content && !isImportant && (
           <div
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
-            className={`px-3.5 py-2 leading-relaxed break-words text-[15px] shadow-sm select-text ${cornerClasses} ${bubbleBg} ${
+            className={`px-3.5 py-2 leading-relaxed break-words text-[15px] shadow-sm select-none ${cornerClasses} ${bubbleBg} ${
               isMentioned && !isOwn ? 'ring-2 ring-amber-300' : ''
             }`}
-            style={{ wordBreak: 'break-word' }}
+            // -webkit-touch-callout: none kills iOS's "Copy / Look Up /
+            // Share" callout that was racing our long-press timer and
+            // making the bubble feel broken (Patrick's screenshot showed
+            // iOS selection AND our react sheet fighting each other).
+            // Copy still works via the ⋯ menu's Copy row.
+            style={{ wordBreak: 'break-word', WebkitTouchCallout: 'none', WebkitUserSelect: 'none' } as React.CSSProperties}
             dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, isOwn) }}
           />
         )}
@@ -460,6 +564,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {message.content && isImportant && (
           <div
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
@@ -532,6 +637,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {images.length > 0 && (
           <div
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
@@ -656,19 +762,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           <div
             className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-3 py-3 grid grid-cols-9 gap-0.5">
+            {/* Flex with shrink-allowed items + min-w-0 so 8 emojis +
+                "+" can never exceed the sheet width (grid-cols-9 was
+                bleeding the last "+" past the right edge on phones). */}
+            <div className="px-2 py-3 flex items-center gap-0.5">
               {['👍','❤️','🔥','⚽','🏆','😂','🙌','👏'].map((e) => (
                 <button
                   key={e}
                   onClick={() => { onToggleReaction(message, e); setQuickReactOpen(false); }}
-                  className="text-2xl py-2 rounded-lg hover:bg-slate-100 active:scale-95"
+                  className="flex-1 min-w-0 text-2xl py-2 rounded-lg hover:bg-slate-100 active:scale-95"
                 >{e}</button>
               ))}
               <button
                 onClick={() => { setQuickReactOpen(false); setEmojiOpen(true); }}
-                className="text-lg py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold"
+                className="flex-1 min-w-0 text-lg py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold"
                 aria-label="More emoji"
               >+</button>
             </div>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink } from '../types';
+import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, Drill } from '../types';
+import DrillPickerModal from '../components/development/DrillPickerModal';
 import { isCoach, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
@@ -52,6 +53,13 @@ const PlayerDevelopment: React.FC = () => {
     { id: `goal_${Date.now()}`, title: '', description: '', order: 0 }
   ]);
   const [prefillPlayerId, setPrefillPlayerId] = useState('');
+  // Drill picker state. When the coach taps "Import from library" we
+  // open it, they pick N drills, and we append goals to planGoals
+  // pre-filled from each drill's content. The source drill ids are
+  // tracked so we can bump assignmentCount on every drill after the
+  // plan is successfully written.
+  const [drillPickerOpen, setDrillPickerOpen] = useState(false);
+  const [importedDrillIds, setImportedDrillIds] = useState<string[]>([]);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -170,16 +178,40 @@ const PlayerDevelopment: React.FC = () => {
     }
 
     if (createdCount > 0 && failedCount === 0) {
+      void bumpDrillAssignmentCounts(createdCount);
       resetCreateForm();
       setShowCreateModal(false);
       loadData();
     } else if (createdCount > 0 && failedCount > 0) {
+      void bumpDrillAssignmentCounts(createdCount);
       alert(`Created ${createdCount} plan(s), but ${failedCount} failed. Refreshing…`);
       resetCreateForm();
       setShowCreateModal(false);
       loadData();
     } else {
       alert('Failed to create plan(s). Please try again.');
+    }
+  };
+
+  // Bump usage counter on every drill the coach imported into this
+  // plan, once per player the plan landed on. Bubbles workhorse drills
+  // to the top of the library. Fire-and-forget — never blocks the
+  // create flow.
+  const bumpDrillAssignmentCounts = async (plansCreated: number) => {
+    if (importedDrillIds.length === 0 || plansCreated <= 0) return;
+    try {
+      const { doc: fsDoc, getDoc, updateDoc, increment } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      await Promise.all(importedDrillIds.map(async (id) => {
+        try {
+          const ref = fsDoc(db, 'drills', id);
+          const snap = await getDoc(ref);
+          if (!snap.exists()) return;
+          await updateDoc(ref, { assignmentCount: increment(plansCreated), updatedAt: new Date() });
+        } catch { /* ignore single-drill failures */ }
+      }));
+    } catch (err) {
+      console.warn('bumpDrillAssignmentCounts failed', err);
     }
   };
 
@@ -418,6 +450,39 @@ const PlayerDevelopment: React.FC = () => {
     setPlanDescription('');
     setPlanCategory('technical');
     setPlanGoals([{ id: `goal_${Date.now()}`, title: '', description: '', order: 0 }]);
+    setImportedDrillIds([]);
+  };
+
+  // Append library drills to the in-progress plan. Each drill becomes a
+  // goal pre-filled with title/setup/instructions/focus/duration/videos
+  // — coach can still edit before saving. If the existing planGoals
+  // array only has the initial empty placeholder, we replace it; if
+  // they've already typed goals, we append.
+  const importDrillsToPlan = (drills: Drill[]) => {
+    if (drills.length === 0) return;
+    const newGoals = drills.map((d, i) => ({
+      id: `goal_${Date.now()}_${i}`,
+      title: d.title,
+      description: d.description || '',
+      setup: d.setup || undefined,
+      instructions: d.instructions || undefined,
+      focus: d.focus || undefined,
+      duration: d.durationMinutes != null ? `${d.durationMinutes} min` : undefined,
+      targetMinutes: d.durationMinutes,
+      videoLinks: d.videoLinks || [],
+      order: 0, // re-numbered below
+    }));
+    const existing = planGoals.filter(g => g.title.trim());
+    const merged = [...existing, ...newGoals].map((g, i) => ({ ...g, order: i }));
+    setPlanGoals(merged);
+    setImportedDrillIds(prev => Array.from(new Set([...prev, ...drills.map(d => d.id)])));
+    // Smart-fill the plan title + category on the first import if the
+    // coach hasn't already set them — saves a round-trip when they're
+    // really just spinning up a one-drill plan.
+    if (!planTitle.trim() && drills.length === 1) {
+      setPlanTitle(drills[0].title);
+      setPlanCategory(drills[0].category);
+    }
   };
 
   const getCategoryColor = (category: string) => {
@@ -682,6 +747,13 @@ const PlayerDevelopment: React.FC = () => {
           </div>
         )}
 
+        <DrillPickerModal
+          isOpen={drillPickerOpen}
+          onClose={() => setDrillPickerOpen(false)}
+          teamId={selectedTeamId || ''}
+          onPick={(drills) => importDrillsToPlan(drills)}
+        />
+
         {/* Create Plan Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -935,12 +1007,24 @@ const PlayerDevelopment: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={addGoalField}
-                      className="mt-2 text-sm text-cyan-600 hover:text-cyan-700 font-medium"
-                    >
-                      + Add another goal
-                    </button>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={addGoalField}
+                        className="text-sm text-cyan-600 hover:text-cyan-700 font-medium"
+                      >
+                        + Add another goal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDrillPickerOpen(true)}
+                        className="inline-flex items-center gap-1.5 text-sm font-bold text-violet-700 hover:text-violet-900"
+                        title="Pick drills from your library"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                        Import from library
+                      </button>
+                    </div>
                   </div>
                 </div>
 

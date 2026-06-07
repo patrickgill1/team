@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useTeam } from '../../contexts/TeamContext';
 
 interface Props {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface Props {
 
 const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMedia, activePlans }) => {
   const { userData } = useAuth();
+  const { selectedTeam } = useTeam();
   const [message, setMessage] = useState('');
   const [includeClipId, setIncludeClipId] = useState<string>('none');
   const [includePlan, setIncludePlan] = useState(true);
@@ -52,6 +54,13 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
         clipUrl: clip?.url,
         clipCaption: clip?.caption,
         recentDevPlanTitle: includePlan && newestPlan ? newestPlan.title : undefined,
+        signature: {
+          name: userData.name || 'Coach',
+          role: (userData as any).coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Head Coach',
+          teamName: selectedTeam?.name,
+          email: userData.email,
+          avatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl,
+        },
       });
       const messages = parents.map(p => ({ to: p.email, subject, html }));
       const ok = await sendEmailBatch(messages);

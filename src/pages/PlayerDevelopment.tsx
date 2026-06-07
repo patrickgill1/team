@@ -33,7 +33,7 @@ function extractYouTubeId(input: string): string | null {
 
 const PlayerDevelopment: React.FC = () => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getDevelopmentPlansByTeam, getDevelopmentPlansByPlayer, addDevelopmentPlan, updateDevelopmentPlan, getDocuments, deleteDocument } = useFirestore();
 
   const [plans, setPlans] = useState<DevelopmentPlan[]>([]);
@@ -188,6 +188,13 @@ const PlayerDevelopment: React.FC = () => {
               planTitle: planTitle.trim(),
               goalCount: goals.length,
               coachName: userData.name,
+              signature: {
+                name: userData.name,
+                role: (userData as any).coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Head Coach',
+                teamName: selectedTeam?.name,
+                email: userData.email,
+                avatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl,
+              },
             });
             sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
           }

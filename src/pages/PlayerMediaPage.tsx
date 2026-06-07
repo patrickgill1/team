@@ -527,6 +527,13 @@ const PlayerMediaPage: React.FC = () => {
             uploaderName: userData.name,
             isVideo,
             caption: uploadCaption.trim() || undefined,
+            signature: {
+              name: userData.name,
+              role: isUserCoach ? ((userData as any).coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Coach') : undefined,
+              teamName: selectedTeam?.name,
+              email: userData.email,
+              avatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl,
+            },
           });
           for (const p of parents) {
             if (sentTo.has(p.email)) continue;
@@ -1050,6 +1057,13 @@ const PlayerMediaPage: React.FC = () => {
               uploaderName: userData.name,
               isVideo,
               caption: (selectedMedia as any).caption || undefined,
+              signature: {
+                name: userData.name,
+                role: isUserCoach ? ((userData as any).coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Coach') : undefined,
+                teamName: selectedTeam?.name,
+                email: userData.email,
+                avatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl,
+              },
             });
             for (const p of parents) {
               if (sentTo.has(p.email)) continue;
@@ -1582,6 +1596,13 @@ const PlayerMediaPage: React.FC = () => {
                   uploaderName: userData.name || 'Coach',
                   isVideo: true,
                   caption: payload.caption,
+                  signature: {
+                    name: userData.name || 'Coach',
+                    role: isUserCoach ? ((userData as any).coachLevel === 'assistant_coach' ? 'Assistant Coach' : 'Coach') : undefined,
+                    teamName: selectedTeam?.name,
+                    email: userData.email,
+                    avatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl,
+                  },
                 });
                 sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
               }

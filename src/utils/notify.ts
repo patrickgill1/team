@@ -286,32 +286,76 @@ export async function sendPushToPlayerParents(
 import { getShareOrigin } from './origin';
 const APP_BASE = getShareOrigin();
 
-const BRAND_NAVY = '#1e3a5f';
-const BRAND_NAVY_DARK = '#122340';
+const BRAND_NAVY = '#0f172a';      // slate-900 — the app's primary dark
+const BRAND_NAVY_DARK = '#020617'; // slate-950
+const BRAND_CYAN = '#06b6d4';      // cyan-500 — the app's accent
+const BRAND_CYAN_DEEP = '#0e7490'; // cyan-700 — for text on light bg
 const LOGO_URL = `${APP_BASE}/images/logo.png`;
 
-const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111827;line-height:1.5;background:#f3f4f6;`;
+const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#0f172a;line-height:1.55;background:#f0f9ff;`;
 
-function wrap(inner: string, footer = ''): string {
+/** Coach signature payload — name, role, team, optional email for
+ *  replies, optional avatar URL. Threaded through templates that
+ *  originate from a coach (dev plan, clip upload, parent whisper).
+ *  Skipped for system-authored emails like POTM win. */
+export interface CoachSignature {
+  name: string;
+  role?: string;     // "Head Coach", "Assistant Coach", etc.
+  teamName?: string; // "Fire FC PG (U10)"
+  email?: string;
+  avatarUrl?: string;
+}
+
+function signatureBlock(sig?: CoachSignature): string {
+  if (!sig || !sig.name) return '';
+  const initial = (sig.name || '?').charAt(0).toUpperCase();
+  const avatar = sig.avatarUrl
+    ? `<img src="${sig.avatarUrl}" alt="" width="40" height="40" style="display:block;border-radius:50%;border:0;outline:none;object-fit:cover;" />`
+    : `<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${BRAND_CYAN} 0%,${BRAND_CYAN_DEEP} 100%);color:#ffffff;font-weight:800;font-size:16px;text-align:center;line-height:40px;">${initial}</div>`;
+  const meta: string[] = [];
+  if (sig.role) meta.push(sig.role);
+  if (sig.teamName) meta.push(sig.teamName);
+  const metaLine = meta.length ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${meta.join(' · ')}</div>` : '';
+  const replyLine = sig.email
+    ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">Reply at <a href="mailto:${sig.email}" style="color:${BRAND_CYAN_DEEP};text-decoration:none;">${sig.email}</a></div>`
+    : '';
+  return `
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
+      <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="vertical-align:middle;padding-right:10px;">${avatar}</td>
+          <td style="vertical-align:middle;">
+            <div style="font-weight:700;font-size:14px;color:#0f172a;">${sig.name}</div>
+            ${metaLine}
+            ${replyLine}
+          </td>
+        </tr>
+      </table>
+    </div>`;
+}
+
+function wrap(inner: string, opts: { footer?: string; signature?: CoachSignature } = {}): string {
+  const { footer = '', signature } = opts;
   return `<div style="${baseStyle}padding:24px 12px;">
-    <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-      <div style="background:${BRAND_NAVY};padding:20px 24px;text-align:center;">
-        <img src="${LOGO_URL}" alt="Fire FC16" width="56" height="56" style="display:inline-block;border:0;outline:none;text-decoration:none;" />
-        <div style="color:#ffffff;font-weight:700;font-size:16px;letter-spacing:0.5px;margin-top:8px;">FIRE FC16</div>
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);">
+      <div style="background:linear-gradient(135deg,${BRAND_NAVY_DARK} 0%,${BRAND_NAVY} 100%);padding:24px;text-align:center;border-bottom:3px solid ${BRAND_CYAN};">
+        <img src="${LOGO_URL}" alt="Fire FC" width="64" height="64" style="display:inline-block;border:0;outline:none;text-decoration:none;" />
+        <div style="color:#ffffff;font-weight:900;font-size:18px;letter-spacing:2.5px;margin-top:10px;text-transform:uppercase;">Fire FC</div>
       </div>
-      <div style="padding:24px;">
+      <div style="padding:28px 24px 20px;">
         ${inner}
-        <div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-          ${footer}
-          You can change which emails you receive in your profile on <a href="${APP_BASE}" style="color:${BRAND_NAVY};text-decoration:none;">Fire FC16</a>.
-        </div>
+        ${signatureBlock(signature)}
+      </div>
+      <div style="background:#f8fafc;padding:14px 24px;font-size:11px;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;">
+        ${footer ? `${footer}<br/>` : ''}
+        Manage your notification preferences on <a href="${APP_BASE}/settings" style="color:${BRAND_CYAN_DEEP};text-decoration:none;font-weight:600;">Fire FC</a>.
       </div>
     </div>
   </div>`;
 }
 
 function button(href: string, label: string): string {
-  return `<p style="margin:0 0 16px;"><a href="${href}" style="display:inline-block;background:${BRAND_NAVY};color:#ffffff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;">${label}</a></p>`;
+  return `<p style="margin:0 0 16px;"><a href="${href}" style="display:inline-block;background:linear-gradient(135deg,${BRAND_CYAN} 0%,${BRAND_CYAN_DEEP} 100%);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;letter-spacing:0.3px;box-shadow:0 2px 8px rgba(6,182,212,0.25);">${label}</a></p>`;
 }
 
 /* ---------------- TEMPLATES ---------------- */
@@ -321,14 +365,15 @@ export function tplDevPlan(opts: {
   planTitle: string;
   goalCount: number;
   coachName: string;
+  signature?: CoachSignature;
 }): { subject: string; html: string } {
   const subject = `New development plan for ${opts.playerName}: ${opts.planTitle}`;
   const html = wrap(`
-    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">New development plan 🎯</h2>
-    <p style="margin:0 0 12px;">Coach <b>${opts.coachName}</b> just created a development plan for <b>${opts.playerName}</b>.</p>
-    <p style="margin:0 0 16px;"><b>${opts.planTitle}</b><br/><span style="color:#6b7280;font-size:14px;">${opts.goalCount} goal${opts.goalCount === 1 ? '' : 's'} to work on</span></p>
-    ${button(`${APP_BASE}/development`, 'View plan')}
-  `);
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">New development plan</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.planTitle}</h2>
+    <p style="margin:0 0 18px;color:#475569;">For <b style="color:#0f172a;">${opts.playerName}</b> — ${opts.goalCount} goal${opts.goalCount === 1 ? '' : 's'} to work on this cycle.</p>
+    ${button(`${APP_BASE}/development`, 'Open the plan')}
+  `, { signature: opts.signature || { name: opts.coachName, role: 'Coach' } });
   return { subject, html };
 }
 
@@ -337,15 +382,17 @@ export function tplClipUploaded(opts: {
   uploaderName: string;
   isVideo: boolean;
   caption?: string;
+  signature?: CoachSignature;
 }): { subject: string; html: string } {
   const kind = opts.isVideo ? 'video clip' : 'photo';
   const subject = `New ${kind} of ${opts.playerName}`;
   const html = wrap(`
-    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">${opts.isVideo ? '🎬' : '📸'} New ${kind}</h2>
-    <p style="margin:0 0 12px;"><b>${opts.uploaderName}</b> just shared a new ${kind} of <b>${opts.playerName}</b>.</p>
-    ${opts.caption ? `<p style="margin:0 0 16px;color:#374151;font-style:italic;">"${opts.caption}"</p>` : ''}
-    ${button(`${APP_BASE}/player-media`, 'Open media')}
-  `);
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">New ${kind}</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.playerName} caught on camera</h2>
+    <p style="margin:0 0 12px;color:#475569;">Shared by <b style="color:#0f172a;">${opts.uploaderName}</b>.</p>
+    ${opts.caption ? `<div style="margin:0 0 18px;padding:12px 14px;background:#f1f5f9;border-left:3px solid ${BRAND_CYAN};border-radius:6px;color:#334155;font-style:italic;">"${opts.caption}"</div>` : ''}
+    ${button(`${APP_BASE}/player-media`, `Watch the ${opts.isVideo ? 'clip' : 'photo'}`)}
+  `, { signature: opts.signature || { name: opts.uploaderName } });
   return { subject, html };
 }
 
@@ -355,11 +402,12 @@ export function tplPotmWin(opts: {
   gameTitle: string;
   isCoWin: boolean;
 }): { subject: string; html: string } {
-  const subject = `🏆 ${opts.playerName} won Player of the Match!`;
+  const subject = `${opts.playerName} won Player of the Match`;
   const html = wrap(`
-    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">🏆 Player of the Match</h2>
-    <p style="margin:0 0 12px;">Congratulations — <b>${opts.playerName}</b> ${opts.isCoWin ? 'is a co-winner of' : 'won'} Player of the Match for <b>${opts.gameTitle}</b> with ${opts.voteCount} vote${opts.voteCount === 1 ? '' : 's'}!</p>
-    ${button(`${APP_BASE}/player-of-match`, 'See results')}
+    <div style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">Player of the Match</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.playerName} ${opts.isCoWin ? 'is a co-winner!' : 'took home POTM!'}</h2>
+    <p style="margin:0 0 18px;color:#475569;">${opts.voteCount} vote${opts.voteCount === 1 ? '' : 's'} for ${opts.gameTitle}. Hard-earned recognition from the team.</p>
+    ${button(`${APP_BASE}/player-of-match`, 'See the results')}
   `);
   return { subject, html };
 }
@@ -371,18 +419,19 @@ export function tplCoachWhisper(opts: {
   clipUrl?: string;
   clipCaption?: string;
   recentDevPlanTitle?: string;
+  signature?: CoachSignature;
 }): { subject: string; html: string } {
   const subject = `A note from Coach ${opts.coachName} about ${opts.playerName}`;
   const safeMsg = (opts.message || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
   const html = wrap(`
-    <h2 style="font-size:18px;margin:0 0 12px;color:${BRAND_NAVY_DARK};">💬 A note about ${opts.playerName}</h2>
-    <p style="margin:0 0 12px;color:#374151;">From <b>Coach ${opts.coachName}</b>:</p>
-    <div style="margin:0 0 16px;padding:14px 16px;background:#f0f9ff;border-left:3px solid ${BRAND_NAVY};border-radius:6px;color:#0c4a6e;font-size:15px;line-height:1.55;">
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">A note from your coach</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">About ${opts.playerName}</h2>
+    <div style="margin:14px 0 18px;padding:16px 18px;background:#f0f9ff;border-left:3px solid ${BRAND_CYAN};border-radius:8px;color:#0c4a6e;font-size:15px;line-height:1.6;">
       ${safeMsg}
     </div>
-    ${opts.recentDevPlanTitle ? `<p style="margin:0 0 12px;font-size:13px;color:#6b7280;">Active development plan: <b style="color:#374151;">${opts.recentDevPlanTitle}</b></p>` : ''}
-    ${opts.clipUrl ? `<p style="margin:0 0 12px;font-size:13px;color:#6b7280;">📎 Recent highlight ${opts.clipCaption ? `— "${opts.clipCaption}"` : ''}: <a href="${opts.clipUrl}" style="color:${BRAND_NAVY};">watch clip</a></p>` : ''}
+    ${opts.recentDevPlanTitle ? `<p style="margin:0 0 8px;font-size:13px;color:#64748b;">Active development plan: <b style="color:#0f172a;">${opts.recentDevPlanTitle}</b></p>` : ''}
+    ${opts.clipUrl ? `<p style="margin:0 0 16px;font-size:13px;color:#64748b;">Recent highlight${opts.clipCaption ? ` — "${opts.clipCaption}"` : ''}: <a href="${opts.clipUrl}" style="color:${BRAND_CYAN_DEEP};font-weight:600;">watch clip</a></p>` : ''}
     ${button(`${APP_BASE}/players`, `Open ${opts.playerName}'s profile`)}
-  `);
+  `, { signature: opts.signature || { name: opts.coachName, role: 'Coach' } });
   return { subject, html };
 }

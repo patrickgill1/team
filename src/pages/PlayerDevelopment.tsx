@@ -850,28 +850,45 @@ const PlayerDevelopment: React.FC = () => {
 
         {/* Create Plan Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">{editingPlanId ? 'Edit Development Plan' : 'Create Development Plan'}</h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-6">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col">
+              {/* Sticky header */}
+              <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">{editingPlanId ? 'Edit plan' : 'New development plan'}</h2>
+                  {!editingPlanId && bulkPlayerIds.length > 0 && (
+                    <p className="text-[11px] text-slate-500 mt-0.5">{bulkPlayerIds.length} player{bulkPlayerIds.length === 1 ? '' : 's'} · {planGoals.filter(g => g.title.trim()).length || 0} goal{planGoals.filter(g => g.title.trim()).length === 1 ? '' : 's'}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(false); }}
+                  className="text-slate-400 hover:text-slate-700"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5">
                 <div className="space-y-4">
+                  {/* Players — compact chips, multi-select, with quick all/clear */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        {editingPlanId ? 'Player *' : `Players * ${bulkPlayerIds.length > 0 ? `(${bulkPlayerIds.length} selected)` : ''}`}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[10px] font-extrabold uppercase tracking-widest text-slate-600">
+                        {editingPlanId ? 'Player' : `Players${bulkPlayerIds.length > 0 ? ` · ${bulkPlayerIds.length}` : ''}`}
                       </label>
                       {!editingPlanId && (
-                        <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-[11px]">
                           <button
                             type="button"
                             onClick={() => { setBulkPlayerIds(players.map(p => p.id)); setPlanPlayerId(''); }}
-                            className="text-cyan-600 hover:text-cyan-700 font-medium"
-                          >Select all</button>
-                          <span className="text-gray-300">|</span>
+                            className="text-cyan-700 hover:text-cyan-900 font-bold"
+                          >All</button>
+                          <span className="text-slate-300">·</span>
                           <button
                             type="button"
                             onClick={() => { setBulkPlayerIds([]); setPlanPlayerId(''); }}
-                            className="text-gray-600 hover:text-gray-800 font-medium"
+                            className="text-slate-500 hover:text-slate-800 font-bold"
                           >Clear</button>
                         </div>
                       )}
@@ -881,21 +898,23 @@ const PlayerDevelopment: React.FC = () => {
                         value={planPlayerId}
                         onChange={e => setPlanPlayerId(e.target.value)}
                         disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-100 disabled:text-gray-500"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg disabled:bg-slate-50 disabled:text-slate-500"
                       >
-                        <option value="">Select player...</option>
                         {players.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} {p.jerseyNumber ? `(#${p.jerseyNumber})` : ''}</option>
+                          <option key={p.id} value={p.id}>{p.name}{p.jerseyNumber != null ? ` (#${p.jerseyNumber})` : ''}</option>
                         ))}
                       </select>
                     ) : (
                       <>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-2 border border-slate-200 rounded-lg bg-slate-50">
                           {players.length === 0 && (
-                            <div className="col-span-full text-center text-sm text-gray-500 py-4">No players on this team yet.</div>
+                            <div className="w-full text-center text-xs text-slate-500 py-3">No players on this team yet.</div>
                           )}
                           {players.map(p => {
                             const checked = bulkPlayerIds.includes(p.id);
+                            const label = p.jerseyNumber != null
+                              ? `#${p.jerseyNumber} ${(p.name || '').split(' ')[0]}`
+                              : p.name;
                             return (
                               <button
                                 key={p.id}
@@ -904,61 +923,74 @@ const PlayerDevelopment: React.FC = () => {
                                   setPlanPlayerId('');
                                   setBulkPlayerIds(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id]);
                                 }}
-                                className={`text-left px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${checked
-                                  ? 'bg-cyan-600 border-cyan-600 text-white'
-                                  : 'bg-white border-gray-300 text-gray-700 hover:border-cyan-400'}`}
+                                title={p.name}
+                                className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${checked
+                                  ? 'bg-cyan-600 text-white shadow-sm'
+                                  : 'bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-cyan-400'}`}
                               >
-                                <span className="inline-block w-5">{checked ? '✓' : ''}</span>
-                                {p.jerseyNumber ? `#${p.jerseyNumber} ` : ''}{p.name}
+                                {label}
                               </button>
                             );
                           })}
                         </div>
                         {bulkPlayerIds.length > 1 && (
-                          <p className="mt-1.5 text-xs text-cyan-700 bg-cyan-50 border border-cyan-100 rounded-md px-2 py-1">
-                            Will create <b>{bulkPlayerIds.length}</b> identical plans — one per selected player. Each plan tracks progress independently.
+                          <p className="mt-1.5 text-[11px] text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 rounded-md px-2 py-1">
+                            Creates <b>{bulkPlayerIds.length}</b> identical plans — each tracks progress on its own.
                           </p>
                         )}
                       </>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Plan Title *</label>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1.5">Plan title</label>
                     <input
                       type="text"
                       value={planTitle}
                       onChange={e => setPlanTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                       placeholder="e.g. Ball Control Mastery"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea
-                      value={planDescription}
-                      onChange={e => setPlanDescription(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                      rows={2}
-                      placeholder="What this development plan focuses on..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select
-                      value={planCategory}
-                      onChange={e => setPlanCategory(e.target.value as DevelopmentPlan['category'])}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                    >
-                      <option value="technical">⚽ Technical — Ball skills, passing, shooting</option>
-                      <option value="tactical">🧠 Tactical — Positioning, game awareness</option>
-                      <option value="physical">💪 Physical — Speed, strength, endurance</option>
-                      <option value="mental">🎯 Mental — Focus, confidence, leadership</option>
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1.5">Category</label>
+                      <select
+                        value={planCategory}
+                        onChange={e => setPlanCategory(e.target.value as DevelopmentPlan['category'])}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      >
+                        <option value="technical">Technical — ball, passing, shooting</option>
+                        <option value="tactical">Tactical — positioning, awareness</option>
+                        <option value="physical">Physical — speed, strength</option>
+                        <option value="mental">Mental — focus, confidence</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1.5">Description <span className="text-slate-400 normal-case tracking-normal">(optional)</span></label>
+                      <input
+                        type="text"
+                        value={planDescription}
+                        onChange={e => setPlanDescription(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                        placeholder="What this plan focuses on…"
+                      />
+                    </div>
                   </div>
 
                   {/* Goals */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Development Goals *</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] font-extrabold uppercase tracking-widest text-slate-600">Goals</label>
+                      <button
+                        type="button"
+                        onClick={() => setDrillPickerOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-100 hover:bg-violet-200 text-violet-800 text-[11px] font-extrabold tracking-widest uppercase ring-1 ring-violet-200"
+                        title="Pick drills from your library"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                        Import from library
+                      </button>
+                    </div>
                     <div className="space-y-3">
                       {planGoals.map((goal, index) => (
                         <div key={goal.id} className="flex items-start space-x-2 bg-gray-50 p-3 rounded-lg">
@@ -1101,42 +1133,34 @@ const PlayerDevelopment: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={addGoalField}
-                        className="text-sm text-cyan-600 hover:text-cyan-700 font-medium"
-                      >
-                        + Add another goal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDrillPickerOpen(true)}
-                        className="inline-flex items-center gap-1.5 text-sm font-bold text-violet-700 hover:text-violet-900"
-                        title="Pick drills from your library"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-                        Import from library
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={addGoalField}
+                      className="mt-2 text-sm text-cyan-700 hover:text-cyan-900 font-bold"
+                    >
+                      + Add another goal
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(false); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={editingPlanId ? handleUpdatePlan : handleCreatePlan}
-                    disabled={(editingPlanId ? !planPlayerId : (bulkPlayerIds.length === 0 && !planPlayerId)) || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
-                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50"
-                  >
-                    {editingPlanId ? 'Save Changes' : (bulkPlayerIds.length > 1 ? `Create ${bulkPlayerIds.length} Plans` : 'Create Plan')}
-                  </button>
-                </div>
+              </div>
+              {/* Sticky footer */}
+              <div className="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(false); }}
+                  className="px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={editingPlanId ? handleUpdatePlan : handleCreatePlan}
+                  disabled={(editingPlanId ? !planPlayerId : (bulkPlayerIds.length === 0 && !planPlayerId)) || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
+                  className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg"
+                >
+                  {editingPlanId ? 'Save changes' : (bulkPlayerIds.length > 1 ? `Create ${bulkPlayerIds.length} plans` : 'Create plan')}
+                </button>
               </div>
             </div>
           </div>

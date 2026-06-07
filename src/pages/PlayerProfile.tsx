@@ -863,6 +863,66 @@ const PlayerProfile: React.FC = () => {
               </div>
             )}
 
+            {/* PRACTICE STREAK — consecutive days the player (or their
+                parent) has tapped "I did it" across any goal on any
+                active plan. Patrick: "maybe a hot streak when they do
+                more than one day and it showcases in their profile".
+                Visible to coach + the kid's parents. */}
+            {userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid)) && (() => {
+              // Aggregate all practice-log dates across every active
+              // plan's goals, dedupe to day buckets, then count
+              // consecutive days back from today (or yesterday if they
+              // haven't tapped yet today — so a missed-by-one-day
+              // streak isn't broken until midnight rolls).
+              const dayKeys = new Set<string>();
+              for (const p of plans) {
+                if (p.status !== 'active') continue;
+                for (const g of (p.goals || [])) {
+                  for (const l of ((g as any).practiceLog || [])) {
+                    const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+                    dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+                  }
+                }
+              }
+              if (dayKeys.size === 0) return null;
+              const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; })();
+              const today = dayKeys.has(todayKey);
+              const cursor = new Date();
+              cursor.setHours(0, 0, 0, 0);
+              if (!today) cursor.setDate(cursor.getDate() - 1);
+              let streak = 0;
+              for (;;) {
+                const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+                if (dayKeys.has(key)) {
+                  streak++;
+                  cursor.setDate(cursor.getDate() - 1);
+                } else break;
+              }
+              if (streak === 0) return null;
+              const hot = streak >= 3;
+              return (
+                <div className={`rounded-2xl px-5 py-4 text-white shadow-md ${
+                  hot
+                    ? 'bg-gradient-to-br from-rose-500 via-orange-500 to-amber-500'
+                    : 'bg-gradient-to-br from-cyan-500 to-cyan-600'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <span className="flex-shrink-0 w-12 h-12 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center text-2xl">
+                      {hot ? '🔥' : '⚡'}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">
+                        {hot ? "Hot streak" : "Practice streak"}
+                      </div>
+                      <div className="text-2xl font-black leading-tight">
+                        {streak} {streak === 1 ? 'day' : 'days'} {today ? 'and counting' : '— log today to keep it'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* JUGGLE COUNTER — parent-entered. Visible to coach + the
                 kid's parents. PR is the headline; recent attempts feed
                 a 7-day streak. No camera/CV — purely self-reported,

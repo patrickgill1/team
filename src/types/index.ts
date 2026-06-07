@@ -693,6 +693,20 @@ export interface DevelopmentPlan {
   createdAt: Date;
   updatedAt?: Date;
   completedAt?: Date;
+  /** Parent ↔ coach conversation about the plan. Questions, status
+   *  updates, "we tried this and Hayden hated it," coach replies, etc.
+   *  Different from per-goal practiceLog (which is just dated check-
+   *  ins). Each comment fires a push to the OTHER party. */
+  comments?: PlanComment[];
+}
+
+export interface PlanComment {
+  id: string;
+  authorUid: string;
+  authorName: string;
+  authorRole?: 'coach' | 'parent' | 'team_manager' | 'player';
+  text: string;
+  createdAt: Date;
 }
 
 export interface VideoLink {

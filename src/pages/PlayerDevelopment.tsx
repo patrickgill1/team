@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, Drill } from '../types';
+import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, Drill, PlanComment } from '../types';
 import DrillPickerModal from '../components/development/DrillPickerModal';
 import { isCoach, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
@@ -313,6 +313,52 @@ const PlayerDevelopment: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error toggling ready for review:', error);
+    }
+  };
+
+  // Add a comment to the plan's discussion thread. Visible to anyone
+  // who can see the plan (coach, the kid's parents). Triggers a push
+  // to the OTHER side — coach pings get parents, parent pings get
+  // the coach who created the plan.
+  const handleAddComment = async (plan: DevelopmentPlan, text: string) => {
+    if (!userData || !text.trim()) return;
+    const comment: PlanComment = {
+      id: `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      authorUid: userData.uid,
+      authorName: userData.name || 'Member',
+      authorRole: userData.role as any,
+      text: text.trim().slice(0, 1000),
+      createdAt: new Date(),
+    };
+    const next = [...(plan.comments || []), comment];
+    try {
+      await updateDevelopmentPlan(plan.id, { comments: next } as any);
+      loadData();
+      // Fire-and-forget push fan-out.
+      try {
+        const { sendPushToUsers, sendPushToPlayerParents } = await import('../utils/notify');
+        const fromUid = userData.uid;
+        if (isUserCoach) {
+          // Coach commented → push the parents of this plan's player.
+          sendPushToPlayerParents(plan.playerId, {
+            title: `Coach ${userData.name?.split(' ')[0] || ''} on ${plan.playerName}'s plan`,
+            body: comment.text.length > 140 ? `${comment.text.slice(0, 137)}…` : comment.text,
+            path: `/development?expand=${plan.id}`,
+          });
+        } else {
+          // Parent commented → push the coach who created the plan.
+          if (plan.createdBy && plan.createdBy !== fromUid) {
+            sendPushToUsers([plan.createdBy], {
+              title: `${userData.name?.split(' ')[0] || 'Parent'}: question on ${plan.playerName}'s plan`,
+              body: comment.text.length > 140 ? `${comment.text.slice(0, 137)}…` : comment.text,
+              url: `/development?expand=${plan.id}`,
+            }, { fromUid });
+          }
+        }
+      } catch (e) { console.warn('plan comment push failed', e); }
+    } catch (err) {
+      console.error('add comment failed', err);
+      alert('Couldn\'t post — try again.');
     }
   };
 
@@ -768,6 +814,7 @@ const PlayerDevelopment: React.FC = () => {
                   onReadyForReview={(goalId) => handleReadyForReview(plan, goalId)}
                   onAddPracticeLog={(goalId, note, mins) => handleAddPracticeLog(plan, goalId, note, mins)}
                   onQuickDidIt={(goalId) => handleQuickDidIt(plan, goalId)}
+                  onAddComment={(text) => handleAddComment(plan, text)}
                   onAddVideoLink={(goalId, url, title) => handleAddVideoLink(plan, goalId, url, title)}
                   onRemoveVideoLink={(goalId, linkId) => handleRemoveVideoLink(plan, goalId, linkId)}
                   onArchive={() => handleArchivePlan(plan.id)}
@@ -1219,6 +1266,7 @@ interface PlanCardProps {
   onReadyForReview: (goalId: string) => void;
   onAddPracticeLog: (goalId: string, note: string, minutes?: number) => void;
   onQuickDidIt: (goalId: string) => void;
+  onAddComment?: (text: string) => void;
   onAddVideoLink: (goalId: string, url: string, title?: string) => void;
   onRemoveVideoLink: (goalId: string, linkId: string) => void;
   onArchive: () => void;
@@ -1233,9 +1281,75 @@ interface PlanCardProps {
   playerPhoto?: string | null;
 }
 
+// Inline comments thread — questions/replies/anything about THIS plan.
+// Distinct from per-goal practice logs (which are dated "I did it"
+// markers) — these are real prose between parent and coach.
+const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) => void }> = ({ comments, onAdd }) => {
+  const [draft, setDraft] = useState('');
+  const sorted = [...comments].sort((a, b) => {
+    const at = (a.createdAt as any)?.toDate?.()?.getTime?.() || new Date(a.createdAt).getTime();
+    const bt = (b.createdAt as any)?.toDate?.()?.getTime?.() || new Date(b.createdAt).getTime();
+    return at - bt;
+  });
+  const handleSubmit = () => {
+    const t = draft.trim();
+    if (!t) return;
+    onAdd(t);
+    setDraft('');
+  };
+  return (
+    <div className="mt-4 border-t border-slate-100 pt-4">
+      <div className="flex items-center gap-2 mb-2">
+        <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-600">
+          Comments {sorted.length > 0 && <span className="text-slate-400">· {sorted.length}</span>}
+        </span>
+      </div>
+      {sorted.length > 0 && (
+        <ul className="space-y-2 mb-3">
+          {sorted.map(c => {
+            const t = (c.createdAt as any)?.toDate?.() || new Date(c.createdAt);
+            const isCoachAuthor = c.authorRole === 'coach' || c.authorRole === 'team_manager';
+            return (
+              <li key={c.id} className="rounded-lg bg-slate-50 ring-1 ring-slate-200 px-3 py-2">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-xs font-bold text-slate-800">{c.authorName}</span>
+                  {isCoachAuthor && (
+                    <span className="text-[9px] font-extrabold tracking-widest uppercase text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1 py-0.5 rounded">Coach</span>
+                  )}
+                  <span className="ml-auto text-[10px] text-slate-400">{t.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                </div>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{c.text}</p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || true)) handleSubmit(); }}
+          placeholder="Question, update, or note…"
+          className="flex-1 min-w-0 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+        />
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!draft.trim()}
+          className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold"
+        >
+          Post
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
-  onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan, playerPhoto,
+  onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddComment, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan, playerPhoto,
   getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak
 }) => {
   const progress = getProgressPercentage(plan);
@@ -1424,35 +1538,19 @@ const PlanCard: React.FC<PlanCardProps> = ({
                 'bg-white border-gray-200'
               }`}>
                 <div className="flex items-start space-x-3">
-                  {/* Player checkbox */}
-                  <div className="pt-0.5">
-                    {canPlayerComplete && plan.status === 'active' ? (
-                      <button
-                        onClick={() => onPlayerComplete(goal.id)}
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                          goal.playerCompleted
-                            ? 'bg-yellow-400 border-yellow-400 text-white'
-                            : 'border-gray-300 hover:border-yellow-400'
-                        }`}
-                      >
-                        {goal.playerCompleted && (
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-                    ) : (
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        goal.playerCompleted ? 'bg-yellow-400 border-yellow-400 text-white' : 'border-gray-200'
-                      }`}>
-                        {goal.playerCompleted && (
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {/* The per-goal "playerCompleted" checkbox lived here.
+                      It was redundant with the "I did it today" button
+                      (Patrick: "the check box and the i did it today
+                      button is redundant"). Kept only the coach-verified
+                      status badge — that's still meaningful for the
+                      coach's review flow. */}
+                  {goal.coachVerified && (
+                    <div className="pt-0.5">
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                      </span>
+                    </div>
+                  )}
 
                   <div className="flex-1">
                     <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1725,97 +1823,90 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             </div>
                           )}
 
-                          {/* One-tap "Did it today" — primary parent
-                              action. Shows above the older multi-field
-                              Log Practice form (which stays for when
-                              the parent wants to add detail/duration).
-                              Switches to a checkmark for the rest of
-                              the day once they've logged at least one
-                              session today. */}
+                          {/* One-tap "I DID IT" — the ONLY parent action
+                              now. Big, bold, celebratory. Once tapped,
+                              swaps to a streak callout that builds with
+                              consecutive days. Per-goal logging feeds
+                              the player-level streak that shows on
+                              their profile too. */}
                           {canLogPractice && plan.status === 'active' && !goal.coachVerified && (() => {
                             const todayStart = (() => {
                               const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime();
                             })();
-                            const loggedToday = (goal.practiceLog || []).some((l: any) => {
+                            const logs = (goal.practiceLog || []) as any[];
+                            const loggedToday = logs.some((l) => {
                               const t = l.date?.toDate ? l.date.toDate().getTime() : new Date(l.date).getTime();
                               return t >= todayStart;
                             });
+                            // Walk the day-bucketed log set from today
+                            // backwards counting consecutive days.
+                            const days = new Set<string>();
+                            for (const l of logs) {
+                              const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+                              const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+                              days.add(key);
+                            }
+                            let streak = 0;
+                            const cursor = new Date();
+                            cursor.setHours(0, 0, 0, 0);
+                            // If they haven't done today, the streak
+                            // window starts at yesterday — don't break
+                            // it just because they haven't tapped yet.
+                            if (!loggedToday) cursor.setDate(cursor.getDate() - 1);
+                            for (;;) {
+                              const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+                              if (days.has(key)) {
+                                streak++;
+                                cursor.setDate(cursor.getDate() - 1);
+                              } else break;
+                            }
                             return (
-                              <div className="mt-2">
+                              <div className="mt-3">
                                 {loggedToday ? (
-                                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300 text-sm font-bold">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                                    Logged today — nice work
+                                  <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-4 text-white shadow-md">
+                                    <div className="flex items-center gap-3">
+                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">Logged today</div>
+                                        <div className="text-xl font-black leading-tight">
+                                          {streak > 1 ? `${streak}-day streak — keep it going` : "Nice work!"}
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={() => onQuickDidIt(goal.id)}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold shadow-sm active:scale-95 transition"
+                                    className="w-full rounded-xl bg-gradient-to-br from-cyan-500 via-cyan-600 to-violet-600 hover:from-cyan-400 hover:via-cyan-500 hover:to-violet-500 text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                                    Did it today
+                                    <div className="flex items-center justify-center gap-3">
+                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                      </span>
+                                      <span className="text-lg font-black tracking-wide uppercase">I did it</span>
+                                      {streak > 0 && (
+                                        <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
+                                          {streak}-day streak — don't break it
+                                        </span>
+                                      )}
+                                    </div>
                                   </button>
                                 )}
                               </div>
                             );
                           })()}
 
-                          {/* Add practice log (anyone on active plans) */}
-                          {canLogPractice && plan.status === 'active' && !goal.coachVerified && (
-                            <div className="mt-2">
-                              {logGoalId === goal.id ? (
-                                <div className="bg-cyan-50 border border-cyan-100 rounded-lg p-3 space-y-2">
-                                  <p className="text-xs font-medium text-cyan-700">Log a practice session</p>
-                                  <input
-                                    type="text"
-                                    value={logNote}
-                                    onChange={e => setLogNote(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter') handleSubmitLog(); }}
-                                    className="w-full text-sm px-3 py-2 border border-cyan-100 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                                    placeholder="What did you work on? (e.g. Practiced weak foot passing for 20 minutes)"
-                                    autoFocus
-                                  />
-                                  <div className="flex items-center space-x-3">
-                                    <div className="flex items-center space-x-1">
-                                      <span className="text-xs text-gray-600">Duration:</span>
-                                      <input
-                                        type="number"
-                                        value={logMinutes}
-                                        onChange={e => setLogMinutes(e.target.value)}
-                                        className="w-20 text-sm px-2 py-1.5 border border-cyan-100 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                                        placeholder="Min"
-                                        min="1"
-                                      />
-                                      <span className="text-xs text-gray-500">minutes</span>
-                                    </div>
-                                    <div className="flex-1" />
-                                    <button
-                                      onClick={() => { setLogGoalId(null); setLogNote(''); setLogMinutes(''); }}
-                                      className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      onClick={handleSubmitLog}
-                                      disabled={!logNote.trim()}
-                                      className="text-sm bg-cyan-600 text-white px-4 py-1.5 rounded-lg hover:bg-cyan-700 disabled:opacity-50 font-medium"
-                                    >
-                                      Save
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setLogGoalId(goal.id)}
-                                  className="inline-flex items-center space-x-1.5 text-sm bg-cyan-50 text-cyan-700 hover:bg-cyan-50 px-3 py-1.5 rounded-lg font-medium transition-colors border border-cyan-100"
-                                >
-                                  <span>📝</span>
-                                  <span>Log Practice</span>
-                                </button>
-                              )}
-                            </div>
-                          )}
+                          {/* The legacy multi-field "Log Practice" form
+                              lived here. It was redundant with "Did it
+                              today" (both wrote to the same practiceLog
+                              array) and confusing — Patrick: "isn't the
+                              did it today button supposed to take care
+                              of that?" Removed. If a parent needs to
+                              add a note or duration, they post in the
+                              new plan-comments thread below. */}
                         </>
                       );
                     })()}
@@ -1824,6 +1915,15 @@ const PlanCard: React.FC<PlanCardProps> = ({
               </div>
             ))}
           </div>
+
+          {/* Comments — parent ↔ coach conversation about this plan.
+              "if it is for the parents to log any comments, i would
+              rather have more of a comment section" (Patrick). Posts
+              fire a push to the OTHER side (coach → parents, parent
+              → plan creator). */}
+          {onAddComment && (
+            <PlanComments comments={plan.comments || []} onAdd={onAddComment} />
+          )}
 
           {/* Actions */}
           <div className="mt-4 flex justify-between items-center">

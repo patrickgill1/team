@@ -122,6 +122,47 @@ export interface Club {
   isActive: boolean;
   createdAt: Date;
   archivedAt?: Date;
+
+  /** Stripe Connect Standard — multi-club model. Each club connects
+   *  their OWN Stripe account, holds their own funds, and Stripe
+   *  payouts go directly to them. Fire FC the platform never touches
+   *  the money. We just trigger Checkout Sessions on their behalf via
+   *  the Stripe-Account header. */
+  stripeAccountId?: string;
+  /** True once Stripe has fully verified the account (KYC done, bank
+   *  added, can accept charges). Until then, "Accept payment" CTAs are
+   *  disabled in the UI even if the connection started. */
+  stripeChargesEnabled?: boolean;
+  stripePayoutsEnabled?: boolean;
+  stripeOnboardedAt?: Date;
+}
+
+export interface Invoice {
+  id: string;
+  clubId: string;
+  teamId: string;
+  /** Who owes — parent UID. */
+  parentUid: string;
+  /** Denorm so we can show "for Hunter" on a parent's invoice list
+   *  without an extra join. */
+  playerId?: string;
+  playerName?: string;
+  /** What this is for ("Spring 2026 fees", "Tournament entry", etc.). */
+  description: string;
+  /** Amount in CENTS — Stripe's canonical integer representation, no
+   *  floating point math. */
+  amountCents: number;
+  currency: 'usd';
+  status: 'pending' | 'paid' | 'cancelled' | 'refunded';
+  /** Stripe artifacts — populated by the worker as the payment flows. */
+  stripeCheckoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  /** Audit trail. */
+  createdBy: string;
+  createdAt: Date;
+  paidAt?: Date;
+  cancelledAt?: Date;
+  refundedAt?: Date;
 }
 
 export interface PlayerMembership {

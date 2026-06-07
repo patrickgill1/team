@@ -85,3 +85,68 @@ Watch logs:
 ```bash
 npx wrangler tail
 ```
+
+---
+
+## 5. Stripe Connect (multi-club payments) — TODO
+
+Scaffolded on the UI side (`src/pages/ClubOverview.tsx` Payments tab). Worker
+endpoints are NOT live yet. To turn it on:
+
+### a) Stripe platform account
+
+1. Create a Stripe account at https://dashboard.stripe.com (Patrick — use your existing one if it's not already a Connect platform).
+2. Activate Connect: Dashboard → Settings → Connect → Get Started → choose "Platform or marketplace" → "Standard accounts" (we want each club holding their own balance, not Express).
+3. Note the platform's:
+   - Publishable key (`pk_live_…` and `pk_test_…`)
+   - Secret key (`sk_live_…` and `sk_test_…`)
+   - Connect OAuth Client ID (`ca_…`)
+   - Webhook signing secret (set up the webhook endpoint first — see (c)).
+
+### b) Worker secrets
+
+```bash
+npx wrangler secret put STRIPE_SECRET_KEY        # sk_live_… or sk_test_…
+npx wrangler secret put STRIPE_CONNECT_CLIENT_ID # ca_…
+npx wrangler secret put STRIPE_WEBHOOK_SECRET    # whsec_…
+```
+
+### c) Worker endpoints to add (in `src/index.ts` or a new `src/stripe.ts`)
+
+- `GET  /stripe/connect/start?clubId=<id>` — returns Stripe's hosted OAuth URL the
+  club admin should be redirected to. After they approve, Stripe redirects
+  back to the app's `/club?connected=1` with `?code=<auth_code>&state=<clubId>`.
+- `POST /stripe/connect/finish` — body: `{ code, clubId }`. Worker exchanges
+  the code for `{ stripe_user_id, access_token }`, writes `stripeAccountId` +
+  `stripeChargesEnabled` to the `clubs/<id>` doc.
+- `POST /stripe/checkout` — body: `{ clubId, invoiceId, amountCents, description, parentEmail }`.
+  Worker creates a Checkout Session on behalf of the connected account (using
+  `Stripe-Account: <stripeAccountId>` header) and returns the hosted URL the
+  parent opens to pay.
+- `POST /stripe/webhook` — receives `payment_intent.succeeded` etc. Validates
+  the signature, marks the matching invoice doc `status: 'paid'`, sends a push
+  to the parent + a "received $XYZ" push to club admins.
+
+### d) Vercel env
+
+- `REACT_APP_STRIPE_PUBLISHABLE_KEY` (used only for the redirect — Connect OAuth
+  needs the publishable key in the URL).
+
+### e) Firestore rules
+
+Add to `firestore.rules`:
+```
+match /invoices/{invoiceId} {
+  // Parents see only their own. Coaches see their team's. Club admins see all.
+  allow read: if request.auth != null
+    && (resource.data.parentUid == request.auth.uid
+        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
+        // (team coach check would go here)
+       );
+  // Writes only via worker (server-side). Block client writes.
+  allow write: if false;
+}
+```
+
+The worker uses Firestore Admin SDK creds (service account JSON in
+`FCM_SERVICE_ACCOUNT` already) so it bypasses rules — fine.

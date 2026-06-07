@@ -24,7 +24,7 @@ import BroadcastModal from '../components/club/BroadcastModal';
  * Header has a "Broadcast" button that opens a modal to send a
  * cross-team announcement (email + optional push).
  */
-type TabKey = 'overview' | 'players' | 'coaches' | 'calendar' | 'stats';
+type TabKey = 'overview' | 'players' | 'coaches' | 'calendar' | 'stats' | 'payments';
 
 const ClubOverview: React.FC = () => {
   const navigate = useNavigate();
@@ -203,6 +203,7 @@ const ClubOverview: React.FC = () => {
             { k: 'overview', label: 'Overview' },
             { k: 'calendar', label: 'Calendar' },
             { k: 'stats', label: 'Stats' },
+            { k: 'payments', label: 'Payments' },
           ] as { k: TabKey; label: string }[]).map((t) => (
             <button
               key={t.k}
@@ -261,6 +262,9 @@ const ClubOverview: React.FC = () => {
             )}
             {tab === 'stats' && (
               <StatsTab players={players} teams={teams} teamStats={teamStats} />
+            )}
+            {tab === 'payments' && (
+              <PaymentsTab />
             )}
           </>
         )}
@@ -827,5 +831,125 @@ function teamLabel(player: any, teams: any[]): string {
   const tIds: string[] = Array.isArray(player.teamIds) && player.teamIds.length > 0 ? player.teamIds : (player.teamId ? [player.teamId] : []);
   return tIds.map((id) => teams.find((t) => t.id === id)?.name || '').filter(Boolean).join(' · ');
 }
+
+// Payments tab — surfaces Stripe Connect status + recent invoices for
+// this club. Multi-club model: each club holds their own connected
+// Stripe account, funds go directly to them, Fire FC the platform
+// never touches the money. Scaffolded UI here; the actual /stripe/*
+// worker endpoints (OAuth start/finish, checkout, webhook) are stubbed
+// in worker/src/stripe.ts and need to be wired before the connect
+// button does anything live.
+const PaymentsTab: React.FC = () => {
+  const { userData } = useAuth();
+  // Stripe state lives on the user's currently-selected club doc. For
+  // now we look up the club via the user's clubId. A multi-club admin
+  // could grow this to a picker, but a club admin only belongs to one
+  // club in the current model.
+  const clubId = (userData as any)?.clubId as string | undefined;
+  const [club, setClub] = React.useState<any | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!clubId) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDoc(doc(db, 'clubs', clubId));
+        if (cancelled) return;
+        setClub(snap.exists() ? { id: snap.id, ...(snap.data() as any) } : null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clubId]);
+
+  const connected = !!club?.stripeAccountId;
+  const chargesEnabled = !!club?.stripeChargesEnabled;
+
+  if (loading) {
+    return <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-6 text-sm text-gray-500">Loading…</div>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Stripe Connect status card */}
+      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="font-bold text-fire-950">Stripe Connect</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ Stripe fee.</p>
+          </div>
+          <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded ${
+            chargesEnabled ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300'
+              : connected ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+              : 'bg-slate-100 text-slate-600 ring-1 ring-slate-300'
+          }`}>
+            {chargesEnabled ? 'Active' : connected ? 'Onboarding' : 'Not connected'}
+          </span>
+        </div>
+        <div className="p-5">
+          {!connected ? (
+            <>
+              <p className="text-sm text-slate-700 mb-3">
+                Connect a Stripe account to accept team-fee, tournament-entry, and uniform-order payments
+                directly from parents. Stripe holds the funds and deposits them to your bank — Fire FC never
+                touches the money.
+              </p>
+              <button
+                type="button"
+                onClick={() => alert('Stripe Connect onboarding is wired on the UI side but the worker endpoint needs setup. See worker/README.md for the next step.')}
+                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold"
+              >
+                Connect Stripe (Setup required)
+              </button>
+            </>
+          ) : (
+            <div className="space-y-2 text-sm text-slate-700">
+              <div className="flex items-center justify-between">
+                <span>Account ID</span>
+                <code className="text-[11px] text-slate-500">{club.stripeAccountId}</code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Charges enabled</span>
+                <span className={chargesEnabled ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
+                  {chargesEnabled ? 'Yes' : 'Pending KYC'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Payouts enabled</span>
+                <span className={club.stripePayoutsEnabled ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
+                  {club.stripePayoutsEnabled ? 'Yes' : 'Pending'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Invoices list — empty for now; lights up when the worker
+          can actually create Checkout Sessions. */}
+      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-bold text-fire-950">Invoices</h2>
+          <button
+            type="button"
+            disabled={!chargesEnabled}
+            onClick={() => alert('Coming once Stripe Connect is active.')}
+            className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            + Create
+          </button>
+        </div>
+        <div className="p-8 text-center text-sm text-slate-500">
+          {connected
+            ? 'No invoices yet — create one to see it here.'
+            : 'Connect Stripe above to start creating invoices.'}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default ClubOverview;

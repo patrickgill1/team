@@ -150,16 +150,20 @@ Still queued:
 - Attachments on offers (PDF roster handbook, gear order form) via
   Stream/R2 upload.
 
-## Module 3 — Admin CRM (after Module 2)
+## Module 3 — Admin CRM
 
-- Family-centric timeline view (every parent, their kids, every
-  activity, every communication, every payment, every offer, every
-  team across years).
+Foundation shipped: `/club/family/:email` timeline view aggregating
+every registration, offer, player, and activity touching that parent
+email into one chronological feed. "Family" link surfaces it from each
+Registrations row.
+
+Still queued:
 - Bulk actions (mass-charge fees, mass-email a group).
 - Season lifecycle UI: open registration / close / start / end as a
   proper state machine with audit log.
 - Reports + dashboards (registrations by age, conversion rate from
   registration → offer → roster, fee collection, coupon usage).
+- "Family" link on Tryouts rows too (currently only on Registrations).
 
 ## Decisions still open
 

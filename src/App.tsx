@@ -41,6 +41,7 @@ const Products = React.lazy(() => import('./pages/Products'));
 const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFormBuilder'));
 const Tryouts = React.lazy(() => import('./pages/Tryouts'));
 const Offer = React.lazy(() => import('./pages/Offer'));
+const FamilyTimeline = React.lazy(() => import('./pages/FamilyTimeline'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
@@ -348,6 +349,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Tryouts />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/club/family/:email" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <FamilyTimeline />
                 </AppLayout>
               </ProtectedRoute>
             } />

@@ -288,6 +288,14 @@ const Registrations: React.FC = () => {
                     </div>
                     {/* Status actions */}
                     <div className="mt-2 flex flex-wrap items-center gap-1">
+                      {r.parents?.[0]?.email && (
+                        <Link
+                          to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`}
+                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-slate-50 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                        >
+                          Family
+                        </Link>
+                      )}
                       {r.status === 'pending_payment' && (
                         <button onClick={() => handleStatusChange(r, 'paid')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100">
                           Mark paid

@@ -227,6 +227,22 @@ const ClubOverview: React.FC = () => {
           </button>
         </div>
 
+        {/* Coach surfaces */}
+        <div className="grid grid-cols-1 gap-2">
+          <button
+            onClick={() => navigate('/club/tryouts')}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
+            title="Coach view of the tryout candidate pool"
+          >
+            <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <div className="flex-1">
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Tryout pool</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Favorites · holds · ratings · notes — shared across coaches</div>
+            </div>
+            <span className="text-slate-400 group-hover:text-rose-500">→</span>
+          </button>
+        </div>
+
         {/* Tabs — overview/calendar/stats. Players + Coaches tabs are
             removed since the new /people directory does both better. */}
         <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1">

@@ -113,19 +113,22 @@ coach-handoff notes). Today the form is hardcoded.
 
 ## Module 2 — Tryouts + Offer Letters
 
-Locked once Module 1 is live and getting real submissions.
+Foundation shipped (`/club/tryouts`). Still to come: offer letters.
 
-- **Coach activity feed across the club** — every coach can see what
-  other coaches are doing on candidates (favorites, offers sent,
-  notes). Patrick's note: "Ollie can't do most of that, it is crazy"
-  — keeping this transparent prevents coaches from poaching candidates
-  blind.
-- **Favorites + Holds** — coach can heart a candidate ("I want them")
-  or place a Hold ("don't let another team offer yet — I'm deciding").
-- **Heavy filters** on the tryout pool: position, age group, gender,
-  team interest, "playing up" flag, prior club, offer status, hold
-  status, favorite-by-me, etc.
-- Notes + ratings per candidate (1-5 stars, free-form notes).
+Shipped:
+- **Coach activity feed strip** on /club/tryouts — last 6 coach moves
+  (favorites, ratings, notes, holds, offers, tryout invites) visible
+  to everyone. Patrick's "Ollie can't do most of that" transparency
+  goal.
+- **Favorites + Holds** — heart toggle stored per-coach; hold is a
+  shared lock with a 7-day default that blocks other coaches from
+  offering until released.
+- **Heavy filters** on the tryout pool: status, age, gender, position,
+  returning vs new, "favorites only" toggle, free-text search.
+- **Notes + ratings** — 1-5 stars per coach (shows pool average) plus
+  free-form notes visible to all coaches.
+
+Still queued:
 - Offer letter editor with reusable templates (per coach / per team
   / per position). Attachments via Stream upload (PDFs etc.).
 - Public `/offer/<id>` page — beautifully designed parent-facing

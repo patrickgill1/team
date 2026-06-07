@@ -1,0 +1,515 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { collection, doc, getDocs, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { db } from '../utils/firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { isCoach, isClubAdmin } from '../utils/helpers';
+import { logActivity } from '../utils/activityLog';
+import type { Activity, Registration, RegistrationCoachState } from '../types';
+
+// Coach-facing view of the tryout candidate pool. Shared across all
+// coaches in the club — favorites, holds, ratings, and notes are
+// visible to everyone so two coaches don't quietly compete for the
+// same kid. Only club admins create offers (Module 2 next batch); this
+// page is the pre-offer scouting surface.
+
+const STATUS_OPTIONS: Array<{ value: Registration['status'] | 'all'; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'tryout_invited', label: 'Tryout invited' },
+  { value: 'offer_sent', label: 'Offer sent' },
+  { value: 'pending_payment', label: 'Pending payment' },
+];
+
+const Tryouts: React.FC = () => {
+  const { userData } = useAuth();
+  const allowed = isClubAdmin(userData) || (userData?.role ? isCoach(userData.role) : false);
+  const myUid = userData?.uid;
+  const myName = userData?.name || 'Coach';
+
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterAge, setFilterAge] = useState<string>('all');
+  const [filterGender, setFilterGender] = useState<string>('all');
+  const [filterPosition, setFilterPosition] = useState<string>('all');
+  const [filterReturning, setFilterReturning] = useState<'all' | 'returning' | 'new'>('all');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [openNotesFor, setOpenNotesFor] = useState<string | null>(null);
+
+  const reload = async () => {
+    try {
+      setLoading(true);
+      const [rSnap, aSnap] = await Promise.all([
+        getDocs(query(collection(db, 'registrations'), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'activities'), orderBy('createdAt', 'desc'))),
+      ]);
+      setRegistrations(rSnap.docs.map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+        };
+      }) as Registration[]);
+      setActivities(aSnap.docs.slice(0, 50).map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+        };
+      }) as Activity[]);
+    } catch (err) {
+      console.warn('tryouts load failed', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { if (allowed) void reload(); }, [allowed]);
+
+  // Build the list of unique filter values from the loaded set.
+  const ageGroups = useMemo(
+    () => Array.from(new Set(registrations.map(r => r.player?.ageGroup).filter(Boolean))).sort(),
+    [registrations],
+  );
+  const positions = useMemo(
+    () => Array.from(new Set(registrations.map(r => r.player?.preferredPosition).filter(Boolean))).sort() as string[],
+    [registrations],
+  );
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return registrations.filter(r => {
+      if (filterStatus !== 'all' && r.status !== filterStatus) return false;
+      if (filterAge !== 'all' && r.player?.ageGroup !== filterAge) return false;
+      if (filterGender !== 'all' && r.player?.gender !== filterGender) return false;
+      if (filterPosition !== 'all' && r.player?.preferredPosition !== filterPosition) return false;
+      if (filterReturning === 'returning' && !r.player?.playedBefore) return false;
+      if (filterReturning === 'new' && r.player?.playedBefore) return false;
+      if (showFavoritesOnly && !(myUid && r.coachStates?.[myUid]?.favorite)) return false;
+      if (q) {
+        const hay = [
+          r.player?.firstName, r.player?.lastName,
+          ...(r.parents || []).map(p => `${p.firstName} ${p.lastName} ${p.email}`),
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [registrations, search, filterStatus, filterAge, filterGender, filterPosition, filterReturning, showFavoritesOnly, myUid]);
+
+  // Mutations — each updates the doc and writes an activity. Optimistic
+  // local update so the UI feels instant.
+  const updateCoachState = async (r: Registration, patch: Partial<RegistrationCoachState>) => {
+    if (!myUid) return;
+    const next: RegistrationCoachState = {
+      uid: myUid,
+      coachName: myName,
+      ...(r.coachStates?.[myUid] || {}),
+      ...patch,
+    };
+    setRegistrations(prev => prev.map(rr => rr.id === r.id ? {
+      ...rr,
+      coachStates: { ...(rr.coachStates || {}), [myUid]: next },
+    } : rr));
+    try {
+      await updateDoc(doc(db, 'registrations', r.id), {
+        [`coachStates.${myUid}`]: next,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn('coach state update failed', err);
+    }
+  };
+
+  const handleToggleFavorite = async (r: Registration) => {
+    if (!myUid) return;
+    const was = !!r.coachStates?.[myUid]?.favorite;
+    await updateCoachState(r, { favorite: !was, favoritedAt: new Date() });
+    void logActivity({
+      clubId: r.clubId,
+      kind: was ? 'coach_unfavorited' : 'coach_favorited',
+      registrationId: r.id,
+      seasonId: r.seasonId,
+      actorUid: myUid,
+      actorName: myName,
+      payload: { playerName: `${r.player?.firstName} ${r.player?.lastName}` },
+    });
+  };
+
+  const handleRate = async (r: Registration, rating: number) => {
+    if (!myUid) return;
+    await updateCoachState(r, { rating });
+    void logActivity({
+      clubId: r.clubId,
+      kind: 'coach_rated',
+      registrationId: r.id,
+      seasonId: r.seasonId,
+      actorUid: myUid,
+      actorName: myName,
+      payload: { rating, playerName: `${r.player?.firstName} ${r.player?.lastName}` },
+    });
+  };
+
+  const handleSaveNote = async (r: Registration, note: string) => {
+    if (!myUid) return;
+    await updateCoachState(r, { note, noteUpdatedAt: new Date() });
+    void logActivity({
+      clubId: r.clubId,
+      kind: 'coach_noted',
+      registrationId: r.id,
+      seasonId: r.seasonId,
+      actorUid: myUid,
+      actorName: myName,
+      payload: { note: note.slice(0, 200), playerName: `${r.player?.firstName} ${r.player?.lastName}` },
+    });
+  };
+
+  const handleToggleHold = async (r: Registration) => {
+    if (!myUid) return;
+    const heldByMe = r.heldByUid === myUid;
+    const heldByOther = !!r.heldByUid && r.heldByUid !== myUid;
+    if (heldByOther) {
+      alert(`Held by ${r.heldByName || 'another coach'}. They need to release first.`);
+      return;
+    }
+    const next = heldByMe ? null : { heldByUid: myUid, heldByName: myName, heldUntil: addDays(new Date(), 7) };
+    setRegistrations(prev => prev.map(rr => rr.id === r.id ? {
+      ...rr,
+      heldByUid: next?.heldByUid as any,
+      heldByName: next?.heldByName as any,
+      heldUntil: next?.heldUntil as any,
+    } : rr));
+    try {
+      await updateDoc(doc(db, 'registrations', r.id), {
+        heldByUid: next?.heldByUid || null,
+        heldByName: next?.heldByName || null,
+        heldUntil: next?.heldUntil || null,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn('hold update failed', err);
+    }
+    void logActivity({
+      clubId: r.clubId,
+      kind: heldByMe ? 'coach_released' : 'coach_held',
+      registrationId: r.id,
+      seasonId: r.seasonId,
+      actorUid: myUid,
+      actorName: myName,
+      payload: { playerName: `${r.player?.firstName} ${r.player?.lastName}` },
+    });
+  };
+
+  if (!allowed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">
+        Coaches + club admins only.
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
+        <div className="max-w-6xl mx-auto">
+          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            Club
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Tryout pool</h1>
+          <p className="text-sm text-slate-400 mt-0.5">
+            Coach view. Favorites, holds, ratings, and notes are visible to all coaches.
+          </p>
+        </div>
+      </section>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        {/* Activity feed strip */}
+        <ActivityStrip activities={activities} />
+
+        {/* Filters */}
+        <div className="bg-white rounded-xl ring-1 ring-slate-200 p-3 flex flex-wrap items-center gap-2">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+            {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+            <option value="all">All ages</option>
+            {ageGroups.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+            <option value="all">All genders</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+          {positions.length > 0 && (
+            <select value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+              <option value="all">All positions</option>
+              {positions.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          )}
+          <select value={filterReturning} onChange={(e) => setFilterReturning(e.target.value as any)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+            <option value="all">New + returning</option>
+            <option value="returning">Returning only</option>
+            <option value="new">New only</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => setShowFavoritesOnly(v => !v)}
+            className={`text-sm font-bold rounded-lg px-3 py-2 ring-1 ${
+              showFavoritesOnly
+                ? 'bg-rose-500 text-white ring-rose-500'
+                : 'bg-white text-slate-700 ring-slate-200 hover:ring-rose-400'
+            }`}
+            title="Show only candidates you've favorited"
+          >
+            ♥ Mine
+          </button>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by player or parent…"
+            className="flex-1 min-w-[180px] text-sm border border-slate-300 rounded-lg px-3 py-2"
+          />
+          <span className="ml-auto text-xs text-slate-500">{visible.length} of {registrations.length}</span>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center text-sm text-slate-500">Loading…</div>
+          ) : visible.length === 0 ? (
+            <div className="p-10 text-center">
+              <p className="text-sm font-bold text-slate-700">Nothing matches.</p>
+              <p className="text-xs text-slate-500 mt-1">Try clearing filters.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {visible.map(r => (
+                <CandidateRow
+                  key={r.id}
+                  registration={r}
+                  myUid={myUid}
+                  isOpen={openNotesFor === r.id}
+                  onToggleOpen={() => setOpenNotesFor(openNotesFor === r.id ? null : r.id)}
+                  onToggleFavorite={() => handleToggleFavorite(r)}
+                  onRate={(n) => handleRate(r, n)}
+                  onSaveNote={(n) => handleSaveNote(r, n)}
+                  onToggleHold={() => handleToggleHold(r)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Candidate row ──────────────────────────────────────────────
+
+interface RowProps {
+  registration: Registration;
+  myUid?: string;
+  isOpen: boolean;
+  onToggleOpen: () => void;
+  onToggleFavorite: () => void;
+  onRate: (n: number) => void;
+  onSaveNote: (n: string) => void;
+  onToggleHold: () => void;
+}
+
+const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onToggleOpen, onToggleFavorite, onRate, onSaveNote, onToggleHold }) => {
+  const my = myUid ? r.coachStates?.[myUid] : undefined;
+  const allCoachStates = Object.values(r.coachStates || {});
+  const otherFavorites = allCoachStates.filter(s => s.uid !== myUid && s.favorite);
+  const allRatings = allCoachStates.filter(s => typeof s.rating === 'number').map(s => s.rating!) ;
+  const avgRating = allRatings.length > 0 ? (allRatings.reduce((a, b) => a + b, 0) / allRatings.length) : 0;
+  const heldByMe = r.heldByUid === myUid;
+  const heldByOther = !!r.heldByUid && r.heldByUid !== myUid;
+  const [noteDraft, setNoteDraft] = useState(my?.note || '');
+  const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => { setNoteDraft(my?.note || ''); }, [my?.note]);
+
+  return (
+    <li className="px-4 py-3 hover:bg-slate-50">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={onToggleFavorite}
+          className={`shrink-0 mt-0.5 w-8 h-8 rounded-full flex items-center justify-center ring-1 transition ${
+            my?.favorite
+              ? 'bg-rose-500 ring-rose-500 text-white'
+              : 'bg-white ring-slate-200 text-slate-400 hover:ring-rose-400 hover:text-rose-500'
+          }`}
+          title={my?.favorite ? 'Unfavorite' : 'Favorite'}
+        >
+          ♥
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+            <span className="text-sm font-bold text-slate-900">
+              {r.player.firstName} {r.player.lastName}
+            </span>
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+              {r.player.ageGroup}
+            </span>
+            {r.player.playedBefore && (
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded">
+                returning
+              </span>
+            )}
+            {heldByMe && (
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-800 bg-amber-100 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">
+                You're holding
+              </span>
+            )}
+            {heldByOther && (
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-900 bg-amber-100 ring-1 ring-amber-300 px-1.5 py-0.5 rounded">
+                Held by {r.heldByName}
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-slate-600">
+            {r.player.gender} · {r.player.preferredPosition || '—'} · status: <span className="font-bold">{r.status}</span>
+          </div>
+          {otherFavorites.length > 0 && (
+            <div className="mt-1 text-[11px] text-rose-600">
+              Also favorited by {otherFavorites.map(s => s.coachName).join(', ')}
+            </div>
+          )}
+          {avgRating > 0 && (
+            <div className="mt-1 text-[11px] text-amber-700">
+              Pool rating: {avgRating.toFixed(1)} ★ ({allRatings.length})
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          {[1, 2, 3, 4, 5].map(n => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onRate(n)}
+              className={`text-base ${(my?.rating ?? 0) >= n ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}
+              title={`Rate ${n} star${n === 1 ? '' : 's'}`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={onToggleOpen}
+          className="text-[11px] font-bold text-cyan-700 hover:text-cyan-900"
+        >
+          {isOpen ? 'Close notes' : my?.note ? 'Edit note' : '+ Add note'}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleHold}
+          disabled={heldByOther}
+          className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 ${
+            heldByMe
+              ? 'bg-amber-500 text-white ring-amber-500'
+              : heldByOther
+                ? 'bg-slate-100 text-slate-400 ring-slate-200 cursor-not-allowed'
+                : 'bg-white text-amber-700 ring-amber-300 hover:bg-amber-50'
+          }`}
+        >
+          {heldByMe ? 'Release hold' : 'Place hold'}
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="mt-2 pl-11">
+          <textarea
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            rows={3}
+            placeholder="Scouting notes — visible to all coaches"
+            className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+          />
+          <div className="flex items-center justify-end gap-2 mt-1">
+            <button
+              type="button"
+              disabled={savingNote || noteDraft === (my?.note || '')}
+              onClick={async () => {
+                setSavingNote(true);
+                await onSaveNote(noteDraft);
+                setSavingNote(false);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold"
+            >
+              {savingNote ? 'Saving…' : 'Save note'}
+            </button>
+          </div>
+          {allCoachStates.filter(s => s.note && s.uid !== myUid).length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              {allCoachStates.filter(s => s.note && s.uid !== myUid).map(s => (
+                <div key={s.uid} className="text-[11px] text-slate-700 bg-slate-50 ring-1 ring-slate-200 rounded p-2">
+                  <span className="font-bold">{s.coachName}:</span> {s.note}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+};
+
+// ── Activity strip ─────────────────────────────────────────────
+
+const ActivityStrip: React.FC<{ activities: Activity[] }> = ({ activities }) => {
+  const recent = activities
+    .filter(a => a.kind.startsWith('coach_') || a.kind === 'offer_sent' || a.kind === 'tryout_invited')
+    .slice(0, 6);
+  if (recent.length === 0) return null;
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-slate-200 px-3 py-2">
+      <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Coach activity</div>
+      <ul className="flex flex-wrap gap-1.5">
+        {recent.map(a => (
+          <li key={a.id} className="text-[11px] text-slate-700 bg-slate-50 ring-1 ring-slate-200 rounded px-2 py-1">
+            <span className="font-bold">{a.actorName || 'Coach'}</span> {verbFor(a.kind)}{' '}
+            <span className="text-slate-500">{a.payload?.playerName || ''}</span>
+            {a.payload?.rating && <span className="ml-1 text-amber-600">{a.payload.rating}★</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+function verbFor(kind: Activity['kind']): string {
+  switch (kind) {
+    case 'coach_favorited': return 'favorited';
+    case 'coach_unfavorited': return 'unfavorited';
+    case 'coach_rated': return 'rated';
+    case 'coach_noted': return 'noted on';
+    case 'coach_held': return 'placed a hold on';
+    case 'coach_released': return 'released';
+    case 'offer_sent': return 'sent an offer to';
+    case 'tryout_invited': return 'invited to tryout:';
+    default: return kind;
+  }
+}
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+export default Tryouts;

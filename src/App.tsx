@@ -39,6 +39,7 @@ const RegisterCancel = React.lazy(() => import('./pages/RegisterStripeReturn').t
 const Registrations = React.lazy(() => import('./pages/Registrations'));
 const Products = React.lazy(() => import('./pages/Products'));
 const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFormBuilder'));
+const Tryouts = React.lazy(() => import('./pages/Tryouts'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
@@ -337,6 +338,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <RegistrationFormBuilder />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/club/tryouts" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Tryouts />
                 </AppLayout>
               </ProtectedRoute>
             } />

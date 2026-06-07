@@ -415,6 +415,19 @@ export interface Registration {
   promotedToPlayerId?: string;
   promotedToTeamId?: string;
   promotedAt?: Date;
+  /** Per-coach state — favorites, holds, ratings, notes. Keyed by
+   *  coach uid so we don't fan out into a sub-collection. Visibility:
+   *  all coaches in the club can see all states — Patrick's call from
+   *  the original conversation ("transparency prevents coaches from
+   *  poaching candidates blind"). */
+  coachStates?: Record<string, RegistrationCoachState>;
+  /** Soft "Hold" lock — set on the Registration root, not a coach state.
+   *  When set, the candidate is reserved for `heldByUid` for `heldUntil`
+   *  days; other coaches see the hold + the holder's name and are
+   *  blocked from sending an offer. Holder can release any time. */
+  heldByUid?: string;
+  heldByName?: string;
+  heldUntil?: Date;
   /** Answers to admin-defined custom questions, keyed by question id.
    *  See `RegistrationFormConfig`. Snapshotted question labels live on
    *  `customAnswerLabels` so the admin view doesn't break if the form
@@ -429,6 +442,24 @@ export interface Registration {
   notes?: string;
   createdAt: Date;
   updatedAt?: Date;
+}
+
+/** A single coach's read on a tryout candidate. Stored as a map value
+ *  on `Registration.coachStates` keyed by uid. Other coaches in the
+ *  club can see this — it's a shared scouting sheet, not a private
+ *  notebook. */
+export interface RegistrationCoachState {
+  uid: string;
+  coachName: string;
+  /** "I want them on my team." Surfaces the candidate in a Favorites
+   *  filter for this coach + as a small heart on the row for everyone. */
+  favorite?: boolean;
+  favoritedAt?: Date;
+  /** 1-5 stars. Free-form notes go in `note`. */
+  rating?: number;
+  /** Short scouting note shown to all coaches. */
+  note?: string;
+  noteUpdatedAt?: Date;
 }
 
 /** Admin-defined extra questions to tack onto the public /register form.
@@ -575,7 +606,13 @@ export interface Activity {
     | 'email_sent'
     | 'fee_charged'
     | 'coupon_redeemed'
-    | 'note_added';
+    | 'note_added'
+    | 'coach_favorited'
+    | 'coach_unfavorited'
+    | 'coach_rated'
+    | 'coach_noted'
+    | 'coach_held'
+    | 'coach_released';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-
    *  centric for family timeline, etc. */

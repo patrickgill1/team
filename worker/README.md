@@ -122,10 +122,13 @@ a friendly "Generation failed" toast, no app-wide break.
 
 ---
 
-## 6. Stripe Connect (multi-club payments) — TODO
+## 6. Stripe Connect (multi-club payments)
 
-Scaffolded on the UI side (`src/pages/ClubOverview.tsx` Payments tab). Worker
-endpoints are NOT live yet. To turn it on:
+Worker endpoints are LIVE in `worker/src/stripe.ts` — they return `503
+stripe-not-configured` until the secrets below are set. UI flow is also
+live: Connect button on the Payments tab, OAuth return handler, Register
+form auto-redirect to Checkout when a price is owed, webhook flips
+Registration to `paid`. To turn it on:
 
 ### a) Stripe platform account
 
@@ -143,23 +146,39 @@ endpoints are NOT live yet. To turn it on:
 npx wrangler secret put STRIPE_SECRET_KEY        # sk_live_… or sk_test_…
 npx wrangler secret put STRIPE_CONNECT_CLIENT_ID # ca_…
 npx wrangler secret put STRIPE_WEBHOOK_SECRET    # whsec_…
+# Optional — only if your Firebase project id isn't already in FCM_SERVICE_ACCOUNT
+npx wrangler secret put FIREBASE_PROJECT_ID
 ```
 
-### c) Worker endpoints to add (in `src/index.ts` or a new `src/stripe.ts`)
+### c) Worker endpoints (already live in `src/stripe.ts`)
 
-- `GET  /stripe/connect/start?clubId=<id>` — returns Stripe's hosted OAuth URL the
-  club admin should be redirected to. After they approve, Stripe redirects
-  back to the app's `/club?connected=1` with `?code=<auth_code>&state=<clubId>`.
-- `POST /stripe/connect/finish` — body: `{ code, clubId }`. Worker exchanges
-  the code for `{ stripe_user_id, access_token }`, writes `stripeAccountId` +
-  `stripeChargesEnabled` to the `clubs/<id>` doc.
-- `POST /stripe/checkout` — body: `{ clubId, invoiceId, amountCents, description, parentEmail }`.
-  Worker creates a Checkout Session on behalf of the connected account (using
-  `Stripe-Account: <stripeAccountId>` header) and returns the hosted URL the
-  parent opens to pay.
-- `POST /stripe/webhook` — receives `payment_intent.succeeded` etc. Validates
-  the signature, marks the matching invoice doc `status: 'paid'`, sends a push
-  to the parent + a "received $XYZ" push to club admins.
+- `GET  /stripe/connect/start?clubId=<id>` — returns Stripe's hosted OAuth
+  URL. Stripe redirects back to `APP_ORIGIN/club?stripe_connected=1&state=<clubId>&code=<auth_code>`.
+- `POST /stripe/connect/finish` — body: `{ code, clubId }`. Exchanges code
+  for `stripe_user_id`, fetches the account, writes `stripeAccountId` +
+  `stripeChargesEnabled` + `stripePayoutsEnabled` + `stripeOnboardedAt`
+  to `clubs/<id>`.
+- `POST /stripe/registration-checkout` — body: `{ registrationId }`. Reads
+  the Registration + Club docs, creates a Checkout Session on the
+  connected account using the snapshotted `amountPaidCents` + surcharge,
+  returns the hosted URL. UI redirects the parent there.
+- `POST /stripe/webhook` — anonymous endpoint (Stripe signs with
+  `STRIPE_WEBHOOK_SECRET`). On `checkout.session.completed`, flips the
+  Registration to `paid`, writes `paidAt` + `stripePaymentIntentId`, and
+  logs a `registration_paid` activity.
+
+Configure the webhook in Stripe Dashboard → Developers → Webhooks → Add
+endpoint pointing at `https://<worker>.workers.dev/stripe/webhook`,
+listening for `checkout.session.completed`. Copy the signing secret into
+`STRIPE_WEBHOOK_SECRET`.
+
+### NOTE — platform fee (deferred)
+
+`application_fee_amount` on the Checkout Session is the lever for
+charging clubs a platform fee. Intentionally NOT wired yet — see the
+TODO in `handleRegistrationCheckout`. When enabled, the per-club fee
+rate (`platformFeeBps` on the Club doc) must be writable ONLY by the
+platform owner, not by club admins.
 
 ### d) Vercel env
 

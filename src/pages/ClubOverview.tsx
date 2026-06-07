@@ -879,6 +879,49 @@ const PaymentsTab: React.FC = () => {
   const clubId = (userData as any)?.clubId as string | undefined;
   const [club, setClub] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [connectFinishing, setConnectFinishing] = React.useState(false);
+
+  // Stripe Connect OAuth return — Stripe sends parents back to
+  // /club?stripe_connected=1&state=clubId&code=AUTH_CODE. We post the
+  // code to the worker, which exchanges it for a real account ID.
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const flag = params.get('stripe_connected');
+    if (!code || !state || !flag || !clubId || state !== clubId) return;
+    setConnectFinishing(true);
+    (async () => {
+      try {
+        const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
+        const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
+        if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
+        const r = await fetch(`${NOTIFY_URL}/stripe/connect/finish`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${NOTIFY_SECRET}`,
+          },
+          body: JSON.stringify({ code, clubId }),
+        });
+        const data: any = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          alert(data?.error || 'Stripe connect finish failed.');
+          return;
+        }
+        // Clean the URL so a refresh doesn't re-fire the exchange.
+        window.history.replaceState({}, '', '/club');
+        // Reload the club doc so the new state shows.
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDoc(doc(db, 'clubs', clubId));
+        if (snap.exists()) setClub({ id: snap.id, ...(snap.data() as any) });
+      } finally {
+        setConnectFinishing(false);
+      }
+    })();
+  }, [clubId]);
+
   React.useEffect(() => {
     if (!clubId) { setLoading(false); return; }
     let cancelled = false;
@@ -905,6 +948,11 @@ const PaymentsTab: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      {connectFinishing && (
+        <div className="rounded-xl bg-violet-50 ring-1 ring-violet-200 px-4 py-3 text-sm text-violet-800">
+          Finalizing Stripe Connect…
+        </div>
+      )}
       {/* Stripe Connect status card */}
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -930,10 +978,30 @@ const PaymentsTab: React.FC = () => {
               </p>
               <button
                 type="button"
-                onClick={() => alert('Stripe Connect onboarding is wired on the UI side but the worker endpoint needs setup. See worker/README.md for the next step.')}
+                onClick={async () => {
+                  if (!clubId) return;
+                  try {
+                    const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
+                    if (!NOTIFY_URL) {
+                      alert('Worker URL not configured (REACT_APP_NOTIFY_URL).');
+                      return;
+                    }
+                    const r = await fetch(`${NOTIFY_URL}/stripe/connect/start?clubId=${encodeURIComponent(clubId)}`);
+                    const data: any = await r.json().catch(() => ({}));
+                    if (r.ok && data?.url) {
+                      window.location.assign(data.url);
+                    } else if (data?.error === 'stripe-connect-not-configured') {
+                      alert('Stripe Connect secrets not set on the worker yet. See worker/README.md section 6.');
+                    } else {
+                      alert(data?.error || 'Failed to start Stripe Connect.');
+                    }
+                  } catch (err: any) {
+                    alert(err?.message || 'Network error.');
+                  }
+                }}
                 className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold"
               >
-                Connect Stripe (Setup required)
+                Connect Stripe
               </button>
             </>
           ) : (

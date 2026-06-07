@@ -360,6 +360,38 @@ const Register: React.FC = () => {
           },
         });
       }
+
+      // If the registration has a balance owing AND the club is Stripe-
+      // ready, redirect to Checkout. Otherwise show the success screen
+      // and admin marks paid manually (or it's a free registration).
+      if (quote.totalCents > 0) {
+        try {
+          const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
+          const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
+          if (NOTIFY_URL && NOTIFY_SECRET) {
+            const r = await fetch(`${NOTIFY_URL}/stripe/registration-checkout`, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                authorization: `Bearer ${NOTIFY_SECRET}`,
+              },
+              body: JSON.stringify({ registrationId: ref.id }),
+            });
+            const data: any = await r.json().catch(() => ({}));
+            if (r.ok && data?.url) {
+              window.location.assign(data.url);
+              return;
+            }
+            // Soft fail — show success but leave a hint in the console
+            // for the admin to follow up. The Registration is saved
+            // either way; admin can mark paid manually.
+            console.warn('checkout session not created — falling back to success screen', data);
+          }
+        } catch (err) {
+          console.warn('checkout request threw — falling back to success screen', err);
+        }
+      }
+
       setSubmittedRegId(ref.id);
     } catch (err: any) {
       console.error('registration submit failed', err);

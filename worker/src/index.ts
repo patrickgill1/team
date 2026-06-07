@@ -12,6 +12,12 @@
 
 import { sendPush } from './fcm';
 import { runWeeklyDigest } from './digest';
+import {
+  handleConnectStart,
+  handleConnectFinish,
+  handleRegistrationCheckout,
+  handleWebhook,
+} from './stripe';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -21,8 +27,12 @@ export interface Env {
   APP_ORIGIN: string;
   ALLOWED_ORIGINS: string;
   FCM_SERVICE_ACCOUNT?: string;
+  FIREBASE_PROJECT_ID?: string;
   GOOGLE_PLACES_API_KEY?: string;
   OPENAI_API_KEY?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_CONNECT_CLIENT_ID?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 }
 
 interface MailMessage {
@@ -112,6 +122,30 @@ export default {
       return json({ ok: true, from: env.FROM_EMAIL }, 200, cors);
     }
 
+    // Stripe webhook is anonymous — Stripe doesn't send our bearer.
+    // Verified by the Stripe-Signature header inside the handler.
+    // Raw body is required for signature verification, so this must
+    // run before req.json() consumes the stream.
+    if (url.pathname === '/stripe/webhook' && req.method === 'POST') {
+      const raw = await req.text();
+      const sig = req.headers.get('stripe-signature') || '';
+      const res = await handleWebhook(raw, sig, env);
+      // Re-wrap with CORS for completeness (Stripe doesn't care).
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // GET /stripe/connect/start is anonymous from the worker's POV — it
+    // just returns the OAuth URL. The UI calls it from the browser and
+    // immediately redirects, so requiring a bearer would be awkward.
+    if (url.pathname === '/stripe/connect/start' && req.method === 'GET') {
+      const res = handleConnectStart(url, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
     if (!authed(req, env)) {
       return json({ ok: false, error: 'unauthorized' }, 401, cors);
     }
@@ -136,6 +170,20 @@ export default {
     if (url.pathname === '/send') {
       const result = await sendOne(payload as MailMessage, env);
       return json(result, result.ok ? 200 : 502, cors);
+    }
+
+    if (url.pathname === '/stripe/connect/finish') {
+      const res = await handleConnectFinish(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    if (url.pathname === '/stripe/registration-checkout') {
+      const res = await handleRegistrationCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
     }
 
     if (url.pathname === '/send-batch') {

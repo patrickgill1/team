@@ -72,6 +72,48 @@ export interface QueryFilter {
 }
 
 // Run a structured query rooted at the database root.
+export async function getDocument(projectId: string, path: string, sa: ServiceAccount): Promise<FirestoreDoc | null> {
+  const token = await getAccessToken(sa, FIRESTORE_SCOPE);
+  const url = `${baseUrl(projectId)}/${path}`;
+  const r = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`firestore get ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j: any = await r.json();
+  return {
+    id: String(j.name).split('/').pop() || '',
+    data: decodeFields(j.fields || {}),
+  };
+}
+
+export async function patchDocument(projectId: string, path: string, fields: Record<string, any>, sa: ServiceAccount): Promise<void> {
+  const token = await getAccessToken(sa, FIRESTORE_SCOPE);
+  const keys = Object.keys(fields);
+  const mask = keys.map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+  const url = `${baseUrl(projectId)}/${path}?${mask}`;
+  const body = { fields: Object.fromEntries(keys.map(k => [k, encodeValue(fields[k])])) };
+  const r = await fetch(url, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`firestore patch ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+}
+
+export async function createDocument(projectId: string, collection: string, fields: Record<string, any>, sa: ServiceAccount, docId?: string): Promise<string> {
+  const token = await getAccessToken(sa, FIRESTORE_SCOPE);
+  const idParam = docId ? `?documentId=${encodeURIComponent(docId)}` : '';
+  const url = `${baseUrl(projectId)}/${encodeURIComponent(collection)}${idParam}`;
+  const body = { fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, encodeValue(v)])) };
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`firestore create ${collection} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j: any = await r.json();
+  return String(j.name).split('/').pop() || '';
+}
+
 export async function runQuery(projectId: string, collection: string, filters: QueryFilter[], sa: ServiceAccount, limit = 100): Promise<FirestoreDoc[]> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;

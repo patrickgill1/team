@@ -34,6 +34,8 @@ const TeamStore = React.lazy(() => import('./pages/TeamStore'));
 const Equipment = React.lazy(() => import('./pages/Equipment'));
 const Drills = React.lazy(() => import('./pages/Drills'));
 const Register = React.lazy(() => import('./pages/Register'));
+const RegisterSuccess = React.lazy(() => import('./pages/RegisterStripeReturn').then(m => ({ default: m.RegisterSuccess })));
+const RegisterCancel = React.lazy(() => import('./pages/RegisterStripeReturn').then(m => ({ default: m.RegisterCancel })));
 const Registrations = React.lazy(() => import('./pages/Registrations'));
 const Products = React.lazy(() => import('./pages/Products'));
 const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFormBuilder'));
@@ -312,6 +314,8 @@ function App() {
             {/* Public registration — no auth required. Parents land
                 here from email blasts or posted links. */}
             <Route path="/register" element={<Register />} />
+            <Route path="/register/success" element={<RegisterSuccess />} />
+            <Route path="/register/cancel" element={<RegisterCancel />} />
 
             <Route path="/club/registrations" element={
               <ProtectedRoute>

@@ -49,24 +49,31 @@ parent-facing, admin needs:
    surcharge toggle.
 3. Coupon usage report — who redeemed which code on which registration.
 
-### Stripe payment at submission
+### Stripe payment at submission — code shipped, awaiting Patrick's Stripe setup
 
-Currently registrations save as `status: 'pending_payment'` and admin
-marks `paid` manually. To take payment automatically:
+UI + worker endpoints are LIVE. Currently `503 stripe-not-configured`
+until secrets land on the worker. Patrick action:
 
-1. **Set up Stripe Connect for the club** (worker README section 5).
-   Worker needs `STRIPE_SECRET_KEY` + `STRIPE_CONNECT_CLIENT_ID` +
-   `STRIPE_WEBHOOK_SECRET`. Patrick: this is your action.
-2. Worker endpoint `POST /stripe/registration-checkout` that creates
-   a Checkout Session on behalf of the club's connected account,
-   honoring the snapshot priceCents + surchargeCents on the
-   Registration.
-3. `Register.tsx` redirects to the returned checkout URL after the
-   doc is saved (instead of jumping straight to the success screen).
-4. Webhook `POST /stripe/webhook` (already drafted in the README)
-   listens for `checkout.session.completed`, marks the matching
-   Registration `paid`, writes a `registration_paid` activity, bumps
-   the redeemed coupon's `usesCount`.
+1. **Set up Stripe Connect platform** (worker README section 6).
+2. `npx wrangler secret put STRIPE_SECRET_KEY / STRIPE_CONNECT_CLIENT_ID / STRIPE_WEBHOOK_SECRET`.
+3. Click "Connect Stripe" on the Payments tab of /club → finish OAuth.
+4. Test a real registration end-to-end.
+
+What's already wired:
+- `worker/src/stripe.ts` with `/stripe/connect/start`,
+  `/stripe/connect/finish`, `/stripe/registration-checkout`,
+  `/stripe/webhook` (signature-verified).
+- Register.tsx redirects to Checkout when a price is owed; falls back
+  to the success screen if the worker is unconfigured (so the form
+  keeps working).
+- `/register/success` + `/register/cancel` landing pages for the
+  return from Stripe.
+- Webhook flips Registration to `paid` + writes `registration_paid`
+  activity.
+
+Not yet wired (intentional): `application_fee_amount` (platform fee) —
+see `project_platform_fee.md` memory. Coupon `usesCount` bump on
+payment success is also TODO; add to the webhook handler.
 
 ### Bulk-blast to current players
 

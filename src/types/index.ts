@@ -30,6 +30,28 @@ export interface User {
     showEmail: boolean;
     showAddress: boolean;
   };
+  /** USSF Learning Center credentials. Today these are populated manually
+   *  via Settings; once we have API creds from connect.ussdlc.com, the
+   *  webhook handler writes them with source: 'ussf' and the manual
+   *  rows get marked stale. See docs/USSF_API_REQUEST.md for the
+   *  outreach we need to send USSF to get those creds. */
+  coachCertifications?: CoachCertification[];
+}
+
+export interface CoachCertification {
+  id: string;
+  /** Full credential name as USSF reports it — e.g., "Grassroots E License". */
+  name: string;
+  /** Coaching license letter, if applicable. Referee credentials leave this null. */
+  level?: 'E' | 'D' | 'C' | 'B' | 'A' | 'Pro';
+  /** USSF Grassroots referee modules separate from coaching licenses. */
+  kind: 'coach' | 'referee' | 'goalkeeper';
+  issuedAt?: Date;
+  expiresAt?: Date;
+  /** 'manual' = coach entered it themself; 'ussf' = synced from the
+   *  USSF Learning Center webhook. The 'ussf' value beats 'manual' on
+   *  conflict (manual entry is just a placeholder until the API lights up). */
+  source: 'manual' | 'ussf';
 }
 
 // UserData interface for auth context (matches User but ensures required fields for auth)

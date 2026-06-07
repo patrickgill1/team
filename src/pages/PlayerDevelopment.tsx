@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -66,12 +67,31 @@ const PlayerDevelopment: React.FC = () => {
   // don't see the toggle. Coaches without linked players auto-land
   // on 'coach' and also don't see the toggle.
   const [viewMode, setViewMode] = useState<'coach' | 'parent'>('coach');
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
   useEffect(() => {
     loadData();
   }, [selectedTeamId, selectedPlayerId]);
+
+  // Deep-link: /development?expand=<planId> opens that plan expanded
+  // once the plans list is loaded. Consumed so it doesn't keep firing
+  // on subsequent reloads.
+  useEffect(() => {
+    const target = searchParams.get('expand');
+    if (!target) return;
+    if (plans.some(p => p.id === target)) {
+      setExpandedPlanId(target);
+      // Also flip to Parent View on landing — the card lives on the
+      // parent dashboard, so they're already in parent mindset.
+      const haveLinked = !!(userData && players.some(pp => (pp.parentIds || []).includes(userData.uid)));
+      if (haveLinked && isUserCoach) setViewMode('parent');
+      const next = new URLSearchParams(searchParams);
+      next.delete('expand');
+      setSearchParams(next, { replace: true });
+    }
+  }, [plans, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     if (!selectedTeamId) { setLoading(false); return; }

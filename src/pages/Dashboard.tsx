@@ -46,6 +46,18 @@ const Dashboard: React.FC = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [media, setMedia] = useState<PlayerMediaType[]>([]);
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([]);
+  // Tonight's session — the next unfinished dev plan goal for my
+  // linked player (parent OR coach-with-kid). One-tap into the drill
+  // detail so a family with 15 minutes can just start.
+  const [tonightGoal, setTonightGoal] = useState<{
+    planId: string;
+    goalId: string;
+    planTitle: string;
+    goalTitle: string;
+    focus?: string;
+    durationMinutes?: number;
+    loggedToday: boolean;
+  } | null>(null);
   // Wall posts = chat messages pinned to any of the team's threads.
   // We hydrate them by fetching the chat_messages docs whose ids appear
   // in each thread's pinnedMessageIds. Surfaced here as the team's
@@ -279,6 +291,53 @@ const Dashboard: React.FC = () => {
     ) || null;
   }, [players, userData]);
 
+  // Load the next-up development goal for my player. Picks the first
+  // unfinished goal of the most recent active plan. Updates whenever
+  // myPlayer changes (e.g., switching teams).
+  useEffect(() => {
+    if (!myPlayer) { setTonightGoal(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection: fsColl, query, where, getDocs, orderBy } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDocs(query(
+          fsColl(db, 'development_plans'),
+          where('playerId', '==', myPlayer.id),
+          where('status', '==', 'active'),
+          orderBy('createdAt', 'desc'),
+        ));
+        if (cancelled) return;
+        const plans = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+        for (const plan of plans) {
+          const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
+          const next = goals.find(g => !g.coachVerified);
+          if (next) {
+            const loggedToday = (next.practiceLog || []).some((l: any) => {
+              const t = l.date?.toDate ? l.date.toDate().getTime() : new Date(l.date).getTime();
+              return t >= todayStart;
+            });
+            setTonightGoal({
+              planId: plan.id,
+              goalId: next.id,
+              planTitle: plan.title || 'Plan',
+              goalTitle: next.title || 'Practice goal',
+              focus: next.focus,
+              durationMinutes: next.targetMinutes,
+              loggedToday,
+            });
+            return;
+          }
+        }
+        setTonightGoal(null);
+      } catch (err) {
+        console.warn('tonight goal load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [myPlayer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Most recent clip featuring my player (parents) or just the latest clip (coaches).
   const featuredClip = useMemo(() => {
     if (myPlayer) {
@@ -510,6 +569,39 @@ const Dashboard: React.FC = () => {
 
         {/* Player card sits full-width when a user has a linked player
             on this team (parent OR coach-with-kid). */}
+        {myPlayer && tonightGoal && (
+          <Link
+            to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
+            className="block bg-gradient-to-br from-cyan-600 via-cyan-700 to-violet-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition px-5 py-4"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 ring-1 ring-white/30 flex items-center justify-center">
+                {tonightGoal.loggedToday ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                )}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">
+                  {tonightGoal.loggedToday ? "Today's session logged" : "Tonight's session"}
+                </div>
+                <div className="text-base sm:text-lg font-bold leading-tight truncate">
+                  {tonightGoal.goalTitle}
+                </div>
+                {tonightGoal.focus && (
+                  <div className="text-xs opacity-90 mt-0.5 line-clamp-1">Focus: {tonightGoal.focus}</div>
+                )}
+              </div>
+              <span className="flex-shrink-0 text-right">
+                {tonightGoal.durationMinutes != null && (
+                  <div className="text-xs font-bold opacity-90">{tonightGoal.durationMinutes} min</div>
+                )}
+                <svg className="w-5 h-5 ml-auto mt-1 opacity-80" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </span>
+            </div>
+          </Link>
+        )}
         {myPlayer && (
           <MyPlayerCard player={myPlayer} latestThumb={featuredClip ? clipThumb(featuredClip) : undefined} />
         )}

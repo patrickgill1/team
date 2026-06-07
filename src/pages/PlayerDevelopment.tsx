@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -60,6 +60,12 @@ const PlayerDevelopment: React.FC = () => {
   // plan is successfully written.
   const [drillPickerOpen, setDrillPickerOpen] = useState(false);
   const [importedDrillIds, setImportedDrillIds] = useState<string[]>([]);
+  // Coach View / Parent View toggle — only meaningful for the
+  // coach-who's-also-a-parent case (e.g., Patrick coaching Hunter's
+  // U10 team). Parents without coach role auto-land on 'parent' and
+  // don't see the toggle. Coaches without linked players auto-land
+  // on 'coach' and also don't see the toggle.
+  const [viewMode, setViewMode] = useState<'coach' | 'parent'>('coach');
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -574,10 +580,24 @@ const PlayerDevelopment: React.FC = () => {
     return best;
   }, [playerStreaks, players]);
 
-  // For parents: find plans related to their children
+  // Linked players for the current user (parent → kids OR coach-with-
+  // kids). Drives whether the Coach/Parent toggle shows up at all.
+  const myLinkedPlayers = useMemo(() => {
+    if (!userData) return [] as Player[];
+    return players.filter(p => (p.parentIds || []).includes(userData.uid));
+  }, [players, userData]);
+  const hasLinkedPlayers = myLinkedPlayers.length > 0;
+  // Effective view: if the user isn't a coach, they're always parent.
+  // If they're a coach with no linked players, they're always coach.
+  // Otherwise the toggle picks.
+  const effectiveView: 'coach' | 'parent' = isUserCoach
+    ? (hasLinkedPlayers ? viewMode : 'coach')
+    : 'parent';
+
+  // For parents (or coaches in Parent View): find plans related to
+  // their children. Coaches in Coach View see everything.
   const getVisiblePlans = () => {
-    if (isUserCoach) return plans;
-    // Parents can see plans for their children
+    if (effectiveView === 'coach') return plans;
     if (!userData) return [];
     return plans.filter(plan => {
       const player = players.find(p => p.id === plan.playerId);
@@ -590,10 +610,13 @@ const PlayerDevelopment: React.FC = () => {
   const completedPlans = visiblePlans.filter(p => p.status === 'completed');
   const archivedPlans = visiblePlans.filter(p => p.status === 'archived');
 
-  // Parents only see their own children in the player filter
-  const visiblePlayers = isUserCoach
+  // Parent view (whether the user is actually a parent or a coach who
+  // toggled to it) sees only their own children in the player filter.
+  const visiblePlayers = effectiveView === 'coach'
     ? players
-    : (userData ? players.filter(p => p.parentIds?.includes(userData.uid)) : []);
+    : myLinkedPlayers;
+  // Convenience for hiding coach-side controls in Parent View.
+  const showCoachControls = effectiveView === 'coach';
 
   if (loading) {
     return (
@@ -610,6 +633,32 @@ const PlayerDevelopment: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Header title="Player Development" subtitle="Personalized plans that help each player grow." />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Coach View / Parent View toggle — only renders for users who
+            wear both hats (Patrick coaches Hunter's U10 team). Other
+            users land on their natural view and don't see the chip. */}
+        {isUserCoach && hasLinkedPlayers && (
+          <div className="mb-3 inline-flex rounded-xl bg-white ring-1 ring-slate-200 shadow-sm p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('coach')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
+                viewMode === 'coach' ? 'bg-cyan-600 text-white shadow' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Coach View
+            </button>
+            <button
+              type="button"
+              onClick={() => { setViewMode('parent'); setSelectedPlayerId('all'); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
+                viewMode === 'parent' ? 'bg-cyan-600 text-white shadow' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              My {myLinkedPlayers.length > 1 ? 'kids' : 'kid'}
+            </button>
+          </div>
+        )}
+
         {/* Filter + New Plan */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div className="relative">
@@ -622,13 +671,13 @@ const PlayerDevelopment: React.FC = () => {
               className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
               style={{ fontSize: '16px' }}
             >
-              <option value="all">{isUserCoach ? 'All Players' : 'All My Children'}</option>
+              <option value="all">{effectiveView === 'coach' ? 'All Players' : (myLinkedPlayers.length > 1 ? 'All My Children' : myLinkedPlayers[0]?.name || 'My child')}</option>
               {visiblePlayers.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </div>
-          {isUserCoach && (
+          {showCoachControls && (
             <button
               onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(true); }}
               className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
@@ -690,7 +739,7 @@ const PlayerDevelopment: React.FC = () => {
                 <PlanCard
                   key={plan.id}
                   plan={plan}
-                  isCoach={isUserCoach}
+                  isCoach={showCoachControls && isUserCoach}
                   isExpanded={expandedPlanId === plan.id}
                   onToggleExpand={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
                   onPlayerComplete={(goalId) => handleTogglePlayerComplete(plan, goalId)}
@@ -707,7 +756,7 @@ const PlayerDevelopment: React.FC = () => {
                   getCategoryColor={getCategoryColor}
                   getCategoryIcon={getCategoryIcon}
                   getProgressPercentage={getProgressPercentage}
-                  canPlayerComplete={!isUserCoach}
+                  canPlayerComplete={effectiveView === 'parent' || !isUserCoach}
                   canLogPractice={true}
                   streak={playerStreaks[plan.playerId] || 0}
                   playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
@@ -731,7 +780,7 @@ const PlayerDevelopment: React.FC = () => {
                 <PlanCard
                   key={plan.id}
                   plan={plan}
-                  isCoach={isUserCoach}
+                  isCoach={showCoachControls && isUserCoach}
                   isExpanded={expandedPlanId === plan.id}
                   onToggleExpand={() => setExpandedPlanId(expandedPlanId === plan.id ? null : plan.id)}
                   onPlayerComplete={() => {}}

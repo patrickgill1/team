@@ -158,13 +158,25 @@ every registration, offer, player, and activity touching that parent
 email into one chronological feed. "Family" link surfaces it from each
 Registrations row.
 
+Shipped (Module 3 v1):
+- **Bulk actions** on `/club/registrations` — checkbox column, sticky
+  bottom bar, mark-paid / invite-to-tryout / withdraw across all
+  selected rows in one click. Each writes an activity with `bulk: true`.
+- **Season lifecycle state machine** at `/club/seasons` — draft →
+  registration_open ↔ tryouts → roster_locked → in_season → ended →
+  archived. Every transition appends to `lifecycleHistory` (who, when,
+  optional note). Legacy `registrationOpen` / `isActive` / `archivedAt`
+  flags stay in sync so old readers don't drift.
+- **Reports** at `/club/reports` — top-line tiles, conversion funnel
+  (submitted → paid → offered → accepted/declined), registrations by
+  age, status breakdown, fee collection (collected vs owed vs
+  processing surcharge), coupon redemption table. Season filter.
+
 Still queued:
-- Bulk actions (mass-charge fees, mass-email a group).
-- Season lifecycle UI: open registration / close / start / end as a
-  proper state machine with audit log.
-- Reports + dashboards (registrations by age, conversion rate from
-  registration → offer → roster, fee collection, coupon usage).
-- "Family" link on Tryouts rows too (currently only on Registrations).
+- Attachments on offers (PDF roster handbook, gear order form) via
+  Stream/R2 upload.
+- Mass-email a selected subset of Registrations (currently the blast
+  goes to current Player roster; bulk-email from selected rows is TODO).
 
 ## Decisions still open
 

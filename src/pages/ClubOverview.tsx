@@ -253,6 +253,30 @@ const ClubOverview: React.FC = () => {
             </div>
             <span className="text-slate-400 group-hover:text-violet-500">→</span>
           </button>
+          <button
+            onClick={() => navigate('/club/seasons')}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-amber-400 transition group flex items-center gap-3"
+            title="Season lifecycle — draft → registration → tryouts → in-season → ended"
+          >
+            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <div className="flex-1">
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Seasons</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Lifecycle state machine + audit history</div>
+            </div>
+            <span className="text-slate-400 group-hover:text-amber-500">→</span>
+          </button>
+          <button
+            onClick={() => navigate('/club/reports')}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-emerald-400 transition group flex items-center gap-3"
+            title="Funnel + fees + coupon usage"
+          >
+            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <div className="flex-1">
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Reports</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Conversion funnel · fees · coupons</div>
+            </div>
+            <span className="text-slate-400 group-hover:text-emerald-500">→</span>
+          </button>
         </div>
 
         {/* Tabs — overview/calendar/stats. Players + Coaches tabs are

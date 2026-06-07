@@ -319,6 +319,33 @@ export interface PlayerEquipment {
   returnedAt?: Date;
 }
 
+/** Where a season is in its yearly lifecycle. Drives what UIs surface
+ *  what (registration form open? tryout pool visible? roster locked?).
+ *  Transitions are a directed-acyclic state machine; see
+ *  `validSeasonTransitions` in src/utils/seasonLifecycle.ts.
+ *
+ *    draft → registration_open → tryouts → roster_locked → in_season → ended → archived
+ *
+ *  `registrationOpen` (legacy boolean) is kept in sync — true when
+ *  lifecycle === 'registration_open' — so old read paths don't break. */
+export type SeasonLifecycle =
+  | 'draft'
+  | 'registration_open'
+  | 'tryouts'
+  | 'roster_locked'
+  | 'in_season'
+  | 'ended'
+  | 'archived';
+
+export interface SeasonLifecycleEvent {
+  fromState?: SeasonLifecycle;
+  toState: SeasonLifecycle;
+  at: Date;
+  by?: string;
+  byName?: string;
+  note?: string;
+}
+
 export interface Season {
   id: string;
   teamId: string;
@@ -329,8 +356,15 @@ export interface Season {
   isActive: boolean;
   archivedAt?: Date;
   createdAt: Date;
+  /** State-machine field — see `SeasonLifecycle`. Default 'draft' for
+   *  legacy seasons that predate this field. */
+  lifecycle?: SeasonLifecycle;
+  /** Append-only audit log of every transition. Drives the "history"
+   *  view in the season manager. */
+  lifecycleHistory?: SeasonLifecycleEvent[];
   /** Club-wide registration window for this season. When `registrationOpen`
-   *  is true, the public /register form accepts submissions. */
+   *  is true, the public /register form accepts submissions. Kept in sync
+   *  with lifecycle === 'registration_open'. */
   registrationOpen?: boolean;
   registrationOpenedAt?: Date;
   registrationCloseDate?: Date;

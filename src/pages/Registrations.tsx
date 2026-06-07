@@ -40,6 +40,8 @@ const Registrations: React.FC = () => {
   const [filterAge, setFilterAge] = useState<string>('all');
   const [filterGender, setFilterGender] = useState<string>('all');
   const [showBlast, setShowBlast] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   useEffect(() => {
     if (!allowed) { setLoading(false); return; }
@@ -113,6 +115,60 @@ const Registrations: React.FC = () => {
     registrations.forEach(r => r.player.ageGroup && set.add(r.player.ageGroup));
     return Array.from(set).sort();
   }, [registrations]);
+
+  // Bulk: apply a status transition to every selected registration that
+  // can validly take it. Skips ones already past the target so we don't
+  // re-fire activities. Sequential to keep activity ordering sane and
+  // avoid hammering Firestore writes — small N in practice.
+  const handleBulkStatus = async (next: StatusKey) => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Apply "${STATUS_TONES[next].label}" to ${selected.size} registration${selected.size === 1 ? '' : 's'}?`)) return;
+    setBulkRunning(true);
+    try {
+      for (const id of Array.from(selected)) {
+        const r = registrations.find(x => x.id === id);
+        if (!r || r.status === next) continue;
+        try {
+          await updateDoc(doc(db, 'registrations', id), {
+            status: next,
+            updatedAt: serverTimestamp(),
+            ...(next === 'paid' ? { paidAt: serverTimestamp() } : {}),
+          });
+          void logActivity({
+            clubId: r.clubId,
+            kind: next === 'paid' ? 'registration_paid' : next === 'tryout_invited' ? 'tryout_invited' : 'note_added',
+            registrationId: r.id,
+            playerId: r.playerId || undefined,
+            parentEmail: r.parents[0]?.email,
+            seasonId: r.seasonId,
+            actorUid: userData?.uid,
+            actorName: userData?.name,
+            payload: { fromStatus: r.status, toStatus: next, bulk: true },
+          });
+        } catch (err) {
+          console.warn('bulk status update failed for', id, err);
+        }
+      }
+      setSelected(new Set());
+      void reload();
+    } finally {
+      setBulkRunning(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelected(new Set(visible.map(r => r.id)));
+  };
+
+  const clearSelection = () => setSelected(new Set());
 
   const handleStatusChange = async (r: Registration, next: StatusKey) => {
     try {
@@ -214,7 +270,14 @@ const Registrations: React.FC = () => {
             placeholder="Search by player or parent…"
             className="flex-1 min-w-[180px] text-sm border border-slate-300 rounded-lg px-3 py-2"
           />
-          <span className="ml-auto text-xs text-slate-500">{visible.length} of {registrations.length}</span>
+          <button
+            type="button"
+            onClick={selected.size === visible.length && visible.length > 0 ? clearSelection : selectAllVisible}
+            className="ml-auto text-[11px] font-bold text-slate-600 hover:text-cyan-700"
+          >
+            {selected.size === visible.length && visible.length > 0 ? 'Clear all' : 'Select all'}
+          </button>
+          <span className="text-xs text-slate-500">{visible.length} of {registrations.length}</span>
         </div>
 
         {/* Table */}
@@ -237,6 +300,13 @@ const Registrations: React.FC = () => {
                 return (
                   <li key={r.id} className="px-4 py-3 hover:bg-slate-50">
                     <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        className="mt-1 w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                        title="Select for bulk action"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-sm font-bold text-slate-900">
@@ -319,6 +389,44 @@ const Registrations: React.FC = () => {
           )}
         </div>
       </div>
+      {selected.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white rounded-2xl shadow-2xl ring-1 ring-cyan-500/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-cyan-300 px-2">{selected.size} selected</span>
+          <span className="text-slate-700">|</span>
+          <button
+            type="button"
+            disabled={bulkRunning}
+            onClick={() => handleBulkStatus('paid')}
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50"
+          >
+            Mark paid
+          </button>
+          <button
+            type="button"
+            disabled={bulkRunning}
+            onClick={() => handleBulkStatus('tryout_invited')}
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50"
+          >
+            Invite to tryout
+          </button>
+          <button
+            type="button"
+            disabled={bulkRunning}
+            onClick={() => handleBulkStatus('withdrawn')}
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-50"
+          >
+            Withdraw
+          </button>
+          <button
+            type="button"
+            onClick={clearSelection}
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded text-slate-300 hover:text-white"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {showBlast && clubId && (
         <RegistrationBlastModal
           clubId={clubId}

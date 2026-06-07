@@ -4,7 +4,7 @@ import { db } from '../../utils/firebase';
 import { sendEmail, type CoachSignature } from '../../utils/notify';
 import { logActivity } from '../../utils/activityLog';
 import { getShareOrigin } from '../../utils/origin';
-import type { OfferLetter, Registration } from '../../types';
+import type { OfferLetter, OfferTemplate, Registration } from '../../types';
 
 // Coach-facing "Offer a roster spot" modal. Composes the offer text +
 // position + jersey, picks a team the coach owns, generates a unique
@@ -39,33 +39,56 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
   const [jersey, setJersey] = useState<string>('');
   const [feeCents, setFeeCents] = useState<number>(0);
   const [message, setMessage] = useState('');
+  const [messageTouched, setMessageTouched] = useState(false);
   const [expiresDays, setExpiresDays] = useState<number>(7);
+  const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load teams in the club. Coach picks which team is making the offer.
+  // Load teams + templates in the club.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDocs(query(collection(db, 'teams'), where('clubId', '==', registration.clubId)));
+        const [teamSnap, tplSnap] = await Promise.all([
+          getDocs(query(collection(db, 'teams'), where('clubId', '==', registration.clubId))),
+          getDocs(query(collection(db, 'offer_templates'), where('clubId', '==', registration.clubId), where('isActive', '==', true))),
+        ]);
         if (cancelled) return;
-        const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Team));
+        const list = teamSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Team));
         setTeams(list);
-        // Default to the first team matching the player's age group.
+        setTemplates(tplSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as OfferTemplate)));
         const ageMatch = list.find(t => t.ageGroup && registration.player?.ageGroup && t.ageGroup === registration.player.ageGroup);
         setTeamId(ageMatch?.id || list[0]?.id || '');
       } catch (err) {
-        console.warn('teams load failed', err);
+        console.warn('teams/templates load failed', err);
       }
     })();
     return () => { cancelled = true; };
   }, [registration.clubId, registration.player?.ageGroup]);
 
+  // Templates that match the current team + position. Empty scope on
+  // the template means "any" so it always appears.
+  const matchingTemplates = useMemo(() => {
+    const pos = (position || '').toLowerCase().trim();
+    return templates.filter(t => {
+      if (t.teamId && t.teamId !== teamId) return false;
+      if (t.position && t.position.toLowerCase().trim() !== pos) return false;
+      return true;
+    });
+  }, [templates, teamId, position]);
+
+  const applyTemplate = (id: string) => {
+    const tpl = templates.find(t => t.id === id);
+    if (!tpl) return;
+    setMessage(tpl.message);
+    setMessageTouched(true);
+  };
+
   // Re-template the message when team changes (only if user hasn't typed yet).
   const selectedTeam = useMemo(() => teams.find(t => t.id === teamId), [teams, teamId]);
   useEffect(() => {
-    if (!message && selectedTeam) {
+    if (!messageTouched && selectedTeam) {
       const fullName = `${registration.player?.firstName || ''} ${registration.player?.lastName || ''}`.trim();
       setMessage(DEFAULT_TEMPLATE(fullName, selectedTeam.name));
     }
@@ -225,11 +248,25 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
             </label>
           </div>
 
+          {matchingTemplates.length > 0 && (
+            <label className="block">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Template (optional)</span>
+              <select
+                value=""
+                onChange={(e) => { if (e.target.value) applyTemplate(e.target.value); }}
+                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+              >
+                <option value="">— Pick a template to load —</option>
+                {matchingTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </label>
+          )}
+
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Message to the family</span>
             <textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => { setMessage(e.target.value); setMessageTouched(true); }}
               rows={8}
               className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm leading-relaxed"
             />

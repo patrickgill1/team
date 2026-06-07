@@ -142,11 +142,12 @@ Offers (shipped):
   `player_promoted`. Decline captures an optional reason and flips to
   declined.
 
+Templates + welcome email (shipped):
+- `/club/offer-templates` — name + scope (team / position) + message
+  body. SendOffer modal picks matching templates by team + position.
+- Welcome email fires on accept with install + RSVP-first-event prompts.
+
 Still queued:
-- Offer letter templates page (`/club/offer-templates`) so coaches
-  don't retype the same body for every kid.
-- Welcome email to the family after accept (link to install the app,
-  RSVP next event, etc.).
 - Attachments on offers (PDF roster handbook, gear order form) via
   Stream/R2 upload.
 

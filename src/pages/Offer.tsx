@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, serverTimestamp, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
+import { sendEmail, tplWelcomeAfterOffer } from '../utils/notify';
 import Logo from '../components/common/Logo';
 import type { OfferLetter, Registration } from '../types';
 
@@ -108,6 +109,29 @@ const Offer: React.FC = () => {
         actorUid: 'system',
         payload: { fromOfferId: offer.id, teamName: offer.teamName },
       });
+
+      // Welcome email — fire-and-forget. Parent will get it within
+      // seconds. Failure doesn't roll back the acceptance.
+      try {
+        const { subject, html } = tplWelcomeAfterOffer({
+          playerName: offer.playerName,
+          teamName: offer.teamName,
+          coachName: offer.coachName,
+        });
+        void sendEmail({ to: offer.parentEmail, subject, html });
+        await logActivity({
+          clubId: offer.clubId,
+          kind: 'email_sent',
+          registrationId: registration.id,
+          playerId: playerRef.id,
+          parentEmail: offer.parentEmail,
+          seasonId: registration.seasonId,
+          actorUid: 'system',
+          payload: { subject, channel: 'welcome_after_offer' },
+        });
+      } catch (err) {
+        console.warn('welcome email failed', err);
+      }
 
       setOffer({ ...offer, status: 'accepted', promotedToPlayerId: playerRef.id });
     } catch (err: any) {

@@ -444,6 +444,27 @@ export interface Registration {
   updatedAt?: Date;
 }
 
+/** Reusable offer letter template. Coaches pick one in the SendOffer
+ *  modal to skip retyping the same message body for every candidate.
+ *  Optional teamId + position scope so a Forward template doesn't show
+ *  up for a Keeper, and a U10 template doesn't show up for U17. */
+export interface OfferTemplate {
+  id: string;
+  clubId: string;
+  name: string;
+  /** When set, the template only surfaces for offers from this team. */
+  teamId?: string;
+  /** When set, only surfaces when the candidate's preferred position
+   *  matches. Free-form string match — empty position = always shows. */
+  position?: string;
+  message: string;
+  isActive: boolean;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
 /** Roster offer a coach extends to a tryout candidate. Each offer is
  *  scoped to ONE team — a candidate offered by two teams gets two
  *  separate Offer docs. The parent receives a unique /offer/<id> link

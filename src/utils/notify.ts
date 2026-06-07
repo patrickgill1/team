@@ -436,6 +436,35 @@ export function tplCoachWhisper(opts: {
   return { subject, html };
 }
 
+/** Welcome email sent the moment a family accepts an offer. The
+ *  Registration is already promoted to a real Player at this point, so
+ *  the parent can log in via the same email and see their kid on the
+ *  roster. We push two things: install the app + RSVP the first event. */
+export function tplWelcomeAfterOffer(opts: {
+  playerName: string;
+  teamName: string;
+  coachName: string;
+  appOrigin?: string;
+  signature?: CoachSignature;
+}): { subject: string; html: string } {
+  const subject = `Welcome to ${opts.teamName}`;
+  const base = opts.appOrigin || APP_BASE;
+  const html = wrap(`
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">You're in</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">Welcome to ${opts.teamName}, ${opts.playerName}!</h2>
+    <p style="margin:0 0 14px;color:#475569;">
+      ${opts.coachName} added ${opts.playerName} to the roster. Here are two quick things to set the season up right:
+    </p>
+    <ol style="margin:0 0 18px;padding-left:20px;color:#0f172a;line-height:1.7;font-size:15px;">
+      <li><b>Open the app</b> — log in with the same email you registered with. Your player is already on the team.</li>
+      <li><b>RSVP the first event</b> when it shows up on the calendar so the coach has a head count.</li>
+    </ol>
+    ${button(base, 'Open Fire FC')}
+    <p style="margin:8px 0 0;font-size:13px;color:#64748b;">Got questions? Just reply to this email and it goes straight to your coach.</p>
+  `, { signature: opts.signature || { name: opts.coachName, role: 'Coach', teamName: opts.teamName } });
+  return { subject, html };
+}
+
 /** Registration-open blast — fired by an admin from the Registrations
  *  page when a new season opens. `registerUrl` is the parent's deep
  *  link including ?return=<playerId>&season=<seasonId> so signup pre-

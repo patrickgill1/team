@@ -425,6 +425,14 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
       </div>
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">
+        {r.parents?.[0]?.email && (
+          <Link
+            to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`}
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-slate-50 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+          >
+            Family
+          </Link>
+        )}
         <button
           type="button"
           onClick={onToggleOpen}

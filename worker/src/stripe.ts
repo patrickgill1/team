@@ -266,6 +266,36 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
           },
           createdAt: new Date(),
         }, sa);
+
+        // Coupon counter bump. The intent + max-uses ceiling were
+        // validated at submit time; this is just bookkeeping so the
+        // next redemption sees the right usesCount. Reading + writing
+        // the whole coupons array because Firestore doesn't support
+        // partial array element updates.
+        try {
+          const reg = await getDocument(projectId, `registrations/${registrationId}`, sa);
+          const productId = reg?.data?.productId;
+          const couponCode = (reg?.data?.couponCode || '').toUpperCase();
+          if (productId && couponCode) {
+            const product = await getDocument(projectId, `products/${productId}`, sa);
+            const coupons: any[] = Array.isArray(product?.data?.coupons) ? product!.data.coupons : [];
+            let touched = false;
+            const next = coupons.map(c => {
+              if ((c?.code || '').toUpperCase() === couponCode) {
+                touched = true;
+                return { ...c, usesCount: (Number(c.usesCount) || 0) + 1 };
+              }
+              return c;
+            });
+            if (touched) {
+              await patchDocument(projectId, `products/${productId}`, { coupons: next }, sa);
+            }
+          }
+        } catch (err) {
+          // Bookkeeping miss — don't fail the webhook, the registration
+          // is already marked paid. Log and move on.
+          console.warn('coupon counter bump failed', err);
+        }
       } catch (err: any) {
         return json({ ok: false, error: `update-failed: ${err?.message || err}` }, 500);
       }

@@ -7,6 +7,7 @@ import { isClubAdmin } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import type { Registration } from '../types';
 import RegistrationBlastModal from '../components/club/RegistrationBlastModal';
+import BulkEmailModal from '../components/club/BulkEmailModal';
 
 // Admin view of every registration in the club's pipeline. Filter by
 // season, age group, gender, status. Each row opens a panel for editing
@@ -42,6 +43,7 @@ const Registrations: React.FC = () => {
   const [showBlast, setShowBlast] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
+  const [showBulkEmail, setShowBulkEmail] = useState(false);
 
   useEffect(() => {
     if (!allowed) { setLoading(false); return; }
@@ -419,12 +421,34 @@ const Registrations: React.FC = () => {
           </button>
           <button
             type="button"
+            disabled={bulkRunning}
+            onClick={() => setShowBulkEmail(true)}
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-violet-500 hover:bg-violet-400 disabled:opacity-50"
+          >
+            Email
+          </button>
+          <button
+            type="button"
             onClick={clearSelection}
             className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded text-slate-300 hover:text-white"
           >
             Clear
           </button>
         </div>
+      )}
+
+      {showBulkEmail && clubId && (
+        <BulkEmailModal
+          clubId={clubId}
+          registrations={registrations.filter(r => selected.has(r.id))}
+          signature={{
+            name: userData?.name || 'Club Admin',
+            role: 'Club Admin',
+            email: userData?.email,
+          }}
+          onClose={() => setShowBulkEmail(false)}
+          onSent={() => { /* stays open until Done */ }}
+        />
       )}
 
       {showBlast && clubId && (

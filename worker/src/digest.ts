@@ -22,9 +22,19 @@ interface DigestEnv {
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Cloudflare Workers default to UTC — without an explicit timeZone the
+// hour comes out 6h ahead (MDT) or 7h ahead (MST), which is why a 9am
+// practice was rendering as "3pm." Hardcoded to Fire FC's home tz; make
+// this a per-club setting if/when a second club lands somewhere else.
+const CLUB_TZ = 'America/Denver';
+
 function fmtDate(d: Date | undefined | null): string {
   if (!d) return '';
-  return new Date(d).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return new Date(d).toLocaleString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+    timeZone: CLUB_TZ,
+  });
 }
 
 function escapeHtml(s: string): string {

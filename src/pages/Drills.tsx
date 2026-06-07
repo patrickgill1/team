@@ -5,6 +5,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { Drill } from '../types';
 import { isCoach } from '../utils/helpers';
+import { uploadToStream, streamIframeUrl, streamThumbnailUrl } from '../utils/streamUpload';
 
 const TOPICS: { value: Drill['topic']; label: string }[] = [
   { value: 'dribbling', label: 'Dribbling' },
@@ -145,8 +146,25 @@ const Drills: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => { setEditing(d); setCreateOpen(true); }}
-                  className="w-full text-left p-4"
+                  className="w-full text-left"
                 >
+                  {d.streamUid && (
+                    <div className="aspect-video w-full bg-slate-200 relative">
+                      <img
+                        src={streamThumbnailUrl(d.streamUid, { height: 240 })}
+                        alt=""
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">
                       {TOPICS.find(t => t.value === d.topic)?.label || d.topic}
@@ -163,7 +181,9 @@ const Drills: React.FC = () => {
                   <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-500">
                     {d.durationMinutes != null && <span>{d.durationMinutes} min</span>}
                     {d.videoLinks && d.videoLinks.length > 0 && <span>· {d.videoLinks.length} video{d.videoLinks.length === 1 ? '' : 's'}</span>}
+                    {d.streamUid && <span>· video</span>}
                     {d.assignmentCount != null && d.assignmentCount > 0 && <span>· assigned {d.assignmentCount}×</span>}
+                  </div>
                   </div>
                 </button>
               </li>
@@ -225,6 +245,12 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
   const [aiPrompt, setAiPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Coach-uploaded reference video (e.g., a TikTok exported to camera
+  // roll). Lives on Cloudflare Stream — same path Player Media uses.
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [stagedStreamUid, setStagedStreamUid] = useState<string | null>(null);
 
   const isNew = !drill;
 
@@ -259,6 +285,27 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
     }
   };
 
+  const handleUploadFile = async (file: File) => {
+    if (!file) return;
+    setPendingFile(file);
+    setUploading(true);
+    setUploadPct(0);
+    try {
+      const result = await uploadToStream(
+        file,
+        { name: title || file.name },
+        (pct) => setUploadPct(pct)
+      );
+      setStagedStreamUid(result.uid);
+    } catch (err) {
+      console.error('Stream upload failed', err);
+      alert('Upload failed — try again.');
+      setPendingFile(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!title.trim()) { alert('Drill needs a title.'); return; }
     setSaving(true);
@@ -284,6 +331,11 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
         addedAt: new Date(),
       } as any];
       payload.videoLinks = links;
+    }
+    // Attach freshly uploaded Stream video if there is one.
+    if (stagedStreamUid) {
+      payload.streamUid = stagedStreamUid;
+      payload.streamReady = true;
     }
     await onSave(payload, isNew);
     setSaving(false);
@@ -400,6 +452,60 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               />
             </Field>
           </div>
+          {/* Coach-uploaded video — works with any file (TikTok export,
+              phone recording, downloaded clip, etc.). Lands in
+              Cloudflare Stream same as Player Media uploads. */}
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">
+              Upload a reference video {drill?.streamUid && '(replace)'}
+            </label>
+            {stagedStreamUid ? (
+              <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-800 flex items-center justify-between">
+                <span className="font-semibold">Video uploaded — will attach on save.</span>
+                <button
+                  type="button"
+                  onClick={() => { setStagedStreamUid(null); setPendingFile(null); setUploadPct(0); }}
+                  className="text-emerald-700 hover:text-emerald-900 font-bold"
+                >
+                  Undo
+                </button>
+              </div>
+            ) : uploading ? (
+              <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-3">
+                <div className="text-xs font-semibold text-cyan-800 mb-1.5">
+                  Uploading {pendingFile?.name || 'video'}… {uploadPct}%
+                </div>
+                <div className="w-full bg-cyan-100 rounded h-1.5 overflow-hidden">
+                  <div className="bg-cyan-600 h-full transition-all" style={{ width: `${uploadPct}%` }} />
+                </div>
+              </div>
+            ) : (
+              <label className="block rounded-lg border-2 border-dashed border-slate-300 p-3 text-center cursor-pointer hover:bg-slate-50">
+                <span className="text-xs text-slate-600">
+                  Tap to pick a video from camera roll (works with downloaded TikToks)
+                </span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleUploadFile(f); }}
+                />
+              </label>
+            )}
+            {drill?.streamUid && !stagedStreamUid && !uploading && (
+              <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden bg-black">
+                <iframe
+                  src={streamIframeUrl(drill.streamUid)}
+                  title="Drill reference video"
+                  loading="lazy"
+                  allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  className="w-full h-full block border-0"
+                />
+              </div>
+            )}
+          </div>
+
           {drill?.videoLinks && drill.videoLinks.length > 0 && (
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">Existing videos</label>

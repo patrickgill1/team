@@ -415,6 +415,12 @@ export interface Registration {
   promotedToPlayerId?: string;
   promotedToTeamId?: string;
   promotedAt?: Date;
+  /** Answers to admin-defined custom questions, keyed by question id.
+   *  See `RegistrationFormConfig`. Snapshotted question labels live on
+   *  `customAnswerLabels` so the admin view doesn't break if the form
+   *  config is edited or deleted later. */
+  customAnswers?: Record<string, string | number | boolean>;
+  customAnswerLabels?: Record<string, string>;
   /** Optional referral / signup source tracking. */
   source?: 'cold' | 'returning' | 'invite' | 'email_blast';
   /** Notes the admin / coach has captured during the tryout / offer
@@ -423,6 +429,43 @@ export interface Registration {
   notes?: string;
   createdAt: Date;
   updatedAt?: Date;
+}
+
+/** Admin-defined extra questions to tack onto the public /register form.
+ *  One doc per club per season (id = `${clubId}_${seasonId}`), with an
+ *  optional `${clubId}_default` fallback used when no season-specific
+ *  doc exists. Answers land on `Registration.customAnswers` keyed by
+ *  question id, so renaming a question label later doesn't break old
+ *  answers. */
+export interface RegistrationFormConfig {
+  id: string;
+  clubId: string;
+  /** When set, this config applies only to the named season. Omit to
+   *  treat as the club default (applies whenever no season-specific
+   *  config exists). */
+  seasonId?: string;
+  questions: RegistrationQuestion[];
+  updatedAt?: Date;
+  updatedBy?: string;
+}
+
+export interface RegistrationQuestion {
+  id: string;
+  /** Parent-facing label. Rename freely — answers reference `id`, not
+   *  this string. */
+  label: string;
+  /** Optional helper text shown under the input. */
+  help?: string;
+  type: 'text' | 'textarea' | 'select' | 'yes_no' | 'number';
+  /** For type === 'select'. */
+  options?: string[];
+  required?: boolean;
+  /** Display order in the form. Lower = higher up. */
+  order: number;
+  /** If true, the question only renders for returning-player registrations
+   *  (parent came in via ?return=). Lets the club ask returning families
+   *  different things from cold signups. */
+  returningOnly?: boolean;
 }
 
 /** Anything chargeable in the club lives as a Product. Registration is

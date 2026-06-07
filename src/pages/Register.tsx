@@ -4,7 +4,7 @@ import { addDoc, collection, doc, getDoc, getDocs, query, where, orderBy, limit,
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
 import Logo from '../components/common/Logo';
-import type { Product } from '../types';
+import type { Product, RegistrationFormConfig, RegistrationQuestion } from '../types';
 import { quotePrice } from '../utils/pricing';
 
 // Public registration form. No auth required — a parent lands here
@@ -62,6 +62,11 @@ const Register: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Admin-defined custom questions for this club/season + the parent's
+  // answers, keyed by question id.
+  const [formConfig, setFormConfig] = useState<RegistrationFormConfig | null>(null);
+  const [customAnswers, setCustomAnswers] = useState<Record<string, string | number | boolean>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedRegId, setSubmittedRegId] = useState<string | null>(null);
@@ -159,6 +164,39 @@ const Register: React.FC = () => {
     return () => { cancelled = true; };
   }, [clubId, season?.id]);
 
+  // Load admin-defined custom questions. Prefer the season-specific
+  // config (`${clubId}_${seasonId}`), fall back to club default
+  // (`${clubId}_default`). If neither exists, no extra questions render.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!clubId || !season?.id) return;
+      try {
+        const tryIds = [`${clubId}_${season.id}`, `${clubId}_default`];
+        for (const id of tryIds) {
+          const snap = await getDoc(doc(db, 'registration_form_configs', id));
+          if (snap.exists()) {
+            if (!cancelled) setFormConfig({ id: snap.id, ...(snap.data() as any) });
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('form config load failed (fine — no custom questions)', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clubId, season?.id]);
+
+  // Visible questions = config questions filtered for returningOnly +
+  // sorted by order. Compute once per render.
+  const visibleQuestions = useMemo<RegistrationQuestion[]>(() => {
+    const all = formConfig?.questions || [];
+    return all
+      .filter(q => !q.returningOnly || !!returnPlayerId)
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [formConfig, returnPlayerId]);
+
   // Pick the product that matches the player's age group. If none match
   // by age, fall back to a generic product (no ageGroups restriction).
   const activeProduct = useMemo<Product | null>(() => {
@@ -217,12 +255,22 @@ const Register: React.FC = () => {
     setParents(prev => prev.map((p, idx) => idx === i ? { ...p, ...patch } : p));
   };
 
+  // Every required custom question must be answered before submit.
+  const customAnswersValid = visibleQuestions.every(q => {
+    if (!q.required) return true;
+    const v = customAnswers[q.id];
+    if (v === undefined || v === null) return false;
+    if (typeof v === 'string') return v.trim().length > 0;
+    return true;
+  });
+
   const canSubmit = !!(
     firstName.trim() && lastName.trim() && dob && ageGroup
     && parents[0]?.firstName?.trim()
     && parents[0]?.email?.trim()
     && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parents[0]?.email || '')
     && season && clubId
+    && customAnswersValid
     && !submitting
   );
 
@@ -266,6 +314,10 @@ const Register: React.FC = () => {
         amountPaidCents: quote.totalCents,
         stripeSurchargeCents: quote.surchargeCents || undefined,
         earlyBirdApplied: (quote.tier?.label || '').toLowerCase().includes('early'),
+        customAnswers: visibleQuestions.length > 0 ? customAnswers : undefined,
+        customAnswerLabels: visibleQuestions.length > 0
+          ? Object.fromEntries(visibleQuestions.map(q => [q.id, q.label]))
+          : undefined,
         source: returnPlayerId ? 'returning' : 'cold',
         createdAt: serverTimestamp(),
       };
@@ -450,6 +502,19 @@ const Register: React.FC = () => {
             )}
           </Section>
 
+          {visibleQuestions.length > 0 && (
+            <Section title={(formConfig as any)?.title || 'A few more questions'}>
+              {visibleQuestions.map(q => (
+                <CustomQuestion
+                  key={q.id}
+                  question={q}
+                  value={customAnswers[q.id]}
+                  onChange={(v) => setCustomAnswers(prev => ({ ...prev, [q.id]: v }))}
+                />
+              ))}
+            </Section>
+          )}
+
           {activeProduct && (activeProduct.coupons || []).length > 0 && (
             <Section title="Promo code (optional)">
               <div className="flex gap-2">
@@ -557,6 +622,118 @@ const Select: React.FC<{ label: string; value: string; onChange: (v: string) => 
     </select>
   </label>
 );
+
+const CustomQuestion: React.FC<{
+  question: RegistrationQuestion;
+  value: string | number | boolean | undefined;
+  onChange: (v: string | number | boolean) => void;
+}> = ({ question, value, onChange }) => {
+  const required = !!question.required;
+  const helpId = question.help ? `${question.id}-help` : undefined;
+  const help = question.help ? (
+    <p id={helpId} className="text-[11px] text-slate-500 mt-1">{question.help}</p>
+  ) : null;
+
+  const labelEl = (
+    <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+      {question.label}{required && <span className="text-rose-300 ml-0.5">*</span>}
+    </span>
+  );
+
+  switch (question.type) {
+    case 'textarea':
+      return (
+        <label className="block">
+          {labelEl}
+          <textarea
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            rows={3}
+            required={required}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            style={{ fontSize: '16px' }}
+          />
+          {help}
+        </label>
+      );
+    case 'select':
+      return (
+        <label className="block">
+          {labelEl}
+          <select
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            required={required}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            style={{ fontSize: '16px' }}
+          >
+            <option value="" className="bg-slate-900">— Select —</option>
+            {(question.options || []).map(o => (
+              <option key={o} value={o} className="bg-slate-900">{o}</option>
+            ))}
+          </select>
+          {help}
+        </label>
+      );
+    case 'yes_no':
+      return (
+        <div>
+          {labelEl}
+          <div className="flex gap-2">
+            {['Yes', 'No'].map(opt => {
+              const selected = value === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onChange(opt)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold ring-1 transition ${
+                    selected
+                      ? 'bg-cyan-500 text-white ring-cyan-500'
+                      : 'bg-white/5 text-slate-300 ring-white/10 hover:ring-cyan-400/40'
+                  }`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          {help}
+        </div>
+      );
+    case 'number':
+      return (
+        <label className="block">
+          {labelEl}
+          <input
+            type="number"
+            value={value == null ? '' : String(value)}
+            onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
+            required={required}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            style={{ fontSize: '16px' }}
+          />
+          {help}
+        </label>
+      );
+    case 'text':
+    default:
+      return (
+        <label className="block">
+          {labelEl}
+          <input
+            type="text"
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            required={required}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            style={{ fontSize: '16px' }}
+          />
+          {help}
+        </label>
+      );
+  }
+};
 
 const Checkbox: React.FC<{ label: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, checked, onChange }) => (
   <label className="flex items-end h-full pb-2 gap-2 cursor-pointer">

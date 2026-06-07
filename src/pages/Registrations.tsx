@@ -246,9 +246,25 @@ const Registrations: React.FC = () => {
                         {r.player.medicalNotes && (
                           <div className="mt-1 text-[11px] text-amber-700 italic">Med: {r.player.medicalNotes}</div>
                         )}
+                        {r.customAnswers && Object.keys(r.customAnswers).length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {Object.entries(r.customAnswers).map(([qid, val]) => {
+                              const label = r.customAnswerLabels?.[qid] || qid;
+                              const display = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val);
+                              if (!display.trim()) return null;
+                              return (
+                                <span key={qid} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 ring-1 ring-slate-200 text-slate-700">
+                                  <span className="text-slate-500">{label}:</span>{' '}
+                                  <span className="font-bold">{display}</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                         <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
-                          <span>${((r.registrationFeeCents || 0) / 100).toFixed(2)}</span>
-                          {r.earlyBirdApplied && <span className="text-emerald-600 font-bold">· early bird</span>}
+                          <span>${((r.amountPaidCents ?? r.registrationFeeCents ?? 0) / 100).toFixed(2)}</span>
+                          {r.pricingTierLabel && <span className="text-cyan-700 font-bold">· {r.pricingTierLabel}</span>}
+                          {r.couponCode && <span className="text-violet-700 font-bold">· {r.couponCode}</span>}
                           <span>·</span>
                           <span>{(r.createdAt as any)?.toLocaleDateString?.() || ''}</span>
                         </div>

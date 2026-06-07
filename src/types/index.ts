@@ -390,9 +390,23 @@ export interface Registration {
     relationship?: 'mother' | 'father' | 'guardian' | 'other';
   }>;
   status: 'pending_payment' | 'paid' | 'tryout_invited' | 'offer_sent' | 'accepted' | 'declined' | 'withdrawn';
+  /** Product the parent registered against — the source of truth for
+   *  pricing tiers and coupons at checkout time. */
+  productId?: string;
+  productName?: string;
+  /** Pricing snapshot — captured at submit time so a later edit to the
+   *  Product doesn't change what this family was quoted. */
+  pricingTierId?: string;
+  pricingTierLabel?: string;
   registrationFeeCents: number;
-  /** Effective fee actually charged (after early-bird etc.). */
+  /** Coupon applied at checkout, if any. */
+  couponCode?: string;
+  couponDiscountCents?: number;
+  /** Effective fee actually charged (after coupon + tier resolution). */
   amountPaidCents?: number;
+  /** Stripe surcharge (in cents) added on top of amountPaidCents — kept
+   *  separate so the club's revenue report doesn't conflate the two. */
+  stripeSurchargeCents?: number;
   earlyBirdApplied?: boolean;
   stripeCheckoutSessionId?: string;
   stripePaymentIntentId?: string;
@@ -409,6 +423,94 @@ export interface Registration {
   notes?: string;
   createdAt: Date;
   updatedAt?: Date;
+}
+
+/** Anything chargeable in the club lives as a Product. Registration is
+ *  the first one, but the same shape works for tournament entry,
+ *  uniform packs, late-payment fees, merch, etc. A product owns its own
+ *  tiered pricing schedule (early bird → regular → late) and its own
+ *  coupon codes, so a coach can run promo pricing on a tournament
+ *  without touching the season-fee product.
+ *
+ *  Pricing resolution: walk pricingTiers[] in order and pick the first
+ *  whose [startsAt, endsAt] window contains "now". If no tier matches,
+ *  fall back to the tier marked isDefault — or the first tier overall.
+ *  See selectActivePricingTier() in src/utils/pricing.ts. */
+export interface Product {
+  id: string;
+  clubId: string;
+  /** Category of charge. Most code only cares about 'registration' for
+   *  the public form; the others light up in the admin invoicing UI
+   *  (Module 3). */
+  type: 'registration' | 'tournament' | 'fee' | 'merch' | 'other';
+  name: string;
+  description?: string;
+  /** Tiered pricing schedule. Order matters — first matching window wins. */
+  pricingTiers: PricingTier[];
+  /** Coupon codes scoped to this product. Codes are NOT globally unique;
+   *  the same "EARLYBIRD" string can exist on multiple products and
+   *  each behaves independently. */
+  coupons?: Coupon[];
+  /** Optional Stripe processing surcharge passed through to the parent
+   *  at checkout, in basis points (1.5% = 150). Defaults to 0 (club
+   *  absorbs Stripe fees) when unset. Shown as a separate line on the
+   *  checkout summary so it doesn't look like opaque price bumping. */
+  stripeSurchargeBps?: number;
+  /** Free-form metadata. For registration products we set:
+   *    seasonId: the Season this enrolls into
+   *    ageGroups: ['U10','U11'] — restricts the form to these
+   *    teamId: optional, if the product is tied to a single team
+   *  Other product types use their own keys. */
+  metadata?: Record<string, any>;
+  isActive: boolean;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  archivedAt?: Date;
+}
+
+export interface PricingTier {
+  id: string;
+  /** Coach-facing label — "Early Bird", "Regular", "Late". Surfaces on
+   *  the checkout summary so parents see why they're paying what they
+   *  are. */
+  label: string;
+  priceCents: number;
+  /** When this tier becomes active. null = no lower bound (always
+   *  active until the next tier's start date or until endsAt). */
+  startsAt?: Date | null;
+  /** When this tier stops being active. null = no upper bound. */
+  endsAt?: Date | null;
+  /** Fallback tier used when no date-bounded tier matches "now". Useful
+   *  for a permanent "Standard" price with optional promo windows
+   *  layered on top. Exactly one tier per product should be default;
+   *  selector picks the first if multiple. */
+  isDefault?: boolean;
+}
+
+export interface Coupon {
+  id: string;
+  /** Case-insensitive code parents type at checkout. Stored in upper-
+   *  case in Firestore — applyCoupon() upper-cases user input before
+   *  comparing. */
+  code: string;
+  /** Either flat amount OR percent off. Percent is integer 0–100. */
+  discountCents?: number;
+  discountPercent?: number;
+  /** Optional cap so a parent of 4 kids can't use the same code 4 times.
+   *  null = unlimited. */
+  maxUses?: number | null;
+  usesCount?: number;
+  /** Optional expiry. Coupon is rejected once now > expiresAt. */
+  expiresAt?: Date | null;
+  /** If false, coupon stops applying without losing the historical
+   *  usesCount. Cleaner than deleting. */
+  isActive: boolean;
+  /** Free-form admin note ("Promo for tournament returning families"). */
+  note?: string;
+  createdAt?: Date;
+  createdBy?: string;
 }
 
 /** CRM-style activity log entry. Every meaningful system event lands in
@@ -429,6 +531,7 @@ export interface Activity {
     | 'player_promoted'
     | 'email_sent'
     | 'fee_charged'
+    | 'coupon_redeemed'
     | 'note_added';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-

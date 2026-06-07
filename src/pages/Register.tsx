@@ -4,6 +4,8 @@ import { addDoc, collection, doc, getDoc, getDocs, query, where, orderBy, limit,
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
 import Logo from '../components/common/Logo';
+import type { Product } from '../types';
+import { quotePrice } from '../utils/pricing';
 
 // Public registration form. No auth required — a parent lands here
 // from an email blast or a posted link, fills it out, pays. We create
@@ -53,6 +55,13 @@ const Register: React.FC = () => {
   const [parents, setParents] = useState<ParentDraft[]>([
     { firstName: '', lastName: '', email: '', phone: '', relationship: 'mother' },
   ]);
+
+  // Registration products for the resolved season. We pick one based on
+  // the player's age group (see `activeProduct` below). If none exist
+  // for the club, we fall back to the season's flat fee fields.
+  const [products, setProducts] = useState<Product[]>([]);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedRegId, setSubmittedRegId] = useState<string | null>(null);
@@ -126,15 +135,83 @@ const Register: React.FC = () => {
     return () => { cancelled = true; };
   }, [seasonId, returnPlayerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const earlyBird = useMemo(() => {
-    if (!season?.earlyBirdDeadline || !season.earlyBirdDiscountCents) return null;
-    const deadline = (season.earlyBirdDeadline as any)?.toDate?.()
-      || new Date(season.earlyBirdDeadline);
-    return Date.now() < deadline.getTime() ? { deadline, discountCents: season.earlyBirdDiscountCents } : null;
-  }, [season]);
+  // Load active registration products for the season.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!clubId || !season?.id) return;
+      try {
+        const qProducts = query(
+          collection(db, 'products'),
+          where('clubId', '==', clubId),
+          where('type', '==', 'registration'),
+          where('isActive', '==', true),
+        );
+        const snap = await getDocs(qProducts);
+        const list: Product[] = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) } as Product))
+          .filter(p => (p.metadata?.seasonId ? p.metadata.seasonId === season.id : true));
+        if (!cancelled) setProducts(list);
+      } catch (err) {
+        console.warn('product load failed (fine — falling back to season fee)', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clubId, season?.id]);
 
-  const baseFee = season?.registrationFeeCents || 0;
-  const effectiveFee = baseFee - (earlyBird?.discountCents || 0);
+  // Pick the product that matches the player's age group. If none match
+  // by age, fall back to a generic product (no ageGroups restriction).
+  const activeProduct = useMemo<Product | null>(() => {
+    if (products.length === 0) return null;
+    const byAge = products.find(p => Array.isArray(p.metadata?.ageGroups) && p.metadata!.ageGroups.includes(ageGroup));
+    if (byAge) return byAge;
+    const generic = products.find(p => !p.metadata?.ageGroups || p.metadata.ageGroups.length === 0);
+    return generic || products[0];
+  }, [products, ageGroup]);
+
+  // Quote either from the active product OR fall back to the season's
+  // flat fee + early-bird fields (legacy path until products are set up).
+  const quote = useMemo(() => {
+    if (activeProduct) {
+      return quotePrice(activeProduct, { couponCode: couponCode.trim() || undefined });
+    }
+    // Legacy season-fee path.
+    const base = season?.registrationFeeCents || 0;
+    let earlyBirdDiscount = 0;
+    if (season?.earlyBirdDeadline && season.earlyBirdDiscountCents) {
+      const deadline = (season.earlyBirdDeadline as any)?.toDate?.()
+        || new Date(season.earlyBirdDeadline);
+      if (Date.now() < deadline.getTime()) earlyBirdDiscount = season.earlyBirdDiscountCents;
+    }
+    return {
+      tier: earlyBirdDiscount > 0
+        ? { id: 'early', label: 'Early Bird', priceCents: base - earlyBirdDiscount }
+        : { id: 'standard', label: 'Standard', priceCents: base },
+      baseCents: base,
+      discountCents: earlyBirdDiscount,
+      surchargeCents: 0,
+      totalCents: Math.max(0, base - earlyBirdDiscount),
+      couponCode: undefined,
+    } as ReturnType<typeof quotePrice>;
+  }, [activeProduct, season, couponCode]);
+
+  const baseFee = quote.baseCents;
+  const effectiveFee = quote.totalCents;
+
+  // Surface coupon resolution status so parents know if a typo'd code
+  // was silently ignored.
+  useEffect(() => {
+    if (!couponCode.trim()) { setCouponError(null); return; }
+    if (!activeProduct) {
+      setCouponError('Coupons not available for this registration.');
+      return;
+    }
+    if (quote.couponCode) {
+      setCouponError(null);
+    } else {
+      setCouponError("Code didn't apply — check spelling or expiration.");
+    }
+  }, [couponCode, quote.couponCode, activeProduct]);
 
   const updateParent = (i: number, patch: Partial<ParentDraft>) => {
     setParents(prev => prev.map((p, idx) => idx === i ? { ...p, ...patch } : p));
@@ -179,8 +256,16 @@ const Register: React.FC = () => {
             relationship: p.relationship,
           })),
         status: 'pending_payment',
-        registrationFeeCents: effectiveFee,
-        earlyBirdApplied: !!earlyBird,
+        productId: activeProduct?.id,
+        productName: activeProduct?.name,
+        pricingTierId: quote.tier?.id,
+        pricingTierLabel: quote.tier?.label,
+        registrationFeeCents: quote.baseCents,
+        couponCode: quote.couponCode,
+        couponDiscountCents: quote.discountCents || undefined,
+        amountPaidCents: quote.totalCents,
+        stripeSurchargeCents: quote.surchargeCents || undefined,
+        earlyBirdApplied: (quote.tier?.label || '').toLowerCase().includes('early'),
         source: returnPlayerId ? 'returning' : 'cold',
         createdAt: serverTimestamp(),
       };
@@ -199,10 +284,30 @@ const Register: React.FC = () => {
           ageGroup,
           gender,
           playedBefore,
-          effectiveFeeCents: effectiveFee,
-          earlyBird: !!earlyBird,
+          productId: activeProduct?.id,
+          tierLabel: quote.tier?.label,
+          baseCents: quote.baseCents,
+          discountCents: quote.discountCents,
+          totalCents: quote.totalCents,
+          couponCode: quote.couponCode,
         },
       });
+      if (quote.couponCode) {
+        void logActivity({
+          clubId,
+          kind: 'coupon_redeemed',
+          registrationId: ref.id,
+          playerId: returnPlayerId || undefined,
+          parentEmail: parents[0]?.email?.trim().toLowerCase(),
+          seasonId: season.id,
+          actorUid: 'public',
+          payload: {
+            code: quote.couponCode,
+            productId: activeProduct?.id,
+            discountCents: quote.discountCents,
+          },
+        });
+      }
       setSubmittedRegId(ref.id);
     } catch (err: any) {
       console.error('registration submit failed', err);
@@ -252,12 +357,22 @@ const Register: React.FC = () => {
           <p className="text-slate-400 mt-2 text-sm">
             {returnPlayerId ? "Welcome back — let's get your player signed up for the new season." : 'Tell us about your player and we\'ll be in touch.'}
           </p>
-          {baseFee > 0 && (
-            <div className="mt-4 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-500/10 ring-1 ring-cyan-500/30 text-cyan-200 text-sm">
+          {(baseFee > 0 || effectiveFee > 0) && (
+            <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 ring-1 ring-cyan-500/30 text-cyan-200 text-sm">
               <span className="font-bold">${(effectiveFee / 100).toFixed(2)}</span>
-              {earlyBird && (
+              {quote.tier?.label && (
+                <span className="text-[11px] uppercase tracking-widest font-extrabold bg-white/10 text-cyan-100 ring-1 ring-white/15 px-2 py-0.5 rounded">
+                  {quote.tier.label}
+                </span>
+              )}
+              {quote.discountCents > 0 && (
                 <span className="text-[11px] uppercase tracking-widest font-extrabold bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40 px-2 py-0.5 rounded">
-                  Early bird — save ${(earlyBird.discountCents / 100).toFixed(2)}
+                  Save ${(quote.discountCents / 100).toFixed(2)}
+                </span>
+              )}
+              {quote.surchargeCents > 0 && (
+                <span className="text-[11px] text-slate-300/80">
+                  incl. ${(quote.surchargeCents / 100).toFixed(2)} processing
                 </span>
               )}
             </div>
@@ -335,6 +450,29 @@ const Register: React.FC = () => {
             )}
           </Section>
 
+          {activeProduct && (activeProduct.coupons || []).length > 0 && (
+            <Section title="Promo code (optional)">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="EARLYBIRD"
+                  className="flex-1 px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm uppercase tracking-wider"
+                  style={{ fontSize: '16px' }}
+                />
+                {quote.couponCode && (
+                  <div className="px-3 py-2 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-200 text-xs font-bold flex items-center">
+                    -${(quote.discountCents / 100).toFixed(2)}
+                  </div>
+                )}
+              </div>
+              {couponError && (
+                <p className="text-[11px] text-amber-300 mt-1">{couponError}</p>
+              )}
+            </Section>
+          )}
+
           {error && (
             <div className="rounded-xl px-4 py-3 bg-rose-500/10 ring-1 ring-rose-500/40 text-rose-200 text-sm">
               {error}
@@ -347,7 +485,7 @@ const Register: React.FC = () => {
             disabled={!canSubmit}
             className="w-full py-4 rounded-xl font-bold text-base text-white bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
           >
-            {submitting ? 'Submitting…' : baseFee > 0 ? `Submit & pay $${(effectiveFee / 100).toFixed(2)}` : 'Submit registration'}
+            {submitting ? 'Submitting…' : effectiveFee > 0 ? `Submit & pay $${(effectiveFee / 100).toFixed(2)}` : 'Submit registration'}
           </button>
 
           <p className="text-center text-[11px] text-slate-500">

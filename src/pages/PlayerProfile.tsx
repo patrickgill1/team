@@ -40,6 +40,10 @@ const PlayerProfile: React.FC = () => {
   // Equipment editor state — coach-only modal for recording issued
   // gear sizes + return status.
   const [equipEditOpen, setEquipEditOpen] = useState(false);
+  // Juggle log state — anyone who can see the profile (coach OR the
+  // player's parents) can record an attempt.
+  const [juggleOpen, setJuggleOpen] = useState(false);
+  const [juggleDraft, setJuggleDraft] = useState<string>('');
   const [equipDraft, setEquipDraft] = useState<{
     jerseyHomeSize: string;
     jerseyAwaySize: string;
@@ -859,6 +863,55 @@ const PlayerProfile: React.FC = () => {
               </div>
             )}
 
+            {/* JUGGLE COUNTER — parent-entered. Visible to coach + the
+                kid's parents. PR is the headline; recent attempts feed
+                a 7-day streak. No camera/CV — purely self-reported,
+                per Patrick. */}
+            {userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid)) && (() => {
+              const j = (player as any).juggles || {};
+              const history: Array<{ count: number; date: any }> = Array.isArray(j.history) ? j.history : [];
+              const best = typeof j.best === 'number' ? j.best : 0;
+              const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+              const lastWeek = history.filter(h => {
+                const t = h.date?.toDate ? h.date.toDate().getTime() : new Date(h.date).getTime();
+                return t >= sevenDaysAgo;
+              });
+              const last = history[0];
+              return (
+                <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-fire-950 flex items-center gap-2">
+                      <span className="text-2xl">⚽</span>
+                      Juggle counter
+                    </h3>
+                    <button
+                      onClick={() => { setJuggleDraft(''); setJuggleOpen(true); }}
+                      className="text-xs font-bold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                    >
+                      + Log
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 px-3 py-2.5">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-amber-800">PR</div>
+                      <div className="text-2xl font-black text-amber-900 tabular-nums leading-tight">{best}</div>
+                    </div>
+                    <div className="rounded-xl bg-cyan-50 ring-1 ring-cyan-200 px-3 py-2.5">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-800">7-day attempts</div>
+                      <div className="text-2xl font-black text-cyan-900 tabular-nums leading-tight">{lastWeek.length}</div>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 px-3 py-2.5">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-700">Last</div>
+                      <div className="text-2xl font-black text-slate-900 tabular-nums leading-tight">{last?.count ?? '—'}</div>
+                    </div>
+                  </div>
+                  {history.length === 0 && (
+                    <p className="text-xs text-slate-500 mt-3">No attempts yet. Tap "+ Log" to record one.</p>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* EQUIPMENT — coach edits, parents of this kid view. The
                 "/equipment" page is the coach's outstanding-gear view
                 across the whole team. */}
@@ -1116,6 +1169,66 @@ const PlayerProfile: React.FC = () => {
       </div>
 
       {/* ─── Equipment Edit Modal ────────────────────────────────── */}
+      {juggleOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setJuggleOpen(false)}>
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900">Log a juggle attempt</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Best wins so far: <b className="text-slate-700">{((player as any).juggles?.best) ?? 0}</b></p>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">How many juggles?</label>
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={juggleDraft}
+                  onChange={(e) => setJuggleDraft(e.target.value)}
+                  autoFocus
+                  className="w-full px-3 py-3 text-2xl font-black text-center border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button onClick={() => setJuggleOpen(false)} className="px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const n = parseInt(juggleDraft, 10);
+                  if (!Number.isFinite(n) || n < 0) { alert('Enter a number.'); return; }
+                  const existing = ((player as any).juggles) || {};
+                  const history: any[] = Array.isArray(existing.history) ? existing.history : [];
+                  const next = {
+                    best: Math.max(n, existing.best || 0),
+                    bestAt: n > (existing.best || 0) ? new Date() : (existing.bestAt || null),
+                    history: [{
+                      count: n,
+                      date: new Date(),
+                      loggedBy: userData?.uid || null,
+                      loggedByName: userData?.name || null,
+                    }, ...history].slice(0, 30),
+                  };
+                  try {
+                    await updateDocument('players', player.id, { juggles: next, updatedAt: new Date() });
+                    (player as any).juggles = next;
+                    setJuggleOpen(false);
+                  } catch (err) {
+                    console.error('save juggle failed', err);
+                    alert('Save failed — try again.');
+                  }
+                }}
+                className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 rounded-lg"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {equipEditOpen && equipDraft && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setEquipEditOpen(false)}>
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>

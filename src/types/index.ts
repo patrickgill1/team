@@ -279,6 +279,16 @@ export interface Player {
   createdAt: Date;
   updatedAt?: Date;
   inviteCode?: string;
+  /** Self-reported juggle counter — parents log "Hunter juggled X
+   *  times today." We keep a personal best + a short rolling history
+   *  for streak/weekly-best math without a separate collection. */
+  juggles?: {
+    best?: number;
+    bestAt?: Date;
+    /** Last 30 attempts max — bounded so the doc stays small. Each
+     *  entry: count + date + who logged it. */
+    history?: Array<{ count: number; date: Date; loggedBy?: string; loggedByName?: string }>;
+  };
   /** Issued team gear for the current season — sizes + return status.
    *  Single record per player at a time; a coach manually clears it
    *  ("Reset for next season") between seasons. We don't archive

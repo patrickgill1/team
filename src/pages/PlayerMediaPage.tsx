@@ -12,6 +12,7 @@ import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadU
 import { downloadFile } from '../utils/downloadFile';
 import { getShareOrigin } from '../utils/origin';
 import StreamPlayer, { loadStreamSdk, StreamSdkPlayer } from '../components/common/StreamPlayer';
+import EmbedMediaModal from '../components/player/EmbedMediaModal';
 import FullGames from './FullGames';
 import { collection, query as fsQuery, where as fsWhere, getDocs as fsGetDocs } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -30,6 +31,7 @@ const PlayerMediaPage: React.FC = () => {
   const [media, setMedia] = useState<PlayerMediaType[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showEmbedModal, setShowEmbedModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -1278,15 +1280,25 @@ const PlayerMediaPage: React.FC = () => {
                 </svg>
               </div>
               {canManageMedia && (
-                <button
-                  onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
-                  className="bg-cyan-500 hover:bg-cyan-400 text-fire-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="hidden sm:inline">Upload</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowEmbedModal(true)}
+                    className="bg-white text-fire-950 ring-1 ring-slate-300 hover:bg-slate-100 px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                    title="Paste a YouTube or Trace link"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <span className="hidden sm:inline">Link</span>
+                  </button>
+                  <button
+                    onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
+                    className="bg-cyan-500 hover:bg-cyan-400 text-fire-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="hidden sm:inline">Upload</span>
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -1525,6 +1537,63 @@ const PlayerMediaPage: React.FC = () => {
           </>
         )}
 
+        <EmbedMediaModal
+          isOpen={showEmbedModal}
+          onClose={() => setShowEmbedModal(false)}
+          players={players.map(p => ({ id: p.id, name: p.name }))}
+          onSubmit={async (payload) => {
+            if (!userData || !selectedTeamId) throw new Error('Missing context');
+            // YouTube has predictable thumbnail URLs — pull them from
+            // img.youtube.com so the gallery card has something to show
+            // instead of a black square. Trace doesn't expose a public
+            // thumbnail URL pattern, so its thumbnails stay placeholder.
+            let thumbnailUrl: string | undefined;
+            if (payload.source === 'youtube') {
+              const m = payload.embedUrl.match(/youtube\.com\/embed\/([\w-]{11})/);
+              if (m) thumbnailUrl = `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`;
+            }
+            const mediaDoc: any = {
+              playerId: payload.playerId,
+              playerName: payload.playerName,
+              teamId: selectedTeamId,
+              url: payload.url,
+              embedUrl: payload.embedUrl,
+              source: payload.source,
+              thumbnailUrl,
+              type: 'video',
+              caption: payload.caption || undefined,
+              uploadedBy: userData.uid,
+              uploadedByName: userData.name || 'Coach',
+              fileSize: 0,
+              fileName: payload.source === 'youtube' ? 'YouTube link' : payload.source === 'trace' ? 'Trace highlight' : 'External video',
+              contentType: 'video/embed',
+              tags: ['Highlight'],
+              taggedPlayerIds: [payload.playerId],
+            };
+            await addPlayerMedia(mediaDoc);
+            // Push parents — same template as a real upload so the
+            // notification carries the same weight.
+            try {
+              const { getParentEmailsForPlayer, tplClipUploaded, sendEmailBatch, sendPushToPlayerParents } = await import('../utils/notify');
+              const parents = await getParentEmailsForPlayer(payload.playerId, 'clip');
+              if (parents.length > 0) {
+                const { subject, html } = tplClipUploaded({
+                  playerName: payload.playerName,
+                  uploaderName: userData.name || 'Coach',
+                  isVideo: true,
+                  caption: payload.caption,
+                });
+                sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
+              }
+              sendPushToPlayerParents(payload.playerId, {
+                title: `${payload.playerName}: new clip`,
+                body: payload.caption || `Shared by ${userData.name || 'Coach'}`,
+                path: `/player/${payload.playerId}`,
+              }, 'clip');
+            } catch (e) { console.warn('embed notify failed', e); }
+          }}
+        />
+
         {/* Upload Modal */}
         {showUploadModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1740,7 +1809,22 @@ const PlayerMediaPage: React.FC = () => {
             </button>
             <div className="max-w-4xl w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
               {selectedMedia.type === 'video' ? (
-                selectedMedia.streamUid ? (
+                ((selectedMedia as any).source === 'youtube' || (selectedMedia as any).source === 'trace') ? (
+                  // External embed (YouTube / Trace) — drop their iframe
+                  // straight into the lightbox. Both services handle their
+                  // own player chrome + autoplay quirks.
+                  <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
+                    <iframe
+                      key={selectedMedia.id}
+                      src={(selectedMedia as any).embedUrl || selectedMedia.url}
+                      title={selectedMedia.caption || selectedMedia.playerName}
+                      loading="lazy"
+                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+                      allowFullScreen
+                      className="w-full h-full block border-0"
+                    />
+                  </div>
+                ) : selectedMedia.streamUid ? (
                   <div className="w-full max-w-[min(100%,calc((60vh)*16/9))] sm:max-w-[min(100%,calc((70vh)*16/9))] aspect-video rounded-lg overflow-hidden bg-black">
                     <iframe
                       ref={lightboxIframeRef}
@@ -2301,7 +2385,15 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
       className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all hover:shadow-2xl hover:shadow-cyan-500/10 text-left"
     >
       {item.type === 'video' ? (
-        item.streamUid ? (
+        ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
+          item.thumbnailUrl ? (
+            <img src={item.thumbnailUrl} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-700 to-cyan-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
+              {(item as any).source}
+            </div>
+          )
+        ) : item.streamUid ? (
           <img
             src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })}
             alt={item.caption || ''}
@@ -2366,7 +2458,15 @@ const RankedCard: React.FC<RankedCardProps> = ({ rank, item, onClick }) => {
       className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all text-left"
     >
       {item.type === 'video' ? (
-        item.streamUid ? (
+        ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
+          item.thumbnailUrl ? (
+            <img src={item.thumbnailUrl} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-700 to-cyan-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
+              {(item as any).source}
+            </div>
+          )
+        ) : item.streamUid ? (
           <img
             src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })}
             alt={item.caption || ''}
@@ -2423,7 +2523,15 @@ const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, 
         <div key={item.id} className="group relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/40 transition-colors">
           <button onClick={() => onView(item)} className="w-full h-full block">
             {item.type === 'video' ? (
-              item.streamUid ? (
+              ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
+                item.thumbnailUrl ? (
+                  <img src={item.thumbnailUrl} alt={item.caption || ''} loading="lazy" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-700 to-cyan-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
+                    {(item as any).source}
+                  </div>
+                )
+              ) : item.streamUid ? (
                 <img
                   src={streamThumbnailUrl(item.streamUid, { height: 360, time: item.posterTimeSeconds != null ? `${item.posterTimeSeconds}s` : undefined })}
                   alt={item.caption || ''}

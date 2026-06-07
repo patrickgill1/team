@@ -694,6 +694,14 @@ export interface PlayerMedia {
   playerName: string;
   teamId: string;
   url: string;
+  /** Source of the media — null/'upload' for things we hosted on R2 /
+   *  Cloudflare Stream, 'youtube' / 'trace' for externally-hosted links
+   *  that we render via an iframe embed. */
+  source?: 'upload' | 'youtube' | 'trace' | 'other';
+  /** Canonical embed URL — for YouTube that's youtube.com/embed/<id>,
+   *  for Trace it's the original share URL (Trace iframes its own
+   *  player). null for native uploads. */
+  embedUrl?: string;
   thumbnailUrl?: string;
   // When set, this clip is hosted on Cloudflare Stream (adaptive bitrate HLS).
   // The legacy `url` may still point at the original R2 MP4 for backwards

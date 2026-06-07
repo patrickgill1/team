@@ -841,13 +841,6 @@ const PlayerDevelopment: React.FC = () => {
           </div>
         )}
 
-        <DrillPickerModal
-          isOpen={drillPickerOpen}
-          onClose={() => setDrillPickerOpen(false)}
-          teamId={selectedTeamId || ''}
-          onPick={(drills) => importDrillsToPlan(drills)}
-        />
-
         {/* Create Plan Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-6">
@@ -1165,6 +1158,16 @@ const PlayerDevelopment: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Drill picker — mounted AFTER the Create modal so when both
+            are open it stacks on top. Same z-50 as the Create modal;
+            later in DOM wins by default. */}
+        <DrillPickerModal
+          isOpen={drillPickerOpen}
+          onClose={() => setDrillPickerOpen(false)}
+          teamId={selectedTeamId || ''}
+          onPick={(drills) => importDrillsToPlan(drills)}
+        />
       </div>
     </div>
   );

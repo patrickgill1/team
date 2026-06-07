@@ -22,11 +22,14 @@ const ALLOWED_PREFIXES = ['video/', 'image/'];
 const MAX_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
 
 export default async function handler(req, res) {
-  // CORS for preflight (only really needed if browser calls cross-origin; on Vercel same-origin is fine)
+  // CORS on every response — Capacitor iOS calls cross-origin from
+  // capacitor://localhost → firefc.app/api/r2-presign, and browsers
+  // block the response body without Access-Control-Allow-Origin on
+  // the actual response (not just the preflight).
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     return res.status(204).end();
   }
 

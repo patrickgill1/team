@@ -24,10 +24,16 @@ async function verifyFirebaseToken(token) {
 const MAX_DURATION_SECONDS = 60 * 60 * 4; // 4 h cap per clip
 
 export default async function handler(req, res) {
+  // CORS must be set on EVERY response, not just preflight. The
+  // Capacitor iOS shell makes cross-origin calls from
+  // capacitor://localhost → firefc.app/api/... and the browser blocks
+  // the response body without Access-Control-Allow-Origin. We use
+  // Bearer auth (not cookies) so the wildcard origin is safe.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     return res.status(204).end();
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

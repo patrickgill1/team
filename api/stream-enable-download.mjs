@@ -21,10 +21,12 @@ async function verifyFirebaseToken(token) {
 }
 
 export default async function handler(req, res) {
+  // CORS on every response (not just preflight) so Capacitor native
+  // can read the body from a cross-origin call to firefc.app.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     return res.status(204).end();
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

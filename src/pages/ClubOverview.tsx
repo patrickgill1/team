@@ -197,7 +197,7 @@ const ClubOverview: React.FC = () => {
         </div>
 
         {/* Secondary actions — Registrations + future CRM surfaces */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => navigate('/club/registrations')}
             className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
@@ -206,6 +206,15 @@ const ClubOverview: React.FC = () => {
             <svg className="w-5 h-5 text-cyan-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
             <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Registrations</div>
             <div className="text-[10px] text-slate-500 mt-0.5">Funnel + status</div>
+          </button>
+          <button
+            onClick={() => navigate('/club/products')}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
+            title="Products + pricing tiers + coupon codes"
+          >
+            <svg className="w-5 h-5 text-violet-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 7L12 3 4 7v10l8 4 8-4V7z"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="4" y1="7" x2="20" y2="7"/></svg>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Products</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Pricing + coupons</div>
           </button>
         </div>
 

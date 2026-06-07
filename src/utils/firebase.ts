@@ -5,7 +5,7 @@ import {
   indexedDBLocalPersistence,
   type Auth,
 } from 'firebase/auth';
-import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
 
@@ -66,9 +66,20 @@ let dbInstance: Firestore;
 // quick-game event) without setDoc/updateDoc throwing. Without it,
 // writes silently fail and the UI shows no feedback — that was the bug
 // that made the Quick Game Start button look broken.
+//
+// `localCache: persistentLocalCache(...)` enables IndexedDB-backed
+// offline persistence. Two big wins:
+//   1. Cold-start renders cached data immediately (no spinner waiting
+//      for the network round-trip) — the "weird refresh loading" the
+//      user sees on app open.
+//   2. Reads work offline. If the parent's phone is in a dead zone at
+//      the field, the team list / schedule / chat still load.
+// multiTabManager handles the rare case where a coach opens the web
+// version in two browser tabs without trashing the cache.
 const firestoreSettings = {
   experimentalForceLongPolling: isNative,
   ignoreUndefinedProperties: true,
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 };
 try {
   dbInstance = initializeFirestore(app, firestoreSettings as any);

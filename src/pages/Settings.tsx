@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
+import { APP_VERSION, APP_BUILD } from '../utils/version';
 import { useFirestore } from '../hooks/useFirestore';
 import { usePhotoUpload } from '../hooks/useStorage';
 import AppIcon, { AppIconName } from '../components/common/AppIcon';
@@ -422,8 +423,8 @@ const Settings: React.FC = () => {
             <SettingsRow
               icon="info"
               label="About Fire FC"
-              hint="v1.3.1"
-              onClick={() => alert('Fire FC v1.3.1 — Built by Patrick Gill for the FireFC community.')}
+              hint={`v${APP_VERSION} · build ${APP_BUILD}`}
+              onClick={() => alert(`Fire FC v${APP_VERSION} (build ${APP_BUILD}) — Built by Patrick Gill for the Fire FC community.`)}
             />
           </div>
         </section>

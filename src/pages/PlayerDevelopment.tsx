@@ -5,6 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
 import { DevelopmentPlan, DevelopmentGoal, PracticeLogEntry, Player, VideoLink, Drill, PlanComment } from '../types';
 import DrillPickerModal from '../components/development/DrillPickerModal';
+import { streamIframeUrl } from '../utils/streamUpload';
 import { isCoach, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
@@ -572,6 +573,11 @@ const PlayerDevelopment: React.FC = () => {
       duration: d.durationMinutes != null ? `${d.durationMinutes} min` : undefined,
       targetMinutes: d.durationMinutes,
       videoLinks: d.videoLinks || [],
+      // Carry the drill's coach-uploaded Stream video onto the goal so
+      // the parent sees the iframe inside the plan, not just in the
+      // drill library. Without this, the TikTok upload existed but had
+      // nowhere to play.
+      ...(d.streamUid ? { streamUid: d.streamUid, streamReady: d.streamReady } : {}),
       order: 0, // re-numbered below
     }));
     const existing = planGoals.filter(g => g.title.trim());
@@ -1668,6 +1674,29 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         </span>
                       )}
                     </div>
+
+                    {/* Coach-uploaded reference video (Cloudflare Stream).
+                        Carried in from the drill template at import
+                        time. Plays inline so the parent can watch
+                        without leaving the plan. */}
+                    {(goal as any).streamUid && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
+                          <AppIcon name="film" className="w-3.5 h-3.5 text-gray-400" />
+                          <span>Demo video</span>
+                        </p>
+                        <div className="aspect-video w-full rounded-lg overflow-hidden bg-black ring-1 ring-slate-200">
+                          <iframe
+                            src={streamIframeUrl((goal as any).streamUid)}
+                            title={`${goal.title} — demo`}
+                            loading="lazy"
+                            allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
+                            allowFullScreen
+                            className="w-full h-full block border-0"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Video links / tutorials */}
                     {((goal.videoLinks && goal.videoLinks.length > 0) || (isCoach && plan.status === 'active')) && (

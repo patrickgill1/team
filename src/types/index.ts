@@ -779,6 +779,12 @@ export interface DevelopmentGoal {
   focus?: string; // Key coaching point
   targetMinutes?: number; // Optional practice-minutes target for this goal
   videoLinks?: VideoLink[]; // YouTube tutorials / reference clips
+  /** Cloudflare Stream uid for a coach-uploaded reference video
+   *  (typically copied in from a drill template at import time —
+   *  the original TikTok-style upload). Plays via iframe in the
+   *  goal detail. */
+  streamUid?: string;
+  streamReady?: boolean;
   playerCompleted: boolean; // Player/parent checks this off
   playerCompletedAt?: Date;
   readyForReview: boolean; // Player signals coach to check at training

@@ -1,91 +1,123 @@
-# USSF Learning Center API — outreach
+# USSF License API v2 — outreach
 
-We want webhook access to `connect.ussdlc.com` so coach + ref certifications
-shown in Fire FC stay current automatically. The API isn't self-serve — USSF
-gates it on a manual review. Below is the email to send.
+Public docs live at https://connect.learning.ussoccer.com/index.html (S3-hosted,
+no auth required to read). The API itself is at `connect.ussdlc.com` — JWT auth,
+documented endpoints, webhook events, the full deal. **NOT self-serve** — has to
+go through a member-organization partnership.
 
-## Where to send it
+## What we get if approved
 
-USSF doesn't publish a public "developer relations" contact for this API.
-The right starting point:
+Per the docs, the relevant endpoints for Fire FC are:
 
-- **USSF Learning Center support:** [learning@ussoccer.com](mailto:learning@ussoccer.com)
-- If that bounces, fall back to the general USSF Education contact at
-  https://learning.ussoccer.com/coach/courses/help
+- **`GET /users/{ussf_id}/user-licenses`** — every cert this person holds, with
+  issue date, expiration date, issuer, rank. This is the coaching-license display.
+- **`POST /users/{ussf_id}/subscriptions`** — subscribe to a person's record.
+  After this, the webhooks below fire whenever USSF updates them.
+- **`POST /webhook-user-license-update`** — fires on any license add/update/expire.
+  This is the webhook our Cloudflare Worker terminates so credentials stay current
+  without polling.
+- **`GET /background-checks/ussf/{ussf_id}`** — returns active background check
+  records (up to 2 years past expiration). Huge for youth-sports safety surfacing.
+- **`GET /risk-management-database`** — check whether a person is on the
+  safeguarding / banned list. Should be wired into onboarding so a flagged person
+  can't link to a team.
 
-Mention the API by name (`connect.ussdlc.com`) — that's how their team will
-route you to the right people.
+The docs also expose referee experience + grassroots referee certificate
+endpoints — not relevant for Fire FC at coaching scale, can skip.
+
+## Where to send the request
+
+**`sdp-support@ussoccer.org`** — per the docs, this is the address for technology
+providers requesting API credentials on behalf of a member organization. Fire FC
+plays under Utah Youth Soccer Association (UYSA), which is a USSF member
+organization — that's our partnership angle.
+
+(NOT `learning@ussoccer.com` — that's general learner support and would just
+forward.)
 
 ## Email template
 
 Subject:
 ```
-API access request — Fire FC team management app (Utah Youth Soccer)
+License API v2 — credential request for Fire FC (UYSA member club)
 ```
 
 Body:
 ```
-Hi USSF Learning Center team,
+Hi USSF SDP team,
 
-I'm Patrick Gill, head coach of Fire FC (a Utah Youth Soccer club), and the
-developer of an in-house team management app we use to run our team —
-schedule, RSVPs, player development plans, game stats, parent communication.
+I'm Patrick Gill, head coach of Fire FC — a club registered under Utah
+Youth Soccer Association (UYSA), a U.S. Soccer member organization. I've
+also built and operate the in-house team management app we use to run
+the club (chat, scheduling, RSVPs, player development plans, game stats,
+parent communication).
 
-I'd like to request API access at connect.ussdlc.com so the app can
-surface USSF coaching + referee credentials directly on each coach's
-profile, and so coaches get a heads-up when a license is approaching
-expiration.
+I'd like to request API credentials for the License API v2 documented at
+connect.learning.ussoccer.com. Specifically, the integration would:
 
-The integration would be read-only on our side. We'd:
+  1. Display each coach's USSF coaching credentials + expiration dates
+     on their in-app profile (GET /users/{ussf_id}/user-licenses).
+  2. Subscribe to webhook-user-license-update for our coaches so we can
+     send a polite reminder ~60 days before any license expires.
+  3. Run a safeguarding check against /risk-management-database when a
+     new coach joins, so a flagged person can't be linked to a team.
+  4. Show background check status on each coach's profile via
+     /background-checks/ussf/{ussf_id}.
 
-  1. Register a webhook endpoint at our Cloudflare Worker
-     (firefc16-mailer.firefc.workers.dev/ussf-webhook).
-  2. Subscribe to certification-change events for our club's coaches
-     after each coach explicitly opts in (we ask their consent before
-     enrolling their record).
-  3. Display the current credential list on their in-app profile and
-     send a polite push reminder ~60 days before expiration.
+Read-only on our side. Each coach explicitly opts in before we enroll
+their record; data lives only in our Firestore instance and is visible
+only to that coach and our club admin. Webhook endpoint would be
+hosted at https://firefc16-mailer.firefc.workers.dev/ussf-webhook
+behind the shared-secret header pattern your docs describe.
 
-We won't share or resell the data — it stays inside the app, visible only
-to the coach themself and our club admin.
+Active credentials on our side:
+  - Patrick Gill — USSF Grassroots E License (head coach, app developer)
+  - Bryan Jensen — USSF Grassroots D License (assistant coach)
 
-Active credentials on our side today:
-  - Patrick Gill — Grassroots E License
-  - Bryan Jensen — Grassroots D License
+Member-org affiliation: Utah Youth Soccer Association
+Club: Fire FC PG (U10 boys, 2026 season)
 
-Could you let me know what's needed to provision API credentials, what your
-review process looks like, and whether there's a usage agreement we'd sign?
-Happy to provide more on the app, the club, or the integration architecture
-if helpful.
+Could you let me know what's needed to provision credentials, what the
+review timeline looks like, and whether there's a partner agreement to
+sign? Happy to provide more on the app, our club registration, or the
+integration architecture.
 
 Thanks,
 Patrick Gill
-Head Coach, Fire FC PG (U10) — Utah Youth Soccer
+Head Coach, Fire FC PG — Utah Youth Soccer
 patrick.gill@zfpmail.org
 (your phone)
 ```
 
-## After they respond
+## After they approve
 
-Once we have credentials, the worker side needs:
+Worker secrets to add:
 
 ```bash
 cd worker
-npx wrangler secret put USSF_API_KEY
-npx wrangler secret put USSF_WEBHOOK_SECRET
+npx wrangler secret put USSF_API_BASE        # likely https://connect.ussdlc.com
+npx wrangler secret put USSF_API_USERNAME
+npx wrangler secret put USSF_API_PASSWORD
+npx wrangler secret put USSF_WEBHOOK_SECRET  # they'll provide this
 ```
 
-…and an endpoint `POST /ussf-webhook` that validates the `Authorization`
-header against `USSF_WEBHOOK_SECRET`, looks up the affected user by their
-USSF subject id (stored on the user doc when they opted in), and writes
-the updated cert list to `users/<uid>.coachCertifications` with
-`source: 'ussf'`. Manual-entry rows from Settings stay alongside until
-the next sync overrides them.
+Worker endpoints to add (sketch):
+
+- `POST /ussf-webhook` — terminate webhook traffic. Validate the `Authorization`
+  header against `USSF_WEBHOOK_SECRET`, look up the affected user by their
+  `ussf_id` stored on the user doc, write the latest cert list to
+  `users/<uid>.coachCertifications` with `source: 'ussf'`.
+- `POST /ussf-link` — coach-initiated linking from Settings → "Connect USSF
+  account". Body: `{ ussf_id, email }`. Worker calls `POST /users/<ussf_id>/subscriptions`
+  to enroll, stores `ussf_id` on the user doc, and pulls the initial cert list.
+- Refresh token rotation — the docs say access tokens are 1h, refresh 24h.
+  Worker needs a scheduled task or just-in-time refresh in front of every API
+  call.
 
 ## Manual entry path (interim, ships today)
 
-Until the webhook is live, coaches can self-enter their credentials from
-Settings → Coaching credentials. Each row stores `source: 'manual'`.
-When the API sync turns on, the webhook handler reconciles: same name +
-level → swap to USSF-sourced, manual ones not matched stay (covers
-non-USSF credentials like state SafeSport, first aid, etc.).
+Until the webhook is live, coaches self-enter credentials from Settings →
+Coaching credentials. Each row stores `source: 'manual'`. When the API sync
+turns on, the webhook handler reconciles by name + level and swaps to
+`'ussf'`. Manual rows for non-USSF credentials (state SafeSport, first aid)
+stay alongside.

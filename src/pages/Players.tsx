@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import Header from '../components/common/Header';
 import PlayerList from '../components/player/PlayerList';
+import ImportPlayersModal, { ParsedPlayer } from '../components/player/ImportPlayersModal';
+import { useAuth } from '../contexts/AuthContext';
+import { useTeam } from '../contexts/TeamContext';
+import { useFirestore } from '../hooks/useFirestore';
+import { isCoach } from '../utils/helpers';
 
 const Players: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [positionFilter, setPositionFilter] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const { userData } = useAuth();
+  const { selectedTeamId } = useTeam();
+  const { addDocument } = useFirestore();
+  const isUserCoach = userData ? isCoach(userData.role) : false;
 
   const positions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward', 'Striker'];
 
@@ -14,9 +24,42 @@ const Players: React.FC = () => {
     setPositionFilter('');
   };
 
+  // Per-row handler the import modal calls. Keeps Firestore writes
+  // here so the modal stays UI-only. Each row becomes a player doc on
+  // the active team; parent emails are stored lowercase so the parent-
+  // auto-link path on signup matches.
+  const handleImportRow = async (row: ParsedPlayer) => {
+    if (!selectedTeamId) throw new Error('No active team');
+    const playerData: any = {
+      name: row.name,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      teamId: selectedTeamId,
+      teamIds: [selectedTeamId],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: userData?.uid || null,
+      parentEmails: row.parentEmails,
+      parentNames: row.parentNames,
+      parentIds: [],
+      ...(row.dateOfBirth ? { dateOfBirth: row.dateOfBirth } : {}),
+      ...(row.jerseyNumber != null ? { jerseyNumber: row.jerseyNumber } : {}),
+      ...(row.position ? { position: row.position, positions: [row.position] } : {}),
+      ...(row.parentPhones.length > 0 ? { parentPhones: row.parentPhones } : {}),
+    };
+    await addDocument('players', playerData);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100">
       <Header title="Players" subtitle="Roster, profiles, and contact info" />
+      <ImportPlayersModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        teamId={selectedTeamId || ''}
+        onCreatePlayer={handleImportRow}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
         {/* Search + filter row — single tactical card matching Events */}
@@ -66,6 +109,14 @@ const Players: React.FC = () => {
                 className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-slate-500 hover:text-slate-800 border border-slate-200 rounded-lg"
               >
                 Clear
+              </button>
+            )}
+            {isUserCoach && (
+              <button
+                onClick={() => setImportOpen(true)}
+                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-cyan-700 hover:text-cyan-900 bg-cyan-50 hover:bg-cyan-100 ring-1 ring-cyan-200 rounded-lg whitespace-nowrap"
+              >
+                Import CSV
               </button>
             )}
           </div>

@@ -444,6 +444,46 @@ export interface Registration {
   updatedAt?: Date;
 }
 
+/** Roster offer a coach extends to a tryout candidate. Each offer is
+ *  scoped to ONE team — a candidate offered by two teams gets two
+ *  separate Offer docs. The parent receives a unique /offer/<id> link
+ *  and accepts or declines from there. Acceptance promotes the
+ *  Registration to a real Player on the team. */
+export interface OfferLetter {
+  id: string;
+  clubId: string;
+  registrationId: string;
+  /** Snapshot so the offer page renders standalone even if the
+   *  Registration is later edited. */
+  playerName: string;
+  parentEmail: string;
+  teamId: string;
+  teamName: string;
+  /** Offering coach. */
+  coachUid: string;
+  coachName: string;
+  /** Composed message body. Plain text (rendered as paragraphs in the
+   *  public page). Coach can use a template or freeform. */
+  message: string;
+  /** What's actually being offered. */
+  offerPosition?: string;
+  offerJerseyNumber?: number;
+  /** Fee owed alongside acceptance, if any. Snapshotted at send time. */
+  feeCents?: number;
+  /** Optional response deadline. After this, the public page shows
+   *  "expired" and rejects accept/decline writes. */
+  expiresAt?: Date;
+  status: 'sent' | 'accepted' | 'declined' | 'expired' | 'rescinded';
+  /** Parent's response. */
+  respondedAt?: Date;
+  declineReason?: string;
+  /** Set when accept flow promoted Registration → Player. */
+  promotedToPlayerId?: string;
+  promotedAt?: Date;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
 /** A single coach's read on a tryout candidate. Stored as a map value
  *  on `Registration.coachStates` keyed by uid. Other coaches in the
  *  club can see this — it's a shared scouting sheet, not a private

@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isCoach, isClubAdmin } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import type { Activity, Registration, RegistrationCoachState } from '../types';
+import SendOfferModal from '../components/club/SendOfferModal';
 
 // Coach-facing view of the tryout candidate pool. Shared across all
 // coaches in the club — favorites, holds, ratings, and notes are
@@ -38,6 +39,7 @@ const Tryouts: React.FC = () => {
   const [filterReturning, setFilterReturning] = useState<'all' | 'returning' | 'new'>('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [openNotesFor, setOpenNotesFor] = useState<string | null>(null);
+  const [offerFor, setOfferFor] = useState<Registration | null>(null);
 
   const reload = async () => {
     try {
@@ -302,12 +304,26 @@ const Tryouts: React.FC = () => {
                   onRate={(n) => handleRate(r, n)}
                   onSaveNote={(n) => handleSaveNote(r, n)}
                   onToggleHold={() => handleToggleHold(r)}
+                  onOffer={() => setOfferFor(r)}
                 />
               ))}
             </ul>
           )}
         </div>
       </div>
+
+      {offerFor && myUid && (
+        <SendOfferModal
+          registration={offerFor}
+          myUid={myUid}
+          myName={myName}
+          onClose={() => setOfferFor(null)}
+          onSent={() => {
+            setOfferFor(null);
+            void reload();
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -323,9 +339,10 @@ interface RowProps {
   onRate: (n: number) => void;
   onSaveNote: (n: string) => void;
   onToggleHold: () => void;
+  onOffer: () => void;
 }
 
-const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onToggleOpen, onToggleFavorite, onRate, onSaveNote, onToggleHold }) => {
+const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onToggleOpen, onToggleFavorite, onRate, onSaveNote, onToggleHold, onOffer }) => {
   const my = myUid ? r.coachStates?.[myUid] : undefined;
   const allCoachStates = Object.values(r.coachStates || {});
   const otherFavorites = allCoachStates.filter(s => s.uid !== myUid && s.favorite);
@@ -428,6 +445,14 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           }`}
         >
           {heldByMe ? 'Release hold' : 'Place hold'}
+        </button>
+        <button
+          type="button"
+          onClick={onOffer}
+          disabled={heldByOther}
+          className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 bg-violet-600 text-white ring-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Send offer
         </button>
       </div>
 

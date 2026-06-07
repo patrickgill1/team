@@ -128,13 +128,27 @@ Shipped:
 - **Notes + ratings** — 1-5 stars per coach (shows pool average) plus
   free-form notes visible to all coaches.
 
+Offers (shipped):
+- "Send offer" button on every Tryouts row (blocked if another coach
+  is holding the candidate).
+- Modal: team picker (defaults to age-matched team), offer position +
+  jersey #, fee owed at accept, expiry days, composed message body
+  with a sensible default template.
+- Email goes out to the primary parent with a unique `/offer/<id>` link.
+- Public `/offer/<id>` page — parent-facing, no auth. Renders the
+  message + key details. Accept promotes the Registration to a real
+  Player on the offering team (with snapshotted position/jersey),
+  flips both docs to accepted, logs `offer_accepted` +
+  `player_promoted`. Decline captures an optional reason and flips to
+  declined.
+
 Still queued:
-- Offer letter editor with reusable templates (per coach / per team
-  / per position). Attachments via Stream upload (PDFs etc.).
-- Public `/offer/<id>` page — beautifully designed parent-facing
-  acceptance flow.
-- Accept → registration → real Player on the coach's team + welcome
-  email walking them through the app.
+- Offer letter templates page (`/club/offer-templates`) so coaches
+  don't retype the same body for every kid.
+- Welcome email to the family after accept (link to install the app,
+  RSVP next event, etc.).
+- Attachments on offers (PDF roster handbook, gear order form) via
+  Stream/R2 upload.
 
 ## Module 3 — Admin CRM (after Module 2)
 

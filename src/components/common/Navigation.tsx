@@ -146,6 +146,7 @@ const Navigation: React.FC = () => {
     ...(isUserCoach ? [{ name: 'Game Day', path: `/game-day/quick_${Date.now()}`, icon: 'whistle' as const, group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', icon: 'clipboard' as const, group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', icon: 'survey' as const, group: 'apps' as const }] : []),
+    ...(isUserCoach ? [{ name: 'Equipment', path: '/equipment', icon: 'check' as const, group: 'apps' as const }] : []),
     // Regular coaches (not club admins) keep "Teams" as their direct
     // entry point to edit/create their own teams. Club admins reach the
     // same page from inside /club, so we hide this entry for them to
@@ -200,7 +201,7 @@ const Navigation: React.FC = () => {
     },
     {
       label: 'Coach tools',
-      items: ['Game Day', 'Practice Plan']
+      items: ['Game Day', 'Practice Plan', 'Equipment']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {

@@ -27,7 +27,7 @@ const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, getPlayerMediaByPlayer, getDevelopmentPlansByPlayer, getTeamPlayerStatsMap } = useFirestore();
+  const { getDocuments, getPlayerMediaByPlayer, getDevelopmentPlansByPlayer, getTeamPlayerStatsMap, updateDocument } = useFirestore();
 
   const [player, setPlayer] = useState<Player | null>(null);
   const [media, setMedia] = useState<PlayerMedia[]>([]);
@@ -37,6 +37,18 @@ const PlayerProfile: React.FC = () => {
   const [votingNominations, setVotingNominations] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
+  // Equipment editor state — coach-only modal for recording issued
+  // gear sizes + return status.
+  const [equipEditOpen, setEquipEditOpen] = useState(false);
+  const [equipDraft, setEquipDraft] = useState<{
+    jerseyHomeSize: string;
+    jerseyAwaySize: string;
+    shortsSize: string;
+    socksSize: string;
+    trainingTopSize: string;
+    notes: string;
+    returned: boolean;
+  } | null>(null);
   // Memberships for this player across every team/season they're on.
   // Drives the per-team / per-season stats display (no more bleed).
   const [memberships, setMemberships] = useState<any[]>([]);
@@ -847,6 +859,70 @@ const PlayerProfile: React.FC = () => {
               </div>
             )}
 
+            {/* EQUIPMENT — coach edits, parents of this kid view. The
+                "/equipment" page is the coach's outstanding-gear view
+                across the whole team. */}
+            {userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid)) && (() => {
+              const eq = (player as any).equipment || {};
+              const anyField = !!(eq.jerseyHomeSize || eq.jerseyAwaySize || eq.shortsSize || eq.socksSize || eq.trainingTopSize || eq.notes);
+              const userIsCoach = isCoach(userData.role);
+              return (
+                <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-fire-950 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+                      Team gear
+                    </h3>
+                    {userIsCoach && (
+                      <button
+                        onClick={() => {
+                          setEquipDraft({
+                            jerseyHomeSize: eq.jerseyHomeSize || '',
+                            jerseyAwaySize: eq.jerseyAwaySize || '',
+                            shortsSize: eq.shortsSize || '',
+                            socksSize: eq.socksSize || '',
+                            trainingTopSize: eq.trainingTopSize || '',
+                            notes: eq.notes || '',
+                            returned: !!eq.returned,
+                          });
+                          setEquipEditOpen(true);
+                        }}
+                        className="text-xs font-bold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                  {!anyField ? (
+                    <p className="text-sm text-slate-500">
+                      {userIsCoach ? 'Nothing recorded yet. Tap Edit to log issued sizes.' : 'No team gear recorded yet.'}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                        {eq.jerseyHomeSize && <Field label="Jersey (home)" value={eq.jerseyHomeSize} />}
+                        {eq.jerseyAwaySize && <Field label="Jersey (away)" value={eq.jerseyAwaySize} />}
+                        {eq.shortsSize && <Field label="Shorts" value={eq.shortsSize} />}
+                        {eq.socksSize && <Field label="Socks" value={eq.socksSize} />}
+                        {eq.trainingTopSize && <Field label="Training top" value={eq.trainingTopSize} />}
+                        {player.jerseyNumber != null && <Field label="Jersey #" value={`#${player.jerseyNumber}`} />}
+                      </div>
+                      {eq.notes && (
+                        <p className="text-xs text-slate-600 mt-3 italic">{eq.notes}</p>
+                      )}
+                      <div className="mt-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-extrabold tracking-widest uppercase">
+                        {eq.returned ? (
+                          <span className="bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300 px-2 py-0.5 rounded">Returned</span>
+                        ) : (
+                          <span className="bg-amber-100 text-amber-800 ring-1 ring-amber-300 px-2 py-0.5 rounded">Outstanding</span>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* EMPTY STATE */}
             {plans.length === 0 && recentMedia.length === 0 && votingWins.length === 0 && (
               <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-8 text-center">
@@ -1038,6 +1114,110 @@ const PlayerProfile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ─── Equipment Edit Modal ────────────────────────────────── */}
+      {equipEditOpen && equipDraft && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setEquipEditOpen(false)}>
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Team gear — {player.name}</h3>
+              <button onClick={() => setEquipEditOpen(false)} className="text-slate-400 hover:text-slate-700">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  ['jerseyHomeSize', 'Jersey (home)'],
+                  ['jerseyAwaySize', 'Jersey (away)'],
+                  ['shortsSize', 'Shorts'],
+                  ['socksSize', 'Socks'],
+                  ['trainingTopSize', 'Training top'],
+                ] as const).map(([key, label]) => (
+                  <div key={key}>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">{label}</label>
+                    <input
+                      type="text"
+                      value={equipDraft[key]}
+                      onChange={(e) => setEquipDraft({ ...equipDraft, [key]: e.target.value })}
+                      placeholder="YM / AS / etc."
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">Notes</label>
+                <textarea
+                  value={equipDraft.notes}
+                  onChange={(e) => setEquipDraft({ ...equipDraft, notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={equipDraft.returned}
+                  onChange={(e) => setEquipDraft({ ...equipDraft, returned: e.target.checked })}
+                />
+                <span>Gear returned (end of season)</span>
+              </label>
+            </div>
+            <div className="px-5 py-3 border-t border-slate-200 flex items-center justify-between gap-2">
+              <button
+                onClick={async () => {
+                  if (!window.confirm('Clear all equipment fields? Use this between seasons after gear is returned.')) return;
+                  try {
+                    await updateDocument('players', player.id, { equipment: null, updatedAt: new Date() });
+                    setEquipEditOpen(false);
+                    // Optimistic refresh — set local player.equipment to undefined
+                    (player as any).equipment = undefined;
+                  } catch (err) {
+                    console.error('clear equipment failed', err);
+                    alert('Clear failed — try again.');
+                  }
+                }}
+                className="text-xs font-bold uppercase tracking-widest text-rose-600 hover:text-rose-800"
+              >
+                Reset for next season
+              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setEquipEditOpen(false)} className="px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 rounded-lg">
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const next: any = {
+                        ...(player as any).equipment,
+                        jerseyHomeSize: equipDraft.jerseyHomeSize || null,
+                        jerseyAwaySize: equipDraft.jerseyAwaySize || null,
+                        shortsSize: equipDraft.shortsSize || null,
+                        socksSize: equipDraft.socksSize || null,
+                        trainingTopSize: equipDraft.trainingTopSize || null,
+                        notes: equipDraft.notes || null,
+                        returned: equipDraft.returned,
+                        issuedAt: ((player as any).equipment?.issuedAt) || new Date(),
+                        returnedAt: equipDraft.returned ? new Date() : null,
+                      };
+                      await updateDocument('players', player.id, { equipment: next, updatedAt: new Date() });
+                      (player as any).equipment = next;
+                      setEquipEditOpen(false);
+                    } catch (err) {
+                      console.error('save equipment failed', err);
+                      alert('Save failed — try again.');
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 rounded-lg"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Media Lightbox ─────────────────────────────────────── */}
       {lightboxItem && (
@@ -1328,5 +1508,14 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
     </div>
   );
 };
+
+// Tiny label/value pair used by the equipment card. Kept inline since
+// it's only used in one place and isn't worth a separate file.
+const Field: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div>
+    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</div>
+    <div className="text-sm font-semibold text-slate-900">{value}</div>
+  </div>
+);
 
 export default PlayerProfile;

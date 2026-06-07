@@ -279,6 +279,27 @@ export interface Player {
   createdAt: Date;
   updatedAt?: Date;
   inviteCode?: string;
+  /** Issued team gear for the current season — sizes + return status.
+   *  Single record per player at a time; a coach manually clears it
+   *  ("Reset for next season") between seasons. We don't archive
+   *  history yet — uncommon ask, can add an `equipmentHistory` array
+   *  if it ever comes up. */
+  equipment?: PlayerEquipment;
+}
+
+export interface PlayerEquipment {
+  jerseyHomeSize?: string;
+  jerseyAwaySize?: string;
+  shortsSize?: string;
+  socksSize?: string;
+  trainingTopSize?: string;
+  /** True once the gear has been turned back in at season end. The
+   *  /equipment coach view filters by this to show what's outstanding. */
+  returned?: boolean;
+  /** Free-form notes — e.g., "ordered larger shorts mid-season". */
+  notes?: string;
+  issuedAt?: Date;
+  returnedAt?: Date;
 }
 
 export interface Season {

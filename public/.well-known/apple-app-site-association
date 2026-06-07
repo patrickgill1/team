@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.com.firefc.team"],
+        "appIDs": ["CK894D6SS9.com.firefc.team"],
         "components": [
           { "/": "/*" }
         ]

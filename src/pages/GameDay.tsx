@@ -237,6 +237,8 @@ const GameDay: React.FC = () => {
       clockOffsetSeconds: liveSeconds,
       clockSecondsAtStart: 0,
     });
+    const opp = event?.opponent || 'Opponent';
+    void notifyGoingParents('Halftime', `Fire FC ${game.ourScore || 0}-${game.oppScore || 0} ${opp}`);
   };
   const finalizeGame = async () => {
     if (!game) return;
@@ -250,6 +252,11 @@ const GameDay: React.FC = () => {
       clockOffsetSeconds: liveSeconds,
       clockSecondsAtStart: 0,
     });
+    const opp = event?.opponent || 'Opponent';
+    const ours = game.ourScore || 0;
+    const theirs = game.oppScore || 0;
+    const result = ours > theirs ? 'Win' : ours < theirs ? 'Loss' : 'Draw';
+    void notifyGoingParents(`Full time — ${result}`, `Fire FC ${ours}-${theirs} ${opp}`);
     // Write season-aggregate stats
     try {
       const counts: Record<string, { goals: number; assists: number; saves: number; yellow: number; red: number; name: string }> = {};
@@ -307,6 +314,55 @@ const GameDay: React.FC = () => {
     const cur = game ? (side === 'our' ? game.ourScore : game.oppScore) : 0;
     const next = Math.max(0, cur + delta);
     await patch({ [side === 'our' ? 'ourScore' : 'oppScore']: next } as any);
+    // Opponent goal — push to everyone who RSVPd "going". Skip the
+    // "our" side because the timeline-driven goal button (which adds
+    // a player) already triggers a push and bumps the score there.
+    if (side === 'opp' && delta > 0) {
+      const ourScore = game?.ourScore || 0;
+      const opp = event?.opponent || 'Opponent';
+      const min = typeof minute === 'number' ? ` (${minute}')` : '';
+      void notifyGoingParents('Goal against', `${opp} scored. Fire FC ${ourScore}-${next}${min}`);
+    }
+  };
+
+  // Push fan-out for live-game events. Recipients = parents of any
+  // player whose playerRsvps status is "going" on this event. Coach
+  // (sender) is filtered out so they don't get their own push.
+  // pushPrefKey 'events' lets users opt out via settings if they want;
+  // default is on. Best-effort — never blocks the in-game write.
+  const notifyGoingParents = async (title: string, body: string) => {
+    if (!event?.id) return;
+    try {
+      const playerR = ((event as any).playerRsvps || {}) as Record<string, any>;
+      const goingPlayerIds = Object.keys(playerR).filter(pid => playerR[pid]?.status === 'going');
+      if (goingPlayerIds.length === 0) return;
+      const { collection: fsColl, getDocs, query, where, documentId } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      const parentUids = new Set<string>();
+      // Chunk by 30 to stay under Firestore's "in" cap.
+      for (let i = 0; i < goingPlayerIds.length; i += 30) {
+        const slice = goingPlayerIds.slice(i, i + 30);
+        const snap = await getDocs(query(
+          fsColl(db, 'players'),
+          where(documentId(), 'in', slice),
+        ));
+        snap.docs.forEach(d => {
+          const p: any = d.data();
+          if (Array.isArray(p.parentIds)) p.parentIds.forEach((u: string) => u && parentUids.add(u));
+          if (p.parentId) parentUids.add(p.parentId);
+        });
+      }
+      if (userData?.uid) parentUids.delete(userData.uid);
+      if (parentUids.size === 0) return;
+      const { sendPushToUsers } = await import('../utils/notify');
+      await sendPushToUsers(Array.from(parentUids), {
+        title,
+        body,
+        url: `/events/${event.id}`,
+      }, { pushPrefKey: 'events' });
+    } catch (err) {
+      console.warn('gameday push failed', err);
+    }
   };
 
   const addTimelineEntry = async (kind: StatKind, opts: { player?: any; note?: string } = {}) => {
@@ -358,6 +414,26 @@ const GameDay: React.FC = () => {
           createdAt: serverTimestamp(),
         });
       } catch { /* non-fatal */ }
+    }
+
+    // Push to RSVP'd parents for the events worth notifying. Subs
+    // intentionally skipped — way too noisy. Saves also skipped (most
+    // parents don't track GK stats live).
+    if (kind === 'goal' || kind === 'owngoal' || kind === 'yellow' || kind === 'red') {
+      const ourScore = (game?.ourScore || 0) + (kind === 'goal' || kind === 'owngoal' ? 1 : 0);
+      const oppScore = game?.oppScore || 0;
+      const opp = event?.opponent || 'Opponent';
+      const min = typeof minute === 'number' ? ` (${minute}')` : '';
+      const who = entry.playerName || '';
+      if (kind === 'goal') {
+        void notifyGoingParents('GOAL!', `${who ? `${who} scored. ` : ''}Fire FC ${ourScore}-${oppScore} ${opp}${min}`);
+      } else if (kind === 'owngoal') {
+        void notifyGoingParents('Own goal — in our favor', `Fire FC ${ourScore}-${oppScore} ${opp}${min}`);
+      } else if (kind === 'yellow') {
+        void notifyGoingParents('Yellow card', `${who}${min}`);
+      } else if (kind === 'red') {
+        void notifyGoingParents('Red card', `${who}${min}`);
+      }
     }
   };
 

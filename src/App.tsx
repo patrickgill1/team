@@ -32,6 +32,7 @@ const TeamChat = React.lazy(() => import('./pages/TeamChat'));
 const Wall = React.lazy(() => import('./pages/Wall'));
 const TeamStore = React.lazy(() => import('./pages/TeamStore'));
 const Equipment = React.lazy(() => import('./pages/Equipment'));
+const Drills = React.lazy(() => import('./pages/Drills'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
@@ -292,6 +293,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Equipment />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/drills" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Drills />
                 </AppLayout>
               </ProtectedRoute>
             } />

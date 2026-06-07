@@ -88,7 +88,34 @@ npx wrangler tail
 
 ---
 
-## 5. Stripe Connect (multi-club payments) — TODO
+## 5. AI drill generator (Claude)
+
+Powers the "Generate" button in the Drills library — coach types a topic
+(e.g. "first touch under pressure, 10 min, U10") and Claude returns a
+structured drill (title / setup / instructions / focus / duration / age
+band) that the coach reviews + edits before saving.
+
+Endpoint: `POST /generate-drill`
+Body: `{ prompt: string, topic?: string, ageBand?: string }`
+Returns: structured drill JSON (or `{ ok: false, error }` on failure).
+
+### Setup
+
+```bash
+npx wrangler secret put ANTHROPIC_API_KEY
+# paste your sk-ant-… key from https://console.anthropic.com/settings/keys
+```
+
+That's the whole setup. No DNS, no other env vars. Cost is ~$0.005-0.01
+per generation (Haiku 4.5, ~800 tokens). Reasonable cap: ~$1/month for a
+single coach generating several drills per week.
+
+If the key is missing the endpoint returns 503 — the UI surfaces it as
+a friendly "Generation failed" toast, no app-wide break.
+
+---
+
+## 6. Stripe Connect (multi-club payments) — TODO
 
 Scaffolded on the UI side (`src/pages/ClubOverview.tsx` Payments tab). Worker
 endpoints are NOT live yet. To turn it on:

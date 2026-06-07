@@ -695,6 +695,56 @@ export interface VideoLink {
   addedAt?: Date;
 }
 
+// Reusable drill template. Lives in the `drills` collection. When a
+// coach assigns a drill to a player's plan, the drill's content is
+// COPIED into a DevelopmentGoal on that plan (so edits to the template
+// later don't disturb in-flight plans, and per-player notes/practice
+// logs accumulate on the goal, not the drill).
+export interface Drill {
+  id: string;
+  /** Which club / team library this drill belongs to. clubId is set if
+   *  the drill is shared across the whole club; teamId is set if it's
+   *  scoped to a single team's coaches. One of the two is required. */
+  clubId?: string;
+  teamId?: string;
+  title: string;
+  /** Coach-friendly topic — drives library filters + the AI generator's
+   *  category hint. */
+  topic: 'dribbling' | 'passing' | 'shooting' | 'first-touch' | 'defending' | 'goalkeeping' | 'fitness' | 'agility' | 'tactical' | 'other';
+  category: 'technical' | 'tactical' | 'physical' | 'mental';
+  description?: string;
+  setup?: string;
+  instructions?: string;
+  focus?: string;
+  /** Suggested practice minutes per session. */
+  durationMinutes?: number;
+  /** Age-band the drill is appropriate for. Used so a U10 coach doesn't
+   *  see drills meant for U17. */
+  ageBand?: 'U6-U8' | 'U9-U10' | 'U11-U12' | 'U13-U14' | 'U15-U17' | 'all';
+  videoLinks?: VideoLink[];
+  /** Cloudflare Stream uid for coach-uploaded reference video (e.g.,
+   *  TikTok downloaded + re-uploaded). Distinct from videoLinks which
+   *  are external (YouTube). */
+  streamUid?: string;
+  streamReady?: boolean;
+  /** How the drill landed in the library — 'manual' (typed), 'ai'
+   *  (Claude generated, then reviewed), 'imported' (future: shared
+   *  drill catalogs across clubs). */
+  source: 'manual' | 'ai' | 'imported';
+  /** Optional copy of the prompt used when the drill was AI-generated.
+   *  Lets coaches re-run with tweaks ("same drill but for U13"). */
+  aiPrompt?: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  /** Usage counter — bumps every time the drill is assigned to a plan.
+   *  Surfaces "most-used" in the library so the workhorse drills bubble
+   *  up. */
+  assignmentCount?: number;
+  isActive: boolean;
+}
+
 export interface DevelopmentGoal {
   id: string;
   title: string;

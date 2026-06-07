@@ -32,8 +32,14 @@ export async function uploadToStream(
   if (!user) throw new Error('Not signed in');
   const idToken = await user.getIdToken();
 
-  // 1. Ask our server for a one-time direct-upload URL
-  const presignRes = await fetch('/api/stream-upload-url', {
+  // 1. Ask our server for a one-time direct-upload URL.
+  //    Use the absolute origin so the call works on the Capacitor
+  //    iOS / Android shell, where window.location.origin is
+  //    capacitor://localhost and a relative path 404s on the WebView.
+  //    On web, getShareOrigin returns the current origin so dev /
+  //    Vercel both keep working.
+  const { getShareOrigin } = await import('./origin');
+  const presignRes = await fetch(`${getShareOrigin()}/api/stream-upload-url`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -144,7 +150,8 @@ export async function getStreamDownloadUrl(uid: string): Promise<StreamDownloadS
   if (user) {
     try { headers.Authorization = `Bearer ${await user.getIdToken()}`; } catch { /* anonymous */ }
   }
-  const res = await fetch('/api/stream-enable-download', {
+  const { getShareOrigin } = await import('./origin');
+  const res = await fetch(`${getShareOrigin()}/api/stream-enable-download`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ uid }),

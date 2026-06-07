@@ -15,8 +15,11 @@ export async function uploadToR2(
   if (!user) throw new Error('Not signed in');
   const idToken = await user.getIdToken();
 
-  // 1. Ask our server for a presigned PUT URL
-  const presignRes = await fetch('/api/r2-presign', {
+  // 1. Ask our server for a presigned PUT URL. Absolute origin so
+  //    Capacitor (capacitor://localhost) routes to firefc.app, same
+  //    fix as streamUpload.ts.
+  const { getShareOrigin } = await import('./origin');
+  const presignRes = await fetch(`${getShareOrigin()}/api/r2-presign`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

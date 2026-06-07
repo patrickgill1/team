@@ -88,27 +88,34 @@ npx wrangler tail
 
 ---
 
-## 5. AI drill generator (Claude)
+## 5. AI drill generator (OpenAI GPT)
 
 Powers the "Generate" button in the Drills library — coach types a topic
-(e.g. "first touch under pressure, 10 min, U10") and Claude returns a
+(e.g. "first touch under pressure, 10 min, U10") and GPT returns a
 structured drill (title / setup / instructions / focus / duration / age
 band) that the coach reviews + edits before saving.
 
 Endpoint: `POST /generate-drill`
 Body: `{ prompt: string, topic?: string, ageBand?: string }`
 Returns: structured drill JSON (or `{ ok: false, error }` on failure).
+Model: `gpt-4o-mini` with `response_format: json_object` so the output
+is guaranteed-parseable.
 
 ### Setup
 
 ```bash
-npx wrangler secret put ANTHROPIC_API_KEY
-# paste your sk-ant-… key from https://console.anthropic.com/settings/keys
+npx wrangler secret put OPENAI_API_KEY
+# paste your sk-… key from https://platform.openai.com/api-keys
 ```
 
-That's the whole setup. No DNS, no other env vars. Cost is ~$0.005-0.01
-per generation (Haiku 4.5, ~800 tokens). Reasonable cap: ~$1/month for a
-single coach generating several drills per week.
+That's the whole setup. No DNS, no other env vars. Cost is ~$0.005
+per generation (gpt-4o-mini, ~800 tokens). Reasonable cap: ~$1/month
+for a single coach generating several drills per week.
+
+NOTE: an OpenAI API key (`platform.openai.com`) is separate from a
+ChatGPT Plus subscription. You need API credits on file at
+platform.openai.com/settings/organization/billing — $5 will last
+forever at this usage.
 
 If the key is missing the endpoint returns 503 — the UI surfaces it as
 a friendly "Generation failed" toast, no app-wide break.

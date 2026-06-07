@@ -22,7 +22,7 @@ export interface Env {
   ALLOWED_ORIGINS: string;
   FCM_SERVICE_ACCOUNT?: string;
   GOOGLE_PLACES_API_KEY?: string;
-  ANTHROPIC_API_KEY?: string;
+  OPENAI_API_KEY?: string;
 }
 
 interface MailMessage {
@@ -251,22 +251,24 @@ export default {
 
     // ---- AI drill generator -------------------------------------------
     // Coach types a one-liner ("first touch under pressure, 10 min, U10")
-    // plus an optional topic + age band; Claude returns a structured
-    // drill the coach reviews before saving to their library. We force
-    // tool-style structured output by asking for strict JSON in the
-    // system prompt + parsing the first JSON object out of the response.
+    // plus an optional topic + age band; GPT returns a structured drill
+    // the coach reviews before saving to their library. We use OpenAI's
+    // JSON mode (response_format) so the model is forced to emit valid
+    // JSON — no regex parsing of free-form prose needed.
     if (url.pathname === '/generate-drill') {
-      if (!env.ANTHROPIC_API_KEY) {
-        return json({ ok: false, error: 'anthropic-not-configured' }, 503, cors);
+      if (!env.OPENAI_API_KEY) {
+        return json({ ok: false, error: 'openai-not-configured' }, 503, cors);
       }
       const prompt = String(payload?.prompt || '').slice(0, 500).trim();
       const topic = String(payload?.topic || '').slice(0, 30);
       const ageBand = String(payload?.ageBand || 'all').slice(0, 16);
       if (!prompt) return json({ ok: false, error: 'no-prompt' }, 400, cors);
 
+      // The literal word "json" must appear in the system prompt when
+      // response_format: json_object is set — OpenAI enforces this.
       const systemMsg = [
         'You write youth soccer drills for U6–U17 coaches.',
-        'Output STRICT JSON only — no prose, no markdown fences, no preamble.',
+        'Output STRICT json only — no prose, no markdown fences, no preamble.',
         'Schema:',
         '{',
         '  "title": string (5–10 words),',
@@ -284,42 +286,39 @@ export default {
       const userMsg = `Coach wants: ${prompt}\nTopic hint: ${topic || 'unspecified'}\nAge band: ${ageBand}`;
 
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            'x-api-key': env.ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
+            authorization: `Bearer ${env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
+            // gpt-4o-mini is the cheap-and-fast workhorse — comparable
+            // quality to Haiku for structured tasks, ~$0.005 per drill.
+            model: 'gpt-4o-mini',
             max_tokens: 800,
-            system: systemMsg,
-            messages: [{ role: 'user', content: userMsg }],
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: systemMsg },
+              { role: 'user', content: userMsg },
+            ],
           }),
         });
         if (!res.ok) {
           const txt = await res.text().catch(() => '');
-          return json({ ok: false, error: `anthropic ${res.status}`, detail: txt.slice(0, 300) }, 502, cors);
+          return json({ ok: false, error: `openai ${res.status}`, detail: txt.slice(0, 300) }, 502, cors);
         }
         const data: any = await res.json();
-        const text: string = data?.content?.[0]?.text || '';
-        // Extract first JSON object out of the response in case the
-        // model accidentally adds whitespace / a leading newline.
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
-        if (start < 0 || end < 0 || end <= start) {
-          return json({ ok: false, error: 'no-json-in-response', raw: text.slice(0, 300) }, 502, cors);
-        }
+        const text: string = data?.choices?.[0]?.message?.content || '';
         let parsed: any;
         try {
-          parsed = JSON.parse(text.slice(start, end + 1));
+          parsed = JSON.parse(text);
         } catch (err: any) {
           return json({ ok: false, error: 'json-parse-failed', detail: String(err?.message || err).slice(0, 200), raw: text.slice(0, 300) }, 502, cors);
         }
         return json(parsed, 200, cors);
       } catch (err: any) {
-        return json({ ok: false, error: 'anthropic-fetch-failed', detail: String(err?.message || err).slice(0, 200) }, 502, cors);
+        return json({ ok: false, error: 'openai-fetch-failed', detail: String(err?.message || err).slice(0, 200) }, 502, cors);
       }
     }
 

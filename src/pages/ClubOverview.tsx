@@ -196,6 +196,19 @@ const ClubOverview: React.FC = () => {
           </button>
         </div>
 
+        {/* Secondary actions — Registrations + future CRM surfaces */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            onClick={() => navigate('/club/registrations')}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
+            title="Everyone who's registered for the season"
+          >
+            <svg className="w-5 h-5 text-cyan-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Registrations</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Funnel + status</div>
+          </button>
+        </div>
+
         {/* Tabs — overview/calendar/stats. Players + Coaches tabs are
             removed since the new /people directory does both better. */}
         <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1">

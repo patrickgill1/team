@@ -329,6 +329,125 @@ export interface Season {
   isActive: boolean;
   archivedAt?: Date;
   createdAt: Date;
+  /** Club-wide registration window for this season. When `registrationOpen`
+   *  is true, the public /register form accepts submissions. */
+  registrationOpen?: boolean;
+  registrationOpenedAt?: Date;
+  registrationCloseDate?: Date;
+  /** Base registration fee per player in CENTS. Stripe canonical. */
+  registrationFeeCents?: number;
+  /** Optional early-bird discount that applies through this date. */
+  earlyBirdDeadline?: Date;
+  earlyBirdDiscountCents?: number;
+}
+
+/** Public registration submission — a parent fills out the /register form
+ *  for one of their kids. We create one Registration per kid (so a multi-
+ *  kid family fills it out twice OR uses the "add another child" path
+ *  that submits N registrations). The Registration is the source of
+ *  truth until the player is promoted to a real Player doc post-offer-
+ *  acceptance. Until then, status walks through the funnel:
+ *
+ *    pending_payment → paid → tryout_invited → offer_sent
+ *      → accepted (becomes a Player on a team)
+ *      OR declined (parent rejected the offer)
+ *      OR withdrawn (parent pulled out)
+ *
+ *  For returning players, `playerId` is set on submit so we can fast-
+ *  path the eventual roster move without manual matching. */
+export interface Registration {
+  id: string;
+  clubId: string;
+  seasonId: string;
+  /** Set ONLY for returning players whose parent registered via a pre-
+   *  filled link (?return=PLAYER_ID). null for cold registrations. */
+  playerId?: string | null;
+  // Player snapshot at registration time. Captures the parent's input,
+  // not necessarily authoritative — admin may correct before promotion.
+  player: {
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string; // ISO yyyy-mm-dd
+    gender: 'male' | 'female' | 'other';
+    /** Coach-assignable preferred position. Optional — many kids don't
+     *  know at registration time. */
+    preferredPosition?: string;
+    /** "Has played with Fire FC before" — flags returning players for
+     *  the coach pool view. */
+    playedBefore: boolean;
+    /** Age group the parent selected for this child. We don't auto-
+     *  compute from DOB — leagues have wonky cutoff rules and the
+     *  admin can correct if needed. */
+    ageGroup: string;
+    medicalNotes?: string;
+    jerseySizeRequested?: string;
+  };
+  parents: Array<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    relationship?: 'mother' | 'father' | 'guardian' | 'other';
+  }>;
+  status: 'pending_payment' | 'paid' | 'tryout_invited' | 'offer_sent' | 'accepted' | 'declined' | 'withdrawn';
+  registrationFeeCents: number;
+  /** Effective fee actually charged (after early-bird etc.). */
+  amountPaidCents?: number;
+  earlyBirdApplied?: boolean;
+  stripeCheckoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  paidAt?: Date;
+  /** When this registration was promoted to a real Player on a team. */
+  promotedToPlayerId?: string;
+  promotedToTeamId?: string;
+  promotedAt?: Date;
+  /** Optional referral / signup source tracking. */
+  source?: 'cold' | 'returning' | 'invite' | 'email_blast';
+  /** Notes the admin / coach has captured during the tryout / offer
+   *  process. Distinct from the activity log — those are auto-events,
+   *  these are typed observations. */
+  notes?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+/** CRM-style activity log entry. Every meaningful system event lands in
+ *  the `activities` collection so the admin portal can show a unified
+ *  per-family / per-player timeline. Cheap to write (small docs) and
+ *  cheap to query (we index by family / player / type). */
+export interface Activity {
+  id: string;
+  clubId: string;
+  /** What happened. Add types as the system grows. */
+  kind:
+    | 'registration_submitted'
+    | 'registration_paid'
+    | 'tryout_invited'
+    | 'offer_sent'
+    | 'offer_accepted'
+    | 'offer_declined'
+    | 'player_promoted'
+    | 'email_sent'
+    | 'fee_charged'
+    | 'note_added';
+  /** Who/what this is about. Multiple identifiers so we can query from
+   *  either side — playerId-centric for player history, parentUid-
+   *  centric for family timeline, etc. */
+  playerId?: string;
+  registrationId?: string;
+  parentUid?: string;
+  parentEmail?: string;
+  teamId?: string;
+  seasonId?: string;
+  /** Free-form payload (amount, subject line, error text, whatever the
+   *  kind needs). Kept loose intentionally — the CRM timeline renders
+   *  per-kind so each kind formats its own payload. */
+  payload?: Record<string, any>;
+  /** Who triggered the action. 'system' for automated events,
+   *  uid for human-initiated ones. */
+  actorUid?: string;
+  actorName?: string;
+  createdAt: Date;
 }
 
 export interface Invite {

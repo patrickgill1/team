@@ -784,10 +784,15 @@ const TeamChat: React.FC = () => {
             ? `${userData.name} (DM)`
             : `${userData.name} in ${selectedThread.title}`;
           // Fire-and-forget — never block the send on push delivery.
+          // Deep-link to the EXACT message so a tap on the notification
+          // banner doesn't dump the recipient at the top of a long thread.
+          const deepLink = newMessageId
+            ? `${getShareOrigin()}/chat?thread=${selectedThread.id}&message=${newMessageId}`
+            : `${getShareOrigin()}/chat?thread=${selectedThread.id}`;
           void sendPushToUsers(recipients, {
             title: pushTitle,
             body: pushBody,
-            url: `${getShareOrigin()}/chat?thread=${selectedThread.id}`,
+            url: deepLink,
           }, { pushPrefKey: 'chat', fromUid: userData.uid });
         }
       } catch (err) {

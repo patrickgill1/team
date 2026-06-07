@@ -376,14 +376,28 @@ const PlayerProfile: React.FC = () => {
           {/* Avatar + name */}
           <div className="flex items-center gap-4 sm:gap-6 mb-5">
             <div className="relative flex-shrink-0">
+              {/* Gold ring + amber glow when this player is the current
+                  POTM. Stays until a new POTM is finalized or a coach
+                  clears it on the Vote page. */}
+              {(player as any).isCurrentPotm && (
+                <span aria-hidden className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-400 text-amber-950 shadow-lg ring-2 ring-white">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
+                </span>
+              )}
               {player.profilePhotoUrl ? (
                 <img
                   src={player.profilePhotoUrl}
                   alt={player.name}
-                  className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-white/25 shadow-2xl"
+                  className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 shadow-2xl ${
+                    (player as any).isCurrentPotm
+                      ? 'ring-amber-300 shadow-amber-400/40'
+                      : 'ring-white/25'
+                  }`}
                 />
               ) : (
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white/10 ring-4 ring-white/25 shadow-2xl flex items-center justify-center backdrop-blur">
+                <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white/10 ring-4 shadow-2xl flex items-center justify-center backdrop-blur ${
+                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-white/25'
+                }`}>
                   <span className="text-3xl sm:text-4xl font-black text-white">
                     {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
                   </span>

@@ -175,8 +175,15 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           {/* Photo + Name row */}
           <div className="flex items-center gap-4 mb-5">
             <div className="relative flex-shrink-0">
+              {(player as any).isCurrentPotm && (
+                <span aria-hidden className="absolute -top-1.5 -right-1.5 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-amber-950 shadow-lg ring-2 ring-white">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
+                </span>
+              )}
               {player.profilePhotoUrl ? (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 ring-white/25 shadow-lg">
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 shadow-lg ${
+                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-white/25'
+                }`}>
                   <img
                     src={player.profilePhotoUrl}
                     alt={player.name}
@@ -184,7 +191,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   />
                 </div>
               ) : (
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 ring-2 ring-white/25 shadow-lg flex items-center justify-center backdrop-blur">
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 ring-2 shadow-lg flex items-center justify-center backdrop-blur ${
+                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-white/25'
+                }`}>
                   <span className="text-2xl font-black text-white">
                     {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
                   </span>

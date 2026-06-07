@@ -279,6 +279,13 @@ export interface Player {
   createdAt: Date;
   updatedAt?: Date;
   inviteCode?: string;
+  /** Cached current practice streak in consecutive days. Bumped on
+   *  every "I did it today" tap so PlayerCard rows can show a
+   *  discrete streak bubble without loading every plan per render.
+   *  Recomputed from practice logs on each update — if it goes stale
+   *  (player skipped logging for a while), next log corrects it. */
+  currentStreakDays?: number;
+  currentStreakUpdatedAt?: Date;
   /** Self-reported juggle counter — parents log "Hunter juggled X
    *  times today." We keep a personal best + a short rolling history
    *  for streak/weekly-best math without a separate collection. */

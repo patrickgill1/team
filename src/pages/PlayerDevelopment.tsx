@@ -387,9 +387,62 @@ const PlayerDevelopment: React.FC = () => {
     );
     try {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
+      // Cache the new streak on the player doc so PlayerCard rows
+      // can show a badge without re-loading plans.
+      void recomputeAndPersistPlayerStreak(plan.playerId, plan, updatedGoals);
       loadData();
     } catch (error) {
       console.error('Error logging quick did-it:', error);
+    }
+  };
+
+  // Walk every practice-log date across this player's active plans,
+  // bucket by day, count consecutive days ending today (or yesterday
+  // if they haven't tapped yet today). Write the result to
+  // players/{id}.currentStreakDays. Best-effort; failures are silent.
+  const recomputeAndPersistPlayerStreak = async (
+    playerId: string,
+    updatedPlan: DevelopmentPlan,
+    updatedGoalsForThisPlan: DevelopmentGoal[],
+  ) => {
+    try {
+      // Use the in-memory `plans` for the player's OTHER active plans,
+      // and the freshly-updated goals for THIS plan (since the local
+      // setState/loadData hasn't necessarily rerun yet).
+      const playerPlans = plans
+        .filter(p => p.playerId === playerId && p.status === 'active')
+        .map(p => p.id === updatedPlan.id ? { ...p, goals: updatedGoalsForThisPlan } : p);
+      // If THIS plan isn't in the list yet (rare timing race), append.
+      if (!playerPlans.some(p => p.id === updatedPlan.id) && updatedPlan.status === 'active') {
+        playerPlans.push({ ...updatedPlan, goals: updatedGoalsForThisPlan });
+      }
+      const dayKeys = new Set<string>();
+      for (const p of playerPlans) {
+        for (const g of (p.goals || [])) {
+          for (const l of ((g as any).practiceLog || [])) {
+            const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+            dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+          }
+        }
+      }
+      const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; })();
+      const cursor = new Date();
+      cursor.setHours(0, 0, 0, 0);
+      if (!dayKeys.has(todayKey)) cursor.setDate(cursor.getDate() - 1);
+      let streak = 0;
+      for (;;) {
+        const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+        if (dayKeys.has(key)) { streak++; cursor.setDate(cursor.getDate() - 1); }
+        else break;
+      }
+      const { doc: fsDoc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      await updateDoc(fsDoc(db, 'players', playerId), {
+        currentStreakDays: streak,
+        currentStreakUpdatedAt: new Date(),
+      });
+    } catch (err) {
+      console.warn('streak cache write failed', err);
     }
   };
 

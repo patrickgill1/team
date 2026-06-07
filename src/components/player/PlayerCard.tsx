@@ -180,6 +180,23 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
                 </span>
               )}
+              {/* Practice streak badge — discrete number bubble, only
+                  renders when streak > 0. Sits at the bottom-left of
+                  the avatar so it doesn't collide with the POTM star
+                  at top-right or the jersey-number chip at bottom-right.
+                  Goes fire-themed at 3+ days. */}
+              {((player as any).currentStreakDays ?? 0) > 0 && (
+                <span
+                  title={`${(player as any).currentStreakDays}-day practice streak`}
+                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-lg ring-2 ring-fire-900 ${
+                    ((player as any).currentStreakDays ?? 0) >= 3
+                      ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
+                      : 'bg-cyan-500 text-white'
+                  }`}
+                >
+                  {((player as any).currentStreakDays ?? 0) >= 3 ? '🔥' : ''}{(player as any).currentStreakDays}
+                </span>
+              )}
               {player.profilePhotoUrl ? (
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 shadow-lg ${
                   (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-white/25'

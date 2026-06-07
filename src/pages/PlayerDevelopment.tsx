@@ -290,6 +290,29 @@ const PlayerDevelopment: React.FC = () => {
     }
   };
 
+  // One-tap "I did this drill today" for parents. No note, no
+  // duration — just a dated entry. The full "Log Practice" form stays
+  // for when the parent wants to add a detail.
+  const handleQuickDidIt = async (plan: DevelopmentPlan, goalId: string) => {
+    if (!userData) return;
+    const entry: PracticeLogEntry = {
+      id: `log_${Date.now()}`,
+      date: new Date(),
+      note: 'Did it today',
+      loggedBy: userData.uid,
+      loggedByName: userData.name,
+    };
+    const updatedGoals = plan.goals.map(g =>
+      g.id === goalId ? { ...g, practiceLog: [...(g.practiceLog || []), entry] } : g
+    );
+    try {
+      await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
+      loadData();
+    } catch (error) {
+      console.error('Error logging quick did-it:', error);
+    }
+  };
+
   const handleAddPracticeLog = async (plan: DevelopmentPlan, goalId: string, note: string, minutes?: number) => {
     if (!userData || !note.trim()) return;
     const entry: PracticeLogEntry = {
@@ -675,6 +698,7 @@ const PlayerDevelopment: React.FC = () => {
                   onCoachNote={(goalId, note) => handleCoachNote(plan, goalId, note)}
                   onReadyForReview={(goalId) => handleReadyForReview(plan, goalId)}
                   onAddPracticeLog={(goalId, note, mins) => handleAddPracticeLog(plan, goalId, note, mins)}
+                  onQuickDidIt={(goalId) => handleQuickDidIt(plan, goalId)}
                   onAddVideoLink={(goalId, url, title) => handleAddVideoLink(plan, goalId, url, title)}
                   onRemoveVideoLink={(goalId, linkId) => handleRemoveVideoLink(plan, goalId, linkId)}
                   onArchive={() => handleArchivePlan(plan.id)}
@@ -715,6 +739,7 @@ const PlayerDevelopment: React.FC = () => {
                   onCoachNote={() => {}}
                   onReadyForReview={() => {}}
                   onAddPracticeLog={() => {}}
+                  onQuickDidIt={() => {}}
                   onAddVideoLink={() => {}}
                   onRemoveVideoLink={() => {}}
                   onArchive={() => handleArchivePlan(plan.id)}
@@ -1097,6 +1122,7 @@ interface PlanCardProps {
   onCoachNote: (goalId: string, note: string) => void;
   onReadyForReview: (goalId: string) => void;
   onAddPracticeLog: (goalId: string, note: string, minutes?: number) => void;
+  onQuickDidIt: (goalId: string) => void;
   onAddVideoLink: (goalId: string, url: string, title?: string) => void;
   onRemoveVideoLink: (goalId: string, linkId: string) => void;
   onArchive: () => void;
@@ -1113,7 +1139,7 @@ interface PlanCardProps {
 
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
-  onCoachNote, onReadyForReview, onAddPracticeLog, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan, playerPhoto,
+  onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan, playerPhoto,
   getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak
 }) => {
   const progress = getProgressPercentage(plan);
@@ -1602,6 +1628,42 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               )}
                             </div>
                           )}
+
+                          {/* One-tap "Did it today" — primary parent
+                              action. Shows above the older multi-field
+                              Log Practice form (which stays for when
+                              the parent wants to add detail/duration).
+                              Switches to a checkmark for the rest of
+                              the day once they've logged at least one
+                              session today. */}
+                          {canLogPractice && plan.status === 'active' && !goal.coachVerified && (() => {
+                            const todayStart = (() => {
+                              const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime();
+                            })();
+                            const loggedToday = (goal.practiceLog || []).some((l: any) => {
+                              const t = l.date?.toDate ? l.date.toDate().getTime() : new Date(l.date).getTime();
+                              return t >= todayStart;
+                            });
+                            return (
+                              <div className="mt-2">
+                                {loggedToday ? (
+                                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300 text-sm font-bold">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                    Logged today — nice work
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => onQuickDidIt(goal.id)}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold shadow-sm active:scale-95 transition"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                    Did it today
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
 
                           {/* Add practice log (anyone on active plans) */}
                           {canLogPractice && plan.status === 'active' && !goal.coachVerified && (

@@ -435,3 +435,42 @@ export function tplCoachWhisper(opts: {
   `, { signature: opts.signature || { name: opts.coachName, role: 'Coach' } });
   return { subject, html };
 }
+
+/** Registration-open blast — fired by an admin from the Registrations
+ *  page when a new season opens. `registerUrl` is the parent's deep
+ *  link including ?return=<playerId>&season=<seasonId> so signup pre-
+ *  fills from the existing player doc. */
+export function tplRegistrationOpen(opts: {
+  playerName: string;
+  seasonName: string;
+  clubName?: string;
+  registerUrl: string;
+  customIntro?: string;
+  customSignoff?: string;
+  feeCents?: number;
+  earlyBirdNote?: string;
+  signature?: CoachSignature;
+}): { subject: string; html: string } {
+  const subject = `Registration is open for ${opts.seasonName}`;
+  const intro = (opts.customIntro || '').trim();
+  const signoff = (opts.customSignoff || '').trim();
+  const safeIntro = intro
+    ? intro.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')
+    : '';
+  const safeSignoff = signoff
+    ? signoff.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')
+    : '';
+  const feeLine = opts.feeCents && opts.feeCents > 0
+    ? `<p style="margin:0 0 8px;font-size:13px;color:#64748b;">Registration: <b style="color:#0f172a;">$${(opts.feeCents / 100).toFixed(2)}</b>${opts.earlyBirdNote ? ` — <span style="color:#059669;font-weight:700;">${opts.earlyBirdNote}</span>` : ''}</p>`
+    : '';
+  const html = wrap(`
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">Registration open</div>
+    <h2 style="font-size:22px;margin:0 0 8px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.seasonName} is here</h2>
+    <p style="margin:0 0 14px;color:#475569;">Save your spot for <b style="color:#0f172a;">${opts.playerName}</b>. The form is pre-filled — should only take a minute.</p>
+    ${safeIntro ? `<div style="margin:0 0 16px;padding:14px 16px;background:#f0f9ff;border-left:3px solid ${BRAND_CYAN};border-radius:8px;color:#0c4a6e;font-size:14px;line-height:1.6;">${safeIntro}</div>` : ''}
+    ${feeLine}
+    ${button(opts.registerUrl, 'Register now')}
+    ${safeSignoff ? `<p style="margin:6px 0 0;color:#475569;font-size:14px;">${safeSignoff}</p>` : ''}
+  `, { signature: opts.signature });
+  return { subject, html };
+}

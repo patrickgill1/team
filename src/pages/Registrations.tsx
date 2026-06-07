@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import type { Registration } from '../types';
+import RegistrationBlastModal from '../components/club/RegistrationBlastModal';
 
 // Admin view of every registration in the club's pipeline. Filter by
 // season, age group, gender, status. Each row opens a panel for editing
@@ -28,6 +29,7 @@ const STATUS_TONES: Record<StatusKey, { bg: string; text: string; ring: string; 
 const Registrations: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData);
+  const clubId = (userData as any)?.clubId as string | undefined;
 
   const [seasons, setSeasons] = useState<any[]>([]);
   const [seasonId, setSeasonId] = useState<string>('all');
@@ -37,6 +39,7 @@ const Registrations: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<StatusKey | 'all'>('all');
   const [filterAge, setFilterAge] = useState<string>('all');
   const [filterGender, setFilterGender] = useState<string>('all');
+  const [showBlast, setShowBlast] = useState(false);
 
   useEffect(() => {
     if (!allowed) { setLoading(false); return; }
@@ -155,10 +158,23 @@ const Registrations: React.FC = () => {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Registrations</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Everyone who's signed up for the season — pending, paid, in tryouts, on a team.
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Registrations</h1>
+              <p className="text-sm text-slate-400 mt-0.5">
+                Everyone who's signed up for the season — pending, paid, in tryouts, on a team.
+              </p>
+            </div>
+            {clubId && seasons.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowBlast(true)}
+                className="shrink-0 px-3 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-extrabold uppercase tracking-widest"
+              >
+                Push email
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -295,6 +311,21 @@ const Registrations: React.FC = () => {
           )}
         </div>
       </div>
+      {showBlast && clubId && (
+        <RegistrationBlastModal
+          clubId={clubId}
+          seasons={seasons}
+          defaultSeasonId={seasonId !== 'all' ? seasonId : seasons.find(s => s.registrationOpen)?.id || seasons[0]?.id}
+          signature={{
+            name: userData?.name || 'Club Admin',
+            role: 'Club Admin',
+            email: userData?.email,
+            avatarUrl: (userData as any)?.photoURL,
+          }}
+          onClose={() => setShowBlast(false)}
+          onSent={() => { /* modal stays open to show result; close on Done */ }}
+        />
+      )}
     </div>
   );
 };

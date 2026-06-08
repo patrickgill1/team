@@ -62,22 +62,50 @@ const TeamChat: React.FC = () => {
       return next;
     });
   };
-  // Per-thread visited timestamps (localStorage). Used to compute the
-  // "Unread" filter + bold/dot indicator on rows without changing
-  // Firestore schema. Updated on send AND on opening a thread.
+  // Per-thread visited timestamps. Stored in BOTH localStorage (fast
+  // local read) AND the user's Firestore doc (durable across iOS
+  // WebView storage purges + app updates + device switches). On boot
+  // we read localStorage immediately so the unread chip renders
+  // without a network round-trip, then merge in the Firestore copy
+  // when it loads. The fact that iOS evicted WebView localStorage
+  // between sessions is why previously-read threads were showing
+  // unread again — the user-doc copy survives that.
   const [threadVisited, setThreadVisited] = useState<Record<string, number>>(() => {
     try {
       const raw = localStorage.getItem('firefc.threadVisited');
       return raw ? JSON.parse(raw) : {};
     } catch { return {}; }
   });
-  const markThreadVisited = (threadId: string) => {
-    if (!threadId) return;
+  // Hydrate from the user doc once it's loaded. Server values take
+  // precedence per-thread when their timestamp is newer (so a read
+  // made on another device propagates here).
+  useEffect(() => {
+    const remote = (userData as any)?.chatThreadsLastSeen as Record<string, number> | undefined;
+    if (!remote) return;
     setThreadVisited(prev => {
-      const next = { ...prev, [threadId]: Date.now() };
+      const merged: Record<string, number> = { ...prev };
+      for (const [tid, ts] of Object.entries(remote)) {
+        if (typeof ts === 'number' && ts > (merged[tid] || 0)) merged[tid] = ts;
+      }
+      try { localStorage.setItem('firefc.threadVisited', JSON.stringify(merged)); } catch {/* ignore */}
+      return merged;
+    });
+  }, [(userData as any)?.chatThreadsLastSeen]);
+  const markThreadVisited = (threadId: string) => {
+    if (!threadId || !userData?.uid) return;
+    const ts = Date.now();
+    setThreadVisited(prev => {
+      const next = { ...prev, [threadId]: ts };
       try { localStorage.setItem('firefc.threadVisited', JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
+    // Write-through to Firestore. Field-level merge so we don't clobber
+    // other threads' timestamps. Fire-and-forget — UI doesn't wait.
+    try {
+      updateDoc(doc(db, 'users', userData.uid), {
+        [`chatThreadsLastSeen.${threadId}`]: ts,
+      }).catch(() => {/* ignore — localStorage still has it */});
+    } catch {/* ignore */}
   };
   const isThreadUnread = (thread: ChatThread): boolean => {
     const lastTs = thread.lastActivity instanceof Date

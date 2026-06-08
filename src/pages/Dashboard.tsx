@@ -8,6 +8,7 @@ import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types'
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import DashboardHero from '../components/common/DashboardHero';
+import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
@@ -512,6 +513,18 @@ const Dashboard: React.FC = () => {
   const firstName = userData?.name?.split(' ')[0] || (isUserCoach ? 'Coach' : 'Friend');
 
   const subtitle = `Here's what's happening with your team.`;
+
+  // "In the pool" detection — a parent who registered through the new
+  // auth-gated /register but hasn't been rostered on any team yet.
+  // Without this, they'd land on a mostly-empty team dashboard with
+  // no team selected and no obvious next step. Replaces the entire
+  // hero + roster surface with a status-focused view.
+  const isUnrosteredParent = !isUserCoach
+    && !selectedTeamId
+    && (!(userData as any)?.teamIds || (userData as any).teamIds.length === 0);
+  if (isUnrosteredParent) {
+    return <InThePoolHero firstName={firstName} email={userData?.email} />;
+  }
 
   return (
     <div className="relative">

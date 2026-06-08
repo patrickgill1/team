@@ -454,6 +454,12 @@ export interface Registration {
    *  separate so the club's revenue report doesn't conflate the two. */
   stripeSurchargeCents?: number;
   earlyBirdApplied?: boolean;
+  /** Payment plan installments. When set, the registration is paid in
+   *  pieces — each installment generates its own Stripe Checkout link
+   *  and the Registration as a whole flips to 'paid' only when every
+   *  installment is paid or waived. When empty / undefined, the
+   *  registration is single-charge (the existing default). */
+  installments?: Installment[];
   /** Refunds issued against this registration. Supports partial +
    *  full + multiple refunds (rare but real — partial today, finish
    *  it next week). Each entry mirrors a Stripe Refund object. */
@@ -789,6 +795,35 @@ export interface Coupon {
   createdBy?: string;
 }
 
+/** One installment of a payment plan tied to a Registration. Admins
+ *  split a registration's total into N installments (e.g. $300 →
+ *  $100 + $100 + $100 with monthly due dates) and each installment
+ *  generates its own Stripe Checkout link. The Registration as a
+ *  whole flips to 'paid' only when EVERY installment is paid or
+ *  waived. */
+export interface Installment {
+  id: string;
+  /** Cents owed on this installment (does NOT include surcharge,
+   *  which is computed per-installment at checkout time). */
+  amountCents: number;
+  /** Coach-facing label — "Deposit", "Spring half", "Final", etc. */
+  label: string;
+  /** Optional due date. UI sorts unpaid installments by this so the
+   *  most urgent floats up. */
+  dueDate?: Date;
+  status: 'pending' | 'paid' | 'waived';
+  paidAt?: Date;
+  /** Stripe artifacts written by the worker when this installment's
+   *  Checkout Session is created / completes. */
+  stripeCheckoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  /** Admin who waived it + why (when status === 'waived'). */
+  waivedBy?: string;
+  waivedByName?: string;
+  waivedReason?: string;
+  waivedAt?: Date;
+}
+
 /** One Stripe Refund tied to a Registration. Partial refunds reduce
  *  the effective amount paid; the registration itself doesn't flip
  *  status unless it's a full refund (admin still decides whether the
@@ -839,7 +874,10 @@ export interface Activity {
     | 'task_assigned'
     | 'task_completed'
     | 'task_reopened'
-    | 'registration_refunded';
+    | 'registration_refunded'
+    | 'installments_split'
+    | 'installment_paid'
+    | 'installment_waived';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-
    *  centric for family timeline, etc. */

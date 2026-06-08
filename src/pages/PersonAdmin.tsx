@@ -21,9 +21,10 @@ import TransferPlayerModal from '../components/club/TransferPlayerModal';
 import CreateTaskModal from '../components/club/CreateTaskModal';
 import InvitePersonModal from '../components/people/InvitePersonModal';
 import RefundModal from '../components/club/RefundModal';
+import SplitInvoiceModal from '../components/club/SplitInvoiceModal';
 import { useFirestore } from '../hooks/useFirestore';
 import { sendEmail } from '../utils/notify';
-import type { Activity, FormDefinition, FormSignature, Registration } from '../types';
+import type { Activity, FormDefinition, FormSignature, Installment, Registration } from '../types';
 
 // Club-admin CRM view for a single player. Pulls together team
 // assignments, guardians, registration funnel state, payments,
@@ -76,6 +77,7 @@ const PersonAdmin: React.FC = () => {
   const [paymentLink, setPaymentLink] = useState<{ url: string; registrationId: string } | null>(null);
   const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
   const [refundFor, setRefundFor] = useState<Registration | null>(null);
+  const [splitFor, setSplitFor] = useState<Registration | null>(null);
   const { getOrCreateDMThread } = useFirestore() as any;
 
   // Load everything keyed off the playerId.
@@ -393,7 +395,16 @@ const PersonAdmin: React.FC = () => {
 
         {tab === 'teams' && <TeamsTab player={player} teams={teams} onAssignTeam={() => setTransferOpen(true)} />}
         {tab === 'registration' && <RegistrationTab registrations={registrations} />}
-        {tab === 'payments' && <PaymentsTab registrations={registrations} onRefund={(r) => setRefundFor(r)} />}
+        {tab === 'payments' && (
+          <PaymentsTab
+            registrations={registrations}
+            actorUid={userData?.uid}
+            actorName={userData?.name}
+            onRefund={(r) => setRefundFor(r)}
+            onSplit={(r) => setSplitFor(r)}
+            onReload={reload}
+          />
+        )}
         {tab === 'notes' && (
           <NotesTab
             activities={activities}
@@ -465,6 +476,16 @@ const PersonAdmin: React.FC = () => {
           actorName={userData.name || 'Admin'}
           onClose={() => setRefundFor(null)}
           onRefunded={() => { setRefundFor(null); void reload(); }}
+        />
+      )}
+
+      {splitFor && userData?.uid && (
+        <SplitInvoiceModal
+          registration={splitFor}
+          actorUid={userData.uid}
+          actorName={userData.name || 'Admin'}
+          onClose={() => setSplitFor(null)}
+          onSaved={() => { setSplitFor(null); void reload(); }}
         />
       )}
 
@@ -847,7 +868,14 @@ const RegistrationTab: React.FC<{ registrations: Registration[] }> = ({ registra
   );
 };
 
-const PaymentsTab: React.FC<{ registrations: Registration[]; onRefund: (r: Registration) => void }> = ({ registrations, onRefund }) => {
+const PaymentsTab: React.FC<{
+  registrations: Registration[];
+  actorUid?: string;
+  actorName?: string;
+  onRefund: (r: Registration) => void;
+  onSplit: (r: Registration) => void;
+  onReload: () => Promise<void>;
+}> = ({ registrations, actorUid, actorName, onRefund, onSplit, onReload }) => {
   const rows = registrations.map(r => {
     const isPaid = r.status === 'paid' || r.status === 'tryout_invited' || r.status === 'offer_sent' || r.status === 'accepted';
     const refundsCents = (r.refunds || [])
@@ -926,8 +954,34 @@ const PaymentsTab: React.FC<{ registrations: Registration[]; onRefund: (r: Regis
                       ))}
                     </div>
                   )}
-                  {canRefund && (
-                    <div className="mt-2 text-right">
+                  {(r.raw.installments && r.raw.installments.length > 0) && (
+                    <InstallmentList
+                      registration={r.raw}
+                      actorUid={actorUid}
+                      actorName={actorName}
+                      onReload={onReload}
+                    />
+                  )}
+                  <div className="mt-2 flex items-center justify-end gap-1.5">
+                    {!r.paid && !r.raw.installments?.length && (
+                      <button
+                        type="button"
+                        onClick={() => onSplit(r.raw)}
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-50"
+                      >
+                        Split into installments
+                      </button>
+                    )}
+                    {r.raw.installments && r.raw.installments.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => onSplit(r.raw)}
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-50"
+                      >
+                        Edit plan
+                      </button>
+                    )}
+                    {canRefund && (
                       <button
                         type="button"
                         onClick={() => onRefund(r.raw)}
@@ -935,14 +989,182 @@ const PaymentsTab: React.FC<{ registrations: Registration[]; onRefund: (r: Regis
                       >
                         {r.refundsCents > 0 ? 'Refund more' : 'Refund'}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </li>
               );
             })}
           </ul>
         </div>
       )}
+    </div>
+  );
+};
+
+// Per-registration installment list. Each row shows its own status +
+// inline actions: Send link (generates a Stripe Checkout URL for just
+// that installment), Mark paid (manual override), Waive (no charge).
+const InstallmentList: React.FC<{
+  registration: Registration;
+  actorUid?: string;
+  actorName?: string;
+  onReload: () => Promise<void>;
+}> = ({ registration, actorUid, actorName, onReload }) => {
+  const installments = registration.installments || [];
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [linkFor, setLinkFor] = useState<{ id: string; url: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const sendLink = async (inst: Installment) => {
+    setBusyId(inst.id);
+    try {
+      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
+      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
+      if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
+      const r = await fetch(`${NOTIFY_URL}/stripe/registration-checkout`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
+        body: JSON.stringify({ registrationId: registration.id, installmentId: inst.id }),
+      });
+      const data: any = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        alert(data?.error === 'club-not-stripe-ready'
+          ? 'Club Stripe Connect not set up yet.'
+          : data?.error || 'Could not generate link.');
+        return;
+      }
+      setLinkFor({ id: inst.id, url: data.url });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const markPaid = async (inst: Installment) => {
+    if (!window.confirm(`Mark "${inst.label}" as paid manually? Use this only for cash/check — Stripe payments mark themselves automatically.`)) return;
+    setBusyId(inst.id);
+    try {
+      const next = installments.map(i => i.id === inst.id
+        ? { ...i, status: 'paid' as const, paidAt: new Date() }
+        : i);
+      const allDone = next.every(i => i.status === 'paid' || i.status === 'waived');
+      const patch: Record<string, any> = { installments: next, updatedAt: serverTimestamp() };
+      if (allDone) { patch.status = 'paid'; patch.paidAt = serverTimestamp(); }
+      await updateDoc(doc(db, 'registrations', registration.id), patch);
+      await logActivity({
+        clubId: registration.clubId,
+        kind: 'installment_paid',
+        registrationId: registration.id,
+        seasonId: registration.seasonId,
+        actorUid,
+        actorName,
+        payload: { installmentId: inst.id, label: inst.label, amountCents: inst.amountCents, manual: true },
+      });
+      await onReload();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const waive = async (inst: Installment) => {
+    const reason = window.prompt(`Waive "${inst.label}"? Optional reason for the audit log:`);
+    if (reason === null) return;
+    setBusyId(inst.id);
+    try {
+      const next = installments.map(i => i.id === inst.id
+        ? {
+            ...i,
+            status: 'waived' as const,
+            waivedAt: new Date(),
+            waivedBy: actorUid,
+            waivedByName: actorName,
+            waivedReason: reason.trim() || undefined,
+          }
+        : i);
+      const allDone = next.every(i => i.status === 'paid' || i.status === 'waived');
+      const patch: Record<string, any> = { installments: next, updatedAt: serverTimestamp() };
+      if (allDone) { patch.status = 'paid'; patch.paidAt = serverTimestamp(); }
+      await updateDoc(doc(db, 'registrations', registration.id), patch);
+      await logActivity({
+        clubId: registration.clubId,
+        kind: 'installment_waived',
+        registrationId: registration.id,
+        seasonId: registration.seasonId,
+        actorUid,
+        actorName,
+        payload: { installmentId: inst.id, label: inst.label, amountCents: inst.amountCents, reason: reason.trim() || undefined },
+      });
+      await onReload();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (installments.length === 0) return null;
+  return (
+    <div className="mt-3 pl-3 border-l-2 border-cyan-200 space-y-1.5">
+      {installments.map(inst => {
+        const due = inst.dueDate ? toDate(inst.dueDate) : null;
+        const overdue = inst.status === 'pending' && due && due.getTime() < Date.now();
+        return (
+          <div key={inst.id} className="text-[11px]">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-bold text-slate-900">
+                  {inst.label}
+                  <span className="ml-2 text-slate-400 font-normal tabular-nums">${((inst.amountCents || 0) / 100).toFixed(2)}</span>
+                </div>
+                {due && (
+                  <div className={`text-[10px] ${overdue ? 'text-amber-700 font-bold' : 'text-slate-500'}`}>
+                    Due {due.toLocaleDateString()}{overdue ? ' · overdue' : ''}
+                  </div>
+                )}
+                {inst.status === 'waived' && inst.waivedReason && (
+                  <div className="text-[10px] text-slate-500 italic">Waived: {inst.waivedReason}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className={`text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 ${
+                  inst.status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                  : inst.status === 'waived' ? 'bg-slate-100 text-slate-600 ring-slate-300'
+                  : overdue ? 'bg-amber-50 text-amber-700 ring-amber-200'
+                  : 'bg-white text-slate-600 ring-slate-200'
+                }`}>{inst.status}</span>
+                {inst.status === 'pending' && (
+                  <>
+                    <button type="button" disabled={busyId === inst.id} onClick={() => sendLink(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50">
+                      Link
+                    </button>
+                    <button type="button" disabled={busyId === inst.id} onClick={() => markPaid(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-50">
+                      Mark paid
+                    </button>
+                    <button type="button" disabled={busyId === inst.id} onClick={() => waive(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">
+                      Waive
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            {linkFor?.id === inst.id && (
+              <div className="mt-1 rounded bg-cyan-50 ring-1 ring-cyan-200 p-2">
+                <div className="text-[10px] text-slate-700 font-mono break-all">{linkFor.url}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <button type="button" onClick={async () => {
+                    try { await navigator.clipboard.writeText(linkFor.url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+                  }} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-cyan-600 text-white hover:bg-cyan-500">
+                    {copied ? 'Copied' : 'Copy link'}
+                  </button>
+                  <a href={linkFor.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white ring-1 ring-cyan-200 text-cyan-700">
+                    Open
+                  </a>
+                  <button type="button" onClick={() => setLinkFor(null)} className="text-[9px] text-slate-500 hover:text-slate-800 ml-auto">
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

@@ -150,6 +150,9 @@ export async function handleConnectFinish(payload: any, env: StripeEnv): Promise
 export async function handleRegistrationCheckout(payload: any, env: StripeEnv): Promise<Response> {
   const registrationId = String(payload?.registrationId || '').trim();
   if (!registrationId) return json({ ok: false, error: 'missing-registrationId' }, 400);
+  // Optional — when set, charge only that installment's amount instead
+  // of the full registration. Drives the payment-plan flow.
+  const installmentId = payload?.installmentId ? String(payload.installmentId) : null;
   const projectId = projectIdFromEnv(env);
   const sa = getServiceAccount(env);
   if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
@@ -157,7 +160,10 @@ export async function handleRegistrationCheckout(payload: any, env: StripeEnv): 
   try {
     const reg = await getDocument(projectId, `registrations/${registrationId}`, sa);
     if (!reg) return json({ ok: false, error: 'registration-not-found' }, 404);
-    if (reg.data.status !== 'pending_payment') {
+    // For installment checkouts, status check is looser — registration
+    // may have moved past pending_payment (e.g. tryout_invited) while
+    // installments are still outstanding.
+    if (!installmentId && reg.data.status !== 'pending_payment') {
       return json({ ok: false, error: 'registration-not-pending-payment' }, 409);
     }
     const clubId = reg.data.clubId;
@@ -170,13 +176,32 @@ export async function handleRegistrationCheckout(payload: any, env: StripeEnv): 
 
     const baseCents = Number(reg.data.amountPaidCents || reg.data.registrationFeeCents || 0);
     const surchargeCents = Number(reg.data.stripeSurchargeCents || 0);
-    const totalCents = baseCents + (surchargeCents || 0) > 0 ? baseCents + surchargeCents : baseCents;
-    if (totalCents <= 0) return json({ ok: false, error: 'zero-amount' }, 400);
+    const installments: any[] = Array.isArray(reg.data.installments) ? reg.data.installments : [];
+
+    // Per-installment charge if installmentId is provided. Otherwise
+    // charge the registration total (single-shot path).
+    let chargedCents: number;
+    let lineNameSuffix = '';
+    let metadataInstallmentId: string | undefined;
+    if (installmentId) {
+      const inst = installments.find(i => i.id === installmentId);
+      if (!inst) return json({ ok: false, error: 'installment-not-found' }, 404);
+      if (inst.status === 'paid') return json({ ok: false, error: 'installment-already-paid' }, 409);
+      if (inst.status === 'waived') return json({ ok: false, error: 'installment-waived' }, 409);
+      chargedCents = Number(inst.amountCents || 0);
+      lineNameSuffix = ` — ${inst.label || 'Installment'}`;
+      metadataInstallmentId = installmentId;
+    } else {
+      const totalCents = baseCents + (surchargeCents || 0) > 0 ? baseCents + surchargeCents : baseCents;
+      chargedCents = totalCents;
+    }
+    if (chargedCents <= 0) return json({ ok: false, error: 'zero-amount' }, 400);
+    const totalCents = chargedCents;
 
     const productName = reg.data.productName || 'Registration';
     const tierLabel = reg.data.pricingTierLabel;
     const playerName = `${reg.data.player?.firstName || ''} ${reg.data.player?.lastName || ''}`.trim();
-    const lineName = `${productName}${tierLabel ? ` — ${tierLabel}` : ''}${playerName ? ` (${playerName})` : ''}`;
+    const lineName = `${productName}${tierLabel ? ` — ${tierLabel}` : ''}${lineNameSuffix}${playerName ? ` (${playerName})` : ''}`;
     const parentEmail = reg.data.parents?.[0]?.email;
 
     const successUrl = `${env.APP_ORIGIN}/register/success?registrationId=${encodeURIComponent(registrationId)}`;
@@ -208,11 +233,27 @@ export async function handleRegistrationCheckout(payload: any, env: StripeEnv): 
       sessionParams['metadata[platformFeeCents]'] = applicationFeeAmount;
       sessionParams['metadata[platformFeeBps]'] = platformFeeBps;
     }
+    if (metadataInstallmentId) {
+      sessionParams['metadata[installmentId]'] = metadataInstallmentId;
+    }
     const session = await stripeRequest(env, '/checkout/sessions', sessionParams, { stripeAccount: stripeAccountId });
 
-    await patchDocument(projectId, `registrations/${registrationId}`, {
-      stripeCheckoutSessionId: session.id,
-    }, sa);
+    // Single-shot path writes the session id to the top-level field.
+    // Installment path writes it inside the matching installment so
+    // multiple in-flight checkouts don't clobber each other.
+    if (metadataInstallmentId) {
+      const next = installments.map(i => i.id === metadataInstallmentId
+        ? { ...i, stripeCheckoutSessionId: session.id }
+        : i);
+      await patchDocument(projectId, `registrations/${registrationId}`, {
+        installments: next,
+        updatedAt: new Date(),
+      }, sa);
+    } else {
+      await patchDocument(projectId, `registrations/${registrationId}`, {
+        stripeCheckoutSessionId: session.id,
+      }, sa);
+    }
 
     return json({ ok: true, url: session.url });
   } catch (err: any) {
@@ -396,25 +437,77 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
     const session = event.data.object;
     const registrationId = session?.metadata?.registrationId;
     const clubId = session?.metadata?.clubId;
+    const installmentId = session?.metadata?.installmentId;
     if (registrationId && clubId) {
       try {
-        await patchDocument(projectId, `registrations/${registrationId}`, {
-          status: 'paid',
-          stripePaymentIntentId: session.payment_intent || null,
-          paidAt: new Date(),
-        }, sa);
-        await createDocument(projectId, 'activities', {
-          clubId,
-          kind: 'registration_paid',
-          registrationId,
-          actorUid: 'system',
-          actorName: 'Stripe webhook',
-          payload: {
-            amountTotalCents: session.amount_total,
-            sessionId: session.id,
-          },
-          createdAt: new Date(),
-        }, sa);
+        if (installmentId) {
+          // Installment path — mark THIS installment paid; only flip
+          // the Registration to 'paid' once every installment is
+          // paid or waived.
+          const reg = await getDocument(projectId, `registrations/${registrationId}`, sa);
+          const installments: any[] = Array.isArray(reg?.data?.installments) ? reg!.data.installments : [];
+          const nextInstallments = installments.map(i => i.id === installmentId
+            ? { ...i, status: 'paid', paidAt: new Date(), stripePaymentIntentId: session.payment_intent || null }
+            : i);
+          const allDone = nextInstallments.every(i => i.status === 'paid' || i.status === 'waived');
+          const patch: Record<string, any> = {
+            installments: nextInstallments,
+            updatedAt: new Date(),
+          };
+          if (allDone) {
+            patch.status = 'paid';
+            patch.paidAt = new Date();
+          }
+          await patchDocument(projectId, `registrations/${registrationId}`, patch, sa);
+          await createDocument(projectId, 'activities', {
+            clubId,
+            kind: 'installment_paid',
+            registrationId,
+            actorUid: 'system',
+            actorName: 'Stripe webhook',
+            payload: {
+              installmentId,
+              amountTotalCents: session.amount_total,
+              sessionId: session.id,
+              remainingInstallments: nextInstallments.filter(i => i.status === 'pending').length,
+            },
+            createdAt: new Date(),
+          }, sa);
+          if (allDone) {
+            await createDocument(projectId, 'activities', {
+              clubId,
+              kind: 'registration_paid',
+              registrationId,
+              actorUid: 'system',
+              actorName: 'Stripe webhook',
+              payload: {
+                via: 'installments',
+                installmentCount: nextInstallments.length,
+              },
+              createdAt: new Date(),
+            }, sa);
+          }
+        } else {
+          // Single-shot path — original behavior, mark the whole
+          // registration paid.
+          await patchDocument(projectId, `registrations/${registrationId}`, {
+            status: 'paid',
+            stripePaymentIntentId: session.payment_intent || null,
+            paidAt: new Date(),
+          }, sa);
+          await createDocument(projectId, 'activities', {
+            clubId,
+            kind: 'registration_paid',
+            registrationId,
+            actorUid: 'system',
+            actorName: 'Stripe webhook',
+            payload: {
+              amountTotalCents: session.amount_total,
+              sessionId: session.id,
+            },
+            createdAt: new Date(),
+          }, sa);
+        }
 
         // Coupon counter bump. The intent + max-uses ceiling were
         // validated at submit time; this is just bookkeeping so the

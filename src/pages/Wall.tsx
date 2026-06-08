@@ -48,11 +48,19 @@ function linkify(text: string): React.ReactNode[] {
 const Wall: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { subscribeToChatThreads, updateChatThread } = useFirestore();
+  const { subscribeToChatThreads, updateChatThread, addChatMessage } = useFirestore() as any;
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [posts, setPosts] = useState<WallPost[]>([]);
   const [loading, setLoading] = useState(true);
   const canUnpin = userData ? (isCoach(userData.role) || (userData as any).isClubAdmin) : false;
+  // Coaches + club admins post directly to the wall from this page —
+  // no detour through chat. Under the hood we write a ChatMessage to
+  // the team's primary thread + pin it, matching the chat composer's
+  // "Post to wall" toggle path so it shows up identically everywhere.
+  const canPost = canUnpin;
+  const [composer, setComposer] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
   // Subscribe to the team's chat threads so we always have current
   // pinnedMessageIds. The wall is just a different projection of the
@@ -135,6 +143,52 @@ const Wall: React.FC = () => {
     }
   };
 
+  // Post directly to the wall. Picks the team's primary chat thread
+  // (preferring a non-DM, non-private team-scoped one), writes a new
+  // ChatMessage, and pins it. Same data path as the chat composer's
+  // "Post to wall" toggle.
+  const handlePost = async () => {
+    const content = composer.trim();
+    if (!content || !userData || !selectedTeamId || posting) return;
+    setPosting(true);
+    setPostError(null);
+    try {
+      // Pick the best thread to post into. Preference order:
+      //   1. A non-DM, non-private thread on this team with most recent activity
+      //   2. The first team-scoped thread we find
+      const teamThreads = threads.filter(t => !t.isDM && !t.isPrivate && t.teamId === selectedTeamId);
+      const target = teamThreads.sort((a, b) => {
+        const aTs = (a.lastActivity as any)?.toDate?.()?.getTime?.() || new Date(a.lastActivity || 0).getTime();
+        const bTs = (b.lastActivity as any)?.toDate?.()?.getTime?.() || new Date(b.lastActivity || 0).getTime();
+        return bTs - aTs;
+      })[0];
+      if (!target) {
+        setPostError("No team chat thread to post into yet — create one in Chat first.");
+        return;
+      }
+      const messageId = await addChatMessage({
+        threadId: target.id,
+        teamId: selectedTeamId,
+        content,
+        senderId: userData.uid,
+        senderName: userData.name || 'Coach',
+        senderRole: isCoach(userData.role) || (userData as any).isClubAdmin ? 'coach' : 'parent',
+        timestamp: new Date(),
+      });
+      // Pin it so it shows up on the wall immediately.
+      const existing = Array.isArray(target.pinnedMessageIds) ? target.pinnedMessageIds : [];
+      await updateChatThread(target.id, {
+        pinnedMessageIds: [...existing, messageId],
+      } as any);
+      setComposer('');
+    } catch (err: any) {
+      console.error('wall post failed', err);
+      setPostError(err?.message || 'Post failed — try again.');
+    } finally {
+      setPosting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-fire-50">
       <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-4 border-b border-cyan-500/10">
@@ -153,7 +207,34 @@ const Wall: React.FC = () => {
         </div>
       </section>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        {canPost && (
+          <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-3">
+            <textarea
+              value={composer}
+              onChange={(e) => setComposer(e.target.value)}
+              placeholder="Share an announcement, link, or update with the team…"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm leading-relaxed resize-none"
+              style={{ fontSize: '16px' }}
+            />
+            {postError && <div className="mt-2 text-[11px] text-rose-700">{postError}</div>}
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-[10px] text-slate-500">
+                Posts to the team's main chat thread and pins it here.
+              </span>
+              <button
+                type="button"
+                onClick={handlePost}
+                disabled={!composer.trim() || posting}
+                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {posting ? 'Posting…' : 'Post to wall'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-16 text-slate-400 text-sm">Loading…</div>
         ) : posts.length === 0 ? (
@@ -163,8 +244,8 @@ const Wall: React.FC = () => {
             </div>
             <p className="text-sm font-semibold text-slate-700 mb-1">Nothing on the wall yet.</p>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              {canUnpin
-                ? 'Send a message in chat with "Post to wall" on, or tap Pin on any message in the ⋯ menu.'
+              {canPost
+                ? 'Type your first announcement above. You can also pin any existing chat message via the ⋯ menu.'
                 : 'Coaches post announcements and important links here.'}
             </p>
           </div>

@@ -16,6 +16,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
+import { computeEligibility, eligibilityTone, type EligibilityResult } from '../utils/eligibility';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
 import CreateTaskModal from '../components/club/CreateTaskModal';
 import InvitePersonModal from '../components/people/InvitePersonModal';
@@ -208,6 +209,15 @@ const PersonAdmin: React.FC = () => {
     });
   }, [formDefs, primaryTeam, latestRegistration]);
 
+  // One boolean a coach can scan before tomorrow's practice. Combines
+  // team assignment + payment state + required-form signatures.
+  const eligibility = useMemo<EligibilityResult>(() => computeEligibility({
+    player: { teamId: player?.teamId, teamIds: player?.teamIds },
+    registrations,
+    forms: applicableForms,
+    formSigs,
+  }), [player, registrations, applicableForms, formSigs]);
+
   // Attendance over the last 10 finished events for which there's a
   // recorded RSVP or coach-marked attendance for this player.
   const attendance = useMemo(() => {
@@ -303,6 +313,7 @@ const PersonAdmin: React.FC = () => {
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl sm:text-3xl font-black text-fire-950 leading-tight">{player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()}</h1>
               <span className="inline-block px-2 py-0.5 rounded bg-blue-500 text-white text-[10px] font-extrabold tracking-widest uppercase">Player</span>
+              <EligibilityPill result={eligibility} />
             </div>
             <p className="text-sm text-slate-500 mt-0.5">
               {primaryTeam?.ageGroup ? `${primaryTeam.ageGroup}` : ''}
@@ -374,6 +385,7 @@ const PersonAdmin: React.FC = () => {
               }
             }}
             paymentLinkLoading={paymentLinkLoading}
+            eligibility={eligibility}
           />
         )}
 
@@ -480,12 +492,16 @@ interface OverviewProps {
   onManageForms: () => void;
   onGeneratePaymentLink: () => void;
   paymentLinkLoading: boolean;
+  eligibility: EligibilityResult;
 }
 
-const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms, onGeneratePaymentLink, paymentLinkLoading }) => {
+const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms, onGeneratePaymentLink, paymentLinkLoading, eligibility }) => {
   const primaryTeamId = player.teamId || teams[0]?.id;
   return (
     <div className="space-y-4">
+      {/* Eligibility — the one thing a coach scans before the next practice. */}
+      <EligibilityCard result={eligibility} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Team Assignments */}
         <Card title="Team Assignments" icon={<TeamIcon />} action={<ActionLink onClick={onAssignTeam}>Manage Teams</ActionLink>}>
@@ -686,6 +702,48 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
           <QuickAction icon={<TaskIcon />} label="Create Task" onClick={onCreateTask} />
         </div>
       </div>
+    </div>
+  );
+};
+
+// ── Eligibility bits ──────────────────────────────────────────
+
+const EligibilityPill: React.FC<{ result: EligibilityResult }> = ({ result }) => {
+  const tone = eligibilityTone(result.status);
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ring-1 ${tone.bg} ${tone.text} ${tone.ring}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
+      <span className="text-[10px] font-extrabold tracking-widest uppercase">{tone.label}</span>
+    </span>
+  );
+};
+
+const EligibilityCard: React.FC<{ result: EligibilityResult }> = ({ result }) => {
+  const tone = eligibilityTone(result.status);
+  return (
+    <div className={`rounded-2xl ring-1 p-4 ${tone.bg} ${tone.ring}`}>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <span className={`w-2.5 h-2.5 rounded-full ${tone.dot}`} />
+          <h2 className={`font-black ${tone.text}`}>{tone.label}</h2>
+        </div>
+        <span className={`text-[10px] font-extrabold tracking-widest uppercase ${tone.text} opacity-70`}>
+          {result.passedCount} / {result.totalCount} ready
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {result.gates.map((g, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm">
+            <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${g.ok ? 'bg-emerald-500 text-white' : 'bg-white ring-1 ring-slate-300 text-transparent'}`}>
+              {g.ok && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className={g.ok ? 'text-slate-700' : 'text-slate-900 font-bold'}>{g.label}</div>
+              {g.hint && !g.ok && <div className="text-[11px] text-slate-500 mt-0.5">{g.hint}</div>}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };

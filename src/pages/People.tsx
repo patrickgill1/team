@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { addDoc, collection, doc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
@@ -49,6 +49,7 @@ const ROLE_CHIP: Record<Role, string> = {
 };
 
 const People: React.FC = () => {
+  const navigate = useNavigate();
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
   const { getDocuments } = useFirestore();
@@ -421,12 +422,27 @@ const People: React.FC = () => {
                     </div>
                   )}
                   {!selectMode && isUserCoach && (
-                    <button
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setManaging(p); }}
-                      className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-slate-500 border-slate-200 hover:text-slate-800 flex-shrink-0"
-                    >
-                      Manage
-                    </button>
+                    p.type === 'player' ? (
+                      // Players: jump straight to the full PersonAdmin profile.
+                      // The old team-assignment-only modal is redundant since
+                      // PersonAdmin → Teams tab does that + more.
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/club/person/${p.id}`); }}
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-500 flex-shrink-0"
+                      >
+                        Profile
+                      </button>
+                    ) : (
+                      // Non-players (parents / coaches): keep the lightweight
+                      // user-team assignment modal — there's no PersonAdmin
+                      // equivalent for users yet.
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setManaging(p); }}
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-slate-500 border-slate-200 hover:text-slate-800 flex-shrink-0"
+                      >
+                        Manage
+                      </button>
+                    )
                   )}
                 </li>
               );

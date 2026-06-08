@@ -171,11 +171,11 @@ const ClubOverview: React.FC = () => {
           <button
             onClick={() => navigate('/people')}
             className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
-            title="Manage everyone in the club"
+            title="Search every player, parent, and coach — tap a player to open their full admin profile"
           >
             <svg className="w-5 h-5 text-cyan-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">People</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Roster, parents, staff</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Tap a player → full profile</div>
           </button>
           <button
             onClick={() => navigate('/teams')}

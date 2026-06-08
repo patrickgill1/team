@@ -360,6 +360,14 @@ const Registrations: React.FC = () => {
                     </div>
                     {/* Status actions */}
                     <div className="mt-2 flex flex-wrap items-center gap-1">
+                      {r.promotedToPlayerId && (
+                        <Link
+                          to={`/club/person/${r.promotedToPlayerId}`}
+                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-500"
+                        >
+                          Profile
+                        </Link>
+                      )}
                       {r.parents?.[0]?.email && (
                         <Link
                           to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`}

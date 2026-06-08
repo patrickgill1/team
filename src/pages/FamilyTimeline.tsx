@@ -176,9 +176,12 @@ const FamilyTimeline: React.FC = () => {
                             {r.player.playedBefore ? ' · returning' : ''}
                           </div>
                           {promotedTo && (
-                            <div className="text-[11px] text-emerald-700 font-bold mt-0.5">
-                              Player on team #{promotedTo.teamId}
-                            </div>
+                            <Link
+                              to={`/club/person/${promotedTo.id}`}
+                              className="inline-block mt-1 text-[11px] font-extrabold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                            >
+                              Open profile →
+                            </Link>
                           )}
                         </div>
                         <span className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-slate-100 text-slate-700 ring-1 ring-slate-200 shrink-0">

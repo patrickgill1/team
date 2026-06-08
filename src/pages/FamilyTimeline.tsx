@@ -4,7 +4,8 @@ import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
-import type { Activity, OfferLetter, Registration } from '../types';
+import HouseholdLinkModal from '../components/club/HouseholdLinkModal';
+import type { Activity, Household, OfferLetter, Registration } from '../types';
 
 // Family-centric timeline. The :email param keys the family — that's
 // the most stable handle pre-promotion (no user uid exists for cold
@@ -15,6 +16,8 @@ import type { Activity, OfferLetter, Registration } from '../types';
 
 interface FamilyData {
   parentEmail: string;
+  emails: string[]; // all household emails included in the rollup
+  household: Household | null;
   registrations: Registration[];
   offers: OfferLetter[];
   players: any[];
@@ -30,6 +33,8 @@ const FamilyTimeline: React.FC = () => {
   const [data, setData] = useState<FamilyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!allowed || !email) { setLoading(false); return; }
@@ -37,67 +42,80 @@ const FamilyTimeline: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        // Pull all registrations + filter client-side by parents[].email.
-        // Could index parentEmails as an array on Registration for a
-        // proper where(array-contains) query — punt to when scale demands.
+
+        // 1. Look up the household for this email. If one exists, we
+        // aggregate across ALL household emails. If not, fall back to
+        // single-email mode (current behavior).
+        let household: Household | null = null;
+        let emails: string[] = [email];
+        try {
+          const hhSnap = await getDocs(query(
+            collection(db, 'households'),
+            where('parentEmails', 'array-contains', email),
+          ));
+          if (hhSnap.docs[0]) {
+            household = { id: hhSnap.docs[0].id, ...(hhSnap.docs[0].data() as any) } as Household;
+            emails = Array.from(new Set((household.parentEmails || []).map(e => e.toLowerCase())));
+            if (!emails.includes(email)) emails.push(email);
+          }
+        } catch {/* household lookup failed — proceed in single-email mode */}
+
+        // 2. Registrations — match by ANY household email.
         const regsSnap = await getDocs(query(collection(db, 'registrations'), orderBy('createdAt', 'desc')));
         const registrations: Registration[] = regsSnap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) } as Registration))
-          .filter(r => (r.parents || []).some(p => p.email?.toLowerCase() === email));
+          .filter(r => (r.parents || []).some(p => emails.includes(p.email?.toLowerCase() || '')));
 
-        // Offers — match by parentEmail directly (already lowercased).
-        const offersSnap = await getDocs(query(collection(db, 'offers'), where('parentEmail', '==', email)));
-        const offers = offersSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as OfferLetter);
-
-        // Players the email shows up on. Firestore doesn't support
-        // array-contains-any with multiple values easily; we just pull
-        // the players for any matching team + filter.
-        const players: any[] = [];
-        for (const r of registrations) {
-          if (r.promotedToPlayerId) {
-            const playerDocs = await getDocs(query(collection(db, 'players'), where('parentEmails', 'array-contains', email)));
-            playerDocs.forEach(d => {
-              if (!players.find(p => p.id === d.id)) players.push({ id: d.id, ...(d.data() as any) });
-            });
-            break;
-          }
+        // 3. Offers — collect for each email (no `in` query needed for
+        // a small set; one query per email).
+        const offers: OfferLetter[] = [];
+        const seenOffer = new Set<string>();
+        for (const e of emails) {
+          const os = await getDocs(query(collection(db, 'offers'), where('parentEmail', '==', e)));
+          os.forEach(d => {
+            if (seenOffer.has(d.id)) return;
+            seenOffer.add(d.id);
+            offers.push({ id: d.id, ...(d.data() as any) } as OfferLetter);
+          });
         }
-        if (players.length === 0) {
-          // Fallback: scan once just in case the parent has a Player from
-          // a different path (e.g. manual invite outside the funnel).
+
+        // 4. Players — one array-contains query per email.
+        const players: any[] = [];
+        const seenPlayer = new Set<string>();
+        for (const e of emails) {
           try {
-            const playerDocs = await getDocs(query(collection(db, 'players'), where('parentEmails', 'array-contains', email)));
-            playerDocs.forEach(d => players.push({ id: d.id, ...(d.data() as any) }));
+            const ps = await getDocs(query(collection(db, 'players'), where('parentEmails', 'array-contains', e)));
+            ps.forEach(d => {
+              if (seenPlayer.has(d.id)) return;
+              seenPlayer.add(d.id);
+              players.push({ id: d.id, ...(d.data() as any) });
+            });
           } catch {/* ignore */}
         }
 
-        // Activities: pull every activity referencing this email + every
-        // activity referencing one of the related registrations/players.
-        // Two passes since Firestore can't OR.
-        const actsByEmail = await getDocs(query(collection(db, 'activities'), where('parentEmail', '==', email)));
-        const actsList: Activity[] = actsByEmail.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Activity));
-        const seen = new Set(actsList.map(a => a.id));
+        // 5. Activities — by email, by registration, by player.
+        const actsList: Activity[] = [];
+        const seenAct = new Set<string>();
+        const pushAct = (d: any) => {
+          if (seenAct.has(d.id)) return;
+          seenAct.add(d.id);
+          actsList.push({ id: d.id, ...(d.data() as any) } as Activity);
+        };
+        for (const e of emails) {
+          const s = await getDocs(query(collection(db, 'activities'), where('parentEmail', '==', e)));
+          s.forEach(pushAct);
+        }
         for (const r of registrations) {
-          const more = await getDocs(query(collection(db, 'activities'), where('registrationId', '==', r.id)));
-          more.forEach(d => {
-            if (!seen.has(d.id)) {
-              actsList.push({ id: d.id, ...(d.data() as any) } as Activity);
-              seen.add(d.id);
-            }
-          });
+          const s = await getDocs(query(collection(db, 'activities'), where('registrationId', '==', r.id)));
+          s.forEach(pushAct);
         }
         for (const p of players) {
-          const more = await getDocs(query(collection(db, 'activities'), where('playerId', '==', p.id)));
-          more.forEach(d => {
-            if (!seen.has(d.id)) {
-              actsList.push({ id: d.id, ...(d.data() as any) } as Activity);
-              seen.add(d.id);
-            }
-          });
+          const s = await getDocs(query(collection(db, 'activities'), where('playerId', '==', p.id)));
+          s.forEach(pushAct);
         }
         actsList.sort((a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime());
 
-        if (!cancelled) setData({ parentEmail: email, registrations, offers, players, activities: actsList });
+        if (!cancelled) setData({ parentEmail: email, emails, household, registrations, offers, players, activities: actsList });
       } catch (err: any) {
         if (!cancelled) setError(err?.message || 'Load failed.');
       } finally {
@@ -105,7 +123,7 @@ const FamilyTimeline: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [email, allowed]);
+  }, [email, allowed, reloadKey]);
 
   if (!allowed) {
     return <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">Club admins only.</div>;
@@ -133,8 +151,19 @@ const FamilyTimeline: React.FC = () => {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Registrations
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">{parentName || email}</h1>
-          {parentName && <p className="text-sm text-slate-400 mt-0.5">{email}</p>}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">{parentName || email}</h1>
+              {parentName && <p className="text-sm text-slate-400 mt-0.5">{email}</p>}
+            </div>
+            <button
+              type="button"
+              onClick={() => setLinkOpen(true)}
+              className="shrink-0 px-3 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-extrabold uppercase tracking-widest"
+            >
+              + Link email
+            </button>
+          </div>
         </div>
       </section>
 
@@ -147,6 +176,23 @@ const FamilyTimeline: React.FC = () => {
           <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-6 text-sm text-slate-500">Nothing found for {email}.</div>
         ) : (
           <>
+            {/* Household banner — only when multi-email linked. */}
+            {data.household && data.emails.length > 1 && (
+              <div className="bg-cyan-50 ring-1 ring-cyan-200 rounded-2xl p-3 flex items-start gap-3">
+                <svg className="w-4 h-4 text-cyan-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-800">Household · {data.emails.length} emails</div>
+                  <div className="text-xs text-cyan-900 mt-0.5 truncate">
+                    {data.emails.map(e => (
+                      <Link key={e} to={`/club/family/${encodeURIComponent(e)}`} className={`inline-block mr-2 ${e === email ? 'font-extrabold' : 'underline hover:text-cyan-700'}`}>
+                        {e}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Summary tiles */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Tile label="Kids" value={String(data.registrations.length)} />
@@ -235,6 +281,18 @@ const FamilyTimeline: React.FC = () => {
           </>
         )}
       </div>
+
+      {linkOpen && data && userData?.uid && (
+        <HouseholdLinkModal
+          clubId={data.registrations[0]?.clubId || (userData as any)?.clubId || ''}
+          currentEmail={email}
+          currentHousehold={data.household}
+          actorUid={userData.uid}
+          actorName={userData.name || 'Admin'}
+          onClose={() => setLinkOpen(false)}
+          onLinked={() => { setLinkOpen(false); setReloadKey(k => k + 1); }}
+        />
+      )}
     </div>
   );
 };

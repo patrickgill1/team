@@ -219,6 +219,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Households — admin-linked multi-email families. Authed read +
+    // write; further gating happens client-side (only club admins
+    // surface the link/unlink controls). Public unauthenticated
+    // access would leak family-graph data so we don't open it up
+    // the way registrations are open.
+    match /households/{householdId} {
+      allow read, write: if request.auth != null;
+    }
+
     // Clubs — every authed user reads (for club picker, member lookups).
     // Writes require auth AND block `platformFeeBps` mutations to
     // anyone except the platform owner. Without this gate a club admin

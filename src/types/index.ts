@@ -266,6 +266,38 @@ export interface HelpdeskComment {
   createdAt: Date;
 }
 
+/** A real-world family unit that may span multiple parent emails.
+ *  We can't always infer households from email alone (mom uses
+ *  janeswim@gmail.com, dad uses bobs.work@firm.com, kid 1's reg has
+ *  mom's email, kid 2's has dad's — same household). Admin manually
+ *  links emails into a Household; Player + Registration docs get the
+ *  resulting `householdId` so the family timeline rolls everything up.
+ *
+ *  Created lazily — most families never need an explicit Household
+ *  doc because they consistently use the same email. Only families
+ *  that need cross-email unification get one. */
+export interface Household {
+  id: string;
+  clubId: string;
+  /** Display label. Defaults to "<lastName> household" derived from
+   *  the first member; admin can override. */
+  name?: string;
+  /** Lowercased parent emails that belong to this household. All
+   *  registrations / players matching ANY of these emails are
+   *  rolled into the unified family timeline. */
+  parentEmails: string[];
+  /** Linked Player IDs (denorm for fast lookup; players also carry
+   *  the householdId pointer). */
+  playerIds: string[];
+  /** Optional shared address — captured for league reports / mailings. */
+  address?: string;
+  notes?: string;
+  createdAt: Date;
+  createdByUid?: string;
+  createdByName?: string;
+  updatedAt?: Date;
+}
+
 /** Structured medical profile for a player. Replaces (but doesn't
  *  delete) the legacy free-text `Player.medicalInfo` field — the
  *  PersonAdmin medical editor surfaces the old string as a "legacy
@@ -355,6 +387,9 @@ export interface Player {
    *  legacy `medicalInfo` free-text field but doesn't remove it —
    *  the editor surfaces the legacy string as a migration hint. */
   medical?: MedicalProfile;
+  /** Household this player belongs to, if the admin has linked
+   *  multi-email families. Optional — most players don't need one. */
+  householdId?: string;
   stats?: PlayerStats; // legacy aggregate, retained during transition
   statsBySeasonId?: Record<string, PlayerStats>;
   statsLifetime?: PlayerStats; // optional cache, sum of statsBySeasonId
@@ -525,6 +560,9 @@ export interface Registration {
    *  separate so the club's revenue report doesn't conflate the two. */
   stripeSurchargeCents?: number;
   earlyBirdApplied?: boolean;
+  /** Household pointer. Set when admin links this registration's
+   *  parent email into a multi-email family. */
+  householdId?: string;
   /** Payment plan installments. When set, the registration is paid in
    *  pieces — each installment generates its own Stripe Checkout link
    *  and the Registration as a whole flips to 'paid' only when every
@@ -949,7 +987,9 @@ export interface Activity {
     | 'installments_split'
     | 'installment_paid'
     | 'installment_waived'
-    | 'medical_updated';
+    | 'medical_updated'
+    | 'household_linked'
+    | 'household_unlinked';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-
    *  centric for family timeline, etc. */

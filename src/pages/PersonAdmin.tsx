@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -16,7 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
-import type { Activity, Registration } from '../types';
+import type { Activity, FormDefinition, FormSignature, Registration } from '../types';
 
 // Club-admin CRM view for a single player. Pulls together team
 // assignments, guardians, registration funnel state, payments,
@@ -58,9 +59,12 @@ const PersonAdmin: React.FC = () => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [formDefs, setFormDefs] = useState<FormDefinition[]>([]);
+  const [formSigs, setFormSigs] = useState<Map<string, FormSignature>>(new Map());
   const [loading, setLoading] = useState(true);
   const [transferOpen, setTransferOpen] = useState(false);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
+  const [signFormId, setSignFormId] = useState<string | null>(null);
 
   // Load everything keyed off the playerId.
   const reload = async () => {
@@ -142,6 +146,35 @@ const PersonAdmin: React.FC = () => {
       }
       acts.sort((a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime());
       setActivities(acts);
+
+      // Forms checklist — load active definitions for the club, plus any
+      // signatures already recorded for this player.
+      if (p.clubId) {
+        try {
+          const defSnap = await getDocs(query(
+            collection(db, 'form_definitions'),
+            where('clubId', '==', p.clubId),
+            where('isActive', '==', true),
+          ));
+          const defs = defSnap.docs
+            .map(d => ({ id: d.id, ...(d.data() as any) }) as FormDefinition)
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+          setFormDefs(defs);
+
+          const sigSnap = await getDocs(query(
+            collection(db, 'form_signatures'),
+            where('playerId', '==', playerId),
+          ));
+          const sigMap = new Map<string, FormSignature>();
+          sigSnap.forEach(d => {
+            const sig = { id: d.id, ...(d.data() as any) } as FormSignature;
+            sigMap.set(sig.formDefinitionId, sig);
+          });
+          setFormSigs(sigMap);
+        } catch (err) {
+          console.warn('forms load failed', err);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -153,6 +186,18 @@ const PersonAdmin: React.FC = () => {
 
   const primaryTeam = useMemo(() => teams.find(t => t.id === player?.teamId) || teams[0], [teams, player]);
   const latestRegistration = registrations[0];
+
+  // Forms applicable to this player — apply optional age-group +
+  // season scope. Forms with no scope apply to everyone.
+  const applicableForms = useMemo(() => {
+    const ageGroup = primaryTeam?.ageGroup;
+    const seasonId = latestRegistration?.seasonId;
+    return formDefs.filter(f => {
+      if ((f.ageGroups || []).length > 0 && ageGroup && !(f.ageGroups || []).includes(ageGroup)) return false;
+      if (f.seasonId && seasonId && f.seasonId !== seasonId) return false;
+      return true;
+    });
+  }, [formDefs, primaryTeam, latestRegistration]);
 
   // Attendance over the last 10 finished events for which there's a
   // recorded RSVP or coach-marked attendance for this player.
@@ -271,11 +316,15 @@ const PersonAdmin: React.FC = () => {
             registration={latestRegistration}
             payments={payments}
             attendance={attendance}
+            forms={applicableForms}
+            formSigs={formSigs}
             onAssignTeam={() => setTransferOpen(true)}
             onAddGuardian={() => alert('Guardian invite — wires to the existing People invite flow. Coming next batch.')}
             onMessage={() => alert('Direct message thread — coming next batch.')}
             onAddNote={() => setAddNoteOpen(true)}
             onCreateTask={() => alert('Tasks system — coming in batch 3.')}
+            onSignForm={(id) => setSignFormId(id)}
+            onManageForms={() => navigate('/club/forms')}
           />
         )}
 
@@ -316,6 +365,17 @@ const PersonAdmin: React.FC = () => {
           actorName={userData?.name}
         />
       )}
+
+      {signFormId && (
+        <SignFormModal
+          player={player}
+          formDef={applicableForms.find(f => f.id === signFormId)!}
+          onClose={() => setSignFormId(null)}
+          onSaved={() => { setSignFormId(null); void reload(); }}
+          actorUid={userData?.uid}
+          actorName={userData?.name}
+        />
+      )}
     </div>
   );
 };
@@ -329,14 +389,18 @@ interface OverviewProps {
   registration?: Registration;
   payments: { balanceCents: number; lastPaidCents: number; lastPaidAt: Date | null; label: string } | null;
   attendance: { total: number; present: number; excused: number; absent: number; unknown: number };
+  forms: FormDefinition[];
+  formSigs: Map<string, FormSignature>;
   onAssignTeam: () => void;
   onAddGuardian: () => void;
   onMessage: () => void;
   onAddNote: () => void;
   onCreateTask: () => void;
+  onSignForm: (formDefinitionId: string) => void;
+  onManageForms: () => void;
 }
 
-const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask }) => {
+const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms }) => {
   const primaryTeamId = player.teamId || teams[0]?.id;
   return (
     <div className="space-y-4">
@@ -485,9 +549,44 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
           )}
         </Card>
 
-        {/* Forms Checklist — placeholder until batch 2 */}
-        <Card title="Forms Checklist" icon={<ClipboardIcon />} action={<ActionLink onClick={() => alert('Forms system lands in the next batch.')}>View Forms</ActionLink>}>
-          <Empty text="Forms checklist ships in the next batch — admin-defined waivers/releases with per-player signed state." />
+        {/* Forms Checklist */}
+        <Card title="Forms Checklist" icon={<ClipboardIcon />} action={<ActionLink onClick={onManageForms}>Manage Forms</ActionLink>}>
+          {forms.length === 0 ? (
+            <Empty text="No forms defined for this club yet." />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {forms.map(f => {
+                const sig = formSigs.get(f.id);
+                const signed = !!sig;
+                return (
+                  <li key={f.id} className="py-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm text-slate-800 truncate">{f.name}</div>
+                      {sig && <div className="text-[10px] text-slate-500">Signed by {sig.signedByName} · {toDate(sig.signedAt).toLocaleDateString()}</div>}
+                    </div>
+                    {signed ? (
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-700 flex items-center gap-1 shrink-0">
+                        Signed
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onSignForm(f.id)}
+                        className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 shrink-0 ${
+                          f.required
+                            ? 'bg-rose-50 text-rose-700 ring-rose-200 hover:bg-rose-100'
+                            : 'bg-amber-50 text-amber-700 ring-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {f.required ? 'Required · Mark signed' : 'Pending · Mark signed'}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Card>
       </div>
 
@@ -553,6 +652,106 @@ const NoteModal: React.FC<{ player: any; onClose: () => void; onSaved: () => voi
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
           <button type="button" disabled={!text.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save note'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Sign-form modal ──────────────────────────────────────────────
+
+const SignFormModal: React.FC<{
+  player: any;
+  formDef: FormDefinition;
+  onClose: () => void;
+  onSaved: () => void;
+  actorUid?: string;
+  actorName?: string;
+}> = ({ player, formDef, onClose, onSaved, actorUid, actorName }) => {
+  const [signedByName, setSignedByName] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (!signedByName.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      // Doc id is composed so we can read "this player's signature for
+      // this form" in one getDoc without a query.
+      const id = `${player.id}_${formDef.id}`;
+      const sig: any = {
+        clubId: player.clubId || formDef.clubId,
+        playerId: player.id,
+        formDefinitionId: formDef.id,
+        formName: formDef.name,
+        signedByName: signedByName.trim(),
+        signedBy: 'admin',
+        note: note.trim() || undefined,
+        signedAt: serverTimestamp(),
+      };
+      if (actorUid) sig.recordedByUid = actorUid;
+      if (actorName) sig.recordedByName = actorName;
+      await setDoc(doc(db, 'form_signatures', id), sig);
+      await logActivity({
+        clubId: player.clubId,
+        kind: 'form_signed',
+        playerId: player.id,
+        actorUid,
+        actorName,
+        payload: { formName: formDef.name, signedByName: signedByName.trim() },
+      });
+      onSaved();
+    } catch (err: any) {
+      setError(err?.message || 'Save failed.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
+      <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="font-black text-fire-950">Mark as signed</h2>
+            <p className="text-[11px] text-slate-500">{formDef.name}</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {formDef.body && (
+            <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 text-xs text-slate-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+              {formDef.body}
+            </div>
+          )}
+          <label className="block">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Signed by</span>
+            <input
+              value={signedByName}
+              onChange={(e) => setSignedByName(e.target.value)}
+              placeholder="Full name of the parent/guardian who signed"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+            />
+          </label>
+          <label className="block">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Note (optional)</span>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Paper copy in office binder, signed in person at tryouts"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+            />
+          </label>
+          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
+        </div>
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
+          <button type="button" disabled={!signedByName.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
+            {saving ? 'Saving…' : 'Record signature'}
           </button>
         </div>
       </div>

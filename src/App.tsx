@@ -46,6 +46,7 @@ const OfferTemplates = React.lazy(() => import('./pages/OfferTemplates'));
 const Seasons = React.lazy(() => import('./pages/Seasons'));
 const Reports = React.lazy(() => import('./pages/Reports'));
 const PersonAdmin = React.lazy(() => import('./pages/PersonAdmin'));
+const Forms = React.lazy(() => import('./pages/Forms'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
@@ -393,6 +394,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <PersonAdmin />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/club/forms" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Forms />
                 </AppLayout>
               </ProtectedRoute>
             } />

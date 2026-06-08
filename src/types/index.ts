@@ -478,6 +478,66 @@ export interface Registration {
   updatedAt?: Date;
 }
 
+/** Admin-defined waiver / release / consent form. One doc per template
+ *  (Player Waiver, Medical Release, Photo Consent, Uniform Order…).
+ *  Per-player signed state lives in a separate `form_signatures`
+ *  collection keyed by (playerId × formDefinitionId) so we can query
+ *  "all unsigned forms for player X" without scanning every form.
+ *
+ *  Scope optional: leave seasonId/ageGroups empty for forms that apply
+ *  club-wide (Photo Consent), set them to restrict (a uniform order
+ *  form might be Fall 2026 + U10 only). */
+export interface FormDefinition {
+  id: string;
+  clubId: string;
+  name: string;
+  /** Short subtitle shown under the name in the checklist. */
+  description?: string;
+  /** Full terms / body text. Plain text for now — render in a sign
+   *  modal so the parent (or admin signing on their behalf) can read
+   *  before agreeing. Can grow to a richer doc later. */
+  body?: string;
+  /** When true, a player can't be marked roster-eligible without it.
+   *  We surface required-but-unsigned in red on the checklist. */
+  required: boolean;
+  isActive: boolean;
+  /** Optional scope — empty means applies to every player in the club. */
+  seasonId?: string;
+  ageGroups?: string[];
+  /** Display order in the checklist. Lower = top. */
+  order?: number;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+/** Per-player signed state for one FormDefinition. Doc id is composed
+ *  `${playerId}_${formDefinitionId}` so we can read a specific form's
+ *  state in one getDoc instead of querying. */
+export interface FormSignature {
+  id: string;
+  clubId: string;
+  playerId: string;
+  formDefinitionId: string;
+  /** Snapshot of the form's name at sign time so a later rename
+   *  doesn't muddy the audit trail. */
+  formName: string;
+  /** Who signed. For now any club admin can mark a form signed on
+   *  behalf of a parent (typed name captured). When we ship the
+   *  parent-facing sign flow, signedByUid is set to the parent's uid
+   *  and signedByName is pulled from their user doc. */
+  signedByUid?: string;
+  signedByName: string;
+  /** 'admin' = admin marked it signed on someone's behalf,
+   *  'parent' = parent signed via the future parent-facing flow,
+   *  'imported' = bulk-uploaded historical signatures. */
+  signedBy: 'admin' | 'parent' | 'imported';
+  /** Free-form note ("paper waiver on file in office binder"). */
+  note?: string;
+  signedAt: Date;
+}
+
 /** Reusable offer letter template. Coaches pick one in the SendOffer
  *  modal to skip retyping the same message body for every candidate.
  *  Optional teamId + position scope so a Forward template doesn't show
@@ -707,7 +767,9 @@ export interface Activity {
     | 'coach_rated'
     | 'coach_noted'
     | 'coach_held'
-    | 'coach_released';
+    | 'coach_released'
+    | 'form_signed'
+    | 'form_unsigned';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-
    *  centric for family timeline, etc. */

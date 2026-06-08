@@ -18,7 +18,7 @@
  * authenticated by Stripe's signature header instead.
  */
 
-import { ServiceAccount } from './fcm';
+import { ServiceAccount, parseServiceAccount } from './fcm';
 import { getDocument, patchDocument, createDocument } from './firestore';
 
 export interface StripeEnv {
@@ -32,18 +32,17 @@ export interface StripeEnv {
 
 function projectIdFromEnv(env: StripeEnv): string | null {
   if (env.FIREBASE_PROJECT_ID) return env.FIREBASE_PROJECT_ID;
-  if (!env.FCM_SERVICE_ACCOUNT) return null;
-  try {
-    const sa = JSON.parse(env.FCM_SERVICE_ACCOUNT);
-    return sa.project_id || null;
-  } catch {
-    return null;
-  }
+  const sa = getServiceAccount(env);
+  return sa?.project_id || null;
 }
 
+// Use the same parser as fcm.ts — handles BOTH raw JSON and base64
+// encoded JSON (the recommended secret format). Original naive
+// JSON.parse silently failed on base64-encoded secrets and surfaced
+// as a 503 'firestore-not-configured' even though the secret was set.
 function getServiceAccount(env: StripeEnv): ServiceAccount | null {
   if (!env.FCM_SERVICE_ACCOUNT) return null;
-  try { return JSON.parse(env.FCM_SERVICE_ACCOUNT); } catch { return null; }
+  try { return parseServiceAccount(env.FCM_SERVICE_ACCOUNT); } catch { return null; }
 }
 
 // Form-encoded POST body builder — Stripe's API speaks application/x-www-form-urlencoded.

@@ -1052,6 +1052,23 @@ const PaymentsTab: React.FC = () => {
                 directly from parents. Stripe holds the funds and deposits them to your bank — Fire FC never
                 touches the money.
               </p>
+              {/* Disclosure of the platform-fee rate the worker will pass
+                  as application_fee_amount. Pulled from the club doc so
+                  the rate is always accurate to what's actually
+                  configured for THIS club. */}
+              <div className="mb-3 rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 text-[12px] text-slate-700 leading-relaxed">
+                <div className="font-bold text-slate-900 mb-1">What this costs</div>
+                <div>
+                  <b>Stripe processing:</b> 2.9% + 30¢ per transaction (Stripe's standard rate, deducted before payout).
+                </div>
+                <div className="mt-1">
+                  <b>Fire FC platform fee:</b>{' '}
+                  {(club?.platformFeeBps ?? 0) > 0
+                    ? <>{((club!.platformFeeBps as number) / 100).toFixed(2)}% per transaction — helps cover the app, hosting, and email infrastructure.</>
+                    : <>0% — none for this club.</>
+                  }
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={async () => {
@@ -1098,6 +1115,18 @@ const PaymentsTab: React.FC = () => {
                   {club.stripePayoutsEnabled ? 'Yes' : 'Pending'}
                 </span>
               </div>
+              {/* Read-only platform fee disclosure for the club.
+                  Settable only by the platform owner at /platform/clubs
+                  — surfaced here so the club always knows their rate. */}
+              <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-100">
+                <span>Fire FC platform fee</span>
+                <span className="font-bold text-slate-900">
+                  {((club.platformFeeBps ?? 0) / 100).toFixed(2)}%
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Plus Stripe's standard 2.9% + 30¢ per transaction.
+              </p>
             </div>
           )}
         </div>

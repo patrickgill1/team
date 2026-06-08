@@ -948,14 +948,42 @@ function teamLabel(player: any, teams: any[]): string {
 // button does anything live.
 const PaymentsTab: React.FC = () => {
   const { userData } = useAuth();
-  // Stripe state lives on the user's currently-selected club doc. For
-  // now we look up the club via the user's clubId. A multi-club admin
-  // could grow this to a picker, but a club admin only belongs to one
-  // club in the current model.
-  const clubId = (userData as any)?.clubId as string | undefined;
+  // Stripe state lives on the user's currently-selected club doc. The
+  // user-doc clubId is the canonical source, but plenty of legacy
+  // admin users don't have it set even though they're isClubAdmin —
+  // we fall back through team.clubId then a single-club lookup so
+  // Connect Stripe doesn't silently die.
+  const [clubId, setClubId] = React.useState<string | undefined>((userData as any)?.clubId);
   const [club, setClub] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [connectFinishing, setConnectFinishing] = React.useState(false);
+
+  // Resolve clubId on mount if it isn't on the user doc directly.
+  // Strategy: try the user's first team's clubId, then fall back to
+  // any single club doc (single-tenant Fire FC reality).
+  React.useEffect(() => {
+    if (clubId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, doc, getDoc, getDocs, limit, query } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const teamIds: string[] = (userData as any)?.teamIds || ((userData as any)?.teamId ? [(userData as any).teamId] : []);
+        for (const tid of teamIds) {
+          const tSnap = await getDoc(doc(db, 'teams', tid));
+          const tClubId = tSnap.exists() ? (tSnap.data() as any)?.clubId : null;
+          if (tClubId && !cancelled) { setClubId(tClubId); return; }
+        }
+        // Last resort: grab any club doc. Fine while single-tenant;
+        // when goalkickr ships multi-club this needs a proper picker.
+        const clubsSnap = await getDocs(query(collection(db, 'clubs'), limit(1)));
+        if (!clubsSnap.empty && !cancelled) setClubId(clubsSnap.docs[0].id);
+      } catch (err) {
+        console.warn('clubId resolve failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clubId, userData]);
 
   // Stripe Connect OAuth return — Stripe sends parents back to
   // /club?stripe_connected=1&state=clubId&code=AUTH_CODE. We post the
@@ -1072,29 +1100,36 @@ const PaymentsTab: React.FC = () => {
               <button
                 type="button"
                 onClick={async () => {
-                  if (!clubId) return;
+                  if (!clubId) {
+                    alert("Couldn't find your club. Your user doc isn't linked to a clubId — set it in Firestore (users/<uid>.clubId) or join a team first.");
+                    return;
+                  }
                   try {
                     const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
                     if (!NOTIFY_URL) {
                       alert('Worker URL not configured (REACT_APP_NOTIFY_URL).');
                       return;
                     }
-                    const r = await fetch(`${NOTIFY_URL}/stripe/connect/start?clubId=${encodeURIComponent(clubId)}`);
+                    const url = `${NOTIFY_URL}/stripe/connect/start?clubId=${encodeURIComponent(clubId)}`;
+                    const r = await fetch(url);
                     const data: any = await r.json().catch(() => ({}));
                     if (r.ok && data?.url) {
                       window.location.assign(data.url);
-                    } else if (data?.error === 'stripe-connect-not-configured') {
-                      alert('Stripe Connect secrets not set on the worker yet. See worker/README.md section 6.');
-                    } else {
-                      alert(data?.error || 'Failed to start Stripe Connect.');
+                      return;
                     }
+                    if (data?.error === 'stripe-connect-not-configured') {
+                      alert('Stripe Connect secrets not set on the worker. Run:\n\nnpx wrangler secret put STRIPE_CONNECT_CLIENT_ID\n\nthen redeploy the worker.');
+                      return;
+                    }
+                    alert(`Connect start failed (${r.status}): ${data?.error || 'unknown error'}\n\nWorker URL: ${url}`);
                   } catch (err: any) {
-                    alert(err?.message || 'Network error.');
+                    alert(`Network error reaching the worker: ${err?.message || err}\n\nThis usually means REACT_APP_NOTIFY_URL is wrong or the worker isn't reachable from this device.`);
                   }
                 }}
-                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold"
+                disabled={!clubId}
+                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold"
               >
-                Connect Stripe
+                {clubId ? 'Connect Stripe' : 'Resolving club…'}
               </button>
             </>
           ) : (

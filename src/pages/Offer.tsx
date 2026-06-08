@@ -47,41 +47,68 @@ const Offer: React.FC = () => {
     if (!offer || !registration) return;
     setSubmitting(true);
     try {
-      // Build the Player doc from the Registration snapshot.
-      const parentEmails = (registration.parents || [])
-        .map(p => p.email?.toLowerCase().trim())
-        .filter(Boolean) as string[];
-      const playerData: Record<string, any> = {
-        name: `${registration.player.firstName} ${registration.player.lastName}`,
-        firstName: registration.player.firstName,
-        lastName: registration.player.lastName,
-        dateOfBirth: registration.player.dateOfBirth ? new Date(registration.player.dateOfBirth) : null,
-        gender: registration.player.gender,
-        position: offer.offerPosition || registration.player.preferredPosition || null,
-        jerseyNumber: offer.offerJerseyNumber ?? null,
-        teamId: offer.teamId,
-        teamIds: [offer.teamId],
-        clubId: offer.clubId,
-        parentEmails,
-        medicalInfo: registration.player.medicalNotes || null,
-        isActive: true,
-        createdAt: serverTimestamp(),
-        promotedFromRegistrationId: registration.id,
-        promotedFromOfferId: offer.id,
-      };
-      const playerRef = await addDoc(collection(db, 'players'), playerData);
+      // Player now exists from registration time — accepting an offer
+      // just rosters them onto the coach's team. No new Player doc.
+      // Fall back to creating one ONLY for legacy registrations from
+      // before the auth-gated /register that pre-creates the Player.
+      let playerId = registration.promotedToPlayerId || registration.playerId;
+      if (playerId) {
+        // Add the team to the existing player. Preserve any teams
+        // already there (a kid on Sat-Skills + getting a primary
+        // team offer should end up on both).
+        const playerSnap = await getDoc(doc(db, 'players', playerId));
+        const existingTeamIds: string[] = playerSnap.exists()
+          ? ((playerSnap.data() as any)?.teamIds || [])
+          : [];
+        const nextTeamIds = Array.from(new Set([...existingTeamIds, offer.teamId]));
+        await updateDoc(doc(db, 'players', playerId), {
+          teamId: offer.teamId,
+          teamIds: nextTeamIds,
+          ...(offer.offerPosition ? { position: offer.offerPosition } : {}),
+          ...(offer.offerJerseyNumber != null ? { jerseyNumber: offer.offerJerseyNumber } : {}),
+          rosteredFromOfferId: offer.id,
+          rosteredAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // Legacy path — pre-auth registrations that never created a
+        // Player. Create one now from the Registration snapshot.
+        const parentEmails = (registration.parents || [])
+          .map(p => p.email?.toLowerCase().trim())
+          .filter(Boolean) as string[];
+        const playerData: Record<string, any> = {
+          name: `${registration.player.firstName} ${registration.player.lastName}`,
+          firstName: registration.player.firstName,
+          lastName: registration.player.lastName,
+          dateOfBirth: registration.player.dateOfBirth ? new Date(registration.player.dateOfBirth) : null,
+          gender: registration.player.gender,
+          position: offer.offerPosition || registration.player.preferredPosition || null,
+          jerseyNumber: offer.offerJerseyNumber ?? null,
+          teamId: offer.teamId,
+          teamIds: [offer.teamId],
+          clubId: offer.clubId,
+          parentEmails,
+          medicalInfo: registration.player.medicalNotes || null,
+          isActive: true,
+          createdAt: serverTimestamp(),
+          promotedFromRegistrationId: registration.id,
+          promotedFromOfferId: offer.id,
+        };
+        const playerRef = await addDoc(collection(db, 'players'), playerData);
+        playerId = playerRef.id;
+      }
 
       // Flip the offer + registration.
       await updateDoc(doc(db, 'offers', offer.id), {
         status: 'accepted',
         respondedAt: serverTimestamp(),
-        promotedToPlayerId: playerRef.id,
+        promotedToPlayerId: playerId,
         promotedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
       await updateDoc(doc(db, 'registrations', registration.id), {
         status: 'accepted',
-        promotedToPlayerId: playerRef.id,
+        promotedToPlayerId: playerId,
         promotedToTeamId: offer.teamId,
         promotedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -97,13 +124,13 @@ const Offer: React.FC = () => {
         seasonId: registration.seasonId,
         actorUid: 'public',
         actorName: registration.parents?.[0]?.firstName + ' ' + registration.parents?.[0]?.lastName,
-        payload: { offerId: offer.id, playerId: playerRef.id, teamName: offer.teamName },
+        payload: { offerId: offer.id, playerId, teamName: offer.teamName },
       });
       await logActivity({
         clubId: offer.clubId,
         kind: 'player_promoted',
         registrationId: registration.id,
-        playerId: playerRef.id,
+        playerId,
         teamId: offer.teamId,
         seasonId: registration.seasonId,
         actorUid: 'system',
@@ -123,7 +150,7 @@ const Offer: React.FC = () => {
           clubId: offer.clubId,
           kind: 'email_sent',
           registrationId: registration.id,
-          playerId: playerRef.id,
+          playerId,
           parentEmail: offer.parentEmail,
           seasonId: registration.seasonId,
           actorUid: 'system',
@@ -133,7 +160,7 @@ const Offer: React.FC = () => {
         console.warn('welcome email failed', err);
       }
 
-      setOffer({ ...offer, status: 'accepted', promotedToPlayerId: playerRef.id });
+      setOffer({ ...offer, status: 'accepted', promotedToPlayerId: playerId });
     } catch (err: any) {
       console.error('accept failed', err);
       alert(err?.message || 'Accept failed.');

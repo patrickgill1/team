@@ -38,6 +38,7 @@ const Tryouts: React.FC = () => {
   const [filterPosition, setFilterPosition] = useState<string>('all');
   const [filterReturning, setFilterReturning] = useState<'all' | 'returning' | 'new'>('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showNeedsAttention, setShowNeedsAttention] = useState(false);
   const [openNotesFor, setOpenNotesFor] = useState<string | null>(null);
   const [offerFor, setOfferFor] = useState<Registration | null>(null);
 
@@ -93,6 +94,20 @@ const Tryouts: React.FC = () => {
       if (filterReturning === 'returning' && !r.player?.playedBefore) return false;
       if (filterReturning === 'new' && r.player?.playedBefore) return false;
       if (showFavoritesOnly && !(myUid && r.coachStates?.[myUid]?.favorite)) return false;
+      if (showNeedsAttention) {
+        // "Needs attention" = candidate hasn't been favorited by ANY
+        // coach, isn't held, isn't already offered/accepted/declined/
+        // withdrawn, and the candidate has been in the pool long
+        // enough that they should have been triaged by now. Helps the
+        // admin spot kids who are slipping through the cracks.
+        const anyFavorite = Object.values(r.coachStates || {}).some(s => s.favorite);
+        const isHeld = !!r.heldByUid;
+        const terminal = r.status === 'offer_sent' || r.status === 'accepted'
+          || r.status === 'declined' || r.status === 'withdrawn';
+        const submittedDays = (Date.now() - toMs(r.createdAt)) / (1000 * 60 * 60 * 24);
+        const ageEnough = submittedDays > 3; // a few days unfavorited = worth flagging
+        if (anyFavorite || isHeld || terminal || !ageEnough) return false;
+      }
       if (q) {
         const hay = [
           r.player?.firstName, r.player?.lastName,
@@ -102,7 +117,7 @@ const Tryouts: React.FC = () => {
       }
       return true;
     });
-  }, [registrations, search, filterStatus, filterAge, filterGender, filterPosition, filterReturning, showFavoritesOnly, myUid]);
+  }, [registrations, search, filterStatus, filterAge, filterGender, filterPosition, filterReturning, showFavoritesOnly, showNeedsAttention, myUid]);
 
   // Mutations — each updates the doc and writes an activity. Optimistic
   // local update so the UI feels instant.
@@ -271,6 +286,18 @@ const Tryouts: React.FC = () => {
             title="Show only candidates you've favorited"
           >
             ♥ Mine
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowNeedsAttention(v => !v)}
+            className={`text-sm font-bold rounded-lg px-3 py-2 ring-1 ${
+              showNeedsAttention
+                ? 'bg-amber-500 text-white ring-amber-500'
+                : 'bg-white text-slate-700 ring-slate-200 hover:ring-amber-400'
+            }`}
+            title="Candidates 3+ days in the pool with NO favorites, NO hold, and NO offer — gameplanning surface for admins"
+          >
+            ⚠ Needs attention
           </button>
           <input
             type="text"
@@ -545,6 +572,15 @@ function verbFor(kind: Activity['kind']): string {
     case 'tryout_invited': return 'invited to tryout:';
     default: return kind;
   }
+}
+
+function toMs(v: any): number {
+  if (!v) return 0;
+  if (v instanceof Date) return v.getTime();
+  if (typeof v?.toDate === 'function') return v.toDate().getTime();
+  if (typeof v === 'number') return v;
+  const n = Date.parse(String(v));
+  return isNaN(n) ? 0 : n;
 }
 
 function addDays(d: Date, n: number): Date {

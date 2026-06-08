@@ -4,6 +4,8 @@ import { addDoc, collection, doc, getDoc, getDocs, query, where, orderBy, limit,
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
 import Logo from '../components/common/Logo';
+import RegisterAuthGate from './RegisterAuthGate';
+import { useAuth } from '../contexts/AuthContext';
 import type { Product, RegistrationFormConfig, RegistrationQuestion } from '../types';
 import { quotePrice } from '../utils/pricing';
 
@@ -32,6 +34,17 @@ const Register: React.FC = () => {
   const [searchParams] = useSearchParams();
   const returnPlayerId = searchParams.get('return') || null;
   const seasonIdParam = searchParams.get('season') || null;
+  const { currentUser, userData } = useAuth();
+  const [authBumpKey, setAuthBumpKey] = useState(0);
+  void authBumpKey; // forces a re-render after the gate hands off
+
+  // Auth gate: a parent must have a Fire FC account before registering.
+  // Returning families sign in; first-timers sign up. Once authed they
+  // can fill the form and we'll create a real Player at submit time
+  // (instead of a Registration snapshot that gets promoted later).
+  if (!currentUser) {
+    return <RegisterAuthGate onAuthed={() => setAuthBumpKey(k => k + 1)} />;
+  }
 
   // Resolved season — either explicit (from email link) or the most
   // recent season with registrationOpen === true.
@@ -55,6 +68,29 @@ const Register: React.FC = () => {
   const [parents, setParents] = useState<ParentDraft[]>([
     { firstName: '', lastName: '', email: '', phone: '', relationship: 'mother' },
   ]);
+
+  // Once authed, pre-fill the primary parent row from the user account
+  // so the family doesn't have to retype their email/name.
+  useEffect(() => {
+    if (!userData?.email) return;
+    setParents(prev => {
+      const first = prev[0] || { firstName: '', lastName: '', email: '', phone: '', relationship: 'mother' };
+      // Only patch when the row is still empty — don't clobber edits
+      // the user has already made.
+      if (first.email && first.firstName) return prev;
+      const [fName = '', ...lRest] = (userData.name || '').split(' ');
+      return [
+        {
+          ...first,
+          email: first.email || userData.email,
+          firstName: first.firstName || fName,
+          lastName: first.lastName || lRest.join(' '),
+          phone: first.phone || (userData as any)?.phoneNumber || '',
+        },
+        ...prev.slice(1),
+      ];
+    });
+  }, [userData?.uid, userData?.email, userData?.name]);
 
   // Registration products for the resolved season. We pick one based on
   // the player's age group (see `activeProduct` below). If none exist
@@ -279,10 +315,43 @@ const Register: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
+      // Create a real Player doc immediately at registration time.
+      // No more snapshot-then-promote dance — the Player exists from
+      // the moment the family signs up. Offer acceptance later just
+      // assigns Player.teamId; no new doc creation needed. Returning
+      // families reuse their existing Player rather than create a new
+      // one. teamId stays null until the kid is rostered.
+      const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      const parentEmailsLower = parents
+        .filter(p => p.email.trim())
+        .map(p => p.email.trim().toLowerCase());
+      let playerId = returnPlayerId;
+      if (!playerId) {
+        const playerData: any = {
+          name: fullName,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          dateOfBirth: dob ? new Date(dob) : null,
+          gender,
+          position: preferredPosition.trim() || null,
+          teamId: null,
+          teamIds: [],
+          clubId,
+          parentIds: currentUser?.uid ? [currentUser.uid] : [],
+          parentEmails: parentEmailsLower,
+          medicalInfo: medicalNotes.trim() || null,
+          isActive: true,
+          registrationSeasonId: season.id,
+          createdAt: serverTimestamp(),
+        };
+        const playerRef = await addDoc(collection(db, 'players'), playerData);
+        playerId = playerRef.id;
+      }
+
       const payload: any = {
         clubId,
         seasonId: season.id,
-        playerId: returnPlayerId || null,
+        playerId,
         player: {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
@@ -319,6 +388,11 @@ const Register: React.FC = () => {
           ? Object.fromEntries(visibleQuestions.map(q => [q.id, q.label]))
           : undefined,
         source: returnPlayerId ? 'returning' : 'cold',
+        // The Player now exists from registration submit, so set this
+        // immediately. UI surfaces (Tryouts, Registrations) use this
+        // to render PROFILE links — they'll work from day one rather
+        // than waiting until offer acceptance.
+        promotedToPlayerId: playerId,
         createdAt: serverTimestamp(),
       };
       const ref = await addDoc(collection(db, 'registrations'), payload);
@@ -327,7 +401,7 @@ const Register: React.FC = () => {
         clubId,
         kind: 'registration_submitted',
         registrationId: ref.id,
-        playerId: returnPlayerId || undefined,
+        playerId: playerId || undefined,
         parentEmail: parents[0]?.email?.trim().toLowerCase(),
         seasonId: season.id,
         actorUid: 'public',
@@ -437,9 +511,13 @@ const Register: React.FC = () => {
           <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
             <Logo size="lg" variant="full" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white">{season.name} Registration</h1>
-          <p className="text-slate-400 mt-2 text-sm">
-            {returnPlayerId ? "Welcome back — let's get your player signed up for the new season." : 'Tell us about your player and we\'ll be in touch.'}
+          <h1 className="text-3xl sm:text-4xl font-black text-white">
+            {returnPlayerId ? `Welcome back, ${userData?.name?.split(' ')[0] || 'family'}!` : `Welcome, ${userData?.name?.split(' ')[0] || 'family'}!`}
+          </h1>
+          <p className="text-slate-300 mt-2 text-sm leading-relaxed max-w-md mx-auto">
+            {returnPlayerId
+              ? `Let's get your player signed up for ${season.name}.`
+              : `One last step and you're in. Tell us about your player and you'll join the ${season.name} pool.`}
           </p>
           {(baseFee > 0 || effectiveFee > 0) && (
             <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 ring-1 ring-cyan-500/30 text-cyan-200 text-sm">

@@ -182,7 +182,16 @@ export async function handleRegistrationCheckout(payload: any, env: StripeEnv): 
     const successUrl = `${env.APP_ORIGIN}/register/success?registrationId=${encodeURIComponent(registrationId)}`;
     const cancelUrl = `${env.APP_ORIGIN}/register/cancel?registrationId=${encodeURIComponent(registrationId)}`;
 
-    const session = await stripeRequest(env, '/checkout/sessions', {
+    // Platform fee — Fire FC's slice of every transaction. Settable
+    // ONLY by the platform owner via /platform/clubs (see Club.platformFeeBps
+    // doc comment + project_platform_fee memory). Defaults to 0 = no
+    // platform fee, club keeps everything (minus Stripe's flat take).
+    const platformFeeBps = Number(club.data.platformFeeBps || 0);
+    const applicationFeeAmount = platformFeeBps > 0
+      ? Math.round((totalCents * platformFeeBps) / 10000)
+      : 0;
+
+    const sessionParams: Record<string, any> = {
       mode: 'payment',
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -193,10 +202,13 @@ export async function handleRegistrationCheckout(payload: any, env: StripeEnv): 
       ...(parentEmail ? { customer_email: parentEmail } : {}),
       'metadata[registrationId]': registrationId,
       'metadata[clubId]': clubId,
-      // ⚠ application_fee_amount — platform-owner-only field, deferred.
-      // When Patrick flips on platform monetization, read club.platformFeeBps
-      // and compute the cents amount here.
-    }, { stripeAccount: stripeAccountId });
+    };
+    if (applicationFeeAmount > 0) {
+      sessionParams['payment_intent_data[application_fee_amount]'] = applicationFeeAmount;
+      sessionParams['metadata[platformFeeCents]'] = applicationFeeAmount;
+      sessionParams['metadata[platformFeeBps]'] = platformFeeBps;
+    }
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams, { stripeAccount: stripeAccountId });
 
     await patchDocument(projectId, `registrations/${registrationId}`, {
       stripeCheckoutSessionId: session.id,

@@ -48,6 +48,7 @@ const Reports = React.lazy(() => import('./pages/Reports'));
 const PersonAdmin = React.lazy(() => import('./pages/PersonAdmin'));
 const Forms = React.lazy(() => import('./pages/Forms'));
 const Tasks = React.lazy(() => import('./pages/Tasks'));
+const PlatformClubs = React.lazy(() => import('./pages/PlatformClubs'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
@@ -411,6 +412,16 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Tasks />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Platform owner only — gated client-side by isOwner. URL
+                not advertised in any nav; bookmark it. */}
+            <Route path="/platform/clubs" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <PlatformClubs />
                 </AppLayout>
               </ProtectedRoute>
             } />

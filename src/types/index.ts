@@ -157,6 +157,18 @@ export interface Club {
   stripeChargesEnabled?: boolean;
   stripePayoutsEnabled?: boolean;
   stripeOnboardedAt?: Date;
+  /** Fire FC platform fee, in basis points (100 = 1%). When set, the
+   *  worker passes `application_fee_amount` on the Stripe Checkout
+   *  Session so Stripe automatically routes that slice to the
+   *  platform's Stripe account on every charge. Default 0 = the club
+   *  keeps 100% (minus Stripe's flat take).
+   *
+   *  IMPORTANT: writable ONLY by the platform owner (Patrick) via
+   *  /platform/clubs. Club admins must NOT be able to flip this on
+   *  their own Club doc — that would defeat the entire revenue model.
+   *  See `project_platform_fee` memory + the auth check on the
+   *  platform page. */
+  platformFeeBps?: number;
 }
 
 export interface Invoice {

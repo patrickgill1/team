@@ -219,13 +219,25 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Clubs — every authed user reads (for club picker, member lookups);
-    // writes require auth (Stripe Connect finish writes here from the
-    // worker using admin SDK so client writes can stay narrow). The
-    // worker bypasses these rules entirely.
+    // Clubs — every authed user reads (for club picker, member lookups).
+    // Writes require auth AND block `platformFeeBps` mutations to
+    // anyone except the platform owner. Without this gate a club admin
+    // could open the Firestore console and zero out their own platform
+    // fee, defeating the SaaS revenue model. See [[platform-fee]] memory.
+    //
+    // The worker (Cloud Functions / Cloudflare Worker using the admin
+    // service account) bypasses all of these rules and writes
+    // platformFeeBps from the /platform/clubs UI on Patrick's behalf.
     match /clubs/{clubId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null
+        && (!('platformFeeBps' in request.resource.data.keys())
+            || request.auth.token.email == 'patrickgill4@gmail.com');
+      allow update: if request.auth != null
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['platformFeeBps'])
+            || request.auth.token.email == 'patrickgill4@gmail.com');
+      allow delete: if request.auth != null
+        && request.auth.token.email == 'patrickgill4@gmail.com';
     }
 
     // Surveys: public read for shared links, creator controls edits

@@ -16,6 +16,7 @@ import {
   handleConnectStart,
   handleConnectFinish,
   handleRegistrationCheckout,
+  handleRegistrationRefund,
   handleWebhook,
 } from './stripe';
 
@@ -181,6 +182,13 @@ export default {
 
     if (url.pathname === '/stripe/registration-checkout') {
       const res = await handleRegistrationCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    if (url.pathname === '/stripe/registration-refund') {
+      const res = await handleRegistrationRefund(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

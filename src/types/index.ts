@@ -454,6 +454,10 @@ export interface Registration {
    *  separate so the club's revenue report doesn't conflate the two. */
   stripeSurchargeCents?: number;
   earlyBirdApplied?: boolean;
+  /** Refunds issued against this registration. Supports partial +
+   *  full + multiple refunds (rare but real — partial today, finish
+   *  it next week). Each entry mirrors a Stripe Refund object. */
+  refunds?: RegistrationRefund[];
   stripeCheckoutSessionId?: string;
   stripePaymentIntentId?: string;
   paidAt?: Date;
@@ -785,6 +789,24 @@ export interface Coupon {
   createdBy?: string;
 }
 
+/** One Stripe Refund tied to a Registration. Partial refunds reduce
+ *  the effective amount paid; the registration itself doesn't flip
+ *  status unless it's a full refund (admin still decides whether the
+ *  kid stays on the team). */
+export interface RegistrationRefund {
+  id: string;
+  amountCents: number;
+  reason?: string;
+  refundedAt: Date;
+  refundedByUid?: string;
+  refundedByName?: string;
+  stripeRefundId: string;
+  /** Status reported by Stripe — typically 'succeeded' but a refund
+   *  can be 'pending' for bank-transfer payment methods or 'failed'
+   *  if the source can't take the credit back. */
+  status: 'pending' | 'succeeded' | 'failed' | 'canceled';
+}
+
 /** CRM-style activity log entry. Every meaningful system event lands in
  *  the `activities` collection so the admin portal can show a unified
  *  per-family / per-player timeline. Cheap to write (small docs) and
@@ -816,7 +838,8 @@ export interface Activity {
     | 'task_created'
     | 'task_assigned'
     | 'task_completed'
-    | 'task_reopened';
+    | 'task_reopened'
+    | 'registration_refunded';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-
    *  centric for family timeline, etc. */

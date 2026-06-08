@@ -20,6 +20,7 @@ import { computeEligibility, eligibilityTone, type EligibilityResult } from '../
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
 import CreateTaskModal from '../components/club/CreateTaskModal';
 import InvitePersonModal from '../components/people/InvitePersonModal';
+import RefundModal from '../components/club/RefundModal';
 import { useFirestore } from '../hooks/useFirestore';
 import { sendEmail } from '../utils/notify';
 import type { Activity, FormDefinition, FormSignature, Registration } from '../types';
@@ -74,6 +75,7 @@ const PersonAdmin: React.FC = () => {
   const [inviteGuardianOpen, setInviteGuardianOpen] = useState(false);
   const [paymentLink, setPaymentLink] = useState<{ url: string; registrationId: string } | null>(null);
   const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
+  const [refundFor, setRefundFor] = useState<Registration | null>(null);
   const { getOrCreateDMThread } = useFirestore() as any;
 
   // Load everything keyed off the playerId.
@@ -391,7 +393,7 @@ const PersonAdmin: React.FC = () => {
 
         {tab === 'teams' && <TeamsTab player={player} teams={teams} onAssignTeam={() => setTransferOpen(true)} />}
         {tab === 'registration' && <RegistrationTab registrations={registrations} />}
-        {tab === 'payments' && <PaymentsTab registrations={registrations} />}
+        {tab === 'payments' && <PaymentsTab registrations={registrations} onRefund={(r) => setRefundFor(r)} />}
         {tab === 'notes' && (
           <NotesTab
             activities={activities}
@@ -453,6 +455,16 @@ const PersonAdmin: React.FC = () => {
           defaultPlayerId={player.id}
           defaultKind="parent"
           onClose={() => { setInviteGuardianOpen(false); void reload(); }}
+        />
+      )}
+
+      {refundFor && userData?.uid && (
+        <RefundModal
+          registration={refundFor}
+          actorUid={userData.uid}
+          actorName={userData.name || 'Admin'}
+          onClose={() => setRefundFor(null)}
+          onRefunded={() => { setRefundFor(null); void reload(); }}
         />
       )}
 
@@ -835,14 +847,19 @@ const RegistrationTab: React.FC<{ registrations: Registration[] }> = ({ registra
   );
 };
 
-const PaymentsTab: React.FC<{ registrations: Registration[] }> = ({ registrations }) => {
+const PaymentsTab: React.FC<{ registrations: Registration[]; onRefund: (r: Registration) => void }> = ({ registrations, onRefund }) => {
   const rows = registrations.map(r => {
     const isPaid = r.status === 'paid' || r.status === 'tryout_invited' || r.status === 'offer_sent' || r.status === 'accepted';
+    const refundsCents = (r.refunds || [])
+      .filter(rr => rr.status !== 'failed' && rr.status !== 'canceled')
+      .reduce((sum, rr) => sum + (rr.amountCents || 0), 0);
     return {
       id: r.id,
+      raw: r,
       label: r.productName || 'Registration',
       amountCents: r.amountPaidCents ?? r.registrationFeeCents ?? 0,
       surchargeCents: r.stripeSurchargeCents || 0,
+      refundsCents,
       paid: isPaid,
       paidAt: r.paidAt ? toDate(r.paidAt) : null,
       stripePaymentIntentId: r.stripePaymentIntentId,
@@ -851,12 +868,14 @@ const PaymentsTab: React.FC<{ registrations: Registration[] }> = ({ registration
     };
   });
   const totalPaid = rows.filter(r => r.paid).reduce((sum, r) => sum + r.amountCents, 0);
+  const totalRefunded = rows.reduce((sum, r) => sum + r.refundsCents, 0);
   const totalOwed = rows.filter(r => !r.paid).reduce((sum, r) => sum + r.amountCents, 0);
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Tile label="Total paid" value={`$${(totalPaid / 100).toFixed(2)}`} />
+        <Tile label="Refunded" value={`$${(totalRefunded / 100).toFixed(2)}`} />
         <Tile label="Balance" value={`$${(totalOwed / 100).toFixed(2)}`} />
       </div>
       {rows.length === 0 ? (
@@ -867,26 +886,60 @@ const PaymentsTab: React.FC<{ registrations: Registration[] }> = ({ registration
             <h2 className="font-bold text-slate-800">Invoices</h2>
           </div>
           <ul className="divide-y divide-slate-100">
-            {rows.map(r => (
-              <li key={r.id} className="px-4 py-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-bold text-slate-900">{r.label}</div>
-                  <div className="text-[11px] text-slate-500">
-                    {r.createdAt.toLocaleDateString()}
-                    {r.couponCode && <span className="text-violet-600 font-bold"> · {r.couponCode}</span>}
-                    {r.stripePaymentIntentId && <span className="text-slate-400"> · {r.stripePaymentIntentId.slice(0, 12)}…</span>}
+            {rows.map(r => {
+              const netCents = r.amountCents - r.refundsCents;
+              const fullyRefunded = r.refundsCents > 0 && netCents <= 0;
+              const canRefund = r.paid && !!r.stripePaymentIntentId && !fullyRefunded;
+              return (
+                <li key={r.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-bold text-slate-900">{r.label}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {r.createdAt.toLocaleDateString()}
+                        {r.couponCode && <span className="text-violet-600 font-bold"> · {r.couponCode}</span>}
+                        {r.stripePaymentIntentId && <span className="text-slate-400"> · {r.stripePaymentIntentId.slice(0, 12)}…</span>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-black text-slate-900 tabular-nums">${(r.amountCents / 100).toFixed(2)}</div>
+                      <span className={`text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 ${
+                        fullyRefunded ? 'bg-rose-50 text-rose-700 ring-rose-200'
+                          : r.refundsCents > 0 ? 'bg-amber-50 text-amber-700 ring-amber-200'
+                          : r.paid ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                          : 'bg-amber-50 text-amber-700 ring-amber-200'
+                      }`}>
+                        {fullyRefunded ? 'Refunded' : r.refundsCents > 0 ? 'Partial refund' : r.paid ? 'Paid' : 'Pending'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="font-black text-slate-900 tabular-nums">${(r.amountCents / 100).toFixed(2)}</div>
-                  <span className={`text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 ${
-                    r.paid ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-amber-200'
-                  }`}>
-                    {r.paid ? 'Paid' : 'Pending'}
-                  </span>
-                </div>
-              </li>
-            ))}
+                  {r.refundsCents > 0 && (
+                    <div className="mt-2 pl-3 border-l-2 border-rose-200 text-[11px] space-y-1">
+                      {(r.raw.refunds || []).map(rr => (
+                        <div key={rr.id} className="flex items-center justify-between text-slate-600">
+                          <span>
+                            {rr.refundedByName || 'System'} · {toDate(rr.refundedAt).toLocaleDateString()}
+                            {rr.reason && <span className="text-slate-400"> · {rr.reason}</span>}
+                          </span>
+                          <span className="font-bold tabular-nums text-rose-700">-${((rr.amountCents || 0) / 100).toFixed(2)} <span className="text-slate-400">({rr.status})</span></span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {canRefund && (
+                    <div className="mt-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => onRefund(r.raw)}
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white text-rose-700 ring-1 ring-rose-200 hover:bg-rose-50"
+                      >
+                        {r.refundsCents > 0 ? 'Refund more' : 'Refund'}
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

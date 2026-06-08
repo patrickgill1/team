@@ -220,6 +220,102 @@ export async function handleRegistrationCheckout(payload: any, env: StripeEnv): 
   }
 }
 
+// ── Endpoint: POST /stripe/registration-refund ───────────────────
+
+export async function handleRegistrationRefund(payload: any, env: StripeEnv): Promise<Response> {
+  const registrationId = String(payload?.registrationId || '').trim();
+  if (!registrationId) return json({ ok: false, error: 'missing-registrationId' }, 400);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  // Optional partial-refund amount in cents. Omit for full refund.
+  const requestedCents = payload?.amountCents != null ? Number(payload.amountCents) : null;
+  const reason = String(payload?.reason || '').trim() || undefined;
+  const actorUid = String(payload?.actorUid || '').trim() || undefined;
+  const actorName = String(payload?.actorName || '').trim() || undefined;
+
+  try {
+    const reg = await getDocument(projectId, `registrations/${registrationId}`, sa);
+    if (!reg) return json({ ok: false, error: 'registration-not-found' }, 404);
+    const paymentIntentId = reg.data.stripePaymentIntentId;
+    if (!paymentIntentId) return json({ ok: false, error: 'no-payment-intent' }, 409);
+    const clubId = reg.data.clubId;
+    const club = await getDocument(projectId, `clubs/${clubId}`, sa);
+    const stripeAccountId = club?.data?.stripeAccountId;
+    if (!stripeAccountId) return json({ ok: false, error: 'club-not-stripe-ready' }, 409);
+
+    // Compute remaining refundable. Sum prior refunds and check against
+    // the original charged total so we don't over-refund.
+    const originalCents = Number(reg.data.amountPaidCents || reg.data.registrationFeeCents || 0)
+      + Number(reg.data.stripeSurchargeCents || 0);
+    const priorRefunds: any[] = Array.isArray(reg.data.refunds) ? reg.data.refunds : [];
+    const alreadyRefundedCents = priorRefunds
+      .filter(r => r.status !== 'failed' && r.status !== 'canceled')
+      .reduce((sum, r) => sum + Number(r.amountCents || 0), 0);
+    const remainingCents = Math.max(0, originalCents - alreadyRefundedCents);
+    if (remainingCents <= 0) return json({ ok: false, error: 'fully-refunded' }, 409);
+    const refundCents = requestedCents != null ? Math.min(requestedCents, remainingCents) : remainingCents;
+    if (refundCents <= 0) return json({ ok: false, error: 'invalid-amount' }, 400);
+
+    const stripeReason = reason && /^(duplicate|fraudulent|requested_by_customer)$/.test(reason)
+      ? reason
+      : 'requested_by_customer';
+
+    const refundBody: Record<string, any> = {
+      payment_intent: paymentIntentId,
+      amount: refundCents,
+      reason: stripeReason,
+      'metadata[registrationId]': registrationId,
+      'metadata[clubId]': clubId,
+      ...(actorUid ? { 'metadata[actorUid]': actorUid } : {}),
+      ...(actorName ? { 'metadata[actorName]': actorName } : {}),
+      // Reverse the platform fee proportionally so Fire FC gives back
+      // the slice it took on the refunded portion. Without this the
+      // platform keeps its cut on refunded money — bad look.
+      refund_application_fee: true,
+    };
+    const refund = await stripeRequest(env, '/refunds', refundBody, { stripeAccount: stripeAccountId });
+
+    // Append the refund record to the Registration immediately. The
+    // webhook handler will reconcile status from 'pending' → 'succeeded'
+    // when Stripe confirms (most card refunds are instant).
+    const entry = {
+      id: refund.id,
+      amountCents: refundCents,
+      reason: reason || undefined,
+      refundedAt: new Date(),
+      refundedByUid: actorUid,
+      refundedByName: actorName,
+      stripeRefundId: refund.id,
+      status: refund.status || 'pending',
+    };
+    await patchDocument(projectId, `registrations/${registrationId}`, {
+      refunds: [...priorRefunds, entry],
+      updatedAt: new Date(),
+    }, sa);
+
+    await createDocument(projectId, 'activities', {
+      clubId,
+      kind: 'registration_refunded',
+      registrationId,
+      actorUid: actorUid || 'system',
+      actorName: actorName || 'Refund',
+      payload: {
+        amountCents: refundCents,
+        stripeRefundId: refund.id,
+        reason: reason || undefined,
+        remainingCents: remainingCents - refundCents,
+      },
+      createdAt: new Date(),
+    }, sa);
+
+    return json({ ok: true, refundId: refund.id, amountCents: refundCents, remainingCents: remainingCents - refundCents });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
 // ── Endpoint: POST /stripe/webhook ───────────────────────────────
 
 async function verifyStripeSignature(rawBody: string, sigHeader: string, secret: string): Promise<boolean> {
@@ -254,6 +350,47 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
 
   let event: any;
   try { event = JSON.parse(rawBody); } catch { return json({ ok: false, error: 'invalid-json' }, 400); }
+
+  // Refund reconciliation. We optimistically write a refund entry as
+  // 'pending' when the worker fires off the refund; Stripe sends back
+  // 'refund.updated' / 'charge.refunded' once it confirms. We match by
+  // stripeRefundId and update the status in place.
+  if (event.type === 'refund.updated' || event.type === 'charge.refunded') {
+    try {
+      // Either the event payload IS a refund (refund.updated) or it's
+      // a charge with refunds[] (charge.refunded).
+      const refunds: any[] = event.type === 'refund.updated'
+        ? [event.data.object]
+        : (event.data.object?.refunds?.data || []);
+      for (const r of refunds) {
+        const registrationId = r?.metadata?.registrationId;
+        if (!registrationId) continue;
+        const reg = await getDocument(projectId, `registrations/${registrationId}`, sa);
+        if (!reg) continue;
+        const list: any[] = Array.isArray(reg.data.refunds) ? reg.data.refunds : [];
+        const next = list.map(x => x.stripeRefundId === r.id
+          ? { ...x, status: r.status || x.status, amountCents: r.amount ?? x.amountCents }
+          : x);
+        // If the refund wasn't in the list yet (rare race), add it.
+        if (!list.find(x => x.stripeRefundId === r.id)) {
+          next.push({
+            id: r.id,
+            stripeRefundId: r.id,
+            amountCents: r.amount,
+            status: r.status,
+            refundedAt: r.created ? new Date(r.created * 1000) : new Date(),
+            reason: r.reason,
+          });
+        }
+        await patchDocument(projectId, `registrations/${registrationId}`, {
+          refunds: next,
+          updatedAt: new Date(),
+        }, sa);
+      }
+    } catch (err) {
+      console.warn('refund webhook reconciliation failed', err);
+    }
+  }
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;

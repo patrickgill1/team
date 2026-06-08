@@ -330,22 +330,17 @@ const PersonAdmin: React.FC = () => {
           />
         )}
 
-        {tab !== 'overview' && (
-          <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-10 text-center">
-            <p className="text-sm font-bold text-slate-700">"{TABS.find(t => t.key === tab)?.label}" coming soon.</p>
-            <p className="text-xs text-slate-500 mt-1">
-              {tab === 'teams' && 'Full team assignment manager — share / move / archive.'}
-              {tab === 'registration' && 'Current + historical registrations with snapshots.'}
-              {tab === 'payments' && 'Invoice list + balance + Stripe links.'}
-              {tab === 'notes' && 'Admin/coach notes thread.'}
-              {tab === 'communications' && 'Email + push history.'}
-              {tab === 'activity' && 'Full activity log scoped to this player.'}
-            </p>
-            <p className="text-xs text-slate-400 mt-3 italic">
-              {activities.length > 0 && tab === 'activity' && `${activities.length} activities loaded — full view in next batch.`}
-            </p>
-          </div>
+        {tab === 'teams' && <TeamsTab player={player} teams={teams} onAssignTeam={() => setTransferOpen(true)} />}
+        {tab === 'registration' && <RegistrationTab registrations={registrations} />}
+        {tab === 'payments' && <PaymentsTab registrations={registrations} />}
+        {tab === 'notes' && (
+          <NotesTab
+            activities={activities}
+            onAddNote={() => setAddNoteOpen(true)}
+          />
         )}
+        {tab === 'communications' && <CommunicationsTab activities={activities} />}
+        {tab === 'activity' && <ActivityTab activities={activities} />}
       </div>
 
       {transferOpen && (
@@ -620,6 +615,302 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
     </div>
   );
 };
+
+// ── Tab bodies ─────────────────────────────────────────────────
+
+const TeamsTab: React.FC<{ player: any; teams: any[]; onAssignTeam: () => void }> = ({ player, teams, onAssignTeam }) => {
+  const primaryId = player.teamId || teams[0]?.id;
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <h2 className="font-bold text-slate-800">Team assignments</h2>
+        <button type="button" onClick={onAssignTeam} className="text-xs font-bold text-cyan-700 hover:text-cyan-900">+ Assign / transfer</button>
+      </div>
+      {teams.length === 0 ? (
+        <div className="p-6 text-center text-sm text-slate-500">Not on any team yet.</div>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {teams.map(t => (
+            <li key={t.id} className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded bg-slate-100 ring-1 ring-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                  {t.logoUrl ? <img src={t.logoUrl} alt="" className="w-full h-full object-cover" /> : <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-slate-900 truncate">{t.name}</div>
+                  <div className="text-[11px] text-slate-500">
+                    {t.ageGroup ? `${t.ageGroup} · ` : ''}{t.season || ''} {t.league ? `· ${t.league}` : ''}
+                  </div>
+                </div>
+              </div>
+              <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 shrink-0 ${
+                t.id === primaryId ? 'bg-blue-50 text-blue-700 ring-blue-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+              }`}>
+                {t.id === primaryId ? 'Primary' : 'Additional'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const RegistrationTab: React.FC<{ registrations: Registration[] }> = ({ registrations }) => {
+  if (registrations.length === 0) {
+    return <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No registrations on file.</div>;
+  }
+  return (
+    <div className="space-y-3">
+      {registrations.map(r => (
+        <div key={r.id} className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+            <div>
+              <div className="font-bold text-slate-900">{r.productName || 'Registration'}</div>
+              <div className="text-[11px] text-slate-500">Submitted {toDate(r.createdAt).toLocaleDateString()}</div>
+            </div>
+            <StatusBadge status={r.status} />
+          </div>
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Mini label="Season" value={r.seasonId || '—'} />
+            <Mini label="Tier" value={r.pricingTierLabel || '—'} />
+            <Mini label="Fee" value={`$${((r.amountPaidCents ?? r.registrationFeeCents ?? 0) / 100).toFixed(2)}`} />
+            <Mini label="Coupon" value={r.couponCode || '—'} />
+          </div>
+          {r.customAnswers && Object.keys(r.customAnswers).length > 0 && (
+            <div className="px-4 pb-4">
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Custom answers</div>
+              <ul className="text-[11px] text-slate-700 space-y-0.5">
+                {Object.entries(r.customAnswers).map(([k, v]) => (
+                  <li key={k}>
+                    <span className="text-slate-500">{r.customAnswerLabels?.[k] || k}:</span>{' '}
+                    <span className="font-bold">{typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {r.parents?.[0]?.email && (
+            <div className="px-4 py-2 border-t border-slate-100 text-center">
+              <Link to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`} className="text-xs font-bold text-cyan-700 hover:text-cyan-900">
+                Full family timeline →
+              </Link>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const PaymentsTab: React.FC<{ registrations: Registration[] }> = ({ registrations }) => {
+  const rows = registrations.map(r => {
+    const isPaid = r.status === 'paid' || r.status === 'tryout_invited' || r.status === 'offer_sent' || r.status === 'accepted';
+    return {
+      id: r.id,
+      label: r.productName || 'Registration',
+      amountCents: r.amountPaidCents ?? r.registrationFeeCents ?? 0,
+      surchargeCents: r.stripeSurchargeCents || 0,
+      paid: isPaid,
+      paidAt: r.paidAt ? toDate(r.paidAt) : null,
+      stripePaymentIntentId: r.stripePaymentIntentId,
+      couponCode: r.couponCode,
+      createdAt: toDate(r.createdAt),
+    };
+  });
+  const totalPaid = rows.filter(r => r.paid).reduce((sum, r) => sum + r.amountCents, 0);
+  const totalOwed = rows.filter(r => !r.paid).reduce((sum, r) => sum + r.amountCents, 0);
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <Tile label="Total paid" value={`$${(totalPaid / 100).toFixed(2)}`} />
+        <Tile label="Balance" value={`$${(totalOwed / 100).toFixed(2)}`} />
+      </div>
+      {rows.length === 0 ? (
+        <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No payment history.</div>
+      ) : (
+        <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100">
+            <h2 className="font-bold text-slate-800">Invoices</h2>
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {rows.map(r => (
+              <li key={r.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-bold text-slate-900">{r.label}</div>
+                  <div className="text-[11px] text-slate-500">
+                    {r.createdAt.toLocaleDateString()}
+                    {r.couponCode && <span className="text-violet-600 font-bold"> · {r.couponCode}</span>}
+                    {r.stripePaymentIntentId && <span className="text-slate-400"> · {r.stripePaymentIntentId.slice(0, 12)}…</span>}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-black text-slate-900 tabular-nums">${(r.amountCents / 100).toFixed(2)}</div>
+                  <span className={`text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 ${
+                    r.paid ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-amber-200'
+                  }`}>
+                    {r.paid ? 'Paid' : 'Pending'}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const NotesTab: React.FC<{ activities: Activity[]; onAddNote: () => void }> = ({ activities, onAddNote }) => {
+  const notes = activities.filter(a => a.kind === 'note_added' && a.payload?.note);
+  return (
+    <div className="space-y-3">
+      <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-4 flex items-center justify-between">
+        <div className="text-sm text-slate-600">{notes.length} note{notes.length === 1 ? '' : 's'} on file.</div>
+        <button type="button" onClick={onAddNote} className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold">+ Add note</button>
+      </div>
+      {notes.length === 0 ? (
+        <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No notes yet — add one for the rest of the staff to see.</div>
+      ) : (
+        <ul className="space-y-2">
+          {notes.map(a => {
+            const ts = toDate(a.createdAt);
+            return (
+              <li key={a.id} className="bg-white rounded-2xl ring-1 ring-slate-200 p-4">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-1">
+                  <span className="font-bold text-slate-700">{a.actorName || 'Staff'}</span>
+                  <span>· {ts.toLocaleDateString()} {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                </div>
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">{a.payload?.note}</p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const CommunicationsTab: React.FC<{ activities: Activity[] }> = ({ activities }) => {
+  const comms = activities.filter(a => a.kind === 'email_sent');
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100">
+        <h2 className="font-bold text-slate-800">Emails sent</h2>
+      </div>
+      {comms.length === 0 ? (
+        <div className="p-6 text-center text-sm text-slate-500">No emails on record for this family.</div>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {comms.map(a => {
+            const ts = toDate(a.createdAt);
+            return (
+              <li key={a.id} className="px-4 py-3 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-bold text-slate-900 truncate">{a.payload?.subject || '(no subject)'}</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    {a.payload?.channel || 'email'}
+                    {a.parentEmail && <span> · to {a.parentEmail}</span>}
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-400 shrink-0 tabular-nums">{ts.toLocaleDateString()}</div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const ActivityTab: React.FC<{ activities: Activity[] }> = ({ activities }) => {
+  if (activities.length === 0) {
+    return <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No activity yet.</div>;
+  }
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100">
+        <h2 className="font-bold text-slate-800">All activity ({activities.length})</h2>
+      </div>
+      <ul className="divide-y divide-slate-100">
+        {activities.map(a => {
+          const ts = toDate(a.createdAt);
+          return (
+            <li key={a.id} className="px-4 py-3 flex items-start gap-3">
+              <div className={`shrink-0 w-2 h-2 rounded-full mt-2 ${activityTone(a.kind)}`} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-slate-800">
+                  <span className="font-bold">{a.actorName || 'System'}</span>{' '}
+                  <span className="text-slate-500">{activityVerb(a.kind)}</span>{' '}
+                  {a.payload?.playerName && <span className="font-bold">{a.payload.playerName}</span>}
+                  {a.payload?.teamName && <span className="font-bold">{a.payload.teamName}</span>}
+                  {a.payload?.title && <span className="font-bold">"{a.payload.title}"</span>}
+                  {a.payload?.formName && <span className="font-bold">{a.payload.formName}</span>}
+                </div>
+                {a.payload?.note && <div className="text-[11px] text-slate-500 mt-0.5 italic">"{a.payload.note}"</div>}
+                {a.payload?.subject && <div className="text-[11px] text-slate-500 mt-0.5">{a.payload.subject}</div>}
+              </div>
+              <div className="text-[10px] text-slate-400 shrink-0 mt-1 tabular-nums">{ts.toLocaleDateString()} · {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};
+
+const Mini: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div>
+    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</div>
+    <div className="text-sm font-bold text-slate-900 mt-0.5 truncate">{value}</div>
+  </div>
+);
+
+const Tile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="bg-white rounded-xl ring-1 ring-slate-200 px-4 py-3">
+    <div className="text-2xl font-black text-slate-900 leading-none tabular-nums">{value}</div>
+    <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mt-1">{label}</div>
+  </div>
+);
+
+function activityTone(kind: Activity['kind']): string {
+  if (kind === 'registration_paid' || kind === 'offer_accepted' || kind === 'player_promoted' || kind === 'task_completed' || kind === 'form_signed') return 'bg-emerald-500';
+  if (kind === 'offer_sent' || kind === 'tryout_invited') return 'bg-violet-500';
+  if (kind === 'offer_declined') return 'bg-rose-500';
+  if (kind.startsWith('coach_')) return 'bg-amber-500';
+  if (kind === 'email_sent') return 'bg-slate-400';
+  if (kind.startsWith('task_')) return 'bg-cyan-500';
+  return 'bg-slate-300';
+}
+
+function activityVerb(kind: Activity['kind']): string {
+  switch (kind) {
+    case 'registration_submitted': return 'registered';
+    case 'registration_paid': return 'paid for';
+    case 'tryout_invited': return 'was invited to tryout for';
+    case 'offer_sent': return 'sent an offer to';
+    case 'offer_accepted': return 'accepted the offer from';
+    case 'offer_declined': return 'declined the offer from';
+    case 'player_promoted': return 'joined';
+    case 'email_sent': return 'received an email';
+    case 'coupon_redeemed': return 'redeemed coupon';
+    case 'note_added': return 'noted on';
+    case 'coach_favorited': return 'favorited';
+    case 'coach_unfavorited': return 'unfavorited';
+    case 'coach_rated': return 'rated';
+    case 'coach_noted': return 'noted on';
+    case 'coach_held': return 'placed a hold on';
+    case 'coach_released': return 'released';
+    case 'form_signed': return 'signed';
+    case 'form_unsigned': return 'unsigned';
+    case 'task_created': return 'created task';
+    case 'task_assigned': return 'updated task';
+    case 'task_completed': return 'completed task';
+    case 'task_reopened': return 'reopened task';
+    default: return kind;
+  }
+}
 
 // ── Add-note modal ──────────────────────────────────────────────
 

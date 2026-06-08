@@ -4,6 +4,7 @@ import { collection, doc, getDocs, orderBy, query, serverTimestamp, updateDoc, w
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
+import { useClubId } from '../hooks/useClubId';
 import { logActivity } from '../utils/activityLog';
 import CreateTaskModal from '../components/club/CreateTaskModal';
 import type { Task } from '../types';
@@ -17,7 +18,7 @@ type StatusFilter = 'open' | 'in_progress' | 'done' | 'all';
 const Tasks: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData) || (userData?.role ? isCoach(userData.role) : false);
-  const clubId = (userData as any)?.clubId as string | undefined;
+  const { clubId } = useClubId();
   const myUid = userData?.uid || '';
 
   const [tasks, setTasks] = useState<Task[]>([]);

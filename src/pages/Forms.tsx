@@ -4,6 +4,7 @@ import { collection, doc, getDocs, orderBy, query, serverTimestamp, setDoc, upda
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
+import { useClubId } from '../hooks/useClubId';
 import type { FormDefinition } from '../types';
 
 // Manager for club-wide form definitions (Player Waiver, Medical
@@ -15,7 +16,7 @@ const AGE_GROUP_OPTIONS = ['U6', 'U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', '
 const Forms: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData);
-  const clubId = (userData as any)?.clubId as string | undefined;
+  const { clubId } = useClubId();
 
   const [forms, setForms] = useState<FormDefinition[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);

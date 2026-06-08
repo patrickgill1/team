@@ -4,6 +4,7 @@ import { collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setD
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
+import { useClubId } from '../hooks/useClubId';
 import type { RegistrationQuestion } from '../types';
 
 // Admin form builder. Lets a club admin define the extra questions that
@@ -23,7 +24,7 @@ const QUESTION_TYPES: Array<{ value: RegistrationQuestion['type']; label: string
 const RegistrationFormBuilder: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData);
-  const clubId = (userData as any)?.clubId as string | undefined;
+  const { clubId } = useClubId();
 
   const [seasons, setSeasons] = useState<any[]>([]);
   const [scope, setScope] = useState<string>('default');

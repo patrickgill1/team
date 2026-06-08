@@ -4,6 +4,7 @@ import { collection, doc, getDocs, orderBy, query, serverTimestamp, setDoc, upda
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
+import { useClubId } from '../hooks/useClubId';
 import type { OfferTemplate } from '../types';
 
 // Manager for reusable offer letter templates. Lives at
@@ -13,7 +14,7 @@ import type { OfferTemplate } from '../types';
 const OfferTemplates: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData) || (userData?.role ? isCoach(userData.role) : false);
-  const clubId = (userData as any)?.clubId as string | undefined;
+  const { clubId } = useClubId();
 
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [teams, setTeams] = useState<any[]>([]);

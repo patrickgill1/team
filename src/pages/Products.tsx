@@ -14,6 +14,7 @@ import {
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
+import { useClubId } from '../hooks/useClubId';
 import type { Coupon, PricingTier, Product } from '../types';
 import { quotePrice, selectActivePricingTier } from '../utils/pricing';
 
@@ -37,7 +38,7 @@ const PRODUCT_TYPES: Array<{ value: Product['type']; label: string }> = [
 const Products: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData);
-  const clubId = (userData as any)?.clubId as string | undefined;
+  const { clubId, loading: clubIdLoading } = useClubId();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
@@ -68,6 +69,17 @@ const Products: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">
         Club admins only.
+      </div>
+    );
+  }
+
+  if (!clubId && !clubIdLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm text-center">
+        <div className="max-w-md">
+          <p className="font-bold mb-1">Couldn't find your club.</p>
+          <p className="text-xs">Set <code className="text-[11px] bg-slate-100 px-1 rounded">clubId</code> on your user doc in Firestore, or join a team in this club first.</p>
+        </div>
       </div>
     );
   }

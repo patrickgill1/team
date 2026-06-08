@@ -8,6 +8,7 @@ import { logActivity } from '../utils/activityLog';
 import type { Registration } from '../types';
 import RegistrationBlastModal from '../components/club/RegistrationBlastModal';
 import BulkEmailModal from '../components/club/BulkEmailModal';
+import { useClubId } from '../hooks/useClubId';
 
 // Admin view of every registration in the club's pipeline. Filter by
 // season, age group, gender, status. Each row opens a panel for editing
@@ -30,7 +31,7 @@ const STATUS_TONES: Record<StatusKey, { bg: string; text: string; ring: string; 
 const Registrations: React.FC = () => {
   const { userData } = useAuth();
   const allowed = isClubAdmin(userData);
-  const clubId = (userData as any)?.clubId as string | undefined;
+  const { clubId } = useClubId();
 
   const [seasons, setSeasons] = useState<any[]>([]);
   const [seasonId, setSeasonId] = useState<string>('all');

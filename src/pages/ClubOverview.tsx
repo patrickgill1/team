@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
+import { useClubId } from '../hooks/useClubId';
 import { isClubAdmin, getPlayerPositionsLabel, formatDateTime } from '../utils/helpers';
 import Header from '../components/common/Header';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
@@ -947,43 +948,12 @@ function teamLabel(player: any, teams: any[]): string {
 // in worker/src/stripe.ts and need to be wired before the connect
 // button does anything live.
 const PaymentsTab: React.FC = () => {
-  const { userData } = useAuth();
-  // Stripe state lives on the user's currently-selected club doc. The
-  // user-doc clubId is the canonical source, but plenty of legacy
-  // admin users don't have it set even though they're isClubAdmin —
-  // we fall back through team.clubId then a single-club lookup so
-  // Connect Stripe doesn't silently die.
-  const [clubId, setClubId] = React.useState<string | undefined>((userData as any)?.clubId);
+  // Resolves clubId from userData.clubId → first team's clubId →
+  // any single club doc. See src/hooks/useClubId.ts for why.
+  const { clubId } = useClubId();
   const [club, setClub] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [connectFinishing, setConnectFinishing] = React.useState(false);
-
-  // Resolve clubId on mount if it isn't on the user doc directly.
-  // Strategy: try the user's first team's clubId, then fall back to
-  // any single club doc (single-tenant Fire FC reality).
-  React.useEffect(() => {
-    if (clubId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { collection, doc, getDoc, getDocs, limit, query } = await import('firebase/firestore');
-        const { db } = await import('../utils/firebase');
-        const teamIds: string[] = (userData as any)?.teamIds || ((userData as any)?.teamId ? [(userData as any).teamId] : []);
-        for (const tid of teamIds) {
-          const tSnap = await getDoc(doc(db, 'teams', tid));
-          const tClubId = tSnap.exists() ? (tSnap.data() as any)?.clubId : null;
-          if (tClubId && !cancelled) { setClubId(tClubId); return; }
-        }
-        // Last resort: grab any club doc. Fine while single-tenant;
-        // when goalkickr ships multi-club this needs a proper picker.
-        const clubsSnap = await getDocs(query(collection(db, 'clubs'), limit(1)));
-        if (!clubsSnap.empty && !cancelled) setClubId(clubsSnap.docs[0].id);
-      } catch (err) {
-        console.warn('clubId resolve failed', err);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [clubId, userData]);
 
   // Stripe Connect OAuth return — Stripe sends parents back to
   // /club?stripe_connected=1&state=clubId&code=AUTH_CODE. We post the

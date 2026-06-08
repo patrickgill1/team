@@ -4,6 +4,7 @@ import { doc, getDoc, serverTimestamp, updateDoc, addDoc, collection } from 'fir
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
 import { sendEmail, tplWelcomeAfterOffer } from '../utils/notify';
+import { streamIframeUrl } from '../utils/streamUpload';
 import Logo from '../components/common/Logo';
 import type { OfferLetter, Registration } from '../types';
 
@@ -245,6 +246,17 @@ const Offer: React.FC = () => {
         </div>
 
         <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-6 sm:p-8 space-y-5">
+          {offer.videoStreamUid && (
+            <div className="rounded-2xl overflow-hidden ring-1 ring-white/10 bg-black aspect-video">
+              <iframe
+                src={streamIframeUrl(offer.videoStreamUid)}
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                title="Welcome from coach"
+                className="w-full h-full"
+              />
+            </div>
+          )}
           <div className="whitespace-pre-wrap text-slate-200 leading-relaxed text-[15px]">
             {offer.message}
           </div>

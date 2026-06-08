@@ -5,6 +5,7 @@ import { sendEmail, type CoachSignature } from '../../utils/notify';
 import { logActivity } from '../../utils/activityLog';
 import { getShareOrigin } from '../../utils/origin';
 import type { OfferLetter, OfferTemplate, Registration } from '../../types';
+import { uploadToStream, streamIframeUrl } from '../../utils/streamUpload';
 
 // Coach-facing "Offer a roster spot" modal. Composes the offer text +
 // position + jersey, picks a team the coach owns, generates a unique
@@ -42,6 +43,9 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
   const [messageTouched, setMessageTouched] = useState(false);
   const [expiresDays, setExpiresDays] = useState<number>(7);
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
+  const [videoUid, setVideoUid] = useState<string>('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,6 +125,8 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
         offerJerseyNumber: jersey.trim() ? Number(jersey) : undefined,
         feeCents: feeCents > 0 ? Math.round(feeCents) : undefined,
         expiresAt,
+        videoStreamUid: videoUid || undefined,
+        videoStreamReady: videoUid ? true : undefined,
         status: 'sent',
         createdAt: serverTimestamp(),
       };
@@ -271,6 +277,50 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
               className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm leading-relaxed"
             />
           </label>
+
+          <div>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Welcome video (optional)</span>
+            {videoUid ? (
+              <div className="rounded-lg bg-emerald-50 ring-1 ring-emerald-200 p-3 flex items-center justify-between">
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-emerald-800">Video attached</div>
+                  <div className="text-[10px] text-emerald-700 truncate">Stream uid: {videoUid.slice(0, 16)}…</div>
+                </div>
+                <button type="button" onClick={() => setVideoUid('')} className="text-[11px] font-bold text-rose-600 hover:text-rose-800">
+                  Remove
+                </button>
+              </div>
+            ) : uploadingVideo ? (
+              <div className="rounded-lg bg-cyan-50 ring-1 ring-cyan-200 p-3">
+                <div className="text-xs text-cyan-800 font-bold mb-2">Uploading… {uploadProgress}%</div>
+                <div className="h-1.5 rounded-full bg-cyan-100 overflow-hidden">
+                  <div className="h-full bg-cyan-500" style={{ width: `${uploadProgress}%` }} />
+                </div>
+              </div>
+            ) : (
+              <label className="block">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingVideo(true); setUploadProgress(0); setError(null);
+                    try {
+                      const res = await uploadToStream(file, { name: `Offer video — ${registration.player.firstName}` }, (pct) => setUploadProgress(pct));
+                      setVideoUid(res.uid);
+                    } catch (err: any) {
+                      setError(err?.message || 'Upload failed.');
+                    } finally {
+                      setUploadingVideo(false);
+                    }
+                  }}
+                  className="block w-full text-xs text-slate-600 file:mr-2 file:px-3 file:py-1.5 file:rounded file:ring-1 file:ring-slate-200 file:bg-white file:text-slate-700 file:font-bold file:hover:bg-slate-50 file:cursor-pointer"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">A short clip from you welcoming the player. Renders on the offer page they open from the email.</p>
+              </label>
+            )}
+          </div>
 
           {error && (
             <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>

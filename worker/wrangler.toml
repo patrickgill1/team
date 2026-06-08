@@ -20,6 +20,8 @@ APP_ORIGIN = "https://firefc.app"
 # can't hit the worker.
 ALLOWED_ORIGINS = "https://firefc16.com,https://www.firefc16.com,https://firefc.app,https://www.firefc.app,http://localhost:3000,capacitor://localhost,ionic://localhost"
 
-# Weekly digest cron — Sundays at 22:00 UTC (Sunday 6pm ET).
+# Cron schedule:
+#   Sundays 22:00 UTC (Sun 4pm MDT)  — weekly digest + admin "needs attention" roundup
+#   Daily 16:00 UTC (10am MDT)       — registration drip nudges (parent funnel)
 [triggers]
-crons = ["0 22 * * SUN"]
+crons = ["0 22 * * SUN", "0 16 * * *"]

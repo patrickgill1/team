@@ -750,6 +750,12 @@ export interface OfferLetter {
   /** Optional response deadline. After this, the public page shows
    *  "expired" and rejects accept/decline writes. */
   expiresAt?: Date;
+  /** Optional coach welcome video — Cloudflare Stream uid. Rendered
+   *  at the top of the public /offer/:id page so the family hears
+   *  directly from their would-be coach before deciding. Also
+   *  surfaced as a link in the welcome email after acceptance. */
+  videoStreamUid?: string;
+  videoStreamReady?: boolean;
   status: 'sent' | 'accepted' | 'declined' | 'expired' | 'rescinded';
   /** Parent's response. */
   respondedAt?: Date;

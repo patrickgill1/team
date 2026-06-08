@@ -12,6 +12,8 @@
 
 import { sendPush } from './fcm';
 import { runWeeklyDigest } from './digest';
+import { runRegistrationDrips } from './drips';
+import { runAdminWeeklyRoundup } from './adminDigest';
 import {
   handleConnectStart,
   handleConnectFinish,
@@ -389,10 +391,29 @@ export default {
     return json({ ok: false, error: 'not-found' }, 404, cors);
   },
 
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    // Weekly digest — enabled via wrangler.toml [triggers] crons.
-    ctx.waitUntil(
-      runWeeklyDigest(env).then(r => console.log('[cron] weekly digest', JSON.stringify(r)))
-    );
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    // Two cron schedules per wrangler.toml — route by the cron string:
+    //   "0 22 * * SUN" — weekly digest (Sun 4pm MDT)
+    //   "0 16 * * *"   — daily registration drips (10am MDT)
+    const cron = event.cron || '';
+    if (cron === '0 22 * * SUN') {
+      ctx.waitUntil(
+        runWeeklyDigest(env).then(r => console.log('[cron] weekly digest', JSON.stringify(r)))
+      );
+      ctx.waitUntil(
+        runAdminWeeklyRoundup(env).then(r => console.log('[cron] admin roundup', JSON.stringify(r)))
+      );
+    } else if (cron === '0 16 * * *') {
+      ctx.waitUntil(
+        runRegistrationDrips(env).then(r => console.log('[cron] registration drips', JSON.stringify(r)))
+      );
+    } else {
+      // Unknown cron — run digest as a safe default so we don't lose
+      // the weekly send if Cloudflare hands us a slightly different
+      // string format.
+      ctx.waitUntil(
+        runWeeklyDigest(env).then(r => console.log('[cron] (unknown) digest', JSON.stringify(r)))
+      );
+    }
   },
 };

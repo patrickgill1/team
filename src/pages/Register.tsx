@@ -31,20 +31,24 @@ interface ParentDraft {
 }
 
 const Register: React.FC = () => {
+  // Auth gate split — Register itself has ONE hook (useAuth) and
+  // decides which sub-component to render. The actual form is
+  // RegisterForm below, and ALL its hooks run together every render
+  // it's mounted. This avoids the "rendered fewer hooks than expected"
+  // (React #310) we hit when the conditional return sat in the same
+  // component as 20+ other hooks declared below it.
+  const { currentUser } = useAuth();
+  if (!currentUser) {
+    return <RegisterAuthGate onAuthed={() => { /* AuthContext re-render flips us into the form */ }} />;
+  }
+  return <RegisterForm />;
+};
+
+const RegisterForm: React.FC = () => {
   const [searchParams] = useSearchParams();
   const returnPlayerId = searchParams.get('return') || null;
   const seasonIdParam = searchParams.get('season') || null;
   const { currentUser, userData } = useAuth();
-  const [authBumpKey, setAuthBumpKey] = useState(0);
-  void authBumpKey; // forces a re-render after the gate hands off
-
-  // Auth gate: a parent must have a Fire FC account before registering.
-  // Returning families sign in; first-timers sign up. Once authed they
-  // can fill the form and we'll create a real Player at submit time
-  // (instead of a Registration snapshot that gets promoted later).
-  if (!currentUser) {
-    return <RegisterAuthGate onAuthed={() => setAuthBumpKey(k => k + 1)} />;
-  }
 
   // Resolved season — either explicit (from email link) or the most
   // recent season with registrationOpen === true.

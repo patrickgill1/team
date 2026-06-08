@@ -30,19 +30,24 @@ interface Team {
   name: string;
 }
 
+type InviteKind = 'parent' | 'staff';
+type StaffRole = 'head_coach' | 'assistant_coach' | 'team_manager';
+
 interface Props {
   clubTeams: Team[];
   clubPlayers: Player[];
   currentUid: string;
   onClose: () => void;
+  /** Pin the modal to a specific player. Used from PersonAdmin's
+   *  "Add Guardian" action — preselects the player and locks the
+   *  invite kind to 'parent'. */
+  defaultPlayerId?: string;
+  defaultKind?: InviteKind;
 }
 
-type InviteKind = 'parent' | 'staff';
-type StaffRole = 'head_coach' | 'assistant_coach' | 'team_manager';
-
-const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid, onClose }) => {
-  const [kind, setKind] = useState<InviteKind>('parent');
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
+const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid, onClose, defaultPlayerId, defaultKind }) => {
+  const [kind, setKind] = useState<InviteKind>(defaultKind || 'parent');
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>(defaultPlayerId || '');
   const [selectedTeamId, setSelectedTeamId] = useState<string>(clubTeams[0]?.id || '');
   const [staffRole, setStaffRole] = useState<StaffRole>('assistant_coach');
   const [playerQuery, setPlayerQuery] = useState('');

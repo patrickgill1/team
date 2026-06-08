@@ -18,6 +18,9 @@ import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
 import CreateTaskModal from '../components/club/CreateTaskModal';
+import InvitePersonModal from '../components/people/InvitePersonModal';
+import { useFirestore } from '../hooks/useFirestore';
+import { sendEmail } from '../utils/notify';
 import type { Activity, FormDefinition, FormSignature, Registration } from '../types';
 
 // Club-admin CRM view for a single player. Pulls together team
@@ -67,6 +70,10 @@ const PersonAdmin: React.FC = () => {
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [signFormId, setSignFormId] = useState<string | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [inviteGuardianOpen, setInviteGuardianOpen] = useState(false);
+  const [paymentLink, setPaymentLink] = useState<{ url: string; registrationId: string } | null>(null);
+  const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
+  const { getOrCreateDMThread } = useFirestore() as any;
 
   // Load everything keyed off the playerId.
   const reload = async () => {
@@ -321,12 +328,52 @@ const PersonAdmin: React.FC = () => {
             forms={applicableForms}
             formSigs={formSigs}
             onAssignTeam={() => setTransferOpen(true)}
-            onAddGuardian={() => alert('Guardian invite — wires to the existing People invite flow. Coming next batch.')}
-            onMessage={() => alert('Direct message thread — coming next batch.')}
+            onAddGuardian={() => setInviteGuardianOpen(true)}
+            onMessage={async () => {
+              const primary = guardians.find(g => g.uid);
+              if (!primary?.uid) { alert('No guardian with a Fire FC account to DM yet. Use Add Guardian first.'); return; }
+              if (!userData?.uid) return;
+              try {
+                const threadId = await getOrCreateDMThread({
+                  teamId: player.teamId || teams[0]?.id || '',
+                  me: { uid: userData.uid, name: userData.name || 'Admin' },
+                  other: { uid: primary.uid, name: primary.name || 'Guardian' },
+                });
+                navigate(`/chat?thread=${threadId}`);
+              } catch (err) {
+                console.warn('DM open failed', err);
+                alert("Couldn't open the DM thread — try from the chat page directly.");
+              }
+            }}
             onAddNote={() => setAddNoteOpen(true)}
             onCreateTask={() => setCreateTaskOpen(true)}
             onSignForm={(id) => setSignFormId(id)}
             onManageForms={() => navigate('/club/forms')}
+            onGeneratePaymentLink={async () => {
+              if (!latestRegistration || (payments?.balanceCents ?? 0) <= 0) return;
+              setPaymentLinkLoading(true);
+              try {
+                const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
+                const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
+                if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
+                const r = await fetch(`${NOTIFY_URL}/stripe/registration-checkout`, {
+                  method: 'POST',
+                  headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
+                  body: JSON.stringify({ registrationId: latestRegistration.id }),
+                });
+                const data: any = await r.json().catch(() => ({}));
+                if (!r.ok) {
+                  alert(data?.error === 'club-not-stripe-ready'
+                    ? 'Club Stripe Connect setup not complete yet. See worker/README.md §6.'
+                    : data?.error || 'Could not generate link.');
+                  return;
+                }
+                setPaymentLink({ url: data.url, registrationId: latestRegistration.id });
+              } finally {
+                setPaymentLinkLoading(false);
+              }
+            }}
+            paymentLinkLoading={paymentLinkLoading}
           />
         )}
 
@@ -385,6 +432,30 @@ const PersonAdmin: React.FC = () => {
           onCreated={() => { setCreateTaskOpen(false); void reload(); }}
         />
       )}
+
+      {inviteGuardianOpen && userData?.uid && (
+        <InvitePersonModal
+          clubTeams={teams as any}
+          clubPlayers={[player as any]}
+          currentUid={userData.uid}
+          defaultPlayerId={player.id}
+          defaultKind="parent"
+          onClose={() => { setInviteGuardianOpen(false); void reload(); }}
+        />
+      )}
+
+      {paymentLink && (
+        <PaymentLinkModal
+          link={paymentLink.url}
+          registrationId={paymentLink.registrationId}
+          parentEmail={guardians[0]?.email || latestRegistration?.parents?.[0]?.email}
+          playerName={player.name}
+          actorUid={userData?.uid}
+          actorName={userData?.name}
+          clubId={player.clubId}
+          onClose={() => setPaymentLink(null)}
+        />
+      )}
     </div>
   );
 };
@@ -407,9 +478,11 @@ interface OverviewProps {
   onCreateTask: () => void;
   onSignForm: (formDefinitionId: string) => void;
   onManageForms: () => void;
+  onGeneratePaymentLink: () => void;
+  paymentLinkLoading: boolean;
 }
 
-const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms }) => {
+const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms, onGeneratePaymentLink, paymentLinkLoading }) => {
   const primaryTeamId = player.teamId || teams[0]?.id;
   return (
     <div className="space-y-4">
@@ -521,10 +594,11 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
                 {payments.balanceCents > 0 && (
                   <button
                     type="button"
-                    onClick={() => alert('Stripe payment link generation — wires to /stripe/registration-checkout once Connect is live.')}
-                    className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold"
+                    disabled={paymentLinkLoading}
+                    onClick={onGeneratePaymentLink}
+                    className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold"
                   >
-                    View & Pay
+                    {paymentLinkLoading ? 'Working…' : 'View & Pay'}
                   </button>
                 )}
               </div>
@@ -1058,6 +1132,99 @@ const SignFormModal: React.FC<{
           <button type="button" disabled={!signedByName.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Record signature'}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Payment-link modal ──────────────────────────────────────────
+
+const PaymentLinkModal: React.FC<{
+  link: string;
+  registrationId: string;
+  parentEmail?: string;
+  playerName: string;
+  actorUid?: string;
+  actorName?: string;
+  clubId?: string;
+  onClose: () => void;
+}> = ({ link, registrationId, parentEmail, playerName, actorUid, actorName, clubId, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  const [emailing, setEmailing] = useState(false);
+  const [emailed, setEmailed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {/* ignore */}
+  };
+
+  const handleEmail = async () => {
+    if (!parentEmail) return;
+    setEmailing(true);
+    setError(null);
+    try {
+      const html = `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;background:#f0f9ff;">
+          <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;">
+            <div style="padding:20px;text-align:center;background:#0f172a;color:#fff;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;font-size:16px;border-bottom:3px solid #06b6d4;">Fire FC</div>
+            <div style="padding:24px;color:#0f172a;line-height:1.6;font-size:15px;">
+              <p style="margin:0 0 12px;color:#475569;">For <b>${playerName}</b></p>
+              <p>Your registration balance is ready to settle. Tap below to pay securely with a card.</p>
+              <p style="margin:16px 0;"><a href="${link}" style="display:inline-block;background:#06b6d4;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;">Pay now</a></p>
+              <p style="font-size:11px;color:#94a3b8;">Sent by ${actorName || 'the club'}.</p>
+            </div>
+          </div>
+        </div>`;
+      const ok = await sendEmail({ to: parentEmail, subject: `Payment link for ${playerName}`, html });
+      if (!ok) throw new Error('Send failed');
+      if (clubId) {
+        await logActivity({
+          clubId,
+          kind: 'email_sent',
+          registrationId,
+          parentEmail,
+          actorUid,
+          actorName,
+          payload: { subject: `Payment link for ${playerName}`, channel: 'payment_link' },
+        });
+      }
+      setEmailed(true);
+    } catch (err: any) {
+      setError(err?.message || 'Send failed.');
+    } finally {
+      setEmailing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-black text-fire-950">Payment link</h2>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="text-xs text-slate-600">One-time Stripe Checkout URL for {playerName}'s outstanding balance. Send it to the parent or copy and share however you like.</div>
+          <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200 px-3 py-2 text-[11px] text-slate-700 font-mono break-all">{link}</div>
+          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleCopy} className="flex-1 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold">
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-3 py-2 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-cyan-400 text-slate-800 text-sm font-bold">
+              Open
+            </a>
+          </div>
+          {parentEmail && (
+            <button type="button" disabled={emailing || emailed} onClick={handleEmail} className="w-full px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
+              {emailed ? `Sent to ${parentEmail}` : emailing ? 'Sending…' : `Email to ${parentEmail}`}
+            </button>
+          )}
         </div>
       </div>
     </div>

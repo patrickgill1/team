@@ -259,6 +259,43 @@ export async function sendPushToUsers(
  * Mirrors getParentEmailsForPlayer + sendEmail, but for FCM push. Parents
  * who haven't installed the app (no fcmTokens) silently get nothing.
  */
+/** Push helper for the Club Module's registration funnel — finds the
+ *  user uids that map to a set of parent emails so we can send a push
+ *  on offer_sent / registration_paid / tryout_invited etc. Some emails
+ *  won't match a Fire FC account (cold registrations before signup);
+ *  those silently get no push and the email is the fallback. */
+export async function findUserUidsByEmails(emails: string[]): Promise<string[]> {
+  const lowered = Array.from(new Set(emails.map(e => e?.toLowerCase().trim()).filter(Boolean)));
+  if (lowered.length === 0) return [];
+  const uids: string[] = [];
+  // Firestore caps `in` queries at 30 — chunk to be safe.
+  for (let i = 0; i < lowered.length; i += 30) {
+    const chunk = lowered.slice(i, i + 30);
+    try {
+      const snap = await getDocs(query(collection(db, 'users'), where('email', 'in', chunk)));
+      snap.forEach(d => {
+        const u: any = d.data();
+        if (u.uid) uids.push(u.uid);
+        else uids.push(d.id);
+      });
+    } catch (err) {
+      console.warn('findUserUidsByEmails query failed', err);
+    }
+  }
+  return Array.from(new Set(uids));
+}
+
+/** Convenience: send a push to the parents of a registration / offer
+ *  by parent email. No-ops if no parent has a Fire FC account yet. */
+export async function sendPushToParentEmails(
+  emails: string[],
+  msg: { title: string; body: string; url?: string }
+): Promise<boolean> {
+  const uids = await findUserUidsByEmails(emails);
+  if (uids.length === 0) return false;
+  return sendPushToUsers(uids, msg, { pushPrefKey: 'broadcast' });
+}
+
 export async function sendPushToPlayerParents(
   playerId: string,
   msg: { title: string; body: string; url?: string; path?: string },

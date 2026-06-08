@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { collection, doc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
-import { sendEmail, type CoachSignature } from '../../utils/notify';
+import { sendEmail, sendPushToParentEmails, type CoachSignature } from '../../utils/notify';
 import { logActivity } from '../../utils/activityLog';
 import { getShareOrigin } from '../../utils/origin';
 import type { OfferLetter, OfferTemplate, Registration } from '../../types';
@@ -163,6 +163,21 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
           </div>
         </div>`;
       await sendEmail({ to: parentEmail, subject, html });
+
+      // Push — most important transition in the whole funnel. The
+      // family who hooked up a Fire FC account sees this on their
+      // lock screen the moment the offer goes out.
+      const allParentEmails = (registration.parents || [])
+        .map(p => p.email)
+        .filter(Boolean) as string[];
+      void sendPushToParentEmails(
+        allParentEmails.length > 0 ? allParentEmails : [parentEmail],
+        {
+          title: `${selectedTeam.name} just offered ${fullName} a spot!`,
+          body: 'Tap to open the offer and respond.',
+          url: `/offer/${id}`,
+        }
+      );
 
       // Activity log.
       await logActivity({

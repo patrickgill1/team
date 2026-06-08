@@ -5,6 +5,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
+import { sendPushToParentEmails } from '../utils/notify';
 import type { Registration } from '../types';
 import RegistrationBlastModal from '../components/club/RegistrationBlastModal';
 import BulkEmailModal from '../components/club/BulkEmailModal';
@@ -148,6 +149,7 @@ const Registrations: React.FC = () => {
             actorName: userData?.name,
             payload: { fromStatus: r.status, toStatus: next, bulk: true },
           });
+          void notifyFunnelTransition(r, next);
         } catch (err) {
           console.warn('bulk status update failed for', id, err);
         }
@@ -191,6 +193,10 @@ const Registrations: React.FC = () => {
         actorName: userData?.name,
         payload: { fromStatus: r.status, toStatus: next },
       });
+      // Push notify the family on meaningful status transitions. Parents
+      // who never made an account silently get nothing — the email-based
+      // drips already cover that case.
+      void notifyFunnelTransition(r, next);
       void reload();
     } catch (err) {
       console.error('status update failed', err);
@@ -493,5 +499,38 @@ const Tile: React.FC<{ label: string; value: number; tone: 'amber' | 'emerald' |
     </div>
   );
 };
+
+// Push notify the family of a meaningful funnel transition. Quiet-fails
+// (e.g. parent never made an account) so it never blocks the admin
+// action. Only fires for transitions the family cares about — not
+// every admin tweak.
+async function notifyFunnelTransition(r: Registration, next: StatusKey): Promise<void> {
+  const parentEmails = (r.parents || []).map(p => p.email).filter(Boolean) as string[];
+  if (parentEmails.length === 0) return;
+  const playerName = `${r.player?.firstName || ''} ${r.player?.lastName || ''}`.trim() || 'Your kid';
+  let msg: { title: string; body: string; url?: string } | null = null;
+  switch (next) {
+    case 'paid':
+      msg = {
+        title: 'Registration confirmed',
+        body: `${playerName} is in the pool. Coaches review weekly — you'll hear from us.`,
+        url: '/dashboard',
+      };
+      break;
+    case 'tryout_invited':
+      msg = {
+        title: `${playerName} is invited to tryouts!`,
+        body: 'Check your email for date, time, and field details.',
+        url: '/dashboard',
+      };
+      break;
+    // offer_sent, accepted, declined, withdrawn fire from their own
+    // surfaces (SendOfferModal, Offer.tsx) — those have richer context.
+    default:
+      return;
+  }
+  if (!msg) return;
+  void sendPushToParentEmails(parentEmails, msg);
+}
 
 export default Registrations;

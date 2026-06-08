@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, serverTimestamp, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
-import { sendEmail, tplWelcomeAfterOffer } from '../utils/notify';
+import { sendEmail, sendPushToParentEmails, tplWelcomeAfterOffer } from '../utils/notify';
 import { streamIframeUrl } from '../utils/streamUpload';
 import Logo from '../components/common/Logo';
 import type { OfferLetter, Registration } from '../types';
@@ -147,6 +147,14 @@ const Offer: React.FC = () => {
           coachName: offer.coachName,
         });
         void sendEmail({ to: offer.parentEmail, subject, html });
+        // Welcome push — celebrates the moment + nudges them back into
+        // the app, which now flips from "in the pool" to the rostered
+        // team view.
+        void sendPushToParentEmails([offer.parentEmail], {
+          title: `Welcome to ${offer.teamName}!`,
+          body: `${offer.playerName} is officially on the team. Tap to open Fire FC.`,
+          url: '/dashboard',
+        });
         await logActivity({
           clubId: offer.clubId,
           kind: 'email_sent',

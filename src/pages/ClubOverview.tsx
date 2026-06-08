@@ -277,6 +277,30 @@ const ClubOverview: React.FC = () => {
             </div>
             <span className="text-slate-400 group-hover:text-emerald-500">→</span>
           </button>
+          <button
+            onClick={() => navigate('/club/forms')}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group flex items-center gap-3"
+            title="Waivers, releases, consents"
+          >
+            <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <div className="flex-1">
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Forms</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Waivers · releases · consents</div>
+            </div>
+            <span className="text-slate-400 group-hover:text-cyan-500">→</span>
+          </button>
+          <button
+            onClick={() => navigate('/club/tasks')}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
+            title="Admin todos and follow-ups"
+          >
+            <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <div className="flex-1">
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Tasks</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Admin todos · assignments · due dates</div>
+            </div>
+            <span className="text-slate-400 group-hover:text-rose-500">→</span>
+          </button>
         </div>
 
         {/* Tabs — overview/calendar/stats. Players + Coaches tabs are

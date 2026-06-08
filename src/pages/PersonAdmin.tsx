@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
+import CreateTaskModal from '../components/club/CreateTaskModal';
 import type { Activity, FormDefinition, FormSignature, Registration } from '../types';
 
 // Club-admin CRM view for a single player. Pulls together team
@@ -65,6 +66,7 @@ const PersonAdmin: React.FC = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [addNoteOpen, setAddNoteOpen] = useState(false);
   const [signFormId, setSignFormId] = useState<string | null>(null);
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
 
   // Load everything keyed off the playerId.
   const reload = async () => {
@@ -322,7 +324,7 @@ const PersonAdmin: React.FC = () => {
             onAddGuardian={() => alert('Guardian invite — wires to the existing People invite flow. Coming next batch.')}
             onMessage={() => alert('Direct message thread — coming next batch.')}
             onAddNote={() => setAddNoteOpen(true)}
-            onCreateTask={() => alert('Tasks system — coming in batch 3.')}
+            onCreateTask={() => setCreateTaskOpen(true)}
             onSignForm={(id) => setSignFormId(id)}
             onManageForms={() => navigate('/club/forms')}
           />
@@ -374,6 +376,18 @@ const PersonAdmin: React.FC = () => {
           onSaved={() => { setSignFormId(null); void reload(); }}
           actorUid={userData?.uid}
           actorName={userData?.name}
+        />
+      )}
+
+      {createTaskOpen && player.clubId && userData?.uid && (
+        <CreateTaskModal
+          clubId={player.clubId}
+          actorUid={userData.uid}
+          actorName={userData.name || 'Admin'}
+          relatedPlayer={{ id: player.id, name: player.name }}
+          relatedTeamId={player.teamId}
+          onClose={() => setCreateTaskOpen(false)}
+          onCreated={() => { setCreateTaskOpen(false); void reload(); }}
         />
       )}
     </div>

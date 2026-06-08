@@ -478,6 +478,37 @@ export interface Registration {
   updatedAt?: Date;
 }
 
+/** Lightweight task / todo for club admin work. Distinct from
+ *  HelpdeskTicket (which is a support/triage ticket from a parent or
+ *  coach) — Tasks are admin-side action items: "call this parent,"
+ *  "follow up on Photo Consent," "order trophy for U10 banquet."
+ *  Optional relatedPlayerId / relatedTeamId lets tasks surface on
+ *  player/team views. */
+export interface Task {
+  id: string;
+  clubId: string;
+  title: string;
+  description?: string;
+  status: 'open' | 'in_progress' | 'done';
+  priority: 'low' | 'normal' | 'high';
+  /** Whom this is about. Surfaces the task on the PersonAdmin /
+   *  TeamManagement views. */
+  relatedPlayerId?: string;
+  relatedPlayerName?: string;
+  relatedTeamId?: string;
+  /** Whom this is assigned to. Null = unassigned. */
+  assigneeUid?: string | null;
+  assigneeName?: string;
+  /** Optional deadline. UI sorts overdue tasks to the top. */
+  dueDate?: Date | null;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  completedAt?: Date;
+  completedBy?: string;
+}
+
 /** Admin-defined waiver / release / consent form. One doc per template
  *  (Player Waiver, Medical Release, Photo Consent, Uniform Order…).
  *  Per-player signed state lives in a separate `form_signatures`
@@ -769,7 +800,11 @@ export interface Activity {
     | 'coach_held'
     | 'coach_released'
     | 'form_signed'
-    | 'form_unsigned';
+    | 'form_unsigned'
+    | 'task_created'
+    | 'task_assigned'
+    | 'task_completed'
+    | 'task_reopened';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-
    *  centric for family timeline, etc. */

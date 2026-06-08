@@ -22,6 +22,8 @@ import CreateTaskModal from '../components/club/CreateTaskModal';
 import InvitePersonModal from '../components/people/InvitePersonModal';
 import RefundModal from '../components/club/RefundModal';
 import SplitInvoiceModal from '../components/club/SplitInvoiceModal';
+import MedicalEditModal from '../components/club/MedicalEditModal';
+import { deriveMedicalAlerts, type MedicalAlert } from '../utils/medical';
 import { useFirestore } from '../hooks/useFirestore';
 import { sendEmail } from '../utils/notify';
 import type { Activity, FormDefinition, FormSignature, Installment, Registration } from '../types';
@@ -78,6 +80,7 @@ const PersonAdmin: React.FC = () => {
   const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
   const [refundFor, setRefundFor] = useState<Registration | null>(null);
   const [splitFor, setSplitFor] = useState<Registration | null>(null);
+  const [medicalOpen, setMedicalOpen] = useState(false);
   const { getOrCreateDMThread } = useFirestore() as any;
 
   // Load everything keyed off the playerId.
@@ -213,6 +216,11 @@ const PersonAdmin: React.FC = () => {
     });
   }, [formDefs, primaryTeam, latestRegistration]);
 
+  // Critical / warning / info alerts derived from the medical profile.
+  // The critical + warning rows render in a banner above the player
+  // header so coaches see them at the top of every view.
+  const medicalAlerts = useMemo<MedicalAlert[]>(() => deriveMedicalAlerts(player?.medical), [player]);
+
   // One boolean a coach can scan before tomorrow's practice. Combines
   // team assignment + payment state + required-form signatures.
   const eligibility = useMemo<EligibilityResult>(() => computeEligibility({
@@ -309,6 +317,12 @@ const PersonAdmin: React.FC = () => {
         </div>
       </section>
 
+      {/* Critical medical alerts — render first so coaches see them
+          on every tab, not just Overview. */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4">
+        <MedicalAlertsBanner alerts={medicalAlerts} />
+      </div>
+
       {/* Player ID card */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-4">
         <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-5 flex items-start gap-5">
@@ -390,6 +404,8 @@ const PersonAdmin: React.FC = () => {
             }}
             paymentLinkLoading={paymentLinkLoading}
             eligibility={eligibility}
+            onOpenMedical={() => setMedicalOpen(true)}
+            medicalAlerts={medicalAlerts}
           />
         )}
 
@@ -489,6 +505,16 @@ const PersonAdmin: React.FC = () => {
         />
       )}
 
+      {medicalOpen && userData?.uid && (
+        <MedicalEditModal
+          player={player}
+          actorUid={userData.uid}
+          actorName={userData.name || 'Admin'}
+          onClose={() => setMedicalOpen(false)}
+          onSaved={() => { setMedicalOpen(false); void reload(); }}
+        />
+      )}
+
       {paymentLink && (
         <PaymentLinkModal
           link={paymentLink.url}
@@ -526,14 +552,19 @@ interface OverviewProps {
   onGeneratePaymentLink: () => void;
   paymentLinkLoading: boolean;
   eligibility: EligibilityResult;
+  onOpenMedical: () => void;
+  medicalAlerts: MedicalAlert[];
 }
 
-const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms, onGeneratePaymentLink, paymentLinkLoading, eligibility }) => {
+const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms, onGeneratePaymentLink, paymentLinkLoading, eligibility, onOpenMedical, medicalAlerts }) => {
   const primaryTeamId = player.teamId || teams[0]?.id;
   return (
     <div className="space-y-4">
       {/* Eligibility — the one thing a coach scans before the next practice. */}
       <EligibilityCard result={eligibility} />
+
+      {/* Medical — full-width because critical alerts deserve room. */}
+      <MedicalSummaryCard player={player} alerts={medicalAlerts} onEdit={onOpenMedical} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Team Assignments */}
@@ -734,6 +765,127 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
           <QuickAction icon={<UserPlusIcon />} label="Assign Team" onClick={onAssignTeam} />
           <QuickAction icon={<TaskIcon />} label="Create Task" onClick={onCreateTask} />
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Medical bits ─────────────────────────────────────────────
+
+const MedicalAlertsBanner: React.FC<{ alerts: MedicalAlert[] }> = ({ alerts }) => {
+  // Show critical + warning only at the top of every tab. Info-level
+  // (active meds, expired physical) lives on the Overview card.
+  const surfaced = alerts.filter(a => a.level === 'critical' || a.level === 'warning');
+  if (surfaced.length === 0) return null;
+  return (
+    <div className="mb-3 space-y-1.5">
+      {surfaced.map((a, i) => {
+        const isCrit = a.level === 'critical';
+        return (
+          <div
+            key={i}
+            className={`rounded-xl ring-1 p-3 flex items-start gap-3 ${
+              isCrit ? 'bg-rose-50 ring-rose-300' : 'bg-amber-50 ring-amber-300'
+            }`}
+          >
+            <span className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isCrit ? 'bg-rose-500' : 'bg-amber-500'}`}>
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              </svg>
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className={`text-sm font-bold ${isCrit ? 'text-rose-900' : 'text-amber-900'}`}>{a.title}</div>
+              {a.detail && <div className={`text-[11px] mt-0.5 ${isCrit ? 'text-rose-800' : 'text-amber-800'}`}>{a.detail}</div>}
+            </div>
+            <span className={`text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 shrink-0 ${isCrit ? 'bg-white text-rose-700 ring-rose-300' : 'bg-white text-amber-800 ring-amber-300'}`}>
+              {isCrit ? 'Critical' : 'Warning'}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const MedicalSummaryCard: React.FC<{ player: any; alerts: MedicalAlert[]; onEdit: () => void }> = ({ player, alerts, onEdit }) => {
+  const m = player?.medical;
+  const allergyCount = m?.allergies?.length || 0;
+  const conditionCount = m?.conditions?.length || 0;
+  const medCount = m?.medications?.length || 0;
+  const concussionCount = m?.concussions?.length || 0;
+  const hasEpiPen = (m?.allergies || []).some((a: any) => a.hasEpiPen);
+  const activeConcussion = (m?.concussions || []).find((c: any) => !c.clearedToReturnAt);
+  const lastPhysical = m?.lastPhysicalAt;
+  const isEmpty = !m && !player?.medicalInfo;
+
+  const critCount = alerts.filter(a => a.level === 'critical').length;
+  const warnCount = alerts.filter(a => a.level === 'warning').length;
+
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="w-7 h-7 rounded bg-rose-50 ring-1 ring-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg>
+          </span>
+          <h2 className="font-bold text-slate-800">Medical</h2>
+          {hasEpiPen && (
+            <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-rose-500 text-white">
+              EpiPen
+            </span>
+          )}
+          {activeConcussion && (
+            <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-rose-500 text-white">
+              Concussion · not cleared
+            </span>
+          )}
+        </div>
+        <button type="button" onClick={onEdit} className="text-xs font-bold text-cyan-700 hover:text-cyan-900">
+          {isEmpty ? '+ Add medical' : 'Edit'}
+        </button>
+      </div>
+      <div className="p-4">
+        {isEmpty ? (
+          <p className="text-[11px] text-slate-500">
+            No medical profile on file. Add at minimum an allergies row ("No known allergies" works) + a primary-care contact.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              <Tile label="Allergies" value={String(allergyCount)} />
+              <Tile label="Conditions" value={String(conditionCount)} />
+              <Tile label="Meds" value={String(medCount)} />
+              <Tile label="Concussions" value={String(concussionCount)} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-600">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Last physical</div>
+                <div className="font-bold text-slate-800">{lastPhysical ? toDate(lastPhysical).toLocaleDateString() : '—'}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Primary care</div>
+                <div className="font-bold text-slate-800 truncate">{m?.primaryCare?.name || '—'}{m?.primaryCare?.phone ? ` · ${m.primaryCare.phone}` : ''}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Insurance</div>
+                <div className="font-bold text-slate-800 truncate">{m?.insurance?.carrier || '—'}</div>
+              </div>
+            </div>
+            {(critCount > 0 || warnCount > 0) && (
+              <div className="mt-3 text-[11px] text-slate-500">
+                {critCount > 0 && <span className="text-rose-700 font-bold">{critCount} critical alert{critCount === 1 ? '' : 's'}</span>}
+                {critCount > 0 && warnCount > 0 && ' · '}
+                {warnCount > 0 && <span className="text-amber-700 font-bold">{warnCount} warning{warnCount === 1 ? '' : 's'}</span>}
+              </div>
+            )}
+            {player?.medicalInfo && !m && (
+              <div className="mt-3 rounded-lg bg-amber-50 ring-1 ring-amber-300 px-3 py-2 text-[11px] text-amber-900">
+                Legacy medical notes on file. Open Edit to fold them into structured fields.
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

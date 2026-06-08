@@ -266,6 +266,72 @@ export interface HelpdeskComment {
   createdAt: Date;
 }
 
+/** Structured medical profile for a player. Replaces (but doesn't
+ *  delete) the legacy free-text `Player.medicalInfo` field — the
+ *  PersonAdmin medical editor surfaces the old string as a "legacy
+ *  notes" field the admin can read and then fold into structured
+ *  rows. Critical alerts (severe allergies, EpiPen, active EAP,
+ *  recent concussion w/o clearance) drive the red banner at the top
+ *  of PersonAdmin. */
+export interface MedicalProfile {
+  /** Each row: substance, severity, EpiPen flag, notes. EpiPen on
+   *  ANY row triggers the critical-alerts banner. */
+  allergies?: Array<{
+    id: string;
+    substance: string;
+    severity?: 'mild' | 'moderate' | 'severe' | 'life-threatening';
+    hasEpiPen?: boolean;
+    notes?: string;
+  }>;
+  /** Each row: condition name + optional severity + EAP text (what
+   *  to do in an episode). EAP presence triggers the alert banner. */
+  conditions?: Array<{
+    id: string;
+    name: string;
+    severity?: 'mild' | 'moderate' | 'severe';
+    /** Emergency action plan — free text the coach reads during an
+     *  episode. e.g. "Inhaler in left pocket of backpack. If two
+     *  doses don't help, call 911." */
+    eap?: string;
+    notes?: string;
+  }>;
+  /** Active medications the kid takes. Captured so coaches know what
+   *  to expect (e.g. behavioral changes if a dose is missed). */
+  medications?: Array<{
+    id: string;
+    name: string;
+    dosage?: string;
+    schedule?: string;
+    notes?: string;
+  }>;
+  /** Concussion log — date, severity, return-to-play clearance.
+   *  Soccer-specific high-stakes; tracked here so the alert banner
+   *  can warn coaches when a kid hasn't been cleared yet. */
+  concussions?: Array<{
+    id: string;
+    date: Date;
+    severity?: 'mild' | 'moderate' | 'severe';
+    clearedToReturnAt?: Date;
+    notes?: string;
+  }>;
+  /** Doctor / pediatrician contact. */
+  primaryCare?: { name?: string; phone?: string; practice?: string };
+  /** Insurance — captured for emergency-room handoff. */
+  insurance?: { carrier?: string; policyNumber?: string; groupNumber?: string };
+  /** Last sports physical (most leagues require one annually). */
+  lastPhysicalAt?: Date;
+  /** Optional blood type. Useful in trauma; not collected for most
+   *  programs but the field is here if a club wants it. */
+  bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  /** Free-form notes that don't fit elsewhere. Where the legacy
+   *  `Player.medicalInfo` string lands on first migration. */
+  generalNotes?: string;
+  /** Audit fields. */
+  updatedAt?: Date;
+  updatedByUid?: string;
+  updatedByName?: string;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -284,6 +350,11 @@ export interface Player {
   profilePhotoUrl?: string | null;
   emergencyContacts?: EmergencyContact[];
   medicalInfo?: string;
+  /** Structured medical profile (allergies, conditions, EAPs,
+   *  meds, concussions, primary-care, insurance). Replaces the
+   *  legacy `medicalInfo` free-text field but doesn't remove it —
+   *  the editor surfaces the legacy string as a migration hint. */
+  medical?: MedicalProfile;
   stats?: PlayerStats; // legacy aggregate, retained during transition
   statsBySeasonId?: Record<string, PlayerStats>;
   statsLifetime?: PlayerStats; // optional cache, sum of statsBySeasonId
@@ -877,7 +948,8 @@ export interface Activity {
     | 'registration_refunded'
     | 'installments_split'
     | 'installment_paid'
-    | 'installment_waived';
+    | 'installment_waived'
+    | 'medical_updated';
   /** Who/what this is about. Multiple identifiers so we can query from
    *  either side — playerId-centric for player history, parentUid-
    *  centric for family timeline, etc. */

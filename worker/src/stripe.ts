@@ -93,7 +93,13 @@ export function handleConnectStart(url: URL, env: StripeEnv): Response {
   }
   const clubId = url.searchParams.get('clubId');
   if (!clubId) return json({ ok: false, error: 'missing-clubId' }, 400);
-  const redirect = `${env.APP_ORIGIN}/club?stripe_connected=1&state=${encodeURIComponent(clubId)}`;
+  // Stripe requires the redirect_uri to EXACTLY match one of the URIs
+  // registered in the Connect platform settings. We register the
+  // static base URL (no state in the URI itself) and rely on Stripe
+  // to append `&state=<clubId>&code=<auth>` automatically via the
+  // OAuth state parameter on the return trip. That way ONE registered
+  // URI works for every club instead of needing one per club.
+  const redirect = `${env.APP_ORIGIN}/club?stripe_connected=1`;
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: env.STRIPE_CONNECT_CLIENT_ID,

@@ -66,16 +66,21 @@ function form(obj: Record<string, any>): string {
 
 async function stripeRequest(env: StripeEnv, path: string, body: Record<string, any>, opts: { stripeAccount?: string } = {}): Promise<any> {
   if (!env.STRIPE_SECRET_KEY) throw new Error('stripe-not-configured');
+  const isOAuth = path.startsWith('/oauth/');
+  // OAuth endpoints live at connect.stripe.com (no /v1 prefix) and
+  // use HTTP Basic auth with the secret key as username (empty
+  // password). Bearer works on /oauth/token for legacy compat but
+  // /oauth/deauthorize 401s on bearer — basic is the documented
+  // pattern for both, so use it for everything OAuth.
+  // Other API endpoints take Bearer auth as usual.
   const headers: Record<string, string> = {
-    'authorization': `Bearer ${env.STRIPE_SECRET_KEY}`,
     'content-type': 'application/x-www-form-urlencoded',
+    'authorization': isOAuth
+      ? `Basic ${btoa(`${env.STRIPE_SECRET_KEY}:`)}`
+      : `Bearer ${env.STRIPE_SECRET_KEY}`,
   };
   if (opts.stripeAccount) headers['Stripe-Account'] = opts.stripeAccount;
-  // OAuth endpoints live at connect.stripe.com (no /v1 prefix).
-  // Everything else is the standard API host. /oauth/token works at
-  // both for legacy compat but /oauth/deauthorize is strict — route
-  // both to the canonical host to be safe.
-  const url = path.startsWith('/oauth/')
+  const url = isOAuth
     ? `https://connect.stripe.com${path}`
     : `https://api.stripe.com/v1${path}`;
   const r = await fetch(url, {
@@ -85,7 +90,7 @@ async function stripeRequest(env: StripeEnv, path: string, body: Record<string, 
   });
   const data: any = await r.json().catch(() => ({}));
   if (!r.ok) {
-    const msg = data?.error?.message || `stripe ${r.status}`;
+    const msg = data?.error?.message || data?.error_description || `stripe ${r.status}`;
     throw new Error(msg);
   }
   return data;

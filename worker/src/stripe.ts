@@ -71,7 +71,14 @@ async function stripeRequest(env: StripeEnv, path: string, body: Record<string, 
     'content-type': 'application/x-www-form-urlencoded',
   };
   if (opts.stripeAccount) headers['Stripe-Account'] = opts.stripeAccount;
-  const r = await fetch(`https://api.stripe.com/v1${path}`, {
+  // OAuth endpoints live at connect.stripe.com (no /v1 prefix).
+  // Everything else is the standard API host. /oauth/token works at
+  // both for legacy compat but /oauth/deauthorize is strict — route
+  // both to the canonical host to be safe.
+  const url = path.startsWith('/oauth/')
+    ? `https://connect.stripe.com${path}`
+    : `https://api.stripe.com/v1${path}`;
+  const r = await fetch(url, {
     method: 'POST',
     headers,
     body: form(body),

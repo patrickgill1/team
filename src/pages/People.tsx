@@ -358,7 +358,12 @@ const People: React.FC = () => {
             {filtered.map(p => {
               const key = `${p.type}-${p.id}`;
               const initial = (p.name || '?').charAt(0).toUpperCase();
-              const linkTo = !selectMode && p.type === 'player' ? `/player/${p.id}` : undefined;
+              // Admins + coaches land on the CRM admin view; everyone else
+              // gets the parent-facing player profile.
+              const playerDest = isUserCoach || (userData as any)?.isClubAdmin
+                ? `/club/person/${p.id}`
+                : `/player/${p.id}`;
+              const linkTo = !selectMode && p.type === 'player' ? playerDest : undefined;
               const isSelected = selectedIds.has(key);
               const toggleSelect = () => {
                 const next = new Set(selectedIds);

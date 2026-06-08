@@ -15,6 +15,7 @@ import { runWeeklyDigest } from './digest';
 import {
   handleConnectStart,
   handleConnectFinish,
+  handleConnectDisconnect,
   handleRegistrationCheckout,
   handleRegistrationRefund,
   handleWebhook,
@@ -175,6 +176,13 @@ export default {
 
     if (url.pathname === '/stripe/connect/finish') {
       const res = await handleConnectFinish(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    if (url.pathname === '/stripe/connect/disconnect') {
+      const res = await handleConnectDisconnect(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

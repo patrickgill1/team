@@ -150,6 +150,63 @@ export async function handleConnectFinish(payload: any, env: StripeEnv): Promise
   }
 }
 
+// ── Endpoint: POST /stripe/connect/disconnect ─────────────────────
+
+export async function handleConnectDisconnect(payload: any, env: StripeEnv): Promise<Response> {
+  const clubId = String(payload?.clubId || '').trim();
+  if (!clubId) return json({ ok: false, error: 'missing-clubId' }, 400);
+  if (!env.STRIPE_CONNECT_CLIENT_ID) return json({ ok: false, error: 'stripe-connect-not-configured' }, 503);
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  if (!projectId || !sa) return json({ ok: false, error: 'firestore-not-configured' }, 503);
+
+  try {
+    const club = await getDocument(projectId, `clubs/${clubId}`, sa);
+    if (!club) return json({ ok: false, error: 'club-not-found' }, 404);
+    const stripeUserId = club.data.stripeAccountId;
+    if (!stripeUserId) {
+      // Already disconnected on Stripe side — still clear local fields
+      // to keep the doc consistent.
+      await patchDocument(projectId, `clubs/${clubId}`, {
+        stripeAccountId: null,
+        stripeChargesEnabled: false,
+        stripePayoutsEnabled: false,
+        stripeOnboardedAt: null,
+        updatedAt: new Date(),
+      }, sa);
+      return json({ ok: true, alreadyDisconnected: true });
+    }
+
+    // Revoke OAuth access. Stripe accepts this even when the account
+    // has already been revoked elsewhere (idempotent).
+    try {
+      await stripeRequest(env, '/oauth/deauthorize', {
+        client_id: env.STRIPE_CONNECT_CLIENT_ID,
+        stripe_user_id: stripeUserId,
+      });
+    } catch (err: any) {
+      // If Stripe says it's already revoked, swallow and proceed to
+      // clearing the local fields. Any other error bubbles up.
+      const msg = String(err?.message || '');
+      if (!/already|deauthorized|not.*connected/i.test(msg)) {
+        return json({ ok: false, error: msg || 'stripe-deauthorize-failed' }, 502);
+      }
+    }
+
+    await patchDocument(projectId, `clubs/${clubId}`, {
+      stripeAccountId: null,
+      stripeChargesEnabled: false,
+      stripePayoutsEnabled: false,
+      stripeOnboardedAt: null,
+      updatedAt: new Date(),
+    }, sa);
+
+    return json({ ok: true, disconnectedAcctId: stripeUserId });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 500);
+  }
+}
+
 // ── Endpoint: POST /stripe/registration-checkout ──────────────────
 
 export async function handleRegistrationCheckout(payload: any, env: StripeEnv): Promise<Response> {

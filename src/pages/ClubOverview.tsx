@@ -1132,6 +1132,44 @@ const PaymentsTab: React.FC = () => {
               <p className="text-[10px] text-slate-500">
                 Plus Stripe's standard 2.9% + 30¢ per transaction.
               </p>
+              <div className="pt-3 mt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!clubId) return;
+                    const confirm = window.confirm(
+                      `Disconnect Stripe from this club?\n\nThis stops new payments from working until you reconnect. Past transactions and refund history are NOT affected.`
+                    );
+                    if (!confirm) return;
+                    try {
+                      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
+                      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
+                      if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
+                      const r = await fetch(`${NOTIFY_URL}/stripe/connect/disconnect`, {
+                        method: 'POST',
+                        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
+                        body: JSON.stringify({ clubId }),
+                      });
+                      const data: any = await r.json().catch(() => ({}));
+                      if (!r.ok) {
+                        alert(data?.error || 'Disconnect failed.');
+                        return;
+                      }
+                      // Refresh the club doc so the UI flips back to
+                      // "Not connected" state.
+                      const { doc, getDoc } = await import('firebase/firestore');
+                      const { db } = await import('../utils/firebase');
+                      const snap = await getDoc(doc(db, 'clubs', clubId));
+                      if (snap.exists()) setClub({ id: snap.id, ...(snap.data() as any) });
+                    } catch (err: any) {
+                      alert(err?.message || 'Network error.');
+                    }
+                  }}
+                  className="text-[10px] font-extrabold tracking-widest uppercase text-rose-700 hover:text-rose-900"
+                >
+                  Disconnect Stripe
+                </button>
+              </div>
             </div>
           )}
         </div>

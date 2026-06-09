@@ -1349,6 +1349,11 @@ export interface ChatThread {
   lastMessage?: {
     content: string;
     senderName: string;
+    /** Sender uid — added in 2.0. Lets the unread-thread check
+     *  short-circuit when the current user is the sender (you can't
+     *  be unread on your own message). Optional for backwards
+     *  compatibility with older threads written before this field. */
+    senderId?: string;
     timestamp: Date;
   };
   unreadCount?: { [userId: string]: number }; // Unread count per user

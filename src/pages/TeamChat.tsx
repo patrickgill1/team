@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
@@ -91,6 +91,58 @@ const TeamChat: React.FC = () => {
       return merged;
     });
   }, [(userData as any)?.chatThreadsLastSeen]);
+
+  // One-time backfill for legacy threads from 1.6.1 (before per-thread
+  // seen timestamps were persisted to the user doc). For each thread
+  // where the lastMessage is FROM me OR the thread has no recent
+  // activity (older than 30 days), mark it seen as of now. Avoids the
+  // "everything's unread after reinstall" cosmetic noise without
+  // overwriting genuinely new messages.
+  const allThreads = useMemo(() => [...teamThreads, ...clubThreads], [teamThreads, clubThreads]);
+  const didBackfillRef = React.useRef(false);
+  useEffect(() => {
+    if (didBackfillRef.current) return;
+    if (!userData?.uid) return;
+    if (allThreads.length === 0) return;
+    const remote = (userData as any)?.chatThreadsLastSeen as Record<string, number> | undefined;
+    const myName = userData.name;
+    const now = Date.now();
+    const STALE_MS = 30 * 24 * 60 * 60 * 1000;
+    const additions: Record<string, number> = {};
+    for (const t of allThreads) {
+      // Already have a server-side seen record? Skip.
+      if (remote && typeof remote[t.id] === 'number') continue;
+      // Last message is from me (legacy: matched by senderName since
+      // senderId only started landing in 2.0). Treat as seen.
+      const lastSenderId = (t.lastMessage as any)?.senderId;
+      const lastSenderName = (t.lastMessage as any)?.senderName;
+      const lastIsMine = lastSenderId
+        ? lastSenderId === userData.uid
+        : (lastSenderName && lastSenderName === myName);
+      const ageMs = now - (t.lastActivity instanceof Date
+        ? t.lastActivity.getTime()
+        : new Date(t.lastActivity || 0).getTime());
+      if (lastIsMine || ageMs > STALE_MS) {
+        additions[t.id] = now;
+      }
+    }
+    if (Object.keys(additions).length === 0) {
+      didBackfillRef.current = true;
+      return;
+    }
+    didBackfillRef.current = true;
+    // Update local state + write through to Firestore in one go.
+    setThreadVisited(prev => {
+      const next = { ...prev, ...additions };
+      try { localStorage.setItem('firefc.threadVisited', JSON.stringify(next)); } catch {/* ignore */}
+      return next;
+    });
+    try {
+      const patch: Record<string, number> = {};
+      for (const [tid, ts] of Object.entries(additions)) patch[`chatThreadsLastSeen.${tid}`] = ts;
+      updateDoc(doc(db, 'users', userData.uid), patch).catch(() => {/* ignore */});
+    } catch {/* ignore */}
+  }, [allThreads, userData?.uid, userData?.name]);
   const markThreadVisited = (threadId: string) => {
     if (!threadId || !userData?.uid) return;
     const ts = Date.now();
@@ -108,12 +160,18 @@ const TeamChat: React.FC = () => {
     } catch {/* ignore */}
   };
   const isThreadUnread = (thread: ChatThread): boolean => {
+    // Brand-new threads with no last message shouldn't be unread.
+    if (!thread.lastMessage) return false;
+    // YOU can't be unread on a message YOU sent. This short-circuit is
+    // critical after a reinstall — without it, every DM where you
+    // wrote the last reply looks unread because there's no local cache.
+    if (thread.lastMessage.senderId && userData?.uid && thread.lastMessage.senderId === userData.uid) {
+      return false;
+    }
     const lastTs = thread.lastActivity instanceof Date
       ? thread.lastActivity.getTime()
       : new Date(thread.lastActivity || 0).getTime();
     const seenTs = threadVisited[thread.id] || 0;
-    // Brand-new threads with no last message shouldn't be unread.
-    if (!thread.lastMessage) return false;
     return lastTs > seenTs;
   };
   const [loading, setLoading] = useState(true);
@@ -783,6 +841,7 @@ const TeamChat: React.FC = () => {
         lastMessage: {
           content: lastSnippet,
           senderName: userData.name,
+          senderId: userData.uid,
           timestamp: new Date()
         },
         ...(nextPinned ? { pinnedMessageIds: nextPinned } : {}),
@@ -1028,6 +1087,7 @@ const TeamChat: React.FC = () => {
         lastMessage: {
           content: `📊 ${poll.question}`,
           senderName: userData.name,
+          senderId: userData.uid,
           timestamp: new Date(),
         },
       });

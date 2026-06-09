@@ -7,6 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy, isGoogleAvailable, GeocodeHit } from '../../utils/maps';
+import { autoPostGameToWall } from '../../utils/autoPostToWall';
 
 /** Compact location for the Recent + Favorites quick-pick rows. */
 interface PickableLocation {
@@ -525,6 +526,17 @@ const EventForm: React.FC<EventFormProps> = ({
             }
             if (formData.createVolunteerOpps && formData.volunteerTypes.length > 0) {
               await createVolunteerOpportunities(calendarEvent);
+            }
+            // Auto-post the new game to the team wall. Practices +
+            // generic events skip silently inside the helper. Fire-and-
+            // forget so the event create flow doesn't wait on the
+            // chat-thread lookup.
+            if (formData.type === 'game' && userData?.uid) {
+              void autoPostGameToWall(calendarEvent, {
+                uid: userData.uid,
+                name: userData.name || 'Coach',
+                role: 'coach',
+              });
             }
           }
         }

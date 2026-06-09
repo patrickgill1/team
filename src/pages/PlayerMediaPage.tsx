@@ -6,6 +6,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
+import { autoPostVideoToWall } from '../utils/autoPostToWall';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
@@ -438,6 +439,16 @@ const PlayerMediaPage: React.FC = () => {
         const stampedMedia = await withSeasonId(mediaPayload);
 
         const newMediaId = await addPlayerMedia(stampedMedia);
+
+        // Auto-post videos to the team wall. Photos skipped silently
+        // inside the helper — too high frequency to make sense pinned.
+        // First-file-only to avoid spam when a coach drops in 5 angles.
+        if (i === 0 && userData?.uid && stampedMedia.type === 'video') {
+          void autoPostVideoToWall(
+            { id: newMediaId, ...(stampedMedia as any) },
+            { uid: userData.uid, name: userData.name || 'Coach', role: isCoach(userData.role) ? 'coach' : 'parent' }
+          );
+        }
 
         // We only credit the FIRST file of a multi-file upload to avoid double-
         // counting when a coach drops in 5 angles of the same goal.

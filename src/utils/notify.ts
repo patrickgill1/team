@@ -296,6 +296,40 @@ export async function sendPushToParentEmails(
   return sendPushToUsers(uids, msg, { pushPrefKey: 'broadcast' });
 }
 
+/** Push to every authenticated user on a team. Pulls users where
+ *  teamId == teamId OR teamIds array-contains teamId, dedupes by uid,
+ *  optionally excludes the sender (so the coach who scheduled the
+ *  event doesn't get their own push). Honors pushPreferences.events
+ *  per user. */
+export async function sendPushToTeam(
+  teamId: string,
+  msg: { title: string; body: string; url?: string },
+  opts?: { excludeUid?: string }
+): Promise<boolean> {
+  if (!teamId) return false;
+  const uidSet = new Set<string>();
+  try {
+    // teamId equality match (legacy single-team users).
+    const s1 = await getDocs(query(collection(db, 'users'), where('teamId', '==', teamId)));
+    s1.forEach(d => {
+      const u: any = d.data();
+      const id = u.uid || d.id;
+      if (id && id !== opts?.excludeUid) uidSet.add(id);
+    });
+    // teamIds array-contains (multi-team users — newer model).
+    const s2 = await getDocs(query(collection(db, 'users'), where('teamIds', 'array-contains', teamId)));
+    s2.forEach(d => {
+      const u: any = d.data();
+      const id = u.uid || d.id;
+      if (id && id !== opts?.excludeUid) uidSet.add(id);
+    });
+  } catch (err) {
+    console.warn('sendPushToTeam lookup failed', err);
+  }
+  if (uidSet.size === 0) return false;
+  return sendPushToUsers(Array.from(uidSet), msg, { pushPrefKey: 'events', fromUid: opts?.excludeUid });
+}
+
 export async function sendPushToPlayerParents(
   playerId: string,
   msg: { title: string; body: string; url?: string; path?: string },

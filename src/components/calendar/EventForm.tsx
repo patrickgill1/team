@@ -8,6 +8,7 @@ import { useFirestore } from '../../hooks/useFirestore';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { osmEmbedUrl, geocodeForward, geocodeResolve, hasMapbox, hasNotifyProxy, isGoogleAvailable, GeocodeHit } from '../../utils/maps';
 import { autoPostGameToWall } from '../../utils/autoPostToWall';
+import { sendPushToTeam } from '../../utils/notify';
 
 /** Compact location for the Recent + Favorites quick-pick rows. */
 interface PickableLocation {
@@ -52,6 +53,11 @@ const EventForm: React.FC<EventFormProps> = ({
     recurrenceUntil: '' as string,
     arriveOffsetMinutes: 0,
     endTime: '' as string, // HH:mm, optional
+    // Default ON for new events (you usually want to tell people about
+    // a new game/practice). Default OFF for edits — the watcher in the
+    // hydration effect below flips it for editing mode so an admin
+    // fixing a typo doesn't accidentally re-push the whole roster.
+    notifyTeam: true,
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,6 +117,10 @@ const EventForm: React.FC<EventFormProps> = ({
           const d = e?.toDate ? e.toDate() : new Date(e);
           return d.toTimeString().slice(0, 5);
         })(),
+        // Edits default OFF — most edits are typo fixes that don't
+        // warrant a re-push. Admin opts back in when changing date /
+        // time / location.
+        notifyTeam: false,
       });
     } else {
       const defaultDate = selectedDate || new Date();
@@ -132,6 +142,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
         endTime: '',
+        notifyTeam: true,
       });
     }
     setErrors({});
@@ -493,6 +504,21 @@ const EventForm: React.FC<EventFormProps> = ({
           ...editingEvent,
           ...eventData
         };
+        // Push the team on edit too, if the admin opted in (default
+        // OFF — they have to check the box). Worded as 'Updated' so
+        // people know it's not a duplicate of the original notice.
+        if (formData.notifyTeam && selectedTeamId) {
+          const when = new Date(`${formData.date}T${formData.time}`);
+          const whenStr = when.toLocaleString(undefined, {
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit',
+          });
+          void sendPushToTeam(selectedTeamId, {
+            title: `✏️ Event updated: ${formData.title}`,
+            body: `${whenStr}${formData.location ? ` · ${formData.location}` : ''}`,
+            url: `/events/${editingEvent.id}`,
+          }, { excludeUid: userData?.uid });
+        }
       } else {
         // Build the list of dates (one for non-recurring, many for series)
         const isSeries = formData.recurrence !== 'none';
@@ -538,6 +564,21 @@ const EventForm: React.FC<EventFormProps> = ({
                 role: 'coach',
               });
             }
+            // Push the team if the admin opted in. Default on for new
+            // events / off for edits — see formData init above.
+            if (formData.notifyTeam && selectedTeamId) {
+              const when = new Date(`${formData.date}T${formData.time}`);
+              const whenStr = when.toLocaleString(undefined, {
+                weekday: 'short', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+              });
+              const typeLabel = formData.type === 'game' ? '📅 New game' : formData.type === 'practice' ? '📅 New practice' : '📅 New event';
+              void sendPushToTeam(selectedTeamId, {
+                title: `${typeLabel}: ${formData.title}`,
+                body: `${whenStr}${formData.location ? ` · ${formData.location}` : ''}`,
+                url: `/events/${eventId}`,
+              }, { excludeUid: userData?.uid });
+            }
           }
         }
         console.log(`Created ${dates.length} event(s), first id ${firstId}`);
@@ -562,6 +603,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
         endTime: '',
+        notifyTeam: true,
       });
       onClose();
     } catch (error) {
@@ -1116,7 +1158,27 @@ const EventForm: React.FC<EventFormProps> = ({
           {!editingEvent && (
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium text-gray-700 mb-3">🔗 Create Related Items</h3>
-              
+
+              {/* Notify Team */}
+              <div className="mb-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.notifyTeam}
+                    onChange={(e) => setFormData({ ...formData, notifyTeam: e.target.checked })}
+                    className="h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-200 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    🔔 {editingEvent ? 'Notify team of this change' : 'Notify team'}
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500 ml-6">
+                  {editingEvent
+                    ? 'Sends a "Event updated" push to everyone on the team. Use sparingly — typo fixes don\'t need a re-push.'
+                    : 'Sends a push notification to everyone on the team when this event is saved.'}
+                </p>
+              </div>
+
               {/* Attendance Tracking */}
               {(formData.type === 'practice' || formData.type === 'game') && (
                 <div className="mb-4">

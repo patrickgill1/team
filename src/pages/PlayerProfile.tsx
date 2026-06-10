@@ -7,6 +7,7 @@ import { Player, PlayerMedia, DevelopmentPlan, Season } from '../types';
 import { isCoach, formatDate, isGoalkeeper, getPlayerPositionsLabel } from '../utils/helpers';
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
+import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { getShareOrigin } from '../utils/origin';
 import { downloadFile } from '../utils/downloadFile';
@@ -26,7 +27,7 @@ interface MatchVoting {
 const PlayerProfile: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { getDocuments, getPlayerMediaByPlayer, getDevelopmentPlansByPlayer, getTeamPlayerStatsMap, updateDocument } = useFirestore();
 
   const [player, setPlayer] = useState<Player | null>(null);
@@ -415,8 +416,31 @@ const PlayerProfile: React.FC = () => {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none truncate">{player.name}</h1>
+              {/* Identity row — position, team, jersey. The one line a
+                  coach or parent should see and instantly know who this
+                  is. Drops cleanly when fields are missing. */}
+              <p className="text-cyan-200 text-xs sm:text-sm font-extrabold uppercase tracking-widest mt-2">
+                {[
+                  getPlayerPositionsLabel(player),
+                  selectedTeam?.name,
+                  player.jerseyNumber != null ? `#${player.jerseyNumber}` : null,
+                ].filter(Boolean).join(' · ')}
+              </p>
+              {/* Bio row — DOB / age. Same line so it scans fast. */}
+              {player.dateOfBirth && (
+                <p className="text-white/70 text-xs sm:text-sm font-medium mt-1">
+                  {(() => {
+                    const dob = player.dateOfBirth instanceof Date ? player.dateOfBirth : new Date(player.dateOfBirth as any);
+                    const today = new Date();
+                    let age = today.getFullYear() - dob.getFullYear();
+                    const m = today.getMonth() - dob.getMonth();
+                    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+                    return `${dob.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · ${age} yrs`;
+                  })()}
+                </p>
+              )}
               {(media.length > 0 || votingWins.length > 0) && (
-                <p className="text-white/70 text-sm sm:text-base font-medium mt-2">
+                <p className="text-white/60 text-xs sm:text-sm font-medium mt-1">
                   {votingWins.length > 0 && `${votingWins.length} POTM ${votingWins.length === 1 ? 'win' : 'wins'}`}
                   {votingWins.length > 0 && media.length > 0 && ' · '}
                   {media.length > 0 && `${media.length} ${media.length === 1 ? 'clip' : 'clips'}`}
@@ -713,8 +737,23 @@ const PlayerProfile: React.FC = () => {
               </div>
             )}
 
-            {/* DEVELOPMENT SUMMARY */}
+            {/* DEVELOPMENT PLAN — inline card with the SAME "I did it
+                today" action as the full /development page, so parents
+                stop having two ways to mark practice. Open plan button
+                routes to the full editor. */}
             {plans.length > 0 && (
+              <InlineDevPlanCard
+                plans={plans}
+                playerId={player.id}
+                actor={userData ? { uid: userData.uid, name: userData.name || 'Family' } : null}
+                currentStreakDays={(player as any).currentStreakDays || 0}
+                onUpdated={() => { void loadProfile(); }}
+              />
+            )}
+
+            {/* legacy stats summary kept for reference but disabled now;
+                inline card above replaces it. */}
+            {false && plans.length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-black text-gray-900">Development</h2>

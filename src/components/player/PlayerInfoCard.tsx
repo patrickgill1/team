@@ -1,0 +1,130 @@
+import React, { useState } from 'react';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
+import type { Player } from '../../types';
+
+// Tiny editable bio card. Matches the mockup's "Player Info" panel:
+// preferred foot / favorite position / favorite player / joined date.
+// All optional — empty fields render as "—" so the card stays clean
+// even on brand-new players.
+
+interface Props {
+  player: Player;
+  canEdit: boolean;
+  onUpdated?: () => void;
+}
+
+const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
+  const [editing, setEditing] = useState(false);
+  const joined = player.joinedAt
+    ? (player.joinedAt instanceof Date ? player.joinedAt : new Date(player.joinedAt as any))
+    : (player.createdAt instanceof Date ? player.createdAt : (player.createdAt ? new Date(player.createdAt as any) : null));
+
+  return (
+    <>
+      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-black text-gray-900">Player Info</h2>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-sm text-cyan-600 hover:text-cyan-800 font-bold"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+        <dl className="divide-y divide-gray-100">
+          <Row icon="🦶" label="Preferred Foot" value={player.preferredFoot} />
+          <Row icon="📍" label="Favorite Position" value={player.favoritePosition} />
+          <Row icon="⭐" label="Favorite Player" value={player.favoritePlayer} />
+          <Row icon="📅" label="Joined" value={joined ? joined.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : undefined} />
+        </dl>
+      </div>
+
+      {editing && canEdit && (
+        <PlayerInfoEditModal
+          player={player}
+          onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); onUpdated?.(); }}
+        />
+      )}
+    </>
+  );
+};
+
+const Row: React.FC<{ icon: string; label: string; value?: string }> = ({ icon, label, value }) => (
+  <div className="flex items-center justify-between py-2.5 gap-2">
+    <dt className="flex items-center gap-2 text-sm text-gray-600">
+      <span className="text-base leading-none">{icon}</span>
+      <span className="font-medium">{label}</span>
+    </dt>
+    <dd className="text-sm font-bold text-gray-900 text-right truncate">{value || <span className="text-gray-400">—</span>}</dd>
+  </div>
+);
+
+const PlayerInfoEditModal: React.FC<{ player: Player; onClose: () => void; onSaved: () => void }> = ({ player, onClose, onSaved }) => {
+  const [preferredFoot, setPreferredFoot] = useState<string>(player.preferredFoot || '');
+  const [favoritePosition, setFavoritePosition] = useState<string>(player.favoritePosition || '');
+  const [favoritePlayer, setFavoritePlayer] = useState<string>(player.favoritePlayer || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await updateDoc(doc(db, 'players', player.id), {
+        preferredFoot: preferredFoot || null,
+        favoritePosition: favoritePosition.trim() || null,
+        favoritePlayer: favoritePlayer.trim() || null,
+        updatedAt: serverTimestamp(),
+      });
+      onSaved();
+    } catch (err: any) {
+      setError(err?.message || 'Save failed.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-black text-gray-900">Edit player info</h2>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+        </div>
+        <div className="p-5 space-y-4">
+          <label className="block">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Preferred foot</span>
+            <select value={preferredFoot} onChange={(e) => setPreferredFoot(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-cyan-400 text-sm">
+              <option value="">—</option>
+              <option value="Left">Left</option>
+              <option value="Right">Right</option>
+              <option value="Both">Both</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Favorite position</span>
+            <input value={favoritePosition} onChange={(e) => setFavoritePosition(e.target.value)} placeholder="Center Back" className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-cyan-400 text-sm" />
+          </label>
+          <label className="block">
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Favorite player</span>
+            <input value={favoritePlayer} onChange={(e) => setFavoritePlayer(e.target.value)} placeholder="Virgil van Dijk" className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-cyan-400 text-sm" />
+          </label>
+          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
+        </div>
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-gray-600 hover:text-gray-900">Cancel</button>
+          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PlayerInfoCard;

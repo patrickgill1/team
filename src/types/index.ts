@@ -414,6 +414,15 @@ export interface Player {
      *  entry: count + date + who logged it. */
     history?: Array<{ count: number; date: Date; loggedBy?: string; loggedByName?: string }>;
   };
+  /** Optional bio fields surfaced on the parent-facing PlayerProfile.
+   *  All editable from the profile's Info card → Edit modal. Cheap
+   *  to omit — UI gracefully renders "—" when missing. */
+  preferredFoot?: 'Left' | 'Right' | 'Both';
+  favoritePosition?: string;
+  favoritePlayer?: string;
+  /** When this kid first joined the club. Falls back to createdAt
+   *  for legacy players. */
+  joinedAt?: Date;
   /** Issued team gear for the current season — sizes + return status.
    *  Single record per player at a time; a coach manually clears it
    *  ("Reset for next season") between seasons. We don't archive

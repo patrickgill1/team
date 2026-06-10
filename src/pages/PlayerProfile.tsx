@@ -8,6 +8,10 @@ import { isCoach, formatDate, isGoalkeeper, getPlayerPositionsLabel } from '../u
 import { where } from 'firebase/firestore';
 import ParentWhisperModal from '../components/coach/ParentWhisperModal';
 import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
+import ProfileHero from '../components/player/ProfileHero';
+import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
+import PlayerInfoCard from '../components/player/PlayerInfoCard';
+import { computePlayerAttendance } from '../utils/attendance';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { getShareOrigin } from '../utils/origin';
 import { downloadFile } from '../utils/downloadFile';
@@ -36,6 +40,7 @@ const PlayerProfile: React.FC = () => {
   const [votingWins, setVotingWins] = useState<MatchVoting[]>([]);
   const [allPlayerVotings, setAllPlayerVotings] = useState<{ voting: MatchVoting; playerVotes: { voterName: string; reason?: string }[] }[]>([]);
   const [votingNominations, setVotingNominations] = useState<number>(0);
+  const [attendance, setAttendance] = useState<{ percent: number | null; totalEvents: number; attendedEvents: number }>({ percent: null, totalEvents: 0, attendedEvents: 0 });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
   // Juggle log state — anyone who can see the profile (coach OR the
@@ -225,6 +230,30 @@ const PlayerProfile: React.FC = () => {
     }
 
     setLoading(false);
+
+    // Practice attendance — separate (slower) query so the rest of
+    // the page lights up first. No big deal if this lags behind.
+    void (async () => {
+      try {
+        const playerSnap = player ? null : null;
+        void playerSnap;
+        const teamIds: string[] = (player as any)?.teamIds || (player as any)?.teamId ? [(player as any)?.teamId].filter(Boolean) : [];
+        // The just-set player isn't in scope here yet — use a fresh
+        // read off the players collection. Cheap (one doc).
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const ps = await getDoc(doc(db, 'players', playerId));
+        const pdata: any = ps.exists() ? ps.data() : {};
+        const tids: string[] = (Array.isArray(pdata.teamIds) && pdata.teamIds.length > 0)
+          ? pdata.teamIds
+          : (pdata.teamId ? [pdata.teamId] : teamIds);
+        if (tids.length === 0) return;
+        const r = await computePlayerAttendance(playerId, tids, { lookback: 10 });
+        setAttendance(r);
+      } catch (err) {
+        console.warn('attendance load failed', err);
+      }
+    })();
   };
 
   const calculateAge = (dob?: Date) => {
@@ -346,117 +375,66 @@ const PlayerProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ───── HERO ───── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-fire-700 via-fire-800 to-navy-900 text-white">
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-cyan-500/25 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-12 w-80 h-80 bg-rose-500/25 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-          {/* Top row: back + share */}
-          <div className="flex items-center justify-between mb-5">
-            <Link
-              to="/players"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-              Roster
-            </Link>
-            <button
-              onClick={handleShareProfile}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
-              title="Share profile"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-              Share
-            </button>
-          </div>
+      {/* ───── HERO (v2) ─────
+          Dark gradient hero band + 4-tile glance stats. Replaces the
+          old fire-700→navy-900 gradient + hand-rolled photo/name block. */}
+      <ProfileHero
+        player={player}
+        teamName={selectedTeam?.name}
+        canEdit={!!userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid))}
+        isCurrentPotm={!!(player as any).isCurrentPotm}
+        onBack={() => { window.history.length > 1 ? window.history.back() : (window.location.href = '/players'); }}
+      />
+      <ProfileStatsStrip
+        potmWins={votingWins.length}
+        streakDays={(player as any).currentStreakDays || 0}
+        attendancePct={attendance.percent}
+        jugglesBest={(player as any).juggles?.best || 0}
+      />
 
-          {/* Status pill */}
-          {(player.position || (player.positions && player.positions.length > 0)) && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur">
-              <span className={`w-2 h-2 rounded-full ${positionDot(player.positions?.[0] || player.position || '')} animate-pulse`} />
-              {getPlayerPositionsLabel(player)}{age ? ` · Age ${age}` : ''}
+      {/* Existing top-of-hero action row preserved for parity */}
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-black px-4 sm:px-6 py-3 border-b border-white/5 flex items-center justify-between">
+        <Link
+          to="/players"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          Roster
+        </Link>
+        <div className="flex items-center gap-2">
+          {userData && isCoach(userData.role) && (
+            <button
+              onClick={() => setShowWhisper(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-semibold ring-1 ring-white/20 transition backdrop-blur"
+              title="Send a private note to this player's parents"
+            >
+              💬 Parent Whisper
+            </button>
+          )}
+          <button
+            onClick={handleShareProfile}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
+            title="Share profile"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+            Share
+          </button>
+        </div>
+      </div>
+
+      {/* Legacy hero band — season toggle + detailed 4-up career stats.
+          Kept in a darker continuation strip so the visual flow is
+          uninterrupted from the new hero into the existing toggle. */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-black text-white">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
+          {/* Hidden legacy block kept for the season toggle + detailed stats; the new ProfileHero replaces the old photo + name top. */}
+          {false && (
+            <div className="flex items-center justify-between mb-5">
+              <span />
             </div>
           )}
 
-          {/* Avatar + name */}
-          <div className="flex items-center gap-4 sm:gap-6 mb-5">
-            <div className="relative flex-shrink-0">
-              {/* Gold ring + amber glow when this player is the current
-                  POTM. Stays until a new POTM is finalized or a coach
-                  clears it on the Vote page. */}
-              {(player as any).isCurrentPotm && (
-                <span aria-hidden className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-400 text-amber-950 shadow-lg ring-2 ring-white">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
-                </span>
-              )}
-              {player.profilePhotoUrl ? (
-                <img
-                  src={player.profilePhotoUrl}
-                  alt={player.name}
-                  className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 shadow-2xl ${
-                    (player as any).isCurrentPotm
-                      ? 'ring-amber-300 shadow-amber-400/40'
-                      : 'ring-white/25'
-                  }`}
-                />
-              ) : (
-                <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white/10 ring-4 shadow-2xl flex items-center justify-center backdrop-blur ${
-                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-white/25'
-                }`}>
-                  <span className="text-3xl sm:text-4xl font-black text-white">
-                    {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              {player.profilePhotoUrl && player.jerseyNumber != null && (
-                <span className="absolute -bottom-1 -right-1 bg-white text-fire-800 rounded-full min-w-[32px] h-8 px-2 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-fire-900">
-                  #{player.jerseyNumber}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none truncate">{player.name}</h1>
-              {/* Identity row — position, team, jersey. The one line a
-                  coach or parent should see and instantly know who this
-                  is. Drops cleanly when fields are missing. */}
-              <p className="text-cyan-200 text-xs sm:text-sm font-extrabold uppercase tracking-widest mt-2">
-                {[
-                  getPlayerPositionsLabel(player),
-                  selectedTeam?.name,
-                  player.jerseyNumber != null ? `#${player.jerseyNumber}` : null,
-                ].filter(Boolean).join(' · ')}
-              </p>
-              {/* Bio row — DOB / age. Same line so it scans fast. */}
-              {player.dateOfBirth && (
-                <p className="text-white/70 text-xs sm:text-sm font-medium mt-1">
-                  {(() => {
-                    const dob = player.dateOfBirth instanceof Date ? player.dateOfBirth : new Date(player.dateOfBirth as any);
-                    const today = new Date();
-                    let age = today.getFullYear() - dob.getFullYear();
-                    const m = today.getMonth() - dob.getMonth();
-                    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-                    return `${dob.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · ${age} yrs`;
-                  })()}
-                </p>
-              )}
-              {(media.length > 0 || votingWins.length > 0) && (
-                <p className="text-white/60 text-xs sm:text-sm font-medium mt-1">
-                  {votingWins.length > 0 && `${votingWins.length} POTM ${votingWins.length === 1 ? 'win' : 'wins'}`}
-                  {votingWins.length > 0 && media.length > 0 && ' · '}
-                  {media.length > 0 && `${media.length} ${media.length === 1 ? 'clip' : 'clips'}`}
-                </p>
-              )}
-              {userData && isCoach(userData.role) && (
-                <button
-                  onClick={() => setShowWhisper(true)}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-semibold ring-1 ring-white/20 transition backdrop-blur"
-                  title="Send a private note to this player's parents"
-                >
-                  💬 Parent Whisper
-                </button>
-              )}
-            </div>
-          </div>
+          {/* (legacy hero blocks removed — ProfileHero + ProfileStatsStrip + action row above replace them.) */}
 
           {/* Season toggle — keep it simple. Two primary options: "This
               Season" and "Overall". Past seasons hide inside the dropdown
@@ -819,6 +797,14 @@ const PlayerProfile: React.FC = () => {
                 })}
               </div>
             )}
+
+            {/* PLAYER INFO — small editable bio card. Optional fields
+                stay clean with em-dashes when empty. */}
+            <PlayerInfoCard
+              player={player}
+              canEdit={!!userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid))}
+              onUpdated={loadProfile}
+            />
 
             {/* RECENT HIGHLIGHTS */}
             {recentMedia.length > 0 && (

@@ -577,30 +577,37 @@ const PlayerProfile: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
-
-        {/* ─── OVERVIEW TAB ──────────────────────────────────────── */}
-        {activeTab === 'overview' && (
+      {/* Overview tab gets its own full-width dark band so it visually
+          continues from the hero. Media/Development/Awards keep the
+          original light treatment (different surface, different vibe). */}
+      {activeTab === 'overview' && (
+        <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-black">
+          <div className="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
           <div className="space-y-4 sm:space-y-6">
 
-            {/* WHAT PEOPLE ARE SAYING — kids love this */}
-            {latestQuote && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('awards')}
-                className="w-full text-left relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 p-5 text-white shadow-xl hover:scale-[1.01] transition group"
-              >
-                <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">💬</span>
-                    <span className="text-[10px] uppercase tracking-widest font-black opacity-90">What people said</span>
-                  </div>
-                  <p className="text-base sm:text-lg font-bold italic leading-snug">"{latestQuote.reason}"</p>
-                  <p className="text-xs opacity-90 mt-2 font-semibold">— {latestQuote.voterName} · {latestQuote.gameTitle}</p>
-                </div>
-              </button>
-            )}
+            {/* WHAT PEOPLE ARE SAYING — kids love this. Always render a
+                card so the section never feels missing; show a friendly
+                placeholder when there are no POTM quotes yet. */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('awards')}
+              className="w-full text-left relative overflow-hidden rounded-2xl bg-white/[0.04] backdrop-blur ring-1 ring-white/10 p-5 hover:bg-white/[0.06] transition"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                <span className="text-[10px] uppercase tracking-widest font-black text-cyan-300">What people said</span>
+              </div>
+              {latestQuote ? (
+                <>
+                  <p className="text-base sm:text-lg font-bold italic leading-snug text-white">"{latestQuote.reason}"</p>
+                  <p className="text-xs text-white/60 mt-2 font-semibold">— {latestQuote.voterName} · {latestQuote.gameTitle}</p>
+                </>
+              ) : (
+                <p className="text-sm text-white/70 leading-snug">
+                  No shoutouts yet on this team — they'll show up here after the first match where {player.name.split(' ')[0]} gets a Player of the Match nod with a reason.
+                </p>
+              )}
+            </button>
 
             {/* SEASON STATS — three-scope toggle (team-season, team-career,
                 all-time across every team this player's been on). Reads
@@ -642,13 +649,13 @@ const PlayerProfile: React.FC = () => {
                 : 'THIS TEAM · SEASON';
 
               return (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Stats</h2>
-                    <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{scopeLabel}</span>
+                    <h2 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Stats</h2>
+                    <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold">{scopeLabel}</span>
                   </div>
                   {/* Scope toggle */}
-                  <div className="flex gap-1 mb-3">
+                  <div className="flex gap-1 mb-3 rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-1">
                     {([
                       { k: 'team_season', label: 'Season' },
                       { k: 'team_career', label: 'Career here' },
@@ -657,10 +664,10 @@ const PlayerProfile: React.FC = () => {
                       <button
                         key={k}
                         onClick={() => setStatsScope(k)}
-                        className={`flex-1 px-2 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border ${
+                        className={`flex-1 px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-widest uppercase transition ${
                           statsScope === k
-                            ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
-                            : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                            ? 'bg-cyan-500/20 text-cyan-200 ring-1 ring-cyan-400/40'
+                            : 'text-white/60 hover:text-white'
                         }`}
                       >
                         {label}
@@ -668,32 +675,32 @@ const PlayerProfile: React.FC = () => {
                     ))}
                   </div>
                   <div className="grid grid-cols-4 gap-2">
-                    <div className="rounded-lg bg-cyan-50 border border-cyan-200 p-2.5 text-center">
-                      <div className="text-2xl sm:text-3xl font-black text-cyan-700">{scoped.gamesPlayed || 0}</div>
-                      <div className="text-[9px] uppercase tracking-widest text-cyan-700/70 font-bold mt-0.5">Games</div>
+                    <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
+                      <div className="text-2xl sm:text-3xl font-black text-cyan-300">{scoped.gamesPlayed || 0}</div>
+                      <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Games</div>
                     </div>
-                    <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2.5 text-center">
-                      <div className="text-2xl sm:text-3xl font-black text-emerald-700">{scoped.goals || 0}</div>
-                      <div className="text-[9px] uppercase tracking-widest text-emerald-700/70 font-bold mt-0.5">Goals</div>
+                    <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
+                      <div className="text-2xl sm:text-3xl font-black text-emerald-300">{scoped.goals || 0}</div>
+                      <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Goals</div>
                     </div>
-                    <div className="rounded-lg bg-violet-50 border border-violet-200 p-2.5 text-center">
-                      <div className="text-2xl sm:text-3xl font-black text-violet-700">{scoped.assists || 0}</div>
-                      <div className="text-[9px] uppercase tracking-widest text-violet-700/70 font-bold mt-0.5">Assists</div>
+                    <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
+                      <div className="text-2xl sm:text-3xl font-black text-cyan-300">{scoped.assists || 0}</div>
+                      <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Assists</div>
                     </div>
                     {isGoalkeeper(player) ? (
-                      <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-center">
-                        <div className="text-2xl sm:text-3xl font-black text-amber-700">{scoped.saves || 0}</div>
-                        <div className="text-[9px] uppercase tracking-widest text-amber-700/70 font-bold mt-0.5">Saves</div>
+                      <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
+                        <div className="text-2xl sm:text-3xl font-black text-amber-300">{scoped.saves || 0}</div>
+                        <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Saves</div>
                       </div>
                     ) : (
-                      <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-center">
-                        <div className="text-2xl sm:text-3xl font-black text-rose-700">{(scoped.goals || 0) + (scoped.assists || 0)}</div>
-                        <div className="text-[9px] uppercase tracking-widest text-rose-700/70 font-bold mt-0.5">G+A</div>
+                      <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
+                        <div className="text-2xl sm:text-3xl font-black text-amber-300">{(scoped.goals || 0) + (scoped.assists || 0)}</div>
+                        <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">G+A</div>
                       </div>
                     )}
                   </div>
                   {statsScope === 'all_time' && memberships.length > 1 && (
-                    <p className="mt-2 text-[10px] text-slate-400 tracking-wide">Combined across {memberships.length} team-season{memberships.length === 1 ? '' : 's'}.</p>
+                    <p className="mt-2 text-[10px] text-white/50 tracking-wide">Combined across {memberships.length} team-season{memberships.length === 1 ? '' : 's'}.</p>
                   )}
                 </div>
               );
@@ -701,14 +708,14 @@ const PlayerProfile: React.FC = () => {
 
             {/* PRACTICE EFFORT — when there is any */}
             {totalPracticeMinutes > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
+              <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-[10px] uppercase tracking-widest font-black text-orange-600 mb-1">Practice Effort</div>
-                    <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-gray-900">{formatMinutes(totalPracticeMinutes)}</div>
-                    <div className="text-xs sm:text-sm font-semibold text-gray-500 mt-1.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'} · keep it up</div>
+                    <div className="text-[10px] uppercase tracking-widest font-black text-orange-300 mb-1">Practice Effort</div>
+                    <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-white">{formatMinutes(totalPracticeMinutes)}</div>
+                    <div className="text-xs sm:text-sm font-semibold text-white/60 mt-1.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'} · keep it up</div>
                   </div>
-                  <div className="shrink-0 w-14 h-14 rounded-full bg-orange-50 ring-1 ring-orange-200 flex items-center justify-center text-orange-500">
+                  <div className="shrink-0 w-14 h-14 rounded-full bg-orange-500/15 ring-1 ring-orange-400/30 flex items-center justify-center text-orange-300">
                     <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14a8 8 0 0 0 16 0c0-4.07-1.95-7.7-5-9.93l-.49-.62z" /></svg>
                   </div>
                 </div>
@@ -808,10 +815,10 @@ const PlayerProfile: React.FC = () => {
 
             {/* RECENT HIGHLIGHTS */}
             {recentMedia.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
+              <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-black text-gray-900">Recent Highlights</h2>
-                  <button onClick={() => setActiveTab('media')} className="text-sm text-cyan-600 hover:text-cyan-700 font-bold">View All →</button>
+                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Recent Highlights</h2>
+                  <button onClick={() => setActiveTab('media')} className="text-xs font-bold text-cyan-300 hover:text-cyan-200">View All →</button>
                 </div>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {recentMedia.map(item => (
@@ -819,7 +826,7 @@ const PlayerProfile: React.FC = () => {
                       key={item.id}
                       type="button"
                       onClick={() => setLightboxItem(item)}
-                      className="group relative aspect-square bg-gradient-to-br from-gray-800 to-gray-950 rounded-xl overflow-hidden ring-1 ring-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition"
+                      className="group relative aspect-square bg-black/40 rounded-xl overflow-hidden ring-1 ring-white/10 hover:ring-cyan-400/40 transition"
                     >
                       {item.type === 'video' ? (
                         <>
@@ -850,27 +857,25 @@ const PlayerProfile: React.FC = () => {
 
             {/* AWARDS PEEK */}
             {(votingWins.length > 0 || votingNominations > 0) && (
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
+              <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-black text-gray-900">Player of the Match</h2>
-                  <button onClick={() => setActiveTab('awards')} className="text-sm text-cyan-600 hover:text-cyan-700 font-bold">View All →</button>
+                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Player of the Match</h2>
+                  <button onClick={() => setActiveTab('awards')} className="text-xs font-bold text-cyan-300 hover:text-cyan-200">View All →</button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-white p-5 shadow-md">
-                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none" />
-                    <div className="relative">
-                      <div className="text-3xl mb-1">🏆</div>
-                      <div className="text-3xl sm:text-4xl font-black leading-none">{votingWins.length}</div>
-                      <div className="text-[10px] uppercase tracking-wider font-bold opacity-90 mt-1">Wins</div>
+                  <div className="rounded-2xl bg-amber-500/10 ring-1 ring-amber-400/30 p-5">
+                    <div className="flex items-center gap-2 mb-2 text-amber-300">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" /></svg>
                     </div>
+                    <div className="text-3xl sm:text-4xl font-black leading-none text-amber-200">{votingWins.length}</div>
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-white/70 mt-1">Wins</div>
                   </div>
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-400 via-cyan-500 to-sky-600 text-white p-5 shadow-md">
-                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none" />
-                    <div className="relative">
-                      <div className="text-3xl mb-1">⭐</div>
-                      <div className="text-3xl sm:text-4xl font-black leading-none">{votingNominations}</div>
-                      <div className="text-[10px] uppercase tracking-wider font-bold opacity-90 mt-1">Nominated</div>
+                  <div className="rounded-2xl bg-cyan-500/10 ring-1 ring-cyan-400/30 p-5">
+                    <div className="flex items-center gap-2 mb-2 text-cyan-300">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                     </div>
+                    <div className="text-3xl sm:text-4xl font-black leading-none text-cyan-200">{votingNominations}</div>
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-white/70 mt-1">Nominated</div>
                   </div>
                 </div>
               </div>
@@ -913,21 +918,26 @@ const PlayerProfile: React.FC = () => {
               }
               if (streak === 0) return null;
               const hot = streak >= 3;
+              const accent = hot ? 'orange' : 'cyan';
               return (
-                <div className={`rounded-2xl px-5 py-4 text-white shadow-md ${
-                  hot
-                    ? 'bg-gradient-to-br from-rose-500 via-orange-500 to-amber-500'
-                    : 'bg-gradient-to-br from-cyan-500 to-cyan-600'
-                }`}>
+                <div className={`rounded-2xl bg-white/[0.04] backdrop-blur ring-1 ring-white/10 px-5 py-4`}>
                   <div className="flex items-center gap-3">
-                    <span className="flex-shrink-0 w-12 h-12 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center text-2xl">
-                      {hot ? '🔥' : '⚡'}
+                    <span className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                      accent === 'orange'
+                        ? 'bg-orange-500/15 ring-1 ring-orange-400/30 text-orange-300'
+                        : 'bg-cyan-500/15 ring-1 ring-cyan-400/30 text-cyan-300'
+                    }`}>
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        {hot
+                          ? <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14a8 8 0 0 0 16 0c0-4.07-1.95-7.7-5-9.93l-.49-.62z" />
+                          : <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />}
+                      </svg>
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">
+                      <div className={`text-[10px] font-extrabold tracking-widest uppercase ${accent === 'orange' ? 'text-orange-300' : 'text-cyan-300'}`}>
                         {hot ? "Hot streak" : "Practice streak"}
                       </div>
-                      <div className="text-2xl font-black leading-tight">
+                      <div className="text-2xl font-black leading-tight text-white">
                         {streak} {streak === 1 ? 'day' : 'days'} {today ? 'and counting' : '— log today to keep it'}
                       </div>
                     </div>
@@ -951,35 +961,32 @@ const PlayerProfile: React.FC = () => {
               });
               const last = history[0];
               return (
-                <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5">
+                <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold text-fire-950 flex items-center gap-2">
-                      <span className="text-2xl">⚽</span>
-                      Juggle counter
-                    </h3>
+                    <h2 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Juggle counter</h2>
                     <button
                       onClick={() => { setJuggleDraft(''); setJuggleOpen(true); }}
-                      className="text-xs font-bold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                      className="text-xs font-bold uppercase tracking-widest text-cyan-300 hover:text-cyan-200"
                     >
                       + Log
                     </button>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 px-3 py-2.5">
-                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-amber-800">PR</div>
-                      <div className="text-2xl font-black text-amber-900 tabular-nums leading-tight">{best}</div>
+                    <div className="rounded-xl bg-amber-500/10 ring-1 ring-amber-400/30 px-3 py-2.5">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300">PR</div>
+                      <div className="text-2xl font-black text-amber-200 tabular-nums leading-tight">{best}</div>
                     </div>
-                    <div className="rounded-xl bg-cyan-50 ring-1 ring-cyan-200 px-3 py-2.5">
-                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-800">7-day attempts</div>
-                      <div className="text-2xl font-black text-cyan-900 tabular-nums leading-tight">{lastWeek.length}</div>
+                    <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 px-3 py-2.5">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-white/60">7-day attempts</div>
+                      <div className="text-2xl font-black text-white tabular-nums leading-tight">{lastWeek.length}</div>
                     </div>
-                    <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 px-3 py-2.5">
-                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-700">Last</div>
-                      <div className="text-2xl font-black text-slate-900 tabular-nums leading-tight">{last?.count ?? '—'}</div>
+                    <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 px-3 py-2.5">
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-white/60">Last</div>
+                      <div className="text-2xl font-black text-white tabular-nums leading-tight">{last?.count ?? '—'}</div>
                     </div>
                   </div>
                   {history.length === 0 && (
-                    <p className="text-xs text-slate-500 mt-3">No attempts yet. Tap "+ Log" to record one.</p>
+                    <p className="text-xs text-white/50 mt-3">No attempts yet. Tap "+ Log" to record one.</p>
                   )}
                 </div>
               );
@@ -987,14 +994,20 @@ const PlayerProfile: React.FC = () => {
 
             {/* EMPTY STATE */}
             {plans.length === 0 && recentMedia.length === 0 && votingWins.length === 0 && (
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-8 text-center">
-                <div className="text-5xl mb-3">⚽</div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">{player.name.split(' ')[0]}'s journey starts here</h3>
-                <p className="text-sm text-gray-500">Stats, clips, and awards will show up as the season unfolds.</p>
+              <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-8 text-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-cyan-500/15 ring-1 ring-cyan-400/30 flex items-center justify-center text-cyan-300 mb-3">
+                  <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="white" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-1">{player.name.split(' ')[0]}'s journey starts here</h3>
+                <p className="text-sm text-white/60">Stats, clips, and awards will show up as the season unfolds.</p>
               </div>
             )}
           </div>
-        )}
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
 
         {/* ─── MEDIA TAB ─────────────────────────────────────────── */}
         {activeTab === 'media' && (

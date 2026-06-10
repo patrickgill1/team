@@ -22,20 +22,20 @@ const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
+      <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-black text-gray-900">Player Info</h2>
+          <h2 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Player Info</h2>
           {canEdit && (
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-sm text-cyan-600 hover:text-cyan-800 font-bold"
+              className="text-xs font-bold text-cyan-300 hover:text-cyan-200"
             >
               Edit
             </button>
           )}
         </div>
-        <dl className="divide-y divide-gray-100">
+        <dl className="divide-y divide-white/10">
           <Row icon={<FootIcon />} label="Preferred Foot" value={player.preferredFoot} />
           <Row icon={<PinIcon />} label="Favorite Position" value={player.favoritePosition} />
           <Row icon={<StarIcon />} label="Favorite Player" value={player.favoritePlayer} />
@@ -56,11 +56,11 @@ const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
 
 const Row: React.FC<{ icon: React.ReactNode; label: string; value?: string }> = ({ icon, label, value }) => (
   <div className="flex items-center justify-between py-2.5 gap-2">
-    <dt className="flex items-center gap-2 text-sm text-gray-600">
-      <span className="text-cyan-600">{icon}</span>
+    <dt className="flex items-center gap-2 text-sm text-white/70">
+      <span className="text-cyan-300">{icon}</span>
       <span className="font-medium">{label}</span>
     </dt>
-    <dd className="text-sm font-bold text-gray-900 text-right truncate">{value || <span className="text-gray-400">—</span>}</dd>
+    <dd className="text-sm font-bold text-white text-right truncate">{value || <span className="text-white/40">—</span>}</dd>
   </div>
 );
 

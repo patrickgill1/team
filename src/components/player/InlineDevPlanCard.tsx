@@ -57,36 +57,36 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
 
   if (activePlans.length === 0) {
     return (
-      <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5">
+      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Development plan</h3>
+          <h2 className="text-lg font-black text-gray-900">Development Plan</h2>
           <button
             onClick={() => navigate('/development')}
-            className="text-xs font-bold text-cyan-300 hover:text-cyan-200"
+            className="text-sm text-cyan-600 hover:text-cyan-800 font-bold"
           >
             Open plan →
           </button>
         </div>
-        <p className="text-sm text-white/70">
-          No active plan yet — coach can build one from <button onClick={() => navigate('/development')} className="text-cyan-300 underline">Development</button>.
+        <p className="text-sm text-gray-600">
+          No active plan yet — coach can build one from <button onClick={() => navigate('/development')} className="text-cyan-600 underline">Development</button>.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5">
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Development plan</h3>
+        <h2 className="text-lg font-black text-gray-900">Development Plan</h2>
         <div className="flex items-center gap-2">
           {streak > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[11px] font-extrabold">
-              <span>🔥</span>{streak}-day streak
+              {streak}-day streak
             </span>
           )}
           <button
             onClick={() => navigate('/development')}
-            className="text-xs font-bold text-cyan-300 hover:text-cyan-200"
+            className="text-sm text-cyan-600 hover:text-cyan-800 font-bold"
           >
             Open plan →
           </button>
@@ -100,24 +100,21 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
           const planPct = totalCount > 0 ? Math.round((verifiedCount / totalCount) * 100) : 0;
           const doneToday = didItToday(goal);
           return (
-            <li key={goal.id} className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-3">
+            <li key={goal.id} className="rounded-xl bg-gray-50 ring-1 ring-gray-100 p-3">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-white">{goal.title}</span>
+                    <span className="text-sm font-bold text-gray-900">{goal.title}</span>
                     {goal.coachVerified && (
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40">
-                        ✓ Verified
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                        Verified
                       </span>
                     )}
                   </div>
-                  {goal.focus && <p className="text-[11px] text-white/60 mt-0.5 italic">{goal.focus}</p>}
-                  {/* Lightweight progress bar — plan-level, not goal-level
-                      (per-goal percentage isn't well-defined without
-                      coach-defined milestones). */}
-                  <div className="h-1.5 rounded-full bg-white/10 mt-2 overflow-hidden">
+                  {goal.focus && <p className="text-[11px] text-gray-500 mt-0.5 italic">{goal.focus}</p>}
+                  <div className="h-1.5 rounded-full bg-gray-200 mt-2 overflow-hidden">
                     <div
-                      className="h-full bg-cyan-400"
+                      className="h-full bg-cyan-500"
                       style={{ width: `${planPct}%` }}
                     />
                   </div>
@@ -128,12 +125,12 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                   onClick={() => handleDidIt(plan, goal.id)}
                   className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-extrabold uppercase tracking-widest transition ${
                     doneToday
-                      ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40 cursor-default'
+                      ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 cursor-default'
                       : 'bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50'
                   }`}
                   title={doneToday ? 'Already logged today — keep the streak alive tomorrow!' : 'Tap to log a practice for today'}
                 >
-                  {busy === goal.id ? '…' : doneToday ? '✓ Done today' : 'I did it!'}
+                  {busy === goal.id ? '…' : doneToday ? 'Done today' : 'I did it!'}
                 </button>
               </div>
             </li>
@@ -141,7 +138,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
         })}
       </ul>
 
-      <p className="text-[10px] text-white/40 mt-3 text-center">
+      <p className="text-[10px] text-gray-500 mt-3 text-center">
         One tap = one practice day. Streak survives missing today by tapping tomorrow.
       </p>
     </div>

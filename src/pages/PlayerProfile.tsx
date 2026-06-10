@@ -701,16 +701,16 @@ const PlayerProfile: React.FC = () => {
 
             {/* PRACTICE EFFORT — when there is any */}
             {totalPracticeMinutes > 0 && (
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-rose-500 to-rose-600 text-white p-5 sm:p-6 shadow-xl">
-                <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/15 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-amber-400/30 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative flex items-center justify-between gap-4">
+              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-[10px] uppercase tracking-widest font-black opacity-90 mb-1">🔥 Practice Effort</div>
-                    <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none">{formatMinutes(totalPracticeMinutes)}</div>
-                    <div className="text-xs sm:text-sm font-semibold opacity-90 mt-1.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'} · keep it up</div>
+                    <div className="text-[10px] uppercase tracking-widest font-black text-orange-600 mb-1">Practice Effort</div>
+                    <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-gray-900">{formatMinutes(totalPracticeMinutes)}</div>
+                    <div className="text-xs sm:text-sm font-semibold text-gray-500 mt-1.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'} · keep it up</div>
                   </div>
-                  <div className="text-5xl sm:text-7xl drop-shadow-lg">💪</div>
+                  <div className="shrink-0 w-14 h-14 rounded-full bg-orange-50 ring-1 ring-orange-200 flex items-center justify-center text-orange-500">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14a8 8 0 0 0 16 0c0-4.07-1.95-7.7-5-9.93l-.49-.62z" /></svg>
+                  </div>
                 </div>
               </div>
             )}

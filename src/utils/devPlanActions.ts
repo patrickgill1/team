@@ -32,48 +32,67 @@ export async function quickDidIt(
   return updatedGoals;
 }
 
+/** Bucket every practice-log date across the player's active plans
+ *  into a Set of day keys ("YYYY-M-D"). Used by streak math + any other
+ *  consumer that needs "did they practice on day X". */
+export function buildPracticeDayKeys(activePlans: DevelopmentPlan[]): Set<string> {
+  const dayKeys = new Set<string>();
+  for (const p of activePlans) {
+    for (const g of (p.goals || [])) {
+      for (const l of ((g as any).practiceLog || [])) {
+        const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+        dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+      }
+    }
+  }
+  return dayKeys;
+}
+
+/** Walk back from today, counting consecutive practice days. Sundays
+ *  are SKIPPED — they don't count toward the streak, and missing a
+ *  Sunday doesn't break it (so a kid who observes a religious day of
+ *  rest can keep a streak alive by practicing the other six days).
+ *  Today gets a free pass: if you haven't logged yet today, we start
+ *  walking from yesterday instead of penalizing you mid-day. */
+export function computeStreakDays(activePlans: DevelopmentPlan[]): number {
+  const dayKeys = buildPracticeDayKeys(activePlans);
+  if (dayKeys.size === 0) return 0;
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  const todayKey = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+  // If today is unlogged AND not a Sunday, start from yesterday — but
+  // if today IS a Sunday, leave the cursor here; the loop below will
+  // skip it without breaking.
+  if (!dayKeys.has(todayKey) && cursor.getDay() !== 0) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  let streak = 0;
+  for (;;) {
+    if (cursor.getDay() === 0) {
+      // Sunday — skip without counting or breaking.
+      cursor.setDate(cursor.getDate() - 1);
+      continue;
+    }
+    const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+    if (dayKeys.has(k)) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    } else break;
+  }
+  return streak;
+}
+
 /** Walk every practice-log date across this player's active plans,
- *  bucket by day, count consecutive days ending today (or yesterday if
- *  they haven't tapped yet today). Persist to players/{id}.
- *  currentStreakDays. Same algorithm PlayerDevelopment uses — extracted
- *  so the cached badge stays consistent regardless of where the
- *  "I did it" tap came from. */
+ *  bucket by day, count consecutive days ending today (Sundays skipped).
+ *  Persist to players/{id}.currentStreakDays. Same algorithm
+ *  PlayerDevelopment uses — extracted so the cached badge stays
+ *  consistent regardless of where the "I did it" tap came from. */
 export async function recomputeAndPersistPlayerStreak(
   playerId: string,
   activePlansAfterUpdate: DevelopmentPlan[]
 ): Promise<number> {
   try {
-    const dayKeys = new Set<string>();
-    for (const p of activePlansAfterUpdate) {
-      for (const g of (p.goals || [])) {
-        for (const l of ((g as any).practiceLog || [])) {
-          const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
-          dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
-        }
-      }
-    }
-    const today = new Date();
-    const yesterday = new Date(today.getTime() - 86_400_000);
-    let cursor: Date;
-    const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-    const yKey = `${yesterday.getFullYear()}-${yesterday.getMonth()}-${yesterday.getDate()}`;
-    if (dayKeys.has(todayKey)) cursor = today;
-    else if (dayKeys.has(yKey)) cursor = yesterday;
-    else {
-      await updateDoc(doc(db, 'players', playerId), {
-        currentStreakDays: 0,
-        currentStreakUpdatedAt: new Date(),
-      });
-      return 0;
-    }
-    let streak = 0;
-    while (true) {
-      const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-      if (dayKeys.has(k)) {
-        streak++;
-        cursor = new Date(cursor.getTime() - 86_400_000);
-      } else break;
-    }
+    const streak = computeStreakDays(activePlansAfterUpdate);
     await updateDoc(doc(db, 'players', playerId), {
       currentStreakDays: streak,
       currentStreakUpdatedAt: new Date(),

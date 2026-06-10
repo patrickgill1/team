@@ -11,6 +11,8 @@ import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
+import AddPlayer from '../components/player/AddPlayer';
+import { computeStreakDays } from '../utils/devPlanActions';
 import { computePlayerAttendance } from '../utils/attendance';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { getShareOrigin } from '../utils/origin';
@@ -47,6 +49,8 @@ const PlayerProfile: React.FC = () => {
   // player's parents) can record an attempt.
   const [juggleOpen, setJuggleOpen] = useState(false);
   const [juggleDraft, setJuggleDraft] = useState<string>('');
+  // Edit modal (hero pencil opens this)
+  const [editOpen, setEditOpen] = useState(false);
   // Memberships for this player across every team/season they're on.
   // Drives the per-team / per-season stats display (no more bleed).
   const [memberships, setMemberships] = useState<any[]>([]);
@@ -347,14 +351,6 @@ const PlayerProfile: React.FC = () => {
   const totalGoalsInPlans = plans.reduce((sum, p) => sum + p.goals.length, 0);
   const verifiedGoals = plans.reduce((sum, p) => sum + p.goals.filter(g => g.coachVerified).length, 0);
   const playerCompletedGoals = plans.reduce((sum, p) => sum + p.goals.filter(g => g.playerCompleted).length, 0);
-  const totalPracticeMinutes = plans.reduce(
-    (sum, p) => sum + p.goals.reduce((s, g) => s + (g.practiceLog || []).reduce((m, l) => m + (l.minutes || 0), 0), 0),
-    0
-  );
-  const totalPracticeSessions = plans.reduce(
-    (sum, p) => sum + p.goals.reduce((s, g) => s + (g.practiceLog || []).length, 0),
-    0
-  );
   const formatMinutes = (mins: number) => {
     if (mins < 60) return `${mins} min`;
     const h = Math.floor(mins / 60);
@@ -384,6 +380,7 @@ const PlayerProfile: React.FC = () => {
         canEdit={!!userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid))}
         isCurrentPotm={!!(player as any).isCurrentPotm}
         onBack={() => { window.history.length > 1 ? window.history.back() : (window.location.href = '/players'); }}
+        onEdit={() => setEditOpen(true)}
       />
       <ProfileStatsStrip
         potmWins={votingWins.length}
@@ -706,21 +703,38 @@ const PlayerProfile: React.FC = () => {
               );
             })()}
 
-            {/* PRACTICE EFFORT — when there is any */}
-            {totalPracticeMinutes > 0 && (
-              <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest font-black text-orange-300 mb-1">Practice Effort</div>
-                    <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-white">{formatMinutes(totalPracticeMinutes)}</div>
-                    <div className="text-xs sm:text-sm font-semibold text-white/60 mt-1.5">across {totalPracticeSessions} session{totalPracticeSessions === 1 ? '' : 's'} · keep it up</div>
-                  </div>
-                  <div className="shrink-0 w-14 h-14 rounded-full bg-orange-500/15 ring-1 ring-orange-400/30 flex items-center justify-center text-orange-300">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14a8 8 0 0 0 16 0c0-4.07-1.95-7.7-5-9.93l-.49-.62z" /></svg>
+            {/* PRACTICE EFFORT — consecutive days the player has tapped
+                "I did it" across any goal on any active plan. Sundays
+                are skipped so a religious day of rest doesn't break the
+                streak. */}
+            {(() => {
+              const activePlans = plans.filter(p => p.status === 'active');
+              const streakDays = computeStreakDays(activePlans);
+              if (streakDays === 0) return null;
+              const hot = streakDays >= 3;
+              return (
+                <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className={`text-[10px] uppercase tracking-widest font-black mb-1 ${hot ? 'text-orange-300' : 'text-cyan-300'}`}>Practice Effort</div>
+                      <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-white">{streakDays}</div>
+                      <div className="text-xs sm:text-sm font-semibold text-white/60 mt-1.5">{streakDays === 1 ? 'day' : 'days'} in a row · {hot ? "you're on fire" : 'keep it going'}</div>
+                    </div>
+                    <div className={`shrink-0 w-14 h-14 rounded-full flex items-center justify-center ${
+                      hot
+                        ? 'bg-orange-500/15 ring-1 ring-orange-400/30 text-orange-300'
+                        : 'bg-cyan-500/15 ring-1 ring-cyan-400/30 text-cyan-300'
+                    }`}>
+                      <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                        {hot
+                          ? <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14a8 8 0 0 0 16 0c0-4.07-1.95-7.7-5-9.93l-.49-.62z" />
+                          : <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />}
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* DEVELOPMENT PLAN — inline card with the SAME "I did it
                 today" action as the full /development page, so parents
@@ -880,71 +894,6 @@ const PlayerProfile: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* PRACTICE STREAK — consecutive days the player (or their
-                parent) has tapped "I did it" across any goal on any
-                active plan. Patrick: "maybe a hot streak when they do
-                more than one day and it showcases in their profile".
-                Visible to coach + the kid's parents. */}
-            {userData && (isCoach(userData.role) || (player.parentIds || []).includes(userData.uid)) && (() => {
-              // Aggregate all practice-log dates across every active
-              // plan's goals, dedupe to day buckets, then count
-              // consecutive days back from today (or yesterday if they
-              // haven't tapped yet today — so a missed-by-one-day
-              // streak isn't broken until midnight rolls).
-              const dayKeys = new Set<string>();
-              for (const p of plans) {
-                if (p.status !== 'active') continue;
-                for (const g of (p.goals || [])) {
-                  for (const l of ((g as any).practiceLog || [])) {
-                    const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
-                    dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
-                  }
-                }
-              }
-              if (dayKeys.size === 0) return null;
-              const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; })();
-              const today = dayKeys.has(todayKey);
-              const cursor = new Date();
-              cursor.setHours(0, 0, 0, 0);
-              if (!today) cursor.setDate(cursor.getDate() - 1);
-              let streak = 0;
-              for (;;) {
-                const key = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-                if (dayKeys.has(key)) {
-                  streak++;
-                  cursor.setDate(cursor.getDate() - 1);
-                } else break;
-              }
-              if (streak === 0) return null;
-              const hot = streak >= 3;
-              const accent = hot ? 'orange' : 'cyan';
-              return (
-                <div className={`rounded-2xl bg-white/[0.04] backdrop-blur ring-1 ring-white/10 px-5 py-4`}>
-                  <div className="flex items-center gap-3">
-                    <span className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-                      accent === 'orange'
-                        ? 'bg-orange-500/15 ring-1 ring-orange-400/30 text-orange-300'
-                        : 'bg-cyan-500/15 ring-1 ring-cyan-400/30 text-cyan-300'
-                    }`}>
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        {hot
-                          ? <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14a8 8 0 0 0 16 0c0-4.07-1.95-7.7-5-9.93l-.49-.62z" />
-                          : <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />}
-                      </svg>
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-[10px] font-extrabold tracking-widest uppercase ${accent === 'orange' ? 'text-orange-300' : 'text-cyan-300'}`}>
-                        {hot ? "Hot streak" : "Practice streak"}
-                      </div>
-                      <div className="text-2xl font-black leading-tight text-white">
-                        {streak} {streak === 1 ? 'day' : 'days'} {today ? 'and counting' : '— log today to keep it'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* JUGGLE COUNTER — parent-entered. Visible to coach + the
                 kid's parents. PR is the headline; recent attempts feed
@@ -1360,6 +1309,14 @@ const PlayerProfile: React.FC = () => {
           activePlans={activePlans}
         />
       )}
+
+      <AddPlayer
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        editingPlayer={player}
+        existingPlayers={[]}
+        onPlayerAdded={() => { setEditOpen(false); void loadProfile(); }}
+      />
     </div>
   );
 };

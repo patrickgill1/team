@@ -515,7 +515,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.email.trim() || !formData.password.trim()}
-                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] hover:shadow-[0_20px_50px_-10px_rgba(167,139,250,0.6)] enabled:hover:-translate-y-0.5 bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400"
+                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] enabled:hover:-translate-y-0.5 bg-cyan-600 hover:bg-cyan-500"
               >
                 {isSubmitting ? (
                   <>

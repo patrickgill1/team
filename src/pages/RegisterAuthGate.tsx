@@ -82,7 +82,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight">
             You're a few clicks from the<br />
-            <span className="bg-gradient-to-r from-cyan-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">Fire FC family.</span>
+            <span className="text-cyan-300">Fire FC family.</span>
           </h1>
           <p className="text-slate-300 mt-3 text-sm leading-relaxed">
             Sign in or create your account to start your registration. One login covers every kid in your family — past, present, and future seasons.
@@ -125,7 +125,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
               <button
                 type="button"
                 onClick={() => setMode('email-signup')}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400 text-white"
+                className="w-full py-3 rounded-xl font-bold text-sm bg-cyan-600 hover:bg-cyan-500 text-white"
               >
                 Create account with email
               </button>
@@ -179,7 +179,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                 type="button"
                 onClick={handleEmail}
                 disabled={busy || !email || !password}
-                className="w-full py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400 disabled:opacity-50"
+                className="w-full py-3 rounded-xl font-bold text-sm text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50"
               >
                 {busy ? 'Working…' : mode === 'email-signup' ? 'Create account' : 'Sign in'}
               </button>

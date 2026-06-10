@@ -406,7 +406,7 @@ const Wall: React.FC = () => {
                 type="button"
                 onClick={handlePost}
                 disabled={(!composer.trim() && composerAttachments.length === 0) || posting}
-                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {posting ? 'Posting…' : 'Post to wall'}
               </button>

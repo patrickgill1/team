@@ -80,7 +80,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
         <h3 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Development plan</h3>
         <div className="flex items-center gap-2">
           {streak > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-orange-500 text-white text-[11px] font-extrabold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[11px] font-extrabold">
               <span>🔥</span>{streak}-day streak
             </span>
           )}
@@ -117,7 +117,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                       coach-defined milestones). */}
                   <div className="h-1.5 rounded-full bg-white/10 mt-2 overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-cyan-400 to-violet-400"
+                      className="h-full bg-cyan-400"
                       style={{ width: `${planPct}%` }}
                     />
                   </div>
@@ -129,7 +129,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                   className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-extrabold uppercase tracking-widest transition ${
                     doneToday
                       ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40 cursor-default'
-                      : 'bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 text-white hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400 disabled:opacity-50'
+                      : 'bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50'
                   }`}
                   title={doneToday ? 'Already logged today — keep the streak alive tomorrow!' : 'Tap to log a practice for today'}
                 >

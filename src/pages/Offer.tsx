@@ -294,7 +294,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={handleAccept}
                 disabled={submitting}
-                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400 disabled:opacity-50 shadow-lg"
+                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 shadow-lg"
               >
                 {submitting ? 'Working…' : 'Accept the offer'}
               </button>

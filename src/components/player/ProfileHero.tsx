@@ -80,7 +80,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
             </div>
           )}
           {player.profilePhotoUrl && player.jerseyNumber != null && (
-            <span className="absolute -bottom-2 -right-2 bg-gradient-to-br from-cyan-400 to-violet-500 text-white rounded-full min-w-[36px] h-9 px-2.5 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-slate-950">
+            <span className="absolute -bottom-2 -right-2 bg-cyan-500 text-white rounded-full min-w-[36px] h-9 px-2.5 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-slate-950">
               #{player.jerseyNumber}
             </span>
           )}

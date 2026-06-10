@@ -41,7 +41,7 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
           sub="Attendance"
         />
         <StatTile
-          accent="violet"
+          accent="cyan"
           icon={<BallIcon />}
           value={String(jugglesBest)}
           label="Juggle"
@@ -52,11 +52,10 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
   );
 };
 
-const ACCENT: Record<string, { bg: string; ring: string; from: string; to: string; text: string }> = {
-  amber: { bg: 'bg-amber-500/10', ring: 'ring-amber-400/30', from: 'from-amber-300', to: 'to-orange-400', text: 'text-amber-200' },
-  orange: { bg: 'bg-orange-500/10', ring: 'ring-orange-400/30', from: 'from-orange-300', to: 'to-rose-400', text: 'text-orange-200' },
-  cyan: { bg: 'bg-cyan-500/10', ring: 'ring-cyan-400/30', from: 'from-cyan-300', to: 'to-sky-400', text: 'text-cyan-200' },
-  violet: { bg: 'bg-violet-500/10', ring: 'ring-violet-400/30', from: 'from-violet-300', to: 'to-fuchsia-400', text: 'text-violet-200' },
+const ACCENT: Record<string, { bg: string; ring: string; badge: string; text: string }> = {
+  amber: { bg: 'bg-amber-500/10', ring: 'ring-amber-400/30', badge: 'bg-amber-400', text: 'text-amber-200' },
+  orange: { bg: 'bg-orange-500/10', ring: 'ring-orange-400/30', badge: 'bg-orange-400', text: 'text-orange-200' },
+  cyan: { bg: 'bg-cyan-500/10', ring: 'ring-cyan-400/30', badge: 'bg-cyan-400', text: 'text-cyan-200' },
 };
 
 const StatTile: React.FC<{
@@ -70,7 +69,7 @@ const StatTile: React.FC<{
   return (
     <div className={`relative overflow-hidden rounded-2xl ${a.bg} ring-1 ${a.ring} p-3 sm:p-4`}>
       <div className="flex items-center gap-2 mb-1">
-        <span className={`inline-flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br ${a.from} ${a.to} text-slate-950 shadow-inner`}>
+        <span className={`inline-flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-full ${a.badge} text-slate-950 shadow-inner`}>
           {icon}
         </span>
         <span className={`text-3xl sm:text-4xl font-black tabular-nums leading-none ${a.text}`}>{value}</span>

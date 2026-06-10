@@ -110,11 +110,11 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
             {overallVibe === 'offer_action' ? (
-              <>You've got an <span className="bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">offer</span> waiting, {firstName}.</>
+              <>You've got an <span className="text-cyan-300">offer</span> waiting, {firstName}.</>
             ) : overallVibe === 'all_rostered' ? (
               <>You're <span className="bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">in</span>, {firstName}.</>
             ) : (
-              <>You're in the <span className="bg-gradient-to-r from-cyan-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">Fire FC pool</span>, {firstName}.</>
+              <>You're in the <span className="text-cyan-300">Fire FC pool</span>, {firstName}.</>
             )}
           </h1>
           <p className="text-slate-300 mt-3 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
@@ -132,7 +132,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         ) : kids.length === 0 ? (
           <div className="bg-white/[0.04] ring-1 ring-white/10 rounded-2xl p-6 text-center">
             <p className="text-sm text-slate-300 mb-4">We don't see a registration on file under <b className="text-white">{email}</b> yet.</p>
-            <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-violet-500 to-fuchsia-500 text-white text-sm font-bold hover:from-cyan-400 hover:via-violet-400 hover:to-fuchsia-400">
+            <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold">
               Start registration
             </Link>
           </div>

@@ -1268,6 +1268,32 @@ export interface Game {
 }
 
 // ================================
+// WALL POSTS — separate collection from chat. The Wall is its own
+// surface (formatted markdown, headings, pinned posts, likes) so it
+// does not piggyback on chat anymore. Old pinned chat messages are
+// no longer surfaced on the wall; only docs in `wall_posts` are.
+// ================================
+
+export interface WallPost {
+  id: string;
+  teamId: string;
+  /** Markdown source. Rendered by the Wall's RichContent component. */
+  content: string;
+  senderId: string;
+  senderName: string;
+  senderRole?: 'coach' | 'parent' | 'admin';
+  timestamp: Date;
+  attachments?: Array<{ url: string; name?: string; type?: string }>;
+  reactions?: Array<{ emoji: string; userId: string; userName?: string }>;
+  /** Number stored when pinned to top (Date.now() at pin time). Null
+   *  or absent = not pinned. Most-recently-pinned sorts first. */
+  wallPinnedTop?: number | null;
+  /** Provenance — was this a manual coach post, or auto-posted from a
+   *  game schedule / video upload? Drives small UI tags on the post. */
+  postedFrom?: 'wall' | 'game' | 'video';
+}
+
+// ================================
 // CHAT SYSTEM INTERFACES
 // ================================
 

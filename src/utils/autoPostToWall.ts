@@ -1,23 +1,25 @@
 /**
- * Auto-post helpers — write a chat message to the team's primary
- * thread + pin it so the post shows up on /wall. Used by the event
- * creation flow (for games) and the media upload flow (for videos)
- * so high-value team events surface on the wall without a coach
- * remembering to do it manually.
+ * Auto-post helpers — write a wall_posts doc when high-value team
+ * events happen, so the wall surfaces them without a coach having to
+ * remember to post manually.
  *
  * Detection rules:
  *   - Games  → always auto-post
- *   - Videos → always auto-post (with thumbnail when available)
+ *   - Videos → always auto-post (with thumbnail / preview when available)
  *   - Photos / practices → skip (too noisy)
  *
- * All writes are fire-and-forget. If the post fails (no team chat
- * thread yet, network glitch, whatever), the underlying event/media
- * creation still succeeds — auto-posting is a nice-to-have on top.
+ * All writes are fire-and-forget. If the post fails (network glitch,
+ * permission, whatever), the underlying event/media creation still
+ * succeeds — auto-posting is a nice-to-have on top.
+ *
+ * The Wall lives in its own `wall_posts` collection — it does NOT
+ * piggyback on chat. Markdown source here renders cleanly on the
+ * Wall and never leaks into a chat thread.
  */
 
-import { addDoc, collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection } from 'firebase/firestore';
 import { db } from './firebase';
-import type { CalendarEvent, ChatThread, PlayerMedia } from '../types';
+import type { CalendarEvent, PlayerMedia } from '../types';
 
 interface Actor {
   uid: string;
@@ -25,59 +27,29 @@ interface Actor {
   role?: string;
 }
 
-// Find the best chat thread to post into for a team. Skips DMs +
-// private (coach-only) threads, prefers the most recently active.
-async function findPrimaryTeamThread(teamId: string): Promise<{ id: string; pinnedMessageIds: string[] } | null> {
-  try {
-    const snap = await getDocs(query(
-      collection(db, 'chat_threads'),
-      where('teamId', '==', teamId),
-    ));
-    const candidates = snap.docs
-      .map(d => ({ id: d.id, ...(d.data() as any) } as ChatThread & { id: string }))
-      .filter(t => !t.isDM && !t.isPrivate);
-    if (candidates.length === 0) return null;
-    candidates.sort((a, b) => {
-      const aTs = (a.lastActivity as any)?.toDate?.()?.getTime?.() || new Date(a.lastActivity || 0).getTime();
-      const bTs = (b.lastActivity as any)?.toDate?.()?.getTime?.() || new Date(b.lastActivity || 0).getTime();
-      return bTs - aTs;
-    });
-    const target = candidates[0];
-    return {
-      id: target.id,
-      pinnedMessageIds: Array.isArray(target.pinnedMessageIds) ? target.pinnedMessageIds : [],
-    };
-  } catch (err) {
-    console.warn('autoPostToWall: thread lookup failed', err);
-    return null;
-  }
-}
-
-async function postAndPin(
+async function postToWall(
   teamId: string,
   actor: Actor,
   content: string,
-  opts: { attachments?: PlayerMedia['url'] extends string ? Array<{ url: string; type: string; name?: string }> : never } = {}
+  opts: {
+    attachments?: Array<{ url: string; type: string; name?: string }>;
+    postedFrom?: 'wall' | 'game' | 'video';
+  } = {}
 ): Promise<string | null> {
-  const target = await findPrimaryTeamThread(teamId);
-  if (!target) return null;
   try {
-    const msgRef = await addDoc(collection(db, 'chat_messages'), {
-      threadId: target.id,
+    const ref = await addDoc(collection(db, 'wall_posts'), {
       teamId,
       content,
       senderId: actor.uid,
       senderName: actor.name,
       senderRole: actor.role || 'coach',
       timestamp: new Date(),
-      createdAt: new Date(),
-      attachments: opts.attachments && opts.attachments.length > 0 ? opts.attachments : undefined,
+      attachments: opts.attachments && opts.attachments.length > 0 ? opts.attachments : null,
+      reactions: [],
+      wallPinnedTop: null,
+      postedFrom: opts.postedFrom || 'wall',
     });
-    await updateDoc(doc(db, 'chat_threads', target.id), {
-      pinnedMessageIds: [...target.pinnedMessageIds, msgRef.id],
-      lastActivity: new Date(),
-    });
-    return msgRef.id;
+    return ref.id;
   } catch (err) {
     console.warn('autoPostToWall: write failed', err);
     return null;
@@ -95,19 +67,20 @@ export async function autoPostGameToWall(event: CalendarEvent, actor: Actor): Pr
     hour: 'numeric', minute: '2-digit',
   });
   const lines: string[] = [];
-  lines.push(`📅 **Game scheduled**`);
+  lines.push(`## Game scheduled`);
   const opponentLine = event.opponent
-    ? `${event.homeAway === 'home' ? 'vs' : '@'} ${event.opponent}`
-    : event.title;
+    ? `${event.homeAway === 'home' ? 'vs' : '@'} **${event.opponent}**`
+    : `**${event.title}**`;
   lines.push(opponentLine);
-  lines.push(dateStr);
+  lines.push('');
+  lines.push(`- ${dateStr}`);
   if (event.location) {
-    lines.push(event.location + (event.fieldNumber ? ` · Field ${event.fieldNumber}` : ''));
+    lines.push(`- ${event.location}${event.fieldNumber ? ` · Field ${event.fieldNumber}` : ''}`);
   }
   if (event.arriveOffsetMinutes && event.arriveOffsetMinutes > 0) {
-    lines.push(`Arrive ${event.arriveOffsetMinutes} min early`);
+    lines.push(`- Arrive ${event.arriveOffsetMinutes} min early`);
   }
-  await postAndPin(event.teamId, actor, lines.join('\n'));
+  await postToWall(event.teamId, actor, lines.join('\n'), { postedFrom: 'game' });
 }
 
 /** Auto-post a newly uploaded video clip to the team wall. Photos
@@ -117,14 +90,11 @@ export async function autoPostGameToWall(event: CalendarEvent, actor: Actor): Pr
 export async function autoPostVideoToWall(media: PlayerMedia, actor: Actor): Promise<void> {
   if (media.type !== 'video' || !media.teamId) return;
   const lines: string[] = [];
-  lines.push(`🎥 **New highlight**`);
-  if (media.playerName) lines.push(media.playerName);
-  if (media.caption) lines.push(`"${media.caption}"`);
-  // Embed the video as an attachment. The wall renderer falls back
-  // to the image attachment grid; mobile chat clients linkify the
-  // URL — both surfaces work without changes.
+  lines.push(`## New highlight`);
+  if (media.playerName) lines.push(`**${media.playerName}**`);
+  if (media.caption) lines.push(`> ${media.caption}`);
   const attachments = media.url
     ? [{ url: media.url, type: 'video', name: media.fileName || 'video' }]
     : undefined;
-  await postAndPin(media.teamId, actor, lines.join('\n'), { attachments });
+  await postToWall(media.teamId, actor, lines.join('\n'), { attachments, postedFrom: 'video' });
 }

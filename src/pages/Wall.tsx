@@ -1,30 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { doc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
-import { useFirestore } from '../hooks/useFirestore';
-import { ChatThread } from '../types';
 import { isCoach } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
-
-interface WallPost {
-  id: string;
-  threadId: string;
-  threadTitle: string;
-  content: string;
-  senderId?: string;
-  senderName: string;
-  senderRole?: string;
-  timestamp: Date;
-  attachments?: Array<{ url: string; type?: string; name?: string }>;
-  reactions?: Array<{ emoji: string; userId: string; userName?: string }>;
-  /** When set, this post sticks to the top of the wall, ordered by
-   *  the timestamp here (most-recently pinned first). */
-  wallPinnedTop?: number | null;
-}
+import type { WallPost } from '../types';
 
 // Render URLs in plain text as tappable links. Plain-loop variant so
 // we don't need the matchAll iterator target.
@@ -56,16 +39,13 @@ function linkify(text: string): React.ReactNode[] {
 const Wall: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
-  const { subscribeToChatThreads, updateChatThread, addChatMessage } = useFirestore() as any;
-  const [threads, setThreads] = useState<ChatThread[]>([]);
   const [posts, setPosts] = useState<WallPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const canUnpin = userData ? (isCoach(userData.role) || (userData as any).isClubAdmin) : false;
-  // Coaches + club admins post directly to the wall from this page —
-  // no detour through chat. Under the hood we write a ChatMessage to
-  // the team's primary thread + pin it, matching the chat composer's
-  // "Post to wall" toggle path so it shows up identically everywhere.
-  const canPost = canUnpin;
+  const canManage = userData ? (isCoach(userData.role) || (userData as any).isClubAdmin) : false;
+  // Coaches + club admins author wall posts. The wall is its own
+  // collection now (wall_posts) — completely independent from chat.
+  // Markdown source lives here, never leaks into a chat thread.
+  const canPost = canManage;
   const [composer, setComposer] = useState('');
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [composerAttachments, setComposerAttachments] = useState<Array<{ url: string; name: string; type: string }>>([]);
@@ -146,137 +126,84 @@ const Wall: React.FC = () => {
     wrapSelection('[', `](${url.trim()})`);
   };
 
-  // Subscribe to the team's chat threads so we always have current
-  // pinnedMessageIds. The wall is just a different projection of the
-  // same data the chat tab serves.
+  // Subscribe to wall_posts for this team. The wall is its own
+  // collection — no longer a projection of chat. Most-recently pinned
+  // posts sort first, then everything else by timestamp desc.
   useEffect(() => {
-    if (!selectedTeamId) { setThreads([]); setLoading(false); return; }
-    const unsub = subscribeToChatThreads(selectedTeamId, (data) => {
-      setThreads(data as ChatThread[]);
+    if (!selectedTeamId) { setPosts([]); setLoading(false); return; }
+    setLoading(true);
+    const q = query(
+      collection(db, 'wall_posts'),
+      where('teamId', '==', selectedTeamId),
+      orderBy('timestamp', 'desc'),
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const next: WallPost[] = snap.docs.map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          teamId: data.teamId,
+          content: data.content || '',
+          senderId: data.senderId,
+          senderName: data.senderName || 'Coach',
+          senderRole: data.senderRole,
+          timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
+          attachments: Array.isArray(data.attachments) ? data.attachments : undefined,
+          reactions: Array.isArray(data.reactions) ? data.reactions : [],
+          wallPinnedTop: typeof data.wallPinnedTop === 'number' ? data.wallPinnedTop : null,
+          postedFrom: data.postedFrom,
+        };
+      }).sort((a, b) => {
+        const aTop = a.wallPinnedTop || 0;
+        const bTop = b.wallPinnedTop || 0;
+        if (aTop !== bTop) return bTop - aTop;
+        return b.timestamp.getTime() - a.timestamp.getTime();
+      });
+      setPosts(next);
+      setLoading(false);
+    }, (err) => {
+      console.warn('wall subscribe failed', err);
+      setLoading(false);
     });
-    return () => { unsub && unsub(); };
-  }, [selectedTeamId, subscribeToChatThreads]);
+    return () => unsub();
+  }, [selectedTeamId]);
 
-  // Fetch chat_messages docs for every pinned id across the team's
-  // threads. Chunked by 30 to stay under Firestore's "in" cap.
-  useEffect(() => {
-    if (!selectedTeamId) return;
-    const idToThread = new Map<string, { id: string; title: string }>();
-    for (const t of threads) {
-      const ids: string[] = ((t as any).pinnedMessageIds || []) as string[];
-      for (const id of ids) {
-        if (id && !idToThread.has(id)) idToThread.set(id, { id: t.id, title: t.title || 'Chat' });
-      }
-    }
-    if (idToThread.size === 0) { setPosts([]); setLoading(false); return; }
-    let cancelled = false;
-    (async () => {
-      try {
-        const { collection, getDocs, query, where, documentId } = await import('firebase/firestore');
-        const { db } = await import('../utils/firebase');
-        const ids = Array.from(idToThread.keys());
-        const fetched: any[] = [];
-        for (let i = 0; i < ids.length; i += 30) {
-          const slice = ids.slice(i, i + 30);
-          const snap = await getDocs(query(
-            collection(db, 'chat_messages'),
-            where(documentId(), 'in', slice),
-          ));
-          snap.docs.forEach(d => fetched.push({ id: d.id, ...(d.data() as any) }));
-        }
-        if (cancelled) return;
-        const next = fetched
-          .filter(m => m.content || (Array.isArray(m.attachments) && m.attachments.length > 0))
-          .map(m => {
-            const tr = idToThread.get(m.id) || { id: m.threadId || '', title: 'Chat' };
-            return {
-              id: m.id,
-              threadId: tr.id,
-              threadTitle: tr.title,
-              content: (m.content as string) || '',
-              senderId: m.senderId,
-              senderName: m.senderName as string,
-              senderRole: m.senderRole as string | undefined,
-              timestamp: m.timestamp?.toDate?.() || new Date(m.timestamp || Date.now()),
-              attachments: m.attachments,
-              reactions: Array.isArray(m.reactions) ? m.reactions : [],
-              wallPinnedTop: typeof m.wallPinnedTop === 'number' ? m.wallPinnedTop : null,
-            } as WallPost;
-          })
-          // Pinned-to-top posts go first, ordered by most-recently
-          // pinned. Then everything else by post timestamp desc.
-          .sort((a, b) => {
-            const aTop = a.wallPinnedTop || 0;
-            const bTop = b.wallPinnedTop || 0;
-            if (aTop !== bTop) return bTop - aTop;
-            return b.timestamp.getTime() - a.timestamp.getTime();
-          });
-        setPosts(next);
-        setLoading(false);
-      } catch (err) {
-        console.warn('wall load failed', err);
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [selectedTeamId, threads]);
-
-  const unpin = async (post: WallPost) => {
-    if (!canUnpin) return;
-    if (!window.confirm('Remove this from the wall? The original message stays in chat.')) return;
-    const thread = threads.find(t => t.id === post.threadId);
-    if (!thread) return;
-    const current = ((thread as any).pinnedMessageIds || []) as string[];
-    const next = current.filter(id => id !== post.id);
+  // Delete a post from the wall. No more "unpin" since posts no
+  // longer live in chat — removing from the wall means deleting the
+  // wall_posts doc outright.
+  const removePost = async (post: WallPost) => {
+    if (!canManage) return;
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
     try {
-      await updateChatThread(thread.id, { pinnedMessageIds: next } as any);
-      setPosts(prev => prev.filter(p => p.id !== post.id));
+      await deleteDoc(doc(db, 'wall_posts', post.id));
     } catch (err) {
-      console.error('unpin failed', err);
-      alert('Failed to unpin — try again.');
+      console.error('wall delete failed', err);
+      alert('Failed to delete — try again.');
     }
   };
 
-  // Post directly to the wall. Picks the team's primary chat thread
-  // (preferring a non-DM, non-private team-scoped one), writes a new
-  // ChatMessage, and pins it. Same data path as the chat composer's
-  // "Post to wall" toggle.
+  // Post a new wall_posts doc. No chat involvement.
   const handlePost = async () => {
     const content = composer.trim();
-    if (!content || !userData || !selectedTeamId || posting) return;
+    if ((!content && composerAttachments.length === 0) || !userData || !selectedTeamId || posting) return;
     setPosting(true);
     setPostError(null);
     try {
-      // Pick the best thread to post into. Preference order:
-      //   1. A non-DM, non-private thread on this team with most recent activity
-      //   2. The first team-scoped thread we find
-      const teamThreads = threads.filter(t => !t.isDM && !t.isPrivate && t.teamId === selectedTeamId);
-      const target = teamThreads.sort((a, b) => {
-        const aTs = (a.lastActivity as any)?.toDate?.()?.getTime?.() || new Date(a.lastActivity || 0).getTime();
-        const bTs = (b.lastActivity as any)?.toDate?.()?.getTime?.() || new Date(b.lastActivity || 0).getTime();
-        return bTs - aTs;
-      })[0];
-      if (!target) {
-        setPostError("No team chat thread to post into yet — create one in Chat first.");
-        return;
-      }
-      const messageId = await addChatMessage({
-        threadId: target.id,
+      await addDoc(collection(db, 'wall_posts'), {
         teamId: selectedTeamId,
         content,
         senderId: userData.uid,
         senderName: userData.name || 'Coach',
         senderRole: isCoach(userData.role) || (userData as any).isClubAdmin ? 'coach' : 'parent',
         timestamp: new Date(),
-        attachments: composerAttachments.length > 0 ? composerAttachments : undefined,
+        attachments: composerAttachments.length > 0 ? composerAttachments : null,
+        reactions: [],
+        wallPinnedTop: null,
+        postedFrom: 'wall',
       });
-      // Pin it so it shows up on the wall immediately.
-      const existing = Array.isArray(target.pinnedMessageIds) ? target.pinnedMessageIds : [];
-      await updateChatThread(target.id, {
-        pinnedMessageIds: [...existing, messageId],
-      } as any);
       setComposer('');
       setComposerAttachments([]);
+      setPreviewMode(false);
     } catch (err: any) {
       console.error('wall post failed', err);
       setPostError(err?.message || 'Post failed — try again.');
@@ -285,35 +212,21 @@ const Wall: React.FC = () => {
     }
   };
 
-  // Pin / unpin a post at the top of the wall. Stored directly on the
-  // ChatMessage so it survives across clients that already have the
-  // Wall feature — they'll read the field even if their build predates
-  // the pin-to-top action.
+  // Pin / unpin to top of the wall.
   const togglePinTop = async (post: WallPost) => {
-    if (!canUnpin) return;
+    if (!canManage) return;
     try {
       const wasPinned = !!post.wallPinnedTop;
-      await updateDoc(doc(db, 'chat_messages', post.id), {
+      await updateDoc(doc(db, 'wall_posts', post.id), {
         wallPinnedTop: wasPinned ? null : Date.now(),
       });
-      setPosts(prev => prev
-        .map(p => p.id === post.id ? { ...p, wallPinnedTop: wasPinned ? null : Date.now() } : p)
-        .sort((a, b) => {
-          const aTop = a.wallPinnedTop || 0;
-          const bTop = b.wallPinnedTop || 0;
-          if (aTop !== bTop) return bTop - aTop;
-          return b.timestamp.getTime() - a.timestamp.getTime();
-        })
-      );
     } catch (err) {
       console.error('pin-to-top failed', err);
       alert('Failed to update pin — try again.');
     }
   };
 
-  // Like / unlike a wall post. Uses the existing reactions array with
-  // a 'heart' emoji so the same row counts as a chat reaction too —
-  // people reading the same message in chat see your like there too.
+  // Like / unlike a wall post.
   const toggleLike = async (post: WallPost) => {
     if (!userData?.uid) return;
     const reactions = post.reactions || [];
@@ -323,10 +236,9 @@ const Wall: React.FC = () => {
       : [...reactions, { emoji: '❤️', userId: userData.uid, userName: userData.name || 'Friend' }];
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, reactions: next } : p));
     try {
-      await updateDoc(doc(db, 'chat_messages', post.id), { reactions: next });
+      await updateDoc(doc(db, 'wall_posts', post.id), { reactions: next });
     } catch (err) {
       console.error('like toggle failed', err);
-      // Revert on failure.
       setPosts(prev => prev.map(p => p.id === post.id ? { ...p, reactions } : p));
     }
   };
@@ -505,7 +417,7 @@ const Wall: React.FC = () => {
             <p className="text-sm font-semibold text-slate-700 mb-1">Nothing on the wall yet.</p>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">
               {canPost
-                ? 'Type your first announcement above. You can also pin any existing chat message via the ⋯ menu.'
+                ? 'Type your first announcement above. The wall is for formatted posts — chat is separate.'
                 : 'Coaches post announcements and important links here.'}
             </p>
           </div>
@@ -571,22 +483,18 @@ const Wall: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => toggleLike(p)}
-                      className={`text-xs font-bold tracking-widest uppercase flex items-center gap-1 px-2 py-1 rounded transition ${
+                      className={`text-xs font-bold tracking-widest uppercase flex items-center gap-1.5 px-2 py-1 rounded transition ${
                         myLike ? 'text-rose-600' : 'text-slate-500 hover:text-rose-600'
                       }`}
                       title={myLike ? 'Unlike' : 'Like'}
                     >
-                      <span className={myLike ? 'inline-block scale-110' : ''}>{myLike ? '❤️' : '🤍'}</span>
+                      <svg className="w-4 h-4" fill={myLike ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
                       {likes.length > 0 && <span>{likes.length}</span>}
                     </button>
-                    <Link
-                      to={`/chat?thread=${encodeURIComponent(p.threadId)}&message=${encodeURIComponent(p.id)}`}
-                      className="text-xs font-bold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 px-2 py-1"
-                    >
-                      Open in chat
-                    </Link>
                     <div className="flex-1" />
-                    {canUnpin && (
+                    {canManage && (
                       <>
                         <button
                           type="button"
@@ -599,11 +507,11 @@ const Wall: React.FC = () => {
                           {isPinnedTop ? 'Unpin' : 'Pin top'}
                         </button>
                         <button
-                          onClick={() => unpin(p)}
+                          onClick={() => removePost(p)}
                           className="text-xs font-bold tracking-widest uppercase text-rose-600 hover:text-rose-800 px-2 py-1"
-                          title="Remove from wall (original message stays in chat)"
+                          title="Delete this post"
                         >
-                          Remove
+                          Delete
                         </button>
                       </>
                     )}

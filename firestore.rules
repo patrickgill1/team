@@ -45,6 +45,24 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // The Wall is its own surface — separate collection from chat.
+    // Any signed-in user can read (everyone on the team sees the same
+    // wall). Any signed-in user can create their own post. After the
+    // fact, the author OR a club admin can edit/delete; any signed-in
+    // user can update ONLY the reactions array (so likes work).
+    match /wall_posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.senderId == request.auth.uid;
+      allow update: if request.auth != null
+        && (resource.data.senderId == request.auth.uid
+            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']));
+      allow delete: if request.auth != null
+        && (resource.data.senderId == request.auth.uid
+            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
+    }
+
     // Per-event discussion (comments live with the event, not in the
     // Chat tab — keeps the inbox clean). Auth required for both read
     // and create. Only the author can edit or delete their own.

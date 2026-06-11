@@ -102,6 +102,10 @@ const Navigation: React.FC = () => {
   // interior shapes that disappear when filled).
   const bottomTabs: Array<{ name: string; path: string; icon: import('./AppIcon').AppIconName }> = [
     { name: 'Home', path: '/dashboard', icon: 'home' },
+    // Wall sits next to Home so parents discover it on first launch —
+    // /wall is where coach announcements live and isn't obvious from
+    // the Dashboard alone.
+    { name: 'Wall', path: '/wall', icon: 'news' },
     // "Events" is the most-tapped surface (parents check "what's next"
     // multiple times a day). Bumped Players to the More sheet.
     { name: 'Events', path: '/calendar', icon: 'calendar' },

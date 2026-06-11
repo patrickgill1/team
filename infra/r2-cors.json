@@ -1,0 +1,18 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://firefc.app",
+      "https://www.firefc.app",
+      "https://goalkickr.com",
+      "https://www.goalkickr.com",
+      "http://localhost:3000",
+      "capacitor://localhost",
+      "https://localhost",
+      "ionic://localhost"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

@@ -84,6 +84,15 @@ export default async function handler(req, res) {
         accessKeyId: process.env.R2_ACCESS_KEY_ID,
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
       },
+      // AWS SDK v3 (>=3.730) adds x-amz-checksum-crc32 +
+      // x-amz-sdk-checksum-algorithm to every PutObject by default and
+      // bakes them into the signed URL. R2 accepts them, but browsers
+      // refuse to PUT cross-origin unless those header names are listed
+      // in the bucket's CORS AllowedHeaders. WHEN_REQUIRED keeps the
+      // signed URL clean (R2 doesn't require checksums on PUTs), so the
+      // preflight only needs Content-Type allowed.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
 
     const cmd = new PutObjectCommand({

@@ -59,12 +59,8 @@ const Dashboard: React.FC = () => {
     durationMinutes?: number;
     loggedToday: boolean;
   } | null>(null);
-  // Wall posts = chat messages pinned to any of the team's threads.
-  // We hydrate them by fetching the chat_messages docs whose ids appear
-  // in each thread's pinnedMessageIds. Surfaced here as the team's
-  // single "announcements" surface so coaches don't have to maintain a
-  // parallel wall feed (they post once in chat with "Post to wall" on,
-  // it lands here too).
+  // Wall posts = docs in the wall_posts collection (its own surface,
+  // separate from chat). The dashboard surfaces the 5 most recent.
   const [wallPosts, setWallPosts] = useState<Array<{ id: string; threadId: string; content: string; senderName: string; senderRole?: string; timestamp: Date }>>([]);
   // uid → photoURL map used by the Recent Chats card to render real
   // avatars on DMs (and any future thread types that want a per-user
@@ -172,54 +168,44 @@ const Dashboard: React.FC = () => {
     return () => { unsub && unsub(); };
   }, [selectedTeamId, subscribeToChatThreads, isUserCoach, userData?.uid]);
 
-  // Hydrate wall posts whenever the team's threads change. We collect
-  // every pinned message id across the active team's threads, dedupe,
-  // and fetch the chat_messages docs in batches (Firestore "in" cap
-  // is 30). Cheap because most teams have <10 pinned messages total
-  // and threads are usually 1-3.
+  // Subscribe to the team's wall_posts collection — the wall has its
+  // own surface now (not piggybacking on chat). Show the 5 most
+  // recent so the dashboard surfaces today's announcements.
   useEffect(() => {
     if (!selectedTeamId) { setWallPosts([]); return; }
-    const idToThread = new Map<string, string>();
-    for (const t of chatThreads) {
-      const ids: string[] = ((t as any).pinnedMessageIds || []) as string[];
-      for (const id of ids) if (id && !idToThread.has(id)) idToThread.set(id, t.id);
-    }
-    if (idToThread.size === 0) { setWallPosts([]); return; }
     let cancelled = false;
+    let unsub: (() => void) | null = null;
     (async () => {
       try {
-        const { collection, getDocs, query, where, documentId } = await import('firebase/firestore');
+        const { collection, onSnapshot, query, where, orderBy, limit } = await import('firebase/firestore');
         const { db } = await import('../utils/firebase');
-        const ids = Array.from(idToThread.keys());
-        const fetched: any[] = [];
-        for (let i = 0; i < ids.length; i += 30) {
-          const slice = ids.slice(i, i + 30);
-          const snap = await getDocs(query(
-            collection(db, 'chat_messages'),
-            where(documentId(), 'in', slice),
-          ));
-          snap.docs.forEach(d => fetched.push({ id: d.id, ...(d.data() as any) }));
-        }
-        if (cancelled) return;
-        const posts = fetched
-          .filter(m => m.content)
-          .map(m => ({
-            id: m.id,
-            threadId: idToThread.get(m.id) || m.threadId || '',
-            content: m.content as string,
-            senderName: m.senderName as string,
-            senderRole: m.senderRole as string | undefined,
-            timestamp: m.timestamp?.toDate?.() || new Date(m.timestamp || Date.now()),
-          }))
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, 5);
-        setWallPosts(posts);
+        const q = query(
+          collection(db, 'wall_posts'),
+          where('teamId', '==', selectedTeamId),
+          orderBy('timestamp', 'desc'),
+          limit(5),
+        );
+        unsub = onSnapshot(q, (snap) => {
+          if (cancelled) return;
+          const posts = snap.docs.map(d => {
+            const data = d.data() as any;
+            return {
+              id: d.id,
+              threadId: '',
+              content: (data.content as string) || '',
+              senderName: data.senderName as string,
+              senderRole: data.senderRole as string | undefined,
+              timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
+            };
+          });
+          setWallPosts(posts);
+        }, (err) => console.warn('wall posts subscribe failed', err));
       } catch (err) {
         console.warn('wall posts load failed', err);
       }
     })();
-    return () => { cancelled = true; };
-  }, [selectedTeamId, chatThreads]);
+    return () => { cancelled = true; if (unsub) unsub(); };
+  }, [selectedTeamId]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -637,7 +623,7 @@ const Dashboard: React.FC = () => {
               {wallPosts.map(p => (
                 <li key={p.id}>
                   <Link
-                    to={`/chat?thread=${encodeURIComponent(p.threadId)}&message=${encodeURIComponent(p.id)}`}
+                    to="/wall"
                     className="block px-5 py-3 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-2 mb-0.5">

@@ -7,7 +7,9 @@ import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
-import type { WallPost } from '../types';
+import type { WallPost, WallComment } from '../types';
+
+const draftKey = (teamId: string | null) => `wall.draft.${teamId || 'unknown'}`;
 
 // Render URLs in plain text as tappable links. Plain-loop variant so
 // we don't need the matchAll iterator target.
@@ -53,6 +55,14 @@ const Wall: React.FC = () => {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saved'>('idle');
+  // Per-post comment state: which posts are expanded, and what the
+  // current comment composer says. Comments themselves live in their
+  // own subscription map.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [comments, setComments] = useState<Record<string, WallComment[]>>({});
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   // Auto-grow the textarea so a long post isn't constrained to a tiny
   // scroll box. Capped at ~70vh so the toolbar stays in view.
@@ -63,6 +73,45 @@ const Wall: React.FC = () => {
     const max = Math.round(window.innerHeight * 0.7);
     el.style.height = Math.min(el.scrollHeight, max) + 'px';
   }, [composer, previewMode]);
+
+  // Restore draft when switching teams.
+  useEffect(() => {
+    if (!selectedTeamId) return;
+    try {
+      const raw = localStorage.getItem(draftKey(selectedTeamId));
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data?.composer) setComposer(data.composer);
+      }
+    } catch { /* ignore */ }
+  }, [selectedTeamId]);
+
+  // Autosave the draft (debounced).
+  useEffect(() => {
+    if (!selectedTeamId) return;
+    const id = setTimeout(() => {
+      try {
+        if (composer.trim()) {
+          localStorage.setItem(draftKey(selectedTeamId), JSON.stringify({ composer, savedAt: Date.now() }));
+          setDraftStatus('saved');
+        } else {
+          localStorage.removeItem(draftKey(selectedTeamId));
+          setDraftStatus('idle');
+        }
+      } catch { /* ignore quota */ }
+    }, 500);
+    return () => clearTimeout(id);
+  }, [composer, selectedTeamId]);
+
+  const discardDraft = () => {
+    if (!selectedTeamId) return;
+    if (!composer.trim()) return;
+    if (!window.confirm('Discard this draft?')) return;
+    setComposer('');
+    setComposerAttachments([]);
+    try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
+    setDraftStatus('idle');
+  };
 
   // Wrap the current selection in textarea with prefix/suffix, or
   // insert at caret when nothing is selected. Restores focus after.
@@ -168,6 +217,74 @@ const Wall: React.FC = () => {
     return () => unsub();
   }, [selectedTeamId]);
 
+  // Subscribe to comment COUNTS for every loaded post (lightweight,
+  // one onSnapshot per post). For posts the user has expanded, also
+  // store the full comment list. The count subscription only reads
+  // the latest 50 — enough for the badge and the open view.
+  useEffect(() => {
+    const unsubs: Array<() => void> = [];
+    for (const p of posts) {
+      const q = query(
+        collection(db, 'wall_comments'),
+        where('postId', '==', p.id),
+        orderBy('timestamp', 'asc'),
+      );
+      const unsub = onSnapshot(q, (snap) => {
+        const list: WallComment[] = snap.docs.map(d => {
+          const data = d.data() as any;
+          return {
+            id: d.id,
+            postId: data.postId,
+            teamId: data.teamId,
+            content: data.content || '',
+            senderId: data.senderId,
+            senderName: data.senderName || 'Friend',
+            timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
+          };
+        });
+        setCommentCounts(prev => ({ ...prev, [p.id]: list.length }));
+        setComments(prev => ({ ...prev, [p.id]: list }));
+      });
+      unsubs.push(unsub);
+    }
+    return () => { unsubs.forEach(u => u()); };
+  }, [posts]);
+
+  const toggleExpand = (postId: string) => {
+    setExpanded(prev => ({ ...prev, [postId]: !prev[postId] }));
+  };
+
+  const submitComment = async (postId: string) => {
+    if (!userData?.uid || !selectedTeamId) return;
+    const text = (commentDrafts[postId] || '').trim();
+    if (!text) return;
+    setCommentDrafts(prev => ({ ...prev, [postId]: '' }));
+    try {
+      await addDoc(collection(db, 'wall_comments'), {
+        postId,
+        teamId: selectedTeamId,
+        content: text,
+        senderId: userData.uid,
+        senderName: userData.name || 'Friend',
+        timestamp: new Date(),
+      });
+    } catch (err) {
+      console.error('comment add failed', err);
+      setCommentDrafts(prev => ({ ...prev, [postId]: text }));
+    }
+  };
+
+  const deleteComment = async (c: WallComment) => {
+    if (!userData?.uid) return;
+    if (c.senderId !== userData.uid && !canManage) return;
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      await deleteDoc(doc(db, 'wall_comments', c.id));
+    } catch (err) {
+      console.error('comment delete failed', err);
+    }
+  };
+
   // Delete a post from the wall. No more "unpin" since posts no
   // longer live in chat — removing from the wall means deleting the
   // wall_posts doc outright.
@@ -204,6 +321,8 @@ const Wall: React.FC = () => {
       setComposer('');
       setComposerAttachments([]);
       setPreviewMode(false);
+      try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
+      setDraftStatus('idle');
     } catch (err: any) {
       console.error('wall post failed', err);
       setPostError(err?.message || 'Post failed — try again.');
@@ -243,22 +362,35 @@ const Wall: React.FC = () => {
     }
   };
 
-  // Image upload. Each picked file goes straight to R2 via the
-  // existing presign endpoint, and the public URL is stored as an
-  // attachment on the post. Existing chat attachment renderer covers
-  // display so old wall clients see the images too.
+  // Image upload — insert inline at the caret as markdown so the image
+  // appears in the flow of the post (interleaved with text), not as a
+  // separate thumbnail strip below. We drop in a placeholder while the
+  // upload runs, then swap to the real URL when it finishes.
   const handleImageUpload = async (file: File) => {
     if (!file) return;
     setUploading(true);
     setPostError(null);
+    const el = composerRef.current;
+    const placeholder = `![Uploading ${file.name}…]()`;
+    const start = el?.selectionStart ?? composer.length;
+    const before = composer.slice(0, start);
+    const after = composer.slice(start);
+    const needsBreak = before.length > 0 && !before.endsWith('\n');
+    const withPlaceholder = `${before}${needsBreak ? '\n' : ''}${placeholder}\n${after}`;
+    setComposer(withPlaceholder);
     try {
       const r = await uploadToR2(file, 'wall_media');
-      setComposerAttachments(prev => [
-        ...prev,
-        { url: r.url, name: file.name, type: file.type || 'image' },
-      ]);
+      const final = `![](${r.url})`;
+      setComposer(prev => prev.replace(placeholder, final));
+      requestAnimationFrame(() => {
+        if (!composerRef.current) return;
+        const pos = (before + (needsBreak ? '\n' : '') + final).length;
+        composerRef.current.focus();
+        composerRef.current.setSelectionRange(pos, pos);
+      });
     } catch (err: any) {
       console.error('image upload failed', err);
+      setComposer(prev => prev.replace(placeholder, ''));
       setPostError(err?.message || 'Image upload failed.');
     } finally {
       setUploading(false);
@@ -362,25 +494,6 @@ const Wall: React.FC = () => {
                 />
               )}
 
-              {composerAttachments.length > 0 && (
-                <div className={`mt-4 grid gap-2 ${composerAttachments.length === 1 ? 'grid-cols-1' : 'grid-cols-3'}`}>
-                  {composerAttachments.map((a, i) => (
-                    <div key={i} className={`relative rounded-xl overflow-hidden ring-1 ring-slate-200 bg-slate-50 ${
-                      composerAttachments.length === 1 ? 'aspect-[16/9]' : 'aspect-square'
-                    }`}>
-                      <img src={a.url} alt={a.name} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setComposerAttachments(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-                        title="Remove"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
               {postError && (
                 <div className="mt-3 rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-2 text-[12px] text-rose-700">
                   {postError}
@@ -389,16 +502,27 @@ const Wall: React.FC = () => {
             </div>
 
             <div className="px-4 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-slate-500 hidden sm:inline">
-                Posts to the team's main chat thread and pins it here.
-              </span>
-              <span className="text-[11px] text-slate-500 sm:hidden">
-                {composer.length > 0 ? `${composer.length} chars` : 'Markdown supported'}
-              </span>
+              <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                {draftStatus === 'saved' && composer.trim() && (
+                  <span className="inline-flex items-center gap-1 text-slate-400">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                    Draft saved
+                  </span>
+                )}
+                {composer.trim() && (
+                  <button
+                    type="button"
+                    onClick={discardDraft}
+                    className="text-slate-400 hover:text-rose-600 underline underline-offset-2"
+                  >
+                    Discard
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={handlePost}
-                disabled={(!composer.trim() && composerAttachments.length === 0) || posting}
+                disabled={!composer.trim() || posting}
                 className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {posting ? 'Posting…' : 'Post to wall'}
@@ -493,6 +617,17 @@ const Wall: React.FC = () => {
                       </svg>
                       {likes.length > 0 && <span>{likes.length}</span>}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(p.id)}
+                      className="text-xs font-bold tracking-widest uppercase flex items-center gap-1.5 px-2 py-1 rounded text-slate-500 hover:text-cyan-700"
+                      title="Comment"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      {commentCounts[p.id] > 0 && <span>{commentCounts[p.id]}</span>}
+                    </button>
                     <div className="flex-1" />
                     {canManage && (
                       <>
@@ -516,6 +651,66 @@ const Wall: React.FC = () => {
                       </>
                     )}
                   </div>
+                  {expanded[p.id] && (
+                    <div className="border-t border-slate-100 bg-white px-4 sm:px-6 py-3 space-y-3">
+                      {(comments[p.id] || []).length > 0 && (
+                        <ul className="space-y-2.5">
+                          {(comments[p.id] || []).map(c => (
+                            <li key={c.id} className="flex items-start gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-[11px] font-extrabold text-cyan-700 shrink-0">
+                                {(c.senderName || '?').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="rounded-2xl bg-slate-50 ring-1 ring-slate-100 px-3 py-2">
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-[13px] font-bold text-slate-900">{c.senderName}</span>
+                                    <span className="text-[10px] text-slate-400">
+                                      {c.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <p className="text-[14px] text-slate-800 whitespace-pre-wrap break-words mt-0.5">{c.content}</p>
+                                </div>
+                                {(c.senderId === userData?.uid || canManage) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteComment(c)}
+                                    className="mt-1 text-[10px] text-slate-400 hover:text-rose-600 underline underline-offset-2"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {userData && (
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-cyan-100 ring-1 ring-cyan-200 flex items-center justify-center text-[11px] font-extrabold text-cyan-800 shrink-0">
+                            {(userData.name || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              value={commentDrafts[p.id] || ''}
+                              onChange={(e) => setCommentDrafts(prev => ({ ...prev, [p.id]: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submitComment(p.id); } }}
+                              placeholder="Write a comment…"
+                              className="flex-1 px-3 py-2 rounded-full ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm bg-slate-50"
+                              style={{ fontSize: '16px' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void submitComment(p.id)}
+                              disabled={!(commentDrafts[p.id] || '').trim()}
+                              className="px-3 py-2 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-40"
+                            >
+                              Send
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -669,6 +864,24 @@ const RichContent: React.FC<{ text: string }> = ({ text }) => {
 
   lines.forEach((line, i) => {
     const trimmed = line.trim();
+    // Inline image — a line that is JUST a markdown image renders as
+    // a block-level figure, not nested inside a <p>. Captions and
+    // additional inline content go on adjacent lines.
+    const imgMatch = trimmed.match(/^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/);
+    if (imgMatch) {
+      flushAll(`img-${i}`);
+      blocks.push(
+        <img
+          key={`img-${i}`}
+          src={imgMatch[2]}
+          alt={imgMatch[1] || ''}
+          loading="lazy"
+          className="block my-3 rounded-xl w-full max-h-[520px] object-cover ring-1 ring-slate-200"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      );
+      return;
+    }
     // Horizontal rule
     if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
       flushAll(`hr-${i}`);

@@ -1182,10 +1182,23 @@ const PlayerProfile: React.FC = () => {
                       loggedByName: userData?.name || null,
                     }, ...history].slice(0, 30),
                   };
+                  const oldPr = existing.best || 0;
                   try {
                     await updateDocument('players', player.id, { juggles: next, updatedAt: new Date() });
                     (player as any).juggles = next;
                     setJuggleOpen(false);
+                    // Auto-post to the wall when this beats the prior best.
+                    if (n > oldPr && player.teamId && userData) {
+                      try {
+                        const { autoPostJugglePrToWall } = await import('../utils/autoPostToWall');
+                        void autoPostJugglePrToWall(
+                          { name: player.name, teamId: player.teamId },
+                          n,
+                          oldPr,
+                          { uid: userData.uid, name: userData.name || 'Coach', role: isCoach(userData.role) ? 'coach' : 'parent' },
+                        );
+                      } catch (e) { console.warn('juggle wall post failed', e); }
+                    }
                   } catch (err) {
                     console.error('save juggle failed', err);
                     alert('Save failed — try again.');

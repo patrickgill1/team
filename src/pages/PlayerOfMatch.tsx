@@ -396,6 +396,21 @@ const PlayerOfMatch: React.FC = () => {
         }
       } catch (e) { console.warn('POTM flag update failed', e); }
 
+      // Auto-post each winner to the team wall.
+      try {
+        if (winners.length > 0 && selectedTeamId && userData) {
+          const { autoPostPotmToWall } = await import('../utils/autoPostToWall');
+          const actor = { uid: userData.uid, name: userData.name || 'Coach', role: 'coach' };
+          for (const w of winners) {
+            void autoPostPotmToWall(
+              { id: w.playerId, name: w.playerName, teamId: selectedTeamId },
+              activeVoting.gameTitle,
+              actor,
+            );
+          }
+        }
+      } catch (e) { console.warn('POTM wall post failed', e); }
+
       // Email + push each winner's parents
       try {
         if (winners.length > 0) {

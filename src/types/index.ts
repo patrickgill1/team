@@ -1289,8 +1289,19 @@ export interface WallPost {
    *  or absent = not pinned. Most-recently-pinned sorts first. */
   wallPinnedTop?: number | null;
   /** Provenance — was this a manual coach post, or auto-posted from a
-   *  game schedule / video upload? Drives small UI tags on the post. */
-  postedFrom?: 'wall' | 'game' | 'video';
+   *  game schedule / video upload / milestone? Drives small UI tags
+   *  on the post. */
+  postedFrom?: 'wall' | 'game' | 'video' | 'potm' | 'devplan' | 'juggle';
+}
+
+export interface WallComment {
+  id: string;
+  postId: string;
+  teamId: string;
+  content: string;
+  senderId: string;
+  senderName: string;
+  timestamp: Date;
 }
 
 // ================================

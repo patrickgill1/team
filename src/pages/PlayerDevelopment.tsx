@@ -285,6 +285,7 @@ const PlayerDevelopment: React.FC = () => {
 
     // Check if all goals are now verified
     const allVerified = updatedGoals.every(g => g.coachVerified);
+    const justCompleted = allVerified && plan.status !== 'completed';
 
     try {
       await updateDevelopmentPlan(plan.id, {
@@ -292,6 +293,21 @@ const PlayerDevelopment: React.FC = () => {
         status: allVerified ? 'completed' : 'active',
         completedAt: allVerified ? new Date() : undefined,
       });
+      // Auto-post to the team wall when the plan crosses the finish
+      // line (was not yet 'completed' and now is).
+      if (justCompleted) {
+        try {
+          const player = players.find(p => p.id === plan.playerId);
+          if (player && player.teamId) {
+            const { autoPostDevPlanCompleteToWall } = await import('../utils/autoPostToWall');
+            void autoPostDevPlanCompleteToWall(
+              { name: player.name, teamId: player.teamId },
+              { title: plan.title },
+              { uid: userData.uid, name: userData.name || 'Coach', role: 'coach' },
+            );
+          }
+        } catch (e) { console.warn('dev plan wall post failed', e); }
+      }
       loadData();
     } catch (error) {
       console.error('Error verifying goal:', error);

@@ -19,7 +19,7 @@
 
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from './firebase';
-import type { CalendarEvent, PlayerMedia } from '../types';
+import type { CalendarEvent, DevelopmentPlan, Player, PlayerMedia } from '../types';
 
 interface Actor {
   uid: string;
@@ -33,7 +33,7 @@ async function postToWall(
   content: string,
   opts: {
     attachments?: Array<{ url: string; type: string; name?: string }>;
-    postedFrom?: 'wall' | 'game' | 'video';
+    postedFrom?: 'wall' | 'game' | 'video' | 'potm' | 'devplan' | 'juggle';
   } = {}
 ): Promise<string | null> {
   try {
@@ -56,9 +56,8 @@ async function postToWall(
   }
 }
 
-/** Auto-post a newly scheduled game to the team wall. Skips
- *  practices, generic events, and any game that's been cancelled
- *  at creation time (shouldn't happen, but guard anyway). */
+/** Auto-post a newly scheduled game. Tight two-line format —
+ *  opponent + date on one line, venue + arrive on the next. */
 export async function autoPostGameToWall(event: CalendarEvent, actor: Actor): Promise<void> {
   if (event.type !== 'game' || !event.teamId || event.isCancelled) return;
   const date = event.date instanceof Date ? event.date : new Date(event.date);
@@ -66,27 +65,26 @@ export async function autoPostGameToWall(event: CalendarEvent, actor: Actor): Pr
     weekday: 'short', month: 'short', day: 'numeric',
     hour: 'numeric', minute: '2-digit',
   });
-  const lines: string[] = [];
-  lines.push(`## Game scheduled`);
-  const opponentLine = event.opponent
+  const opponent = event.opponent
     ? `${event.homeAway === 'home' ? 'vs' : '@'} **${event.opponent}**`
     : `**${event.title}**`;
-  lines.push(opponentLine);
-  lines.push('');
-  lines.push(`- ${dateStr}`);
-  if (event.location) {
-    lines.push(`- ${event.location}${event.fieldNumber ? ` · Field ${event.fieldNumber}` : ''}`);
-  }
+  const venuePieces: string[] = [];
+  if (event.location) venuePieces.push(event.location);
+  if (event.fieldNumber) venuePieces.push(`Field ${event.fieldNumber}`);
   if (event.arriveOffsetMinutes && event.arriveOffsetMinutes > 0) {
-    lines.push(`- Arrive ${event.arriveOffsetMinutes} min early`);
+    venuePieces.push(`Arrive ${event.arriveOffsetMinutes} min early`);
   }
+  const lines = [
+    '## Game scheduled',
+    `${opponent} · ${dateStr}`,
+  ];
+  if (venuePieces.length > 0) lines.push(venuePieces.join(' · '));
   await postToWall(event.teamId, actor, lines.join('\n'), { postedFrom: 'game' });
 }
 
 /** Auto-post a newly uploaded video clip to the team wall. Photos
  *  are intentionally skipped here — too high frequency to make sense
- *  on the wall. Pull in any caption + the player tag so the post
- *  reads as a real moment, not just "new video." */
+ *  on the wall. */
 export async function autoPostVideoToWall(media: PlayerMedia, actor: Actor): Promise<void> {
   if (media.type !== 'video' || !media.teamId) return;
   const lines: string[] = [];
@@ -97,4 +95,50 @@ export async function autoPostVideoToWall(media: PlayerMedia, actor: Actor): Pro
     ? [{ url: media.url, type: 'video', name: media.fileName || 'video' }]
     : undefined;
   await postToWall(media.teamId, actor, lines.join('\n'), { attachments, postedFrom: 'video' });
+}
+
+/** Auto-post a Player of the Match win. One line — the player and
+ *  the game. Coach can flesh out details in a comment. */
+export async function autoPostPotmToWall(
+  player: { id?: string; name: string; teamId?: string | null },
+  gameTitle: string,
+  actor: Actor,
+): Promise<void> {
+  if (!player?.teamId || !player?.name) return;
+  const lines = [
+    '## Player of the Match',
+    `**${player.name}** — ${gameTitle}`,
+  ];
+  await postToWall(player.teamId, actor, lines.join('\n'), { postedFrom: 'potm' });
+}
+
+/** Auto-post a development plan completion. */
+export async function autoPostDevPlanCompleteToWall(
+  player: Pick<Player, 'name' | 'teamId'>,
+  plan: Pick<DevelopmentPlan, 'title'>,
+  actor: Actor,
+): Promise<void> {
+  if (!player?.teamId || !player?.name) return;
+  const lines = [
+    '## Plan complete',
+    `**${player.name}** finished *${plan.title}*`,
+  ];
+  await postToWall(player.teamId, actor, lines.join('\n'), { postedFrom: 'devplan' });
+}
+
+/** Auto-post a new juggle personal best. Only fires when the new
+ *  count actually beats the previous best — callers should gate. */
+export async function autoPostJugglePrToWall(
+  player: Pick<Player, 'name' | 'teamId'>,
+  newPr: number,
+  oldPr: number,
+  actor: Actor,
+): Promise<void> {
+  if (!player?.teamId || !player?.name) return;
+  if (newPr <= oldPr) return;
+  const lines = [
+    '## New juggle PR',
+    `**${player.name}** · ${newPr} juggles${oldPr > 0 ? ` (up from ${oldPr})` : ''}`,
+  ];
+  await postToWall(player.teamId, actor, lines.join('\n'), { postedFrom: 'juggle' });
 }

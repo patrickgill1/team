@@ -96,6 +96,25 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "wall_comments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "postId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "chat_threads",
       "queryScope": "COLLECTION",
       "fields": [

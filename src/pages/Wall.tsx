@@ -11,6 +11,27 @@ import type { WallPost, WallComment } from '../types';
 
 const draftKey = (teamId: string | null) => `wall.draft.${teamId || 'unknown'}`;
 
+// Strip markdown for the push preview body — readers see plain text
+// in the OS notification, not literal ## or ** characters.
+function stripMarkdownForPush(md: string, maxLen = 140): string {
+  let s = md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')      // images
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')   // links → label
+    .replace(/^#{1,6}\s+/gm, '')               // headings
+    .replace(/^>\s+/gm, '')                    // blockquotes
+    .replace(/^[-*•]\s+/gm, '• ')              // bullets normalize
+    .replace(/^\d+\.\s+/gm, '')                // numbered
+    .replace(/^---+$/gm, '')                   // hr
+    .replace(/`([^`]+)`/g, '$1')               // inline code
+    .replace(/\*\*([^*]+)\*\*/g, '$1')         // bold
+    .replace(/\*([^*]+)\*/g, '$1')             // italic
+    .replace(/\n{2,}/g, ' · ')                 // paragraph break → middot
+    .replace(/\n/g, ' ')
+    .trim();
+  if (s.length > maxLen) s = s.slice(0, maxLen - 1).trimEnd() + '…';
+  return s;
+}
+
 // Render URLs in plain text as tappable links. Plain-loop variant so
 // we don't need the matchAll iterator target.
 function linkify(text: string): React.ReactNode[] {
@@ -323,6 +344,21 @@ const Wall: React.FC = () => {
       setPreviewMode(false);
       try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
       setDraftStatus('idle');
+      // Fire-and-forget push to everyone on the team (except the
+      // poster). Failures are silent so a flaky push tier never
+      // surfaces an error on a successful post.
+      try {
+        const { sendPushToTeam } = await import('../utils/notify');
+        void sendPushToTeam(
+          selectedTeamId,
+          {
+            title: `${userData.name || 'Coach'} posted on the wall`,
+            body: stripMarkdownForPush(content) || 'New announcement',
+            url: '/wall',
+          },
+          { excludeUid: userData.uid },
+        );
+      } catch (e) { console.warn('wall push failed', e); }
     } catch (err: any) {
       console.error('wall post failed', err);
       setPostError(err?.message || 'Post failed — try again.');

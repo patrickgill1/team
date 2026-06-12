@@ -93,10 +93,51 @@ const PersonAdmin: React.FC = () => {
       const p = { id: playerSnap.id, ...(playerSnap.data() as any) };
       setPlayer(p);
 
-      // Teams (cross-reference player.teamIds[] or teamId).
+      // Teams — load ALL teams in the player's club (not just the
+      // teams they're currently on). The Transfer/Share modal needs
+      // the wider list so a coach can move/share into a sibling team
+      // the player isn't yet a member of. If clubId isn't set anywhere,
+      // fall back to all teams the user can read.
       const teamIds = Array.from(new Set([...(p.teamIds || []), p.teamId].filter(Boolean)));
-      const teamDocs = await Promise.all(teamIds.map(id => getDoc(doc(db, 'teams', id))));
-      setTeams(teamDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...(d.data() as any) })));
+      const teamIdsOnPlayer = teamIds;
+      let teamList: Array<{ id: string; name?: string; ageGroup?: string; clubId?: string; isActive?: boolean }> = [];
+      try {
+        // Step 1: get the player's known teams so we can derive clubId
+        // (and so they're guaranteed to appear in the list even without
+        // a clubId on the player or team docs).
+        const knownTeamDocs = await Promise.all(teamIdsOnPlayer.map(id => getDoc(doc(db, 'teams', id))));
+        const knownTeams = knownTeamDocs
+          .filter(d => d.exists())
+          .map(d => ({ id: d.id, ...(d.data() as any) }));
+        teamList.push(...knownTeams);
+        const clubId = (p as any).clubId
+          || knownTeams.find((t: any) => t.clubId)?.clubId
+          || (userData as any)?.clubId;
+        if (clubId) {
+          const { collection, getDocs, query, where } = await import('firebase/firestore');
+          const snap = await getDocs(query(
+            collection(db, 'teams'),
+            where('clubId', '==', clubId),
+          ));
+          snap.forEach((d) => {
+            if (!teamList.some(t => t.id === d.id)) {
+              teamList.push({ id: d.id, ...(d.data() as any) });
+            }
+          });
+        }
+        // Drop archived teams from the picker.
+        teamList = teamList.filter((t: any) => t.isActive !== false);
+        teamList.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+      } catch (err) {
+        console.warn('PersonAdmin: club-wide team load failed, using player teams only', err);
+        // Fallback: at least show the teams the player is on so the
+        // existing "Currently on" chips render.
+        if (teamList.length === 0) {
+          const knownTeamDocs = await Promise.all(teamIdsOnPlayer.map(id => getDoc(doc(db, 'teams', id))));
+          teamList = knownTeamDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...(d.data() as any) }));
+        }
+      }
+      setTeams(teamList);
 
       // Guardians (Player.parentIds[] → users).
       const parentIds = Array.from(new Set(

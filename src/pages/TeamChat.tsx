@@ -1245,18 +1245,46 @@ const TeamChat: React.FC = () => {
       .map(id => ({ id, label: SECTION_LABELS[id], threads: buckets[id] }));
   })();
 
-  // Display title for a thread — for DMs, show the OTHER person's name.
+  // Display title for a thread.
+  // - DMs: the OTHER person's CURRENT name (live from users, not the
+  //   frozen dmParticipantNames snapshot which can drift if profiles
+  //   update — e.g. Google/Apple sign-in syncs a new displayName).
+  // - Group chats: live-compose from current participant names so the
+  //   title never disagrees with the Seen-by sheet, which also reads
+  //   live names.
+  // - Team / club channels: the typed thread title.
   const getThreadDisplayTitle = (thread: ChatThread): string => {
     const isDM = (thread as any).isDM === true;
-    if (!isDM) return thread.title;
-    const map = (thread as any).dmParticipantNames as Record<string, string> | undefined;
-    const otherUid = thread.participants.find(uid => uid !== userData?.uid);
-    if (map && otherUid && map[otherUid]) return map[otherUid];
-    if (otherUid) {
-      const m = teamMembers.find(tm => tm.uid === otherUid);
+    const isGroup = (thread as any).isGroup === true;
+    const resolveName = (uid: string): string | undefined => {
+      if (uid === userData?.uid) return userData?.name;
+      const m = teamMembers.find(tm => tm.uid === uid);
       if (m?.name) return m.name;
+      return crossUserCache[uid]?.name;
+    };
+    if (isDM) {
+      const otherUid = thread.participants.find(uid => uid !== userData?.uid);
+      if (otherUid) {
+        const live = resolveName(otherUid);
+        if (live) return live;
+        const map = (thread as any).dmParticipantNames as Record<string, string> | undefined;
+        if (map && map[otherUid]) return map[otherUid];
+      }
+      return thread.title.replace(/^DM:\s*/, '');
     }
-    return thread.title.replace(/^DM:\s*/, '');
+    if (isGroup) {
+      // Compose from CURRENT participant names (excluding self), first
+      // names only to mirror the create-time format.
+      const firstNames = thread.participants
+        .filter(uid => uid !== userData?.uid)
+        .map(uid => (resolveName(uid) || '').split(' ')[0])
+        .filter(Boolean);
+      if (firstNames.length === 0) return thread.title;
+      const meFirst = (userData?.name || '').split(' ')[0] || 'You';
+      const all = [meFirst, ...firstNames];
+      return all.length <= 3 ? all.join(', ') : `${all.slice(0, 2).join(', ')} +${all.length - 2}`;
+    }
+    return thread.title;
   };
 
   // Profile photo for a thread row. DMs → the OTHER participant's photoURL.
@@ -1988,12 +2016,6 @@ const TeamChat: React.FC = () => {
                         <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full flex-shrink-0">Coach Only</span>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span>{effectiveParticipants(selectedThread).length} participants</span>
-                    </div>
                   </div>
 
                   <button
@@ -2523,12 +2545,6 @@ const TeamChat: React.FC = () => {
                 </div>
                 
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span>{selectedThread.participants.length} participants</span>
-                  </div>
                   {(() => {
                     const sel: any = selectedThread;
                     const sc = sel.scope || 'team';

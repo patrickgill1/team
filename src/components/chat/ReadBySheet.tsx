@@ -28,9 +28,9 @@ const ReadBySheet: React.FC<Props> = ({ readers, threadParticipantCount, onClose
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-slate-100">
         <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">
-          Seen by {readers.length}{threadParticipantCount ? ` / ${threadParticipantCount}` : ''}
+          Seen by
         </div>
       </div>
       {sorted.length === 0 ? (

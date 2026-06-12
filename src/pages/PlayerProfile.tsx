@@ -1141,8 +1141,8 @@ const PlayerProfile: React.FC = () => {
 
       {/* ─── Equipment Edit Modal ────────────────────────────────── */}
       {juggleOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setJuggleOpen(false)}>
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setJuggleOpen(false)}>
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-pop-in" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-900">Log a juggle attempt</h3>
               <p className="text-xs text-slate-500 mt-0.5">Best wins so far: <b className="text-slate-700">{((player as any).juggles?.best) ?? 0}</b></p>

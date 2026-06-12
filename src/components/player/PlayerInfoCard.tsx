@@ -112,8 +112,8 @@ const PlayerInfoEditModal: React.FC<{ player: Player; onClose: () => void; onSav
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 animate-fade-in">
+      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden animate-sheet-up sm:animate-pop-in">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-black text-gray-900">Edit player info</h2>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>

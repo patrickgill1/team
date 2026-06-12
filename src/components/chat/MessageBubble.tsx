@@ -788,11 +788,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
       {actionsOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4"
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
           onClick={() => setActionsOpen(false)}
         >
           <div
-            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden"
+            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Branded header — same chrome as UserProfileModal so the
@@ -930,10 +930,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           from the "+" button in the action sheet. */}
       {emojiOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4 animate-fade-in"
           onClick={() => setEmojiOpen(false)}
         >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm animate-sheet-up sm:animate-pop-in">
             <EmojiPicker
               onPick={(emoji) => { onToggleReaction(message, emoji); setEmojiOpen(false); }}
               onClose={() => setEmojiOpen(false)}
@@ -945,10 +945,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {/* Read-by sheet — list of who's seen this message, with timestamps. */}
       {readByOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4 animate-fade-in"
           onClick={() => setReadByOpen(false)}
         >
-          <div onClick={(e) => e.stopPropagation()}>
+          <div className="animate-pop-in" onClick={(e) => e.stopPropagation()}>
             <ReadBySheet
               readers={Object.entries(((message as any).readBy || {}) as Record<string, number>)
                 .map(([uid, readAt]) => ({

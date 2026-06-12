@@ -12,6 +12,7 @@ import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import AddPlayer from '../components/player/AddPlayer';
+import EmptyState from '../components/common/EmptyState';
 import { computeStreakDays } from '../utils/devPlanActions';
 import { computePlayerAttendance } from '../utils/attendance';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
@@ -1005,12 +1006,12 @@ const PlayerProfile: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-2xl shadow-sm ring-1 ring-gray-100">
-                <div className="text-5xl mb-3">📸</div>
-                <h3 className="text-lg font-bold text-gray-900">No Highlights Yet</h3>
-                <p className="text-gray-500 text-sm mt-1">Photos and videos will live here.</p>
-                <Link to="/player-media" className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold transition">Go to Gallery →</Link>
-              </div>
+              <EmptyState
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
+                title="No highlights yet"
+                description="Photos and videos will live here."
+                cta={{ label: 'Go to Gallery', to: '/player-media' }}
+              />
             )}
           </div>
         )}
@@ -1038,12 +1039,12 @@ const PlayerProfile: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-2xl shadow-sm ring-1 ring-gray-100">
-                <div className="text-5xl mb-3">📋</div>
-                <h3 className="text-lg font-bold text-gray-900">No Development Plans</h3>
-                <p className="text-gray-500 text-sm mt-1">Plans from coaches will show up here.</p>
-                <Link to="/development" className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-full bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold transition">Open Development →</Link>
-              </div>
+              <EmptyState
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>}
+                title="No development plans"
+                description="Plans from coaches will show up here."
+                cta={{ label: 'Open Development', to: '/development' }}
+              />
             )}
           </div>
         )}
@@ -1053,18 +1054,18 @@ const PlayerProfile: React.FC = () => {
           <div className="space-y-4 sm:space-y-6">
             {/* Big trophy hero */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 text-white p-5 sm:p-6 text-center shadow-xl">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white p-5 sm:p-6 text-center shadow-xl">
                 <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative">
-                  <div className="text-5xl sm:text-6xl mb-2 drop-shadow-lg">🏆</div>
+                <div className="relative flex flex-col items-center">
+                  <svg className="w-12 h-12 sm:w-14 sm:h-14 mb-2 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" /></svg>
                   <div className="text-4xl sm:text-5xl font-black leading-none">{votingWins.length}</div>
                   <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-90 mt-1.5">POTM Wins</div>
                 </div>
               </div>
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-400 via-cyan-500 to-sky-600 text-white p-5 sm:p-6 text-center shadow-xl">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500 to-sky-600 text-white p-5 sm:p-6 text-center shadow-xl">
                 <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative">
-                  <div className="text-5xl sm:text-6xl mb-2 drop-shadow-lg">⭐</div>
+                <div className="relative flex flex-col items-center">
+                  <svg className="w-12 h-12 sm:w-14 sm:h-14 mb-2 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                   <div className="text-4xl sm:text-5xl font-black leading-none">{votingNominations}</div>
                   <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-90 mt-1.5">Nominations</div>
                 </div>
@@ -1129,11 +1130,11 @@ const PlayerProfile: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-2xl shadow-sm ring-1 ring-gray-100">
-                <div className="text-5xl mb-3">🏆</div>
-                <h3 className="text-lg font-bold text-gray-900">No Awards Yet</h3>
-                <p className="text-gray-500 text-sm mt-1">Player of the Match wins will land here.</p>
-              </div>
+              <EmptyState
+                icon={<svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" /></svg>}
+                title="No awards yet"
+                description="Player of the Match wins will land here."
+              />
             )}
           </div>
         )}

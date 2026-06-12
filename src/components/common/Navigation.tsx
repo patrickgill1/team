@@ -404,7 +404,10 @@ const Navigation: React.FC = () => {
               return (
                 <button
                   key={tab.name}
-                  onClick={() => setIsMoreOpen(!isMoreOpen)}
+                  onClick={() => {
+                    void import('../../utils/nativeShell').then(m => m.tapHaptic('light'));
+                    setIsMoreOpen(!isMoreOpen);
+                  }}
                   className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
                     active ? 'text-cyan-600' : 'text-gray-400'
                   }`}
@@ -418,6 +421,7 @@ const Navigation: React.FC = () => {
               <Link
                 key={tab.name}
                 to={tab.path}
+                onClick={() => void import('../../utils/nativeShell').then(m => m.tapHaptic('light'))}
                 className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
                   active ? 'text-cyan-600' : 'text-gray-400'
                 }`}

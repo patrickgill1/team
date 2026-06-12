@@ -624,9 +624,11 @@ const GameDay: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white">
         <div className="text-center">
-          <div className="text-5xl mb-4">⚽</div>
-          <p className="mb-4">{error || 'Event not found'}</p>
-          <Link to="/calendar" className="px-4 py-2 bg-cyan-600 rounded-lg">Back to Calendar</Link>
+          <div className="mx-auto w-12 h-12 rounded-full bg-cyan-500/15 ring-1 ring-cyan-400/30 text-cyan-300 flex items-center justify-center mb-3">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="#0f172a" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
+          </div>
+          <p className="mb-4 text-sm text-white/80">{error || 'Event not found'}</p>
+          <Link to="/calendar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-bold">Back to Calendar</Link>
         </div>
       </div>
     );

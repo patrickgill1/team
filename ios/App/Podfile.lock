@@ -26,6 +26,8 @@ PODS:
   - CapacitorFirebaseMessaging (5.4.1):
     - Capacitor
     - FirebaseMessaging (~> 10.8)
+  - CapacitorHaptics (7.0.5):
+    - Capacitor
   - CapacitorKeyboard (7.0.6):
     - Capacitor
   - CapacitorPushNotifications (7.0.6):
@@ -117,6 +119,7 @@ DEPENDENCIES:
   - "CapacitorFirebaseAuthentication (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseAuthentication/Google (from `../../node_modules/@capacitor-firebase/authentication`)"
   - "CapacitorFirebaseMessaging (from `../../node_modules/@capacitor-firebase/messaging`)"
+  - "CapacitorHaptics (from `../../node_modules/@capacitor/haptics`)"
   - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
   - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
@@ -155,6 +158,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor-firebase/authentication"
   CapacitorFirebaseMessaging:
     :path: "../../node_modules/@capacitor-firebase/messaging"
+  CapacitorHaptics:
+    :path: "../../node_modules/@capacitor/haptics"
   CapacitorKeyboard:
     :path: "../../node_modules/@capacitor/keyboard"
   CapacitorPushNotifications:
@@ -174,6 +179,7 @@ SPEC CHECKSUMS:
   CapacitorCordova: 8214697bed435f6e7c5e3ed86d1632a8c42f7d77
   CapacitorFirebaseAuthentication: 1068a16d8ef3952a6bd4dd396557b03d26ddd8ce
   CapacitorFirebaseMessaging: ee2a6f40389a0615262c3c20c62663170d6f85e3
+  CapacitorHaptics: 1b145fa83c622e5383a3bac04ea81e2514f0b0f5
   CapacitorKeyboard: a2e0869edd229490ce36aed2549c0d6b95e27ee8
   CapacitorPushNotifications: b8e30637549ce91468b8c4dddbef2657be831f4c
   CapacitorShare: 25f7fc5dd0e4edbde5d6801c6de5d14a8b450a41
@@ -194,6 +200,6 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
 
-PODFILE CHECKSUM: 32906bba2c0723c65ccbaaaabbd99457d2bc9697
+PODFILE CHECKSUM: 54e42afaeedb69bdda01e381e517daf55513cd63
 
 COCOAPODS: 1.16.2

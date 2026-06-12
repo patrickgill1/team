@@ -142,3 +142,20 @@ export async function registerPushNotifications(
     console.warn('Push notifications init failed', err);
   }
 }
+
+// Light haptic feedback on tap. Wrapped so callers don't have to
+// check isNativePlatform — on web this just no-ops. Used by the
+// bottom tab bar to give iOS users the same micro-feedback they get
+// when tapping native tabs.
+let _hapticsCache: any = null;
+export async function tapHaptic(style: 'light' | 'medium' = 'light'): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    if (!_hapticsCache) {
+      _hapticsCache = await import('@capacitor/haptics');
+    }
+    const { Haptics, ImpactStyle } = _hapticsCache;
+    const styleEnum = style === 'medium' ? ImpactStyle.Medium : ImpactStyle.Light;
+    await Haptics.impact({ style: styleEnum });
+  } catch { /* ignore */ }
+}

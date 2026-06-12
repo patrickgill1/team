@@ -7,6 +7,8 @@ import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
+import EmptyState from '../components/common/EmptyState';
+import { SkeletonCard } from '../components/common/Skeleton';
 import type { WallPost, WallComment } from '../types';
 
 const draftKey = (teamId: string | null) => `wall.draft.${teamId || 'unknown'}`;
@@ -568,19 +570,18 @@ const Wall: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="text-center py-16 text-slate-400 text-sm">Loading…</div>
-        ) : posts.length === 0 ? (
-          <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-cyan-50 ring-1 ring-cyan-200 flex items-center justify-center">
-              <AppIcon name="news" className="w-5 h-5 text-cyan-600" />
-            </div>
-            <p className="text-sm font-semibold text-slate-700 mb-1">Nothing on the wall yet.</p>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              {canPost
-                ? 'Type your first announcement above. The wall is for formatted posts — chat is separate.'
-                : 'Coaches post announcements and important links here.'}
-            </p>
+          <div className="space-y-3">
+            <SkeletonCard rows={2} />
+            <SkeletonCard rows={3} />
           </div>
+        ) : posts.length === 0 ? (
+          <EmptyState
+            icon={<AppIcon name="news" className="w-5 h-5" />}
+            title="Nothing on the wall yet"
+            description={canPost
+              ? 'Type your first announcement above. The wall is for formatted posts — chat is separate.'
+              : 'Coaches post announcements and important links here.'}
+          />
         ) : (
           <ul className="space-y-3">
             {posts.map(p => {

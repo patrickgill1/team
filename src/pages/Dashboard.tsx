@@ -889,7 +889,10 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
         <Link to="/chat" className="text-cyan-600 text-sm font-semibold">View all</Link>
       </div>
       {chats.length === 0 ? (
-        <div className="p-6 text-center text-sm text-gray-500">No conversations yet.</div>
+        <div className="p-5 text-center">
+          <p className="text-sm font-semibold text-slate-700">No conversations yet</p>
+          <p className="text-xs text-slate-500 mt-0.5">DMs and group chats will show up here.</p>
+        </div>
       ) : (
         <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {chats.slice(0, 2).map((thread: any) => {

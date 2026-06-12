@@ -26,11 +26,60 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   const { selectedTeamId, teams } = useTeam();
   const { addPlayer, updatePlayer } = useFirestore();
   const [targetTeamId, setTargetTeamId] = useState(selectedTeamId);
+  // ALL teams the user is allowed to see for the share/move picker.
+  // Defaults to the user's teams (from TeamContext), but when the
+  // modal opens we also pull every team in the same club so a coach
+  // can share or move a player to a sister team they're not directly
+  // a member of. Firestore rules already allow any authed user to
+  // read the teams collection.
+  const [pickerTeams, setPickerTeams] = useState<Array<{ id: string; name: string }>>([]);
 
   // Keep targetTeamId in sync when selectedTeamId changes
   useEffect(() => {
     setTargetTeamId(selectedTeamId);
   }, [selectedTeamId]);
+
+  // Load club-wide teams for the picker. Falls back to the user's
+  // teams if we can't query the wider list (offline, denied, etc.).
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs, query, where } = await import('firebase/firestore');
+        const { db } = await import('../../utils/firebase');
+        const userClubId = (userData as any)?.clubId;
+        const myTeam = teams.find(t => t.id === selectedTeamId) as any;
+        const clubIdToQuery = userClubId || myTeam?.clubId;
+        let docs: Array<{ id: string; name: string; clubId?: string }> = [];
+        if (clubIdToQuery) {
+          const snap = await getDocs(query(
+            collection(db, 'teams'),
+            where('clubId', '==', clubIdToQuery),
+          ));
+          snap.forEach(d => {
+            const data: any = d.data();
+            if (data.isActive !== false) {
+              docs.push({ id: d.id, name: data.name || 'Team', clubId: data.clubId });
+            }
+          });
+        }
+        // Union with the user's known teams so even teams without a
+        // clubId set still surface.
+        for (const t of teams) {
+          if (!docs.some(d => d.id === t.id)) {
+            docs.push({ id: t.id, name: t.name });
+          }
+        }
+        docs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        if (!cancelled) setPickerTeams(docs);
+      } catch (err) {
+        console.warn('AddPlayer: club-wide team load failed, falling back to user teams', err);
+        if (!cancelled) setPickerTeams(teams.map(t => ({ id: t.id, name: t.name })));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, userData, teams, selectedTeamId]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -570,11 +619,15 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             )}
           </div>
 
-          {/* Team Selector */}
-          {teams.length > 1 && (
+          {/* Team Selector — always shown when editing (so coaches can
+              move/share a player to another team) and when creating
+              with more than one team available. Picker pulls every
+              team in the same club so sister teams show up even if
+              the user isn't a direct member. */}
+          {(editingPlayer || pickerTeams.length > 1) && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Add to Team *
+                {editingPlayer ? 'Primary team' : 'Add to team *'}
               </label>
               <select
                 value={targetTeamId}
@@ -582,10 +635,18 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSubmitting}
               >
-                {teams.map(t => (
+                {pickerTeams.length === 0 && (
+                  <option value="">No teams available</option>
+                )}
+                {pickerTeams.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
+              {editingPlayer && (
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Changing this moves the player. Other teams they're shared with stay intact.
+                </p>
+              )}
             </div>
           )}
 

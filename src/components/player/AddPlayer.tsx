@@ -33,6 +33,10 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   // a member of. Firestore rules already allow any authed user to
   // read the teams collection.
   const [pickerTeams, setPickerTeams] = useState<Array<{ id: string; name: string }>>([]);
+  // Team picker is collapsed by default when editing — most coach
+  // edits don't touch the team, and the dropdown lives behind a
+  // disclosure so the form stays tight.
+  const [teamPickerOpen, setTeamPickerOpen] = useState(false);
 
   // Keep targetTeamId in sync when selectedTeamId changes
   useEffect(() => {
@@ -619,15 +623,53 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             )}
           </div>
 
-          {/* Team Selector — always shown when editing (so coaches can
-              move/share a player to another team) and when creating
-              with more than one team available. Picker pulls every
-              team in the same club so sister teams show up even if
-              the user isn't a direct member. */}
-          {(editingPlayer || pickerTeams.length > 1) && (
+          {/* Team Selector — collapsed disclosure when editing (most
+              coach edits don't touch the team). When creating a new
+              player and the user has access to more than one team,
+              the picker is inlined since the team is required. */}
+          {editingPlayer ? (
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setTeamPickerOpen(o => !o)}
+                className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-left"
+              >
+                <div className="min-w-0">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-gray-500">Primary team</div>
+                  <div className="text-sm font-semibold text-gray-900 truncate">
+                    {(pickerTeams.find(t => t.id === targetTeamId)?.name) || 'No team selected'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-gray-500">
+                  <span className="text-[11px] font-bold">{teamPickerOpen ? 'Done' : 'Change'}</span>
+                  <svg className={`w-4 h-4 transition-transform ${teamPickerOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+                </div>
+              </button>
+              {teamPickerOpen && (
+                <div className="px-3 py-3 border-t border-gray-200 bg-white">
+                  <select
+                    value={targetTeamId}
+                    onChange={(e) => setTargetTeamId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isSubmitting}
+                  >
+                    {pickerTeams.length === 0 && (
+                      <option value="">No teams available</option>
+                    )}
+                    {pickerTeams.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1.5 text-[11px] text-gray-500">
+                    Changing this moves the player. Other teams they're shared with stay intact.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : pickerTeams.length > 1 ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {editingPlayer ? 'Primary team' : 'Add to team *'}
+                Add to team *
               </label>
               <select
                 value={targetTeamId}
@@ -635,20 +677,12 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSubmitting}
               >
-                {pickerTeams.length === 0 && (
-                  <option value="">No teams available</option>
-                )}
                 {pickerTeams.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
-              {editingPlayer && (
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Changing this moves the player. Other teams they're shared with stay intact.
-                </p>
-              )}
             </div>
-          )}
+          ) : null}
 
           {/* Player Name */}
           <div>

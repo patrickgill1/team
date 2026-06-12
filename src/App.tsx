@@ -68,10 +68,22 @@ const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
 const HelpdeskTicketPage = React.lazy(() => import('./pages/HelpdeskTicket'));
 
+// Branded loading screen — picks up where the native splash leaves off
+// (same dark navy bg) and shows the app mark with a subtle bouncing
+// three-dot indicator below so the user knows something's happening.
 const PageSpinner = () => (
-  <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-    <div className="flex flex-col items-center space-y-3">
-      <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-500/30 border-t-cyan-400" />
+  <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center">
+    <div className="flex flex-col items-center gap-6 animate-fade-in">
+      <img
+        src="/images/logo.png"
+        alt=""
+        className="w-24 h-24 rounded-2xl shadow-2xl shadow-cyan-500/20 ring-1 ring-white/10 splash-breathe"
+      />
+      <div className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '0ms' }} />
+        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '180ms' }} />
+        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '360ms' }} />
+      </div>
     </div>
   </div>
 );

@@ -133,7 +133,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
     <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
       <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
         <svg className="w-3 h-3 text-cyan-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Discussion
+        Comments
         <span className="ml-1 text-slate-400 font-bold">{comments.length}</span>
       </div>
 
@@ -202,7 +202,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
           >Send</button>
         </div>
       ) : (
-        <p className="text-xs text-slate-400">Sign in to join the discussion.</p>
+        <p className="text-xs text-slate-400">Sign in to leave a comment.</p>
       )}
     </section>
   );

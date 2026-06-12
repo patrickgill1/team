@@ -309,6 +309,18 @@ code {
   100% { opacity: 1; transform: scale(1); }
 }
 
+/* Splash / loading screen — gentle breathe on the icon + bouncing dots */
+.splash-breathe { animation: splashBreathe 2.4s ease-in-out infinite; }
+.splash-dot { animation: splashDot 1.1s ease-in-out infinite; }
+@keyframes splashBreathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.04); opacity: 0.9; }
+}
+@keyframes splashDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
 /* ===== FOCUS & DISABLED ===== */
 .focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(6,182,212,0.2); }
 .disabled { opacity: 0.6; pointer-events: none; cursor: not-allowed; }

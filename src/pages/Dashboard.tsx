@@ -883,7 +883,8 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
     <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <h3 className="font-bold text-fire-950 flex items-center gap-2">
-          <span>💬</span> Recent chats
+          <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          Recent chats
         </h3>
         <Link to="/chat" className="text-cyan-600 text-sm font-semibold">View all</Link>
       </div>
@@ -900,7 +901,9 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
             const initial = (displayTitle || '?').charAt(0).toUpperCase();
             let hash = 0;
             for (let i = 0; i < (displayTitle || '').length; i++) hash = (hash * 31 + displayTitle.charCodeAt(i)) >>> 0;
-            const palette = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-violet-500', 'bg-blue-500', 'bg-teal-500'];
+            // Brand-coherent two-tone fallback — cyan for DMs you've
+            // got a photo for and slate for everyone else. No rainbow.
+            const palette = ['bg-cyan-600', 'bg-slate-600'];
             const avatarBg = palette[hash % palette.length];
             // For DMs, show the other participant's real photo when we have it.
             const dmPhotoUrl = isDM && otherUid ? userPhotoMap?.[otherUid] : undefined;

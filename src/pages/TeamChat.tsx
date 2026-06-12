@@ -580,11 +580,12 @@ const TeamChat: React.FC = () => {
     const msgId = searchParams.get('message');
     if (!deepLinkId) return;
     const target = threads.find(t => t.id === deepLinkId);
-    if (target) {
-      setSelectedThread(target);
-      setCurrentView('chat');
-      if (msgId) setPendingScrollMsgId(msgId);
-    }
+    // Bail until threads actually loaded — otherwise we'd consume the
+    // URL params on the empty first render and lose the deep link.
+    if (!target) return;
+    setSelectedThread(target);
+    setCurrentView('chat');
+    if (msgId) setPendingScrollMsgId(msgId);
     const next = new URLSearchParams(searchParams);
     next.delete('thread');
     next.delete('message');

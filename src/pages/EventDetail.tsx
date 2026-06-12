@@ -793,6 +793,59 @@ const EventDetail: React.FC = () => {
           linked players. Sits above the personal Quick Actions so
           parents (and coach-with-kid) see their kid's RSVP as the
           default thing to act on. */}
+      {/* Coach-side inline attendance — mark the whole roster from the
+          event page so the coach doesn't have to navigate away to the
+          Attendance tab. Writes to the SAME playerRsvps map parents
+          touch via the per-kid RSVP rows below, so the two views stay
+          in sync. */}
+      {isUserCoach && roster.length > 0 && (
+        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
+            <Icon name="check" className="w-3 h-3 text-cyan-500" />
+            Mark attendance
+            <span className="text-[10px] text-slate-400 font-bold normal-case tracking-normal ml-1">
+              · {Object.values(((event as any).playerRsvps || {})).filter((r: any) => r?.status === 'going').length} going · {roster.length} on roster
+            </span>
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {roster.map(p => {
+              const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
+              const btn = (status: RsvpStatus, label: string, active: string) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setPlayerRsvp(p.id, p.name, status)}
+                  className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
+                    current === status
+                      ? `${active} text-white border-transparent shadow-sm`
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+              return (
+                <li key={p.id} className="flex items-center gap-2 py-1.5">
+                  {p.photoURL ? (
+                    <img src={p.photoURL} alt="" className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 shrink-0" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-600 shrink-0">
+                      {(p.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 text-sm font-semibold text-slate-900 truncate" title={p.name}>{p.name}</div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {btn('going', 'Present', 'bg-emerald-600')}
+                    {btn('maybe', 'Maybe', 'bg-amber-500')}
+                    {btn('no', 'Absent', 'bg-rose-600')}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {myLinkedPlayers.length > 0 && (
         <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">

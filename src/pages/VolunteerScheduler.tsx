@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -320,13 +321,13 @@ const VolunteerScheduler: React.FC = () => {
                 </p>
               </div>
             </div>
-            <a
-              href="/calendar"
+            <Link
+              to="/calendar"
               className="mt-3 inline-flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
             >
               <AppIcon name="calendar" className="w-4 h-4" />
               <span>Go to Events</span>
-            </a>
+            </Link>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -52,22 +53,21 @@ const AttendanceTracker: React.FC = () => {
 
   useEffect(() => {
     if (calendarEvents.length > 0 && !selectedEvent) {
-      // Auto-select the next upcoming practice or game
+      // Auto-select the next upcoming team event of any type. Anything
+      // a parent might bring their kid to deserves attendance tracking
+      // (a watch party counts; an internal coach-only meeting wouldn't,
+      // but those aren't on the team calendar anyway).
       const upcomingEvents = calendarEvents
-        .filter(event => 
-          (event.type === 'practice' || event.type === 'game') && 
-          new Date(event.date) >= new Date()
-        )
+        .filter(event => new Date(event.date) >= new Date())
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      
+
       if (upcomingEvents.length > 0) {
         setSelectedEvent(upcomingEvents[0].id);
       } else {
         // If no upcoming events, select the most recent past event
         const pastEvents = calendarEvents
-          .filter(event => event.type === 'practice' || event.type === 'game')
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
+
         if (pastEvents.length > 0) {
           setSelectedEvent(pastEvents[0].id);
         }
@@ -115,7 +115,6 @@ const AttendanceTracker: React.FC = () => {
       const teamEvents = eventsData
         .filter((e: any) =>
           e.teamId === selectedTeamId &&
-          (e.type === 'practice' || e.type === 'game') &&
           !e.isCancelled
         )
         .map((e: any) => ({
@@ -258,14 +257,14 @@ const AttendanceTracker: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {calendarEvents.length === 0 && (
           <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 mb-6 flex items-center justify-between gap-4">
-            <p className="text-sm text-gray-600">No practices or games found yet.</p>
-            <a
-              href="/calendar"
+            <p className="text-sm text-gray-600">No events found yet.</p>
+            <Link
+              to="/calendar"
               className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               <AppIcon name="calendar" className="w-4 h-4" />
               <span>Create events</span>
-            </a>
+            </Link>
           </div>
         )}
 
@@ -331,13 +330,13 @@ const AttendanceTracker: React.FC = () => {
                           {selectedEventData.type.charAt(0).toUpperCase() + selectedEventData.type.slice(1)}
                         </span>
                       </div>
-                      <a
-                        href="/calendar"
+                      <Link
+                        to="/calendar"
                         className="inline-flex items-center gap-1 text-cyan-700 hover:text-cyan-800 text-sm font-semibold shrink-0"
                       >
                         <AppIcon name="calendar" className="w-4 h-4" />
                         <span>View in Events</span>
-                      </a>
+                      </Link>
                     </div>
                   </div>
 
@@ -409,12 +408,12 @@ const AttendanceTracker: React.FC = () => {
                   ) : (
                     <div className="text-center py-8 text-gray-600">
                       <p>No players found. Add players to track attendance.</p>
-                      <a 
-                        href="/players"
+                      <Link
+                        to="/players"
                         className="mt-2 inline-block bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                       >
                         Add Players
-                      </a>
+                      </Link>
                     </div>
                   )}
 
@@ -449,15 +448,15 @@ const AttendanceTracker: React.FC = () => {
                       </div>
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No Events Found</h3>
                       <p className="text-gray-600 mb-4">
-                        Create practices and games in the calendar first, then track attendance here.
+                        Create events in the calendar first, then track attendance here.
                       </p>
-                      <a
-                        href="/calendar"
+                      <Link
+                        to="/calendar"
                         className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition"
                       >
                         <AppIcon name="calendar" className="w-4 h-4" />
                         <span>Go to Events</span>
-                      </a>
+                      </Link>
                     </div>
                   ) : (
                     <p className="text-gray-600">Select an event to take attendance</p>

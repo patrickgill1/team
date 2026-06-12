@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -509,7 +510,7 @@ const TeamManagement: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Teams</h1>
-            <p className="mt-0.5 text-xs text-slate-400">Create, edit, archive. People & rosters live in <a href="/people" className="text-cyan-400 underline">People</a>.</p>
+            <p className="mt-0.5 text-xs text-slate-400">Create, edit, archive. People & rosters live in <Link to="/people" className="text-cyan-400 underline">People</Link>.</p>
           </div>
           <button
             onClick={() => { resetForm(); setShowCreateModal(true); }}

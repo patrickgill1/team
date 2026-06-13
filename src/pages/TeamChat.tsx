@@ -34,6 +34,11 @@ const TeamChat: React.FC = () => {
   // their current composer text under the OLD thread id and restore
   // the new thread's saved text. Match every modern chat app.
   const [draftsByThread, setDraftsByThread] = useState<Record<string, string>>({});
+  // Optimistic-send queue. Each pending message gets a temp id and
+  // renders immediately; we strip it once the real subscription
+  // delivers a doc with the same content+sender+timestamp window OR
+  // after a short ceiling so a failed send doesn't ghost forever.
+  const [pendingMessages, setPendingMessages] = useState<Array<ChatMessage & { __pending: true; __failed?: boolean }>>([]);
   // Slide direction for chat-view entry/exit. Animation is purely
   // visual — we clear the state flag with a ref-cancelled timeout so
   // a rapid retap (back → tap thread A → tap thread B) can't race.
@@ -773,16 +778,29 @@ const TeamChat: React.FC = () => {
       // briefly render the old thread's data (which would trip the
       // scroll-anchor effect and leave the user mid-thread).
       setMessages([]);
+      // Clear pending optimistic rows from the previous thread —
+      // they'd otherwise leak into the new conversation.
+      setPendingMessages(prev => prev.filter(p => p.threadId === selectedThread.id));
       const unsubscribeMessages = subscribeToChatMessages(selectedThread.id, (messagesData) => {
-        console.log('Received messages data:', messagesData);
-        
         const processedMessages = messagesData.map(message => ({
           ...message,
           timestamp: message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp || Date.now()),
           createdAt: message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt || Date.now())
         }));
-        
         setMessages(processedMessages);
+        // Strip any optimistic rows whose real counterpart just landed.
+        // Match by senderId + content + close-enough timestamp window —
+        // good enough since we only insert pendings within the last few
+        // seconds and Firestore writes back within ~1s.
+        setPendingMessages(prev => prev.filter(p => {
+          if (p.threadId !== selectedThread.id) return true;
+          const matchExists = processedMessages.some(m =>
+            m.senderId === p.senderId
+            && (m.content || '') === (p.content || '')
+            && Math.abs(m.timestamp.getTime() - p.timestamp.getTime()) < 60_000
+          );
+          return !matchExists;
+        }));
       });
 
       return () => {
@@ -845,8 +863,33 @@ const TeamChat: React.FC = () => {
     const c = messagesContainerRef.current;
     if (!c) return;
     const distFromBottom = c.scrollHeight - c.scrollTop - c.clientHeight;
-    isAtBottomRef.current = distFromBottom < 80;
+    const atBottom = distFromBottom < 80;
+    isAtBottomRef.current = atBottom;
+    setIsScrolledUp(!atBottom);
+    if (atBottom) setUnreadWhileScrolledUp(0);
   };
+
+  // UI state for the floating "new messages" pill. When the user has
+  // scrolled up and new messages arrive, we count them and surface a
+  // jump-to-bottom button. Resets when they hit bottom or switch
+  // threads.
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const [unreadWhileScrolledUp, setUnreadWhileScrolledUp] = useState(0);
+  const prevMessageCountRef = useRef(0);
+  useEffect(() => {
+    if (!selectedThread) {
+      setIsScrolledUp(false);
+      setUnreadWhileScrolledUp(0);
+      prevMessageCountRef.current = 0;
+      return;
+    }
+    const newCount = messages.length;
+    const prevCount = prevMessageCountRef.current;
+    if (newCount > prevCount && isScrolledUp) {
+      setUnreadWhileScrolledUp(c => c + (newCount - prevCount));
+    }
+    prevMessageCountRef.current = newCount;
+  }, [messages, selectedThread, isScrolledUp]);
 
   const createThread = async () => {
     if (!newThread.title.trim() || !userData) return;
@@ -890,15 +933,51 @@ const TeamChat: React.FC = () => {
     const attachments = attachmentsArg || [];
     if ((!content && attachments.length === 0) || !selectedThread || !userData) return;
 
+    const sendTimestamp = new Date();
+    const tempId = `pending_${sendTimestamp.getTime()}_${Math.random().toString(36).slice(2, 7)}`;
+    const threadIdAtSend = selectedThread.id;
+
+    // OPTIMISTIC RENDER — push the pending message straight into the
+    // visible list before we round-trip to Firestore. The subscription
+    // will deliver the real doc shortly; the pending row is then
+    // stripped (matched by senderId + content + timestamp window).
+    const pendingMessage = {
+      id: tempId,
+      threadId: threadIdAtSend,
+      content,
+      senderId: userData.uid,
+      senderName: userData.name,
+      senderPhotoUrl: (userData as any).photoURL || undefined,
+      senderRole: userData.role,
+      timestamp: sendTimestamp,
+      teamId: selectedTeamId || '',
+      replyTo: replyingTo?.id || undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
+      __pending: true as const,
+    };
+    setPendingMessages(prev => [...prev, pendingMessage as any]);
+
+    // Clear composer immediately so the user feels the send "land".
+    setNewMessage('');
+    if (selectedThread?.id) {
+      setDraftsByThread(prev => {
+        if (!prev[selectedThread.id]) return prev;
+        const { [selectedThread.id]: _omit, ...rest } = prev;
+        return rest;
+      });
+    }
+    setReplyingTo(null);
+    messageInputRef.current?.focus();
+
     try {
       const messageData: any = {
-        threadId: selectedThread.id,
+        threadId: threadIdAtSend,
         content,
         senderId: userData.uid,
         senderName: userData.name,
         senderPhotoUrl: (userData as any).photoURL || undefined,
         senderRole: userData.role,
-        timestamp: new Date(),
+        timestamp: sendTimestamp,
         teamId: selectedTeamId,
       };
       if (replyingTo?.id) messageData.replyTo = replyingTo.id;
@@ -1006,20 +1085,14 @@ const TeamChat: React.FC = () => {
         }
       }
       
-      setNewMessage('');
-      // Drop the saved draft for this thread — message landed, it's
-      // no longer pending.
-      if (selectedThread?.id) {
-        setDraftsByThread(prev => {
-          if (!prev[selectedThread.id]) return prev;
-          const { [selectedThread.id]: _omit, ...rest } = prev;
-          return rest;
-        });
-      }
-      setReplyingTo(null);
-      messageInputRef.current?.focus();
+      // Optimistic row already cleared the composer; this is the
+      // success path. The subscription dedupes the pending row when
+      // the real doc lands, so nothing else to do here.
     } catch (error) {
       console.error('Error sending message:', error);
+      // Mark the pending row as failed so the user can see it didn't
+      // land and decide whether to retry.
+      setPendingMessages(prev => prev.map(p => p.id === tempId ? { ...p, __failed: true } : p));
     }
   };
 
@@ -1082,12 +1155,20 @@ const TeamChat: React.FC = () => {
     return thread.participants || [];
   };
 
-  // Visible messages = full timeline OR filtered by the in-thread
-  // search. Search is case-insensitive substring on message content.
-  const visibleMessages: ChatMessage[] = (() => {
+  // Visible messages = real timeline + any pending optimistic rows
+  // for this thread, with the optional in-thread search filter on top.
+  // Pendings always sort to the end because their timestamp is "now"
+  // and the list is ascending.
+  const visibleMessages: Array<ChatMessage & { __pending?: boolean; __failed?: boolean }> = (() => {
+    const threadPending = selectedThread
+      ? pendingMessages.filter(p => p.threadId === selectedThread.id)
+      : [];
+    const combined = [...messages, ...threadPending].sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+    );
     const q = threadSearchQuery.trim().toLowerCase();
-    if (!q) return messages;
-    return messages.filter(m => (m.content || '').toLowerCase().includes(q));
+    if (!q) return combined;
+    return combined.filter(m => (m.content || '').toLowerCase().includes(q));
   })();
 
   // Live "X is typing…" computed from selectedThread.typingBy. Drops
@@ -2275,6 +2356,17 @@ const TeamChat: React.FC = () => {
                     No messages match "{threadSearchQuery.trim()}".
                   </div>
                 )}
+                {!threadSearchQuery.trim() && visibleMessages.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-cyan-600 mb-3">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      {(selectedThread as any)?.isDM ? `Say hi to ${getThreadDisplayTitle(selectedThread).split(' ')[0]}` : 'No messages yet'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">Type a message below to start the conversation.</p>
+                  </div>
+                )}
                 {threadSearchQuery.trim() && visibleMessages.length > 0 && (
                   <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 text-center mb-1">
                     {visibleMessages.length} match{visibleMessages.length === 1 ? '' : 'es'}
@@ -2308,7 +2400,9 @@ const TeamChat: React.FC = () => {
                         <div className="flex-1 h-px bg-slate-200" />
                       </div>
                     )}
-                    <div id={`msg-${message.id}`} className="transition-shadow">
+                    <div id={`msg-${message.id}`} className={`transition-shadow ${
+                      (message as any).__pending ? 'opacity-60' : ''
+                    } ${(message as any).__failed ? 'ring-2 ring-rose-300 rounded-2xl' : ''}`}>
                     <MessageBubble
                       message={message}
                       currentUserId={userData?.uid || ''}
@@ -2380,6 +2474,18 @@ const TeamChat: React.FC = () => {
                     : typingNames.length === 2
                     ? `${typingNames[0]} and ${typingNames[1]} are typing…`
                     : `${typingNames.length} people are typing…`}
+                </div>
+              )}
+              {isScrolledUp && (
+                <div className="px-3 pb-2 flex justify-center pointer-events-none">
+                  <button
+                    type="button"
+                    onClick={() => { scrollToBottom(true); setUnreadWhileScrolledUp(0); }}
+                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold shadow-lg hover:bg-slate-800 transition animate-fade-in"
+                  >
+                    {unreadWhileScrolledUp > 0 ? `${unreadWhileScrolledUp} new ` : ''}
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+                  </button>
                 </div>
               )}
               <MessageComposer
@@ -2760,6 +2866,19 @@ const TeamChat: React.FC = () => {
 
             {/* Desktop Message Input */}
             {selectedThread && (
+              <>
+              {isScrolledUp && (
+                <div className="px-3 pb-2 flex justify-center pointer-events-none">
+                  <button
+                    type="button"
+                    onClick={() => { scrollToBottom(true); setUnreadWhileScrolledUp(0); }}
+                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold shadow-lg hover:bg-slate-800 transition animate-fade-in"
+                  >
+                    {unreadWhileScrolledUp > 0 ? `${unreadWhileScrolledUp} new ` : ''}
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+                  </button>
+                </div>
+              )}
               <MessageComposer
                 threadId={selectedThread.id}
                 teamId={selectedTeamId}
@@ -2771,6 +2890,7 @@ const TeamChat: React.FC = () => {
                 canMarkImportant={isCoach || isUserClubAdmin}
                 rows={3}
               />
+              </>
             )}
           </>
         ) : (

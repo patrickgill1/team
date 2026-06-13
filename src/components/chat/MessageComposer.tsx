@@ -249,6 +249,9 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     if (uploading) return;
     const content = text.trim();
     if (!content && pending.length === 0) return;
+    // Fire haptic the instant the user taps Send — before any awaits
+    // so it lands during the press, not after the network round-trip.
+    void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
     await onSend(content, pending, { requireAck: markImportant, pinOnSend: postToWall });
     setText('');
     setPending([]);

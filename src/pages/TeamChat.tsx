@@ -956,9 +956,6 @@ const TeamChat: React.FC = () => {
       __pending: true as const,
     };
     setPendingMessages(prev => [...prev, pendingMessage as any]);
-    // Tiny haptic so iOS users feel the tap landed even before the
-    // bubble paints. Web/Android no-op gracefully.
-    void import('../utils/nativeShell').then(m => m.tapHaptic('light'));
 
     // Clear composer immediately so the user feels the send "land".
     setNewMessage('');

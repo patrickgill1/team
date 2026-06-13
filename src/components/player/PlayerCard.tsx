@@ -15,6 +15,9 @@ interface PlayerCardProps {
   onEdit?: (player: Player) => void;
   onDelete?: (playerId: string) => void;
   showActions?: boolean;
+  /** Currently-selected team. Stats and clips are already pre-scoped
+   *  in the parent; this is just for analytics / future use. */
+  selectedTeamId?: string;
 }
 
 const positionDot = (pos?: string): string => {

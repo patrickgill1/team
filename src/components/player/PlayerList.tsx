@@ -333,9 +333,19 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
             // (rostered on multiple teams) show clean numbers here
             // instead of the all-team aggregate baked into player.stats.
             const teamStats = teamStatsByPlayerId[player.id];
-            const scoped = teamStats
-              ? { ...(player as any), stats: { ...teamStats, __isActive: undefined } }
-              : player;
+            // Team-scoped roster: ONLY show this team's stats. If no
+            // membership row exists for this team yet, force zeros —
+            // the global player.stats aggregate carries history from
+            // other teams the player has been on and shouldn't leak
+            // into a new team's view. Per-team history still lives on
+            // the player profile's "career" toggle.
+            const zeroStats = { goals: 0, assists: 0, saves: 0, gamesPlayed: 0, yellowCards: 0, redCards: 0, minutesPlayed: 0, cleanSheets: 0 };
+            const scoped = {
+              ...(player as any),
+              stats: teamStats
+                ? { ...teamStats, __isActive: undefined }
+                : zeroStats,
+            };
             return (
               <PlayerCard
                 key={player.id}
@@ -343,6 +353,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
                 onEdit={handleEditPlayer}
                 onDelete={handlePlayerDeleted}
                 showActions={true}
+                selectedTeamId={selectedTeamId}
               />
             );
           })}

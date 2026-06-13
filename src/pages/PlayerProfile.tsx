@@ -348,7 +348,12 @@ const PlayerProfile: React.FC = () => {
   const age = calculateAge(player.dateOfBirth);
   const activePlans = plans.filter(p => p.status === 'active');
   const completedPlans = plans.filter(p => p.status === 'completed');
-  const recentMedia = media.slice(0, 6);
+  // Recent clips strip is team-scoped — when viewing a player from a
+  // team's roster, only show media tied to that team. Prior-team clips
+  // still live on the player's Media page under the All-time view.
+  const recentMedia = media
+    .filter(m => !selectedTeamId || (m as any).teamId === selectedTeamId)
+    .slice(0, 6);
   const totalGoalsInPlans = plans.reduce((sum, p) => sum + p.goals.length, 0);
   const verifiedGoals = plans.reduce((sum, p) => sum + p.goals.filter(g => g.coachVerified).length, 0);
   const playerCompletedGoals = plans.reduce((sum, p) => sum + p.goals.filter(g => g.playerCompleted).length, 0);

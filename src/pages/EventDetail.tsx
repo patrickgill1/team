@@ -9,6 +9,7 @@ import { isCoach } from '../utils/helpers';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 import EventForm from '../components/calendar/EventForm';
 import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
+import EventDiscussion from '../components/calendar/EventDiscussion';
 import SnackAssignment from '../components/calendar/SnackAssignment';
 import { mapsUrl, osmEmbedUrl } from '../utils/maps';
 
@@ -1118,21 +1119,19 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
-      {/* DISCUSSION — replaced by a deep-link into the team chat. The
-          per-event thread was a parallel surface no one was using; one
-          chat per team is easier for parents to follow. */}
+      {/* COMMENTS — inline per-event discussion thread (separate from
+          team chat). Writes to the eventComments collection — anyone
+          on this event can read + post here without flooding the
+          team chat firehose. */}
       <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
-        <button
-          type="button"
-          onClick={() => navigate('/chat')}
-          className="w-full flex items-center justify-between gap-3 rounded-xl bg-slate-50 hover:bg-slate-100 ring-1 ring-slate-200 px-4 py-3 transition-colors"
-        >
-          <span className="flex items-center gap-2.5">
-            <Icon name="users" className="w-4 h-4 text-cyan-600" />
-            <span className="text-sm font-semibold text-slate-800">Discuss in team chat</span>
-          </span>
-          <Icon name="arrow-left" className="w-4 h-4 text-slate-400 rotate-180" />
-        </button>
+        <EventDiscussion
+          eventId={event.id}
+          teamId={event.teamId}
+          userUid={userData?.uid}
+          userName={userData?.name}
+          userPhotoURL={(userData as any)?.photoURL}
+          eventTitle={event.title}
+        />
       </section>
 
       {/* SNACKS — coach assigns one family per event, family sees they're

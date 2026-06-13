@@ -158,7 +158,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
                     <span className="ml-1.5">{formatRelative(c.createdAt)}</span>
                   </div>
                   <div
-                    className={`inline-block mt-0.5 px-3 py-1.5 rounded-2xl text-sm break-words ${
+                    className={`inline-block mt-0.5 px-3 py-1.5 rounded-2xl text-sm break-words whitespace-pre-wrap text-left ${
                       isMine
                         ? 'bg-cyan-600 text-white rounded-tr-sm'
                         : 'bg-slate-100 text-slate-900 rounded-tl-sm'
@@ -186,13 +186,17 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              // Cmd/Ctrl+Enter = send (desktop power-user). Plain Enter
+              // inserts a newline — matches iMessage / WhatsApp on
+              // mobile where there's no Shift key, and lets multi-line
+              // comments survive instead of being submitted half-typed.
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 post();
               }
             }}
             placeholder="Say something about this event…"
-            rows={1}
+            rows={2}
             className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
           />
           <button

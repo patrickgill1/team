@@ -1189,12 +1189,27 @@ const TeamChat: React.FC = () => {
   };
 
   // Per-user thread pinning — each user maintains their own list of
-  // pinned thread IDs on their user doc. Coaches can't pin "for
-  // everyone" anymore. The thread doc's legacy `isPinned` is ignored
-  // for new pins (kept for back-compat reads).
-  const myPinnedThreadIds: string[] = Array.isArray((userData as any)?.pinnedThreadIds)
-    ? (userData as any).pinnedThreadIds
-    : [];
+  // pinned thread IDs on their user doc. The pin must show up
+  // immediately on tap, so we keep a local optimistic copy alongside
+  // the server-backed userData read (AuthContext doesn't subscribe to
+  // user-doc changes, so without this the UI wouldn't update until
+  // the next reload).
+  const [localPinOverride, setLocalPinOverride] = useState<string[] | null>(null);
+  const myPinnedThreadIds: string[] = localPinOverride ?? (
+    Array.isArray((userData as any)?.pinnedThreadIds)
+      ? (userData as any).pinnedThreadIds
+      : []
+  );
+  // Reset the override whenever the server-side value catches up so
+  // we don't go stale on the next reload.
+  useEffect(() => {
+    const serverIds: string[] = Array.isArray((userData as any)?.pinnedThreadIds)
+      ? (userData as any).pinnedThreadIds
+      : [];
+    if (localPinOverride && JSON.stringify(localPinOverride) === JSON.stringify(serverIds)) {
+      setLocalPinOverride(null);
+    }
+  }, [userData, localPinOverride]);
   const isThreadPinned = (thread: ChatThread): boolean =>
     myPinnedThreadIds.includes(thread.id);
   const togglePinThread = async (thread: ChatThread) => {
@@ -1202,10 +1217,13 @@ const TeamChat: React.FC = () => {
     const next = myPinnedThreadIds.includes(thread.id)
       ? myPinnedThreadIds.filter(id => id !== thread.id)
       : [...myPinnedThreadIds, thread.id];
+    setLocalPinOverride(next);
     try {
       await updateDoc(doc(db, 'users', userData.uid), { pinnedThreadIds: next });
     } catch (err) {
       console.error('Error toggling pin:', err);
+      // Revert on failure.
+      setLocalPinOverride(myPinnedThreadIds);
     }
   };
 

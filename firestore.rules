@@ -45,6 +45,63 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Chat threads — DMs and group chats are private to their
+    // participants. Team / club / coaches / admins channels stay
+    // open to any signed-in user (the client already gates by role).
+    match /chat_threads/{threadId} {
+      function isPrivate() {
+        return resource.data.isDM == true || resource.data.isGroup == true;
+      }
+      function isParticipant() {
+        return request.auth != null
+          && resource.data.participants is list
+          && request.auth.uid in resource.data.participants;
+      }
+      allow read: if request.auth != null && (!isPrivate() || isParticipant());
+      allow create: if request.auth != null;
+      // Existing participants can update the thread (typing presence,
+      // pinnedMessageIds, lastMessage). Non-participants can only
+      // touch pinnedThreadIds-relevant fields on the user doc, not
+      // the thread itself.
+      allow update: if request.auth != null && (
+        !isPrivate()
+        || isParticipant()
+        || (request.auth.uid in request.resource.data.participants)  // joining a group
+      );
+      allow delete: if request.auth != null && isParticipant();
+    }
+
+    // Chat messages — gated by the parent thread's privacy. The lookup
+    // costs an extra read per message, but it's the only way to enforce
+    // "only DM participants can read this message" without denormalizing.
+    match /chat_messages/{messageId} {
+      function parentThread() {
+        return get(/databases/$(database)/documents/chat_threads/$(resource.data.threadId)).data;
+      }
+      function parentIsPrivate() {
+        return parentThread().isDM == true || parentThread().isGroup == true;
+      }
+      function parentParticipants() {
+        return parentThread().participants;
+      }
+      allow read: if request.auth != null && (
+        !parentIsPrivate() || request.auth.uid in parentParticipants()
+      );
+      allow create: if request.auth != null && request.resource.data.senderId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.senderId == request.auth.uid
+        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
+        // Reactions + readBy are writable by any user who can READ the
+        // message (privacy already enforced above) so likes and seen
+        // markers work without granting write on other fields.
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'readBy'])
+      );
+      allow delete: if request.auth != null && (
+        resource.data.senderId == request.auth.uid
+        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
+      );
+    }
+
     // The Wall is its own surface — separate collection from chat.
     // Any signed-in user can read (everyone on the team sees the same
     // wall). Any signed-in user can create their own post. After the

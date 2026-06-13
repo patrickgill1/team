@@ -1230,6 +1230,27 @@ const EventDetail: React.FC = () => {
           try { await updateDocument('events', event.id, { carpoolPosts: next }); }
           catch (err) { console.error('carpool delete failed', err); }
         }}
+        onToggleClaim={async (postId) => {
+          if (!event || !userData?.uid) return;
+          const current = ((event as any).carpoolPosts || []) as CarpoolPost[];
+          const next = current.map(p => {
+            if (p.id !== postId) return p;
+            const claimedByMe = p.claimedByUid === userData.uid;
+            if (claimedByMe) {
+              const { claimedByUid: _u, claimedByName: _n, claimedAt: _a, ...rest } = p as any;
+              return rest as CarpoolPost;
+            }
+            return {
+              ...p,
+              claimedByUid: userData.uid,
+              claimedByName: userData.name || 'Member',
+              claimedAt: new Date(),
+            };
+          });
+          setEvent({ ...event, carpoolPosts: next } as any);
+          try { await updateDocument('events', event.id, { carpoolPosts: next }); }
+          catch (err) { console.error('carpool claim failed', err); }
+        }}
       />
 
       {/* EDIT MODAL (coach only) */}

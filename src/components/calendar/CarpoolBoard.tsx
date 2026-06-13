@@ -9,6 +9,12 @@ export interface CarpoolPost {
   location?: string;
   note?: string;
   createdAt: any;
+  /** Claim metadata — for an OFFER, who's taking a seat; for a
+   *  REQUEST, who's giving them a ride. Optional so existing posts
+   *  stay readable. */
+  claimedByUid?: string;
+  claimedByName?: string;
+  claimedAt?: any;
 }
 
 interface Props {
@@ -17,6 +23,10 @@ interface Props {
   currentName?: string;
   onAdd: (post: { type: 'offer' | 'request'; seats?: number; location?: string; note?: string }) => Promise<void> | void;
   onDelete: (postId: string) => Promise<void> | void;
+  /** Toggle claim/unclaim on a post. Called with the post id; the
+   *  parent decides whether to attribute or clear the claim based on
+   *  current state. */
+  onToggleClaim?: (postId: string) => Promise<void> | void;
 }
 
 const Icon: React.FC<{ name: string; className?: string }> = ({ name, className = 'w-3.5 h-3.5' }) => {
@@ -31,7 +41,7 @@ const Icon: React.FC<{ name: string; className?: string }> = ({ name, className 
   return null;
 };
 
-const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, onDelete }) => {
+const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, onDelete, onToggleClaim }) => {
   const [adding, setAdding] = useState<'offer' | 'request' | null>(null);
   const [seats, setSeats] = useState<string>('2');
   const [location, setLocation] = useState('');
@@ -141,27 +151,55 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
             <div>
               <div className="text-[10px] font-extrabold tracking-widest uppercase text-purple-700 mb-1">Offers</div>
               <div className="space-y-1.5">
-                {offers.map(p => (
-                  <div key={p.id} className="rounded-lg bg-purple-50/50 border border-purple-200 px-3 py-2 flex items-start gap-2">
-                    <Icon name="car" className="w-4 h-4 text-purple-600 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-purple-900">
-                        {p.name} — {p.seats ? `${p.seats} seat${p.seats === 1 ? '' : 's'}` : 'driving'}
-                        {p.location && <span className="font-normal text-purple-700"> from {p.location}</span>}
+                {offers.map(p => {
+                  const mine = p.uid === currentUid;
+                  const claimedByMe = p.claimedByUid === currentUid;
+                  const claimed = !!p.claimedByUid;
+                  return (
+                    <div key={p.id} className="rounded-lg bg-purple-50/50 border border-purple-200 px-3 py-2">
+                      <div className="flex items-start gap-2">
+                        <Icon name="car" className="w-4 h-4 text-purple-600 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-purple-900">
+                            {p.name} — {p.seats ? `${p.seats} seat${p.seats === 1 ? '' : 's'}` : 'driving'}
+                            {p.location && <span className="font-normal text-purple-700"> from {p.location}</span>}
+                          </div>
+                          {p.note && <div className="text-xs text-purple-700">{p.note}</div>}
+                          {claimed && (
+                            <div className="text-[11px] font-bold text-emerald-700 mt-1">
+                              {claimedByMe ? "You're taking a seat" : `${p.claimedByName} is taking a seat`}
+                            </div>
+                          )}
+                        </div>
+                        {mine && (
+                          <button
+                            onClick={() => onDelete(p.id)}
+                            aria-label="Remove post"
+                            className="text-purple-400 hover:text-purple-700 flex-shrink-0"
+                          >
+                            <Icon name="x" className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
-                      {p.note && <div className="text-xs text-purple-700">{p.note}</div>}
+                      {!mine && currentUid && onToggleClaim && (
+                        <div className="mt-1.5 flex justify-end">
+                          {(!claimed || claimedByMe) && (
+                            <button
+                              onClick={() => onToggleClaim(p.id)}
+                              className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded border ${
+                                claimedByMe
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-100'
+                              }`}
+                            >
+                              {claimedByMe ? '✓ Got a seat — release?' : "I'll take a seat"}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {p.uid === currentUid && (
-                      <button
-                        onClick={() => onDelete(p.id)}
-                        aria-label="Remove post"
-                        className="text-purple-400 hover:text-purple-700 flex-shrink-0"
-                      >
-                        <Icon name="x" className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -169,27 +207,55 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
             <div>
               <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 mb-1">Requests</div>
               <div className="space-y-1.5">
-                {requests.map(p => (
-                  <div key={p.id} className="rounded-lg bg-cyan-50/50 border border-cyan-200 px-3 py-2 flex items-start gap-2">
-                    <Icon name="help" className="w-4 h-4 text-cyan-600 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-cyan-900">
-                        {p.name} — needs a ride
-                        {p.location && <span className="font-normal text-cyan-700"> from {p.location}</span>}
+                {requests.map(p => {
+                  const mine = p.uid === currentUid;
+                  const claimedByMe = p.claimedByUid === currentUid;
+                  const claimed = !!p.claimedByUid;
+                  return (
+                    <div key={p.id} className="rounded-lg bg-cyan-50/50 border border-cyan-200 px-3 py-2">
+                      <div className="flex items-start gap-2">
+                        <Icon name="help" className="w-4 h-4 text-cyan-600 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-cyan-900">
+                            {p.name} — needs a ride
+                            {p.location && <span className="font-normal text-cyan-700"> from {p.location}</span>}
+                          </div>
+                          {p.note && <div className="text-xs text-cyan-700">{p.note}</div>}
+                          {claimed && (
+                            <div className="text-[11px] font-bold text-emerald-700 mt-1">
+                              {claimedByMe ? "You're driving them" : `${p.claimedByName} is driving them`}
+                            </div>
+                          )}
+                        </div>
+                        {mine && (
+                          <button
+                            onClick={() => onDelete(p.id)}
+                            aria-label="Remove post"
+                            className="text-cyan-400 hover:text-cyan-700 flex-shrink-0"
+                          >
+                            <Icon name="x" className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
-                      {p.note && <div className="text-xs text-cyan-700">{p.note}</div>}
+                      {!mine && currentUid && onToggleClaim && (
+                        <div className="mt-1.5 flex justify-end">
+                          {(!claimed || claimedByMe) && (
+                            <button
+                              onClick={() => onToggleClaim(p.id)}
+                              className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded border ${
+                                claimedByMe
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-white text-cyan-700 border-cyan-200 hover:bg-cyan-100'
+                              }`}
+                            >
+                              {claimedByMe ? "✓ I'm driving — release?" : "I can drive them"}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {p.uid === currentUid && (
-                      <button
-                        onClick={() => onDelete(p.id)}
-                        aria-label="Remove post"
-                        className="text-cyan-400 hover:text-cyan-700 flex-shrink-0"
-                      >
-                        <Icon name="x" className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

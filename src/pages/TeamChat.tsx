@@ -558,10 +558,21 @@ const TeamChat: React.FC = () => {
         return true;
       })
       .sort((a: any, b: any) => {
-        // Per-user pinning beats the legacy thread-level isPinned.
+        // Order: user-pinned first → team-scoped channels next → groups
+        // → DMs, then by recency within each tier. This puts the team
+        // chat at the top by default without the user having to pin
+        // anything, and keeps DMs from drowning out announcements.
         const aP = (userData as any)?.pinnedThreadIds?.includes(a.id) || false;
         const bP = (userData as any)?.pinnedThreadIds?.includes(b.id) || false;
         if (aP !== bP) return aP ? -1 : 1;
+        const tierOf = (t: any) => {
+          if (t.isDM) return 3;
+          if (t.isGroup) return 2;
+          return 1; // team / club / coaches / admins scopes
+        };
+        const aT = tierOf(a);
+        const bT = tierOf(b);
+        if (aT !== bT) return aT - bT;
         return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
       });
   }, [teamThreads, clubThreads, isCoach, isUserClubAdmin, userData]);
@@ -1824,21 +1835,29 @@ const TeamChat: React.FC = () => {
                 // Row renderer — shared between sectioned and flat layouts.
                 const renderRow = (thread: ChatThread) => {
                   const isDM = (thread as any).isDM === true;
+                  const isGroup = (thread as any).isGroup === true;
                   const displayTitle = getThreadDisplayTitle(thread);
                   const initial = (displayTitle || '?').charAt(0).toUpperCase();
-                  let hh = 0;
-                  for (let i = 0; i < (displayTitle || '').length; i++) hh = (hh * 31 + displayTitle.charCodeAt(i)) >>> 0;
-                  const palette = ['bg-rose-500','bg-amber-500','bg-emerald-500','bg-cyan-500','bg-violet-500','bg-fuchsia-500','bg-blue-500','bg-teal-500'];
-                  const avatarBg = palette[hh % palette.length];
+                  // Color BY TYPE, not by hash. Cyan = team channels,
+                  // violet = group chats, slate = DMs. Predictable so a
+                  // glance at the avatar tells you what kind of thread.
+                  const avatarBg = isDM
+                    ? 'bg-slate-500'
+                    : isGroup
+                      ? 'bg-violet-600'
+                      : 'bg-cyan-600';
                   const threadPhotoUrl = getThreadPhotoUrl(thread);
                   const preview = thread.lastMessage?.content || (thread.description || (isDM ? 'Tap to send a message' : 'No messages yet'));
                   const ago = formatTime(thread.lastActivity);
                   const unread = isThreadUnread(thread);
                   return (
-                  <button
+                  <div
                     key={thread.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => showChatView(thread)}
-                    className="w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-start gap-3"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') showChatView(thread); }}
+                    className="w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-start gap-3 cursor-pointer"
                   >
                     {threadPhotoUrl ? (
                       <img
@@ -1880,11 +1899,6 @@ const TeamChat: React.FC = () => {
                             {teamNameById[thread.teamId]}
                           </span>
                         )}
-                        {isThreadPinned(thread) && (
-                          <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        )}
                         {thread.isPrivate && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-700 ring-1 ring-red-200 flex-shrink-0">
                             Coach only
@@ -1919,7 +1933,23 @@ const TeamChat: React.FC = () => {
                         {preview}
                       </div>
                     </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); togglePinThread(thread); }}
+                      title={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
+                      aria-label={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
+                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition ${
+                        isThreadPinned(thread)
+                          ? 'text-amber-500 hover:text-amber-600'
+                          : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill={isThreadPinned(thread) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <line x1="12" y1="17" x2="12" y2="22" />
+                        <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
+                      </svg>
+                    </button>
+                  </div>
                 );
                 };
                 // Sectioned layout when on the default "All" filter,

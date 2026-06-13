@@ -288,6 +288,16 @@ code {
 .animate-slide-up { animation: slideUp 0.3s ease-out; }
 .animate-sheet-up { animation: sheetUp 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-pop-in { animation: popIn 0.18s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-slide-in-right { animation: slideInRight 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-slide-out-right { animation: slideOutRight 0.18s cubic-bezier(0.4, 0, 1, 1); }
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
 .animate-bounce-in { animation: bounceIn 0.4s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp {

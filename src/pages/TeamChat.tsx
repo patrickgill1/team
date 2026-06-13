@@ -30,6 +30,14 @@ const TeamChat: React.FC = () => {
   
   // Simple mobile-first state management
   const [currentView, setCurrentView] = useState<'threads' | 'chat'>('threads');
+  // Per-thread draft cache. When the user switches threads we save
+  // their current composer text under the OLD thread id and restore
+  // the new thread's saved text. Match every modern chat app.
+  const [draftsByThread, setDraftsByThread] = useState<Record<string, string>>({});
+  // Slide direction so opening a chat slides in from the right and
+  // backing out slides off to the right. Resets when the animation
+  // finishes (CSS animation handles the actual movement).
+  const [chatSlideDir, setChatSlideDir] = useState<'in' | 'out' | null>(null);
   // Team-scoped threads (the active team's chats + DMs) and club-scoped
   // threads (visible regardless of which team is selected). Kept in
   // separate state slots; combined via the `threads` memo below.
@@ -343,14 +351,35 @@ const TeamChat: React.FC = () => {
 
   // Simple navigation functions
   const showThreadsList = () => {
-    console.log('Showing threads list');
-    setCurrentView('threads');
-    setSelectedThread(null);
+    // Save the current draft on the way out so it survives the round-trip.
+    if (selectedThread?.id && newMessage) {
+      setDraftsByThread(prev => ({ ...prev, [selectedThread.id]: newMessage }));
+    } else if (selectedThread?.id) {
+      setDraftsByThread(prev => {
+        if (!prev[selectedThread.id]) return prev;
+        const { [selectedThread.id]: _omit, ...rest } = prev;
+        return rest;
+      });
+    }
+    setChatSlideDir('out');
+    setTimeout(() => {
+      setCurrentView('threads');
+      setSelectedThread(null);
+      setNewMessage('');
+      setChatSlideDir(null);
+    }, 180);
   };
 
   const showChatView = (thread: ChatThread) => {
+    // Save current draft if we're already in a chat
+    if (selectedThread?.id && newMessage) {
+      setDraftsByThread(prev => ({ ...prev, [selectedThread.id]: newMessage }));
+    }
     setSelectedThread(thread);
+    setNewMessage(draftsByThread[thread.id] || '');
     setCurrentView('chat');
+    setChatSlideDir('in');
+    setTimeout(() => setChatSlideDir(null), 220);
     markThreadVisited(thread.id);
   };
 
@@ -594,14 +623,28 @@ const TeamChat: React.FC = () => {
     // Bail until threads actually loaded — otherwise we'd consume the
     // URL params on the empty first render and lose the deep link.
     if (!target) return;
+    // If the user is actively composing in another thread, don't
+    // yank them away — that's how drafts get lost. Skip the auto-
+    // switch unless they've explicitly emptied the composer.
+    if (selectedThread && selectedThread.id !== deepLinkId && newMessage.trim()) {
+      // Keep the deep-link params in the URL — they can tap the
+      // target thread from the list later without losing their draft.
+      return;
+    }
+    // Save any in-flight draft on the source thread so the round-trip
+    // preserves it.
+    if (selectedThread?.id && newMessage) {
+      setDraftsByThread(prev => ({ ...prev, [selectedThread.id]: newMessage }));
+    }
     setSelectedThread(target);
+    setNewMessage(draftsByThread[target.id] || '');
     setCurrentView('chat');
     if (msgId) setPendingScrollMsgId(msgId);
     const next = new URLSearchParams(searchParams);
     next.delete('thread');
     next.delete('message');
     setSearchParams(next, { replace: true });
-  }, [threads, searchParams, setSearchParams]);
+  }, [threads, searchParams, setSearchParams, selectedThread, newMessage, draftsByThread]);
 
   // Scroll to + flash-highlight a specific message once it's in the
   // DOM. Same visual treatment as the reply-quote tap so the eye
@@ -638,6 +681,24 @@ const TeamChat: React.FC = () => {
       setSelectedThread(threads[0]);
     }
   }, [threads, isMobile, selectedThread]);
+
+  // Preload image attachments that show up on the latest message of
+  // each thread, so when the user opens the chat the photo is already
+  // in browser cache instead of popping in after the reactions render.
+  // Cheap — 1 hit per thread, one-shot per session.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    for (const t of threads) {
+      const atts = (t.lastMessage as any)?.attachments as Array<{ url: string }> | undefined;
+      if (!atts) continue;
+      for (const a of atts) {
+        if (a?.url) {
+          const img = new Image();
+          img.src = a.url;
+        }
+      }
+    }
+  }, [threads]);
 
   // Load team members for @mention autocomplete + email, plus a
   // parentUid → [childNames] lookup so the DM picker can show which
@@ -933,6 +994,15 @@ const TeamChat: React.FC = () => {
       }
       
       setNewMessage('');
+      // Drop the saved draft for this thread — message landed, it's
+      // no longer pending.
+      if (selectedThread?.id) {
+        setDraftsByThread(prev => {
+          if (!prev[selectedThread.id]) return prev;
+          const { [selectedThread.id]: _omit, ...rest } = prev;
+          return rest;
+        });
+      }
       setReplyingTo(null);
       messageInputRef.current?.focus();
     } catch (error) {
@@ -2040,7 +2110,9 @@ const TeamChat: React.FC = () => {
         ) : (
           // CHAT VIEW
           selectedThread && (
-            <div className="flex-1 min-h-0 flex flex-col bg-white">
+            <div className={`flex-1 min-h-0 flex flex-col bg-white ${
+              chatSlideDir === 'in' ? 'animate-slide-in-right' : chatSlideDir === 'out' ? 'animate-slide-out-right' : ''
+            }`}>
               {/* Chat Header with Back Button */}
               <div className="bg-white border-b border-gray-200 p-4">
                 <div className="flex items-center space-x-3">

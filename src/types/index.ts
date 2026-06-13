@@ -1292,6 +1292,9 @@ export interface WallPost {
    *  game schedule / video upload / milestone? Drives small UI tags
    *  on the post. */
   postedFrom?: 'wall' | 'game' | 'video' | 'potm' | 'devplan' | 'juggle';
+  /** When true, the post is readable at /wall/p/{id} without auth so
+   *  the coach can share it as a mini-site link. Default false. */
+  isPublic?: boolean;
 }
 
 export interface WallComment {

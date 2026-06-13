@@ -340,6 +340,7 @@ const Wall: React.FC = () => {
         reactions: [],
         wallPinnedTop: null,
         postedFrom: 'wall',
+        isPublic: false,
       });
       setComposer('');
       setComposerAttachments([]);
@@ -366,6 +367,32 @@ const Wall: React.FC = () => {
       setPostError(err?.message || 'Post failed — try again.');
     } finally {
       setPosting(false);
+    }
+  };
+
+  // Toggle a post's public-share visibility AND copy the share link.
+  // First click: makes the post public + copies link. Subsequent clicks
+  // copy again (and re-share if it had been turned off).
+  const shareToWeb = async (post: WallPost) => {
+    if (!canManage) return;
+    try {
+      const isPublicNow = !!(post as any).isPublic;
+      if (!isPublicNow) {
+        await updateDoc(doc(db, 'wall_posts', post.id), { isPublic: true });
+      }
+      const { wallPostShareUrl } = await import('./PublicWallPost');
+      const url = wallPostShareUrl(post.id);
+      try {
+        if ((navigator as any).share) {
+          await (navigator as any).share({ title: `${post.senderName} posted`, text: post.content.slice(0, 100), url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          alert(`Public link copied:\n${url}`);
+        }
+      } catch { /* user cancelled share sheet */ }
+    } catch (err) {
+      console.error('share toggle failed', err);
+      alert('Could not enable sharing — try again.');
     }
   };
 
@@ -668,6 +695,19 @@ const Wall: React.FC = () => {
                     <div className="flex-1" />
                     {canManage && (
                       <>
+                        <button
+                          type="button"
+                          onClick={() => shareToWeb(p)}
+                          className={`text-xs font-bold tracking-widest uppercase px-2 py-1 rounded inline-flex items-center gap-1 ${
+                            (p as any).isPublic
+                              ? 'text-emerald-700 hover:text-emerald-900'
+                              : 'text-slate-500 hover:text-cyan-700'
+                          }`}
+                          title={(p as any).isPublic ? 'Public — copy link' : 'Share publicly'}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                          {(p as any).isPublic ? 'Public' : 'Share'}
+                        </button>
                         <button
                           type="button"
                           onClick={() => togglePinTop(p)}

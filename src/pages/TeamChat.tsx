@@ -34,6 +34,17 @@ const TeamChat: React.FC = () => {
   // their current composer text under the OLD thread id and restore
   // the new thread's saved text. Match every modern chat app.
   const [draftsByThread, setDraftsByThread] = useState<Record<string, string>>({});
+  // Slide direction for chat-view entry/exit. Animation is purely
+  // visual — we clear the state flag with a ref-cancelled timeout so
+  // a rapid retap (back → tap thread A → tap thread B) can't race.
+  const [chatSlideDir, setChatSlideDir] = useState<'in' | 'out' | null>(null);
+  const slideTimeoutRef = useRef<number | null>(null);
+  const cancelSlideTimeout = () => {
+    if (slideTimeoutRef.current != null) {
+      window.clearTimeout(slideTimeoutRef.current);
+      slideTimeoutRef.current = null;
+    }
+  };
   // Team-scoped threads (the active team's chats + DMs) and club-scoped
   // threads (visible regardless of which team is selected). Kept in
   // separate state slots; combined via the `threads` memo below.
@@ -347,10 +358,13 @@ const TeamChat: React.FC = () => {
     return () => { document.body.classList.remove('chat-conversation'); };
   }, [isMobile, currentView, selectedThread]);
 
-  // Simple navigation functions. Draft preservation stays, slide
-  // animation removed — the setTimeout was racing with rapid thread
-  // switches and blanking state out mid-transition.
+  // Navigation. State changes are synchronous so a rapid retap can't
+  // race. The slide direction is decorative — the CSS keyframe runs
+  // alongside the (already-completed) React state change. A ref-backed
+  // timeout clears the direction flag and is cancelled if a new
+  // navigation starts before it fires.
   const showThreadsList = () => {
+    cancelSlideTimeout();
     if (selectedThread?.id && newMessage) {
       setDraftsByThread(prev => ({ ...prev, [selectedThread.id]: newMessage }));
     } else if (selectedThread?.id) {
@@ -363,15 +377,22 @@ const TeamChat: React.FC = () => {
     setCurrentView('threads');
     setSelectedThread(null);
     setNewMessage('');
+    setChatSlideDir(null);
   };
 
   const showChatView = (thread: ChatThread) => {
+    cancelSlideTimeout();
     if (selectedThread?.id && newMessage) {
       setDraftsByThread(prev => ({ ...prev, [selectedThread.id]: newMessage }));
     }
     setSelectedThread(thread);
     setNewMessage(draftsByThread[thread.id] || '');
     setCurrentView('chat');
+    setChatSlideDir('in');
+    slideTimeoutRef.current = window.setTimeout(() => {
+      setChatSlideDir(null);
+      slideTimeoutRef.current = null;
+    }, 240);
     markThreadVisited(thread.id);
   };
 
@@ -2102,7 +2123,9 @@ const TeamChat: React.FC = () => {
         ) : (
           // CHAT VIEW
           selectedThread && (
-            <div className="flex-1 min-h-0 flex flex-col bg-white">
+            <div className={`flex-1 min-h-0 flex flex-col bg-white ${
+              chatSlideDir === 'in' ? 'animate-slide-in-right' : ''
+            }`}>
               {/* Chat Header with Back Button */}
               <div className="bg-white border-b border-gray-200 p-4">
                 <div className="flex items-center space-x-3">

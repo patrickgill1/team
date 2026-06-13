@@ -686,6 +686,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                     reactionPressFiredRef.current = false;
                     return;
                   }
+                  void import('../../utils/nativeShell').then(m => m.tapHaptic('light'));
                   onToggleReaction(message, emoji);
                 }}
                 onTouchStart={() => {
@@ -740,7 +741,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           (GIFs etc.) so people can still react to them. */}
       {(message.content || images.length > 0) && (
         <button
-          onClick={() => setActionsOpen(true)}
+          onClick={() => {
+            void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
+            setActionsOpen(true);
+          }}
           aria-label="Message actions"
           className={`${isOwn ? 'mr-1 order-first' : 'ml-1'} self-end mb-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm hover:text-cyan-700 hover:border-cyan-300 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity`}
         >

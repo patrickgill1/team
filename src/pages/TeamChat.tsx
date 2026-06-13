@@ -2117,7 +2117,11 @@ const TeamChat: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); togglePinThread(thread); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void import('../utils/nativeShell').then(m => m.tapHaptic('light'));
+                        togglePinThread(thread);
+                      }}
                       title={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
                       aria-label={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
                       className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition ${

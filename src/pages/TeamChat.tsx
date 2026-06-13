@@ -956,6 +956,9 @@ const TeamChat: React.FC = () => {
       __pending: true as const,
     };
     setPendingMessages(prev => [...prev, pendingMessage as any]);
+    // Tiny haptic so iOS users feel the tap landed even before the
+    // bubble paints. Web/Android no-op gracefully.
+    void import('../utils/nativeShell').then(m => m.tapHaptic('light'));
 
     // Clear composer immediately so the user feels the send "land".
     setNewMessage('');
@@ -2401,8 +2404,8 @@ const TeamChat: React.FC = () => {
                       </div>
                     )}
                     <div id={`msg-${message.id}`} className={`transition-shadow ${
-                      (message as any).__pending ? 'opacity-60' : ''
-                    } ${(message as any).__failed ? 'ring-2 ring-rose-300 rounded-2xl' : ''}`}>
+                      idx === visibleMessages.length - 1 ? 'animate-bubble-in' : ''
+                    } ${(message as any).__pending ? 'opacity-60' : ''} ${(message as any).__failed ? 'ring-2 ring-rose-300 rounded-2xl' : ''}`}>
                     <MessageBubble
                       message={message}
                       currentUserId={userData?.uid || ''}

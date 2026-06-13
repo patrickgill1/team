@@ -77,6 +77,25 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "chat_messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "threadId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "wall_posts",
       "queryScope": "COLLECTION",
       "fields": [

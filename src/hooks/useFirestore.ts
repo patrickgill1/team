@@ -634,15 +634,21 @@ const getUserData = useCallback(async (uid: string) => {
   }, [addDocument]);
 
   const subscribeToChatMessages = useCallback((threadId: string, callback: (messages: ChatMessage[]) => void) => {
+    // Pull the LATEST 100 messages — descending order + reverse
+    // client-side. The previous orderBy('asc') + limit(100) returned
+    // the FIRST 100 messages, so any thread that grew past 100 stopped
+    // showing new ones (the subscription kept returning the oldest
+    // window). Symptom: thread shows old conversation, every new
+    // message vanishes once the 101st landed.
     const q = query(
       collection(db, 'chat_messages'),
       where('threadId', '==', threadId),
-      orderBy('timestamp', 'asc'),
+      orderBy('timestamp', 'desc'),
       limit(100)
     );
 
     return onSnapshot(q, (querySnapshot) => {
-      const messages = querySnapshot.docs.map(doc => {
+      const messages = querySnapshot.docs.slice().reverse().map(doc => {
         const data = doc.data();
         // ORDER MATTERS: spread raw `data` FIRST, then layer the
         // doc id + Firestore-Timestamp → Date conversions on top so

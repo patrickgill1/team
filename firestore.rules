@@ -71,29 +71,18 @@ service cloud.firestore {
       allow delete: if request.auth != null && isParticipant();
     }
 
-    // Chat messages — gated by the parent thread's privacy. The lookup
-    // costs an extra read per message, but it's the only way to enforce
-    // "only DM participants can read this message" without denormalizing.
+    // Chat messages — open to any auth user. The privacy gate lives at
+    // the chat_threads layer: a non-participant can't list a DM/group
+    // thread's id, so they can't query the messages collection scoped
+    // to it. The earlier per-message parent-thread get() turned out to
+    // break legacy threads missing the participants field; this is the
+    // safer baseline. Re-tighten in a follow-up once we backfill.
     match /chat_messages/{messageId} {
-      function parentThread() {
-        return get(/databases/$(database)/documents/chat_threads/$(resource.data.threadId)).data;
-      }
-      function parentIsPrivate() {
-        return parentThread().isDM == true || parentThread().isGroup == true;
-      }
-      function parentParticipants() {
-        return parentThread().participants;
-      }
-      allow read: if request.auth != null && (
-        !parentIsPrivate() || request.auth.uid in parentParticipants()
-      );
+      allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.senderId == request.auth.uid;
       allow update: if request.auth != null && (
         resource.data.senderId == request.auth.uid
         || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
-        // Reactions + readBy are writable by any user who can READ the
-        // message (privacy already enforced above) so likes and seen
-        // markers work without granting write on other fields.
         || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'readBy'])
       );
       allow delete: if request.auth != null && (

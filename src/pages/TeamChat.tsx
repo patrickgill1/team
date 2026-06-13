@@ -258,10 +258,12 @@ const TeamChat: React.FC = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       setWinHeight(window.innerHeight);
-      // On desktop, always show threads view alongside chat
-      if (!mobile) {
-        setCurrentView('threads');
-      }
+      // Previously forced currentView = 'threads' on every desktop
+      // resize, which silently blanked the chat panel whenever the
+      // browser fired a resize event (including initial mobile-devtools
+      // toggles). The desktop layout already shows both panels side-
+      // by-side regardless of currentView, so the reset was unnecessary
+      // and actively harmful.
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

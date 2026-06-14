@@ -1295,6 +1295,10 @@ export interface WallPost {
   /** When true, the post is readable at /wall/p/{id} without auth so
    *  the coach can share it as a mini-site link. Default false. */
   isPublic?: boolean;
+  /** Optional category tag — drives the wall's pill filter. New posts
+   *  default to 'announcement' if not set. Older posts predate the
+   *  field and fall through to 'announcement' on read. */
+  category?: 'announcement' | 'result' | 'spotlight' | 'practice' | 'system';
 }
 
 export interface WallComment {

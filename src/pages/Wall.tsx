@@ -87,6 +87,33 @@ const Wall: React.FC = () => {
   const [comments, setComments] = useState<Record<string, WallComment[]>>({});
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
+  // Category filter — drives the pill row above the feed and the
+  // composer's category chooser. 'all' shows everything.
+  type WallCategory = NonNullable<WallPost['category']>;
+  const CATEGORIES: Array<{ id: WallCategory | 'all'; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'announcement', label: 'News' },
+    { id: 'result', label: 'Results' },
+    { id: 'spotlight', label: 'Spotlight' },
+    { id: 'practice', label: 'Practice' },
+  ];
+  const CATEGORY_TONE: Record<WallCategory, { text: string; bg: string; ring: string }> = {
+    announcement: { text: 'text-cyan-800', bg: 'bg-cyan-50', ring: 'ring-cyan-200' },
+    result: { text: 'text-emerald-800', bg: 'bg-emerald-50', ring: 'ring-emerald-200' },
+    spotlight: { text: 'text-amber-800', bg: 'bg-amber-50', ring: 'ring-amber-200' },
+    practice: { text: 'text-violet-800', bg: 'bg-violet-50', ring: 'ring-violet-200' },
+    system: { text: 'text-slate-700', bg: 'bg-slate-100', ring: 'ring-slate-200' },
+  };
+  const CATEGORY_LABEL: Record<WallCategory, string> = {
+    announcement: 'News',
+    result: 'Result',
+    spotlight: 'Spotlight',
+    practice: 'Practice',
+    system: 'Auto',
+  };
+  const [activeCategory, setActiveCategory] = useState<WallCategory | 'all'>('all');
+  const [composerCategory, setComposerCategory] = useState<WallCategory>('announcement');
+
   // Auto-grow the textarea so a long post isn't constrained to a tiny
   // scroll box. Capped at ~70vh so the toolbar stays in view.
   useEffect(() => {
@@ -224,6 +251,7 @@ const Wall: React.FC = () => {
           reactions: Array.isArray(data.reactions) ? data.reactions : [],
           wallPinnedTop: typeof data.wallPinnedTop === 'number' ? data.wallPinnedTop : null,
           postedFrom: data.postedFrom,
+          category: data.category || 'announcement',
         };
       }).sort((a, b) => {
         const aTop = a.wallPinnedTop || 0;
@@ -341,9 +369,11 @@ const Wall: React.FC = () => {
         wallPinnedTop: null,
         postedFrom: 'wall',
         isPublic: false,
+        category: composerCategory,
       });
       setComposer('');
       setComposerAttachments([]);
+      setComposerCategory('announcement');
       setPreviewMode(false);
       try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
       setDraftStatus('idle');
@@ -462,27 +492,73 @@ const Wall: React.FC = () => {
     }
   };
 
+  // Filter feed by selected category pill. 'all' falls through; any
+  // other tag matches the post's category (defaulting to 'announcement'
+  // for older posts that predate the field).
+  const filteredPosts = posts.filter(p => {
+    if (activeCategory === 'all') return true;
+    return (p.category || 'announcement') === activeCategory;
+  });
+
   return (
-    <div className="min-h-screen bg-fire-50">
-      <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-4 border-b border-cyan-500/10">
-        <div className="max-w-3xl mx-auto">
-          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Dashboard
+    <div className="min-h-screen bg-slate-100">
+      {/* Compact mobile header — no big hero strip eating screen real
+          estate. Title row + pill filter on a single sticky stack. */}
+      <section className="bg-slate-950 px-4 sm:px-6 py-3 border-b border-white/5">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <Link to="/dashboard" aria-label="Back" className="inline-flex items-center justify-center w-8 h-8 rounded-full text-cyan-300 hover:bg-white/10">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight flex items-center gap-2">
-            <AppIcon name="news" className="w-6 h-6 text-cyan-300" />
-            Team Wall
+          <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
+            <AppIcon name="news" className="w-4 h-4 text-cyan-300" />
+            <span className="tracking-tight">The Wall</span>
           </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {selectedTeam?.name ? `${selectedTeam.name} — ` : ''}announcements, links, and pinned messages
-          </p>
+          <span className="w-8" aria-hidden />
         </div>
       </section>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+      {/* Category pills — horizontally scrollable on mobile, snaps under
+          the header. Sticky so they stay accessible as the feed scrolls. */}
+      <div className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-2xl mx-auto px-3 py-2 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          {CATEGORIES.map(c => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setActiveCategory(c.id)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
+                activeCategory === c.id
+                  ? 'bg-slate-950 text-white'
+                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-0 sm:px-4 py-3 space-y-3">
         {canPost && (
-          <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white sm:rounded-2xl ring-1 ring-slate-200 shadow-sm overflow-hidden">
+            {/* Category chooser — pill row above the toolbar. The
+                pill the coach picks here becomes the post's category. */}
+            <div className="px-3 pt-3 pb-2 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+              {(['announcement','result','spotlight','practice'] as WallCategory[]).map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setComposerCategory(cat)}
+                  className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest transition ${
+                    composerCategory === cat
+                      ? `${CATEGORY_TONE[cat].bg} ${CATEGORY_TONE[cat].text} ring-1 ${CATEGORY_TONE[cat].ring}`
+                      : 'text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {CATEGORY_LABEL[cat]}
+                </button>
+              ))}
+            </div>
             {/* Toolbar — Markdown-style inserts. We use a homegrown
                 tiny syntax to avoid pulling in a 200kb rich editor
                 dep. Old wall clients render the raw markdown text
@@ -601,144 +677,213 @@ const Wall: React.FC = () => {
             <SkeletonCard rows={2} />
             <SkeletonCard rows={3} />
           </div>
-        ) : posts.length === 0 ? (
-          <EmptyState
-            icon={<AppIcon name="news" className="w-5 h-5" />}
-            title="Nothing on the wall yet"
-            description={canPost
-              ? 'Type your first announcement above. The wall is for formatted posts — chat is separate.'
-              : 'Coaches post announcements and important links here.'}
-          />
+        ) : filteredPosts.length === 0 ? (
+          <div className="px-4">
+            <EmptyState
+              icon={<AppIcon name="news" className="w-5 h-5" />}
+              title={activeCategory === 'all' ? 'Nothing on the wall yet' : 'No posts in this category'}
+              description={activeCategory === 'all'
+                ? (canPost
+                  ? 'Type your first announcement above. The wall is for formatted posts — chat is separate.'
+                  : 'Coaches post announcements and important links here.')
+                : 'Try another category, or post one of your own.'}
+            />
+          </div>
         ) : (
           <ul className="space-y-3">
-            {posts.map(p => {
+            {filteredPosts.map(p => {
               const myUid = userData?.uid;
               const likes = (p.reactions || []).filter(r => r.emoji === '❤️');
               const myLike = myUid ? likes.some(r => r.userId === myUid) : false;
               const isPinnedTop = !!p.wallPinnedTop;
+              const cat = (p.category || 'announcement') as WallCategory;
+              const tone = CATEGORY_TONE[cat];
+              const commentsForPost = comments[p.id] || [];
+              const previewComments = commentsForPost.slice(-2);
+              const hiddenCount = Math.max(0, (commentCounts[p.id] || commentsForPost.length) - previewComments.length);
               return (
                 <li
                   key={p.id}
-                  className={`bg-white rounded-2xl overflow-hidden ${
+                  className={`bg-white sm:rounded-2xl overflow-hidden shadow-sm ${
                     isPinnedTop ? 'ring-2 ring-amber-300' : 'ring-1 ring-slate-200'
                   }`}
                 >
-                  {isPinnedTop && (
-                    <div className="px-4 py-1 bg-amber-50 border-b border-amber-200 flex items-center gap-1.5">
-                      <svg className="w-3 h-3 text-amber-700" fill="currentColor" viewBox="0 0 24 24"><path d="M16 12l4-4-8-8-4 4 8 8zm-8 4l4-4-4-4-4 4 4 4z"/></svg>
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-800">Pinned</span>
+                  {/* Card header — avatar (initial), name + role, time,
+                      category pill. Mobile-card design, not a desktop
+                      blog post. */}
+                  <div className="px-4 pt-3.5 pb-3 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-[15px] shrink-0 ${
+                      p.senderRole === 'coach'
+                        ? 'bg-cyan-100 text-cyan-800 ring-1 ring-cyan-200'
+                        : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
+                    }`}>
+                      {(p.senderName || '?').charAt(0).toUpperCase()}
                     </div>
-                  )}
-                  <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-900">{p.senderName}</span>
-                    {p.senderRole === 'coach' && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
-                    )}
-                    <span className="text-[11px] text-slate-400 ml-auto">
-                      {p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[15px] font-bold text-slate-900 truncate">{p.senderName}</span>
+                        {p.senderRole === 'coach' && (
+                          <span className="text-[9px] font-extrabold uppercase tracking-widest text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
+                        )}
+                      </div>
+                      <div className="text-[12px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span>{p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest ${tone.bg} ${tone.text} ring-1 ${tone.ring}`}>
+                          {CATEGORY_LABEL[cat]}
+                        </span>
+                        {isPinnedTop && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest text-amber-800 bg-amber-50 ring-1 ring-amber-200 inline-flex items-center gap-0.5">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" strokeWidth={2}/><path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" stroke="currentColor" strokeWidth={2}/></svg>
+                            Pinned
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <article className="px-4 sm:px-6 py-4 text-slate-800 break-words">
+
+                  <article className="px-4 pb-3 text-slate-800 break-words text-[15.5px] leading-relaxed">
                     <RichContent text={p.content} />
                   </article>
+
+                  {/* Attachments — full-bleed on mobile (no horizontal
+                      padding) so images look like an Instagram card. */}
                   {p.attachments && p.attachments.length > 0 && (
                     p.attachments.length === 1 ? (
-                      <div className="px-4 sm:px-6 pb-4">
-                        <img
-                          src={p.attachments[0].url}
-                          alt={p.attachments[0].name || 'attachment'}
-                          loading="lazy"
-                          className="rounded-xl object-cover w-full max-h-[480px] ring-1 ring-slate-200"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      </div>
+                      <img
+                        src={p.attachments[0].url}
+                        alt={p.attachments[0].name || 'attachment'}
+                        loading="lazy"
+                        className="block w-full max-h-[520px] object-cover bg-slate-100"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
                     ) : (
-                      <div className="px-4 sm:px-6 pb-4 grid grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-2 gap-0.5 bg-slate-100">
                         {p.attachments.slice(0, 4).map((a, i) => (
                           <img
                             key={i}
                             src={a.url}
                             alt={a.name || 'attachment'}
                             loading="lazy"
-                            className="rounded-lg object-cover w-full h-40 ring-1 ring-slate-200"
+                            className="block w-full h-44 sm:h-52 object-cover bg-slate-100"
                             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                           />
                         ))}
                       </div>
                     )
                   )}
-                  <div className="px-4 py-2 border-t border-slate-100 flex items-center gap-1 flex-wrap bg-slate-50">
+
+                  {/* Engagement bar — like + comment counts surfaced
+                      OUTSIDE the action buttons so people scrolling can
+                      see the post's traction without tapping. */}
+                  {(likes.length > 0 || (commentCounts[p.id] || 0) > 0) && (
+                    <div className="px-4 pt-3 pb-1 flex items-center gap-3 text-[12px] text-slate-500">
+                      {likes.length > 0 && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500 text-white">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                          </span>
+                          {likes.length}
+                        </span>
+                      )}
+                      {(commentCounts[p.id] || 0) > 0 && (
+                        <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-cyan-700 font-semibold">
+                          {commentCounts[p.id]} {commentCounts[p.id] === 1 ? 'comment' : 'comments'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action bar — big, evenly-spaced buttons. Mobile
+                      tap targets >= 44px. Three primary actions on the
+                      left; manage actions in a kebab to keep the row
+                      clean. */}
+                  <div className="px-2 pt-2 pb-1 border-t border-slate-100 flex items-center justify-around">
                     <button
                       type="button"
                       onClick={() => toggleLike(p)}
-                      className={`text-xs font-bold tracking-widest uppercase flex items-center gap-1.5 px-2 py-1 rounded transition ${
-                        myLike ? 'text-rose-600' : 'text-slate-500 hover:text-rose-600'
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-bold transition active:scale-95 ${
+                        myLike ? 'text-rose-600' : 'text-slate-600 hover:bg-slate-50'
                       }`}
-                      title={myLike ? 'Unlike' : 'Like'}
                     >
-                      <svg className="w-4 h-4" fill={myLike ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5" fill={myLike ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                       </svg>
-                      {likes.length > 0 && <span>{likes.length}</span>}
+                      Like
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleExpand(p.id)}
-                      className="text-xs font-bold tracking-widest uppercase flex items-center gap-1.5 px-2 py-1 rounded text-slate-500 hover:text-cyan-700"
-                      title="Comment"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 active:scale-95"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
-                      {commentCounts[p.id] > 0 && <span>{commentCounts[p.id]}</span>}
+                      Comment
                     </button>
-                    <div className="flex-1" />
+                    <button
+                      type="button"
+                      onClick={() => shareToWeb(p)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-bold active:scale-95 ${
+                        (p as any).isPublic ? 'text-emerald-700 hover:bg-emerald-50' : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                      Share
+                    </button>
                     {canManage && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => shareToWeb(p)}
-                          className={`text-xs font-bold tracking-widest uppercase px-2 py-1 rounded inline-flex items-center gap-1 ${
-                            (p as any).isPublic
-                              ? 'text-emerald-700 hover:text-emerald-900'
-                              : 'text-slate-500 hover:text-cyan-700'
-                          }`}
-                          title={(p as any).isPublic ? 'Public — copy link' : 'Share publicly'}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                          {(p as any).isPublic ? 'Public' : 'Share'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => togglePinTop(p)}
-                          className={`text-xs font-bold tracking-widest uppercase px-2 py-1 rounded ${
-                            isPinnedTop ? 'text-amber-700 hover:text-amber-900' : 'text-slate-500 hover:text-amber-700'
-                          }`}
-                          title={isPinnedTop ? 'Unpin from top' : 'Pin to top'}
-                        >
-                          {isPinnedTop ? 'Unpin' : 'Pin top'}
-                        </button>
-                        <button
-                          onClick={() => removePost(p)}
-                          className="text-xs font-bold tracking-widest uppercase text-rose-600 hover:text-rose-800 px-2 py-1"
-                          title="Delete this post"
-                        >
-                          Delete
-                        </button>
-                      </>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Single combined manage menu — pin/unpin or delete.
+                          const action = window.prompt(
+                            `Manage post:\n\n1 = ${isPinnedTop ? 'Unpin' : 'Pin to top'}\n2 = Delete\n\nType 1 or 2:`,
+                            ''
+                          );
+                          if (action === '1') void togglePinTop(p);
+                          if (action === '2') void removePost(p);
+                        }}
+                        aria-label="Manage post"
+                        className="w-10 py-2 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-50 active:scale-95"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>
+                      </button>
                     )}
                   </div>
+
+                  {/* Inline preview of last 2 comments — always visible
+                      so engagement feels alive. Tap "View all" or any
+                      comment to expand the full thread + composer. */}
+                  {previewComments.length > 0 && !expanded[p.id] && (
+                    <div className="px-4 pb-3 border-t border-slate-100 pt-2 space-y-1.5">
+                      {hiddenCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(p.id)}
+                          className="text-[12px] text-slate-500 hover:text-cyan-700 font-semibold"
+                        >
+                          View all {commentCounts[p.id]} comments
+                        </button>
+                      )}
+                      {previewComments.map(c => (
+                        <div key={c.id} className="text-[13.5px] text-slate-800 leading-snug">
+                          <span className="font-bold text-slate-900">{c.senderName}</span>{' '}
+                          <span className="break-words">{c.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {expanded[p.id] && (
-                    <div className="border-t border-slate-100 bg-white px-4 sm:px-6 py-3 space-y-3">
-                      {(comments[p.id] || []).length > 0 && (
+                    <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 space-y-3">
+                      {commentsForPost.length > 0 && (
                         <ul className="space-y-2.5">
-                          {(comments[p.id] || []).map(c => (
+                          {commentsForPost.map(c => (
                             <li key={c.id} className="flex items-start gap-2.5">
                               <div className="w-8 h-8 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-[11px] font-extrabold text-cyan-700 shrink-0">
                                 {(c.senderName || '?').charAt(0).toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="rounded-2xl bg-slate-50 ring-1 ring-slate-100 px-3 py-2">
+                                <div className="rounded-2xl bg-white ring-1 ring-slate-200 px-3 py-2">
                                   <div className="flex items-baseline gap-2">
                                     <span className="text-[13px] font-bold text-slate-900">{c.senderName}</span>
                                     <span className="text-[10px] text-slate-400">
@@ -772,7 +917,7 @@ const Wall: React.FC = () => {
                               onChange={(e) => setCommentDrafts(prev => ({ ...prev, [p.id]: e.target.value }))}
                               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submitComment(p.id); } }}
                               placeholder="Write a comment…"
-                              className="flex-1 px-3 py-2 rounded-full ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm bg-slate-50"
+                              className="flex-1 px-3 py-2 rounded-full ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm bg-white"
                               style={{ fontSize: '16px' }}
                             />
                             <button

@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import type { WallPost } from '../types';
 import { getShareOrigin } from '../utils/origin';
+import { RichContent } from './Wall';
 
 // Public-facing single wall post view. Anyone with the share link can
 // open this; the post's content + attachments render but there's no
@@ -82,8 +83,8 @@ const PublicWallPost: React.FC = () => {
               {post.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
             </span>
           </div>
-          <div className="px-4 sm:px-6 py-4 text-slate-800 break-words whitespace-pre-wrap text-[15px] leading-relaxed">
-            {post.content}
+          <div className="px-4 sm:px-6 py-4 text-slate-800 break-words text-[15px] leading-relaxed">
+            <RichContent text={post.content} />
           </div>
           {post.attachments && post.attachments.length > 0 && (
             <div className={`px-4 sm:px-6 pb-4 grid gap-2 ${post.attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>

@@ -294,11 +294,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     ? `rounded-[20px] ${isFirstInGroup ? '' : 'rounded-tr-md'} ${isLastInGroup ? '' : 'rounded-br-md'}`
     : `rounded-[20px] ${isFirstInGroup ? '' : 'rounded-tl-md'} ${isLastInGroup ? '' : 'rounded-bl-md'}`;
 
-  // Sleeker bubble fills: subtle gradient on outgoing, soft fill (no
-  // ring) on incoming — closer to iMessage / modern messaging apps.
+  // iMessage-style fills: clean gradient on outgoing, soft white-ish
+  // gray on incoming. No shadow ring — looks dated. The colors are
+  // calibrated to look like Apple's Messages app on iOS 17+.
   const bubbleBg = isOwn
-    ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-white'
-    : 'bg-gray-100 text-gray-900';
+    ? 'bg-gradient-to-b from-cyan-500 to-cyan-600 text-white'
+    : 'bg-[#E9E9EB] text-[#0B0B0F]';
 
   // Swipe-gesture state. We resolve each touch into ONE of three modes:
   //   null        — undetermined (the first few px of any drag)
@@ -561,7 +562,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
-            className={`px-3.5 py-2 leading-relaxed break-words text-[15px] shadow-sm select-none ${cornerClasses} ${bubbleBg} ${
+            className={`px-3.5 py-[7px] leading-[1.35] break-words text-[15.5px] select-none ${cornerClasses} ${bubbleBg} ${
               isMentioned && !isOwn ? 'ring-2 ring-amber-300' : ''
             }`}
             // -webkit-touch-callout: none kills iOS's "Copy / Look Up /

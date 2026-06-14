@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
@@ -96,14 +97,16 @@ const WallHeaderButton: React.FC = () => {
         )}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           className="fixed inset-0 z-50 bg-slate-950/85 animate-fade-in"
+          style={{ left: 0, right: 0, top: 0, bottom: 0, width: '100vw' }}
           onClick={() => setOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-x-0 top-0 max-h-[92vh] overflow-y-auto bg-white animate-sheet-up safe-top border-b border-slate-200"
+            className="absolute top-0 max-h-[92vh] overflow-y-auto bg-white animate-sheet-up safe-top"
+            style={{ left: 0, right: 0, width: '100vw' }}
           >
             <div className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-2">
@@ -154,7 +157,8 @@ const WallHeaderButton: React.FC = () => {
               </ul>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

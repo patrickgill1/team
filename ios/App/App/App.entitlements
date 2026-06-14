@@ -8,5 +8,11 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:firefc.app</string>
+		<string>applinks:firefc.app?mode=developer</string>
+		<string>webcredentials:example.com</string>
+	</array>
 </dict>
 </plist>

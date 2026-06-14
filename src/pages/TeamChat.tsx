@@ -437,17 +437,24 @@ const TeamChat: React.FC = () => {
   };
 
   // Jump or animate the messages list to the bottom. Manipulating
-  // scrollTop directly is more reliable on iOS WKWebView than
-  // scrollIntoView({behavior:'smooth'}), which fights ongoing layout
-  // shifts (image loads, keyboard show/hide) and ends up choppy.
+  // Bottom-sentinel + scrollIntoView is the iOS-standard chat scroll
+  // pattern. We pin messagesEndRef as a 1px sentinel at the end of
+  // the message list and scroll IT into view. Unlike
+  // scrollTop = scrollHeight, this does NOT depend on the current
+  // scrollHeight being final — when more images decode, the sentinel
+  // moves with the content and the next scrollIntoView still lands
+  // at the bottom. No math, no race with WebKit scroll anchoring.
   const scrollToBottom = (smooth = false) => {
+    const el = messagesEndRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+      return;
+    }
+    // Fallback if sentinel isn't mounted yet (very first render).
     const c = messagesContainerRef.current;
     if (!c) return;
-    if (smooth) {
-      c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
-    } else {
-      c.scrollTop = c.scrollHeight;
-    }
+    if (smooth) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+    else c.scrollTop = c.scrollHeight;
   };
 
   // Day-grain label for the divider line above a message run.
@@ -877,22 +884,15 @@ const TeamChat: React.FC = () => {
       // iOS's synthetic scroll-anchoring scrolls can't flip the flag).
       initialLoadUntilRef.current = Date.now() + 3000;
 
-      // Multi-frame pin: keep forcing scrollTop = scrollHeight every
-      // animation frame for ~700ms. This catches EVERY layout shift
-      // (image load, GIF render, font swap, async markdown chunk)
-      // without relying on a ResizeObserver that might be observing
-      // the wrong subtree. Each frame is a no-op when we're already
-      // pinned — so there's no visible bouncing, just a continuous
-      // glued-to-bottom view as content lands.
-      //
-      // This is the fix for "sometimes lands at bottom, sometimes
-      // mid-thread" — the single layout-effect call landed at the
-      // wrong scrollHeight when images were still in-flight.
-      const deadline = Date.now() + 700;
+      // Multi-frame sentinel scroll: keep calling scrollToBottom
+      // every animation frame for ~1s. scrollToBottom uses
+      // scrollIntoView on the bottom sentinel — so it always lands
+      // at the TRUE bottom (wherever the sentinel currently is),
+      // even if images are still decoding. Each frame is a no-op
+      // when already at bottom, so there's no visible bouncing.
+      const deadline = Date.now() + 1000;
       const pin = () => {
-        const c = messagesContainerRef.current;
-        if (!c) return;
-        c.scrollTop = c.scrollHeight;
+        scrollToBottom(false);
         if (Date.now() < deadline) requestAnimationFrame(pin);
       };
       requestAnimationFrame(pin);
@@ -912,7 +912,7 @@ const TeamChat: React.FC = () => {
     const ro = new ResizeObserver(() => {
       const inInitialLoad = Date.now() < initialLoadUntilRef.current;
       if (inInitialLoad || isAtBottomRef.current) {
-        c.scrollTop = c.scrollHeight;
+        scrollToBottom(false);
       }
     });
     ro.observe(c);
@@ -2581,7 +2581,7 @@ const TeamChat: React.FC = () => {
               <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto p-4"
+                className="flex-1 min-h-0 overflow-y-auto px-3 py-3 bg-white"
                 style={{
                   overscrollBehavior: 'contain',
                   // Disable browser's automatic scroll anchoring —
@@ -2593,7 +2593,7 @@ const TeamChat: React.FC = () => {
               >
                 {/* Inner wrapper so ResizeObserver has a stable child
                     to observe — its height changes as images load. */}
-                <div className="space-y-4">
+                <div className="space-y-1">
                 {threadSearchQuery.trim() && visibleMessages.length === 0 && (
                   <div className="text-center text-sm text-slate-500 py-6">
                     No messages match "{threadSearchQuery.trim()}".
@@ -2710,11 +2710,9 @@ const TeamChat: React.FC = () => {
                         // image lands. iOS WebKit's scroll anchoring
                         // would otherwise land them mid-thread on the
                         // image, which is the bug.
-                        const c = messagesContainerRef.current;
-                        if (!c) return;
                         const inInitialLoad = Date.now() < initialLoadUntilRef.current;
                         if (inInitialLoad || isAtBottomRef.current) {
-                          c.scrollTop = c.scrollHeight;
+                          scrollToBottom(false);
                         }
                       }}
                     />
@@ -2804,7 +2802,7 @@ const TeamChat: React.FC = () => {
                   </button>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-1">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Thread Title
@@ -3147,11 +3145,9 @@ const TeamChat: React.FC = () => {
                         // image lands. iOS WebKit's scroll anchoring
                         // would otherwise land them mid-thread on the
                         // image, which is the bug.
-                        const c = messagesContainerRef.current;
-                        if (!c) return;
                         const inInitialLoad = Date.now() < initialLoadUntilRef.current;
                         if (inInitialLoad || isAtBottomRef.current) {
-                          c.scrollTop = c.scrollHeight;
+                          scrollToBottom(false);
                         }
                       }}
                   />

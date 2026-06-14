@@ -874,26 +874,14 @@ const TeamChat: React.FC = () => {
       scrollToBottom(false);
       isAtBottomRef.current = true;
       anchoredThreadIdRef.current = selectedThread.id;
-      // 3s window during which we suppress onScroll updates and
-      // forcibly re-pin to bottom on every layout change. Long enough
-      // for slow images/GIFs on cellular to finish loading; short
-      // enough that an active scroller after that point owns their
-      // position. The previous 1.5s was too tight on bad connections
-      // and left the user mid-thread next to whatever image had just
-      // loaded.
+      // 3s window during which onScroll updates are suppressed and
+      // the ResizeObserver below force-pins to bottom on every layout
+      // shift. ResizeObserver catches image/GIF loads in real time so
+      // the user never sees us "lift off" the bottom — no scheduled
+      // catch-up timers (those were the source of the bouncing: each
+      // timer fired a discrete jump after layout had already shifted,
+      // visible as a hop down).
       initialLoadUntilRef.current = Date.now() + 3000;
-      // Belt-and-suspenders: schedule explicit pins at 100ms / 600ms
-      // / 1500ms / 2800ms after entry. Even if ResizeObserver misses
-      // a layout shift, these will yank us back to the bottom.
-      [100, 600, 1500, 2800].forEach(delay => {
-        window.setTimeout(() => {
-          if (anchoredThreadIdRef.current === selectedThread.id
-              && Date.now() < initialLoadUntilRef.current + 200) {
-            scrollToBottom(false);
-            isAtBottomRef.current = true;
-          }
-        }, delay);
-      });
     } else if (isAtBottomRef.current) {
       scrollToBottom(true);
     }

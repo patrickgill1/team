@@ -9,6 +9,7 @@ import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
 import EmptyState from '../components/common/EmptyState';
 import EmojiPicker from '../components/chat/EmojiPicker';
+import WallPollCard from '../components/wall/WallPollCard';
 import { SkeletonCard } from '../components/common/Skeleton';
 import type { WallPost, WallComment } from '../types';
 
@@ -118,6 +119,43 @@ const Wall: React.FC = () => {
   // to scroll past it every time. It now opens from a floating +
   // button, the way Instagram / Facebook do new-post creation.
   const [composerOpen, setComposerOpen] = useState(false);
+
+  // Poll composer state — when on, the post is published with an
+  // attached poll. Question + 2-6 options + single-choice vs multi.
+  const [pollOn, setPollOn] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const resetPoll = () => {
+    setPollOn(false);
+    setPollQuestion('');
+    setPollOptions(['', '']);
+  };
+
+  // Vote / unvote on a post's poll. Single-choice (default) means
+  // voting on option B removes your vote from option A first.
+  const voteOnPoll = async (post: WallPost, optionId: string) => {
+    if (!userData?.uid || !post.poll) return;
+    const uid = userData.uid;
+    const multi = !!post.poll.multi;
+    const nextOptions = post.poll.options.map(o => {
+      const had = o.voters.includes(uid);
+      if (o.id === optionId) {
+        return { ...o, voters: had ? o.voters.filter(u => u !== uid) : [...o.voters, uid] };
+      }
+      // Single-choice → remove this user's vote from every other option
+      // when they cast on a new one. Skip if user wasn't voting here.
+      if (!multi && !had) return { ...o, voters: o.voters.filter(u => u !== uid) };
+      return o;
+    });
+    const nextPoll = { ...post.poll, options: nextOptions };
+    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, poll: nextPoll } : p));
+    try {
+      await updateDoc(doc(db, 'wall_posts', post.id), { poll: nextPoll });
+    } catch (err) {
+      console.error('poll vote failed', err);
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, poll: post.poll } : p));
+    }
+  };
 
   // Auto-grow the textarea so a long post isn't constrained to a tiny
   // scroll box. Capped at ~70vh so the toolbar stays in view.
@@ -257,6 +295,17 @@ const Wall: React.FC = () => {
           wallPinnedTop: typeof data.wallPinnedTop === 'number' ? data.wallPinnedTop : null,
           postedFrom: data.postedFrom,
           category: data.category || 'announcement',
+          poll: data.poll && typeof data.poll === 'object' && Array.isArray(data.poll.options)
+            ? {
+                question: String(data.poll.question || ''),
+                multi: !!data.poll.multi,
+                options: data.poll.options.map((o: any) => ({
+                  id: String(o.id),
+                  text: String(o.text || ''),
+                  voters: Array.isArray(o.voters) ? o.voters : [],
+                })),
+              }
+            : undefined,
         };
       }).sort((a, b) => {
         const aTop = a.wallPinnedTop || 0;
@@ -371,7 +420,8 @@ const Wall: React.FC = () => {
   // Post a new wall_posts doc. No chat involvement.
   const handlePost = async () => {
     const content = composer.trim();
-    if ((!content && composerAttachments.length === 0) || !userData || !selectedTeamId || posting) return;
+    const hasPoll = pollOn && pollQuestion.trim().length > 0 && pollOptions.filter(o => o.trim()).length >= 2;
+    if ((!content && composerAttachments.length === 0 && !hasPoll) || !userData || !selectedTeamId || posting) return;
     setPosting(true);
     setPostError(null);
     try {
@@ -388,10 +438,26 @@ const Wall: React.FC = () => {
         postedFrom: 'wall',
         isPublic: false,
         category: composerCategory,
+        // Only attach a poll if the composer has it ON, a question,
+        // and at least 2 non-empty options. Each option gets a stable
+        // id so vote-toggle updates land on the right one.
+        ...(pollOn && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2
+          ? {
+              poll: {
+                question: pollQuestion.trim(),
+                multi: false,
+                options: pollOptions
+                  .map(t => t.trim())
+                  .filter(t => t.length > 0)
+                  .map((text, i) => ({ id: `o_${Date.now()}_${i}`, text, voters: [] as string[] })),
+              },
+            }
+          : {}),
       });
       setComposer('');
       setComposerAttachments([]);
       setComposerCategory('announcement');
+      resetPoll();
       setPreviewMode(false);
       try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
       setDraftStatus('idle');
@@ -502,7 +568,25 @@ const Wall: React.FC = () => {
     const withPlaceholder = `${before}${needsBreak ? '\n' : ''}${placeholder}\n${after}`;
     setComposer(withPlaceholder);
     try {
-      const r = await uploadToR2(file, 'wall_media');
+      // Resize before upload so the inline image renders fast on every
+      // viewer's device. 1600px on the longer edge keeps phone retina
+      // quality without the 3-8 MB raw camera files that used to lag
+      // the wall on cellular. GIFs skip the pass to preserve animation.
+      let toUpload: File = file;
+      if (!file.type.includes('gif')) {
+        try {
+          const { resizeImage } = await import('../utils/imageResize');
+          const resized = await resizeImage(file, 1600, 0.85);
+          toUpload = new File(
+            [resized.blob],
+            file.name.replace(/\.[a-z0-9]+$/i, '.jpg'),
+            { type: 'image/jpeg' },
+          );
+        } catch (err) {
+          console.warn('[wall] image resize skipped', err);
+        }
+      }
+      const r = await uploadToR2(toUpload, 'wall_media');
       const final = `![](${r.url})`;
       setComposer(prev => prev.replace(placeholder, final));
       requestAnimationFrame(() => {
@@ -708,6 +792,75 @@ const Wall: React.FC = () => {
                 />
               )}
 
+              {/* Poll editor — toggled on/off via a button. When on,
+                  publishing the post attaches the poll. */}
+              <div className="mt-4 rounded-xl ring-1 ring-slate-200 bg-slate-50 px-3 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-cyan-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <rect x="3" y="12" width="4" height="9" rx="1" />
+                      <rect x="10" y="7" width="4" height="14" rx="1" />
+                      <rect x="17" y="3" width="4" height="18" rx="1" />
+                    </svg>
+                    <span className="text-[12px] font-extrabold uppercase tracking-widest text-slate-700">Poll</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPollOn(v => !v)}
+                    className={`text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
+                      pollOn
+                        ? 'bg-cyan-600 text-white hover:bg-cyan-500'
+                        : 'bg-white text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {pollOn ? 'On' : 'Add a poll'}
+                  </button>
+                </div>
+                {pollOn && (
+                  <div className="mt-3 space-y-2">
+                    <input
+                      type="text"
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                      placeholder="Question (e.g. What practice day works best?)"
+                      className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-300 focus:ring-2 focus:ring-cyan-400 text-[15px] bg-white"
+                      style={{ fontSize: '16px' }}
+                    />
+                    {pollOptions.map((opt, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={opt}
+                          onChange={(e) => setPollOptions(prev => prev.map((p, idx) => idx === i ? e.target.value : p))}
+                          placeholder={`Option ${i + 1}`}
+                          className="flex-1 px-3 py-2 rounded-lg ring-1 ring-slate-300 focus:ring-2 focus:ring-cyan-400 text-[14.5px] bg-white"
+                          style={{ fontSize: '16px' }}
+                        />
+                        {pollOptions.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setPollOptions(prev => prev.filter((_, idx) => idx !== i))}
+                            aria-label="Remove option"
+                            className="w-8 h-8 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {pollOptions.length < 6 && (
+                      <button
+                        type="button"
+                        onClick={() => setPollOptions(prev => [...prev, ''])}
+                        className="text-[12px] font-bold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                      >
+                        + Add option
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {postError && (
                 <div className="mt-3 rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-2 text-[12px] text-rose-700">
                   {postError}
@@ -823,9 +976,20 @@ const Wall: React.FC = () => {
                     </div>
                   </div>
 
-                  <article className="px-4 pb-3 text-slate-800 break-words text-[15.5px] leading-relaxed">
-                    <RichContent text={p.content} />
-                  </article>
+                  {p.content && (
+                    <article className="px-4 pb-3 text-slate-800 break-words text-[15.5px] leading-relaxed">
+                      <RichContent text={p.content} />
+                    </article>
+                  )}
+
+                  {p.poll && (
+                    <WallPollCard
+                      poll={p.poll}
+                      currentUserId={userData?.uid || ''}
+                      onVote={(optionId) => void voteOnPoll(p, optionId)}
+                      canSeeVoters={canManage}
+                    />
+                  )}
 
                   {/* Attachments — full-bleed on mobile (no horizontal
                       padding) so images look like an Instagram card. */}

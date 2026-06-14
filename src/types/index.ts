@@ -1299,6 +1299,15 @@ export interface WallPost {
    *  default to 'announcement' if not set. Older posts predate the
    *  field and fall through to 'announcement' on read. */
   category?: 'announcement' | 'result' | 'spotlight' | 'practice' | 'system';
+  /** Optional inline poll. Parents tap an option to vote; coaches /
+   *  admins can open a per-option voter list. Single-choice by default
+   *  (multi: false) — voting on a different option moves your vote.
+   *  voters[] stores uids, so coaches can see exactly who picked what. */
+  poll?: {
+    question: string;
+    options: Array<{ id: string; text: string; voters: string[] }>;
+    multi?: boolean;
+  };
 }
 
 export interface WallComment {

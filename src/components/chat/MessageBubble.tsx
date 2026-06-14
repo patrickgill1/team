@@ -642,7 +642,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 {images.map((img, i) => (
                   <ChatAttachmentImage
                     key={i}
-                    src={img.url}
+                    src={(img as any).thumbUrl || img.url}
                     alt={img.name || 'attachment'}
                     onLoad={() => onImageLoaded?.()}
                     onClick={() => {
@@ -650,6 +650,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                         longPressFiredRef.current = false;
                         return;
                       }
+                      // Lightbox opens the FULL-resolution url so
+                      // tapping a thumbnail still shows the original.
                       onImageClick?.(img.url);
                     }}
                     solo={images.length === 1}

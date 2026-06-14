@@ -6,7 +6,17 @@ import { tenorEnabled, TenorGif } from '../../utils/tenor';
 
 export interface ComposerAttachment {
   type: 'image';
+  /** Full-resolution image URL — what the lightbox shows. */
   url: string;
+  /** Optional thumbnail URL (~800px longer-edge JPEG). When present,
+   *  this is what renders in the chat list — keeps scroll fast even
+   *  when a thread has dozens of full-resolution photos. Older
+   *  messages predate this field and fall back to `url`. */
+  thumbUrl?: string;
+  /** Intrinsic width/height of the THUMBNAIL — used to reserve
+   *  layout so images don't shift as they decode. */
+  thumbWidth?: number;
+  thumbHeight?: number;
   name: string;
   size: number;
 }
@@ -174,18 +184,49 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   };
 
   // Common upload path used by file-picker AND paste (iOS GIF keyboard).
+  // For each picked image, we upload TWO assets: the original (lightbox
+  // opens this) and a ~800px JPEG thumbnail (chat list renders this).
+  // GIFs skip the thumbnail step — animation would be lost in a JPEG.
   const uploadImageFiles = async (files: File[]) => {
     if (files.length === 0) return;
     setUploading(true);
     setUploadPct(0);
     try {
+      const { resizeImage } = await import('../../utils/imageResize');
       const uploaded: ComposerAttachment[] = [];
       let i = 0;
       for (const f of files) {
+        // Full-resolution upload (lightbox quality).
         const url = await uploadFile(f, `chat/${teamId}/${threadId}`, (p) => {
-          setUploadPct(Math.round(((i + p.progress / 100) / files.length) * 100));
+          // Reserve ~70% of the progress bar for the full upload,
+          // the remaining 30% for the thumbnail. Reflects rough
+          // byte-count ratio (thumb is ~5% the size but the resize
+          // itself takes a moment on big iPhone photos).
+          setUploadPct(Math.round(((i + (p.progress / 100) * 0.7) / files.length) * 100));
         });
-        uploaded.push({ type: 'image', url, name: f.name, size: f.size });
+
+        // Thumbnail upload — skipped for GIFs (would lose animation)
+        // and for files that already came in tiny.
+        let thumbUrl: string | undefined;
+        let thumbWidth: number | undefined;
+        let thumbHeight: number | undefined;
+        if (!f.type.includes('gif')) {
+          try {
+            const thumb = await resizeImage(f, 800, 0.82);
+            const thumbFile = new File([thumb.blob], `thumb-${f.name.replace(/\.[a-z0-9]+$/i, '')}.jpg`, { type: 'image/jpeg' });
+            thumbUrl = await uploadFile(thumbFile, `chat/${teamId}/${threadId}/thumbs`, (p) => {
+              setUploadPct(Math.round(((i + 0.7 + (p.progress / 100) * 0.3) / files.length) * 100));
+            });
+            thumbWidth = thumb.width;
+            thumbHeight = thumb.height;
+          } catch (err) {
+            // Resize / thumb upload failures shouldn't block the message.
+            // We just fall back to using the full URL in the list.
+            console.warn('[chat] thumbnail generation skipped', err);
+          }
+        }
+
+        uploaded.push({ type: 'image', url, thumbUrl, thumbWidth, thumbHeight, name: f.name, size: f.size });
         i += 1;
       }
       setPending((prev) => [...prev, ...uploaded]);

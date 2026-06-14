@@ -2677,7 +2677,7 @@ const TeamChat: React.FC = () => {
                         }
                         return isUserClubAdmin;
                       })()}
-                      onStartDm={(uid, name) => startDM({ uid, name })}
+                      onStartDm={(selectedThread as any)?.isDM ? undefined : (uid, name) => startDM({ uid, name })}
                       onToggleMute={async (uid, name) => {
                         if (!userData?.uid) return;
                         const cur: string[] = Array.isArray((userData as any).mutedUserIds) ? (userData as any).mutedUserIds : [];

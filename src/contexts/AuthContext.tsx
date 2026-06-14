@@ -600,6 +600,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Helper: build UserData from raw Firestore doc + Firebase user
   const buildUserData = (data: any, user: User): UserData => ({
+    // Spread the raw Firestore data FIRST so dynamic fields the chat /
+    // notifications / settings store on the user doc — pinnedThreadIds,
+    // mutedThreadIds, mutedUserIds, wallLastSeen, etc. — pass through
+    // every snapshot. Without this, the live onSnapshot fires but
+    // buildUserData strips the new array, so pin/mute toggles never
+    // visibly stick. Explicit fields below still win for safety
+    // (defaults, type coercion).
+    ...(data || {}),
     uid: data.uid || user.uid,
     id: data.id || data.uid || user.uid,
     email: data.email || user.email || '',

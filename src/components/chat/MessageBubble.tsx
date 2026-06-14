@@ -78,6 +78,43 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#039;');
 }
 
+// Chat-attachment image with a soft slate placeholder and an opacity
+// fade once the bytes decode. This replaces the bare <img>, which on
+// iOS WKWebView shows a brief BLACK flash between request and decode —
+// the source of the "photos flash to black" feedback. The wrapping div
+// holds the layout dimensions so there is also no layout shift as the
+// image arrives.
+const ChatAttachmentImage: React.FC<{
+  src: string;
+  alt: string;
+  solo: boolean;
+  onLoad?: () => void;
+  onClick?: () => void;
+}> = ({ src, alt, solo, onLoad, onClick }) => {
+  const [loaded, setLoaded] = useState(false);
+  const sizeClasses = solo
+    ? 'w-full max-w-[260px] aspect-[4/3]'
+    : 'w-full aspect-square';
+  return (
+    <div
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-2xl bg-slate-100 cursor-pointer ${sizeClasses}`}
+    >
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+        onLoad={() => { setLoaded(true); onLoad?.(); }}
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
+      />
+    </div>
+  );
+};
+
 function renderRichContent(text: string, ownTheme: boolean): string {
   const safe = escapeHtml(text);
   const linkColor = ownTheme ? 'text-white underline underline-offset-2' : 'text-cyan-700 underline underline-offset-2';
@@ -129,8 +166,8 @@ const ActionRow: React.FC<{
         {icon}
       </span>
       <span className="min-w-0 flex-1 pt-0.5">
-        <span className={`block text-sm font-bold ${labelColor}`}>{label}</span>
-        <span className="block text-[11px] text-slate-500 leading-snug mt-0.5">{description}</span>
+        <span className={`block text-[15px] font-bold ${labelColor}`}>{label}</span>
+        <span className="block text-[12px] text-slate-500 leading-snug mt-0.5">{description}</span>
       </span>
     </button>
   );
@@ -662,30 +699,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             className={`mt-1 grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
           >
             {images.map((img, i) => (
-              <img
+              <ChatAttachmentImage
                 key={i}
                 src={img.url}
                 alt={img.name || 'attachment'}
-                loading="lazy"
-                decoding="async"
                 onLoad={() => onImageLoaded?.()}
                 onClick={() => {
-                  // Don't fire the lightbox if the tap is the end of a
-                  // long-press (we already opened the react sheet).
                   if (longPressFiredRef.current) {
                     longPressFiredRef.current = false;
                     return;
                   }
                   onImageClick?.(img.url);
                 }}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-                className={`rounded-2xl object-cover cursor-pointer ${
-                  images.length === 1 ? 'max-h-72 w-auto' : 'h-32 w-full'
-                }`}
-                draggable={false}
-                style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
+                solo={images.length === 1}
               />
             ))}
           </div>
@@ -858,7 +884,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           onClick={() => setActionsOpen(false)}
         >
           <div
-            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[84vh] overflow-hidden animate-sheet-up sm:animate-pop-in mb-2 sm:mb-0"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Branded header — same chrome as UserProfileModal so the

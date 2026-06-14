@@ -123,7 +123,12 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                 </div>
                 <button
                   type="button"
-                  disabled={busy === goal.id || !actor}
+                  // Truly disable when today's already logged — was
+                  // cursor-default-styled but still tappable, which
+                  // let parents pile up 4+ log entries for the same
+                  // day on a single goal. The streak math dedupes,
+                  // but the noise was confusing in the plan view.
+                  disabled={busy === goal.id || !actor || doneToday}
                   onClick={() => handleDidIt(plan, goal.id)}
                   className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-extrabold uppercase tracking-widest transition ${
                     doneToday

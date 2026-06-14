@@ -64,7 +64,7 @@ const Navigation: React.FC = () => {
   // families have, well, multiple). We surface all of them in the More
   // sheet + Settings so a parent never has to "switch contexts" just
   // to see their second kid.
-  const [linkedPlayers, setLinkedPlayers] = useState<Array<{ id: string; name: string }>>([]);
+  const [linkedPlayers, setLinkedPlayers] = useState<Array<{ id: string; name: string; teamName?: string }>>([]);
   useEffect(() => {
     if (!userData?.uid) { setLinkedPlayers([]); return; }
     (async () => {
@@ -75,7 +75,33 @@ const Navigation: React.FC = () => {
           where('isActive', '==', true)
         );
         const snap = await getDocs(q);
-        const rows = snap.docs.map(d => ({ id: d.id, name: (d.data() as any).name || 'Player' }));
+        const raws = snap.docs.map(d => ({
+          id: d.id,
+          name: (d.data() as any).name || 'Player',
+          teamId: (d.data() as any).teamId,
+        }));
+        // Resolve team names so duplicate-name players (e.g. two
+        // "Hunter Gill" docs from a re-registration) can be told
+        // apart in the More sheet. Without this, parents see two
+        // identical "Hunter" tiles and tap blind.
+        const teamIds = Array.from(new Set(raws.map(r => r.teamId).filter(Boolean) as string[]));
+        const teamNameById = new Map<string, string>();
+        await Promise.all(teamIds.map(async (tid) => {
+          try {
+            const tSnap = await getDocs(query(collection(db, 'teams'), where('__name__', '==', tid)));
+            if (!tSnap.empty) teamNameById.set(tid, (tSnap.docs[0].data() as any).name || '');
+          } catch { /* ignore */ }
+        }));
+        // Detect duplicate names — we'll suffix the team name only
+        // when there's an ambiguity, so single-kid families don't
+        // get noisy labels.
+        const nameCounts = new Map<string, number>();
+        for (const r of raws) nameCounts.set(r.name, (nameCounts.get(r.name) || 0) + 1);
+        const rows = raws.map(r => ({
+          id: r.id,
+          name: r.name,
+          teamName: (nameCounts.get(r.name) || 0) > 1 ? teamNameById.get(r.teamId || '') : undefined,
+        }));
         setLinkedPlayers(rows);
       } catch (err) {
         console.error('Error fetching linked players:', err);
@@ -130,7 +156,10 @@ const Navigation: React.FC = () => {
     // name (not split) so two kids with the same first name still
     // disambiguate (rare but happens — siblings nicknames overlap).
     ...linkedPlayers.map(p => ({
-      name: p.name.split(' ')[0],
+      // When two linked players share a first name (the duplicate-
+      // Hunter case), suffix the team name so each tile is
+      // distinguishable. Single-kid families keep the clean name.
+      name: p.teamName ? `${p.name.split(' ')[0]} · ${p.teamName}` : p.name.split(' ')[0],
       path: `/player/${p.id}`,
       icon: 'soccer' as const,
       group: 'main' as const,

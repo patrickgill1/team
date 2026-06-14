@@ -238,6 +238,23 @@ function App() {
     return () => { cancelled = true; };
   }, []);
 
+  // Branded React splash that takes over from the native iOS / Android
+  // splash and animates for a fixed beat before fading out. Patrick:
+  // "i would love that to come up when you open the app, even maybe
+  // time it so it shows for a specific amount of time just for
+  // branding purposes". The native splash hides as soon as React
+  // paints (RAF below) — and because <BrandedSplash /> renders as a
+  // fixed overlay on first paint, the user goes:
+  //   native splash → branded animated splash → app
+  // with no visible gap (both use the same slate-950 backdrop).
+  const [splashPlaying, setSplashPlaying] = useState(true);
+  const [splashFading, setSplashFading] = useState(false);
+  useEffect(() => {
+    const t1 = window.setTimeout(() => setSplashFading(true), 1500);
+    const t2 = window.setTimeout(() => setSplashPlaying(false), 1900);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, []);
+
   // Dismiss the native splash AFTER React has had a paint. Without
   // this, the splash hides as soon as initNativeShell() resolves —
   // which fires before the first React commit, so the user sees a
@@ -641,8 +658,35 @@ function App() {
           </Suspense>
       </Router>
       </TeamProvider>
+      {splashPlaying && <BrandedSplash fading={splashFading} />}
     </AuthProvider>
   );
 }
+
+// Branded React splash — fixed overlay that paints over the native
+// launch screen as soon as React mounts. Same logo + breathe + dot
+// animation as PageSpinner, but full-screen and timed (~1.5s visible
+// + 400ms fade) so cold starts always feel branded, even on devices
+// that boot fast enough to skip the native splash.
+const BrandedSplash: React.FC<{ fading: boolean }> = ({ fading }) => (
+  <div
+    aria-hidden
+    className={`fixed inset-0 z-[9999] bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center transition-opacity duration-400 ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+    style={{ transitionDuration: '400ms' }}
+  >
+    <div className="flex flex-col items-center gap-6">
+      <img
+        src="/images/logo.png"
+        alt=""
+        className="w-28 h-28 rounded-2xl shadow-2xl shadow-cyan-500/30 ring-1 ring-white/10 splash-breathe"
+      />
+      <div className="flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '0ms' }} />
+        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '180ms' }} />
+        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '360ms' }} />
+      </div>
+    </div>
+  </div>
+);
 
 export default App;

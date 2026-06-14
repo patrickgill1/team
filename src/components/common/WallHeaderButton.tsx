@@ -114,13 +114,26 @@ const WallHeaderButton: React.FC = () => {
                 </svg>
                 <span className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">The Wall</span>
               </div>
-              <Link
-                to="/wall"
-                onClick={() => setOpen(false)}
-                className="text-[11px] font-bold uppercase tracking-widest text-cyan-300 hover:text-white"
-              >
-                View all →
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/wall"
+                  onClick={() => setOpen(false)}
+                  className="text-[11px] font-bold uppercase tracking-widest text-cyan-300 hover:text-white"
+                >
+                  View all →
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {posts.length === 0 ? (

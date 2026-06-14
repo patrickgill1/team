@@ -723,11 +723,32 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Reaction chips beneath the bubble. Compact: emoji + count.
-            Tap = toggle your own reaction. Long-press (or right-click
-            on desktop) opens a sheet listing who reacted with what. */}
-        {Object.keys(grouped).length > 0 && (
-          <div className={`mt-1 flex flex-wrap gap-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+        {/* Reactions + actions row, UNDER the bubble (Ollie pattern).
+            - For own messages, layout is reversed so the ⋯ kebab sits
+              CLOSEST to the bubble (rightmost in reading order).
+            - For incoming, ⋯ sits closest to the bubble on the left.
+            We render this row whenever the bubble itself rendered —
+            i.e. there's real content or images — so a deleted /
+            ghost message that has neither doesn't produce a stray
+            kebab + reaction chip floating in the thread. */}
+        {(message.content || images.length > 0) && (
+          <div className={`mt-1.5 flex items-center gap-1.5 flex-wrap ${isOwn ? 'flex-row-reverse justify-start' : 'justify-start'}`}>
+            <button
+              onClick={() => {
+                void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
+                setActionsOpen(true);
+              }}
+              aria-label="Message actions"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-cyan-700 active:scale-95 transition"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="5" cy="12" r="1.9"/>
+                <circle cx="12" cy="12" r="1.9"/>
+                <circle cx="19" cy="12" r="1.9"/>
+              </svg>
+            </button>
+            {Object.keys(grouped).length > 0 && (
+              <div className={`flex flex-wrap gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
             {Object.entries(grouped).map(([emoji, info]) => (
               <button
                 key={emoji}
@@ -772,6 +793,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <span className="font-semibold tabular-nums">{info.count}</span>
               </button>
             ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -832,26 +855,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </div>
 
-      {/* Single ⋯ affordance — vertically centered on the bubble (Ollie
-          pattern) and large enough to find with one thumb. Always
-          visible on mobile (no hover-to-reveal). Renders on
-          attachment-only messages too so GIFs etc. are still react-able. */}
-      {(message.content || images.length > 0) && (
-        <button
-          onClick={() => {
-            void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
-            setActionsOpen(true);
-          }}
-          aria-label="Message actions"
-          className={`${isOwn ? 'mr-1 order-first' : 'ml-1'} self-center inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-cyan-700 active:scale-95 transition`}
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="5" cy="12" r="1.9"/>
-            <circle cx="12" cy="12" r="1.9"/>
-            <circle cx="19" cy="12" r="1.9"/>
-          </svg>
-        </button>
-      )}
+      {/* (⋯ button moved inside the inner column, alongside reactions
+          — see the row above. This used to live here outside the
+          column, vertically centered next to the bubble, but Patrick
+          wanted Ollie's pattern: kebab BELOW the bubble, on the same
+          row as reactions. Cleaner and fewer competing focal points.) */}
 
       {/* Long-press / right-click quick-react sheet. Just the emoji row,
           no menu — that's what the ⋯ button is for. Tap an emoji to

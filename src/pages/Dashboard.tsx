@@ -1057,7 +1057,9 @@ const MyPlayerCard: React.FC<{
         aria-hidden
       />
       <div className="relative p-4 sm:p-5 flex items-center gap-4 w-full">
-        {/* Avatar with optional POTM crown */}
+        {/* Avatar with jersey-number chip (matches PlayerCard pattern
+            used elsewhere — Patrick: "everywhere else it shows the
+            10 in the other way"). Optional POTW crown sits on top. */}
         <div className="relative flex-shrink-0">
           {p.profilePhotoUrl ? (
             <img
@@ -1068,8 +1070,13 @@ const MyPlayerCard: React.FC<{
             />
           ) : (
             <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-blue-700 flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}>
-              {player.name.charAt(0)}
+              {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
+          )}
+          {p.profilePhotoUrl && player.jerseyNumber != null && (
+            <span className="absolute -bottom-1 -right-1 bg-white text-fire-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-fire-900">
+              #{player.jerseyNumber}
+            </span>
           )}
           {isPotm && (
             <span
@@ -1093,9 +1100,7 @@ const MyPlayerCard: React.FC<{
               </span>
             )}
           </div>
-          <p className={`text-xs ${accentText} mb-2`}>
-            {player.jerseyNumber != null ? `#${player.jerseyNumber} · ` : ''}{position}
-          </p>
+          <p className={`text-xs ${accentText} mb-2`}>{position}</p>
           {streakDays > 0 && (
             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isPotm ? 'bg-amber-900/30' : 'bg-white/10'} text-[11px] font-bold mb-2`}>
               <svg className="w-3 h-3 text-amber-300" fill="currentColor" viewBox="0 0 24 24">

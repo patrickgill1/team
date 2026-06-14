@@ -9,6 +9,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
 import ChatImageLightbox, { LightboxImage } from '../components/chat/ChatImageLightbox';
+import GlobalChatSearch from '../components/chat/GlobalChatSearch';
 import MessageComposer, { ComposerAttachment } from '../components/chat/MessageComposer';
 import PollCard from '../components/chat/PollCard';
 
@@ -51,6 +52,7 @@ const TeamChat: React.FC = () => {
   // in the thread is tapped. The gallery includes every image in
   // the loaded thread window so the user can swipe between them.
   const [chatLightbox, setChatLightbox] = useState<{ images: LightboxImage[]; startIndex: number } | null>(null);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const openImage = (url: string) => {
     // Collect every image in the visible thread, in chronological order.
     const all: LightboxImage[] = [];
@@ -1157,7 +1159,9 @@ const TeamChat: React.FC = () => {
         // Use effective participants so a team-wide chat reaches
         // everyone on the team, not just the people who've previously
         // posted (which is what `selectedThread.participants` captures).
-        const recipients = effectiveParticipants(selectedThread).filter(uid => uid && uid !== userData.uid);
+        const mutedSet = new Set<string>(((selectedThread as any).mutedByUids || []) as string[]);
+        const recipients = effectiveParticipants(selectedThread)
+          .filter(uid => uid && uid !== userData.uid && !mutedSet.has(uid));
         if (recipients.length > 0) {
           const { sendPushToUsers } = await import('../utils/notify');
           const isDM = (selectedThread as any).isDM === true;
@@ -1506,6 +1510,39 @@ const TeamChat: React.FC = () => {
       await updateDoc(doc(db, 'users', userData.uid), { pinnedThreadIds: next });
     } catch (err) {
       console.error('Error toggling pin:', err);
+    }
+  };
+
+  // Per-thread mute. Tracked on the user doc (mutedThreadIds) so each
+  // user owns their own preference. Also denormalized onto the thread
+  // doc (mutedByUids) so the sender can filter push recipients in O(1)
+  // without reading every recipient's user doc on every send.
+  const myMutedThreadIds: string[] = Array.isArray((userData as any)?.mutedThreadIds)
+    ? (userData as any).mutedThreadIds
+    : [];
+  const isThreadMuted = (thread: ChatThread): boolean =>
+    myMutedThreadIds.includes(thread.id);
+  const toggleMuteThread = async (thread: ChatThread) => {
+    if (!userData?.uid) return;
+    void import('../utils/nativeShell').then(m => m.tapHaptic('light'));
+    const muting = !myMutedThreadIds.includes(thread.id);
+    const nextUserMuted = muting
+      ? [...myMutedThreadIds, thread.id]
+      : myMutedThreadIds.filter(id => id !== thread.id);
+    const threadMutedByUids: string[] = Array.isArray((thread as any).mutedByUids)
+      ? (thread as any).mutedByUids
+      : [];
+    const nextThreadMuted = muting
+      ? Array.from(new Set([...threadMutedByUids, userData.uid]))
+      : threadMutedByUids.filter(uid => uid !== userData.uid);
+    try {
+      await Promise.all([
+        updateDoc(doc(db, 'users', userData.uid), { mutedThreadIds: nextUserMuted }),
+        updateDoc(doc(db, 'chat_threads', thread.id), { mutedByUids: nextThreadMuted }),
+      ]);
+    } catch (err) {
+      const { logFirestoreError } = await import('../utils/firestoreLogger');
+      logFirestoreError('write', `chat_threads/${thread.id}`, err, { op: 'toggleMuteThread' });
     }
   };
 
@@ -2080,18 +2117,29 @@ const TeamChat: React.FC = () => {
               </div>
 
               {/* Search */}
-              <div className="relative mb-3">
-                <input
-                  type="text"
-                  placeholder="Search threads..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
-                  style={{ fontSize: '16px' }}
-                />
-                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+              <div className="relative mb-3 flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search threads..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                    style={{ fontSize: '16px' }}
+                  />
+                  <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGlobalSearchOpen(true)}
+                  title="Search every chat for a word or phrase"
+                  aria-label="Search every chat"
+                  className="px-3 rounded-lg border border-cyan-200 bg-cyan-50 text-cyan-700 text-[11px] font-extrabold uppercase tracking-widest hover:bg-cyan-100"
+                >
+                  Search all
+                </button>
               </div>
 
               {/* Filters. 'Coach' is the coach-only-thread filter
@@ -2218,6 +2266,15 @@ const TeamChat: React.FC = () => {
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 ring-1 ring-blue-200 flex-shrink-0">
                             Coaches
                           </span>
+                        )}
+                        {isThreadMuted(thread) && (
+                          <svg className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-label="Muted">
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+                            <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+                            <path d="M18 8a6 6 0 0 0-9.33-5" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
                         )}
                         {(thread as any).scope === 'admins' && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-50 text-violet-800 ring-1 ring-violet-200 flex-shrink-0">
@@ -2360,6 +2417,31 @@ const TeamChat: React.FC = () => {
                     </div>
                   </div>
 
+                  <button
+                    onClick={() => toggleMuteThread(selectedThread)}
+                    className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors flex-shrink-0 ${
+                      isThreadMuted(selectedThread) ? 'bg-amber-100 text-amber-700' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                    aria-label={isThreadMuted(selectedThread) ? 'Unmute notifications' : 'Mute notifications'}
+                    title={isThreadMuted(selectedThread) ? 'Notifications muted — tap to unmute' : 'Mute notifications'}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      {isThreadMuted(selectedThread) ? (
+                        <>
+                          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                          <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+                          <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+                          <path d="M18 8a6 6 0 0 0-9.33-5" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </>
+                      ) : (
+                        <>
+                          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        </>
+                      )}
+                    </svg>
+                  </button>
                   <button
                     onClick={() => {
                       setThreadSearchOpen(o => !o);
@@ -3153,6 +3235,21 @@ const TeamChat: React.FC = () => {
           images={chatLightbox.images}
           startIndex={chatLightbox.startIndex}
           onClose={() => setChatLightbox(null)}
+        />
+      )}
+      {globalSearchOpen && (
+        <GlobalChatSearch
+          threads={threads}
+          getThreadTitle={getThreadDisplayTitle}
+          onResult={(threadId, messageId) => {
+            const target = threads.find(t => t.id === threadId);
+            if (target) {
+              setGlobalSearchOpen(false);
+              showChatView(target);
+              setPendingScrollMsgId(messageId);
+            }
+          }}
+          onClose={() => setGlobalSearchOpen(false)}
         />
       )}
     </div>

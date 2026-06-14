@@ -95,15 +95,22 @@ const ChatAttachmentImage: React.FC<{
   solo: boolean;
   onLoad?: () => void;
   onClick?: () => void;
-}> = ({ src, alt, solo, onLoad, onClick }) => {
+  /** When true, the image is rendered INSIDE a parent bubble — drop
+   *  the rounded corners and the placeholder background so it tucks
+   *  cleanly into the bubble's fill (iMessage pattern). */
+  insideBubble?: boolean;
+}> = ({ src, alt, solo, onLoad, onClick, insideBubble }) => {
   const [loaded, setLoaded] = useState(false);
   const sizeClasses = solo
-    ? 'w-full max-w-[260px] aspect-[4/3]'
+    ? 'w-full aspect-[4/3]'
     : 'w-full aspect-square';
+  const skinClasses = insideBubble
+    ? 'bg-black/10'
+    : 'rounded-2xl bg-slate-100';
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-2xl bg-slate-100 cursor-pointer ${sizeClasses}`}
+      className={`relative overflow-hidden cursor-pointer ${skinClasses} ${sizeClasses}`}
     >
       <img
         src={src}
@@ -597,7 +604,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         ) : (<>
 
-        {/* The bubble itself */}
+        {/* The bubble itself. When the message ALSO has image
+            attachments, we render the bubble as a wrapping shell with
+            the text at top and image(s) at bottom — all inside one
+            shared cyan/gray fill (iMessage pattern). When it's text
+            only, just the text block. The image-only case is handled
+            separately below and stays standalone (no bubble shell). */}
         {message.content && !isImportant && (
           <div
             onTouchStart={handleTouchStart}
@@ -605,17 +617,43 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
-            className={`px-3.5 py-[7px] leading-[1.35] break-words text-[15.5px] select-none ${cornerClasses} ${bubbleBg} ${
+            className={`overflow-hidden break-words select-none ${cornerClasses} ${bubbleBg} ${
               isMentioned && !isOwn ? 'ring-2 ring-amber-300' : ''
             }`}
             // -webkit-touch-callout: none kills iOS's "Copy / Look Up /
-            // Share" callout that was racing our long-press timer and
-            // making the bubble feel broken (Patrick's screenshot showed
-            // iOS selection AND our react sheet fighting each other).
-            // Copy still works via the ⋯ menu's Copy row.
+            // Share" callout that was racing our long-press timer.
             style={{ wordBreak: 'break-word', WebkitTouchCallout: 'none', WebkitUserSelect: 'none' } as React.CSSProperties}
-            dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, isOwn) }}
-          />
+          >
+            <div
+              className="px-3.5 py-[7px] leading-[1.35] text-[15.5px]"
+              dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, isOwn) }}
+            />
+            {/* Image attachments tucked at the BOTTOM of the same
+                bubble (Patrick's request — iMessage pattern). Edge-
+                to-edge inside the bubble shell, separated from the
+                text by a thin same-color band. */}
+            {images.length > 0 && (
+              <div className={`mt-1 grid gap-0.5 ${images.length === 1 ? '' : 'grid-cols-2'}`}>
+                {images.map((img, i) => (
+                  <ChatAttachmentImage
+                    key={i}
+                    src={img.url}
+                    alt={img.name || 'attachment'}
+                    onLoad={() => onImageLoaded?.()}
+                    onClick={() => {
+                      if (longPressFiredRef.current) {
+                        longPressFiredRef.current = false;
+                        return;
+                      }
+                      onImageClick?.(img.url);
+                    }}
+                    solo={images.length === 1}
+                    insideBubble
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
         </>)}
 
@@ -689,20 +727,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           />
         )}
 
-        {/* Image / GIF attachments.
-            Long-press on the wrapper opens the quick-react sheet (Patrick
-            specifically wanted reactions on GIFs — half the value of a
-            GIF is the reaction). We override iOS's native "Save Image"
-            long-press menu in exchange. Tap on the image still opens
-            the lightbox via onClick. */}
-        {images.length > 0 && (
+        {/* Image-only message — render the image standalone (no
+            wrapping bubble shell). When the message ALSO has text,
+            the images already render inside the text bubble above
+            and we skip this block. */}
+        {images.length > 0 && !message.content && (
           <div
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
-            className={`mt-1 grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
+            className={`grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
           >
             {images.map((img, i) => (
               <ChatAttachmentImage

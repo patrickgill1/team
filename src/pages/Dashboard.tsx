@@ -7,6 +7,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
+import { RichContent } from './Wall';
 import DashboardHero from '../components/common/DashboardHero';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
@@ -61,7 +62,7 @@ const Dashboard: React.FC = () => {
   } | null>(null);
   // Wall posts = docs in the wall_posts collection (its own surface,
   // separate from chat). The dashboard surfaces the 5 most recent.
-  const [wallPosts, setWallPosts] = useState<Array<{ id: string; threadId: string; content: string; senderName: string; senderRole?: string; timestamp: Date }>>([]);
+  const [wallPosts, setWallPosts] = useState<Array<{ id: string; threadId: string; content: string; senderName: string; senderRole?: string; timestamp: Date; category?: string }>>([]);
   // uid → photoURL map used by the Recent Chats card to render real
   // avatars on DMs (and any future thread types that want a per-user
   // photo). Built once from the users collection per team selection.
@@ -196,8 +197,16 @@ const Dashboard: React.FC = () => {
               senderName: data.senderName as string,
               senderRole: data.senderRole as string | undefined,
               timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
+              category: (data.category as string) || 'announcement',
             };
-          });
+          })
+          // Dashboard surface is the "Announcements" card — only
+          // category=announcement posts show here. Game results,
+          // spotlights, practice notes belong on their own surfaces
+          // (game tab, player cards). Posts that predate the category
+          // field default to 'announcement' in the snapshot mapper so
+          // they still appear.
+          .filter(p => p.category === 'announcement');
           setWallPosts(posts);
         }, (err) => console.warn('wall posts subscribe failed', err));
       } catch (err) {
@@ -626,7 +635,7 @@ const Dashboard: React.FC = () => {
                     to="/wall"
                     className="block px-5 py-3 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex items-center gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-bold text-fire-950">{p.senderName}</span>
                       {p.senderRole === 'coach' && (
                         <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
@@ -635,7 +644,13 @@ const Dashboard: React.FC = () => {
                         {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700 line-clamp-3">{p.content}</p>
+                    {/* Capped to 3 visual lines via line-clamp so a long
+                        announcement doesn't blow up the dashboard card.
+                        RichContent renders bold / lists / links so the
+                        preview matches the wall + share-link surfaces. */}
+                    <div className="text-sm text-gray-700 line-clamp-3 break-words">
+                      <RichContent text={p.content} />
+                    </div>
                   </Link>
                 </li>
               ))}

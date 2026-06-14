@@ -1531,6 +1531,7 @@ const TeamChat: React.FC = () => {
     myPinnedThreadIds.includes(thread.id);
   const togglePinThread = async (thread: ChatThread) => {
     if (!userData?.uid) return;
+    void import('../utils/nativeShell').then(m => m.tapHaptic('medium'));
     const next = myPinnedThreadIds.includes(thread.id)
       ? myPinnedThreadIds.filter(id => id !== thread.id)
       : [...myPinnedThreadIds, thread.id];
@@ -2328,26 +2329,22 @@ const TeamChat: React.FC = () => {
                         {preview}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void import('../utils/nativeShell').then(m => m.tapHaptic('light'));
-                        togglePinThread(thread);
-                      }}
-                      title={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
-                      aria-label={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
-                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition ${
-                        isThreadPinned(thread)
-                          ? 'text-amber-500 hover:text-amber-600'
-                          : 'text-slate-300 hover:text-amber-500 hover:bg-amber-50'
-                      }`}
-                    >
-                      <svg className="w-4 h-4" fill={isThreadPinned(thread) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <line x1="12" y1="17" x2="12" y2="22" />
-                        <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
-                      </svg>
-                    </button>
+                    {/* When pinned, show a small amber pin badge as
+                        STATE — not a button. The only way to toggle
+                        pin is swipe-right (per Patrick's request to
+                        consolidate to a single pin affordance). */}
+                    {isThreadPinned(thread) && (
+                      <span
+                        aria-label="Pinned"
+                        title="Pinned — swipe right to unpin"
+                        className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-amber-500"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <line x1="12" y1="17" x2="12" y2="22" />
+                          <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
+                        </svg>
+                      </span>
+                    )}
                   </div>
                   </SwipeableThreadRow>
                 );
@@ -2655,6 +2652,7 @@ const TeamChat: React.FC = () => {
                       message={message}
                       currentUserId={userData?.uid || ''}
                       currentUserName={userData?.name || ''}
+                      threadIsDm={(selectedThread as any)?.isDM === true}
                       replyTarget={message.replyTo ? messages.find((mm) => mm.id === message.replyTo) || null : null}
                       onReply={setReplyingTo}
                       onToggleReaction={toggleReaction}

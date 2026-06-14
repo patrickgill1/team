@@ -67,6 +67,11 @@ interface MessageBubbleProps {
   isMuted?: boolean;
   /** Save an edit to this message (own messages only). */
   onEdit?: (m: ChatMessage, newContent: string) => Promise<void> | void;
+  /** True when this bubble lives in a 1:1 DM thread. In group chats
+   *  we deliberately suppress the double-check "seen by N" badge —
+   *  with many participants it's noise, not signal. DMs keep both
+   *  states (sent → single check, seen → double check). */
+  threadIsDm?: boolean;
 }
 
 function escapeHtml(s: string): string {
@@ -232,6 +237,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   onToggleMute,
   isMuted = false,
   onEdit,
+  threadIsDm,
 }) => {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -787,9 +793,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               const seen = ((message as any).readBy && typeof (message as any).readBy === 'object')
                 ? Object.keys((message as any).readBy).filter(uid => uid !== currentUserId).length
                 : 0;
+              // In group/team chats we suppress the double-check (seen)
+              // state — with 10+ participants the "1 of 14 has seen"
+              // signal becomes noise. DMs keep both states.
+              const showSeen = !!threadIsDm && seen > 0;
               return (
-                <span className={`ml-1.5 inline-flex items-center gap-0.5 ${seen > 0 ? 'text-cyan-500' : 'text-gray-400'}`} title={seen > 0 ? `Seen by ${seen}` : 'Sent'}>
-                  {seen > 0 ? (
+                <span className={`ml-1.5 inline-flex items-center gap-0.5 ${showSeen ? 'text-cyan-500' : 'text-gray-400'}`} title={showSeen ? 'Seen' : 'Sent'}>
+                  {showSeen ? (
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <polyline points="2 12 7 17 13 9" />
                       <polyline points="10 12 15 17 22 7" />
@@ -822,11 +832,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </div>
 
-      {/* Single ⋯ affordance — one icon per message, always visible on
-          mobile and on-hover on desktop. Tapping opens the full action
-          sheet (which has a row of quick reactions at the top + every
-          other action below). Also renders on attachment-only messages
-          (GIFs etc.) so people can still react to them. */}
+      {/* Single ⋯ affordance — vertically centered on the bubble (Ollie
+          pattern) and large enough to find with one thumb. Always
+          visible on mobile (no hover-to-reveal). Renders on
+          attachment-only messages too so GIFs etc. are still react-able. */}
       {(message.content || images.length > 0) && (
         <button
           onClick={() => {
@@ -834,12 +843,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             setActionsOpen(true);
           }}
           aria-label="Message actions"
-          className={`${isOwn ? 'mr-1 order-first' : 'ml-1'} self-end mb-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm hover:text-cyan-700 hover:border-cyan-300 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity`}
+          className={`${isOwn ? 'mr-1 order-first' : 'ml-1'} self-center inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-cyan-700 active:scale-95 transition`}
         >
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="5" cy="12" r="1.8"/>
-            <circle cx="12" cy="12" r="1.8"/>
-            <circle cx="19" cy="12" r="1.8"/>
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="5" cy="12" r="1.9"/>
+            <circle cx="12" cy="12" r="1.9"/>
+            <circle cx="19" cy="12" r="1.9"/>
           </svg>
         </button>
       )}
@@ -1038,7 +1047,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4 animate-fade-in"
           onClick={() => setEmojiOpen(false)}
         >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm animate-sheet-up sm:animate-pop-in">
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md animate-sheet-up sm:animate-pop-in">
             <EmojiPicker
               onPick={(emoji) => { onToggleReaction(message, emoji); setEmojiOpen(false); }}
               onClose={() => setEmojiOpen(false)}

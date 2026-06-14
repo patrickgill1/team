@@ -124,7 +124,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
   const visible = filtered ?? (GROUPS.find(g => g.id === activeTab)?.emojis || []);
 
   return (
-    <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+    <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full overflow-hidden">
       {/* Lightweight header — the heavy navy strip was overpowering for
           a small picker. Drag-handle hint up top, search + close on a
           single row below it. The picker's purpose is obvious from
@@ -188,16 +188,18 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
         </div>
       )}
 
-      {/* Emoji grid */}
-      <div className="grid grid-cols-8 gap-1 p-3 max-h-64 overflow-y-auto">
+      {/* Emoji grid — 6 columns at large size (Ollie pattern). Big
+          tap targets, easy to pick with a thumb. Taller scroll area
+          so you don't have to flick through the whole catalog. */}
+      <div className="grid grid-cols-6 gap-1.5 p-3 max-h-[60vh] overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {visible.length === 0 ? (
-          <div className="col-span-8 text-center text-sm text-slate-400 py-6">No matches.</div>
+          <div className="col-span-6 text-center text-sm text-slate-400 py-6">No matches.</div>
         ) : (
           visible.map((e, i) => (
             <button
               key={`${e}-${i}`}
               onClick={() => onPick(e)}
-              className="text-xl py-1.5 rounded-lg hover:bg-slate-100 active:scale-95 transition"
+              className="text-3xl py-3 rounded-xl hover:bg-slate-100 active:scale-95 transition"
             >
               {e}
             </button>

@@ -3,11 +3,14 @@ import { useSwipeable } from 'react-swipeable';
 
 // Swipeable wrapper around a chat-thread list row.
 //
-// Right-swipe → reveal Pin/Unpin (amber). Tap the revealed button
-// OR continue the swipe past the threshold to commit immediately.
+// Right-swipe → AUTO-COMMIT pin/unpin once the user drags past a
+// gentle threshold. No two-step "reveal then tap" — Patrick wanted
+// pinning to be a single decisive gesture (matches Slack swipe-to-
+// pin, iMessage swipe-to-mark-unread). One pull, done.
 //
-// Left-swipe → reveal Delete (rose). Same behavior. The row snaps
-// back when the touch releases below the threshold.
+// Left-swipe → reveal Delete (rose) and require a tap on the Delete
+// button OR a continued swipe past the commit threshold. Delete still
+// needs the confirmation step so people don't lose threads by accident.
 //
 // Distinguishes horizontal-intent from a vertical scroll by deferring
 // drag until movement exceeds 12px horizontally AND horizontal beats
@@ -25,6 +28,10 @@ interface Props {
 
 const ACTION_WIDTH = 88; // px of revealed action panel
 const DEFAULT_COMMIT = 160;
+// Lower threshold for the auto-pin commit. The user shouldn't have
+// to drag halfway across the screen just to pin — a confident pull
+// is enough.
+const PIN_AUTOCOMMIT = 90;
 
 const SwipeableThreadRow: React.FC<Props> = ({ children, onPinToggle, isPinned, onDelete, commitThreshold = DEFAULT_COMMIT }) => {
   const [dx, setDx] = useState(0);
@@ -57,14 +64,14 @@ const SwipeableThreadRow: React.FC<Props> = ({ children, onPinToggle, isPinned, 
       }
     },
     onSwipedRight: (e) => {
-      if (onPinToggle && e.deltaX > commitThreshold) {
+      // Single-step pin: any confident right-swipe past
+      // PIN_AUTOCOMMIT commits the pin. No reveal/tap two-step. The
+      // user gets a haptic from the parent (TeamChat fires it on
+      // pin) so the action feels grounded.
+      if (onPinToggle && e.deltaX > PIN_AUTOCOMMIT) {
         onPinToggle();
-        reset();
-      } else if (e.deltaX > ACTION_WIDTH / 2) {
-        setDx(ACTION_WIDTH);
-      } else {
-        reset();
       }
+      reset();
     },
     onSwiped: () => {
       // Any other terminal event collapses back to neutral.

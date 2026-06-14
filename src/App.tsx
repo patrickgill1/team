@@ -226,6 +226,17 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 function App() {
+  // Install the global Firestore error handler once. Any unhandled
+  // Firebase rejection (rule denial, network failure, etc.) lands as
+  // a structured console line instead of disappearing silently.
+  useEffect(() => {
+    let cancelled = false;
+    import('./utils/firestoreLogger').then(({ installFirestoreErrorHandler }) => {
+      if (!cancelled) installFirestoreErrorHandler();
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // Dismiss the native splash AFTER React has had a paint. Without
   // this, the splash hides as soon as initNativeShell() resolves —
   // which fires before the first React commit, so the user sees a

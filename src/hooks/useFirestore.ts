@@ -672,7 +672,9 @@ const getUserData = useCallback(async (uid: string) => {
       });
       callback(messages);
     }, (error) => {
-      console.error('Error in messages subscription:', error);
+      void import('../utils/firestoreLogger').then(({ logFirestoreError }) =>
+        logFirestoreError('subscribe', `chat_messages/${threadId}`, error, { source: 'subscribeToChatMessages' })
+      );
     });
   }, []);
 

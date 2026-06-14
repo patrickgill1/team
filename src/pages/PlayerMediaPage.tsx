@@ -1253,7 +1253,7 @@ const PlayerMediaPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950">
+    <div className="min-h-screen bg-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* ── HERO ─────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-2xl mb-6 bg-gradient-to-br from-fire-900 via-fire-950 to-black border border-cyan-500/10">

@@ -76,6 +76,22 @@ const WallHeaderButton: React.FC = () => {
     markSeen();
   };
 
+  // Lock the body from scrolling while the drawer is open. Without
+  // this, iOS lets the page behind the dim scroll on touch — Patrick
+  // flagged it as "you can still scroll the page behind it". Restore
+  // on close.
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevTouch = (document.body.style as any).touchAction || '';
+    document.body.style.overflow = 'hidden';
+    (document.body.style as any).touchAction = 'none';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      (document.body.style as any).touchAction = prevTouch;
+    };
+  }, [open]);
+
   return (
     <>
       <button
@@ -105,8 +121,8 @@ const WallHeaderButton: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-0 max-h-[92vh] overflow-y-auto bg-white animate-sheet-up safe-top"
-            style={{ left: 0, right: 0, width: '100vw' }}
+            className="absolute top-0 bottom-0 overflow-y-auto bg-white animate-sheet-up safe-top overscroll-contain"
+            style={{ left: 0, right: 0, width: '100vw', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-2">

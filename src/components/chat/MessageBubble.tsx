@@ -254,7 +254,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // Long-press on the bubble opens this lightweight react-only sheet
   // (iMessage / WhatsApp pattern). The full action menu lives on the ⋯
   // button — one gesture per surface so they don't fight each other.
-  const [quickReactOpen, setQuickReactOpen] = useState(false);
+  // (quickReactOpen removed — long-press now opens the full EmojiPicker)
   // Track whether long-press fired, so the touch-end click doesn't
   // also open the full menu or swallow the gesture.
   const longPressFiredRef = useRef<boolean>(false);
@@ -376,7 +376,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     // ⋯ button's job, so the two gestures don't overlap.
     longPressTimer.current = window.setTimeout(() => {
       longPressFiredRef.current = true;
-      setQuickReactOpen(true);
+      // Long-press opens the full reaction picker (same big sheet
+      // as the ⋯ "More emoji" button). Previously this opened a
+      // small quick-react row; Patrick wanted one consistent
+      // surface for "add a reaction" — easier to reach with a
+      // thumb, no two-step "tap + for more".
+      setEmojiOpen(true);
     }, 1000);
   };
 
@@ -616,7 +621,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setEmojiOpen(true); }}
             className={`overflow-hidden break-words select-none ${cornerClasses} ${bubbleBg} ${
               isMentioned && !isOwn ? 'ring-2 ring-amber-300' : ''
             }`}
@@ -666,7 +671,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setEmojiOpen(true); }}
             className="w-full max-w-[340px] rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 ring-1 ring-amber-400/50 shadow-md p-3.5"
           >
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -737,7 +742,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setQuickReactOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setEmojiOpen(true); }}
             className={`grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
           >
             {images.map((img, i) => (
@@ -900,36 +905,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {/* Long-press / right-click quick-react sheet. Just the emoji row,
           no menu — that's what the ⋯ button is for. Tap an emoji to
           react and dismiss; tap + to open the full picker. */}
-      {quickReactOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center sm:p-4"
-          onClick={() => setQuickReactOpen(false)}
-        >
-          <div
-            className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Flex with shrink-allowed items + min-w-0 so 8 emojis +
-                "+" can never exceed the sheet width (grid-cols-9 was
-                bleeding the last "+" past the right edge on phones). */}
-            <div className="px-2 py-3 flex items-center gap-0.5">
-              {['👍','❤️','🔥','⚽','🏆','😂','🙌','👏'].map((e) => (
-                <button
-                  key={e}
-                  onClick={() => { onToggleReaction(message, e); setQuickReactOpen(false); }}
-                  className="flex-1 min-w-0 text-2xl py-2 rounded-lg hover:bg-slate-100 active:scale-95"
-                >{e}</button>
-              ))}
-              <button
-                onClick={() => { setQuickReactOpen(false); setEmojiOpen(true); }}
-                className="flex-1 min-w-0 text-lg py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold"
-                aria-label="More emoji"
-              >+</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* (Old quick-react row removed — long-press now opens the
+          full EmojiPicker so there's a single consistent "add a
+          reaction" surface. See setEmojiOpen call above.) */}
 
       {actionsOpen && (
         <div
@@ -1088,10 +1066,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           from the "+" button in the action sheet. */}
       {emojiOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
           onClick={() => setEmojiOpen(false)}
         >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md animate-sheet-up sm:animate-pop-in">
+          {/* Edge-to-edge on mobile (Patrick: "can emoji picker come
+              up edge to edge?"). Bounded on tablet+ so it doesn't
+              stretch into a 1200px-wide grid. */}
+          <div onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md animate-sheet-up sm:animate-pop-in">
             <EmojiPicker
               onPick={(emoji) => { onToggleReaction(message, emoji); setEmojiOpen(false); }}
               onClose={() => setEmojiOpen(false)}

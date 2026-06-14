@@ -125,28 +125,27 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
 
   return (
     <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full overflow-hidden">
-      {/* Lightweight header — the heavy navy strip was overpowering for
-          a small picker. Drag-handle hint up top, search + close on a
-          single row below it. The picker's purpose is obvious from
-          context; no need for a "REACT" label. */}
-      <div className="pt-1.5 pb-1 border-b border-slate-100">
-        <div className="w-9 h-1 rounded-full bg-slate-200 mx-auto mb-1" aria-hidden />
-        <div className="px-3 flex items-center justify-end gap-1">
+      {/* Dark navy header to match the rest of the app's branded
+          chrome (TeamChat action sheet, Wall composer, etc.). Title
+          on the left, search + close on the right. */}
+      <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">Add Reaction</div>
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setSearchOpen(s => !s)}
             aria-label="Search emoji"
-            className={`w-7 h-7 rounded-md flex items-center justify-center transition ${
-              searchOpen ? 'bg-cyan-50 text-cyan-700' : 'text-slate-400 hover:text-slate-700'
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
+              searchOpen ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </button>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>

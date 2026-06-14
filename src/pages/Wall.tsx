@@ -113,6 +113,10 @@ const Wall: React.FC = () => {
   };
   const [activeCategory, setActiveCategory] = useState<WallCategory | 'all'>('all');
   const [composerCategory, setComposerCategory] = useState<WallCategory>('announcement');
+  // The composer used to live at the top of the feed and Patrick had
+  // to scroll past it every time. It now opens from a floating +
+  // button, the way Instagram / Facebook do new-post creation.
+  const [composerOpen, setComposerOpen] = useState(false);
 
   // Auto-grow the textarea so a long post isn't constrained to a tiny
   // scroll box. Capped at ~70vh so the toolbar stays in view.
@@ -539,8 +543,35 @@ const Wall: React.FC = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-0 sm:px-4 py-3 space-y-3">
-        {canPost && (
-          <div className="bg-white sm:rounded-2xl ring-1 ring-slate-200 shadow-sm overflow-hidden">
+        {canPost && composerOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-slate-950/80 animate-fade-in flex items-end sm:items-center justify-center sm:p-4"
+            onClick={() => setComposerOpen(false)}
+          >
+            <div
+              className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setComposerOpen(false)}
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">New post</div>
+                <button
+                  type="button"
+                  onClick={async () => { await handlePost(); if (!postError) setComposerOpen(false); }}
+                  disabled={!composer.trim() || posting}
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-300 hover:text-white disabled:opacity-40"
+                >
+                  {posting ? 'Posting…' : 'Post'}
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
             {/* Category chooser — pill row above the toolbar. The
                 pill the coach picks here becomes the post's category. */}
             <div className="px-3 pt-3 pb-2 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
@@ -642,34 +673,44 @@ const Wall: React.FC = () => {
               )}
             </div>
 
-            <div className="px-4 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-[11px] text-slate-500">
-                {draftStatus === 'saved' && composer.trim() && (
-                  <span className="inline-flex items-center gap-1 text-slate-400">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                    Draft saved
-                  </span>
-                )}
-                {composer.trim() && (
-                  <button
-                    type="button"
-                    onClick={discardDraft}
-                    className="text-slate-400 hover:text-rose-600 underline underline-offset-2"
-                  >
-                    Discard
-                  </button>
-                )}
+            <div className="px-4 sm:px-6 py-2.5 border-t border-slate-100 bg-slate-50/60 flex items-center gap-3 text-[11px] text-slate-500">
+              {draftStatus === 'saved' && composer.trim() && (
+                <span className="inline-flex items-center gap-1 text-slate-400">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  Draft saved
+                </span>
+              )}
+              {composer.trim() && (
+                <button
+                  type="button"
+                  onClick={discardDraft}
+                  className="text-slate-400 hover:text-rose-600 underline underline-offset-2"
+                >
+                  Discard
+                </button>
+              )}
+            </div>
               </div>
-              <button
-                type="button"
-                onClick={handlePost}
-                disabled={!composer.trim() || posting}
-                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {posting ? 'Posting…' : 'Post to wall'}
-              </button>
             </div>
           </div>
+        )}
+
+        {/* Floating + button — replaces the always-on composer at the
+            top of the feed. Tap to open the post composer in a sheet.
+            Coach/admin gated. Bottom-right with safe-area awareness. */}
+        {canPost && !composerOpen && (
+          <button
+            type="button"
+            onClick={() => setComposerOpen(true)}
+            aria-label="New post"
+            className="fixed right-4 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white rounded-full w-14 h-14 shadow-xl ring-4 ring-white/80 flex items-center justify-center z-30 transition"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
         )}
 
         {loading ? (
@@ -793,16 +834,18 @@ const Wall: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Action bar — big, evenly-spaced buttons. Mobile
-                      tap targets >= 44px. Three primary actions on the
-                      left; manage actions in a kebab to keep the row
-                      clean. */}
-                  <div className="px-2 pt-2 pb-1 border-t border-slate-100 flex items-center justify-around">
+                  {/* Action footer — dark navy strip with cyan accents.
+                      Matches the rest of the app's branded chrome
+                      (chat action sheet header, emoji picker header,
+                      composer modal). Gives each card a polished
+                      "front page" feel rather than the flat white
+                      Slack-ish look. */}
+                  <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-2 py-1 flex items-center justify-around">
                     <button
                       type="button"
                       onClick={() => toggleLike(p)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-bold transition active:scale-95 ${
-                        myLike ? 'text-rose-600' : 'text-slate-600 hover:bg-slate-50'
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest transition active:scale-95 ${
+                        myLike ? 'text-rose-300' : 'text-cyan-200/80 hover:text-white'
                       }`}
                     >
                       <svg className="w-5 h-5" fill={myLike ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -813,7 +856,7 @@ const Wall: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => toggleExpand(p.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-bold text-slate-600 hover:bg-slate-50 active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest text-cyan-200/80 hover:text-white active:scale-95"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -823,8 +866,8 @@ const Wall: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => shareToWeb(p)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[13px] font-bold active:scale-95 ${
-                        (p as any).isPublic ? 'text-emerald-700 hover:bg-emerald-50' : 'text-slate-600 hover:bg-slate-50'
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest active:scale-95 ${
+                        (p as any).isPublic ? 'text-emerald-300 hover:text-emerald-200' : 'text-cyan-200/80 hover:text-white'
                       }`}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -834,7 +877,6 @@ const Wall: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          // Single combined manage menu — pin/unpin or delete.
                           const action = window.prompt(
                             `Manage post:\n\n1 = ${isPinnedTop ? 'Unpin' : 'Pin to top'}\n2 = Delete\n\nType 1 or 2:`,
                             ''
@@ -843,7 +885,7 @@ const Wall: React.FC = () => {
                           if (action === '2') void removePost(p);
                         }}
                         aria-label="Manage post"
-                        className="w-10 py-2 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-50 active:scale-95"
+                        className="w-10 py-2 flex items-center justify-center rounded-lg text-cyan-200/60 hover:text-white active:scale-95"
                       >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>
                       </button>

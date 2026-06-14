@@ -22,6 +22,7 @@ const TeamChat: React.FC = () => {
     subscribeToChatThreads,
     subscribeToClubChatThreads,
     subscribeToChatMessages,
+    getOlderChatMessages,
     updateDocument,
     deleteDocument,
     getDocuments,
@@ -39,6 +40,12 @@ const TeamChat: React.FC = () => {
   // delivers a doc with the same content+sender+timestamp window OR
   // after a short ceiling so a failed send doesn't ghost forever.
   const [pendingMessages, setPendingMessages] = useState<Array<ChatMessage & { __pending: true; __failed?: boolean }>>([]);
+  // Pagination state for "load older messages" on scroll-up. We store
+  // the older batches separately from the live tail so the active
+  // subscription doesn't blow them away on every re-render.
+  const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreOlder, setHasMoreOlder] = useState(true);
   // Slide direction for chat-view entry/exit. Animation is purely
   // visual — we clear the state flag with a ref-cancelled timeout so
   // a rapid retap (back → tap thread A → tap thread B) can't race.
@@ -778,6 +785,10 @@ const TeamChat: React.FC = () => {
       // briefly render the old thread's data (which would trip the
       // scroll-anchor effect and leave the user mid-thread).
       setMessages([]);
+      // Reset pagination state for the new thread.
+      setOlderMessages([]);
+      setHasMoreOlder(true);
+      setLoadingOlder(false);
       // Clear pending optimistic rows from the previous thread —
       // they'd otherwise leak into the new conversation.
       setPendingMessages(prev => prev.filter(p => p.threadId === selectedThread.id));
@@ -882,6 +893,53 @@ const TeamChat: React.FC = () => {
     isAtBottomRef.current = atBottom;
     setIsScrolledUp(!atBottom);
     if (atBottom) setUnreadWhileScrolledUp(0);
+    // Near top → load older messages. Trigger ~200px before the top
+    // so the page is ready by the time the user gets there.
+    if (selectedThread && c.scrollTop < 200 && !loadingOlder && hasMoreOlder) {
+      void loadOlderMessages();
+    }
+  };
+
+  // Load the next page of older messages and prepend. Preserves the
+  // user's visual position by adjusting scrollTop to compensate for
+  // the newly-inserted content's height.
+  const loadOlderMessages = async () => {
+    if (!selectedThread || loadingOlder || !hasMoreOlder) return;
+    setLoadingOlder(true);
+    try {
+      // Find the oldest currently-visible message to anchor the query.
+      const combined = [...olderMessages, ...messages].sort(
+        (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+      );
+      const oldest = combined[0];
+      if (!oldest) { setLoadingOlder(false); return; }
+      const c = messagesContainerRef.current;
+      const prevScrollHeight = c?.scrollHeight ?? 0;
+      const prevScrollTop = c?.scrollTop ?? 0;
+      const batch = await getOlderChatMessages(selectedThread.id, oldest.timestamp, 50);
+      if (batch.length === 0) {
+        setHasMoreOlder(false);
+        return;
+      }
+      if (batch.length < 50) setHasMoreOlder(false);
+      // Dedupe in case the live tail overlaps with the older batch.
+      setOlderMessages(prev => {
+        const seen = new Set(prev.map(m => m.id));
+        const merged = [...batch.filter(m => !seen.has(m.id)), ...prev]
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+        return merged;
+      });
+      // Restore scroll position so the user doesn't visually jump.
+      requestAnimationFrame(() => {
+        if (!c) return;
+        const newScrollHeight = c.scrollHeight;
+        c.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+      });
+    } catch (err) {
+      // Logger already fired inside getOlderChatMessages.
+    } finally {
+      setLoadingOlder(false);
+    }
   };
 
   // UI state for the floating "new messages" pill. When the user has
@@ -949,7 +1007,13 @@ const TeamChat: React.FC = () => {
     if ((!content && attachments.length === 0) || !selectedThread || !userData) return;
 
     const sendTimestamp = new Date();
-    const tempId = `pending_${sendTimestamp.getTime()}_${Math.random().toString(36).slice(2, 7)}`;
+    // Client-generated UUID — idempotent retries. If the queue retries
+    // a send that secretly already succeeded, we just overwrite the
+    // same doc with the same data; no duplicate.
+    const stableMsgId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+      ? (crypto as any).randomUUID()
+      : `cm_${sendTimestamp.getTime()}_${Math.random().toString(36).slice(2, 10)}`;
+    const tempId = stableMsgId; // optimistic + final id share the same value
     const threadIdAtSend = selectedThread.id;
 
     // OPTIMISTIC RENDER — push the pending message straight into the
@@ -984,27 +1048,44 @@ const TeamChat: React.FC = () => {
     setReplyingTo(null);
     messageInputRef.current?.focus();
 
-    try {
-      const messageData: any = {
-        threadId: threadIdAtSend,
-        content,
-        senderId: userData.uid,
-        senderName: userData.name,
-        senderPhotoUrl: (userData as any).photoURL || undefined,
-        senderRole: userData.role,
-        timestamp: sendTimestamp,
-        teamId: selectedTeamId,
-      };
-      if (replyingTo?.id) messageData.replyTo = replyingTo.id;
-      if (attachments.length > 0) messageData.attachments = attachments;
-      // Important / acknowledgment-required messages get the sender
-      // auto-acknowledged so the recipient roster excludes them.
-      if (opts?.requireAck) {
-        messageData.requireAck = true;
-        messageData.acknowledgedBy = [userData.uid];
-      }
+    const messageData: any = {
+      id: stableMsgId, // pinned for idempotent writes
+      threadId: threadIdAtSend,
+      content,
+      senderId: userData.uid,
+      senderName: userData.name,
+      senderPhotoUrl: (userData as any).photoURL || undefined,
+      senderRole: userData.role,
+      timestamp: sendTimestamp,
+      teamId: selectedTeamId,
+    };
+    if (replyingTo?.id) messageData.replyTo = replyingTo.id;
+    if (attachments.length > 0) messageData.attachments = attachments;
+    if (opts?.requireAck) {
+      messageData.requireAck = true;
+      messageData.acknowledgedBy = [userData.uid];
+    }
 
-      const newMessageId = await addChatMessage(messageData);
+    try {
+      // Queue the actual write. The queue auto-retries on transient
+      // failures with exponential backoff and reattempts everything
+      // when the browser fires 'online'. Idempotent writes (client id)
+      // make retries safe even if the underlying network actually did
+      // deliver a previous attempt.
+      const { chatSendQueue } = await import('../utils/chatSendQueue');
+      await new Promise<void>((resolve, reject) => {
+        chatSendQueue.enqueue({
+          id: stableMsgId,
+          threadId: threadIdAtSend,
+          attempt: 0,
+          do: async () => {
+            await addChatMessage(messageData);
+          },
+          onSuccess: () => resolve(),
+          onFinalFailure: (err) => reject(err),
+        });
+      });
+      const newMessageId = stableMsgId;
 
       const lastSnippet = content || (attachments.length > 0 ? `📷 ${attachments.length} image${attachments.length > 1 ? 's' : ''}` : '');
       // "Post to wall" — pin the new message at send-time. Same data
@@ -1178,7 +1259,10 @@ const TeamChat: React.FC = () => {
     const threadPending = selectedThread
       ? pendingMessages.filter(p => p.threadId === selectedThread.id)
       : [];
-    const combined = [...messages, ...threadPending].sort(
+    // Dedupe in case the live tail overlaps with the older batches.
+    const tailById = new Map(messages.map(m => [m.id, m]));
+    const olderDeduped = olderMessages.filter(m => !tailById.has(m.id));
+    const combined = [...olderDeduped, ...messages, ...threadPending].sort(
       (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
     );
     const q = threadSearchQuery.trim().toLowerCase();
@@ -2359,6 +2443,11 @@ const TeamChat: React.FC = () => {
                 {threadSearchQuery.trim() && visibleMessages.length === 0 && (
                   <div className="text-center text-sm text-slate-500 py-6">
                     No messages match "{threadSearchQuery.trim()}".
+                  </div>
+                )}
+                {loadingOlder && (
+                  <div className="flex justify-center py-2">
+                    <div className="w-5 h-5 rounded-full border-2 border-slate-200 border-t-cyan-500 animate-spin" />
                   </div>
                 )}
                 {!threadSearchQuery.trim() && visibleMessages.length === 0 && (

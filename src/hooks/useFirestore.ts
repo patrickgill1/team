@@ -451,14 +451,72 @@ const getUserData = useCallback(async (uid: string) => {
   }, []);
 
   // Chat Message Functions
-  const addChatMessage = useCallback(async (messageData: Omit<ChatMessage, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const messageToAdd = {
-      ...messageData,
+  //
+  // Idempotent writes. The caller passes a client-generated id; we
+  // setDoc at that exact path. If the network drops mid-send and we
+  // retry with the same id, Firestore overwrites (same data → no-op
+  // dupe). Without this the retry queue could plant the same message
+  // twice on bad connections.
+  const addChatMessage = useCallback(async (messageData: Omit<ChatMessage, 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    const id = messageData.id || (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `cm_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
+    const { id: _stripId, ...rest } = messageData as any;
+    const messageToWrite = {
+      ...rest,
       createdAt: new Date(),
       updatedAt: new Date(),
-      timestamp: messageData.timestamp || new Date()
+      timestamp: messageData.timestamp || new Date(),
     };
-    return addDocument('chat_messages', messageToAdd);
+    try {
+      const { setDoc, doc: fsDoc } = await import('firebase/firestore');
+      await setDoc(fsDoc(db, 'chat_messages', id), messageToWrite);
+      return id;
+    } catch (err) {
+      const { logFirestoreError } = await import('../utils/firestoreLogger');
+      logFirestoreError('write', `chat_messages/${id}`, err, { op: 'addChatMessage' });
+      throw err;
+    }
+  }, []);
+
+  /** Fetch the next page of older messages above `beforeTimestamp`.
+   *  Used by the chat view when the user scrolls near the top — we
+   *  prepend the older batch to the existing list without resetting
+   *  the live subscription on the tail. Returns ascending order so
+   *  callers can splice into the front of their list directly. */
+  const getOlderChatMessages = useCallback(async (threadId: string, beforeTimestamp: Date, pageSize: number = 50) => {
+    try {
+      const q = query(
+        collection(db, 'chat_messages'),
+        where('threadId', '==', threadId),
+        where('timestamp', '<', beforeTimestamp),
+        orderBy('timestamp', 'desc'),
+        limit(pageSize),
+      );
+      const snap = await getDocs(q);
+      const messages = snap.docs.slice().reverse().map(doc => {
+        const data = doc.data() as any;
+        return {
+          ...data,
+          id: doc.id,
+          threadId: data.threadId || '',
+          content: data.content || '',
+          senderId: data.senderId || '',
+          senderName: data.senderName || '',
+          senderRole: data.senderRole || 'parent',
+          timestamp: data.timestamp?.toDate?.() || (data.timestamp instanceof Date ? data.timestamp : new Date()),
+          edited: data.edited || false,
+          editedAt: data.editedAt?.toDate?.() || undefined,
+          replyTo: data.replyTo || undefined,
+          teamId: data.teamId || '',
+        } as ChatMessage;
+      });
+      return messages;
+    } catch (err) {
+      const { logFirestoreError } = await import('../utils/firestoreLogger');
+      logFirestoreError('read', `chat_messages?threadId=${threadId}&before=${beforeTimestamp.toISOString()}`, err, { op: 'getOlderChatMessages' });
+      throw err;
+    }
   }, []);
 
   const getChatMessagesByThread = useCallback(async (threadId: string, limitCount: number = 50) => {
@@ -633,18 +691,16 @@ const getUserData = useCallback(async (uid: string) => {
     return addDocument('chat_threads', threadToAdd);
   }, [addDocument]);
 
-  const subscribeToChatMessages = useCallback((threadId: string, callback: (messages: ChatMessage[]) => void) => {
-    // Pull the LATEST 100 messages — descending order + reverse
-    // client-side. The previous orderBy('asc') + limit(100) returned
-    // the FIRST 100 messages, so any thread that grew past 100 stopped
-    // showing new ones (the subscription kept returning the oldest
-    // window). Symptom: thread shows old conversation, every new
-    // message vanishes once the 101st landed.
+  const subscribeToChatMessages = useCallback((threadId: string, callback: (messages: ChatMessage[]) => void, pageSize: number = 50) => {
+    // Pull the LATEST `pageSize` messages — descending order + reverse
+    // client-side. Older messages load via getOlderChatMessages on
+    // scroll-up. The subscription only tracks the live tail so new
+    // sends always surface; pagination history is fetched out-of-band.
     const q = query(
       collection(db, 'chat_messages'),
       where('threadId', '==', threadId),
       orderBy('timestamp', 'desc'),
-      limit(100)
+      limit(pageSize)
     );
 
     return onSnapshot(q, (querySnapshot) => {
@@ -855,6 +911,7 @@ const getUserData = useCallback(async (uid: string) => {
     getChatThreadsByTeam,
     addChatMessage,
     getChatMessagesByThread,
+    getOlderChatMessages,
     subscribeToChatThreads,
     subscribeToClubChatThreads,
     subscribeToChatMessages,

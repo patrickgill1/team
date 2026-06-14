@@ -125,7 +125,7 @@ const WallHeaderButton: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-0 bottom-0 overflow-y-auto bg-white animate-sheet-up safe-top overscroll-contain"
+            className="absolute top-0 bottom-0 overflow-y-auto bg-white animate-sheet-up safe-top overscroll-contain flex flex-col"
             style={{ left: 0, right: 0, width: '100vw', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between border-b border-white/10">
@@ -159,23 +159,44 @@ const WallHeaderButton: React.FC = () => {
               </div>
             </div>
 
-            {posts.length === 0 ? (
-              <div className="px-6 py-10 text-center">
-                <div className="mx-auto w-12 h-12 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-cyan-600 mb-3">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+            <div className="flex-1">
+              {posts.length === 0 ? (
+                <div className="px-6 py-10 text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-cyan-600 mb-3">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700">Nothing posted yet</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Coach announcements will land here.</p>
                 </div>
-                <p className="text-sm font-semibold text-slate-700">Nothing posted yet</p>
-                <p className="text-xs text-slate-500 mt-0.5">Coach announcements will land here.</p>
-              </div>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {posts.map(p => (
-                  <li key={p.id}>
-                    <WallDrawerPost post={p} onNavigate={() => setOpen(false)} />
-                  </li>
-                ))}
-              </ul>
-            )}
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {posts.map(p => (
+                    <li key={p.id}>
+                      <WallDrawerPost post={p} onNavigate={() => setOpen(false)} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Dark-navy footer to match the rest of the app's chrome
+                (chat action sheet, post cards, emoji picker, composer
+                modal). Gives the drawer a polished bookend rather than
+                a giant white area below the last post — Patrick:
+                "footer bar on the drawer, not the wall page". */}
+            <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-300/70">
+                {posts.length === 0 ? 'No posts yet' : `${posts.length} recent post${posts.length === 1 ? '' : 's'}`}
+              </span>
+              <Link
+                to="/wall"
+                onClick={() => setOpen(false)}
+                className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-300 hover:text-white inline-flex items-center gap-1"
+              >
+                Open the wall
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </Link>
+            </div>
           </div>
         </div>,
         document.body,

@@ -8,6 +8,7 @@ import { isCoach } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
 import EmptyState from '../components/common/EmptyState';
+import EmojiPicker from '../components/chat/EmojiPicker';
 import { SkeletonCard } from '../components/common/Skeleton';
 import type { WallPost, WallComment } from '../types';
 
@@ -306,7 +307,20 @@ const Wall: React.FC = () => {
   }, [posts]);
 
   const toggleExpand = (postId: string) => {
-    setExpanded(prev => ({ ...prev, [postId]: !prev[postId] }));
+    setExpanded(prev => {
+      const next = { ...prev, [postId]: !prev[postId] };
+      // When opening, scroll the post into view so the user can see
+      // the comments section + composer (it was getting hidden behind
+      // the bottom nav, forcing a hunt-scroll). One frame delay so
+      // the expanded DOM has actually rendered.
+      if (next[postId]) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(`wall-comments-${postId}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+      return next;
+    });
   };
 
   const submitComment = async (postId: string) => {
@@ -444,22 +458,32 @@ const Wall: React.FC = () => {
     }
   };
 
-  // Like / unlike a wall post.
+  // Like / unlike a wall post (kept for the inline ♥ tap).
   const toggleLike = async (post: WallPost) => {
+    await toggleReaction(post, '❤️');
+  };
+
+  // Toggle any emoji reaction on a wall post. Each user can hold ONE
+  // instance per emoji (toggle = remove if present, add otherwise).
+  const toggleReaction = async (post: WallPost, emoji: string) => {
     if (!userData?.uid) return;
     const reactions = post.reactions || [];
-    const mine = reactions.find(r => r.userId === userData.uid && r.emoji === '❤️');
+    const mine = reactions.find(r => r.userId === userData.uid && r.emoji === emoji);
     const next = mine
-      ? reactions.filter(r => !(r.userId === userData.uid && r.emoji === '❤️'))
-      : [...reactions, { emoji: '❤️', userId: userData.uid, userName: userData.name || 'Friend' }];
+      ? reactions.filter(r => !(r.userId === userData.uid && r.emoji === emoji))
+      : [...reactions, { emoji, userId: userData.uid, userName: userData.name || 'Friend' }];
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, reactions: next } : p));
     try {
       await updateDoc(doc(db, 'wall_posts', post.id), { reactions: next });
     } catch (err) {
-      console.error('like toggle failed', err);
+      console.error('reaction toggle failed', err);
       setPosts(prev => prev.map(p => p.id === post.id ? { ...p, reactions } : p));
     }
   };
+
+  // Wall post reaction picker — opens the same EmojiPicker the chat
+  // uses so reactions feel consistent across the app.
+  const [reactingPostId, setReactingPostId] = useState<string | null>(null);
 
   // Image upload — insert inline at the caret as markdown so the image
   // appears in the flow of the post (interleaved with text), not as a
@@ -521,24 +545,42 @@ const Wall: React.FC = () => {
         </div>
       </section>
 
-      {/* Category pills — horizontally scrollable on mobile, snaps under
-          the header. Sticky so they stay accessible as the feed scrolls. */}
+      {/* Category pills + inline "+ Post" CTA — horizontally
+          scrollable on mobile, sticky under the header. Putting the
+          new-post button HERE (instead of a floating FAB) avoids the
+          right-edge collision with each post's kebab and keeps the
+          CTA always-visible without overlaying content. */}
       <div className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-2xl mx-auto px-3 py-2 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          {CATEGORIES.map(c => (
+        <div className="max-w-2xl mx-auto px-3 py-2 flex items-center gap-1.5">
+          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {CATEGORIES.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setActiveCategory(c.id)}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
+                  activeCategory === c.id
+                    ? 'bg-slate-950 text-white'
+                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {canPost && (
             <button
-              key={c.id}
               type="button"
-              onClick={() => setActiveCategory(c.id)}
-              className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
-                activeCategory === c.id
-                  ? 'bg-slate-950 text-white'
-                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-              }`}
+              onClick={() => setComposerOpen(true)}
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white text-[12px] font-extrabold uppercase tracking-widest transition shadow-sm"
             >
-              {c.label}
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Post
             </button>
-          ))}
+          )}
         </div>
       </div>
 
@@ -695,27 +737,11 @@ const Wall: React.FC = () => {
           </div>
         )}
 
-        {/* Floating + button — replaces the always-on composer at the
-            top of the feed. Tap to open the post composer in a sheet.
-            Coach/admin gated. Bottom-right with safe-area awareness. */}
-        {canPost && !composerOpen && (
-          <button
-            type="button"
-            onClick={() => setComposerOpen(true)}
-            aria-label="New post"
-            // Bottom nav is 48px tall (h-12) and has its own
-            // safe-area-inset-bottom padding. Stack the FAB ABOVE
-            // both so it's never hidden behind the tab bar. z-50 to
-            // beat any sticky sub-headers.
-            className="fixed right-4 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white rounded-full w-14 h-14 shadow-xl ring-4 ring-white/80 flex items-center justify-center z-50 transition"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 4.25rem)' }}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        )}
+        {/* (Floating + FAB removed — the new-post CTA now lives inline
+            in the sticky category bar above. Patrick: the floating
+            button "gets in the way of the three dots and obstructs it
+            in other ways". Sticky pill is always visible without
+            overlaying any post content.) */}
 
         {loading ? (
           <div className="space-y-3">
@@ -738,8 +764,19 @@ const Wall: React.FC = () => {
           <ul className="space-y-3">
             {filteredPosts.map(p => {
               const myUid = userData?.uid;
-              const likes = (p.reactions || []).filter(r => r.emoji === '❤️');
+              const allReactions = p.reactions || [];
+              const likes = allReactions.filter(r => r.emoji === '❤️');
               const myLike = myUid ? likes.some(r => r.userId === myUid) : false;
+              // Group reactions by emoji for the chip strip below the
+              // post — same UX as chat. Each chip shows count + a
+              // "mine" highlight if this user reacted with it.
+              const grouped: Record<string, { count: number; mine: boolean }> = {};
+              for (const r of allReactions) {
+                if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, mine: false };
+                grouped[r.emoji].count++;
+                if (myUid && r.userId === myUid) grouped[r.emoji].mine = true;
+              }
+              const reactionEntries = Object.entries(grouped).sort((a, b) => b[1].count - a[1].count);
               const isPinnedTop = !!p.wallPinnedTop;
               const cat = (p.category || 'announcement') as WallCategory;
               const tone = CATEGORY_TONE[cat];
@@ -817,19 +854,26 @@ const Wall: React.FC = () => {
                     )
                   )}
 
-                  {/* Engagement bar — like + comment counts surfaced
-                      OUTSIDE the action buttons so people scrolling can
-                      see the post's traction without tapping. */}
-                  {(likes.length > 0 || (commentCounts[p.id] || 0) > 0) && (
-                    <div className="px-4 pt-3 pb-1 flex items-center gap-3 text-[12px] text-slate-500">
-                      {likes.length > 0 && (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500 text-white">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                          </span>
-                          {likes.length}
-                        </span>
-                      )}
+                  {/* Reaction chips strip — one per emoji, with count.
+                      Tap to toggle YOUR reaction with that emoji. Tap
+                      the comment count to expand the thread. */}
+                  {(reactionEntries.length > 0 || (commentCounts[p.id] || 0) > 0) && (
+                    <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-slate-500">
+                      {reactionEntries.map(([emoji, info]) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => void toggleReaction(p, emoji)}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] ring-1 transition ${
+                            info.mine
+                              ? 'bg-cyan-50 ring-cyan-300 text-cyan-900'
+                              : 'bg-slate-50 ring-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="text-sm leading-none">{emoji}</span>
+                          <span className="font-semibold tabular-nums">{info.count}</span>
+                        </button>
+                      ))}
                       {(commentCounts[p.id] || 0) > 0 && (
                         <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-cyan-700 font-semibold">
                           {commentCounts[p.id]} {commentCounts[p.id] === 1 ? 'comment' : 'comments'}
@@ -847,7 +891,7 @@ const Wall: React.FC = () => {
                   <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-2 py-1 flex items-center justify-around">
                     <button
                       type="button"
-                      onClick={() => toggleLike(p)}
+                      onClick={() => setReactingPostId(p.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest transition active:scale-95 ${
                         myLike ? 'text-rose-300' : 'text-cyan-200/80 hover:text-white'
                       }`}
@@ -855,7 +899,7 @@ const Wall: React.FC = () => {
                       <svg className="w-5 h-5" fill={myLike ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                       </svg>
-                      Like
+                      React
                     </button>
                     <button
                       type="button"
@@ -920,7 +964,7 @@ const Wall: React.FC = () => {
                   )}
 
                   {expanded[p.id] && (
-                    <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 space-y-3">
+                    <div id={`wall-comments-${p.id}`} className="border-t border-slate-100 bg-slate-50 px-4 py-3 space-y-3">
                       {commentsForPost.length > 0 && (
                         <ul className="space-y-2.5">
                           {commentsForPost.map(c => (
@@ -985,6 +1029,26 @@ const Wall: React.FC = () => {
           </ul>
         )}
       </div>
+
+      {/* Wall reaction picker — same EmojiPicker the chat uses, so
+          reactions feel consistent. Closes on pick / dim tap. */}
+      {reactingPostId && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+          onClick={() => setReactingPostId(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md animate-sheet-up sm:animate-pop-in">
+            <EmojiPicker
+              onPick={(emoji) => {
+                const target = posts.find(p => p.id === reactingPostId);
+                if (target) void toggleReaction(target, emoji);
+                setReactingPostId(null);
+              }}
+              onClose={() => setReactingPostId(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

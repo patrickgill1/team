@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useTeam } from '../../contexts/TeamContext';
+import { RichContent } from '../../pages/Wall';
 import type { WallPost } from '../../types';
 
 // Always-visible Wall affordance in the top header. Tapping it slides
@@ -80,15 +81,18 @@ const WallHeaderButton: React.FC = () => {
         type="button"
         onClick={handleOpen}
         aria-label="Wall"
-        className="relative h-9 w-9 rounded-full flex items-center justify-center text-white/85 hover:text-white hover:bg-white/10 transition"
+        className="relative inline-flex items-center gap-1.5 h-9 px-2.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest text-white/85 hover:text-white hover:bg-white/10 transition"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
           <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
           <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
         </svg>
+        <span>Wall</span>
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-fire-950" />
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 ring-2 ring-fire-950 text-white text-[10px] font-black flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
         )}
       </button>
 
@@ -131,12 +135,8 @@ const WallHeaderButton: React.FC = () => {
               <ul className="divide-y divide-slate-100">
                 {posts.map(p => (
                   <li key={p.id}>
-                    <Link
-                      to="/wall"
-                      onClick={() => setOpen(false)}
-                      className="block px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 mb-1">
+                    <article className="block px-4 sm:px-5 py-4 hover:bg-slate-50/60 transition-colors">
+                      <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-sm font-bold text-slate-900">{p.senderName}</span>
                         {p.senderRole === 'coach' && (
                           <span className="text-[9px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
@@ -145,10 +145,33 @@ const WallHeaderButton: React.FC = () => {
                           {p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-700 line-clamp-3 whitespace-pre-wrap break-words">
-                        {p.content.replace(/[*#>`_~-]/g, '').replace(/!\[[^\]]*\]\([^)]*\)/g, '[image]')}
-                      </p>
-                    </Link>
+                      <div className="text-[15px] text-slate-800 break-words">
+                        <RichContent text={p.content} />
+                      </div>
+                      {p.attachments && p.attachments.length > 0 && (
+                        <div className={`mt-3 grid gap-1.5 ${p.attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                          {p.attachments.slice(0, 4).map((a, i) => (
+                            <img
+                              key={i}
+                              src={a.url}
+                              alt={a.name || ''}
+                              loading="lazy"
+                              className={`rounded-lg object-cover w-full ring-1 ring-slate-200 ${p.attachments!.length === 1 ? 'max-h-72' : 'h-32'}`}
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-3">
+                        <Link
+                          to="/wall"
+                          onClick={() => setOpen(false)}
+                          className="inline-flex items-center gap-1 text-xs font-bold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
+                        >
+                          Open on the wall →
+                        </Link>
+                      </div>
+                    </article>
                   </li>
                 ))}
               </ul>

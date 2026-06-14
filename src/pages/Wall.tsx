@@ -900,7 +900,7 @@ const SpinnerIcon: React.FC = () => (
 // Old clients without this renderer fall back to raw text — still
 // readable, just not styled.
 
-const RichContent: React.FC<{ text: string }> = ({ text }) => {
+export const RichContent: React.FC<{ text: string }> = ({ text }) => {
   const lines = text.split('\n');
   const blocks: React.ReactNode[] = [];
   let bulletBuffer: string[] = [];

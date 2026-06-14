@@ -98,12 +98,12 @@ const WallHeaderButton: React.FC = () => {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+          className="fixed inset-0 z-50 bg-slate-950/85 animate-fade-in"
           onClick={() => setOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-x-0 top-0 max-h-[92vh] overflow-y-auto bg-white shadow-2xl animate-sheet-up safe-top"
+            className="absolute inset-x-0 top-0 max-h-[92vh] overflow-y-auto bg-white animate-sheet-up safe-top border-b border-slate-200"
           >
             <div className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-2">
@@ -148,43 +148,7 @@ const WallHeaderButton: React.FC = () => {
               <ul className="divide-y divide-slate-100">
                 {posts.map(p => (
                   <li key={p.id}>
-                    <article className="block px-4 sm:px-5 py-4 hover:bg-slate-50/60 transition-colors">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-sm font-bold text-slate-900">{p.senderName}</span>
-                        {p.senderRole === 'coach' && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
-                        )}
-                        <span className="text-[11px] text-slate-400 ml-auto">
-                          {p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <div className="text-[15px] text-slate-800 break-words">
-                        <RichContent text={p.content} />
-                      </div>
-                      {p.attachments && p.attachments.length > 0 && (
-                        <div className={`mt-3 grid gap-1.5 ${p.attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                          {p.attachments.slice(0, 4).map((a, i) => (
-                            <img
-                              key={i}
-                              src={a.url}
-                              alt={a.name || ''}
-                              loading="lazy"
-                              className={`rounded-lg object-cover w-full ring-1 ring-slate-200 ${p.attachments!.length === 1 ? 'max-h-72' : 'h-32'}`}
-                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                      <div className="mt-3">
-                        <Link
-                          to="/wall"
-                          onClick={() => setOpen(false)}
-                          className="inline-flex items-center gap-1 text-xs font-bold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
-                        >
-                          Open on the wall →
-                        </Link>
-                      </div>
-                    </article>
+                    <WallDrawerPost post={p} onNavigate={() => setOpen(false)} />
                   </li>
                 ))}
               </ul>
@@ -193,6 +157,84 @@ const WallHeaderButton: React.FC = () => {
         </div>
       )}
     </>
+  );
+};
+
+// Renders a single post in the wall drawer with collapse/expand for
+// long content. Without this a single big pinned post can hide every
+// other post in the drawer behind it.
+const COLLAPSED_MAX_PX = 240;
+
+const WallDrawerPost: React.FC<{ post: WallPost; onNavigate: () => void }> = ({ post: p, onNavigate }) => {
+  const bodyRef = React.useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [needsCollapse, setNeedsCollapse] = useState(false);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    setNeedsCollapse(el.scrollHeight > COLLAPSED_MAX_PX + 24);
+  }, [p.content]);
+
+  return (
+    <article className="block px-4 sm:px-5 py-4 hover:bg-slate-50/60 transition-colors">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-sm font-bold text-slate-900">{p.senderName}</span>
+        {p.senderRole === 'coach' && (
+          <span className="text-[9px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
+        )}
+        <span className="text-[11px] text-slate-400 ml-auto">
+          {p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+        </span>
+      </div>
+      <div className="relative">
+        <div
+          ref={bodyRef}
+          className="text-[15px] text-slate-800 break-words"
+          style={!expanded && needsCollapse ? { maxHeight: COLLAPSED_MAX_PX, overflow: 'hidden' } : undefined}
+        >
+          <RichContent text={p.content} />
+        </div>
+        {!expanded && needsCollapse && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent"
+          />
+        )}
+      </div>
+      {needsCollapse && (
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          className="mt-2 text-[11px] font-bold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+        >
+          {expanded ? 'Show less' : 'Read more'}
+        </button>
+      )}
+      {p.attachments && p.attachments.length > 0 && (
+        <div className={`mt-3 grid gap-1.5 ${p.attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          {p.attachments.slice(0, 4).map((a, i) => (
+            <img
+              key={i}
+              src={a.url}
+              alt={a.name || ''}
+              loading="lazy"
+              className={`rounded-lg object-cover w-full ring-1 ring-slate-200 ${p.attachments!.length === 1 ? 'max-h-72' : 'h-32'}`}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ))}
+        </div>
+      )}
+      <div className="mt-3">
+        <Link
+          to="/wall"
+          onClick={onNavigate}
+          className="inline-flex items-center gap-1 text-xs font-bold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
+        >
+          Open on the wall →
+        </Link>
+      </div>
+    </article>
   );
 };
 

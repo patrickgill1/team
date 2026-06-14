@@ -871,28 +871,41 @@ const TeamChat: React.FC = () => {
     if (!selectedThread || messages.length === 0) return;
     const isNewThread = anchoredThreadIdRef.current !== selectedThread.id;
     if (isNewThread) {
-      scrollToBottom(false);
-      isAtBottomRef.current = true;
       anchoredThreadIdRef.current = selectedThread.id;
-      // 3s window during which onScroll updates are suppressed and
-      // the ResizeObserver below force-pins to bottom on every layout
-      // shift. ResizeObserver catches image/GIF loads in real time so
-      // the user never sees us "lift off" the bottom — no scheduled
-      // catch-up timers (those were the source of the bouncing: each
-      // timer fired a discrete jump after layout had already shifted,
-      // visible as a hop down).
+      isAtBottomRef.current = true;
+      // 3s window during which onScroll updates are suppressed (so
+      // iOS's synthetic scroll-anchoring scrolls can't flip the flag).
       initialLoadUntilRef.current = Date.now() + 3000;
+
+      // Multi-frame pin: keep forcing scrollTop = scrollHeight every
+      // animation frame for ~700ms. This catches EVERY layout shift
+      // (image load, GIF render, font swap, async markdown chunk)
+      // without relying on a ResizeObserver that might be observing
+      // the wrong subtree. Each frame is a no-op when we're already
+      // pinned — so there's no visible bouncing, just a continuous
+      // glued-to-bottom view as content lands.
+      //
+      // This is the fix for "sometimes lands at bottom, sometimes
+      // mid-thread" — the single layout-effect call landed at the
+      // wrong scrollHeight when images were still in-flight.
+      const deadline = Date.now() + 700;
+      const pin = () => {
+        const c = messagesContainerRef.current;
+        if (!c) return;
+        c.scrollTop = c.scrollHeight;
+        if (Date.now() < deadline) requestAnimationFrame(pin);
+      };
+      requestAnimationFrame(pin);
     } else if (isAtBottomRef.current) {
       scrollToBottom(true);
     }
   }, [selectedThread, messages]);
 
-  // When images / GIFs inside the thread finish loading, the messages
-  // list gets taller. ResizeObserver fires on every layout change of
-  // the container's content. During the initial-load window we ALWAYS
-  // re-pin (regardless of isAtBottomRef) so iOS's scroll-anchoring
-  // chaos can't strand the user mid-thread; after that window we only
-  // re-pin if the user is still at the bottom.
+  // Belt-and-suspenders ResizeObserver for layout shifts that happen
+  // AFTER the 700ms window (slow images, late-arriving GIFs). Observes
+  // the container directly so it sees every reflow, not just the
+  // first child's. During the initial-load window we ALWAYS re-pin;
+  // afterwards only if the user is still at the bottom.
   useEffect(() => {
     const c = messagesContainerRef.current;
     if (!c || typeof ResizeObserver === 'undefined') return;
@@ -902,6 +915,7 @@ const TeamChat: React.FC = () => {
         c.scrollTop = c.scrollHeight;
       }
     });
+    ro.observe(c);
     if (c.firstElementChild) ro.observe(c.firstElementChild);
     return () => ro.disconnect();
   }, [selectedThread?.id]);

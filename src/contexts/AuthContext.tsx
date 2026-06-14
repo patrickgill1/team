@@ -80,6 +80,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const userDocUnsubRef = React.useRef<(() => void) | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -518,6 +519,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch { /* ignore */ }
       await signOut(auth);
       setUserData(null);
+      if (userDocUnsubRef.current) {
+        userDocUnsubRef.current();
+        userDocUnsubRef.current = null;
+      }
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -843,6 +848,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserData(userDataObj);
             setLoading(false); // ← unblock the UI immediately
             console.log('User data loaded:', userDataObj);
+
+            // Live subscribe to the user doc so changes the user makes
+            // from any device (pinning a chat, updating their name,
+            // joining a team) reflect immediately without a reload.
+            try {
+              const { onSnapshot, doc: fsDoc } = await import('firebase/firestore');
+              const { db } = await import('../utils/firebase');
+              const liveUnsub = onSnapshot(fsDoc(db, 'users', user.uid), (snap) => {
+                if (!snap.exists()) return;
+                const fresh = buildUserData(snap.data(), user);
+                setUserData(fresh);
+              }, (err) => console.warn('user-doc snapshot failed', err));
+              // Cleanup happens implicitly when the user signs out
+              // (onAuthStateChanged fires again with null) — store the
+              // unsubscribe on a ref so we can call it then.
+              (userDocUnsubRef.current as any) = liveUnsub;
+            } catch (err) {
+              console.warn('user-doc live subscribe init failed', err);
+            }
 
             // Fire-and-forget background tasks
             runBackgroundTasks(userDataObj, user.uid);

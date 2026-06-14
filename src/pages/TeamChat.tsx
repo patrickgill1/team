@@ -1353,27 +1353,13 @@ const TeamChat: React.FC = () => {
   };
 
   // Per-user thread pinning — each user maintains their own list of
-  // pinned thread IDs on their user doc. The pin must show up
-  // immediately on tap, so we keep a local optimistic copy alongside
-  // the server-backed userData read (AuthContext doesn't subscribe to
-  // user-doc changes, so without this the UI wouldn't update until
-  // the next reload).
-  const [localPinOverride, setLocalPinOverride] = useState<string[] | null>(null);
-  const myPinnedThreadIds: string[] = localPinOverride ?? (
-    Array.isArray((userData as any)?.pinnedThreadIds)
-      ? (userData as any).pinnedThreadIds
-      : []
-  );
-  // Reset the override whenever the server-side value catches up so
-  // we don't go stale on the next reload.
-  useEffect(() => {
-    const serverIds: string[] = Array.isArray((userData as any)?.pinnedThreadIds)
-      ? (userData as any).pinnedThreadIds
-      : [];
-    if (localPinOverride && JSON.stringify(localPinOverride) === JSON.stringify(serverIds)) {
-      setLocalPinOverride(null);
-    }
-  }, [userData, localPinOverride]);
+  // pinned thread IDs on their user doc. AuthContext now live-
+  // subscribes to the user doc, so the write triggers a snapshot
+  // which re-renders this component with the new pinned list. No
+  // local override needed.
+  const myPinnedThreadIds: string[] = Array.isArray((userData as any)?.pinnedThreadIds)
+    ? (userData as any).pinnedThreadIds
+    : [];
   const isThreadPinned = (thread: ChatThread): boolean =>
     myPinnedThreadIds.includes(thread.id);
   const togglePinThread = async (thread: ChatThread) => {
@@ -1381,13 +1367,10 @@ const TeamChat: React.FC = () => {
     const next = myPinnedThreadIds.includes(thread.id)
       ? myPinnedThreadIds.filter(id => id !== thread.id)
       : [...myPinnedThreadIds, thread.id];
-    setLocalPinOverride(next);
     try {
       await updateDoc(doc(db, 'users', userData.uid), { pinnedThreadIds: next });
     } catch (err) {
       console.error('Error toggling pin:', err);
-      // Revert on failure.
-      setLocalPinOverride(myPinnedThreadIds);
     }
   };
 
@@ -1433,7 +1416,10 @@ const TeamChat: React.FC = () => {
       if (scope === 'team') buckets.teams.push(t);
       else buckets.club.push(t);
     }
-    const order: SectionId[] = ['pinned', 'dms', 'groups', 'teams', 'club'];
+    // Patrick: team chats on top. Pinned still beats everything;
+    // after that, team channels surface above DMs/groups so the
+    // primary team conversation isn't buried by chatty 1:1s.
+    const order: SectionId[] = ['pinned', 'teams', 'club', 'groups', 'dms'];
     return order
       .filter(id => buckets[id].length > 0)
       .map(id => ({ id, label: SECTION_LABELS[id], threads: buckets[id] }));

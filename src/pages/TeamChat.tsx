@@ -8,6 +8,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
+import ChatImageLightbox, { LightboxImage } from '../components/chat/ChatImageLightbox';
 import MessageComposer, { ComposerAttachment } from '../components/chat/MessageComposer';
 import PollCard from '../components/chat/PollCard';
 
@@ -46,6 +47,30 @@ const TeamChat: React.FC = () => {
   const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
+  // Image lightbox state — opens full-screen when an image attachment
+  // in the thread is tapped. The gallery includes every image in
+  // the loaded thread window so the user can swipe between them.
+  const [chatLightbox, setChatLightbox] = useState<{ images: LightboxImage[]; startIndex: number } | null>(null);
+  const openImage = (url: string) => {
+    // Collect every image in the visible thread, in chronological order.
+    const all: LightboxImage[] = [];
+    for (const m of visibleMessages) {
+      const atts = (m as any).attachments as Array<{ url: string; type?: string }> | undefined;
+      if (!atts) continue;
+      for (const a of atts) {
+        if (a?.url && (!a.type || a.type.startsWith('image'))) {
+          all.push({
+            url: a.url,
+            caption: (m as any).content || undefined,
+            senderName: m.senderName,
+            timestamp: m.timestamp,
+          });
+        }
+      }
+    }
+    const startIndex = Math.max(0, all.findIndex(img => img.url === url));
+    setChatLightbox({ images: all.length > 0 ? all : [{ url }], startIndex });
+  };
   // Slide direction for chat-view entry/exit. Animation is purely
   // visual — we clear the state flag with a ref-cancelled timeout so
   // a rapid retap (back → tap thread A → tap thread B) can't race.
@@ -723,6 +748,17 @@ const TeamChat: React.FC = () => {
         }
       }
     }
+  }, [threads]);
+
+  // Pre-warm the first page of messages for the top 5 threads as soon
+  // as the list loads. By the time the user taps one, the SDK already
+  // has the data, so the chat view paints instantly rather than after
+  // the live subscription connects.
+  useEffect(() => {
+    if (threads.length === 0) return;
+    void import('../utils/chatPrewarm').then(({ prewarmThreads }) => {
+      prewarmThreads(threads.map(t => t.id), { topN: 5 });
+    });
   }, [threads]);
 
   // Load team members for @mention autocomplete + email, plus a
@@ -2123,6 +2159,8 @@ const TeamChat: React.FC = () => {
                     role="button"
                     tabIndex={0}
                     onClick={() => showChatView(thread)}
+                    onMouseEnter={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id)); }}
+                    onTouchStart={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id)); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') showChatView(thread); }}
                     className="w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-start gap-3 cursor-pointer"
                   >
@@ -2535,7 +2573,6 @@ const TeamChat: React.FC = () => {
                         }
                       }}
                       isMuted={Array.isArray((userData as any)?.mutedUserIds) && (userData as any).mutedUserIds.includes(message.senderId)}
-                      onImageClick={(url) => setLightboxUrl(url)}
                       onPollVote={voteOnPoll}
                       onAcknowledge={acknowledgeMessage}
                       threadParticipantCount={effectiveParticipants(selectedThread).length}
@@ -2547,6 +2584,7 @@ const TeamChat: React.FC = () => {
                       resolveUnknownUids={resolveUnknownUids}
                       canSeeVoters={isCoach || isUserClubAdmin}
                       onMarkRead={markMessageRead}
+                      onImageClick={openImage}
                     />
                     </div>
                     </React.Fragment>
@@ -2938,7 +2976,6 @@ const TeamChat: React.FC = () => {
                       if (sc === 'team') return isCoach;
                       return isUserClubAdmin;
                     })()}
-                    onImageClick={(url) => setLightboxUrl(url)}
                     onPollVote={voteOnPoll}
                     onAcknowledge={acknowledgeMessage}
                     threadParticipantCount={effectiveParticipants(selectedThread).length}
@@ -2950,6 +2987,7 @@ const TeamChat: React.FC = () => {
                       resolveUnknownUids={resolveUnknownUids}
                       canSeeVoters={isCoach || isUserClubAdmin}
                       onMarkRead={markMessageRead}
+                      onImageClick={openImage}
                   />
                   </div>
                 );
@@ -3110,6 +3148,13 @@ const TeamChat: React.FC = () => {
       )}
       {dmPickerModal}
       {lightbox}
+      {chatLightbox && (
+        <ChatImageLightbox
+          images={chatLightbox.images}
+          startIndex={chatLightbox.startIndex}
+          onClose={() => setChatLightbox(null)}
+        />
+      )}
     </div>
   );
 };

@@ -48,7 +48,9 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
       const optimisticActive = localPlans
         .map(p => p.id === plan.id ? { ...p, goals: updated } : p)
         .filter(p => p.status === 'active');
-      void recomputeAndPersistPlayerStreak(playerId, optimisticActive);
+      // Pass the actor so the streak helper can fire a milestone
+      // wall post (5/10/25/50/100 day crossings).
+      void recomputeAndPersistPlayerStreak(playerId, optimisticActive, actor);
       onUpdated?.();
     } finally {
       setBusy(null);

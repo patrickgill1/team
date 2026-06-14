@@ -126,6 +126,48 @@ export async function autoPostDevPlanCompleteToWall(
   await postToWall(player.teamId, actor, lines.join('\n'), { postedFrom: 'devplan' });
 }
 
+/** Auto-post a development-plan streak milestone. Fires from the
+ *  recomputeAndPersistPlayerStreak path when the player crosses a
+ *  threshold (5, 10, 25, 50, 100). One post per crossing — never
+ *  again on the same threshold once their streak holds. Patrick:
+ *  surfaces other kids' streaks so it gets "the kids and parents
+ *  hungry when other children are doing them". */
+export const STREAK_MILESTONES = [5, 10, 25, 50, 100] as const;
+
+/** Returns the highest milestone that the streak crossed from
+ *  prev → next, or null if no milestone was crossed. "Crossed" =
+ *  prev < milestone <= next. */
+export function streakMilestoneCrossed(prev: number, next: number): number | null {
+  let crossed: number | null = null;
+  for (const m of STREAK_MILESTONES) {
+    if (prev < m && next >= m) crossed = m;
+  }
+  return crossed;
+}
+
+export async function autoPostStreakMilestoneToWall(
+  player: { name: string; teamId?: string | null },
+  milestone: number,
+  actor: Actor,
+): Promise<void> {
+  if (!player?.teamId || !player?.name) return;
+  // Word the heading by milestone — short, declarative, doesn't try
+  // to sound like a marketing campaign. Renders cleanly with
+  // RichContent on the wall.
+  const heading = milestone >= 100
+    ? '## Century streak'
+    : milestone >= 50
+      ? '## Half-century streak'
+      : milestone >= 25
+        ? '## On a roll'
+        : '## On fire';
+  const lines = [
+    heading,
+    `**${player.name}** just hit a **${milestone}-day** practice streak.`,
+  ];
+  await postToWall(player.teamId, actor, lines.join('\n'), { postedFrom: 'devplan' });
+}
+
 /** Auto-post a new juggle personal best. Only fires when the new
  *  count actually beats the previous best — callers should gate. */
 export async function autoPostJugglePrToWall(

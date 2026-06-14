@@ -429,7 +429,10 @@ const PlayerDevelopment: React.FC = () => {
         playerPlans.push({ ...updatedPlan, goals: updatedGoalsForThisPlan });
       }
       const { recomputeAndPersistPlayerStreak: persist } = await import('../utils/devPlanActions');
-      await persist(playerId, playerPlans);
+      // Pass the logged-in user as the actor so the helper can detect
+      // streak-milestone crossings and fire a wall post.
+      const actor = userData ? { uid: userData.uid, name: userData.name || 'Coach', role: userData.role } : undefined;
+      await persist(playerId, playerPlans, actor);
     } catch (err) {
       console.warn('streak cache write failed', err);
     }

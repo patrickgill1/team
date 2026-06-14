@@ -1,4 +1,4 @@
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import type { DevelopmentGoal, DevelopmentPlan, PracticeLogEntry } from '../types';
 
@@ -86,17 +86,56 @@ export function computeStreakDays(activePlans: DevelopmentPlan[]): number {
  *  bucket by day, count consecutive days ending today (Sundays skipped).
  *  Persist to players/{id}.currentStreakDays. Same algorithm
  *  PlayerDevelopment uses — extracted so the cached badge stays
- *  consistent regardless of where the "I did it" tap came from. */
+ *  consistent regardless of where the "I did it" tap came from.
+ *
+ *  When `actor` is provided, also detects streak-milestone crossings
+ *  (5/10/25/50/100 day) and fires an auto-post to the team wall.
+ *  Fire-and-forget — the streak still persists if the post fails. */
 export async function recomputeAndPersistPlayerStreak(
   playerId: string,
-  activePlansAfterUpdate: DevelopmentPlan[]
+  activePlansAfterUpdate: DevelopmentPlan[],
+  actor?: { uid: string; name: string; role?: string }
 ): Promise<number> {
   try {
     const streak = computeStreakDays(activePlansAfterUpdate);
+
+    // Read the prior streak + player name/team BEFORE writing so we
+    // can detect milestone crossings and post to the wall. One extra
+    // round-trip per tap, but only on "I did it today" — light traffic.
+    let priorStreak = 0;
+    let playerName: string | undefined;
+    let teamId: string | null | undefined;
+    if (actor) {
+      try {
+        const snap = await getDoc(doc(db, 'players', playerId));
+        if (snap.exists()) {
+          const data = snap.data() as any;
+          priorStreak = typeof data.currentStreakDays === 'number' ? data.currentStreakDays : 0;
+          playerName = data.name;
+          teamId = data.teamId;
+        }
+      } catch (err) {
+        console.warn('streak prior read failed', err);
+      }
+    }
+
     await updateDoc(doc(db, 'players', playerId), {
       currentStreakDays: streak,
       currentStreakUpdatedAt: new Date(),
     });
+
+    if (actor && playerName && teamId) {
+      try {
+        const { streakMilestoneCrossed, autoPostStreakMilestoneToWall } = await import('./autoPostToWall');
+        const milestone = streakMilestoneCrossed(priorStreak, streak);
+        if (milestone) {
+          void autoPostStreakMilestoneToWall({ name: playerName, teamId }, milestone, actor);
+        }
+      } catch (err) {
+        console.warn('streak milestone post skipped', err);
+      }
+    }
+
     return streak;
   } catch (err) {
     console.warn('recomputeAndPersistPlayerStreak failed', err);

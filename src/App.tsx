@@ -56,6 +56,7 @@ const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
 const PlayerDevelopment = React.lazy(() => import('./pages/PlayerDevelopment'));
 const PlayerMediaPage = React.lazy(() => import('./pages/PlayerMediaPage'));
 const Highlights = React.lazy(() => import('./pages/Highlights'));
+const MentionsInbox = React.lazy(() => import('./pages/MentionsInbox'));
 const SharedMedia = React.lazy(() => import('./pages/SharedMedia'));
 const PlayerProfile = React.lazy(() => import('./pages/PlayerProfile'));
 const Surveys = React.lazy(() => import('./pages/Surveys'));
@@ -593,6 +594,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Highlights />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/mentions" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <MentionsInbox />
                 </AppLayout>
               </ProtectedRoute>
             } />

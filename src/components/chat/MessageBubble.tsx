@@ -916,15 +916,27 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 />
               )}
 
-              {isOwn && onDelete && (
-                <ActionRow
-                  icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>}
-                  tone="rose"
-                  label="Delete message"
-                  description="Removes this message for everyone in the thread."
-                  onClick={() => { onDelete(message); setActionsOpen(false); }}
-                />
-              )}
+              {isOwn && onDelete && (() => {
+                // Recall window — within 60s of sending, show "Unsend"
+                // (no warning, no confirm, treat as a fat-finger fix).
+                // After that, fall back to "Delete" with the existing
+                // confirm dialog the parent handler enforces.
+                const ageMs = Date.now() - new Date(message.timestamp).getTime();
+                const isRecall = ageMs < 60_000;
+                return (
+                  <ActionRow
+                    icon={isRecall
+                      ? <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
+                      : <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>}
+                    tone="rose"
+                    label={isRecall ? 'Unsend message' : 'Delete message'}
+                    description={isRecall
+                      ? 'Just sent it? Pull it back before anyone notices.'
+                      : 'Removes this message for everyone in the thread.'}
+                    onClick={() => { onDelete(message); setActionsOpen(false); }}
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>

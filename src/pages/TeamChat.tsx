@@ -10,6 +10,7 @@ import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
 import ChatImageLightbox, { LightboxImage } from '../components/chat/ChatImageLightbox';
 import GlobalChatSearch from '../components/chat/GlobalChatSearch';
+import SwipeableThreadRow from '../components/chat/SwipeableThreadRow';
 import MessageComposer, { ComposerAttachment } from '../components/chat/MessageComposer';
 import PollCard from '../components/chat/PollCard';
 
@@ -1086,6 +1087,19 @@ const TeamChat: React.FC = () => {
     setReplyingTo(null);
     messageInputRef.current?.focus();
 
+    // Extract structured mentions from the content so the inbox can
+    // surface them via array-contains queries. The composer inserts
+    // plain @Name text — no inline markers — so we resolve here at
+    // send time against the current team roster.
+    let mentions: string[] = [];
+    let mentionsEveryone = false;
+    if (content) {
+      const { extractMentions } = await import('../utils/extractMentions');
+      const result = extractMentions(content, teamMembers.map(m => ({ uid: m.uid, name: m.name })));
+      mentions = result.uids.filter(uid => uid !== userData.uid); // don't @-yourself
+      mentionsEveryone = result.everyone;
+    }
+
     const messageData: any = {
       id: stableMsgId, // pinned for idempotent writes
       threadId: threadIdAtSend,
@@ -1099,6 +1113,8 @@ const TeamChat: React.FC = () => {
     };
     if (replyingTo?.id) messageData.replyTo = replyingTo.id;
     if (attachments.length > 0) messageData.attachments = attachments;
+    if (mentions.length > 0) messageData.mentions = mentions;
+    if (mentionsEveryone) messageData.mentionsEveryone = true;
     if (opts?.requireAck) {
       messageData.requireAck = true;
       messageData.acknowledgedBy = [userData.uid];
@@ -1234,7 +1250,13 @@ const TeamChat: React.FC = () => {
 
   const deleteMessage = async (message: ChatMessage) => {
     if (!userData || message.senderId !== userData.uid) return;
-    if (!window.confirm('Delete this message? This cannot be undone.')) return;
+    // Recall: within 60s of sending, skip the confirm dialog — treat
+    // as a fat-finger undo. After that, fall back to the explicit
+    // confirm so people don't accidentally vaporize old context.
+    const ageMs = Date.now() - new Date(message.timestamp).getTime();
+    const isRecall = ageMs < 60_000;
+    if (!isRecall && !window.confirm('Delete this message? This cannot be undone.')) return;
+    void import('../utils/nativeShell').then(m => m.tapHaptic(isRecall ? 'light' : 'medium'));
     try {
       await deleteDocument('chat_messages', message.id);
     } catch (err) {
@@ -2202,8 +2224,13 @@ const TeamChat: React.FC = () => {
                   const ago = formatTime(thread.lastActivity);
                   const unread = isThreadUnread(thread);
                   return (
-                  <div
+                  <SwipeableThreadRow
                     key={thread.id}
+                    isPinned={isThreadPinned(thread)}
+                    onPinToggle={() => togglePinThread(thread)}
+                    onDelete={() => deleteThread(thread)}
+                  >
+                  <div
                     role="button"
                     tabIndex={0}
                     onClick={() => showChatView(thread)}
@@ -2316,6 +2343,7 @@ const TeamChat: React.FC = () => {
                       </svg>
                     </button>
                   </div>
+                  </SwipeableThreadRow>
                 );
                 };
                 // Sectioned layout when on the default "All" filter,

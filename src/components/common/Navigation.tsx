@@ -18,6 +18,7 @@ function useBodyClass(cls: string): boolean {
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
+import WallHeaderButton from './WallHeaderButton';
 import { useTeam } from '../../contexts/TeamContext';
 import { isCoach, isClubAdmin } from '../../utils/helpers';
 // Legacy InviteSystem import removed — invites now live on /people.
@@ -102,10 +103,8 @@ const Navigation: React.FC = () => {
   // interior shapes that disappear when filled).
   const bottomTabs: Array<{ name: string; path: string; icon: import('./AppIcon').AppIconName }> = [
     { name: 'Home', path: '/dashboard', icon: 'home' },
-    // Wall sits next to Home so parents discover it on first launch —
-    // /wall is where coach announcements live and isn't obvious from
-    // the Dashboard alone.
-    { name: 'Wall', path: '/wall', icon: 'news' },
+    // Wall lives in the header megaphone now (see WallHeaderButton).
+    // Always one tap away from any page; bottom-tab slot freed up.
     // "Events" is the most-tapped surface (parents check "what's next"
     // multiple times a day). Bumped Players to the More sheet.
     { name: 'Events', path: '/calendar', icon: 'calendar' },
@@ -368,6 +367,7 @@ const Navigation: React.FC = () => {
             <span className="text-white font-bold text-base">{selectedTeam?.name || 'Fire FC'}</span>
           </Link>
           <div className="flex items-center space-x-2">
+            <WallHeaderButton />
             {teams.length > 1 && (
               <select
                 value={selectedTeamId}

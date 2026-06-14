@@ -288,13 +288,12 @@ const Dashboard: React.FC = () => {
   }, [players, userData]);
 
   // Load the next-up development goal for my player. Picks the first
-  // unfinished goal of the most recent active plan. Updates whenever
-  // myPlayer changes (e.g., switching teams). Also computes the
-  // streak-day count (consecutive practice days, Sundays skipped)
-  // so the dashboard hero card can show it under the player's name.
-  const [playerStreakDays, setPlayerStreakDays] = useState(0);
+  // unfinished goal of the most recent active plan. The hero card
+  // reads streak days directly from player.currentStreakDays (the
+  // denormalized field PlayerCard uses too) — no need to compute it
+  // here a second time.
   useEffect(() => {
-    if (!myPlayer) { setTonightGoal(null); setPlayerStreakDays(0); return; }
+    if (!myPlayer) { setTonightGoal(null); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -308,12 +307,6 @@ const Dashboard: React.FC = () => {
         ));
         if (cancelled) return;
         const plans = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-        try {
-          const { computeStreakDays } = await import('../utils/devPlanActions');
-          setPlayerStreakDays(computeStreakDays(plans as any));
-        } catch (err) {
-          console.warn('streak compute failed', err);
-        }
         const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
         for (const plan of plans) {
           const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
@@ -660,7 +653,6 @@ const Dashboard: React.FC = () => {
           <MyPlayerCard
             player={myPlayer}
             latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
-            streakDays={playerStreakDays}
             isPotm={isPotmThisWeek}
           />
         )}
@@ -1031,11 +1023,26 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
 const MyPlayerCard: React.FC<{
   player: Player;
   latestThumb?: string;
-  streakDays: number;
   isPotm: boolean;
-}> = ({ player, streakDays, isPotm }) => {
+}> = ({ player, isPotm }) => {
   const p: any = player;
   const position = p.positions?.[0] || p.position || 'Player';
+  // Same denormalized source PlayerCard reads — keeps the streak in
+  // sync across surfaces (no two-source divergence). Updated whenever
+  // a parent logs practice via devPlanActions.
+  const streakDays: number = p.currentStreakDays || 0;
+  // Position pill colour — mirrors PlayerCard's positionDotColor map.
+  const positionDot = (() => {
+    switch (position) {
+      case 'Goalkeeper': return 'bg-amber-400';
+      case 'Defender': return 'bg-sky-400';
+      case 'Midfielder': return 'bg-emerald-400';
+      case 'Forward':
+      case 'Striker': return 'bg-rose-400';
+      case 'Winger': return 'bg-orange-400';
+      default: return 'bg-slate-400';
+    }
+  })();
   // POM-of-the-week treatment — the whole card goes gold (amber
   // gradient, gold ring, "POTM" ribbon on the avatar). When not POM,
   // standard navy hero treatment.
@@ -1078,6 +1085,21 @@ const MyPlayerCard: React.FC<{
               #{player.jerseyNumber}
             </span>
           )}
+          {/* Practice streak chip — bottom-LEFT of avatar (matches
+              PlayerCard placement so the two surfaces feel like one
+              system). Fire-themed at 3+ days. */}
+          {streakDays > 0 && (
+            <span
+              title={`${streakDays}-day practice streak`}
+              className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-full text-[11px] font-black tabular-nums shadow-lg ring-2 ring-fire-900 ${
+                streakDays >= 3
+                  ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
+                  : 'bg-cyan-500 text-white'
+              }`}
+            >
+              {streakDays >= 3 ? '🔥' : ''}{streakDays}
+            </span>
+          )}
           {isPotm && (
             <span
               className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
@@ -1100,7 +1122,14 @@ const MyPlayerCard: React.FC<{
               </span>
             )}
           </div>
-          <p className={`text-xs ${accentText} mb-2`}>{position}</p>
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${
+              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-white/10 text-white/85'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
+              {position}
+            </span>
+          </div>
           {streakDays > 0 && (
             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isPotm ? 'bg-amber-900/30' : 'bg-white/10'} text-[11px] font-bold mb-2`}>
               <svg className="w-3 h-3 text-amber-300" fill="currentColor" viewBox="0 0 24 24">
@@ -1118,6 +1147,14 @@ const MyPlayerCard: React.FC<{
               <p className="text-2xl font-black leading-none">{player.stats?.assists || 0}</p>
               <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Assists</p>
             </div>
+            {/* Saves only renders for goalkeepers — same logic as the
+                full PlayerCard. Outfielders get Goals/Assists/Games. */}
+            {position === 'Goalkeeper' && (
+              <div>
+                <p className="text-2xl font-black leading-none">{(player as any).stats?.saves || 0}</p>
+                <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Saves</p>
+              </div>
+            )}
             <div>
               <p className="text-2xl font-black leading-none">{player.stats?.gamesPlayed || 0}</p>
               <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Games</p>

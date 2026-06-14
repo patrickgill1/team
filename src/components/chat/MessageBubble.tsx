@@ -132,6 +132,18 @@ const ActionRow: React.FC<{
   );
 };
 
+// "2m ago" / "1h ago" / "3d ago" — short relative time used on the
+// edited-receipt under each bubble. Falls back to absolute for >7d.
+const relativeShort = (d: any): string => {
+  const date = d instanceof Date ? d : (d?.toDate?.() || new Date(d));
+  const ms = Date.now() - date.getTime();
+  if (ms < 60_000) return 'just now';
+  if (ms < 3600_000) return `${Math.floor(ms / 60_000)}m ago`;
+  if (ms < 86400_000) return `${Math.floor(ms / 3600_000)}h ago`;
+  if (ms < 7 * 86400_000) return `${Math.floor(ms / 86400_000)}d ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 const senderColor = (name: string): string => {
   // Stable, distinct avatar tint per sender — name hash → gradient.
   // Subtle diagonal gradient feels more polished than flat fills while
@@ -724,12 +736,55 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Timestamp under the last message in a run. Adds "(edited)"
-            so receivers know the content has changed since the original. */}
+        {/* Timestamp under the last message in a run. Adds "edited Xm
+            ago" so receivers see when the content changed; surfaces
+            the editedAt time the editMessage handler writes. */}
         {isLastInGroup && (
           <div className={`mt-0.5 text-[10px] text-gray-400 ${isOwn ? 'mr-1' : 'ml-1'}`}>
             {formatTime(message.timestamp)}
-            {message.edited && <span className="ml-1 italic">· edited</span>}
+            {message.edited && (
+              <span className="ml-1 italic" title={(message as any).editedAt instanceof Date ? (message as any).editedAt.toLocaleString() : ''}>
+                · edited{(message as any).editedAt ? ` ${relativeShort((message as any).editedAt)}` : ''}
+              </span>
+            )}
+            {/* Delivery state on the user's own sent bubbles. Single
+                checkmark when the message is in Firestore but nobody
+                else has opened it yet; double when anyone has. */}
+            {isOwn && !(message as any).__pending && !(message as any).__failed && (() => {
+              const seen = ((message as any).readBy && typeof (message as any).readBy === 'object')
+                ? Object.keys((message as any).readBy).filter(uid => uid !== currentUserId).length
+                : 0;
+              return (
+                <span className={`ml-1.5 inline-flex items-center gap-0.5 ${seen > 0 ? 'text-cyan-500' : 'text-gray-400'}`} title={seen > 0 ? `Seen by ${seen}` : 'Sent'}>
+                  {seen > 0 ? (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <polyline points="2 12 7 17 13 9" />
+                      <polyline points="10 12 15 17 22 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <polyline points="4 12 9 17 20 6" />
+                    </svg>
+                  )}
+                </span>
+              );
+            })()}
+            {(message as any).__pending && !(message as any).__failed && (
+              <span className="ml-1.5 inline-flex items-center" title="Sending…">
+                <svg className="w-3 h-3 text-gray-400 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+              </span>
+            )}
+            {(message as any).__failed && (
+              <span className="ml-1.5 inline-flex items-center text-rose-500" title="Failed to send">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </span>
+            )}
           </div>
         )}
       </div>

@@ -1335,13 +1335,17 @@ const TeamChat: React.FC = () => {
   // Live "X is typing…" computed from selectedThread.typingBy. Drops
   // entries older than 5s (auto-expires without an explicit "stopped
   // typing" write, which keeps the write volume halved).
-  const typingNames: string[] = (() => {
+  // Live "X is typing…" with avatar — each entry carries the uid so
+  // we can resolve a fresh photoURL via getSenderPhotoUrl rather than
+  // freezing whatever the sender pre-typed into their last message.
+  const typingMembers: Array<{ uid: string; name: string; photoURL?: string }> = (() => {
     const map: Record<string, { ts: number; name: string }> = (selectedThread as any)?.typingBy || {};
     const cutoff = Date.now() - 5000;
     return Object.entries(map)
       .filter(([uid, v]) => uid !== userData?.uid && v && typeof v.ts === 'number' && v.ts > cutoff)
-      .map(([_, v]) => v.name || 'Someone');
+      .map(([uid, v]) => ({ uid, name: v.name || 'Someone', photoURL: getSenderPhotoUrl(uid) }));
   })();
+  const typingNames: string[] = typingMembers.map(m => m.name);
 
   // Own-message edit. Firestore rules already allow updates to
   // content/edited/editedAt by the sender, so no rules change needed.
@@ -2709,13 +2713,31 @@ const TeamChat: React.FC = () => {
                   padding so the input clears the home indicator. When the
                   keyboard is open, the keyboard itself sits above the home
                   indicator so no extra padding needed. */}
-              {typingNames.length > 0 && (
-                <div className="px-4 pt-1.5 pb-0.5 text-[11px] text-slate-500 italic">
-                  {typingNames.length === 1
-                    ? `${typingNames[0]} is typing…`
-                    : typingNames.length === 2
-                    ? `${typingNames[0]} and ${typingNames[1]} are typing…`
-                    : `${typingNames.length} people are typing…`}
+              {typingMembers.length > 0 && (
+                <div className="px-4 pt-1.5 pb-0.5 flex items-center gap-2 text-[11px] text-slate-500">
+                  <div className="flex -space-x-1.5">
+                    {typingMembers.slice(0, 3).map((m) => (
+                      m.photoURL ? (
+                        <img key={m.uid} src={m.photoURL} alt={m.name} className="w-5 h-5 rounded-full object-cover ring-2 ring-white" />
+                      ) : (
+                        <span key={m.uid} className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 ring-2 ring-white flex items-center justify-center text-[9px] font-bold text-white">
+                          {(m.name || '?').charAt(0).toUpperCase()}
+                        </span>
+                      )
+                    ))}
+                  </div>
+                  <span className="italic">
+                    {typingMembers.length === 1
+                      ? `${typingMembers[0].name} is typing`
+                      : typingMembers.length === 2
+                      ? `${typingMembers[0].name} and ${typingMembers[1].name} are typing`
+                      : `${typingMembers.length} people are typing`}
+                  </span>
+                  <span className="inline-flex gap-0.5 items-center">
+                    <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '120ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '240ms' }} />
+                  </span>
                 </div>
               )}
               {isScrolledUp && (

@@ -98,12 +98,12 @@ const WallHeaderButton: React.FC = () => {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md animate-fade-in"
           onClick={() => setOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-x-0 top-0 max-h-[85vh] overflow-y-auto bg-white rounded-b-3xl shadow-2xl animate-sheet-up safe-top"
+            className="absolute inset-x-0 top-0 max-h-[92vh] overflow-y-auto bg-white shadow-2xl animate-sheet-up safe-top"
           >
             <div className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-2">

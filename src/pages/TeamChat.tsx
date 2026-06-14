@@ -2687,6 +2687,22 @@ const TeamChat: React.FC = () => {
                       canSeeVoters={isCoach || isUserClubAdmin}
                       onMarkRead={markMessageRead}
                       onImageClick={openImage}
+                      onImageLoaded={() => {
+                        // Each image load can shift the layout. If the
+                        // user is still at the bottom (or inside the
+                        // initial-load window), pin them back to
+                        // bottom IMMEDIATELY — no perceptible bounce
+                        // because this fires in the same frame the
+                        // image lands. iOS WebKit's scroll anchoring
+                        // would otherwise land them mid-thread on the
+                        // image, which is the bug.
+                        const c = messagesContainerRef.current;
+                        if (!c) return;
+                        const inInitialLoad = Date.now() < initialLoadUntilRef.current;
+                        if (inInitialLoad || isAtBottomRef.current) {
+                          c.scrollTop = c.scrollHeight;
+                        }
+                      }}
                     />
                     </div>
                     </React.Fragment>
@@ -3108,6 +3124,22 @@ const TeamChat: React.FC = () => {
                       canSeeVoters={isCoach || isUserClubAdmin}
                       onMarkRead={markMessageRead}
                       onImageClick={openImage}
+                      onImageLoaded={() => {
+                        // Each image load can shift the layout. If the
+                        // user is still at the bottom (or inside the
+                        // initial-load window), pin them back to
+                        // bottom IMMEDIATELY — no perceptible bounce
+                        // because this fires in the same frame the
+                        // image lands. iOS WebKit's scroll anchoring
+                        // would otherwise land them mid-thread on the
+                        // image, which is the bug.
+                        const c = messagesContainerRef.current;
+                        if (!c) return;
+                        const inInitialLoad = Date.now() < initialLoadUntilRef.current;
+                        if (inInitialLoad || isAtBottomRef.current) {
+                          c.scrollTop = c.scrollHeight;
+                        }
+                      }}
                   />
                   </div>
                 );

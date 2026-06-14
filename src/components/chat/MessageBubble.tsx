@@ -21,6 +21,10 @@ interface MessageBubbleProps {
   isPinned?: boolean;
   /** Whether the current user is allowed to pin/unpin in this thread. */
   canPin?: boolean;
+  /** Called every time an image attachment finishes loading. Parent
+   *  uses this to pin the scroll container to bottom — without it,
+   *  WebKit's scroll anchoring can land the user on the image. */
+  onImageLoaded?: () => void;
   /** Called when the user taps an image attachment — opens the lightbox. */
   onImageClick?: (url: string) => void;
   /** Called when the user votes on a poll option in this message. */
@@ -175,6 +179,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isPinned = false,
   canPin = false,
   onImageClick,
+  onImageLoaded,
   onPollVote,
   onAcknowledge,
   threadParticipantCount,
@@ -662,6 +667,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 alt={img.name || 'attachment'}
                 loading="lazy"
                 decoding="async"
+                onLoad={() => onImageLoaded?.()}
                 onClick={() => {
                   // Don't fire the lightbox if the tap is the end of a
                   // long-press (we already opened the react sheet).

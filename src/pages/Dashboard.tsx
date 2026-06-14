@@ -289,9 +289,12 @@ const Dashboard: React.FC = () => {
 
   // Load the next-up development goal for my player. Picks the first
   // unfinished goal of the most recent active plan. Updates whenever
-  // myPlayer changes (e.g., switching teams).
+  // myPlayer changes (e.g., switching teams). Also computes the
+  // streak-day count (consecutive practice days, Sundays skipped)
+  // so the dashboard hero card can show it under the player's name.
+  const [playerStreakDays, setPlayerStreakDays] = useState(0);
   useEffect(() => {
-    if (!myPlayer) { setTonightGoal(null); return; }
+    if (!myPlayer) { setTonightGoal(null); setPlayerStreakDays(0); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -305,6 +308,12 @@ const Dashboard: React.FC = () => {
         ));
         if (cancelled) return;
         const plans = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        try {
+          const { computeStreakDays } = await import('../utils/devPlanActions');
+          setPlayerStreakDays(computeStreakDays(plans as any));
+        } catch (err) {
+          console.warn('streak compute failed', err);
+        }
         const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
         for (const plan of plans) {
           const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
@@ -333,6 +342,43 @@ const Dashboard: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [myPlayer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Is my player the current Player of the Match for this week? If a
+  // match_votings doc closed in the last 7 days has my player in its
+  // winners[], the dashboard hero card goes GOLD. Patrick: "this is
+  // also the profile i want to turn gold when the player gets player
+  // of the match for the week".
+  const [isPotmThisWeek, setIsPotmThisWeek] = useState(false);
+  useEffect(() => {
+    if (!myPlayer) { setIsPotmThisWeek(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection: fsColl, query, where, getDocs, orderBy, limit } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDocs(query(
+          fsColl(db, 'match_votings'),
+          where('teamId', '==', myPlayer.teamId),
+          orderBy('closedAt', 'desc'),
+          limit(3),
+        ));
+        if (cancelled) return;
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const won = snap.docs.some(d => {
+          const v = d.data() as any;
+          const closed = v.closedAt?.toDate ? v.closedAt.toDate().getTime() : 0;
+          if (!closed || closed < weekAgo) return false;
+          const winners: any[] = Array.isArray(v.winners) ? v.winners : [];
+          const winner = v.winner;
+          return winners.some(w => w.playerId === myPlayer.id) || winner?.playerId === myPlayer.id;
+        });
+        setIsPotmThisWeek(won);
+      } catch (err) {
+        console.warn('potm check failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [myPlayer?.id, myPlayer?.teamId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Most recent clip featuring my player (parents) or just the latest clip (coaches).
   const featuredClip = useMemo(() => {
@@ -611,7 +657,12 @@ const Dashboard: React.FC = () => {
           </Link>
         )}
         {myPlayer && (
-          <MyPlayerCard player={myPlayer} latestThumb={featuredClip ? clipThumb(featuredClip) : undefined} />
+          <MyPlayerCard
+            player={myPlayer}
+            latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
+            streakDays={playerStreakDays}
+            isPotm={isPotmThisWeek}
+          />
         )}
 
         {/* ── TEAM WALL / ANNOUNCEMENTS ──────────────────────────────
@@ -977,13 +1028,26 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
   );
 };
 
-const MyPlayerCard: React.FC<{ player: Player; latestThumb?: string }> = ({ player, latestThumb }) => {
+const MyPlayerCard: React.FC<{
+  player: Player;
+  latestThumb?: string;
+  streakDays: number;
+  isPotm: boolean;
+}> = ({ player, streakDays, isPotm }) => {
   const p: any = player;
   const position = p.positions?.[0] || p.position || 'Player';
+  // POM-of-the-week treatment — the whole card goes gold (amber
+  // gradient, gold ring, "POTM" ribbon on the avatar). When not POM,
+  // standard navy hero treatment.
+  const cardBg = isPotm
+    ? 'bg-gradient-to-br from-amber-700 via-amber-600 to-yellow-500 ring-2 ring-amber-300/60 shadow-amber-500/30'
+    : 'bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 ring-1 ring-white/10';
+  const accentText = isPotm ? 'text-amber-100/85' : 'text-white/70';
+  const subText = isPotm ? 'text-amber-100/60' : 'text-white/60';
   return (
     <Link
       to={`/player/${player.id}`}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 text-white shadow-lg hover:shadow-xl active:scale-[0.995] transition flex"
+      className={`relative overflow-hidden rounded-2xl text-white shadow-lg hover:shadow-xl active:scale-[0.995] transition flex ${cardBg}`}
     >
       {/* Subtle Fire FC logo watermark on the right */}
       <img
@@ -993,47 +1057,72 @@ const MyPlayerCard: React.FC<{ player: Player; latestThumb?: string }> = ({ play
         aria-hidden
       />
       <div className="relative p-4 sm:p-5 flex items-center gap-4 w-full">
-        {/* Avatar */}
+        {/* Avatar with optional POTM crown */}
         <div className="relative flex-shrink-0">
           {p.profilePhotoUrl ? (
             <img
               src={p.profilePhotoUrl}
               alt={player.name}
-              className="w-20 h-20 rounded-full object-cover ring-2 ring-white/20 shadow"
+              className={`w-20 h-20 rounded-full object-cover shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}
               loading="lazy"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-blue-700 flex items-center justify-center text-white text-3xl font-black ring-2 ring-white/20 shadow">
+            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-blue-700 flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}>
               {player.name.charAt(0)}
             </div>
           )}
+          {isPotm && (
+            <span
+              className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-amber-300 ring-2 ring-amber-700 flex items-center justify-center shadow-lg"
+              aria-label="Player of the Match"
+            >
+              <svg className="w-4 h-4 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
+              </svg>
+            </span>
+          )}
         </div>
 
-        {/* Name + stats */}
+        {/* Name + meta + stats */}
         <div className="flex-1 min-w-0">
-          <p className="text-xl sm:text-2xl font-black leading-tight truncate">{player.name}</p>
-          <p className="text-xs text-white/70 mb-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xl sm:text-2xl font-black leading-tight truncate">{player.name}</p>
+            {isPotm && (
+              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-300 text-amber-900 px-1.5 py-0.5 rounded">
+                POTW
+              </span>
+            )}
+          </div>
+          <p className={`text-xs ${accentText} mb-2`}>
             {player.jerseyNumber != null ? `#${player.jerseyNumber} · ` : ''}{position}
           </p>
+          {streakDays > 0 && (
+            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isPotm ? 'bg-amber-900/30' : 'bg-white/10'} text-[11px] font-bold mb-2`}>
+              <svg className="w-3 h-3 text-amber-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z" />
+              </svg>
+              {streakDays} day{streakDays === 1 ? '' : 's'} streak
+            </div>
+          )}
           <div className="flex items-end gap-4 sm:gap-6">
             <div>
               <p className="text-2xl font-black leading-none">{player.stats?.goals || 0}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mt-0.5">Goals</p>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Goals</p>
             </div>
             <div>
               <p className="text-2xl font-black leading-none">{player.stats?.assists || 0}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mt-0.5">Assists</p>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Assists</p>
             </div>
             <div>
               <p className="text-2xl font-black leading-none">{player.stats?.gamesPlayed || 0}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mt-0.5">Games</p>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Games</p>
             </div>
           </div>
         </div>
 
         {/* View profile pill */}
         <div className="flex-shrink-0 self-center">
-          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white text-fire-950 text-xs font-bold whitespace-nowrap shadow">
+          <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow ${isPotm ? 'bg-amber-900 text-amber-100' : 'bg-white text-fire-950'}`}>
             View profile
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

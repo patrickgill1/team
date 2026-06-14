@@ -703,8 +703,12 @@ const Wall: React.FC = () => {
             type="button"
             onClick={() => setComposerOpen(true)}
             aria-label="New post"
-            className="fixed right-4 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white rounded-full w-14 h-14 shadow-xl ring-4 ring-white/80 flex items-center justify-center z-30 transition"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+            // Bottom nav is 48px tall (h-12) and has its own
+            // safe-area-inset-bottom padding. Stack the FAB ABOVE
+            // both so it's never hidden behind the tab bar. z-50 to
+            // beat any sticky sub-headers.
+            className="fixed right-4 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white rounded-full w-14 h-14 shadow-xl ring-4 ring-white/80 flex items-center justify-center z-50 transition"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 4.25rem)' }}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19" />

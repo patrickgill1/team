@@ -397,8 +397,16 @@ const Navigation: React.FC = () => {
 
       {/* ===== MOBILE BOTTOM TAB BAR ===== */}
       {!inChatConversation && (
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 safe-bottom">
-        <div className="flex justify-around items-center h-12 max-w-lg mx-auto">
+      <nav
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200"
+        // Use HALF the safe-area inset as bottom padding (instead of
+        // the full inset) so the tab icons sit close to the home
+        // indicator instead of floating above a tall empty strip.
+        // The home indicator still has its own clearance — it lives
+        // OVER the tab bar on iOS, not inside it.
+        style={{ paddingBottom: 'max(0px, calc(env(safe-area-inset-bottom) / 2))' }}
+      >
+        <div className="flex justify-around items-center h-11 max-w-md mx-auto">
           {bottomTabs.map(tab => {
             const active = tab.path === '#more' ? isMoreOpen : isActive(tab.path);
             if (tab.path === '#more') {

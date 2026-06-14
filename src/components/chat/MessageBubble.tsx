@@ -915,8 +915,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           onClick={() => setActionsOpen(false)}
         >
           <div
-            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[84vh] overflow-hidden animate-sheet-up sm:animate-pop-in mb-2 sm:mb-0"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[84vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Branded header — same chrome as UserProfileModal so the
@@ -932,7 +931,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               <span className="w-12" aria-hidden />
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
               {/* Quick-reaction row — kept at the top because reactions are
                   the most-used action by far. Tap "+" for the full picker. */}
               <div className="px-3 py-3 border-b border-slate-100 grid grid-cols-9 gap-0.5">

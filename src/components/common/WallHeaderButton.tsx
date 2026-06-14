@@ -97,19 +97,23 @@ const WallHeaderButton: React.FC = () => {
       <button
         type="button"
         onClick={handleOpen}
-        aria-label="Wall"
-        className="relative inline-flex items-center gap-1.5 h-9 px-2.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest text-white/85 hover:text-white hover:bg-white/10 transition"
+        aria-label="Posts"
+        title="Posts"
+        className="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-white/85 hover:text-white hover:bg-white/10 transition"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        {/* Newspaper / feed icon — replaces the megaphone. The
+            megaphone ("sound icon") was being read as "audio/volume"
+            by parents, not "team announcements". A feed glyph is the
+            common, plainly-readable affordance for "stream of posts"
+            (Instagram, X, Facebook, Threads). */}
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <line x1="7" y1="9" x2="17" y2="9" />
+          <line x1="7" y1="13" x2="17" y2="13" />
+          <line x1="7" y1="17" x2="13" y2="17" />
         </svg>
-        <span>Wall</span>
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 ring-2 ring-fire-950 text-white text-[10px] font-black flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-fire-950" aria-label={`${unreadCount} new posts`} />
         )}
       </button>
 

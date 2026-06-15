@@ -287,6 +287,24 @@ const Dashboard: React.FC = () => {
     ) || null;
   }, [players, userData]);
 
+  // Quick-tile badge values. Wall: unread posts since localStorage
+  // lastSeen for this team (same lookup the megaphone uses); cap at
+  // 9+. Plan: cached streak from the player doc.
+  const wallUnreadBadge = useMemo(() => {
+    if (wallPosts.length === 0 || !selectedTeamId) return null;
+    try {
+      const raw = localStorage.getItem(`wall.lastSeen.${selectedTeamId}`);
+      const lastSeen = raw ? parseInt(raw, 10) : 0;
+      const n = wallPosts.filter(p => p.timestamp.getTime() > lastSeen).length;
+      if (n <= 0) return null;
+      return n > 9 ? '9+' : n;
+    } catch { return null; }
+  }, [wallPosts, selectedTeamId]);
+  const planStreakBadge = useMemo(() => {
+    const s = (myPlayer as any)?.currentStreakDays || 0;
+    return s > 0 ? s : null;
+  }, [myPlayer]);
+
   // Load the next-up development goal for my player. Picks the first
   // unfinished goal of the most recent active plan. The hero card
   // reads streak days directly from player.currentStreakDays (the
@@ -561,7 +579,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-h-screen bg-slate-950">
       {/* Stadium hero — navy scene with floodlights that toggle on
           at dusk/night, a faint pitch silhouette, and the day's
           most important glance-able info (next-event RSVP count,
@@ -657,33 +675,60 @@ const Dashboard: React.FC = () => {
           />
         )}
 
+        {/* ── QUICK-ACTION TILES ─────────────────────────────────────
+            Six glanceable tiles for the most-used surfaces, with live
+            notification badges (Wall = unread post count, Chat =
+            unread message count, Plan = current streak). The whole
+            grid is 3 cols on mobile, 6 cols on tablet+. Matches the
+            mockup pattern Patrick approved. */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <DashTile to="/wall" label="Wall" badge={wallUnreadBadge} badgeTone="rose" icon={(
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/></svg>
+          )} />
+          <DashTile to="/calendar" label="Events" icon={(
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          )} />
+          <DashTile to="/player-media" label="Media" icon={(
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          )} />
+          <DashTile to="/chat" label="Chat" badge={newMessagesCount > 0 ? newMessagesCount : null} badgeTone="cyan" icon={(
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          )} />
+          <DashTile to="/people" label="Roster" icon={(
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          )} />
+          <DashTile to="/development" label="Plan" badge={planStreakBadge} badgeTone="amber" icon={(
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
+          )} />
+        </div>
+
         {/* ── TEAM WALL / ANNOUNCEMENTS ──────────────────────────────
             Pinned messages from any of the team's chat threads, sorted
             newest first. Surfaces here so a parent who only checks the
             dashboard still sees announcements coaches posted in chat.
             Tap a card → deep-links into the chat tab on that thread. */}
         {wallPosts.length > 0 && (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-fire-950 flex items-center gap-2">
-                <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
+          <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
+            <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
                 Announcements
               </h3>
-              <Link to="/wall" className="text-cyan-600 text-sm font-semibold">View all</Link>
+              <Link to="/wall" className="text-cyan-300 text-sm font-semibold hover:text-white">View all</Link>
             </div>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-white/5">
               {wallPosts.map(p => (
                 <li key={p.id}>
                   <Link
                     to="/wall"
-                    className="block px-5 py-3 hover:bg-gray-50 transition-colors"
+                    className="block px-5 py-3 hover:bg-white/[0.04] transition-colors"
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-bold text-fire-950">{p.senderName}</span>
+                      <span className="text-sm font-bold text-white">{p.senderName}</span>
                       {p.senderRole === 'coach' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-200 bg-cyan-500/15 ring-1 ring-cyan-400/30 px-1.5 py-0.5 rounded">Coach</span>
                       )}
-                      <span className="text-[11px] text-gray-400 ml-auto">
+                      <span className="text-[11px] text-white/40 ml-auto">
                         {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
@@ -691,7 +736,7 @@ const Dashboard: React.FC = () => {
                         announcement doesn't blow up the dashboard card.
                         RichContent renders bold / lists / links so the
                         preview matches the wall + share-link surfaces. */}
-                    <div className="text-sm text-gray-700 line-clamp-3 break-words">
+                    <div className="text-sm text-white/75 line-clamp-3 break-words">
                       <RichContent text={p.content} />
                     </div>
                   </Link>
@@ -1183,26 +1228,35 @@ const TeamPulseCard: React.FC<{
   const ts: any = topScorer;
   const ta: any = topAssister;
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-bold text-fire-950 flex items-center gap-2">
-          <span>📊</span> Team pulse
+    <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
+      <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+        <h3 className="font-bold text-white flex items-center gap-2">
+          <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Team pulse
         </h3>
-        <Link to="/stats" className="text-cyan-600 text-sm font-semibold">Season stats</Link>
+        <Link to="/stats" className="text-cyan-300 text-sm font-semibold hover:text-white">Season stats</Link>
       </div>
 
       {/* Live game tracker entry point — coach can start a session
           without needing a scheduled game on the calendar. */}
       <Link
         to={`/game-day/quick_${Date.now()}`}
-        className="mx-4 mt-4 p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-cyan-50 ring-1 ring-emerald-200 flex items-center gap-3 hover:from-emerald-100 hover:to-cyan-100 transition active:scale-[0.99]"
+        className="mx-4 mt-4 p-3 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/30 flex items-center gap-3 hover:bg-emerald-500/20 transition active:scale-[0.99]"
       >
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 text-white flex items-center justify-center text-lg shadow-sm flex-shrink-0">
-          🎯
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 text-white flex items-center justify-center shadow flex-shrink-0">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="6" />
+            <circle cx="12" cy="12" r="2" />
+          </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-fire-950 text-sm">Live game tracker</p>
-          <p className="text-xs text-gray-600">Scores, goals &amp; subs · works on any game</p>
+          <p className="font-bold text-white text-sm">Live game tracker</p>
+          <p className="text-xs text-white/70">Scores, goals &amp; subs · works on any game</p>
         </div>
         <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -1213,7 +1267,7 @@ const TeamPulseCard: React.FC<{
       {(topScorer || topAssister) && (
         <div className="p-4 grid grid-cols-2 gap-3">
           {topScorer && (
-            <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-emerald-50/60 transition">
+            <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-white/[0.05] transition">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-amber-300 to-yellow-500 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ts.profilePhotoUrl ? (
                   <img src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
@@ -1222,17 +1276,17 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Top scorer</p>
-                <p className="font-bold text-fire-950 text-sm truncate">{topScorer.name}</p>
-                <p className="text-xs text-emerald-700 font-bold">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200/60">Top scorer</p>
+                <p className="font-bold text-white text-sm truncate">{topScorer.name}</p>
+                <p className="text-xs text-emerald-300 font-bold">
                   <span className="font-black">{topScorer.stats?.goals || 0}</span>{' '}
-                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">goals</span>
+                  <span className="text-white/40 font-medium uppercase tracking-wider text-[10px]">goals</span>
                 </p>
               </div>
             </Link>
           )}
           {topAssister && topAssister.id !== topScorer?.id && (
-            <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-cyan-50/60 transition">
+            <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-white/[0.05] transition">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ta.profilePhotoUrl ? (
                   <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
@@ -1241,11 +1295,11 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Top assister</p>
-                <p className="font-bold text-fire-950 text-sm truncate">{topAssister.name}</p>
-                <p className="text-xs text-cyan-700 font-bold">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200/60">Top assister</p>
+                <p className="font-bold text-white text-sm truncate">{topAssister.name}</p>
+                <p className="text-xs text-cyan-300 font-bold">
                   <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
-                  <span className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">assists</span>
+                  <span className="text-white/40 font-medium uppercase tracking-wider text-[10px]">assists</span>
                 </p>
               </div>
             </Link>
@@ -1253,7 +1307,7 @@ const TeamPulseCard: React.FC<{
         </div>
       )}
       {!topScorer && !topAssister && (
-        <p className="p-5 text-sm text-gray-500 text-center">Log a game to see who's leading the team.</p>
+        <p className="p-5 text-sm text-white/60 text-center">Log a game to see who's leading the team.</p>
       )}
     </div>
   );
@@ -1323,6 +1377,37 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
         <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5">
           <span className="text-white font-mono font-bold text-sm bg-black/40 px-2 py-0.5 rounded">{durText}</span>
         </div>
+      )}
+    </Link>
+  );
+};
+
+// Compact dark-navy quick-action tile for the dashboard's 6-up grid.
+// Icon stacked over label, with an optional notification badge in
+// the top-right (rose for unreads, cyan for chat, amber for streak).
+const DashTile: React.FC<{
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+  badge?: number | string | null;
+  badgeTone?: 'rose' | 'cyan' | 'amber';
+}> = ({ to, label, icon, badge, badgeTone = 'rose' }) => {
+  const badgeColor = {
+    rose: 'bg-rose-500 text-white',
+    cyan: 'bg-cyan-500 text-white',
+    amber: 'bg-orange-500 text-white',
+  }[badgeTone];
+  return (
+    <Link
+      to={to}
+      className="relative bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 ring-1 ring-white/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-white/20 hover:bg-white/[0.03] active:scale-[0.97] transition shadow"
+    >
+      <span className="text-cyan-300">{icon}</span>
+      <span className="text-[11px] font-bold uppercase tracking-widest text-white/85">{label}</span>
+      {badge != null && badge !== 0 && badge !== '' && (
+        <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-fire-950 ${badgeColor}`}>
+          {badge}
+        </span>
       )}
     </Link>
   );

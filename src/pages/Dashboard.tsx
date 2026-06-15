@@ -599,7 +599,7 @@ const Dashboard: React.FC = () => {
       />
       <div className="relative">
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
         {/* Show the push-permission banner first when the user has no
             FCM tokens. Self-hides when not needed. */}
         <NotificationsBanner />

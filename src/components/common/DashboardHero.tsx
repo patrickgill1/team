@@ -108,13 +108,22 @@ const DashboardHero: React.FC<Props> = ({
       )}
       {/* Gradient overlay on top so the greeting text always reads. */}
       <div className={`absolute inset-0 bg-gradient-to-b ${scene.gradient}`} aria-hidden />
+      {/* Soft fade from the bottom of the hero into the page bg
+          (slate-950) so the transition into the dashboard content
+          area below isn't a hard horizon line. Patrick: "any way to
+          make the header image from the dashboard a little less
+          harsh on the transition to the profile card". */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-slate-950 pointer-events-none"
+      />
       {/* (Painted stars / moon / pitch-perspective SVG removed — the
           real time-of-day stadium photo behind the gradient already
           conveys the scene. Patrick: "we don't need the old banner
           field that was on there".) */}
 
       {/* Content — kept compact: a glance, not a hero. */}
-      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-3 pb-4 sm:pt-4 sm:pb-5">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-4 sm:pt-4 sm:pb-5">
         <h1 className="text-base sm:text-lg font-bold text-white">
           {greeting}, {firstName}!
         </h1>

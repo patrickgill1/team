@@ -144,7 +144,7 @@ const Helpdesk: React.FC = () => {
   }), [tickets, userData?.uid]);
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-100">
       <Header
         title="Club Support"
         subtitle={isAdmin ? `${counts.open} open · ${counts.all} total` : 'Ask the club anything — logistics, issues, ideas'}

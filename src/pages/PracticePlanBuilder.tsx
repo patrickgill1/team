@@ -172,7 +172,7 @@ const PracticePlanBuilder: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 print:bg-white">
+    <div className="min-h-screen bg-slate-100 print:bg-white">
       <div className="print:hidden">
         <Header title="Practice Plans" subtitle="Build a timeline of drills, save it as a template, print before practice." />
       </div>

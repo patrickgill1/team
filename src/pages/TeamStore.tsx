@@ -24,7 +24,7 @@ const TeamStore: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-100">
       <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
         <div className="max-w-3xl mx-auto">
           <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">

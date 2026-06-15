@@ -327,7 +327,7 @@ const PlayerProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
       </div>
     );
@@ -335,7 +335,7 @@ const PlayerProfile: React.FC = () => {
 
   if (!player) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4">😕</div>
           <h2 className="text-xl font-bold text-gray-900">Player Not Found</h2>
@@ -376,7 +376,7 @@ const PlayerProfile: React.FC = () => {
   })();
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-100">
       {/* ───── HERO (v2) ─────
           Dark gradient hero band + 4-tile glance stats. Replaces the
           old fire-700→navy-900 gradient + hand-rolled photo/name block. */}

@@ -330,7 +330,7 @@ const PersonAdmin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-100">
       {/* Header strip */}
       <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 pt-4 pb-0 border-b border-cyan-500/10">
         <div className="max-w-5xl mx-auto">

@@ -206,7 +206,7 @@ const Registrations: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6 text-center">
         <div className="max-w-md">
           <p className="text-sm font-bold text-slate-700">Club admin access only</p>
           <p className="text-xs text-slate-500 mt-1">Registrations are visible to club administrators.</p>
@@ -216,7 +216,7 @@ const Registrations: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-100">
       <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
         <div className="max-w-6xl mx-auto">
           <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">

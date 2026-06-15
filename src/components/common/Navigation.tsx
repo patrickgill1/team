@@ -390,12 +390,13 @@ const Navigation: React.FC = () => {
           inside the WebView is 0 on iOS / unreliable on Android.
           Doubling it here produced a tall empty navy strip above
           the logo on Samsung tablets. */}
-      {/* Mobile top header — frosted-blur glass over the hero stadium
-          photo so the hero bleeds THROUGH the bar instead of hitting
-          a hard navy seam. saturate-150 gives the photo color a
-          gentle pop through the blur. Falls back to a solid bg on
-          older WebKit that doesn't support backdrop-filter. */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-fire-950/70 backdrop-blur-lg backdrop-saturate-150 supports-[backdrop-filter]:bg-fire-950/60">
+      {/* Mobile top header — solid fire-950. We tried frosted-blur
+          (bleed-through over the hero photo on dashboard) but on
+          other tabs (chat, etc) where there's no photo behind it,
+          the blur over the page bg reads as washed-out grey, which
+          Patrick called out. Solid navy bleeds into the dark hero
+          photos naturally AND looks correct on every other tab. */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-fire-950">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/dashboard" className="flex items-center space-x-2">
             <img src="/images/logo.png" alt="Fire FC" className="h-8 w-8 object-contain" />

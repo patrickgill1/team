@@ -108,46 +108,10 @@ const DashboardHero: React.FC<Props> = ({
       )}
       {/* Gradient overlay on top so the greeting text always reads. */}
       <div className={`absolute inset-0 bg-gradient-to-b ${scene.gradient}`} aria-hidden />
-      {/* Stars (night) */}
-      {scene.stars &&
-        STAR_POSITIONS.map((s, i) => (
-          <span
-            key={i}
-            aria-hidden
-            className="absolute rounded-full bg-white pointer-events-none"
-            style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.size, height: s.size, opacity: s.opacity }}
-          />
-        ))}
-
-      {/* Moon (night) — tucked top-right above the content area */}
-      {scene.moon && (
-        <span
-          aria-hidden
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            right: '5%',
-            top: '10%',
-            width: 16,
-            height: 16,
-            background: '#e2e8f0',
-            boxShadow: '0 0 12px 4px rgba(226,232,240,0.3)',
-          }}
-        />
-      )}
-
-      {/* Pitch perspective at the bottom */}
-      <svg
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 w-full pointer-events-none"
-        viewBox="0 0 400 80"
-        preserveAspectRatio="none"
-        style={{ height: '45%' }}
-      >
-        <path d="M 0 80 L 60 8 L 340 8 L 400 80 Z" fill="rgba(15,23,42,0.45)" />
-        <path d="M 0 80 L 60 8 L 340 8 L 400 80" fill="none" stroke="rgba(148,163,184,0.3)" strokeWidth="0.6" />
-        <line x1="200" y1="8" x2="200" y2="80" stroke="rgba(148,163,184,0.25)" strokeWidth="0.5" />
-        <ellipse cx="200" cy="44" rx="50" ry="11" fill="none" stroke="rgba(148,163,184,0.3)" strokeWidth="0.5" />
-      </svg>
+      {/* (Painted stars / moon / pitch-perspective SVG removed — the
+          real time-of-day stadium photo behind the gradient already
+          conveys the scene. Patrick: "we don't need the old banner
+          field that was on there".) */}
 
       {/* Content — kept compact: a glance, not a hero. */}
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-3 pb-4 sm:pt-4 sm:pb-5">

@@ -135,9 +135,10 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
 
       <ul className="space-y-3">
         {goals.map(({ plan, goal }) => {
-          const verifiedCount = (plan.goals.filter(g => g.coachVerified)).length;
-          const totalCount = plan.goals.length;
-          const planPct = totalCount > 0 ? Math.round((verifiedCount / totalCount) * 100) : 0;
+          // Per-goal session count — replaces the verified-count
+          // progress bar (verification flow removed; coach judges
+          // progress in person at practice).
+          const sessions = (goal.practiceLog || []).length;
           const doneToday = didItToday(goal);
           return (
             <li key={goal.id} className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-3">
@@ -145,19 +146,13 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-white">{goal.title}</span>
-                    {goal.coachVerified && (
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40">
-                        Verified
+                    {sessions > 0 && (
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/30">
+                        {sessions} session{sessions === 1 ? '' : 's'}
                       </span>
                     )}
                   </div>
                   {goal.focus && <p className="text-[11px] text-white/60 mt-0.5 italic">{goal.focus}</p>}
-                  <div className="h-1.5 rounded-full bg-white/10 mt-2 overflow-hidden">
-                    <div
-                      className="h-full bg-cyan-400"
-                      style={{ width: `${planPct}%` }}
-                    />
-                  </div>
                 </div>
                 <button
                   type="button"

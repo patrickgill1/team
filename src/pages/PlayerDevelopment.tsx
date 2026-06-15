@@ -882,33 +882,7 @@ const PlayerDevelopment: React.FC = () => {
           />
         </div>
 
-        {/* Needs Review Banner (coach only) */}
-        {isUserCoach && activePlans.some(p => p.goals.some(g => g.readyForReview && !g.coachVerified)) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <AppIcon name="bell" className="w-4 h-4" />
-              </span>
-              <h3 className="font-bold text-amber-900">Goals ready for your review</h3>
-            </div>
-            <div className="space-y-1">
-              {activePlans
-                .filter(p => p.goals.some(g => g.readyForReview && !g.coachVerified))
-                .map(p => {
-                  const readyCount = p.goals.filter(g => g.readyForReview && !g.coachVerified).length;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setExpandedPlanId(p.id)}
-                      className="block w-full text-left text-sm text-amber-800 hover:text-amber-900 hover:bg-amber-100 px-2 py-1 rounded"
-                    >
-                      <span className="font-medium">{p.playerName}</span> — {p.title} ({readyCount} goal{readyCount > 1 ? 's' : ''} ready)
-                    </button>
-                  );
-                })}
-            </div>
-          </div>
-        )}
+        {/* "Needs Review" coach banner removed — verification flow gone. */}
 
         {/* Active Plans */}
         {activePlans.length > 0 && (
@@ -1497,8 +1471,6 @@ const PlanCard: React.FC<PlanCardProps> = ({
   };
 
   const playerInitial = (plan.playerName || '?').charAt(0).toUpperCase();
-  const verifiedCount = plan.goals.filter(g => g.coachVerified).length;
-  const playerDoneCount = plan.goals.filter(g => g.playerCompleted).length;
 
   return (
     <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${isExpanded ? 'border-cyan-300 ring-2 ring-cyan-100' : 'border-gray-200'}`}>
@@ -1542,14 +1514,9 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   <span>Completed</span>
                 </span>
               )}
-              {readyForReviewCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
-                  <AppIcon name="bell" className="w-3 h-3" />
-                  <span>{readyForReviewCount} ready</span>
-                </span>
-              )}
+              {/* "Ready for review" badge removed — no verification flow. */}
               {typeof streak === 'number' && streak >= 2 && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-fire-100 text-fire-800 border border-fire-200" title={`${streak} consecutive verified goals`}>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-fire-100 text-fire-800 border border-fire-200" title={`${streak}-day practice streak`}>
                   <AppIcon name="highlight" className="w-3 h-3" />
                   <span>{streak} streak</span>
                 </span>
@@ -1568,38 +1535,20 @@ const PlanCard: React.FC<PlanCardProps> = ({
           </button>
         </div>
 
-        {/* Horizontal progress bars — player progress + coach
-            verified, side-by-side. Matches the screenshot layout. */}
+        {/* Practice activity summary — single bar based on the player's
+            session count. Replaces the dual player-progress / coach-
+            verified bars (verification flow removed). */}
         <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-gray-500 font-semibold">Player progress</span>
-                <span className="text-cyan-700 font-bold tabular-nums">{playerProgress}%</span>
+          {(() => {
+            const totalSessions = plan.goals.reduce((s, g) => s + (g.practiceLog?.length || 0), 0);
+            return (
+              <div className="text-[11px] flex items-center justify-between">
+                <span className="text-gray-500 font-semibold">Sessions logged</span>
+                <span className="text-cyan-700 font-bold tabular-nums">{totalSessions}</span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full bg-cyan-500 transition-all duration-500" style={{ width: `${playerProgress}%` }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between text-[11px] mb-1">
-                <span className="text-gray-500 font-semibold">Coach verified</span>
-                <span className={`font-bold tabular-nums ${progress === 100 ? 'text-emerald-700' : 'text-emerald-700'}`}>{progress}%</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }} />
-              </div>
-            </div>
-          </div>
+            );
+          })()}
           <div className="mt-2 text-[11px] text-gray-500 flex items-center gap-3 justify-center">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-              {playerDoneCount}/{plan.goals.length} sessions done
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {verifiedCount}/{plan.goals.length} verified
-            </span>
             {totalLoggedMinutes > 0 && (
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-fire-500" />
@@ -1645,29 +1594,21 @@ const PlanCard: React.FC<PlanCardProps> = ({
 
           <div className="space-y-3">
             {plan.goals.sort((a, b) => a.order - b.order).map((goal) => (
-              <div key={goal.id} className={`p-3 rounded-lg border ${
-                goal.coachVerified ? 'bg-emerald-50/70 border-emerald-200' :
-                goal.readyForReview ? 'bg-white border-cyan-300 ring-2 ring-cyan-100' :
-                'bg-white border-slate-200'
-              }`}>
+              <div key={goal.id} className="p-3 rounded-lg border bg-white border-slate-200">
                 <div className="flex items-start space-x-3">
-                  {/* The per-goal "playerCompleted" checkbox lived here.
-                      It was redundant with the "I did it today" button
-                      (Patrick: "the check box and the i did it today
-                      button is redundant"). Kept only the coach-verified
-                      status badge — that's still meaningful for the
-                      coach's review flow. */}
-                  {goal.coachVerified && (
-                    <div className="pt-0.5">
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                      </span>
-                    </div>
-                  )}
+                  {/* Coach-verification UI removed (Patrick: "I want to
+                      set the plan for them, but have them work on it,
+                      with the parent logging that it was done. I don't
+                      know whether I need to verify, I will see it
+                      through practice if they are getting better.") The
+                      coachVerified / readyForReview fields remain on the
+                      schema for older docs but no UI reads or writes
+                      them — the plan is parent-driven; the coach
+                      judges progress in person. */}
 
                   <div className="flex-1">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className={`font-medium text-sm ${goal.coachVerified ? 'text-green-800 line-through' : 'text-gray-900'}`}>
+                      <span className="font-medium text-sm text-gray-900">
                         {goal.title}
                         {(() => {
                           const goalMins = (goal.practiceLog || []).reduce((s, l) => s + (l.minutes || 0), 0);
@@ -1686,42 +1627,8 @@ const PlanCard: React.FC<PlanCardProps> = ({
                           return null;
                         })()}
                       </span>
-                      <div className="flex items-center space-x-2">
-                        {/* Ready for review button (parent/player) */}
-                        {canPlayerComplete && plan.status === 'active' && goal.playerCompleted && !goal.coachVerified && (
-                          <button
-                            onClick={() => onReadyForReview(goal.id)}
-                            className={`text-xs px-2 py-1 rounded-full font-medium transition-colors ${
-                              goal.readyForReview
-                                ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
-                                : 'bg-gray-100 text-gray-600 hover:bg-yellow-100 hover:text-yellow-700'
-                            }`}
-                          >
-                            {goal.readyForReview ? 'Waiting on Coach' : 'Ready for Coach Review'}
-                          </button>
-                        )}
-                        {/* Coach verify button */}
-                        {isCoach && plan.status === 'active' && (
-                          <button
-                            onClick={() => onCoachVerify(goal.id)}
-                            className={`text-xs px-2 py-1 rounded-full font-medium transition-colors ${
-                              goal.coachVerified
-                                ? 'bg-green-100 text-emerald-700 hover:bg-green-200'
-                                : goal.readyForReview
-                                ? 'bg-yellow-100 text-yellow-700 hover:bg-green-100 hover:text-emerald-700 ring-2 ring-yellow-300'
-                                : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-700'
-                            }`}
-                          >
-                            {goal.coachVerified ? 'Verified' : goal.readyForReview ? 'Verify Now' : 'Verify'}
-                          </button>
-                        )}
-                        {!isCoach && goal.coachVerified && (
-                          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                            <AppIcon name="check" className="w-3 h-3" />
-                            <span>Coach Verified</span>
-                          </span>
-                        )}
-                      </div>
+                      {/* Ready / Verify buttons removed — no
+                          coach-verification flow. */}
                     </div>
                     {goal.description && (
                       <p className="text-xs text-gray-500 mt-1">{goal.description}</p>

@@ -293,7 +293,25 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     // Fire haptic the instant the user taps Send — before any awaits
     // so it lands during the press, not after the network round-trip.
     void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
-    await onSend(content, pending, { requireAck: markImportant, pinOnSend: postToWall });
+
+    // Snapshot what we're sending, then clear the composer IMMEDIATELY
+    // — same frame as the tap. Two bugs were caused by clearing AFTER
+    // awaiting onSend:
+    //   1) The typed text lingered in the textarea for the duration
+    //      of the Firestore write (visible as "the words stay in the
+    //      box for a brief second").
+    //   2) The textarea-height reset happened AFTER the optimistic
+    //      message landed in the list, so the layout shift arrived
+    //      late — the auto-scroll-to-bottom ran on the wrong
+    //      scrollHeight and the thread settled mid-screen instead of
+    //      pinned to the latest message.
+    // Clearing first means the composer collapses first, THEN the
+    // optimistic message lands on a stable layout, and the parent's
+    // scrollIntoView lands cleanly at the bottom.
+    const snapshotText = content;
+    const snapshotPending = pending;
+    const snapshotImportant = markImportant;
+    const snapshotPostToWall = postToWall;
     setText('');
     setPending([]);
     setMentionQuery(null);
@@ -304,6 +322,17 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
     // until the user re-types and onChange recalculates.
     if (taRef.current) taRef.current.style.height = '';
     taRef.current?.focus();
+
+    // Fire-and-forget the actual send. The parent's optimistic-update
+    // path (TeamChat's __pending flag on the message) gives the
+    // sender immediate visual confirmation; a network failure flips
+    // it to __failed, which renders an error chip. So we don't need
+    // to await here.
+    try {
+      await onSend(snapshotText, snapshotPending, { requireAck: snapshotImportant, pinOnSend: snapshotPostToWall });
+    } catch (err) {
+      console.error('[chat] send failed', err);
+    }
   };
 
   return (

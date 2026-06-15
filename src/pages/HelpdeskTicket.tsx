@@ -224,7 +224,7 @@ const HelpdeskTicketPage: React.FC = () => {
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-8">
         <Link to="/helpdesk" className="text-cyan-600 font-semibold text-sm">← Back to tickets</Link>
       </div>
     );
@@ -233,7 +233,7 @@ const HelpdeskTicketPage: React.FC = () => {
   const canChangeStatus = isAdmin || ticket.createdBy === userData?.uid;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-950">
       {/* Custom navy header so we can fit the back button + status pill */}
       <header className="bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10 px-4 sm:px-6 pt-4 pb-5">
         <div className="max-w-3xl mx-auto">

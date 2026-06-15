@@ -484,7 +484,7 @@ const TeamManagement: React.FC = () => {
 
   if (!isUserCoach) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900">Coach Access Required</h2>
           <p className="text-gray-600 mt-2">Only coaches can manage teams.</p>
@@ -495,14 +495,14 @@ const TeamManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-950">
       {/* Navy page header to match the rest of the new chrome. The
           "+ New team" primary action sits in the header's action slot
           (the small button on the right) — same pattern as Events. */}

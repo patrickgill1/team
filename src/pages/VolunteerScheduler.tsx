@@ -296,7 +296,7 @@ const VolunteerScheduler: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-950">
       <Header title="Volunteers" subtitle="Sign up to help — snacks, setup, transport, and more" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex justify-end">

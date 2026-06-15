@@ -145,7 +145,7 @@ const RegistrationFormBuilder: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-slate-950 px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
         <div>
           <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">

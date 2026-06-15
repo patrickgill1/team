@@ -206,7 +206,7 @@ const Settings: React.FC = () => {
   const userInitial = (userData?.name || userData?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-12">
+    <div className="min-h-screen bg-slate-950 pb-12">
       {/* Page title row — sits below the global AppLayout top bar, no
           second dark header. */}
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-2 flex items-center justify-between">

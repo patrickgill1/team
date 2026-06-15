@@ -231,7 +231,7 @@ const People: React.FC = () => {
 
   if (!canViewDirectory) {
     return (
-      <div className="min-h-screen bg-slate-100">
+      <div className="min-h-screen bg-slate-950">
         <Header title="People" />
         <div className="max-w-md mx-auto px-4 py-12 text-center">
           <p className="text-slate-700 font-semibold mb-1">This area is for coaches.</p>
@@ -245,7 +245,7 @@ const People: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-950">
       <Header
         title="People"
         subtitle={people.length ? `${people.length} in your club` : undefined}

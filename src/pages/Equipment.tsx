@@ -75,7 +75,7 @@ const Equipment: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-fire-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
         <div className="text-center max-w-md">
           <p className="text-sm font-bold text-slate-700">Coach access only</p>
           <p className="text-xs text-slate-500 mt-1">Equipment tracking is visible to coaches and to the parents of each player on that player's profile.</p>
@@ -85,7 +85,7 @@ const Equipment: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-fire-50">
+    <div className="min-h-screen bg-slate-950">
       <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
         <div className="max-w-4xl mx-auto">
           <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">

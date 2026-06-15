@@ -670,7 +670,7 @@ const EventDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-200 border-t-cyan-500" />
       </div>
     );
@@ -678,7 +678,7 @@ const EventDetail: React.FC = () => {
 
   if (!event || !eventDate) {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-8 text-center">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
         <p className="text-slate-600 mb-4">Event not found.</p>
         <Link to="/calendar" className="text-cyan-600 font-semibold">← Back to events</Link>
       </div>
@@ -704,7 +704,7 @@ const EventDetail: React.FC = () => {
     : 'bg-cyan-400 animate-pulse';
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-950">
       {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10 px-4 sm:px-6 pt-4 pb-5">
         <div className="flex items-center justify-between mb-4">

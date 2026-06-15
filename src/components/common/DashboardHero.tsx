@@ -89,7 +89,11 @@ const DashboardHero: React.FC<Props> = ({
 
   return (
     <section
-      className="relative overflow-hidden bg-slate-950"
+      // Min-height ramps up on larger viewports so the hero
+      // proportionally fills the screen — on a 1784px tall monitor
+      // the stadium photo was rendering as a thin strip with empty
+      // dark space below the cards. Mobile keeps its natural height.
+      className="relative overflow-hidden bg-slate-950 sm:min-h-[260px] lg:min-h-[360px] xl:min-h-[440px]"
       aria-label={`${greeting}, ${firstName}`}
     >
       {/* Time-of-day stadium photo behind the gradient. img errors are
@@ -122,12 +126,15 @@ const DashboardHero: React.FC<Props> = ({
           conveys the scene. Patrick: "we don't need the old banner
           field that was on there".) */}
 
-      {/* Content — kept compact: a glance, not a hero. */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-4 sm:pt-4 sm:pb-5">
-        <h1 className="text-base sm:text-lg font-bold text-white">
+      {/* Content — kept compact: a glance, not a hero. On taller
+          desktops the section min-height pushes the bottom edge
+          down, so we let the content stretch with the section
+          (no absolute positioning) and bump greeting size up at lg+. */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-4 sm:pt-4 sm:pb-5 lg:pt-8 lg:pb-10 h-full flex flex-col justify-end">
+        <h1 className="text-base sm:text-lg lg:text-2xl xl:text-3xl font-bold text-white">
           {greeting}, {firstName}!
         </h1>
-        <p className="text-[11px] sm:text-xs text-slate-300">
+        <p className="text-[11px] sm:text-xs lg:text-sm text-slate-300">
           Here's what's happening with your team.
         </p>
 

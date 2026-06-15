@@ -604,29 +604,22 @@ const Dashboard: React.FC = () => {
             FCM tokens. Self-hides when not needed. */}
         <NotificationsBanner />
 
-        {/* Ambient cues right under the greeting — birthday pill,
-            season countdown. Tiny, but they make the page feel alive. */}
-        {(birthdayKids.length > 0 || seasonCountdown) && (
+        {/* Ambient cues right under the greeting — birthday pill only.
+            Season countdown ("20 weeks left in Fall 2026") was removed
+            per Patrick's call: it took up space without driving any
+            action, and the season name is already visible elsewhere. */}
+        {birthdayKids.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap -mt-3">
             {birthdayKids.map((k) => (
               <Link
                 key={k.id}
                 to={`/player/${k.id}`}
-                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-100 to-pink-100 ring-1 ring-amber-300 text-amber-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm hover:shadow transition active:scale-95"
+                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/25 to-pink-500/20 ring-1 ring-amber-300/40 text-amber-100 px-3 py-1 rounded-full text-xs font-bold shadow hover:shadow-md transition active:scale-95"
               >
                 <span className="text-base leading-none">🎂</span>
                 <span>{k.name.split(' ')[0]} turns {k.turning} today</span>
               </Link>
             ))}
-            {seasonCountdown && (
-              <span className="inline-flex items-center gap-1.5 bg-white/80 ring-1 ring-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur">
-                <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" />
-                  <path strokeLinecap="round" d="M12 7v5l3 2" />
-                </svg>
-                {seasonCountdown}
-              </span>
-            )}
           </div>
         )}
         {/* The no-event empty state lives in DashboardHero now — no

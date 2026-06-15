@@ -151,7 +151,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (gateReason === 'pending-approval') {
     return (
-      <div className="min-h-screen bg-fire-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
         <div className="max-w-sm w-full text-center">
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-fire-950 mb-2">Waiting for Approval</h1>
@@ -181,7 +181,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (gateReason === 'not-linked') {
     return (
-      <div className="min-h-screen bg-fire-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
         <div className="max-w-sm w-full text-center">
           <div className="text-6xl mb-4">⏳</div>
           <h1 className="text-2xl font-bold text-fire-950 mb-2">Almost There!</h1>
@@ -210,7 +210,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-fire-50">
+    <div className="min-h-screen bg-slate-950">
       <Navigation />
       {/* Main content: offset for desktop sidebar + mobile top/bottom bars */}
       {/* Mobile header is a flat h-14 (no safe-top — native shell

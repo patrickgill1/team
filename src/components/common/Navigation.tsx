@@ -390,7 +390,12 @@ const Navigation: React.FC = () => {
           inside the WebView is 0 on iOS / unreliable on Android.
           Doubling it here produced a tall empty navy strip above
           the logo on Samsung tablets. */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-fire-950">
+      {/* Mobile top header — frosted-blur glass over the hero stadium
+          photo so the hero bleeds THROUGH the bar instead of hitting
+          a hard navy seam. saturate-150 gives the photo color a
+          gentle pop through the blur. Falls back to a solid bg on
+          older WebKit that doesn't support backdrop-filter. */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-fire-950/70 backdrop-blur-lg backdrop-saturate-150 supports-[backdrop-filter]:bg-fire-950/60">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/dashboard" className="flex items-center space-x-2">
             <img src="/images/logo.png" alt="Fire FC" className="h-8 w-8 object-contain" />
@@ -481,11 +486,13 @@ const Navigation: React.FC = () => {
             className="absolute inset-0 bg-fire-950/60 backdrop-blur-sm"
             onClick={() => setIsMoreOpen(false)}
           />
-          {/* Sheet */}
-          <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up safe-bottom">
+          {/* Sheet — dark navy now that the app picked the dark lane.
+              Matches dashboard + bottom nav so there's no light-sheet
+              flash when tapping More. */}
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-b from-slate-950 to-slate-900 rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up safe-bottom">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-300" />
+              <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
             {/* Header */}
@@ -493,13 +500,13 @@ const Navigation: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <img src="/images/logo.png" alt="Fire FC" className="h-8 w-8 object-contain" />
                 <div>
-                  <div className="font-bold text-fire-950">{selectedTeam?.name || 'Fire FC'}</div>
-                  <div className="text-xs text-gray-500">{userData?.name}</div>
+                  <div className="font-bold text-white">{selectedTeam?.name || 'Fire FC'}</div>
+                  <div className="text-xs text-white/60">{userData?.name}</div>
                 </div>
               </div>
               <button
                 onClick={() => setIsMoreOpen(false)}
-                className="p-2 rounded-full hover:bg-gray-100 text-gray-400"
+                className="p-2 rounded-full hover:bg-white/10 text-white/55"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -513,10 +520,10 @@ const Navigation: React.FC = () => {
                 <select
                   value={selectedTeamId}
                   onChange={e => setSelectedTeamId(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 text-gray-700 focus:ring-2 focus:ring-cyan-500"
+                  className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-white/5 text-white focus:ring-2 focus:ring-cyan-400"
                 >
                   {teams.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id} className="bg-slate-900">{t.name}</option>
                   ))}
                 </select>
               </div>
@@ -529,10 +536,10 @@ const Navigation: React.FC = () => {
             <div className="px-4 py-2 space-y-5">
               {moreSections.map((section) => (
                 <div key={section.label}>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2 px-2">
                     {section.label}
                   </div>
-                  <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden divide-y divide-gray-100">
+                  <div className="bg-white/[0.04] rounded-2xl ring-1 ring-white/10 overflow-hidden divide-y divide-white/5">
                     {section.items.map((item) => {
                       const active = isActive(item.path);
                       return (
@@ -540,15 +547,15 @@ const Navigation: React.FC = () => {
                           key={item.path}
                           to={item.path}
                           onClick={() => setIsMoreOpen(false)}
-                          className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-cyan-50' : 'hover:bg-gray-50'}`}
+                          className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-cyan-500/15' : 'hover:bg-white/5'}`}
                         >
                           <span className="flex items-center gap-3 min-w-0">
-                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-cyan-100 text-cyan-700' : 'bg-cyan-50 text-cyan-700'}`}>
+                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-cyan-500/25 text-cyan-200' : 'bg-cyan-500/10 text-cyan-300'}`}>
                               <AppIcon name={item.icon as any} className="w-5 h-5" />
                             </span>
-                            <span className={`text-[15px] font-semibold truncate ${active ? 'text-cyan-800' : 'text-gray-900'}`}>{item.name}</span>
+                            <span className={`text-[15px] font-semibold truncate ${active ? 'text-cyan-100' : 'text-white'}`}>{item.name}</span>
                           </span>
-                          <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300 shrink-0" />
+                          <AppIcon name="arrow-right" className="w-4 h-4 text-white/30 shrink-0" />
                         </Link>
                       );
                     })}
@@ -558,64 +565,59 @@ const Navigation: React.FC = () => {
 
               {/* Account section */}
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2 px-2">
                   Account
                 </div>
-                <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden divide-y divide-gray-100">
+                <div className="bg-white/[0.04] rounded-2xl ring-1 ring-white/10 overflow-hidden divide-y divide-white/5">
                   <Link
                     to="/helpdesk"
                     onClick={() => setIsMoreOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+                    className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-300 flex items-center justify-center shrink-0">
                         <AppIcon name="survey" className="w-5 h-5" />
                       </span>
-                      <span className="text-[15px] font-semibold text-gray-900">Club Support</span>
+                      <span className="text-[15px] font-semibold text-white">Club Support</span>
                     </span>
-                    <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-white/30" />
                   </Link>
                   <Link
                     to="/settings"
                     onClick={() => setIsMoreOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+                    className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-300 flex items-center justify-center shrink-0">
                         <AppIcon name="gear" className="w-5 h-5" />
                       </span>
-                      <span className="text-[15px] font-semibold text-gray-900">Settings</span>
+                      <span className="text-[15px] font-semibold text-white">Settings</span>
                     </span>
-                    <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-white/30" />
                   </Link>
-                  {/* "Invite Parents" used to live here as a separate
-                      legacy modal. It's been replaced by the unified
-                      flow on /people (+ chooser → Add player / Invite
-                      someone) so we don't surface a second entry point
-                      with worse UX. */}
                   <button
                     onClick={() => { handleLogout(); setIsMoreOpen(false); }}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition text-left"
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition text-left"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-white/10 text-white/70 flex items-center justify-center shrink-0">
                         <AppIcon name="logout" className="w-5 h-5" />
                       </span>
-                      <span className="text-[15px] font-semibold text-gray-900">Sign Out</span>
+                      <span className="text-[15px] font-semibold text-white">Sign Out</span>
                     </span>
-                    <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-white/30" />
                   </button>
                   <button
                     onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteError(null); setIsMoreOpen(false); }}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-rose-50 transition text-left"
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-rose-500/10 transition text-left"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-rose-500/15 text-rose-300 flex items-center justify-center shrink-0">
                         <AppIcon name="trash" className="w-5 h-5" />
                       </span>
-                      <span className="text-[15px] font-semibold text-rose-700">Delete account</span>
+                      <span className="text-[15px] font-semibold text-rose-200">Delete account</span>
                     </span>
-                    <AppIcon name="arrow-right" className="w-4 h-4 text-rose-200" />
+                    <AppIcon name="arrow-right" className="w-4 h-4 text-rose-400/40" />
                   </button>
                 </div>
               </div>

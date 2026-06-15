@@ -34,7 +34,20 @@ admin.initializeApp({
 const db = admin.firestore();
 const auth = admin.auth();
 
-const PATRICK_EMAIL = 'patrick.gill@zfpmail.org';
+// Email of the Fire FC account to operate on. Pass via --email=, or
+// set PATRICK_EMAIL in the environment. The dev-env email was wrong
+// for production use.
+function resolveEmail(): string {
+  const flag = process.argv.find(a => a.startsWith('--email='));
+  if (flag) return flag.slice('--email='.length);
+  if (process.env.PATRICK_EMAIL) return process.env.PATRICK_EMAIL;
+  console.error('No account email provided.');
+  console.error('Pass it with --email=you@example.com OR set PATRICK_EMAIL in env.');
+  console.error('Example:');
+  console.error('  npx tsx scripts/manageMyPlayers.ts list --email=patrick@firefc.app');
+  process.exit(1);
+}
+const PATRICK_EMAIL = resolveEmail();
 
 const headingFor = (n: number) =>
   n >= 100 ? '## Century streak' :
@@ -158,7 +171,10 @@ async function cmdPostStreak(playerId: string, milestoneArg?: string) {
 }
 
 (async () => {
-  const [cmd, arg1, arg2] = process.argv.slice(2);
+  // Strip --email= flag from positional args so it doesn't get
+  // mis-parsed as a player id.
+  const positional = process.argv.slice(2).filter(a => !a.startsWith('--email='));
+  const [cmd, arg1, arg2] = positional;
 
   if (!cmd || cmd === 'list') {
     const patrick = await auth.getUserByEmail(PATRICK_EMAIL);

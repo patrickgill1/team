@@ -8,6 +8,7 @@ import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
 import Header from '../components/common/Header';
+import { Link } from 'react-router-dom';
 import AppIcon from '../components/common/AppIcon';
 
 interface MatchVoting {
@@ -524,7 +525,7 @@ const PlayerOfMatch: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-100">
       <Header title="Player of the Match" subtitle="Vote for outstanding performances" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isUserCoach && (
@@ -581,19 +582,28 @@ const PlayerOfMatch: React.FC = () => {
                 </div>
               </div>
             ) : !activeVoting && calendarEvents.filter(e => e.type === 'game').length === 0 ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <h3 className="text-sm font-medium text-yellow-900 mb-1">No Games Scheduled</h3>
-                    <p className="text-sm text-yellow-700 mb-2">
-                      You need to schedule games in your calendar first before creating Player of the Match voting.
+              <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-cyan-600">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-900 mb-1">No games scheduled yet</h3>
+                    <p className="text-sm text-slate-600 mb-3">
+                      Add a game to your calendar to start a Player of the Match vote — or hit <span className="font-semibold text-slate-800">Create Voting</span> above to build a custom vote for any game.
                     </p>
-                    <p className="text-xs text-yellow-600">
-                      Go to Calendar → Add Event → Choose "Game" type to schedule your games.
-                    </p>
+                    <Link
+                      to="/calendar"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                    >
+                      Open calendar
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -1160,110 +1170,89 @@ const PlayerOfMatch: React.FC = () => {
         </div>
       )}
 
-      {/* Create Voting Modal */}
+      {/* Create Voting Modal — dark navy header chrome + light body
+          to match the rest of the app's modal pattern (Wall composer,
+          message-action sheet, emoji picker). overflow-x-hidden on
+          the body kills the horizontal scroll Patrick reported. */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold text-fire-950 mb-4">Create Player of the Match Voting</h2>
-            
-            {/* Option 1: Link to Calendar Game */}
-            {availableGames.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  Link to Scheduled Game
-                </h3>
-                <p className="text-xs text-gray-600 mb-3">
-                  Select a game from your calendar to create voting for:
-                </p>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {availableGames.map(game => (
-                    <button
-                      key={game.id}
-                      onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                      className="w-full text-left p-3 border border-gray-200 rounded-lg hover:border-cyan-300 hover:bg-cyan-50 transition-colors duration-200"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{game.title}</div>
-                          <div className="text-sm text-gray-600">
-                            {formatDate(game.date)} at {game.location}
-                            {game.opponent && ` - vs ${game.opponent}`}
-                          </div>
-                        </div>
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Show all calendar games for debugging */}
-            {process.env.NODE_ENV === 'development' && calendarEvents.length > 0 && (
-              <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Debug: All Calendar Games</h4>
-                <div className="space-y-1 text-xs">
-                  {calendarEvents.filter(e => e.type === 'game').map(game => (
-                    <div key={game.id} className="flex justify-between items-center">
-                      <span>{game.title} - {formatDate(game.date)}</span>
-                      <span className={votings.find(v => v.calendarEventId === game.id) ? 'text-emerald-600' : 'text-red-600'}>
-                        {votings.find(v => v.calendarEventId === game.id) ? 'Has Voting' : 'No Voting'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Explanation when no calendar games available */}
-            {availableGames.length === 0 && calendarEvents.filter(e => e.type === 'game').length === 0 && (
-              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <h4 className="text-sm font-medium text-yellow-900 mb-1">No Games in Calendar</h4>
-                    <p className="text-sm text-yellow-700">
-                      To link Player of the Match voting to your games, first schedule games in your calendar:
-                    </p>
-                    <ol className="text-xs text-yellow-600 mt-2 space-y-1 list-decimal list-inside">
-                      <li>Go to Calendar</li>
-                      <li>Click "Add Event"</li>
-                      <li>Choose "Game" as the event type</li>
-                      <li>Fill in game details and save</li>
-                      <li>Come back here to create voting for that game</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Option 2: Custom Game */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                <svg className="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                {availableGames.length > 0 ? 'Or Create Custom Voting' : 'Create Custom Voting'}
-              </h3>
-              <p className="text-xs text-gray-600 mb-3">
-                Create voting for a game that's not in your calendar:
-              </p>
-              <CustomGameForm onSubmit={handleCreateCustomVoting} />
-            </div>
-
-            <div className="flex justify-end pt-4">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 z-50 animate-fade-in"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white"
               >
                 Cancel
+              </button>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">New vote</div>
+              <span className="w-12" aria-hidden />
+            </div>
+
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-5">
+              {/* Option 1: Link to Calendar Game */}
+              {availableGames.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">
+                    Pick a scheduled game
+                  </h3>
+                  <div className="space-y-1.5">
+                    {availableGames.map(game => (
+                      <button
+                        key={game.id}
+                        onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
+                        className="w-full text-left p-3 rounded-xl bg-slate-50 ring-1 ring-slate-200 hover:bg-cyan-50 hover:ring-cyan-300 transition"
+                      >
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-slate-900 text-sm truncate">{game.title}</div>
+                            <div className="text-xs text-slate-600 truncate">
+                              {formatDate(game.date)}{game.location ? ` · ${game.location}` : ''}{game.opponent ? ` · vs ${game.opponent}` : ''}
+                            </div>
+                          </div>
+                          <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No-calendar-games hint — cyan, not yellow, matches
+                  the rest of the app's empty-state design. Compact:
+                  one line + a calendar link. The 5-step instructions
+                  were overkill for a coach. */}
+              {availableGames.length === 0 && calendarEvents.filter(e => e.type === 'game').length === 0 && (
+                <div className="rounded-xl bg-cyan-50 ring-1 ring-cyan-100 px-3 py-2.5 text-[12.5px] text-cyan-900">
+                  <span className="font-semibold">No games scheduled yet.</span>{' '}
+                  <Link to="/calendar" onClick={() => setShowCreateModal(false)} className="text-cyan-700 font-bold hover:text-cyan-900 underline underline-offset-2">
+                    Add a game on the calendar
+                  </Link>{' '}
+                  to link voting to it — or fill out a custom vote below.
+                </div>
+              )}
+
+              {/* Option 2: Custom Game */}
+              <div>
+                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 mb-2">
+                  {availableGames.length > 0 ? 'Or create a custom vote' : 'Create a custom vote'}
+                </h3>
+                <CustomGameForm onSubmit={handleCreateCustomVoting} />
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 border-t border-slate-100 bg-slate-50/60 px-5 py-3 flex justify-end">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-[12px] font-extrabold tracking-widest uppercase px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100"
+              >
+                Close
               </button>
             </div>
           </div>
@@ -1373,11 +1362,9 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
         />
       </div>
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-        <p className="text-sm text-yellow-800">
-          <strong>Note:</strong> Parents cannot vote for their own children to ensure fair voting.
-        </p>
-      </div>
+      <p className="text-[12px] text-slate-500">
+        <span className="font-bold text-slate-700">Note:</span> Parents cannot vote for their own children to ensure fair voting.
+      </p>
 
       <button
         type="submit"

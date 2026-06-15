@@ -34,20 +34,39 @@ admin.initializeApp({
 const db = admin.firestore();
 const auth = admin.auth();
 
-// Email of the Fire FC account to operate on. Pass via --email=, or
-// set PATRICK_EMAIL in the environment. The dev-env email was wrong
-// for production use.
-function resolveEmail(): string {
-  const flag = process.argv.find(a => a.startsWith('--email='));
-  if (flag) return flag.slice('--email='.length);
-  if (process.env.PATRICK_EMAIL) return process.env.PATRICK_EMAIL;
-  console.error('No account email provided.');
-  console.error('Pass it with --email=you@example.com OR set PATRICK_EMAIL in env.');
-  console.error('Example:');
-  console.error('  npx tsx scripts/manageMyPlayers.ts list --email=patrick@firefc.app');
+// Either a Firebase Auth UID (preferred — works regardless of how
+// the account was created) or an email Firebase Auth can resolve.
+// Apple sign-in stores a private relay address that won't match
+// your "regular" email, which is what blew up before. Find your
+// UID in Firebase Console → Authentication → Users.
+async function resolveUid(): Promise<string> {
+  const uidFlag = process.argv.find(a => a.startsWith('--uid='));
+  if (uidFlag) return uidFlag.slice('--uid='.length);
+  if (process.env.PATRICK_UID) return process.env.PATRICK_UID;
+
+  const emailFlag = process.argv.find(a => a.startsWith('--email='));
+  const email = emailFlag ? emailFlag.slice('--email='.length) : process.env.PATRICK_EMAIL;
+  if (email) {
+    try {
+      const u = await auth.getUserByEmail(email);
+      return u.uid;
+    } catch (err: any) {
+      console.error(`Could not find a Firebase Auth user with email ${email}.`);
+      console.error('If you signed in with Apple, your Auth email is a private relay');
+      console.error('address (xxxxx@privaterelay.appleid.com), not your real email.');
+      console.error('');
+      console.error('Easier path — go to Firebase Console → Authentication → Users,');
+      console.error('find your row, copy the User UID, then re-run with --uid=<uid>.');
+      process.exit(1);
+    }
+  }
+
+  console.error('No account identifier provided.');
+  console.error('Preferred: --uid=<your-firebase-auth-uid>');
+  console.error('  Find it: Firebase Console → Authentication → Users → your row');
+  console.error('OR:       --email=<the-email-firebase-auth-has-on-file>');
   process.exit(1);
 }
-const PATRICK_EMAIL = resolveEmail();
 
 const headingFor = (n: number) =>
   n >= 100 ? '## Century streak' :
@@ -125,7 +144,7 @@ async function cmdDelete(playerId: string) {
   console.log('Done.');
 }
 
-async function cmdPostStreak(playerId: string, milestoneArg?: string) {
+async function cmdPostStreak(senderUid: string, playerId: string, milestoneArg?: string) {
   const milestone = parseInt(milestoneArg || '5', 10);
   if (![5, 10, 25, 50, 100].includes(milestone)) {
     console.error(`Milestone must be one of 5/10/25/50/100 (got ${milestone}).`);
@@ -143,7 +162,14 @@ async function cmdPostStreak(playerId: string, milestoneArg?: string) {
     process.exit(1);
   }
 
-  const patrick = await auth.getUserByEmail(PATRICK_EMAIL);
+  // Pull the sender's display name from the user doc so the wall
+  // post is attributed correctly even when we only have the uid.
+  let senderName = 'Coach';
+  try {
+    const u = await db.collection('users').doc(senderUid).get();
+    if (u.exists) senderName = (u.data() as any).name || senderName;
+  } catch { /* ignore */ }
+
   const content = [
     headingFor(milestone),
     `**${player.name}** just hit a **${milestone}-day** practice streak.`,
@@ -152,8 +178,8 @@ async function cmdPostStreak(playerId: string, milestoneArg?: string) {
   const ref = await db.collection('wall_posts').add({
     teamId: player.teamId,
     content,
-    senderId: patrick.uid,
-    senderName: 'Patrick Gill',
+    senderId: senderUid,
+    senderName,
     senderRole: 'coach',
     timestamp: new Date(),
     attachments: null,
@@ -168,23 +194,25 @@ async function cmdPostStreak(playerId: string, milestoneArg?: string) {
   console.log(`Team: ${player.teamId}`);
   console.log(`Player: ${player.name}`);
   console.log(`Milestone: ${milestone}-day`);
+  console.log(`Posted by: ${senderName} (${senderUid})`);
 }
 
 (async () => {
-  // Strip --email= flag from positional args so it doesn't get
-  // mis-parsed as a player id.
-  const positional = process.argv.slice(2).filter(a => !a.startsWith('--email='));
+  // Strip flags from positional args so they don't get mis-parsed
+  // as player ids.
+  const positional = process.argv.slice(2).filter(a => !a.startsWith('--'));
   const [cmd, arg1, arg2] = positional;
 
+  const uid = await resolveUid();
+
   if (!cmd || cmd === 'list') {
-    const patrick = await auth.getUserByEmail(PATRICK_EMAIL);
-    await cmdList(patrick.uid);
+    await cmdList(uid);
   } else if (cmd === 'delete') {
     if (!arg1) { console.error('Usage: delete <playerId>'); process.exit(1); }
     await cmdDelete(arg1);
   } else if (cmd === 'post-streak') {
     if (!arg1) { console.error('Usage: post-streak <playerId> [milestone=5]'); process.exit(1); }
-    await cmdPostStreak(arg1, arg2);
+    await cmdPostStreak(uid, arg1, arg2);
   } else {
     console.error(`Unknown command: ${cmd}`);
     console.error('Commands: list, delete <id>, post-streak <id> [milestone]');

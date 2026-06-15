@@ -125,10 +125,18 @@ const WallHeaderButton: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-0 bottom-0 overflow-y-auto bg-white animate-sheet-up safe-top overscroll-contain flex flex-col"
-            style={{ left: 0, right: 0, width: '100vw', paddingBottom: 'env(safe-area-inset-bottom)' }}
+            // Safe-area paddings moved OFF the wrapper and INTO each
+            // dark strip below — Patrick: "can the top blue bar go
+            // all the way up and the bottom blue bar go all the way
+            // down?" The strips now paint behind the notch + home
+            // indicator instead of stopping at the safe-area edges.
+            className="absolute top-0 bottom-0 overflow-y-auto bg-white animate-sheet-up overscroll-contain flex flex-col"
+            style={{ left: 0, right: 0, width: '100vw' }}
           >
-            <div className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between border-b border-white/10">
+            <div
+              className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 flex items-center justify-between border-b border-white/10"
+              style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)', paddingBottom: '0.75rem' }}
+            >
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -184,7 +192,10 @@ const WallHeaderButton: React.FC = () => {
                 modal). Gives the drawer a polished bookend rather than
                 a giant white area below the last post — Patrick:
                 "footer bar on the drawer, not the wall page". */}
-            <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div
+              className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 flex items-center justify-between flex-shrink-0"
+              style={{ paddingTop: '0.75rem', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+            >
               <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-300/70">
                 {posts.length === 0 ? 'No posts yet' : `${posts.length} recent post${posts.length === 1 ? '' : 's'}`}
               </span>

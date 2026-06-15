@@ -550,6 +550,12 @@ const Wall: React.FC = () => {
   // Wall post reaction picker — opens the same EmojiPicker the chat
   // uses so reactions feel consistent across the app.
   const [reactingPostId, setReactingPostId] = useState<string | null>(null);
+  // ID of the post whose reactor-list sheet is open (so parents can
+  // see WHO reacted with what — Patrick: "can we also see who
+  // reacted on the wall posts?"). Tap a chip → toggle (existing).
+  // Tap the "Who reacted" link in the engagement bar → opens this
+  // sheet, grouped by emoji.
+  const [reactorsPostId, setReactorsPostId] = useState<string | null>(null);
 
   // Image upload — insert inline at the caret as markdown so the image
   // appears in the flow of the post (interleaved with text), not as a
@@ -1038,6 +1044,14 @@ const Wall: React.FC = () => {
                           <span className="font-semibold tabular-nums">{info.count}</span>
                         </button>
                       ))}
+                      {reactionEntries.length > 0 && (
+                        <button
+                          onClick={() => setReactorsPostId(p.id)}
+                          className="text-[11px] font-bold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                        >
+                          Who reacted →
+                        </button>
+                      )}
                       {(commentCounts[p.id] || 0) > 0 && (
                         <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-cyan-700 font-semibold">
                           {commentCounts[p.id]} {commentCounts[p.id] === 1 ? 'comment' : 'comments'}
@@ -1213,6 +1227,66 @@ const Wall: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Reactor list — opened from the "Who reacted →" link in each
+          post's engagement bar. Groups reactions by emoji and lists
+          the names that reacted with each. Dark-navy header chrome
+          matches the rest of the app's sheet pattern. */}
+      {reactorsPostId && (() => {
+        const target = posts.find(p => p.id === reactorsPostId);
+        if (!target) return null;
+        const grouped: Record<string, Array<{ uid: string; name: string }>> = {};
+        for (const r of target.reactions || []) {
+          if (!grouped[r.emoji]) grouped[r.emoji] = [];
+          grouped[r.emoji].push({ uid: r.userId, name: r.userName || 'Member' });
+        }
+        const emojis = Object.keys(grouped).sort((a, b) => grouped[b].length - grouped[a].length);
+        const total = (target.reactions || []).length;
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+            onClick={() => setReactorsPostId(null)}
+          >
+            <div
+              className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+                <button onClick={() => setReactorsPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white">
+                  Close
+                </button>
+                <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">
+                  {total} {total === 1 ? 'reaction' : 'reactions'}
+                </div>
+                <span className="w-12" aria-hidden />
+              </div>
+              <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                {emojis.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-slate-500">No reactions yet.</div>
+                ) : (
+                  emojis.map(emoji => (
+                    <div key={emoji} className="border-b border-slate-100 last:border-b-0">
+                      <div className="px-4 py-2 bg-slate-50 flex items-center justify-between">
+                        <span className="text-base">{emoji}</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                          {grouped[emoji].length}
+                        </span>
+                      </div>
+                      <ul>
+                        {grouped[emoji].map(r => (
+                          <li key={r.uid} className="px-4 py-2 text-[14px] text-slate-800 border-b border-slate-50 last:border-b-0">
+                            {r.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

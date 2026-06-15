@@ -437,24 +437,26 @@ const TeamChat: React.FC = () => {
   };
 
   // Jump or animate the messages list to the bottom. Manipulating
-  // Bottom-sentinel + scrollIntoView is the iOS-standard chat scroll
-  // pattern. We pin messagesEndRef as a 1px sentinel at the end of
-  // the message list and scroll IT into view. Unlike
-  // scrollTop = scrollHeight, this does NOT depend on the current
-  // scrollHeight being final — when more images decode, the sentinel
-  // moves with the content and the next scrollIntoView still lands
-  // at the bottom. No math, no race with WebKit scroll anchoring.
+  // Direct scrollTop on the messages container — NOT scrollIntoView.
+  // scrollIntoView walks UP the DOM to find the first scrollable
+  // ancestor, which on Android Chromium can be the page body or a
+  // parent flex container instead of the messages list. The result:
+  // sending a long message would scroll a DIFFERENT element, shoving
+  // the entire thread to the top of the viewport (Patrick: "i sent a
+  // long message and it took me to the very top of the thread").
+  // Direct scrollTop on the ref we own is unambiguous.
+  //
+  // scrollIntoView is kept ONLY as a fallback if the container ref
+  // hasn't mounted yet, which should be effectively never.
   const scrollToBottom = (smooth = false) => {
-    const el = messagesEndRef.current;
-    if (el) {
-      el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+    const c = messagesContainerRef.current;
+    if (c) {
+      if (smooth) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+      else c.scrollTop = c.scrollHeight;
       return;
     }
-    // Fallback if sentinel isn't mounted yet (very first render).
-    const c = messagesContainerRef.current;
-    if (!c) return;
-    if (smooth) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
-    else c.scrollTop = c.scrollHeight;
+    const el = messagesEndRef.current;
+    if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
   };
 
   // Day-grain label for the divider line above a message run.

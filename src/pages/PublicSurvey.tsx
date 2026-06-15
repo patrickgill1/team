@@ -1,8 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { doc, onSnapshot, collection, addDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { Survey, SurveyQuestion, SurveyAnswer } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+
+// Compact "Back to app" bar shown when an authed user is viewing the
+// public-survey route from inside the app shell. Without it, parents
+// who tap a survey link in chat get trapped on the survey page with
+// no way to navigate to the rest of the app (Patrick: "there is no
+// way to leave the survey to get back to the parts of the app").
+// Unauthed visitors (cold link in email/SMS) never see this — the
+// survey page still behaves as a clean public form for them.
+const InAppSurveyBackBar: React.FC = () => {
+  const { userData } = useAuth();
+  if (!userData) return null;
+  return (
+    <div className="sticky top-0 z-40 bg-slate-950 text-white px-4 py-2.5 flex items-center justify-between shadow">
+      <Link
+        to="/dashboard"
+        className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-cyan-300 hover:text-white"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Back to Fire FC
+      </Link>
+      <span className="text-[10px] text-white/40 uppercase tracking-widest">Survey</span>
+    </div>
+  );
+};
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const RESPONDENT_KEY = 'survey_respondent_name';
@@ -137,8 +165,9 @@ const PublicSurvey: React.FC = () => {
   // ─── Error ───────────────────────────────────────────────────────────
   if (error || !survey) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+        <InAppSurveyBackBar />
+        <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">😕</div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">{error || 'Survey not found'}</h1>
           <p className="text-gray-500 text-sm">This link might be invalid or the survey may have been removed.</p>
@@ -150,8 +179,9 @@ const PublicSurvey: React.FC = () => {
   // ─── Closed ──────────────────────────────────────────────────────────
   if (!survey.isActive) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+        <InAppSurveyBackBar />
+        <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">🔒</div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Survey Closed</h1>
           <p className="text-gray-500 text-sm">This survey is no longer accepting responses.</p>
@@ -163,8 +193,9 @@ const PublicSurvey: React.FC = () => {
   // ─── Already submitted ──────────────────────────────────────────────
   if (alreadySubmitted || step === 'thanks') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+        <InAppSurveyBackBar />
+        <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">🎉</div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Thank You!</h1>
           <p className="text-gray-500 text-sm">Your response has been recorded. We appreciate your feedback!</p>
@@ -176,8 +207,9 @@ const PublicSurvey: React.FC = () => {
   // ─── Identify step (only for non-anonymous surveys) ──────────────────
   if (!survey.isAnonymous && step === 'identify') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+        <InAppSurveyBackBar />
+        <div className="w-full max-w-md mx-auto my-auto">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">{survey.title}</h1>
             {survey.description && <p className="text-gray-500 mt-2 text-sm">{survey.description}</p>}
@@ -207,8 +239,9 @@ const PublicSurvey: React.FC = () => {
 
   // ─── Fill survey ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 px-4 sm:px-6">
-      <div className="max-w-lg mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <InAppSurveyBackBar />
+      <div className="max-w-lg mx-auto py-8 px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">{survey.title}</h1>

@@ -345,8 +345,8 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Team Directory</h1>
-              <p className="text-gray-600 mt-1">Connect with team families and coaches</p>
+              <h1 className="text-3xl font-bold text-white">Team Directory</h1>
+              <p className="text-white/60 mt-1">Connect with team families and coaches</p>
             </div>
             <div className="flex space-x-3">
               <button

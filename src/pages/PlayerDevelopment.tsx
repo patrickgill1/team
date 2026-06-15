@@ -147,7 +147,7 @@ const PlayerDevelopment: React.FC = () => {
     (async () => {
       try {
         const { computeStreakDays, recomputeAndPersistPlayerStreak } = await import('../utils/devPlanActions');
-        const { collection, query, where, getDocs } = await import('firebase/firestore');
+        const { doc, getDoc } = await import('firebase/firestore');
         const { db } = await import('../utils/firebase');
         const byPlayer = new Map<string, DevelopmentPlan[]>();
         for (const p of plans) {
@@ -162,9 +162,14 @@ const PlayerDevelopment: React.FC = () => {
           // Read the cached value and only write when it differs to
           // avoid a write storm on every page load.
           try {
-            const snap = await getDocs(query(collection(db, 'players'), where('__name__', '==', playerId)));
-            if (snap.empty) continue;
-            const cached = (snap.docs[0].data() as any).currentStreakDays || 0;
+            // Direct doc read by ID — was `where('__name__', '==', id)`
+            // which doesn't actually match in the Firestore Web SDK
+            // (returns an empty snapshot, so the self-heal was a no-op
+            // and the cached streak never resynced). Patrick: "on his
+            // profile it says 5, in the development plan it says 6."
+            const snap = await getDoc(doc(db, 'players', playerId));
+            if (!snap.exists()) continue;
+            const cached = (snap.data() as any).currentStreakDays || 0;
             if (cached === computed) continue;
             await recomputeAndPersistPlayerStreak(playerId, activePlans);
           } catch (err) {

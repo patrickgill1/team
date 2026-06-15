@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { DevelopmentPlan } from '../../types';
 import { didItToday, quickDidIt, recomputeAndPersistPlayerStreak } from '../../utils/devPlanActions';
@@ -34,7 +34,39 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
   // (most kids have one active plan; if they have more, we don't make
   // them dig into each one).
   const goals = activePlans.flatMap(p => p.goals.map(g => ({ plan: p, goal: g })));
-  const streak = currentStreakDays || 0;
+
+  // Compute the TRUE streak from the active plans we have. If the
+  // cached currentStreakDays prop (read from player doc by the
+  // parent) disagrees, display the computed value AND silently
+  // write it back to the player doc. The chip on the profile would
+  // otherwise stay stuck at the stale value forever — Patrick:
+  // "on his profile it says 5, in the development plan it says 6."
+  // Self-heal runs once per mount + once per plans change.
+  const [computedStreak, setComputedStreak] = useState<number>(currentStreakDays || 0);
+  useEffect(() => {
+    if (activePlans.length === 0) { setComputedStreak(0); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { computeStreakDays, recomputeAndPersistPlayerStreak } = await import('../../utils/devPlanActions');
+        const fresh = computeStreakDays(activePlans);
+        if (cancelled) return;
+        setComputedStreak(fresh);
+        if (fresh !== (currentStreakDays || 0)) {
+          // Silent fix — no actor → no milestone wall post (the cached
+          // value was just lagging behind reality; this isn't a
+          // celebration moment).
+          await recomputeAndPersistPlayerStreak(playerId, activePlans);
+        }
+      } catch (err) {
+        console.warn('InlineDevPlanCard streak self-heal skipped', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localPlans, currentStreakDays, playerId]);
+
+  const streak = computedStreak;
 
   const handleDidIt = async (plan: DevelopmentPlan, goalId: string) => {
     if (!actor) return;

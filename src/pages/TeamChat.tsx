@@ -1079,6 +1079,25 @@ const TeamChat: React.FC = () => {
     };
     setPendingMessages(prev => [...prev, pendingMessage as any]);
 
+    // The user JUST sent a message — they're at the bottom by intent,
+    // regardless of what handleScroll thinks during the composer-
+    // collapse layout shift. Without this force, the useLayoutEffect's
+    // scrollToBottom call gated on isAtBottomRef would skip when the
+    // textarea-height reset transiently flipped the flag to false,
+    // leaving the user mid-thread. Patrick has reported this bug
+    // multiple times: "i sent a long message and it took me to the
+    // very top of the thread" / "sending bug is still alive".
+    isAtBottomRef.current = true;
+    initialLoadUntilRef.current = Date.now() + 500;
+    // Two RAFs: first commit catches the optimistic message landing
+    // in the DOM, second catches the composer-collapse height change
+    // a frame later. Both call scrollToBottom directly on the
+    // container ref (no scrollIntoView ambiguity across platforms).
+    requestAnimationFrame(() => {
+      scrollToBottom(false);
+      requestAnimationFrame(() => scrollToBottom(false));
+    });
+
     // Clear composer immediately so the user feels the send "land".
     setNewMessage('');
     if (selectedThread?.id) {

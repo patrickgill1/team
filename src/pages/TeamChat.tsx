@@ -899,7 +899,13 @@ const TeamChat: React.FC = () => {
       };
       requestAnimationFrame(pin);
     } else if (isAtBottomRef.current) {
-      scrollToBottom(true);
+      // Was smooth-scroll. Changed to INSTANT: when a Firestore tail
+      // arrives ~200ms after the user's send (delivering the real
+      // copy of the message they just sent optimistically), a smooth
+      // scroll animation interfered with the instant pin our send
+      // path already did — visible as the thread "jumping" mid-
+      // animation. Instant always lands in one frame; no race.
+      scrollToBottom(false);
     }
   }, [selectedThread, messages]);
 
@@ -1088,15 +1094,22 @@ const TeamChat: React.FC = () => {
     // multiple times: "i sent a long message and it took me to the
     // very top of the thread" / "sending bug is still alive".
     isAtBottomRef.current = true;
-    initialLoadUntilRef.current = Date.now() + 500;
-    // Two RAFs: first commit catches the optimistic message landing
-    // in the DOM, second catches the composer-collapse height change
-    // a frame later. Both call scrollToBottom directly on the
-    // container ref (no scrollIntoView ambiguity across platforms).
-    requestAnimationFrame(() => {
+    // Extended to 1500ms to cover the Firestore tail arrival window
+    // (real message replaces pending in ~200-500ms; the
+    // re-reconciliation can fire a scroll event that would otherwise
+    // flip isAtBottomRef via handleScroll). 1.5s is well past that.
+    initialLoadUntilRef.current = Date.now() + 1500;
+    // Multi-frame scroll pin: every animation frame for ~600ms after
+    // send, force the messages container to its bottom. Catches the
+    // optimistic message landing in the DOM, the composer-collapse
+    // height change, AND the Firestore tail arrival's DOM
+    // reconciliation. Each frame is a no-op when already pinned.
+    const deadline = Date.now() + 600;
+    const pinAfterSend = () => {
       scrollToBottom(false);
-      requestAnimationFrame(() => scrollToBottom(false));
-    });
+      if (Date.now() < deadline) requestAnimationFrame(pinAfterSend);
+    };
+    requestAnimationFrame(pinAfterSend);
 
     // Clear composer immediately so the user feels the send "land".
     setNewMessage('');

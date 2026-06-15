@@ -132,6 +132,52 @@ const PlayerDevelopment: React.FC = () => {
     }
   };
 
+  // Self-heal for stale player.currentStreakDays. Any time plans
+  // (re)load, compute each player's true streak from their active
+  // plans and compare to the cached value on the player doc — if
+  // they disagree (which happens when a previous handleQuickDidIt
+  // fire-and-forget write lost a race with loadData refetching the
+  // player), write the correct streak back. Patrick: "the full plan
+  // page says 5 day streak but the profile pills still say 4."
+  // Without this, the drift only fixes itself on the NEXT new-day
+  // tap; with it, opening the dev plan page resyncs.
+  useEffect(() => {
+    if (plans.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { computeStreakDays, recomputeAndPersistPlayerStreak } = await import('../utils/devPlanActions');
+        const { collection, query, where, getDocs } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const byPlayer = new Map<string, DevelopmentPlan[]>();
+        for (const p of plans) {
+          if (p.status !== 'active') continue;
+          const arr = byPlayer.get(p.playerId) || [];
+          arr.push(p);
+          byPlayer.set(p.playerId, arr);
+        }
+        for (const [playerId, activePlans] of Array.from(byPlayer.entries())) {
+          if (cancelled) return;
+          const computed = computeStreakDays(activePlans);
+          // Read the cached value and only write when it differs to
+          // avoid a write storm on every page load.
+          try {
+            const snap = await getDocs(query(collection(db, 'players'), where('__name__', '==', playerId)));
+            if (snap.empty) continue;
+            const cached = (snap.docs[0].data() as any).currentStreakDays || 0;
+            if (cached === computed) continue;
+            await recomputeAndPersistPlayerStreak(playerId, activePlans);
+          } catch (err) {
+            console.warn('streak self-heal skipped for', playerId, err);
+          }
+        }
+      } catch (err) {
+        console.warn('streak self-heal failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [plans]);
+
   const handleCreatePlan = async () => {
     if (!userData || !planTitle.trim()) return;
 
@@ -404,8 +450,13 @@ const PlayerDevelopment: React.FC = () => {
     try {
       await updateDevelopmentPlan(plan.id, { goals: updatedGoals });
       // Cache the new streak on the player doc so PlayerCard rows
-      // can show a badge without re-loading plans.
-      void recomputeAndPersistPlayerStreak(plan.playerId, plan, updatedGoals);
+      // can show a badge without re-loading plans. AWAIT (not void)
+      // because loadData() below re-reads the player from Firestore.
+      // If the streak write hasn't landed yet, loadData reads the
+      // OLD currentStreakDays — that's the bug Patrick reported:
+      // "the full plan page says 5 day streak but the profile pills
+      // still say 4." Same race InlineDevPlanCard had; same fix.
+      await recomputeAndPersistPlayerStreak(plan.playerId, plan, updatedGoals);
       loadData();
     } catch (error) {
       console.error('Error logging quick did-it:', error);

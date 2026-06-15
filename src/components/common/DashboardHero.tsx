@@ -23,18 +23,21 @@ interface SceneSpec {
   gradient: string;
   stars: boolean;
   moon: boolean;
+  /** Optional real stadium photo behind the gradient. Files live in
+   *  /public/images/hero/{morning,noon,sunset,night}.jpg. The gradient
+   *  + overlay are kept ON TOP at reduced opacity so greeting text
+   *  stays legible regardless of which photo loads. */
+  bgImage?: string;
 }
 
 function sceneFor(hour: number): SceneSpec {
-  if (hour < 5.5) return { phase: 'night',      gradient: 'from-slate-950 via-slate-950 to-slate-900',          stars: true,  moon: true  };
-  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-slate-900 via-indigo-950 to-slate-800',         stars: true,  moon: false };
-  if (hour < 11)  return { phase: 'morning',    gradient: 'from-slate-900 via-slate-800 to-slate-700',          stars: false, moon: false };
-  if (hour < 14)  return { phase: 'midday',     gradient: 'from-slate-800 via-slate-700 to-slate-600',          stars: false, moon: false };
-  if (hour < 17)  return { phase: 'afternoon',  gradient: 'from-slate-900 via-slate-800 to-slate-700',          stars: false, moon: false };
-  if (hour < 19)  return { phase: 'goldenHour', gradient: 'from-slate-900 via-slate-800 to-amber-900/40',       stars: false, moon: false };
-  if (hour < 20.5)return { phase: 'sunset',     gradient: 'from-slate-950 via-slate-900 to-rose-900/40',        stars: false, moon: false };
-  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-slate-950 via-slate-900 to-slate-800',          stars: true,  moon: true  };
-  return            { phase: 'night',      gradient: 'from-slate-950 via-slate-950 to-slate-900',          stars: true,  moon: true  };
+  if (hour < 5.5) return { phase: 'night',      gradient: 'from-slate-950/85 via-slate-950/70 to-slate-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-slate-900/80 via-indigo-950/70 to-slate-800/80',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
+  if (hour < 10)  return { phase: 'morning',    gradient: 'from-slate-900/70 via-slate-800/55 to-slate-700/65',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
+  if (hour < 16)  return { phase: 'midday',     gradient: 'from-slate-900/55 via-slate-800/40 to-slate-700/55',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
+  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-slate-950/70 via-slate-900/55 to-rose-900/40',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
+  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-slate-950/80 via-slate-900/70 to-slate-800/80',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  return            { phase: 'night',      gradient: 'from-slate-950/85 via-slate-950/70 to-slate-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
 }
 
 interface Props {
@@ -86,9 +89,25 @@ const DashboardHero: React.FC<Props> = ({
 
   return (
     <section
-      className={`relative overflow-hidden bg-gradient-to-b ${scene.gradient}`}
+      className="relative overflow-hidden bg-slate-950"
       aria-label={`${greeting}, ${firstName}`}
     >
+      {/* Time-of-day stadium photo behind the gradient. img errors are
+          swallowed (file missing) so the hero still renders cleanly
+          on the gradient alone — drop the JPEGs in and they take
+          over automatically. */}
+      {scene.bgImage && (
+        <img
+          src={scene.bgImage}
+          alt=""
+          aria-hidden
+          loading="eager"
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      )}
+      {/* Gradient overlay on top so the greeting text always reads. */}
+      <div className={`absolute inset-0 bg-gradient-to-b ${scene.gradient}`} aria-hidden />
       {/* Stars (night) */}
       {scene.stars &&
         STAR_POSITIONS.map((s, i) => (

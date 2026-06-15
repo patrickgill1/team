@@ -427,7 +427,7 @@ const Navigation: React.FC = () => {
       {/* ===== MOBILE BOTTOM TAB BAR ===== */}
       {!inChatConversation && (
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-gradient-to-b from-slate-950 to-slate-900 border-t border-white/10"
         // Use HALF the safe-area inset as bottom padding (instead of
         // the full inset) so the tab icons sit close to the home
         // indicator instead of floating above a tall empty strip.
@@ -447,7 +447,7 @@ const Navigation: React.FC = () => {
                     setIsMoreOpen(!isMoreOpen);
                   }}
                   className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                    active ? 'text-cyan-600' : 'text-gray-400'
+                    active ? 'text-cyan-300' : 'text-white/55'
                   }`}
                 >
                   <AppIcon name={tab.icon} className="w-6 h-6" strokeWidth={active ? 2.25 : 1.75} />
@@ -461,7 +461,7 @@ const Navigation: React.FC = () => {
                 to={tab.path}
                 onClick={() => void import('../../utils/nativeShell').then(m => m.tapHaptic('light'))}
                 className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  active ? 'text-cyan-600' : 'text-gray-400'
+                  active ? 'text-cyan-300' : 'text-white/55'
                 }`}
               >
                 <AppIcon name={tab.icon} className="w-6 h-6" strokeWidth={active ? 2.25 : 1.75} />

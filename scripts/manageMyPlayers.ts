@@ -114,7 +114,7 @@ async function loadLinkedPlayers(uid: string) {
 
 async function cmdList(uid: string) {
   const rows = await loadLinkedPlayers(uid);
-  console.log(`\nFound ${rows.length} player record(s) linked to ${PATRICK_EMAIL}:\n`);
+  console.log(`\nFound ${rows.length} player record(s) linked to uid ${uid}:\n`);
   for (const r of rows) {
     const marker = r.isActive ? '●' : '○';
     console.log(`${marker} ${r.name} ${r.jerseyNumber ? `#${r.jerseyNumber} ` : ''}(${r.position || 'no pos'})`);

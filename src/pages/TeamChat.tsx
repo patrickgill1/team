@@ -2117,10 +2117,13 @@ const TeamChat: React.FC = () => {
         {currentView === 'threads' ? (
           // THREADS LIST VIEW
           <div className="flex-1 min-h-0 flex flex-col bg-white">
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
+            {/* Header — dark navy chrome to match the app's chrome-
+                vs-content lane (Wall pills, action sheets, etc.).
+                The threads list below stays light; only this top
+                strip is dark, framing the search + filter controls. */}
+            <div className="p-4 border-b border-white/10 bg-gradient-to-b from-slate-950 to-slate-900">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Messages</h2>
+                <h2 className="text-xl font-semibold text-white">Messages</h2>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
@@ -2153,10 +2156,10 @@ const TeamChat: React.FC = () => {
                     placeholder="Search threads..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                    className="w-full pl-10 pr-4 py-3 bg-white/10 ring-1 ring-white/15 text-white placeholder-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-base"
                     style={{ fontSize: '16px' }}
                   />
-                  <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-white/50 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -2165,7 +2168,7 @@ const TeamChat: React.FC = () => {
                   onClick={() => setGlobalSearchOpen(true)}
                   title="Search every chat for a word or phrase"
                   aria-label="Search every chat"
-                  className="px-3 rounded-lg border border-cyan-200 bg-cyan-50 text-cyan-700 text-[11px] font-extrabold uppercase tracking-widest hover:bg-cyan-100"
+                  className="px-3 rounded-lg bg-cyan-500/20 ring-1 ring-cyan-400/40 text-cyan-200 text-[11px] font-extrabold uppercase tracking-widest hover:bg-cyan-500/30"
                 >
                   Search all
                 </button>
@@ -2192,10 +2195,10 @@ const TeamChat: React.FC = () => {
                   <button
                     key={key}
                     onClick={() => setFilterTag(key)}
-                    className={`px-3 py-2 text-sm rounded-full transition-colors ${
+                    className={`px-3 py-2 text-sm rounded-full transition-colors whitespace-nowrap ${
                       filterTag === key
-                        ? 'bg-cyan-50 text-cyan-700 font-medium'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-cyan-500 text-white font-semibold'
+                        : 'bg-white/10 text-white/75 hover:bg-white/15'
                     }`}
                   >
                     {label}

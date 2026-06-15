@@ -938,18 +938,18 @@ const AttendancePill: React.FC<{ label: string; value: number; dim?: boolean }> 
 
 const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-bold text-fire-950 flex items-center gap-2">
-          <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+    <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
+      <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+        <h3 className="font-bold text-white flex items-center gap-2">
+          <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           Recent chats
         </h3>
-        <Link to="/chat" className="text-cyan-600 text-sm font-semibold">View all</Link>
+        <Link to="/chat" className="text-cyan-300 text-sm font-semibold hover:text-white">View all</Link>
       </div>
       {chats.length === 0 ? (
         <div className="p-5 text-center">
-          <p className="text-sm font-semibold text-slate-700">No conversations yet</p>
-          <p className="text-xs text-slate-500 mt-0.5">DMs and group chats will show up here.</p>
+          <p className="text-sm font-semibold text-white/85">No conversations yet</p>
+          <p className="text-xs text-white/60 mt-0.5">DMs and group chats will show up here.</p>
         </div>
       ) : (
         <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -977,7 +977,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
               <Link
                 key={thread.id}
                 to={`/chat?thread=${thread.id}`}
-                className="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition"
+                className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] ring-1 ring-white/10 transition"
               >
                 {dmPhotoUrl ? (
                   <img
@@ -1000,15 +1000,15 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-1.5">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{displayTitle}</p>
-                    <span className="text-[10px] text-gray-400 flex-shrink-0">{relativeTime(new Date(thread.lastActivity))}</span>
+                    <p className="font-semibold text-white text-sm truncate">{displayTitle}</p>
+                    <span className="text-[10px] text-white/40 flex-shrink-0">{relativeTime(new Date(thread.lastActivity))}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <p className="text-xs text-gray-500 truncate flex-1">
-                      {last?.senderName ? <span className="font-medium text-gray-700">{last.senderName}: </span> : null}
+                    <p className="text-xs text-white/60 truncate flex-1">
+                      {last?.senderName ? <span className="font-medium text-white/80">{last.senderName}: </span> : null}
                       {last?.content || (isDM ? 'Tap to start chatting' : 'No messages yet')}
                     </p>
-                    {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-cyan-500" />}
+                    {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-cyan-400" />}
                   </div>
                 </div>
               </Link>
@@ -1333,16 +1333,16 @@ const FooterStat: React.FC<{
   value: number;
   icon?: React.ReactNode;
   tint?: string;
-}> = ({ label, value, icon, tint = 'bg-gray-100 text-gray-600' }) => (
-  <div className="bg-white rounded-xl ring-1 ring-gray-200 px-3 py-2.5 flex items-center gap-2.5">
+}> = ({ label, value, icon, tint = 'bg-white/10 text-cyan-200' }) => (
+  <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-xl ring-1 ring-white/10 px-3 py-2.5 flex items-center gap-2.5 shadow">
     {icon && (
       <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tint}`}>
         {icon}
       </div>
     )}
     <div className="min-w-0">
-      <div className="text-xl font-black text-fire-950 leading-none">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mt-0.5">{label}</div>
+      <div className="text-xl font-black text-white leading-none">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider font-bold text-cyan-200/70 mt-0.5">{label}</div>
     </div>
   </div>
 );

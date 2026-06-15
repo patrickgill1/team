@@ -1558,11 +1558,11 @@ const PlanCard: React.FC<PlanCardProps> = ({
       {isExpanded && (
         <div className="border-t border-gray-200 p-4">
           {plan.description && (
-            <div className="mb-4 bg-cyan-50/60 border border-cyan-100 rounded-2xl p-3 flex items-start gap-3">
+            <div className="mb-4 flex items-start gap-3">
               <span className="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center shrink-0 mt-0.5">
                 <AppIcon name="highlight" className="w-4 h-4" />
               </span>
-              <p className="text-sm text-gray-700 flex-1">{plan.description}</p>
+              <p className="text-sm text-slate-700 flex-1">{plan.description}</p>
             </div>
           )}
 
@@ -1590,10 +1590,9 @@ const PlanCard: React.FC<PlanCardProps> = ({
           <div className="space-y-3">
             {plan.goals.sort((a, b) => a.order - b.order).map((goal) => (
               <div key={goal.id} className={`p-3 rounded-lg border ${
-                goal.coachVerified ? 'bg-green-50 border-green-200' :
-                goal.readyForReview ? 'bg-yellow-50 border-yellow-200' :
-                goal.playerCompleted ? 'bg-cyan-50 border-cyan-100' :
-                'bg-white border-gray-200'
+                goal.coachVerified ? 'bg-emerald-50/70 border-emerald-200' :
+                goal.readyForReview ? 'bg-white border-cyan-300 ring-2 ring-cyan-100' :
+                'bg-white border-slate-200'
               }`}>
                 <div className="flex items-start space-x-3">
                   {/* The per-goal "playerCompleted" checkbox lived here.

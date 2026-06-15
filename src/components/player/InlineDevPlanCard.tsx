@@ -49,8 +49,14 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
         .map(p => p.id === plan.id ? { ...p, goals: updated } : p)
         .filter(p => p.status === 'active');
       // Pass the actor so the streak helper can fire a milestone
-      // wall post (5/10/25/50/100 day crossings).
-      void recomputeAndPersistPlayerStreak(playerId, optimisticActive, actor);
+      // wall post (5/10/25/50/100 day crossings). AWAIT (not void)
+      // because the parent's onUpdated reload refetches the player
+      // doc — if the streak write hasn't landed yet, the dashboard
+      // streak chip stays at the old count even though the dev plan
+      // page locally shows the new number. Patrick: "i go to the
+      // development plan and it says 5 day is complete, but still
+      // shows 4."
+      await recomputeAndPersistPlayerStreak(playerId, optimisticActive, actor);
       onUpdated?.();
     } finally {
       setBusy(null);

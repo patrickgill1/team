@@ -97,3 +97,6 @@ android/app/release/
 *.keystore
 *.jks
 key.properties
+
+# Demo seed: never commit the Firebase Admin key
+scripts/demo-service-account.json

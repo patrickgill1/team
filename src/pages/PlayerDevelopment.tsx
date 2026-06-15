@@ -564,7 +564,29 @@ const PlayerDevelopment: React.FC = () => {
   const handleArchivePlan = async (planId: string) => {
     if (!window.confirm('Archive this development plan?')) return;
     try {
-      await updateDevelopmentPlan(planId, { status: 'archived' });
+      // Snapshot the plan + player BEFORE archiving so we can fire the
+      // wall post (and so we have the name/teamId we need without
+      // racing the loadData refetch). The "plan complete" auto-post
+      // used to be gated on every goal being coach-verified, which
+      // no longer happens since the verification flow was removed.
+      // Archive is the natural completion signal — coach is saying
+      // "the kid is done with this plan, moving on."
+      const planSnap = plans.find(p => p.id === planId);
+      const playerSnap = planSnap ? players.find(pl => pl.id === planSnap.playerId) : null;
+
+      await updateDevelopmentPlan(planId, { status: 'archived', completedAt: new Date() });
+
+      if (planSnap && playerSnap?.teamId && userData) {
+        try {
+          const { autoPostDevPlanCompleteToWall } = await import('../utils/autoPostToWall');
+          void autoPostDevPlanCompleteToWall(
+            { name: playerSnap.name, teamId: playerSnap.teamId },
+            { title: planSnap.title },
+            { uid: userData.uid, name: userData.name || 'Coach', role: 'coach' },
+          );
+        } catch (e) { console.warn('dev plan archive wall post failed', e); }
+      }
+
       loadData();
     } catch (error) {
       console.error('Error archiving plan:', error);

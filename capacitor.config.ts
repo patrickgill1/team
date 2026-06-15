@@ -40,11 +40,14 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      // Keep the splash up until React explicitly hides it (via
-      // hideSplash() called from App.tsx after first paint). The
-      // launchShowDuration is a safety ceiling — if our JS never
-      // hides the splash, Capacitor will after this long.
-      launchShowDuration: 3000,
+      // Safety ceiling only. Our React BrandedSplash hides the
+      // native splash via hideSplash() as soon as it mounts — the
+      // tight handoff avoids the flash Patrick reported. This 10s
+      // value is just a paranoid backstop for the (rare) case where
+      // React fails to mount; before, the 3000ms cap force-dismissed
+      // the native splash on slow cold starts before React was
+      // ready, leaving an ugly gap.
+      launchShowDuration: 10000,
       autoHide: false,
       backgroundColor: '#0f172a',
       showSpinner: false,

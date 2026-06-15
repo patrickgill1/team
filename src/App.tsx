@@ -239,35 +239,17 @@ function App() {
   }, []);
 
   // Branded React splash that takes over from the native iOS / Android
-  // splash and animates for a fixed beat before fading out. Patrick:
-  // "i would love that to come up when you open the app, even maybe
-  // time it so it shows for a specific amount of time just for
-  // branding purposes". The native splash hides as soon as React
-  // paints (RAF below) — and because <BrandedSplash /> renders as a
-  // fixed overlay on first paint, the user goes:
-  //   native splash → branded animated splash → app
-  // with no visible gap (both use the same slate-950 backdrop).
+  // splash. The HANDOFF is owned by <BrandedSplash /> itself — it
+  // calls hideSplash() from inside its own mount effect, so the
+  // native splash only goes away once the React overlay is painted
+  // and ready. That eliminates the brief flash Patrick reported
+  // where the native splash dismissed but the React overlay hadn't
+  // rendered yet.
+  //
+  // Visible duration is 1.5s + 400ms fade, counted from the moment
+  // the BrandedSplash mounts (i.e. from the user's perspective, from
+  // when the animated logo first appears).
   const [splashPlaying, setSplashPlaying] = useState(true);
-  const [splashFading, setSplashFading] = useState(false);
-  useEffect(() => {
-    const t1 = window.setTimeout(() => setSplashFading(true), 1500);
-    const t2 = window.setTimeout(() => setSplashPlaying(false), 1900);
-    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
-  }, []);
-
-  // Dismiss the native splash AFTER React has had a paint. Without
-  // this, the splash hides as soon as initNativeShell() resolves —
-  // which fires before the first React commit, so the user sees a
-  // navy WebView for a frame instead of the loading spinner. RAF
-  // guarantees we're past at least one paint.
-  useEffect(() => {
-    let cancelled = false;
-    requestAnimationFrame(() => {
-      if (cancelled) return;
-      import('./utils/nativeShell').then((m) => m.hideSplash());
-    });
-    return () => { cancelled = true; };
-  }, []);
 
   return (
     <AuthProvider>
@@ -658,35 +640,83 @@ function App() {
           </Suspense>
       </Router>
       </TeamProvider>
-      {splashPlaying && <BrandedSplash fading={splashFading} />}
+      {splashPlaying && <BrandedSplash onDone={() => setSplashPlaying(false)} />}
     </AuthProvider>
   );
 }
 
 // Branded React splash — fixed overlay that paints over the native
-// launch screen as soon as React mounts. Same logo + breathe + dot
-// animation as PageSpinner, but full-screen and timed (~1.5s visible
-// + 400ms fade) so cold starts always feel branded, even on devices
-// that boot fast enough to skip the native splash.
-const BrandedSplash: React.FC<{ fading: boolean }> = ({ fading }) => (
-  <div
-    aria-hidden
-    className={`fixed inset-0 z-[9999] bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center transition-opacity duration-400 ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-    style={{ transitionDuration: '400ms' }}
-  >
-    <div className="flex flex-col items-center gap-6">
-      <img
-        src="/images/logo.png"
-        alt=""
-        className="w-28 h-28 rounded-2xl shadow-2xl shadow-cyan-500/30 ring-1 ring-white/10 splash-breathe"
-      />
-      <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '0ms' }} />
-        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '180ms' }} />
-        <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '360ms' }} />
+// launch screen, then dismisses the native splash from inside its
+// own mount effect so the handoff is atomic (no gap, no flash).
+// Plays for ~1.5s + 400ms fade counted from the moment the user
+// actually SEES the animated logo, not from React's mount time.
+const BrandedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    let visibleStart = 0;
+    let t1: number | undefined;
+    let t2: number | undefined;
+
+    // Two RAFs: first to let the overlay paint into the DOM, second
+    // confirms the browser has committed that paint. Only then do we
+    // tell Capacitor to dismiss the native splash. From the user's
+    // POV the native splash and the React splash share one frame —
+    // there is no visible gap.
+    const startVisibleClock = () => {
+      visibleStart = performance.now();
+      t1 = window.setTimeout(() => setFading(true), 1500);
+      t2 = window.setTimeout(() => onDone(), 1900);
+    };
+
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => {
+        import('./utils/nativeShell').then((m) => {
+          // Start counting the visible window the moment we ask
+          // Capacitor to dismiss. The native dismiss completes a
+          // frame or two later, but starting the clock here keeps
+          // the perceived duration consistent across fast and slow
+          // cold starts.
+          startVisibleClock();
+          void m.hideSplash();
+        }).catch(() => {
+          // hideSplash failure (e.g. web build, no Capacitor) — still
+          // play the React splash for the full duration so devs see
+          // the same animation users do.
+          startVisibleClock();
+        });
+        (BrandedSplash as any).__raf2 = id2;
+      });
+      (BrandedSplash as any).__raf1 = id1;
+    });
+
+    return () => {
+      if (t1) window.clearTimeout(t1);
+      if (t2) window.clearTimeout(t2);
+      // Reference visibleStart so the linter doesn't flag the assignment.
+      void visibleStart;
+    };
+  }, [onDone]);
+
+  return (
+    <div
+      aria-hidden
+      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      style={{ transitionDuration: '400ms' }}
+    >
+      <div className="flex flex-col items-center gap-6">
+        <img
+          src="/images/logo.png"
+          alt=""
+          className="w-28 h-28 rounded-2xl shadow-2xl shadow-cyan-500/30 ring-1 ring-white/10 splash-breathe"
+        />
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '0ms' }} />
+          <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '180ms' }} />
+          <span className="w-2 h-2 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '360ms' }} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default App;

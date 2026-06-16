@@ -517,6 +517,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await FirebaseAuthentication.signOut().catch(() => {});
         }
       } catch { /* ignore */ }
+      // Clear the "we were signed in" hint so the post-reload
+      // recovery logic doesn't try to hold the spinner on the next
+      // launch.
+      try { localStorage.removeItem('firefc.lastKnownUid'); } catch {}
       await signOut(auth);
       setUserData(null);
       if (userDocUnsubRef.current) {
@@ -847,8 +851,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      
+
       if (user) {
+        // Remember that we had a real signed-in session so a later
+        // transient null emission from Firebase (token re-validation
+        // after a Capgo OTA reload, etc.) can be distinguished from
+        // a genuine sign-out.
+        try { localStorage.setItem('firefc.lastKnownUid', user.uid); } catch {}
+
         try {
           console.log('Fetching user data for:', user.uid);
           
@@ -989,6 +999,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(tryAgain, 1500);
         }
       } else {
+        // onAuthStateChanged fired with null. That can mean two very
+        // different things:
+        //
+        // 1) The user really signed out (signOut() was called, or they
+        //    have never signed in on this device).
+        // 2) Firebase Auth is RE-VALIDATING after a WebView reload
+        //    (CapacitorUpdater.reload() from a Capgo OTA, in particular).
+        //    The IndexedDB-persisted session is there, but the token
+        //    refresh call against securetoken.googleapis.com hasn't
+        //    finished yet — the SDK briefly emits null, then re-emits
+        //    the real user a few seconds later.
+        //
+        // If localStorage remembers we WERE signed in on a prior session,
+        // assume (2) and hold the spinner. Re-check Firebase Auth after
+        // a delay; if the real user has shown up by then, we use it.
+        // If not, accept the null and let ProtectedRoute redirect to
+        // /auth — at that point this really is a sign-out.
+        const LAST_UID_KEY = 'firefc.lastKnownUid';
+        const wasSignedIn = (() => {
+          try { return localStorage.getItem(LAST_UID_KEY); } catch { return null; }
+        })();
+        if (wasSignedIn) {
+          console.log('Auth null but lastKnownUid present — waiting for re-emission');
+          setTimeout(() => {
+            // Re-check; auth.currentUser updates synchronously when the
+            // SDK settles its internal state.
+            const settled = auth.currentUser;
+            if (settled) {
+              // The real user came back. onAuthStateChanged will fire
+              // again with this user, hitting the success path above.
+              // No-op here; just let the next emission run.
+              console.log('Auth re-emitted real user, recovery complete');
+              return;
+            }
+            // Still no user after the wait. This is a real sign-out.
+            console.log('Auth still null after wait, accepting sign-out');
+            try { localStorage.removeItem(LAST_UID_KEY); } catch {}
+            setUserData(null);
+            setLoading(false);
+          }, 5000);
+          return;
+        }
         console.log('No authenticated user');
         setUserData(null);
         setLoading(false);

@@ -28,6 +28,25 @@ const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { userData, currentUser, logout, deleteAccount, refreshUserData } = useAuth();
   const { updateDocument } = useFirestore();
+  // OTA bundle version that's actually running. Distinct from
+  // APP_VERSION (which is the binary version that matches what's in
+  // the App Store / Play Store). So if you've pushed OTA fixes since
+  // the binary shipped, this shows the latest live JS bundle.
+  const [bundleVersion, setBundleVersion] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+        const cur = await CapacitorUpdater.current();
+        const v = (cur as any)?.bundle?.version;
+        if (!cancelled && typeof v === 'string') setBundleVersion(v);
+      } catch { /* not native or plugin missing — leave null */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const { uploadUserPhoto } = usePhotoUpload();
 
   const [linkedPlayers, setLinkedPlayers] = useState<LinkedPlayer[]>([]);
@@ -423,8 +442,20 @@ const Settings: React.FC = () => {
             <SettingsRow
               icon="info"
               label="About Fire FC"
-              hint={`v${APP_VERSION} · build ${APP_BUILD}`}
-              onClick={() => alert(`Fire FC v${APP_VERSION} (build ${APP_BUILD}) — Built by Patrick Gill for the Fire FC community.`)}
+              hint={
+                bundleVersion && bundleVersion !== APP_VERSION
+                  ? `v${APP_VERSION} · build ${APP_BUILD} · live ${bundleVersion}`
+                  : `v${APP_VERSION} · build ${APP_BUILD}`
+              }
+              onClick={() =>
+                alert(
+                  `Fire FC v${APP_VERSION} (build ${APP_BUILD})` +
+                  (bundleVersion && bundleVersion !== APP_VERSION
+                    ? `\nLive update: ${bundleVersion}`
+                    : '') +
+                  `\n\nBuilt by Patrick Gill for the Fire FC community.`
+                )
+              }
             />
           </div>
         </section>

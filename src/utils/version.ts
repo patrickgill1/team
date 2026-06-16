@@ -7,5 +7,5 @@
 // us which version they're on. Also a good anchor for the
 // "what's new" modal — match the modal's "since" check against this.
 
-export const APP_VERSION = '2.1.0';
-export const APP_BUILD = '19';
+export const APP_VERSION = '3.0.1';
+export const APP_BUILD = '21';

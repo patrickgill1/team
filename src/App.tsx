@@ -678,6 +678,13 @@ const BrandedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           // cold starts.
           startVisibleClock();
           void m.hideSplash();
+          // Tell Capgo the OTA bundle (if any) booted to a working
+          // state. Must fire within Capgo's appReadyTimeout (default
+          // 10s) or it rolls back to the previous bundle on next
+          // launch. Doing it here means a JS-crashing bundle that
+          // never reaches splash dismiss IS rolled back — exactly
+          // the safety net we want.
+          void m.notifyCapgoReady();
         }).catch(() => {
           // hideSplash failure (e.g. web build, no Capacitor) — still
           // play the React splash for the full duration so devs see

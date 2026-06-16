@@ -1,10 +1,12 @@
 PODS:
+  - Alamofire (5.10.2)
   - AppAuth (1.7.6):
     - AppAuth/Core (= 1.7.6)
     - AppAuth/ExternalUserAgent (= 1.7.6)
   - AppAuth/Core (1.7.6)
   - AppAuth/ExternalUserAgent (1.7.6):
     - AppAuth/Core
+  - BigInt (5.2.0)
   - Capacitor (7.6.2):
     - CapacitorCordova
   - CapacitorApp (7.1.2):
@@ -38,6 +40,12 @@ PODS:
     - Capacitor
   - CapacitorStatusBar (7.0.6):
     - Capacitor
+  - CapgoCapacitorUpdater (8.49.2):
+    - Alamofire (= 5.10.2)
+    - BigInt (= 5.2.0)
+    - Capacitor
+    - Version (= 0.8.0)
+    - ZIPFoundation (~> 0.9)
   - FirebaseAppCheckInterop (10.29.0)
   - FirebaseAuth (10.29.0):
     - FirebaseAppCheckInterop (~> 10.17)
@@ -110,6 +118,8 @@ PODS:
   - nanopb/encode (2.30910.0)
   - PromisesObjC (2.4.0)
   - RecaptchaInterop (100.0.0)
+  - Version (0.8.0)
+  - ZIPFoundation (0.9.20)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
@@ -125,11 +135,14 @@ DEPENDENCIES:
   - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
+  - "CapgoCapacitorUpdater (from `../../node_modules/@capgo/capacitor-updater`)"
   - GTMAppAuth (~> 4.1)
 
 SPEC REPOS:
   trunk:
+    - Alamofire
     - AppAuth
+    - BigInt
     - FirebaseAppCheckInterop
     - FirebaseAuth
     - FirebaseCore
@@ -144,6 +157,8 @@ SPEC REPOS:
     - nanopb
     - PromisesObjC
     - RecaptchaInterop
+    - Version
+    - ZIPFoundation
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -170,9 +185,13 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/splash-screen"
   CapacitorStatusBar:
     :path: "../../node_modules/@capacitor/status-bar"
+  CapgoCapacitorUpdater:
+    :path: "../../node_modules/@capgo/capacitor-updater"
 
 SPEC CHECKSUMS:
+  Alamofire: 7193b3b92c74a07f85569e1a6c4f4237291e7496
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
+  BigInt: f668a80089607f521586bbe29513d708491ef2f7
   Capacitor: 5d4e6523047feb0e4755e5e922ded0372c2dde24
   CapacitorApp: f01a913211780e0718dae9750442c3e23f96e106
   CapacitorCamera: 9e952270be355797f769aa835bb7643a96c871fe
@@ -185,6 +204,7 @@ SPEC CHECKSUMS:
   CapacitorShare: 25f7fc5dd0e4edbde5d6801c6de5d14a8b450a41
   CapacitorSplashScreen: 409eeaaeac603d264f209c0fcb718aa22fe1f7bb
   CapacitorStatusBar: 416e9e53fd6397e668d4a181cd2131617d949bd6
+  CapgoCapacitorUpdater: 7f2c845fb041c25c1db8bf2088b9d5c435d37372
   FirebaseAppCheckInterop: 6a1757cfd4067d8e00fccd14fcc1b8fd78cfac07
   FirebaseAuth: e2ebfaf9fb4638a1c9a3b0efd17d1b90943987cd
   FirebaseCore: 30e9c1cbe3d38f5f5e75f48bfcea87d7c358ec16
@@ -199,7 +219,9 @@ SPEC CHECKSUMS:
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
+  Version: de5907f2c5d0f3cf21708db7801d1d5401139486
+  ZIPFoundation: dfd3d681c4053ff7e2f7350bc4e53b5dba3f5351
 
-PODFILE CHECKSUM: 54e42afaeedb69bdda01e381e517daf55513cd63
+PODFILE CHECKSUM: 071e1d01bd033c10b7c57b3a822e59451c699b44
 
 COCOAPODS: 1.16.2

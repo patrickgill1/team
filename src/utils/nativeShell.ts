@@ -71,6 +71,26 @@ export async function hideSplash(): Promise<void> {
 }
 
 /**
+ * Tell Capgo the current JS bundle booted to a working state. If we don't
+ * call this within Capgo's appReadyTimeout (default 10s) after a new bundle
+ * is applied, Capgo rolls back to the previous bundle on the next launch.
+ * Without that signal, a broken bundle would brick every device that
+ * downloaded it.
+ *
+ * Safe to call on every cold start — for the App-Store-shipped baseline
+ * bundle it's a no-op, for an OTA-applied bundle it marks it as good.
+ */
+export async function notifyCapgoReady(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+    await CapacitorUpdater.notifyAppReady();
+  } catch (err) {
+    console.warn('Capgo notifyAppReady failed', err);
+  }
+}
+
+/**
  * Check current native push permission without prompting. Returns:
  *   'granted'   — user has approved, we can fetch a token
  *   'denied'    — user said no; OS will not re-prompt, send them to Settings

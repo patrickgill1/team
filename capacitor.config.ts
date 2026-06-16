@@ -76,6 +76,24 @@ const config: CapacitorConfig = {
       skipNativeAuth: true,
       providers: ['apple.com', 'google.com'],
     },
+    CapacitorUpdater: {
+      // OTA web-bundle updates via Capgo. On every cold start AND on
+      // app resume from background, the plugin checks Capgo for a
+      // newer bundle. If found, it downloads in the background and
+      // applies on the NEXT launch (no mid-session reload — the
+      // active session keeps the bundle it booted with).
+      autoUpdate: true,
+      // If a new bundle never calls CapacitorUpdater.notifyAppReady()
+      // within this many seconds (we call it from BrandedSplash, so
+      // any bundle that boots far enough to hide the splash is "good"),
+      // the plugin reverts to the previous bundle on next launch.
+      // This is the safety net that protects against shipping a JS
+      // crash to every device.
+      appReadyTimeout: 10000,
+      // Don't auto-prompt the user to reload mid-session. Updates land
+      // silently on the next cold start — that's the magic.
+      directUpdate: false,
+    },
   },
 };
 

@@ -18,6 +18,8 @@
     "@capacitor/share": "^7.0.4",
     "@capacitor/splash-screen": "^7.0.5",
     "@capacitor/status-bar": "^7.0.6",
+    "@capgo/capacitor-updater": "^8.49.2",
+    "@capgo/cli": "^8.5.3",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
@@ -49,7 +51,10 @@
     "ios:add": "cap add ios && cap sync ios",
     "ios:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
-    "ios:run": "npm run ios:sync && cap run ios"
+    "ios:run": "npm run ios:sync && cap run ios",
+    "capgo:push": "npm run build && npx @capgo/cli bundle upload -c production",
+    "capgo:canary": "npm run build && npx @capgo/cli bundle upload -c canary",
+    "capgo:status": "npx @capgo/cli app list && npx @capgo/cli bundle list"
   },
   "eslintConfig": {
     "extends": [

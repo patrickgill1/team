@@ -76,6 +76,62 @@ const PlayerDevelopment: React.FC = () => {
     loadData();
   }, [selectedTeamId, selectedPlayerId]);
 
+  // Live cache of the team's drills, keyed by id. Used to resolve a
+  // goal's video LIVE from its source drill instead of from the
+  // snapshot copied at import time.
+  //
+  // Patrick's pain (2026-06-16): he imported a drill into a plan,
+  // hit an upload issue, re-uploaded the TikTok to the drill — and
+  // the goal in the plan kept showing nothing. The goal was a
+  // snapshot of the drill at import time, so it had the OLD (broken
+  // or empty) streamUid. Re-importing into an existing plan to
+  // re-snapshot would have meant deleting the old goal + adding a
+  // dup. So instead we look up the source drill at render time and
+  // prefer its CURRENT streamUid. Coach edits to title/description
+  // still stay sticky — only the video is auto-synced.
+  const [drillsById, setDrillsById] = useState<Record<string, Drill>>({});
+  useEffect(() => {
+    if (!selectedTeamId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const all = await getDocuments('drills', []);
+        if (cancelled) return;
+        const map: Record<string, Drill> = {};
+        for (const d of (all as any[])) {
+          if (d.isActive === false) continue;
+          if (d.teamId !== selectedTeamId) continue;
+          map[d.id] = d as Drill;
+        }
+        setDrillsById(map);
+      } catch { /* non-fatal — goals fall back to their snapshot streamUid */ }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTeamId, getDocuments]);
+
+  // Resolve a goal's current video. Priority:
+  // 1) Source drill (by drillId, or by title for legacy goals that
+  //    didn't store drillId) — drill is the canonical source of truth.
+  // 2) Goal's own snapshot — fallback for orphan goals (drill deleted,
+  //    or pre-drillId imports with no title match).
+  const resolveGoalVideo = (goal: DevelopmentGoal): { streamUid?: string; streamReady?: boolean } => {
+    const drillId = (goal as any).drillId as string | undefined;
+    let drill: Drill | undefined = drillId ? drillsById[drillId] : undefined;
+    if (!drill) {
+      // Legacy goals: best-effort title match. Skipped if there are
+      // multiple drills with the same title (would be ambiguous).
+      const titleMatches = Object.values(drillsById).filter((d) => d.title === goal.title);
+      if (titleMatches.length === 1) drill = titleMatches[0];
+    }
+    if (drill?.streamUid) {
+      return { streamUid: drill.streamUid, streamReady: drill.streamReady };
+    }
+    return {
+      streamUid: (goal as any).streamUid,
+      streamReady: (goal as any).streamReady,
+    };
+  };
+
   // Deep-link: /development?expand=<planId> opens that plan expanded
   // once the plans list is loaded. Consumed so it doesn't keep firing
   // on subsequent reloads.
@@ -688,6 +744,10 @@ const PlayerDevelopment: React.FC = () => {
     if (drills.length === 0) return;
     const newGoals = drills.map((d, i) => ({
       id: `goal_${Date.now()}_${i}`,
+      // Track the source drill so the goal can live-resolve its
+      // video later. If the coach re-uploads to the drill, resolveGoalVideo
+      // picks up the new streamUid without needing to re-import.
+      drillId: d.id,
       title: d.title,
       description: d.description || '',
       setup: d.setup || undefined,
@@ -696,10 +756,10 @@ const PlayerDevelopment: React.FC = () => {
       duration: d.durationMinutes != null ? `${d.durationMinutes} min` : undefined,
       targetMinutes: d.durationMinutes,
       videoLinks: d.videoLinks || [],
-      // Carry the drill's coach-uploaded Stream video onto the goal so
-      // the parent sees the iframe inside the plan, not just in the
-      // drill library. Without this, the TikTok upload existed but had
-      // nowhere to play.
+      // Carry the drill's coach-uploaded Stream video onto the goal as
+      // a snapshot. resolveGoalVideo prefers the drill's CURRENT value
+      // at render time, so this is just the fallback for orphan goals
+      // (drill deleted, etc.).
       ...(d.streamUid ? { streamUid: d.streamUid, streamReady: d.streamReady } : {}),
       order: 0, // re-numbered below
     }));
@@ -943,6 +1003,7 @@ const PlayerDevelopment: React.FC = () => {
                   canLogPractice={true}
                   streak={playerStreaks[plan.playerId] || 0}
                   playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
+                  resolveGoalVideo={resolveGoalVideo}
                 />
               ))}
             </div>
@@ -984,6 +1045,7 @@ const PlayerDevelopment: React.FC = () => {
                   canLogPractice={false}
                   streak={playerStreaks[plan.playerId] || 0}
                   playerPhoto={(players.find(pp => pp.id === plan.playerId) as any)?.profilePhotoUrl || null}
+                  resolveGoalVideo={resolveGoalVideo}
                 />
               ))}
             </div>
@@ -1395,6 +1457,7 @@ interface PlanCardProps {
   canLogPractice: boolean;
   streak?: number;
   playerPhoto?: string | null;
+  resolveGoalVideo: (goal: DevelopmentGoal) => { streamUid?: string; streamReady?: boolean };
 }
 
 // Inline comments thread — questions/replies/anything about THIS plan.
@@ -1466,7 +1529,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
   onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddComment, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan, playerPhoto,
-  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak
+  getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak, resolveGoalVideo
 }) => {
   const progress = getProgressPercentage(plan);
   const playerProgress = plan.goals.length > 0
@@ -1711,27 +1774,33 @@ const PlanCard: React.FC<PlanCardProps> = ({
                     </div>
 
                     {/* Coach-uploaded reference video (Cloudflare Stream).
-                        Carried in from the drill template at import
-                        time. Plays inline so the parent can watch
-                        without leaving the plan. */}
-                    {(goal as any).streamUid && (
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
-                          <AppIcon name="film" className="w-3.5 h-3.5 text-gray-400" />
-                          <span>Demo video</span>
-                        </p>
-                        <div className="aspect-video w-full rounded-lg overflow-hidden bg-black ring-1 ring-slate-200">
-                          <iframe
-                            src={streamIframeUrl((goal as any).streamUid)}
-                            title={`${goal.title} — demo`}
-                            loading="lazy"
-                            allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
-                            allowFullScreen
-                            className="w-full h-full block border-0"
-                          />
+                        Live-resolved from the source drill — if the
+                        coach re-uploads to the drill, the new video
+                        shows up here without re-importing. Falls back
+                        to the goal's own snapshot if the drill is
+                        deleted or can't be matched. */}
+                    {(() => {
+                      const { streamUid } = resolveGoalVideo(goal);
+                      if (!streamUid) return null;
+                      return (
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
+                            <AppIcon name="film" className="w-3.5 h-3.5 text-gray-400" />
+                            <span>Demo video</span>
+                          </p>
+                          <div className="aspect-video w-full rounded-lg overflow-hidden bg-black ring-1 ring-slate-200">
+                            <iframe
+                              src={streamIframeUrl(streamUid)}
+                              title={`${goal.title} — demo`}
+                              loading="lazy"
+                              allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
+                              allowFullScreen
+                              className="w-full h-full block border-0"
+                            />
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Video links / tutorials */}
                     {((goal.videoLinks && goal.videoLinks.length > 0) || (isCoach && plan.status === 'active')) && (

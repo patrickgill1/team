@@ -883,37 +883,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Fire-and-forget background tasks
             runBackgroundTasks(userDataObj, user.uid);
           } else {
-            console.log('No user data found for:', user.uid);
-            setUserData(null);
-            
-            // Federated providers (Google, Apple) — the signInWith… caller
-            // creates the Firestore user doc *after* Firebase Auth fires
-            // onAuthStateChanged, so wait + retry instead of signing them
-            // straight back out.
-            const isFederated = user.providerData.some(p => p.providerId === 'google.com' || p.providerId === 'apple.com');
-            if (isFederated) {
-              console.log('Federated user detected, waiting for Firestore document…', user.providerData.map(p => p.providerId));
-              setLoading(false); // unblock while we wait
-              setTimeout(async () => {
-                try {
-                  const retryData = await withTimeout(getUserData(user.uid), 5000) as any;
-                  if (retryData) {
-                    const retryUserData = buildUserData(retryData, user);
-                    setUserData(retryUserData);
-                    runBackgroundTasks(retryUserData, user.uid);
-                  } else {
-                    console.log('Still no Firestore data for federated user, signing out');
-                    await signOut(auth);
-                  }
-                } catch (retryError) {
-                  console.error('Retry error for federated user:', retryError);
-                  await signOut(auth);
+            // getUserData returned null. That means EITHER (a) the doc
+            // doesn't exist yet (brand-new federated sign-up, Firestore
+            // doc still being written by the signInWith… caller) OR
+            // (b) Firestore was briefly unreachable and withTimeout
+            // returned null at the 6s deadline (a Capgo OTA reload
+            // race, cellular handoff, etc.).
+            //
+            // We can't tell those apart from the snapshot alone, so we
+            // retry up to 3 times with backoff. CRITICAL: keep loading=true
+            // throughout — without that, ProtectedRoute sees
+            // (currentUser, !userData, !loading) and bounces the user to
+            // /auth during the retry window. That's what was logging
+            // people out after a Capgo OTA swap.
+            console.log('userData not present on first read, will retry:', user.uid);
+            let attempts = 0;
+            const MAX_ATTEMPTS = 3;
+            const tryAgain = async () => {
+              attempts++;
+              try {
+                const retryData = await withTimeout(getUserData(user.uid), 8000) as any;
+                if (retryData) {
+                  const retryUserData = buildUserData(retryData, user);
+                  setUserData(retryUserData);
+                  setLoading(false);
+                  runBackgroundTasks(retryUserData, user.uid);
+                  return;
                 }
-              }, 2000);
-            } else {
-              await signOut(auth);
-              setLoading(false);
-            }
+                // Still no data. If we've exhausted retries, this is
+                // most likely a brand-new federated user whose Firestore
+                // doc the signInWith… path is about to write. Drop
+                // loading off; signInWithGoogle/Apple will call
+                // setUserData when the doc lands.
+                if (attempts < MAX_ATTEMPTS) {
+                  setTimeout(tryAgain, 2000 * attempts);
+                  return;
+                }
+                setUserData(null);
+                setLoading(false);
+              } catch (err: any) {
+                const code = err?.code || '';
+                if (code === 'permission-denied' || code === 'unauthenticated') {
+                  console.warn('userData fetch denied, signing out');
+                  setUserData(null);
+                  setLoading(false);
+                  try { await signOut(auth); } catch {}
+                  return;
+                }
+                if (attempts < MAX_ATTEMPTS) {
+                  setTimeout(tryAgain, 2000 * attempts);
+                  return;
+                }
+                setLoading(false);
+              }
+            };
+            setTimeout(tryAgain, 1500);
           }
         } catch (error: any) {
           // A Firestore fetch error here used to immediately sign the

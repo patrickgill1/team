@@ -75,10 +75,20 @@ const headingFor = (n: number) =>
              '## On fire';
 
 async function loadLinkedPlayers(uid: string) {
-  const snap = await db.collection('players')
-    .where('parentIds', 'array-contains', uid)
-    .get();
-  const rows = await Promise.all(snap.docs.map(async d => {
+  // The app links a parent to a player via TWO possible fields:
+  //   parentIds: [uid, ...]  (new — array, multi-parent support)
+  //   parentId: uid           (legacy — singular, older docs)
+  // Older Hunter records may still use the singular field, which
+  // is why the duplicate Hunter showing up in the More-sheet
+  // selector wasn't appearing in my first query. Union both.
+  const [byArray, byLegacy] = await Promise.all([
+    db.collection('players').where('parentIds', 'array-contains', uid).get(),
+    db.collection('players').where('parentId', '==', uid).get(),
+  ]);
+  const docsById = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+  for (const d of byArray.docs) docsById.set(d.id, d);
+  for (const d of byLegacy.docs) docsById.set(d.id, d);
+  const rows = await Promise.all(Array.from(docsById.values()).map(async d => {
     const data = d.data() as any;
     let teamName = '(unknown team)';
     if (data.teamId) {

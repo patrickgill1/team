@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { where, doc, updateDoc } from 'firebase/firestore';
+import { getAuth, onIdTokenChanged } from 'firebase/auth';
 import { db } from '../utils/firebase';
 import { getShareOrigin } from '../utils/origin';
 import { useAuth } from '../hooks/useAuth';
@@ -90,6 +91,31 @@ const TeamChat: React.FC = () => {
   // separate state slots; combined via the `threads` memo below.
   const [teamThreads, setTeamThreads] = useState<ChatThread[]>([]);
   const [clubThreads, setClubThreads] = useState<ChatThread[]>([]);
+
+  // Force-resub counter — bumped whenever Firebase Auth issues a fresh
+  // ID token. Each bump tears down and remounts the threads
+  // subscriptions so the new query runs against the new auth context.
+  //
+  // Why: Firestore rules on chat_threads gate DM reads by
+  //   request.auth.uid in resource.data.participants
+  // If the auth token is mid-refresh (common on mobile when cellular
+  // hands off towers or WiFi reconnects), `request.auth.uid` is briefly
+  // null/stale and the rule denies every DM doc. The subscription
+  // silently drops those docs and the user sees their DMs vanish. Team
+  // and club threads stay because they don't require the participant
+  // check. Patrick hit this on cellular 2026-06-15 and lost trust in
+  // the app's ability to keep his DMs intact.
+  //
+  // onIdTokenChanged fires on initial mount AND on every token refresh,
+  // so this self-heals the transient: the moment a fresh token lands,
+  // the threads subscription re-runs with the working auth.
+  const [authChurn, setAuthChurn] = useState(0);
+  useEffect(() => {
+    const unsub = onIdTokenChanged(getAuth(), () => {
+      setAuthChurn((c) => c + 1);
+    });
+    return () => unsub();
+  }, []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   // In-thread search — client-side filter over already-loaded messages.
   // No server query yet; sufficient for the typical loaded window
@@ -567,7 +593,7 @@ const TeamChat: React.FC = () => {
       setLoading(false);
     });
     return () => { unsubscribeThreads(); };
-  }, [userData?.teamIds, userData?.teamId, selectedTeamId, subscribeToChatThreads]);
+  }, [userData?.teamIds, userData?.teamId, selectedTeamId, subscribeToChatThreads, authChurn]);
 
   // Auto-create the team chat. Every team gets exactly ONE team-scoped
   // thread (named "<Team> Chat"). Created lazily on first chat-tab
@@ -626,7 +652,7 @@ const TeamChat: React.FC = () => {
       setClubThreads(processed);
     });
     return () => { unsub && unsub(); };
-  }, [subscribeToClubChatThreads]);
+  }, [subscribeToClubChatThreads, authChurn]);
 
   // Merge + role-filter. Coaches see team + club + coaches scopes.
   // Parents see team + club. Admins see everything.
@@ -2159,6 +2185,21 @@ const TeamChat: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">Messages</h2>
                 <div className="flex items-center gap-2">
+                  {/* Manual refresh — bumps authChurn, which remounts
+                      both threads subscriptions. Belt-and-suspenders
+                      partner to the onIdTokenChanged auto-recovery:
+                      if a user ever sees DMs disappear, this is the
+                      one-tap fix instead of force-quitting the app. */}
+                  <button
+                    onClick={() => setAuthChurn((c) => c + 1)}
+                    className="bg-white/10 hover:bg-white/15 ring-1 ring-white/15 text-white p-2.5 rounded-lg transition-colors"
+                    title="Refresh messages"
+                    aria-label="Refresh messages"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
                   <button
                     onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
                     className="bg-violet-600 hover:bg-violet-700 text-white p-2.5 rounded-lg transition-colors"

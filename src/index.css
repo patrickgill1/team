@@ -304,6 +304,16 @@ code {
   to { transform: translateX(100%); }
 }
 .animate-bounce-in { animation: bounceIn 0.4s ease-out; }
+/* Branded-splash progress bar shimmer — the moving cyan→fuchsia
+   sweep on UpdatingSplash that signals "the app is being swapped." */
+.animate-shimmer-bar {
+  background-size: 200% 100%;
+  animation: shimmerBar 1.4s linear infinite;
+}
+@keyframes shimmerBar {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }

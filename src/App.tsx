@@ -251,6 +251,38 @@ function App() {
   // when the animated logo first appears).
   const [splashPlaying, setSplashPlaying] = useState(true);
 
+  // Capgo OTA update progress. `downloadPercent` is null while idle,
+  // 0–99 during the background download (shown as a slim status bar
+  // pinned to the top of the screen so the user knows something's
+  // happening), and 100 when the bundle is on disk. When it hits 100
+  // we flip `updateApplying` true, paint the branded splash for ~1.5s
+  // so the swap feels intentional, then ask Capgo to swap the WebView
+  // onto the new bundle — no force-quit required.
+  const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
+  const [updateApplying, setUpdateApplying] = useState(false);
+  useEffect(() => {
+    let unsub: () => void = () => {};
+    let cancelled = false;
+    import('./utils/nativeShell').then(({ watchCapgoUpdate, reloadToLatestCapgoBundle }) => {
+      if (cancelled) return;
+      watchCapgoUpdate({
+        onProgress: ({ percent }) => setDownloadPercent(percent),
+        onComplete: () => {
+          setDownloadPercent(100);
+          setUpdateApplying(true);
+          window.setTimeout(() => {
+            void reloadToLatestCapgoBundle();
+          }, 1600);
+        },
+        onFailed: () => setDownloadPercent(null),
+      }).then((u) => {
+        if (cancelled) { u(); return; }
+        unsub = u;
+      });
+    });
+    return () => { cancelled = true; unsub(); };
+  }, []);
+
   return (
     <AuthProvider>
       <TeamProvider>
@@ -641,9 +673,75 @@ function App() {
       </Router>
       </TeamProvider>
       {splashPlaying && <BrandedSplash onDone={() => setSplashPlaying(false)} />}
+      {downloadPercent !== null && !updateApplying && (
+        <UpdateProgressBar percent={downloadPercent} />
+      )}
+      {updateApplying && <UpdatingSplash />}
     </AuthProvider>
   );
 }
+
+// Slim non-blocking status strip pinned to the very top of the screen
+// while Capgo downloads a new bundle in the background. The user can
+// keep using the app — this just tells them "something's happening"
+// the way Gmail / Chrome / Spotify do during a silent update. The
+// bar slides down into the safe-area-top so it doesn't fight the
+// notch / Dynamic Island.
+const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
+  return (
+    <div
+      aria-hidden
+      className="fixed left-0 right-0 z-[9998] pointer-events-none"
+      style={{ top: 'env(safe-area-inset-top)' }}
+    >
+      <div className="mx-3 mt-1 rounded-full bg-slate-900/85 ring-1 ring-cyan-400/20 backdrop-blur-md shadow-lg shadow-cyan-500/10 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-75" />
+            <span className="relative rounded-full bg-cyan-400 h-2 w-2" />
+          </span>
+          <span className="text-[11px] font-semibold tracking-wide text-white/90 flex-1">
+            Updating · {Math.max(1, Math.floor(percent))}%
+          </span>
+        </div>
+        <div className="h-0.5 bg-white/5">
+          <div
+            className="h-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 transition-[width] duration-300 ease-out"
+            style={{ width: `${Math.max(2, Math.floor(percent))}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Branded full-screen overlay shown for ~1.5s right before the WebView
+// swaps onto the new bundle. Same gradient + breathing logo as
+// BrandedSplash so the transition reads as "the app is launching"
+// rather than "the app crashed." The progress bar is finished/full
+// here so the user sees the moment-of-install.
+const UpdatingSplash: React.FC = () => {
+  return (
+    <div
+      aria-hidden
+      className="fixed inset-0 z-[9999] bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col items-center justify-center animate-fade-in"
+    >
+      <div className="flex flex-col items-center gap-6">
+        <img
+          src="/images/logo.png"
+          alt=""
+          className="w-28 h-28 rounded-2xl shadow-2xl shadow-cyan-500/30 ring-1 ring-white/10 splash-breathe"
+        />
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-white/85 text-sm font-semibold tracking-wide">Updating…</p>
+          <div className="w-44 h-1 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full w-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 animate-shimmer-bar" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Branded React splash — fixed overlay that paints over the native
 // launch screen, then dismisses the native splash from inside its

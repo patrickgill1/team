@@ -91,6 +91,62 @@ export async function notifyCapgoReady(): Promise<void> {
 }
 
 /**
+ * Subscribe to Capgo's download/install events so the app can show
+ * a progress bar during download and an "Updating…" splash before
+ * auto-reloading onto the new bundle. Returns an unsubscribe fn.
+ *
+ * Events:
+ *  - download({ percent, bundle }) — fires throughout the download.
+ *  - downloadComplete({ bundle })  — fires once the bundle is on disk.
+ *  - downloadFailed({ version })   — fires if the download didn't finish.
+ *  - majorAvailable                — fires when a new major bundle is detected.
+ *
+ * Caller-side:
+ *  - onProgress({percent}) is invoked for each download tick.
+ *  - onComplete() is invoked when the bundle is ready to apply.
+ *  - The caller decides WHEN to apply (call reloadToLatestCapgoBundle()).
+ */
+export async function watchCapgoUpdate(handlers: {
+  onProgress: (info: { percent: number }) => void;
+  onComplete: () => void;
+  onFailed?: () => void;
+}): Promise<() => void> {
+  if (!Capacitor.isNativePlatform()) return () => {};
+  try {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+    const subs: Array<{ remove: () => Promise<void> }> = [];
+    subs.push(await CapacitorUpdater.addListener('download', (info: any) => {
+      handlers.onProgress({ percent: Number(info?.percent) || 0 });
+    }));
+    subs.push(await CapacitorUpdater.addListener('downloadComplete', () => {
+      handlers.onComplete();
+    }));
+    subs.push(await CapacitorUpdater.addListener('downloadFailed' as any, () => {
+      handlers.onFailed?.();
+    }));
+    return () => { for (const s of subs) { void s.remove(); } };
+  } catch (err) {
+    console.warn('Capgo listeners init failed', err);
+    return () => {};
+  }
+}
+
+/**
+ * Switch the active WebView to the latest downloaded Capgo bundle
+ * without forcing the user to force-quit the app. Call this AFTER a
+ * brief "Updating…" splash so the swap feels intentional, not a crash.
+ */
+export async function reloadToLatestCapgoBundle(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+    await CapacitorUpdater.reload();
+  } catch (err) {
+    console.warn('Capgo reload failed', err);
+  }
+}
+
+/**
  * Check current native push permission without prompting. Returns:
  *   'granted'   — user has approved, we can fetch a token
  *   'denied'    — user said no; OS will not re-prompt, send them to Settings

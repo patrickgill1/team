@@ -858,6 +858,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // after a Capgo OTA reload, etc.) can be distinguished from
         // a genuine sign-out.
         try { localStorage.setItem('firefc.lastKnownUid', user.uid); } catch {}
+        // Clear the "we already tried recovery this session" flag —
+        // we recovered (either naturally or via a forced reload that
+        // worked). Future transient nulls can attempt recovery again.
+        try { sessionStorage.removeItem('firefc.authRecoveryAttempted'); } catch {}
 
         try {
           console.log('Fetching user data for:', user.uid);
@@ -999,46 +1003,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(tryAgain, 1500);
         }
       } else {
-        // onAuthStateChanged fired with null. That can mean two very
-        // different things:
+        // onAuthStateChanged fired with null. Either:
+        // 1) Real sign-out (signOut() called, or never signed in here)
+        // 2) Post-OTA WebView reload — Firebase Auth's IndexedDB
+        //    session is intact, but the SDK can't recover its token in
+        //    this WebView session. Force-closing the app and reopening
+        //    works because that gives Firebase a fresh JS context.
         //
-        // 1) The user really signed out (signOut() was called, or they
-        //    have never signed in on this device).
-        // 2) Firebase Auth is RE-VALIDATING after a WebView reload
-        //    (CapacitorUpdater.reload() from a Capgo OTA, in particular).
-        //    The IndexedDB-persisted session is there, but the token
-        //    refresh call against securetoken.googleapis.com hasn't
-        //    finished yet — the SDK briefly emits null, then re-emits
-        //    the real user a few seconds later.
-        //
-        // If localStorage remembers we WERE signed in on a prior session,
-        // assume (2) and hold the spinner. Re-check Firebase Auth after
-        // a delay; if the real user has shown up by then, we use it.
-        // If not, accept the null and let ProtectedRoute redirect to
-        // /auth — at that point this really is a sign-out.
+        // Patrick verified case (2) by symptom: he was logged out
+        // post-Capgo-swap, force-closed, reopened, was signed in. We
+        // automate that recovery here — if localStorage remembers a
+        // signed-in session, give Firebase ~3 seconds to recover on
+        // its own; if not, programmatically window.location.reload()
+        // (same effect as a force-close + reopen). sessionStorage
+        // guards against an infinite reload loop.
         const LAST_UID_KEY = 'firefc.lastKnownUid';
+        const RECOVERY_KEY = 'firefc.authRecoveryAttempted';
         const wasSignedIn = (() => {
           try { return localStorage.getItem(LAST_UID_KEY); } catch { return null; }
         })();
         if (wasSignedIn) {
-          console.log('Auth null but lastKnownUid present — waiting for re-emission');
-          setTimeout(() => {
-            // Re-check; auth.currentUser updates synchronously when the
-            // SDK settles its internal state.
-            const settled = auth.currentUser;
-            if (settled) {
-              // The real user came back. onAuthStateChanged will fire
-              // again with this user, hitting the success path above.
-              // No-op here; just let the next emission run.
-              console.log('Auth re-emitted real user, recovery complete');
-              return;
-            }
-            // Still no user after the wait. This is a real sign-out.
-            console.log('Auth still null after wait, accepting sign-out');
+          const alreadyTried = (() => {
+            try { return sessionStorage.getItem(RECOVERY_KEY); } catch { return null; }
+          })();
+          if (alreadyTried) {
+            // We already reloaded once in this session and Firebase
+            // STILL can't recover. The session is well and truly bad —
+            // accept the sign-out and let the user re-authenticate.
+            console.log('Auth recovery already attempted this session, accepting sign-out');
             try { localStorage.removeItem(LAST_UID_KEY); } catch {}
+            try { sessionStorage.removeItem(RECOVERY_KEY); } catch {}
             setUserData(null);
             setLoading(false);
-          }, 5000);
+            return;
+          }
+          console.log('Auth null but lastKnownUid present — watching for recovery');
+          let checks = 0;
+          const interval = window.setInterval(() => {
+            checks++;
+            if (auth.currentUser) {
+              // Firebase recovered on its own. Next onAuthStateChanged
+              // emission will hit the success path; just stop watching.
+              console.log('Auth recovered naturally');
+              window.clearInterval(interval);
+              return;
+            }
+            if (checks >= 3) {
+              // 3 seconds of nothing. Force-reload to mimic the
+              // force-close + reopen flow that Patrick verified works.
+              window.clearInterval(interval);
+              try { sessionStorage.setItem(RECOVERY_KEY, '1'); } catch {}
+              console.log('Auth still null after 3s — forcing reload to recover');
+              window.location.reload();
+            }
+          }, 1000);
           return;
         }
         console.log('No authenticated user');

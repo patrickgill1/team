@@ -589,7 +589,20 @@ const TeamChat: React.FC = () => {
         createdAt: thread.createdAt instanceof Date ? thread.createdAt : new Date(thread.createdAt || Date.now()),
         messageCount: thread.messageCount || 0,
       }));
-      setTeamThreads(processed);
+      // MERGE, don't REPLACE. A snapshot missing a thread doesn't
+      // authoritatively mean "this thread is gone for you" — it can
+      // mean Firestore's rules briefly denied the read during an auth
+      // token refresh (the bug Patrick hit on cellular 2026-06-15).
+      // iMessage / WhatsApp / Telegram model: local state is
+      // authoritative for what's VISIBLE; the server is authoritative
+      // for what's NEW. So we add/update from every snapshot, but we
+      // only remove a thread when the user explicitly deletes it
+      // (handleDeleteThread, which calls removeThreadFromLocalState).
+      setTeamThreads((prev) => {
+        const byId = new Map(prev.map((t) => [t.id, t]));
+        for (const t of processed) byId.set(t.id, t);
+        return Array.from(byId.values());
+      });
       setLoading(false);
     });
     return () => { unsubscribeThreads(); };
@@ -649,7 +662,14 @@ const TeamChat: React.FC = () => {
         createdAt: thread.createdAt instanceof Date ? thread.createdAt : new Date(thread.createdAt || Date.now()),
         messageCount: thread.messageCount || 0,
       }));
-      setClubThreads(processed);
+      // Same merge-don't-replace pattern as the team-scoped subscription
+      // above. Don't blank a club channel just because the snapshot
+      // dropped it (e.g., rule denial during auth refresh).
+      setClubThreads((prev) => {
+        const byId = new Map(prev.map((t) => [t.id, t]));
+        for (const t of processed) byId.set(t.id, t);
+        return Array.from(byId.values());
+      });
     });
     return () => { unsub && unsub(); };
   }, [subscribeToClubChatThreads, authChurn]);
@@ -1450,6 +1470,14 @@ const TeamChat: React.FC = () => {
         (msgs || []).map((m) => deleteDocument('chat_messages', m.id).catch(() => null))
       );
       await deleteDocument('chat_threads', thread.id);
+      // Remove from local state immediately. Because the threads
+      // subscriptions now MERGE snapshots instead of REPLACING (so a
+      // missing-doc snapshot doesn't blank DMs), they would otherwise
+      // keep a deleted thread visible until the user closes the app.
+      // Explicit user-initiated deletes are the one case where a
+      // missing doc IS authoritative.
+      setTeamThreads((prev) => prev.filter((t) => t.id !== thread.id));
+      setClubThreads((prev) => prev.filter((t) => t.id !== thread.id));
       // If we were viewing this thread, pop back to the threads list.
       if (selectedThread?.id === thread.id) {
         setSelectedThread(null);
@@ -2185,21 +2213,6 @@ const TeamChat: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">Messages</h2>
                 <div className="flex items-center gap-2">
-                  {/* Manual refresh — bumps authChurn, which remounts
-                      both threads subscriptions. Belt-and-suspenders
-                      partner to the onIdTokenChanged auto-recovery:
-                      if a user ever sees DMs disappear, this is the
-                      one-tap fix instead of force-quitting the app. */}
-                  <button
-                    onClick={() => setAuthChurn((c) => c + 1)}
-                    className="bg-white/10 hover:bg-white/15 ring-1 ring-white/15 text-white p-2.5 rounded-lg transition-colors"
-                    title="Refresh messages"
-                    aria-label="Refresh messages"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
                   <button
                     onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
                     className="bg-violet-600 hover:bg-violet-700 text-white p-2.5 rounded-lg transition-colors"

@@ -1081,19 +1081,48 @@ const MyPlayerCard: React.FC<{
       default: return 'bg-slate-400';
     }
   })();
-  // POM-of-the-week treatment — the whole card goes gold (amber
-  // gradient, gold ring, "POTM" ribbon on the avatar). When not POM,
-  // standard navy hero treatment.
+  // POTM-of-the-week treatment — the whole card goes gold. Bright
+  // saturated gradient, thick gold ring, glow shadow, animated
+  // shimmer stripe, and a "PLAYER OF THE MATCH" banner across the
+  // top. Should be impossible to miss. Patrick: "i want the whole
+  // profile on the dashboard in gold when they get POTM."
   const cardBg = isPotm
-    ? 'bg-gradient-to-br from-amber-700 via-amber-600 to-yellow-500 ring-2 ring-amber-300/60 shadow-amber-500/30'
+    ? 'bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-500 ring-4 ring-amber-300/80 shadow-2xl shadow-amber-500/50'
     : 'bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 ring-1 ring-white/10';
-  const accentText = isPotm ? 'text-amber-100/85' : 'text-white/70';
-  const subText = isPotm ? 'text-amber-100/60' : 'text-white/60';
+  const accentText = isPotm ? 'text-amber-50' : 'text-white/70';
+  const subText = isPotm ? 'text-amber-100/80' : 'text-white/60';
   return (
     <Link
       to={`/player/${player.id}`}
       className={`relative overflow-hidden rounded-2xl text-white shadow-lg hover:shadow-xl active:scale-[0.995] transition flex ${cardBg}`}
     >
+      {/* POTM banner across the very top of the card. Black text on
+          a deeper amber strip keeps it readable against the bright
+          gradient body below. */}
+      {isPotm && (
+        <div className="absolute top-0 inset-x-0 z-10 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-700 px-4 py-1.5 flex items-center justify-center gap-2 border-b border-amber-900/40">
+          <svg className="w-4 h-4 text-amber-100 drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
+          </svg>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-100 drop-shadow">
+            Player of the Match
+          </span>
+          <svg className="w-4 h-4 text-amber-100 drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z" />
+          </svg>
+        </div>
+      )}
+      {/* Animated shimmer — a thin band of brighter gold sweeps
+          diagonally across the card every few seconds. CSS keyframe
+          'potm-shimmer' defined in index.css. */}
+      {isPotm && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+        >
+          <div className="absolute -inset-y-2 -inset-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent rotate-12 potm-shimmer" />
+        </div>
+      )}
       {/* Subtle Fire FC logo watermark on the right */}
       <img
         src="/images/logo.png"
@@ -1101,7 +1130,7 @@ const MyPlayerCard: React.FC<{
         className="absolute -right-6 top-1/2 -translate-y-1/2 w-40 h-40 opacity-[0.08] pointer-events-none"
         aria-hidden
       />
-      <div className="relative p-4 sm:p-5 flex items-center gap-4 w-full">
+      <div className={`relative ${isPotm ? 'pt-12 pb-4 px-4 sm:pt-14 sm:pb-5 sm:px-5' : 'p-4 sm:p-5'} flex items-center gap-4 w-full`}>
         {/* Avatar with jersey-number chip (matches PlayerCard pattern
             used elsewhere — Patrick: "everywhere else it shows the
             10 in the other way"). Optional POTW crown sits on top. */}
@@ -1152,14 +1181,9 @@ const MyPlayerCard: React.FC<{
 
         {/* Name + meta + stats */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xl sm:text-2xl font-black leading-tight truncate">{player.name}</p>
-            {isPotm && (
-              <span className="text-[10px] font-extrabold uppercase tracking-widest bg-amber-300 text-amber-900 px-1.5 py-0.5 rounded">
-                POTW
-              </span>
-            )}
-          </div>
+          <p className={`text-xl sm:text-2xl font-black leading-tight truncate ${isPotm ? 'text-white drop-shadow' : ''}`}>{player.name}</p>
+          {/* The small "POTW" chip next to the name was redundant with
+              the big banner at the top of the card. Removed. */}
           <div className="flex items-center gap-1.5 mb-2">
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${
               isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-white/10 text-white/85'

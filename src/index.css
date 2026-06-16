@@ -323,6 +323,16 @@ code {
   70% { transform: scale(0.9); }
   100% { opacity: 1; transform: scale(1); }
 }
+/* POTM-of-the-week shimmer — a band of light sweeps diagonally
+ * across the gold MyPlayerCard every 3 seconds. Combined with the
+ * rotate-12 on the element itself, this reads as a trophy gleam. */
+@keyframes potmShimmer {
+  0%   { transform: translateX(-100%) rotate(12deg); }
+  100% { transform: translateX(200%) rotate(12deg); }
+}
+.potm-shimmer {
+  animation: potmShimmer 3s ease-in-out infinite;
+}
 
 /* Skeleton shimmer — subtle linear gradient that sweeps left → right
  * for content placeholders while data fetches. */

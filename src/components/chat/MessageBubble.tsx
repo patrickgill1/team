@@ -100,13 +100,20 @@ const ChatAttachmentImage: React.FC<{
    *  cleanly into the bubble's fill (iMessage pattern). */
   insideBubble?: boolean;
 }> = ({ src, alt, solo, onLoad, onClick, insideBubble }) => {
-  const [loaded, setLoaded] = useState(false);
   const sizeClasses = solo
     ? 'w-full aspect-[4/3]'
     : 'w-full aspect-square';
   const skinClasses = insideBubble
     ? 'bg-black/10'
     : 'rounded-2xl bg-slate-100';
+  // Image starts at opacity-100 (was opacity-0 with a fade-on-load).
+  // The fade required the onLoad event to fire — which it does
+  // reliably for our own R2-hosted JPEG thumbs, but NOT reliably
+  // for cross-origin animated GIFs in iOS WKWebView. Tenor GIFs
+  // were loading but staying invisible because their onLoad never
+  // fired, leaving the img at opacity-0. The placeholder bg
+  // (slate-100 or black/10 inside a bubble) still hides the
+  // pre-load empty state, so we don't actually need the fade.
   return (
     <div
       onClick={onClick}
@@ -118,9 +125,9 @@ const ChatAttachmentImage: React.FC<{
         loading="lazy"
         decoding="async"
         draggable={false}
-        onLoad={() => { setLoaded(true); onLoad?.(); }}
+        onLoad={() => onLoad?.()}
         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        className="absolute inset-0 w-full h-full object-cover"
         style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
       />
     </div>

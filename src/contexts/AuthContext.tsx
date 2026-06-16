@@ -831,7 +831,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // Safety timeout: if loading hasn't resolved in 8 seconds, force it off
+    // Safety timeout: if loading hasn't resolved in 25 seconds, force
+    // it off. (Was 8s — too tight: the retry loop in the catch path
+    // below can take ~22s if Firestore is recovering from a Capgo OTA
+    // reload, and we want the spinner to stay up rather than bouncing
+    // the user to /auth mid-retry.)
     const safetyTimer = setTimeout(() => {
       setLoading((prev) => {
         if (prev) {
@@ -839,7 +843,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return false;
       });
-    }, 8000);
+    }, 25000);
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -912,10 +916,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         } catch (error: any) {
-          console.error('Error fetching user data:', error);
-          setUserData(null);
-          setLoading(false); // ← always unblock on error
-          try { await signOut(auth); } catch {}
+          // A Firestore fetch error here used to immediately sign the
+          // user out — which turned every transient hiccup (especially
+          // the unavoidable Listen-channel renegotiation after a Capgo
+          // OTA reload, or a brief cellular handoff) into a forced
+          // re-login. Now: keep loading=true (so ProtectedRoute keeps
+          // showing the spinner instead of bouncing to /auth) and
+          // retry up to 3 times with backoff. Only sign out on a
+          // definitive auth error.
+          console.warn('user data fetch failed, will retry:', error);
+          let attempts = 0;
+          const MAX_ATTEMPTS = 3;
+          const tryAgain = async () => {
+            attempts++;
+            try {
+              const retryData = await withTimeout(getUserData(user.uid), 8000) as any;
+              if (retryData) {
+                const obj = buildUserData(retryData, user);
+                setUserData(obj);
+                setLoading(false);
+                runBackgroundTasks(obj, user.uid);
+                return;
+              }
+              // Got no data and no error — treat as transient and retry.
+              if (attempts < MAX_ATTEMPTS) {
+                setTimeout(tryAgain, 2000 * attempts);
+                return;
+              }
+            } catch (retryErr: any) {
+              const code = retryErr?.code || '';
+              if (code === 'permission-denied' || code === 'unauthenticated') {
+                console.warn('userData fetch denied by auth state, signing out');
+                setUserData(null);
+                setLoading(false);
+                try { await signOut(auth); } catch {}
+                return;
+              }
+              if (attempts < MAX_ATTEMPTS) {
+                setTimeout(tryAgain, 2000 * attempts);
+                return;
+              }
+            }
+            // All retries exhausted. Unblock the UI; the live user-doc
+            // snapshot listener that runs alongside this path will
+            // eventually fill userData in once Firestore recovers.
+            setLoading(false);
+          };
+          setTimeout(tryAgain, 1500);
         }
       } else {
         console.log('No authenticated user');

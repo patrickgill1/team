@@ -140,6 +140,41 @@ async function cmdList(uid: string) {
   console.log('To post a streak post: npx tsx scripts/manageMyPlayers.ts post-streak <id> [milestone=5]');
 }
 
+// Diagnostic: find ALL player docs by name (no parent filter), and
+// print their raw parentIds / parentId values so we can see why one
+// surface lists them and another doesn't. Use when a duplicate kid
+// shows up in the app but not in our parent-filtered query.
+async function cmdFind(nameSubstring: string, uid: string) {
+  const snap = await db.collection('players').get();
+  const matches = snap.docs.filter(d => {
+    const name = ((d.data() as any).name || '').toLowerCase();
+    return name.includes(nameSubstring.toLowerCase());
+  });
+  console.log(`\nFound ${matches.length} player(s) whose name contains "${nameSubstring}":\n`);
+  for (const d of matches) {
+    const data = d.data() as any;
+    const inParentIds = Array.isArray(data.parentIds) && data.parentIds.includes(uid);
+    const inLegacy = data.parentId === uid;
+    let teamName = '(unknown)';
+    if (data.teamId) {
+      try {
+        const t = await db.collection('teams').doc(data.teamId).get();
+        if (t.exists) teamName = (t.data() as any).name || data.teamId;
+      } catch { /* ignore */ }
+    }
+    console.log(`${data.isActive === false ? '○' : '●'} ${data.name} ${data.jerseyNumber ? `#${data.jerseyNumber} ` : ''}(${data.position || 'no pos'})`);
+    console.log(`    id:        ${d.id}`);
+    console.log(`    team:      ${teamName} (${data.teamId || 'no teamId'})`);
+    console.log(`    isActive:  ${data.isActive !== false}`);
+    console.log(`    streak:    ${data.currentStreakDays || 0} days`);
+    console.log(`    parentIds: ${JSON.stringify(data.parentIds)}`);
+    console.log(`    parentId:  ${JSON.stringify(data.parentId)}`);
+    console.log(`    matches your uid via parentIds[]: ${inParentIds}`);
+    console.log(`    matches your uid via parentId:    ${inLegacy}`);
+    console.log('');
+  }
+}
+
 async function cmdDelete(playerId: string) {
   const ref = db.collection('players').doc(playerId);
   const snap = await ref.get();
@@ -217,6 +252,9 @@ async function cmdPostStreak(senderUid: string, playerId: string, milestoneArg?:
 
   if (!cmd || cmd === 'list') {
     await cmdList(uid);
+  } else if (cmd === 'find') {
+    if (!arg1) { console.error('Usage: find <name-substring>'); process.exit(1); }
+    await cmdFind(arg1, uid);
   } else if (cmd === 'delete') {
     if (!arg1) { console.error('Usage: delete <playerId>'); process.exit(1); }
     await cmdDelete(arg1);
@@ -225,7 +263,7 @@ async function cmdPostStreak(senderUid: string, playerId: string, milestoneArg?:
     await cmdPostStreak(uid, arg1, arg2);
   } else {
     console.error(`Unknown command: ${cmd}`);
-    console.error('Commands: list, delete <id>, post-streak <id> [milestone]');
+    console.error('Commands: list, find <name>, delete <id>, post-streak <id> [milestone]');
     process.exit(1);
   }
   process.exit(0);

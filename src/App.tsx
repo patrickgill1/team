@@ -251,28 +251,39 @@ function App() {
   // when the animated logo first appears).
   const [splashPlaying, setSplashPlaying] = useState(true);
 
-  // Capgo OTA update progress. `downloadPercent` is null while idle,
-  // 0–99 during the background download (shown as a slim status bar
-  // pinned to the top of the screen so the user knows something's
-  // happening), and 100 when the bundle is on disk. When it hits 100
-  // we flip `updateApplying` true, paint the branded splash for ~1.5s
-  // so the swap feels intentional, then ask Capgo to swap the WebView
-  // onto the new bundle — no force-quit required.
+  // Capgo OTA update progress.
+  //
+  // Previous design auto-reloaded the WebView once the download
+  // completed. The cool splash + reload sequence worked visually,
+  // BUT Firebase Auth couldn't recover its token inside the
+  // post-reload WebView session — only a real cold start could.
+  // Result: parents got logged out mid-session every time a bundle
+  // landed. Patrick verified the cascade in 3.1.6, 3.1.7, and 3.1.8.
+  //
+  // New design (more like iMessage / Telegram updates):
+  //  - Download silently in background. Show the slim progress chip
+  //    so it's not invisible, but DON'T take over the screen.
+  //  - When download completes, surface a small "Update ready" pill
+  //    that the user can tap to apply now (cool splash + reload —
+  //    same flow as before). If they ignore it, the new bundle
+  //    applies automatically on the next cold start (the user
+  //    naturally backgrounds and re-opens the app).
+  //  - Cold-start application is the safe path because Firebase Auth
+  //    initializes cleanly from a fresh JS context — that's why
+  //    force-close + reopen always worked.
   const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
   const [updateApplying, setUpdateApplying] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
   useEffect(() => {
     let unsub: () => void = () => {};
     let cancelled = false;
-    import('./utils/nativeShell').then(({ watchCapgoUpdate, reloadToLatestCapgoBundle }) => {
+    import('./utils/nativeShell').then(({ watchCapgoUpdate }) => {
       if (cancelled) return;
       watchCapgoUpdate({
         onProgress: ({ percent }) => setDownloadPercent(percent),
         onComplete: () => {
-          setDownloadPercent(100);
-          setUpdateApplying(true);
-          window.setTimeout(() => {
-            void reloadToLatestCapgoBundle();
-          }, 1600);
+          setDownloadPercent(null);
+          setUpdateReady(true);
         },
         onFailed: () => setDownloadPercent(null),
       }).then((u) => {
@@ -282,6 +293,12 @@ function App() {
     });
     return () => { cancelled = true; unsub(); };
   }, []);
+  const applyUpdateNow = async () => {
+    setUpdateReady(false);
+    setUpdateApplying(true);
+    const { reloadToLatestCapgoBundle } = await import('./utils/nativeShell');
+    window.setTimeout(() => { void reloadToLatestCapgoBundle(); }, 1600);
+  };
 
   return (
     <AuthProvider>
@@ -673,8 +690,11 @@ function App() {
       </Router>
       </TeamProvider>
       {splashPlaying && <BrandedSplash onDone={() => setSplashPlaying(false)} />}
-      {downloadPercent !== null && !updateApplying && (
+      {downloadPercent !== null && !updateApplying && !updateReady && (
         <UpdateProgressBar percent={downloadPercent} />
+      )}
+      {updateReady && !updateApplying && (
+        <UpdateReadyPill onTap={applyUpdateNow} />
       )}
       {updateApplying && <UpdatingSplash />}
     </AuthProvider>
@@ -709,6 +729,50 @@ const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
             className="h-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 transition-[width] duration-300 ease-out"
             style={{ width: `${Math.max(2, Math.floor(percent))}%` }}
           />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Surfaces after the OTA bundle has finished downloading. Optional —
+// the bundle will apply on its own at the next cold start. Tapping
+// here triggers the cool splash + WebView reload sequence for users
+// who want the update now and don't mind the brief reload (and the
+// re-auth that comes with it).
+const UpdateReadyPill: React.FC<{ onTap: () => void }> = ({ onTap }) => {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div
+      className="fixed left-0 right-0 z-[9998] pointer-events-none"
+      style={{ top: 'env(safe-area-inset-top)' }}
+    >
+      <div className="mx-3 mt-1 rounded-full bg-slate-900/90 ring-1 ring-cyan-400/30 backdrop-blur-md shadow-lg shadow-cyan-500/15 pointer-events-auto">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
+            <span className="relative rounded-full bg-emerald-400 h-2 w-2" />
+          </span>
+          <span className="text-[12px] font-semibold text-white/90 flex-1">
+            Update ready · applies next launch
+          </span>
+          <button
+            onClick={onTap}
+            className="text-[12px] font-bold tracking-wide text-cyan-300 hover:text-cyan-200 px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+          >
+            Now
+          </button>
+          <button
+            onClick={() => setDismissed(true)}
+            aria-label="Dismiss"
+            className="text-white/40 hover:text-white/70 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>

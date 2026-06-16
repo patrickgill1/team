@@ -814,9 +814,15 @@ const PlayerDevelopment: React.FC = () => {
 
   // Parent view (whether the user is actually a parent or a coach who
   // toggled to it) sees only their own children in the player filter.
-  const visiblePlayers = effectiveView === 'coach'
-    ? players
-    : myLinkedPlayers;
+  // Dedup-by-id is defensive: Patrick was seeing "two Hunters" in the
+  // selector even though only one Hunter doc exists in Firestore. The
+  // root cause of the duplication wasn't reproducible from the data,
+  // so we dedup here as belt-and-suspenders — the selector should
+  // never render the same player twice regardless of what state holds.
+  const visiblePlayers = (() => {
+    const list = effectiveView === 'coach' ? players : myLinkedPlayers;
+    return Array.from(new Map(list.map(p => [p.id, p])).values());
+  })();
   // Convenience for hiding coach-side controls in Parent View.
   const showCoachControls = effectiveView === 'coach';
 

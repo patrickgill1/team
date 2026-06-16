@@ -15,7 +15,7 @@ function useBodyClass(cls: string): boolean {
     () => false
   );
 }
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import WallHeaderButton from './WallHeaderButton';
@@ -75,11 +75,19 @@ const Navigation: React.FC = () => {
           where('isActive', '==', true)
         );
         const snap = await getDocs(q);
-        const raws = snap.docs.map(d => ({
-          id: d.id,
-          name: (d.data() as any).name || 'Player',
-          teamId: (d.data() as any).teamId,
-        }));
+        // Dedup by document id — defensive. Only one Firestore doc
+        // should ever appear per id, but Patrick was seeing duplicate
+        // player tiles in the More sheet, so we lock it down here.
+        const rawById = new Map<string, { id: string; name: string; teamId: any }>();
+        for (const d of snap.docs) {
+          if (rawById.has(d.id)) continue;
+          rawById.set(d.id, {
+            id: d.id,
+            name: (d.data() as any).name || 'Player',
+            teamId: (d.data() as any).teamId,
+          });
+        }
+        const raws = Array.from(rawById.values());
         // Resolve team names so duplicate-name players (e.g. two
         // "Hunter Gill" docs from a re-registration) can be told
         // apart in the More sheet. Without this, parents see two
@@ -88,8 +96,11 @@ const Navigation: React.FC = () => {
         const teamNameById = new Map<string, string>();
         await Promise.all(teamIds.map(async (tid) => {
           try {
-            const tSnap = await getDocs(query(collection(db, 'teams'), where('__name__', '==', tid)));
-            if (!tSnap.empty) teamNameById.set(tid, (tSnap.docs[0].data() as any).name || '');
+            // Direct doc read — was `where('__name__', '==', tid)`
+            // which silently returns empty in the Firestore Web SDK,
+            // so the team-name suffix never showed up.
+            const tSnap = await getDoc(doc(db, 'teams', tid));
+            if (tSnap.exists()) teamNameById.set(tid, (tSnap.data() as any).name || '');
           } catch { /* ignore */ }
         }));
         // Detect duplicate names — we'll suffix the team name only

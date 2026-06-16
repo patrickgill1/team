@@ -100,24 +100,43 @@ const ChatAttachmentImage: React.FC<{
    *  cleanly into the bubble's fill (iMessage pattern). */
   insideBubble?: boolean;
 }> = ({ src, alt, solo, onLoad, onClick, insideBubble }) => {
-  const sizeClasses = solo
-    ? 'w-full aspect-[4/3]'
-    : 'w-full aspect-square';
   const skinClasses = insideBubble
     ? 'bg-black/10'
     : 'rounded-2xl bg-slate-100';
-  // Image starts at opacity-100 (was opacity-0 with a fade-on-load).
-  // The fade required the onLoad event to fire — which it does
-  // reliably for our own R2-hosted JPEG thumbs, but NOT reliably
-  // for cross-origin animated GIFs in iOS WKWebView. Tenor GIFs
-  // were loading but staying invisible because their onLoad never
-  // fired, leaving the img at opacity-0. The placeholder bg
-  // (slate-100 or black/10 inside a bubble) still hides the
-  // pre-load empty state, so we don't actually need the fade.
+
+  // Solo: let the image drive its own size (intrinsic, capped at
+  // max-h-72). This is what the pre-ChatAttachmentImage code did
+  // and it Just Worked. The previous version forced `w-full
+  // aspect-[4/3]` inside a grid with no explicit columns — WebKit
+  // resolves that circular sizing to 0×0 and the bubble looks
+  // empty. Symptom: photo-only and GIF-only messages render as
+  // invisible bubbles on iOS. Photos with text were unaffected
+  // because that path nests inside an already-sized text bubble.
+  //
+  // Multi-image (grid): absolute-fill the cell — grid-cols-2 gives
+  // the parent explicit tracks, so w-full + aspect-square has
+  // something concrete to anchor to.
+  if (solo) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+        onLoad={() => onLoad?.()}
+        onError={() => console.warn('[chat] attachment image failed to load', src)}
+        onClick={onClick}
+        className={`block max-h-72 w-auto max-w-full cursor-pointer ${skinClasses}`}
+        style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
+      />
+    );
+  }
+
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden cursor-pointer ${skinClasses} ${sizeClasses}`}
+      className={`relative overflow-hidden cursor-pointer w-full aspect-square ${skinClasses}`}
     >
       <img
         src={src}
@@ -126,7 +145,7 @@ const ChatAttachmentImage: React.FC<{
         decoding="async"
         draggable={false}
         onLoad={() => onLoad?.()}
-        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        onError={() => console.warn('[chat] attachment image failed to load', src)}
         className="absolute inset-0 w-full h-full object-cover"
         style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
       />

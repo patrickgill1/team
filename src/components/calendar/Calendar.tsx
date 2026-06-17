@@ -656,20 +656,34 @@ const Calendar: React.FC<CalendarProps> = ({
         <div className="bg-slate-950 px-4 pt-4 pb-3 flex items-center justify-between">
           <h1 className="text-2xl font-black text-white tracking-tight">Events</h1>
           {isUserCoach && (
-            <button
-              onClick={() => {
-                setEditingEvent(null);
-                setSelectedDate(null);
-                setIsEventFormOpen(true);
-              }}
-              aria-label="Add event"
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsImportOpen(true)}
+                aria-label="Import schedule"
+                title="Import schedule from Ollie / GotSoccer / .ics"
+                className="w-9 h-9 rounded-full bg-white/10 ring-1 ring-white/15 text-white flex items-center justify-center hover:bg-white/15"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingEvent(null);
+                  setSelectedDate(null);
+                  setIsEventFormOpen(true);
+                }}
+                aria-label="Add event"
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
 

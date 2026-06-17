@@ -758,7 +758,7 @@ const UpdateReadyPill: React.FC = () => {
             <span className="relative rounded-full bg-emerald-400 h-2 w-2" />
           </span>
           <span className="text-[12px] font-semibold text-white/90 flex-1">
-            Update ready · reopen the app when you're done
+            Update ready · installs when you reopen the app
           </span>
           <button
             onClick={() => setDismissed(true)}

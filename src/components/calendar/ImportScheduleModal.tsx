@@ -32,6 +32,13 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
   const [error, setError] = useState<string | null>(null);
   const [feedUrl, setFeedUrl] = useState('');
   const [fetchingUrl, setFetchingUrl] = useState(false);
+  // Date-range filter. dateFrom defaults to today on first parse so coaches
+  // importing a whole season's schedule from Ollie / GotSoccer aren't
+  // re-creating last August's games. Both fields use YYYY-MM-DD (the
+  // native HTML date input format). Empty string = open-ended on that
+  // side of the range.
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -43,7 +50,31 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
     setError(null);
     setFeedUrl('');
     setFetchingUrl(false);
+    setDateFrom('');
+    setDateTo('');
     if (inputRef.current) inputRef.current.value = '';
+  };
+
+  // YYYY-MM-DD for today, in the local timezone.
+  const todayYmd = (): string => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  // Test whether a parsed row is currently in the date filter range.
+  // Empty dateFrom / dateTo are treated as open-ended on that side.
+  const isInRange = (row: ParsedRow): boolean => {
+    if (!dateFrom && !dateTo) return true;
+    const d = row.raw.date instanceof Date ? row.raw.date : new Date(row.raw.date);
+    if (dateFrom) {
+      const from = new Date(`${dateFrom}T00:00:00`);
+      if (d < from) return false;
+    }
+    if (dateTo) {
+      const to = new Date(`${dateTo}T23:59:59`);
+      if (d > to) return false;
+    }
+    return true;
   };
 
   // Parse a chunk of .ics text into our row format. Shared by the
@@ -61,6 +92,11 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
     setFileName(label);
     setRows(parsedRows);
     setWarnings(ws);
+    // Default the from-date filter to today so a coach importing a
+    // full-season Ollie export doesn't get last fall's games. They can
+    // clear it to see past events if they want to backfill history.
+    setDateFrom((prev) => prev || todayYmd());
+    setDateTo('');
   };
 
   const handleFetchUrl = async () => {
@@ -128,7 +164,9 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
 
   const handleImport = async () => {
     if (!userData || !selectedTeamId) return;
-    const picked = rows.filter((r) => r.selected);
+    // Selected AND inside the date filter. A row that was selected
+    // before the user narrowed the date window shouldn't sneak in.
+    const picked = rows.filter((r) => r.selected && isInRange(r));
     if (picked.length === 0) return;
     setImporting(true);
     try {
@@ -162,13 +200,25 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
     }
   };
 
-  const allSelected = rows.length > 0 && rows.every((r) => r.selected);
+  // Visibility + selection both honor the date filter — out-of-range
+  // rows are hidden AND ignored by toggleAll / import counts.
+  const visibleRowIdxs = rows
+    .map((r, i) => (isInRange(r) ? i : -1))
+    .filter((i) => i >= 0);
+  const allVisibleSelected =
+    visibleRowIdxs.length > 0 &&
+    visibleRowIdxs.every((i) => rows[i].selected);
   const toggleAll = () => {
-    setRows((prev) => prev.map((r) => ({ ...r, selected: !allSelected })));
+    const next = !allVisibleSelected;
+    setRows((prev) =>
+      prev.map((r, i) => (visibleRowIdxs.includes(i) ? { ...r, selected: next } : r)),
+    );
   };
   const toggleRow = (i: number) => {
     setRows((prev) => prev.map((r, j) => (j === i ? { ...r, selected: !r.selected } : r)));
   };
+  const visibleSelectedCount = visibleRowIdxs.filter((i) => rows[i].selected).length;
+  const filteredOutCount = rows.length - visibleRowIdxs.length;
 
   const fmt = (d: Date) =>
     d.toLocaleString(undefined, {
@@ -286,21 +336,73 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
             </div>
           ) : (
             <div className="p-6">
+              {/* Date filter — coaches importing a whole season's
+                  schedule usually don't want last year's matches
+                  too. Defaults to today onwards on first parse;
+                  clear it to backfill history. */}
+              <div className="mb-4 rounded-xl ring-1 ring-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500">
+                    Date filter
+                  </p>
+                  {(dateFrom || dateTo) && (
+                    <button
+                      onClick={() => { setDateFrom(''); setDateTo(''); }}
+                      className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1">From</label>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1">To</label>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-semibold text-gray-900">
-                  Found {rows.length} event{rows.length === 1 ? '' : 's'}
+                  {visibleRowIdxs.length === rows.length ? (
+                    <>Found {rows.length} event{rows.length === 1 ? '' : 's'}</>
+                  ) : (
+                    <>
+                      {visibleRowIdxs.length} event{visibleRowIdxs.length === 1 ? '' : 's'} in range
+                      <span className="ml-1 text-xs font-normal text-slate-500">
+                        ({filteredOutCount} hidden by filter)
+                      </span>
+                    </>
+                  )}
                   {rows.some((r) => r.isDup) && (
                     <span className="ml-2 text-xs font-normal text-amber-700 bg-amber-50 px-2 py-0.5 rounded ring-1 ring-amber-200">
-                      {rows.filter((r) => r.isDup).length} look like duplicates — unchecked
+                      {rows.filter((r) => r.isDup).length} duplicate{rows.filter((r) => r.isDup).length === 1 ? '' : 's'} — unchecked
                     </span>
                   )}
                 </p>
-                <button onClick={toggleAll} className="text-xs font-semibold text-cyan-700 hover:text-cyan-900">
-                  {allSelected ? 'Deselect all' : 'Select all'}
-                </button>
+                {visibleRowIdxs.length > 0 && (
+                  <button onClick={toggleAll} className="text-xs font-semibold text-cyan-700 hover:text-cyan-900">
+                    {allVisibleSelected ? 'Deselect all' : 'Select all'}
+                  </button>
+                )}
               </div>
               <ul className="divide-y divide-gray-100 ring-1 ring-gray-200 rounded-xl overflow-hidden bg-white">
                 {rows.map((row, i) => {
+                  if (!isInRange(row)) return null;
                   const cls = classifyEvent(row.raw.title, selectedTeam?.name || '');
                   const typePill =
                     cls.type === 'game' ? 'bg-rose-100 text-rose-700' :
@@ -352,10 +454,10 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
             </button>
             <button
               onClick={handleImport}
-              disabled={importing || rows.every((r) => !r.selected)}
+              disabled={importing || visibleSelectedCount === 0}
               className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2.5 transition-colors"
             >
-              {importing ? 'Importing…' : `Import ${rows.filter((r) => r.selected).length} event${rows.filter((r) => r.selected).length === 1 ? '' : 's'}`}
+              {importing ? 'Importing…' : `Import ${visibleSelectedCount} event${visibleSelectedCount === 1 ? '' : 's'}`}
             </button>
           </div>
         )}

@@ -173,7 +173,14 @@ const Calendar: React.FC<CalendarProps> = ({
           if (playerIds.has(d.id)) return;
           playerIds.add(d.id);
           const data: any = d.data();
-          if (data.profilePhotoUrl) playerMap[d.id] = data.profilePhotoUrl;
+          // Always register every active player — even those without a
+          // profile photo — because this map is dual-purposed: it serves
+          // photo URLs to "going" rows AND defines roster size for the
+          // pending count. Skipping photoless kids caused
+          // "5 pending of 9" instead of "9 pending of 9" on RSVPs
+          // (Patrick: imported events showed "5 pending" with 9 on the
+          // roster because 4 didn't have photos uploaded yet).
+          playerMap[d.id] = data.profilePhotoUrl || '';
           (data.parentIds || []).forEach((pid: string) => parentIds.add(pid));
         });
 

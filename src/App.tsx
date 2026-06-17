@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
 import Navigation from './components/common/Navigation';
 import InstallAppBanner from './components/common/InstallAppBanner';
 
@@ -250,6 +251,35 @@ function App() {
   // the BrandedSplash mounts (i.e. from the user's perspective, from
   // when the animated logo first appears).
   const [splashPlaying, setSplashPlaying] = useState(true);
+
+  // "Just updated" detection. On every cold start, compare the running
+  // Capgo bundle version against the last one we saw and stored in
+  // localStorage. If they differ, this is the first launch on a new
+  // bundle — show an extended splash with rotating soccer content so
+  // the moment feels intentional and polished rather than "did
+  // something just refresh?" When they match (the typical case), we
+  // show the normal short splash and skip the update treatment.
+  // First-ever launch (no last-seen value): treat as normal, just
+  // record the current version so we have a baseline.
+  const [justUpdatedFrom, setJustUpdatedFrom] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getCurrentCapgoBundleVersion } = await import('./utils/nativeShell');
+        const cur = (await getCurrentCapgoBundleVersion()) || '';
+        if (!cur || cancelled) return;
+        const lastSeen = (() => {
+          try { return localStorage.getItem('firefc.lastSeenBundle'); } catch { return null; }
+        })();
+        if (lastSeen && lastSeen !== cur) {
+          setJustUpdatedFrom(lastSeen);
+        }
+        try { localStorage.setItem('firefc.lastSeenBundle', cur); } catch {}
+      } catch { /* native plugin missing, web build — no-op */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Capgo OTA update progress.
   //
@@ -689,7 +719,11 @@ function App() {
           </Suspense>
       </Router>
       </TeamProvider>
-      {splashPlaying && <BrandedSplash onDone={() => setSplashPlaying(false)} />}
+      {splashPlaying && (
+        justUpdatedFrom
+          ? <JustUpdatedSplash onDone={() => setSplashPlaying(false)} />
+          : <BrandedSplash onDone={() => setSplashPlaying(false)} />
+      )}
       {downloadPercent !== null && !updateApplying && !updateReady && (
         <UpdateProgressBar percent={downloadPercent} />
       )}
@@ -798,6 +832,81 @@ const UpdatingSplash: React.FC = () => {
           <div className="w-44 h-1 rounded-full bg-white/10 overflow-hidden">
             <div className="h-full w-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 animate-shimmer-bar" />
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// "Just updated" splash — runs INSTEAD of the regular BrandedSplash
+// on the first cold start after a Capgo bundle swap. Same gradient
+// + breathing logo as the regular splash so it reads as continuous
+// with the launch, plus a kind chip + rotating content item (quote
+// / trivia / skill tip / practice idea) so the parent's brain has
+// something to land on while the app finishes booting. Two real
+// jobs: (1) make the update moment feel intentional, not "wait,
+// what just refreshed?", (2) reinforce that the team behind the
+// app cares — Patrick: "more polish means more trust."
+//
+// Visible duration is longer than the standard splash (3s vs 1.5s)
+// because there's actual content to read.
+const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
+  const [fading, setFading] = useState(false);
+  const itemRef = React.useRef(getRandomWelcomeBackItem());
+  const item = itemRef.current;
+  useEffect(() => {
+    let t1: number | undefined;
+    let t2: number | undefined;
+    const startVisibleClock = () => {
+      t1 = window.setTimeout(() => setFading(true), 3000);
+      t2 = window.setTimeout(() => onDone(), 3400);
+    };
+    const id1 = requestAnimationFrame(() => {
+      const id2 = requestAnimationFrame(() => {
+        import('./utils/nativeShell').then((m) => {
+          startVisibleClock();
+          void m.hideSplash();
+          void m.notifyCapgoReady();
+        }).catch(() => {
+          startVisibleClock();
+        });
+        (JustUpdatedSplash as any).__raf2 = id2;
+      });
+      (JustUpdatedSplash as any).__raf1 = id1;
+    });
+    return () => {
+      if (t1) window.clearTimeout(t1);
+      if (t2) window.clearTimeout(t2);
+    };
+  }, [onDone]);
+
+  return (
+    <div
+      aria-hidden
+      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center px-8 transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      style={{ transitionDuration: '400ms' }}
+    >
+      <div className="flex flex-col items-center gap-6 max-w-md">
+        <img
+          src="/images/logo.png"
+          alt=""
+          className="w-20 h-20 rounded-2xl shadow-2xl shadow-cyan-500/30 ring-1 ring-white/10 splash-breathe"
+        />
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-cyan-300/70">
+          {KIND_LABEL[item.kind]}
+        </p>
+        <p className="text-white text-base sm:text-lg font-medium leading-relaxed text-center">
+          {item.attribution ? `"${item.text}"` : item.text}
+        </p>
+        {item.attribution && (
+          <p className="text-white/50 text-xs font-semibold tracking-wide">
+            — {item.attribution}
+          </p>
+        )}
+        <div className="flex items-center gap-1.5 mt-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '0ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '180ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 splash-dot" style={{ animationDelay: '360ms' }} />
         </div>
       </div>
     </div>

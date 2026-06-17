@@ -147,6 +147,26 @@ export async function reloadToLatestCapgoBundle(): Promise<void> {
 }
 
 /**
+ * Return the currently-running Capgo bundle's version string (e.g.
+ * "3.1.14"). For the built-in bundle (App-Store-shipped, never OTA'd
+ * over), this returns the binary's MARKETING_VERSION. Returns null on
+ * web (no Capgo plugin) or if the call fails for any reason — the
+ * caller should treat null as "I don't know" and fall back to
+ * APP_VERSION from utils/version.ts.
+ */
+export async function getCurrentCapgoBundleVersion(): Promise<string | null> {
+  if (!Capacitor.isNativePlatform()) return null;
+  try {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+    const result: any = await CapacitorUpdater.current();
+    const v = result?.bundle?.version;
+    return typeof v === 'string' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check current native push permission without prompting. Returns:
  *   'granted'   — user has approved, we can fetch a token
  *   'denied'    — user said no; OS will not re-prompt, send them to Settings

@@ -522,10 +522,11 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
           <button onClick={onClose} className="px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 rounded-lg">Cancel</button>
           <button
             onClick={handleSave}
-            disabled={saving || !title.trim()}
+            disabled={saving || uploading || !title.trim()}
             className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg"
+            title={uploading ? 'Wait for the video upload to finish' : undefined}
           >
-            {saving ? 'Saving…' : 'Save drill'}
+            {saving ? 'Saving…' : uploading ? `Uploading video · ${uploadPct}%` : 'Save drill'}
           </button>
         </div>
       </div>

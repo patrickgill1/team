@@ -110,18 +110,31 @@ const PlayerDevelopment: React.FC = () => {
   }, [selectedTeamId, getDocuments]);
 
   // Resolve a goal's current video. Priority:
-  // 1) Source drill (by drillId, or by title for legacy goals that
-  //    didn't store drillId) — drill is the canonical source of truth.
+  // 1) Source drill (by drillId, or by normalized-title match for
+  //    legacy goals that didn't store drillId).
   // 2) Goal's own snapshot — fallback for orphan goals (drill deleted,
   //    or pre-drillId imports with no title match).
+  //
+  // Title match is normalized (trim + lowercase + collapsed whitespace)
+  // because the strict-equality match was missing goals whose title
+  // had been lightly edited by the coach (trailing space, capitalization
+  // change, etc.). And critically: if a drill has streamUid but match
+  // fails, the goal would fall back to a stale snapshot from a previous
+  // failed upload — Cloudflare then renders 'An unknown error occurred'
+  // in the iframe because that streamUid has been replaced.
   const resolveGoalVideo = (goal: DevelopmentGoal): { streamUid?: string; streamReady?: boolean } => {
     const drillId = (goal as any).drillId as string | undefined;
     let drill: Drill | undefined = drillId ? drillsById[drillId] : undefined;
     if (!drill) {
-      // Legacy goals: best-effort title match. Skipped if there are
-      // multiple drills with the same title (would be ambiguous).
-      const titleMatches = Object.values(drillsById).filter((d) => d.title === goal.title);
-      if (titleMatches.length === 1) drill = titleMatches[0];
+      const normalize = (s: string) =>
+        (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const goalKey = normalize(goal.title);
+      if (goalKey) {
+        const titleMatches = Object.values(drillsById).filter(
+          (d) => normalize(d.title) === goalKey,
+        );
+        if (titleMatches.length === 1) drill = titleMatches[0];
+      }
     }
     if (drill?.streamUid) {
       return { streamUid: drill.streamUid, streamReady: drill.streamReady };

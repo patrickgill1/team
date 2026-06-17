@@ -304,14 +304,57 @@ function App() {
   const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
   const [updateApplying, setUpdateApplying] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
+
+  // Detect whether the binary supports the Keychain auth bridge. If the
+  // native plugin reports a currently-signed-in user, we're on a build
+  // with `skipNativeAuth: false` AND the user has populated their
+  // Keychain by signing in at least once on this binary — meaning
+  // tryBridgeNativeSession in AuthContext can re-hydrate the Web SDK
+  // post-reload. In that case it's safe to auto-reload mid-session
+  // instead of waiting for cold start. On older binaries (skipNativeAuth:
+  // true) or before the first sign-in, native getCurrentUser returns
+  // null and we fall back to the safe pill + cold-start-apply path.
+  const canAutoReload = async (): Promise<boolean> => {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (!Capacitor.isNativePlatform()) return false;
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+      const cur = await FirebaseAuthentication.getCurrentUser();
+      return !!cur?.user?.uid;
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
     let unsub: () => void = () => {};
     let cancelled = false;
-    import('./utils/nativeShell').then(({ watchCapgoUpdate }) => {
+    import('./utils/nativeShell').then(({ watchCapgoUpdate, reloadToLatestCapgoBundle }) => {
       if (cancelled) return;
       watchCapgoUpdate({
         onProgress: ({ percent }) => setDownloadPercent(percent),
-        onComplete: () => {
+        onComplete: async () => {
+          // Two paths, gated by Keychain bridge availability:
+          //
+          // (a) Keychain-backed binary AND user signed in natively →
+          //     auto-reload mid-session. tryBridgeNativeSession in
+          //     AuthContext resurrects the Web SDK from native auth
+          //     post-reload, so no logout cascade. Cool splash + swap
+          //     + dashboard. This is the experience we always wanted.
+          //
+          // (b) Old binary (skipNativeAuth: true) OR not yet signed in
+          //     under the new binary → safe pill, apply on next
+          //     natural cold start. Same model we've been on tonight.
+          const bridgeAvailable = await canAutoReload();
+          if (bridgeAvailable) {
+            setDownloadPercent(null);
+            setUpdateApplying(true);
+            window.setTimeout(() => {
+              void reloadToLatestCapgoBundle();
+            }, 1600);
+            return;
+          }
+          // Safe path:
           setDownloadPercent(null);
           setUpdateReady(true);
         },

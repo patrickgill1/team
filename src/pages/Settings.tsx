@@ -425,7 +425,7 @@ const Settings: React.FC = () => {
               icon="lifebuoy"
               label="Customer Support"
               onClick={() => {
-                window.location.href = 'mailto:support@firefc.app?subject=Fire FC%20support';
+                window.location.href = 'mailto:support@firefc.app?subject=GoalKickr%20support';
               }}
             />
             <SettingsRow
@@ -441,7 +441,7 @@ const Settings: React.FC = () => {
             />
             <SettingsRow
               icon="info"
-              label="About Fire FC"
+              label="About GoalKickr"
               hint={
                 bundleVersion && bundleVersion !== APP_VERSION
                   ? `v${APP_VERSION} · build ${APP_BUILD} · live ${bundleVersion}`
@@ -449,11 +449,11 @@ const Settings: React.FC = () => {
               }
               onClick={() =>
                 alert(
-                  `Fire FC v${APP_VERSION} (build ${APP_BUILD})` +
+                  `GoalKickr v${APP_VERSION} (build ${APP_BUILD})` +
                   (bundleVersion && bundleVersion !== APP_VERSION
                     ? `\nLive update: ${bundleVersion}`
                     : '') +
-                  `\n\nBuilt by Patrick Gill for the Fire FC community.`
+                  `\n\nBuilt by Patrick Gill for the GoalKickr community.`
                 )
               }
             />

@@ -236,7 +236,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
                 {typeof navigator !== 'undefined' && (navigator as any).share && (
                   <button
                     onClick={async () => {
-                      try { await (navigator as any).share({ url: shareUrl, title: 'Fire FC invite' }); } catch {}
+                      try { await (navigator as any).share({ url: shareUrl, title: 'GoalKickr invite' }); } catch {}
                     }}
                     className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
                   >

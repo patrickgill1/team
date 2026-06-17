@@ -273,7 +273,7 @@ const FullGames: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">🎬 Full Games</h1>
-          <p className="text-sm text-gray-500 mt-1">Watch full match recordings hosted on Fire FC or YouTube.</p>
+          <p className="text-sm text-gray-500 mt-1">Watch full match recordings hosted on GoalKickr or YouTube.</p>
         </div>
         {canManageMedia && (
           <button
@@ -566,7 +566,7 @@ const FullGames: React.FC = () => {
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      📤 Upload to Fire FC
+                      Upload to GoalKickr
                     </button>
                     <button
                       type="button"
@@ -585,7 +585,7 @@ const FullGames: React.FC = () => {
                     <div>
                       {existingVideoUrl && !formFile && (
                         <div className="mb-2 px-3 py-2 bg-cyan-50 border border-cyan-200 rounded-lg text-xs text-cyan-800">
-                          Currently hosted on Fire FC: <span className="font-mono">{existingVideoFileName || 'video file'}</span>. Choose a new file below to replace it, or leave blank to keep it.
+                          Currently hosted on GoalKickr: <span className="font-mono">{existingVideoFileName || 'video file'}</span>. Choose a new file below to replace it, or leave blank to keep it.
                         </div>
                       )}
                       <input
@@ -601,7 +601,7 @@ const FullGames: React.FC = () => {
                         </p>
                       )}
                       <p className="text-xs text-gray-500 mt-2">
-                        Hosted on Fire FC. Anyone with the share link can watch — no YouTube account needed. Up to 2GB.
+                        Hosted on GoalKickr. Anyone with the share link can watch — no YouTube account needed. Up to 2GB.
                       </p>
                       {saving && uploadProgress > 0 && (
                         <div className="mt-2">

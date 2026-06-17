@@ -812,7 +812,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
               {/* Email Notifications */}
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-1">Email Notifications</h3>
-                <p className="text-xs text-gray-500 mb-3">Pick which Fire FC16 emails you want to receive at <b>{userData?.email}</b>.</p>
+                <p className="text-xs text-gray-500 mb-3">Pick which GoalKickr emails you want to receive at <b>{userData?.email}</b>.</p>
                 <div className="space-y-3">
                   {([
                     { key: 'devPlan', label: 'New development plan for my player' },

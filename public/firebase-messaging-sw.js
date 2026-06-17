@@ -21,7 +21,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = (payload.notification && payload.notification.title) || 'Fire FC16';
+  const title = (payload.notification && payload.notification.title) || 'GoalKickr';
   const body  = (payload.notification && payload.notification.body)  || '';
   const icon  = (payload.notification && payload.notification.icon)  || '/images/logo.png';
   const url   = (payload.data && payload.data.url) || '/';

@@ -72,7 +72,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
             <p style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Club announcement</p>
             <h2 style="margin:8px 0 16px 0;color:#0f172a;">${subject.trim().replace(/</g, '&lt;')}</h2>
             <div style="color:#374151;white-space:pre-wrap;">${safeBody}</div>
-            <p style="margin-top:24px;color:#9ca3af;font-size:12px;">— Sent by ${userData?.name || 'Fire FC'}</p>
+            <p style="margin-top:24px;color:#9ca3af;font-size:12px;">— Sent by ${userData?.name || 'GoalKickr'}</p>
           </div>`,
         }));
       if (emails.length > 0) {

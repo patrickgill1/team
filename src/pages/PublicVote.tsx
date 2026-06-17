@@ -205,7 +205,7 @@ const ConfettiTest: React.FC = () => {
         <div className="w-14 h-14 rounded-full bg-[#f0f9ff] flex items-center justify-center mx-auto mb-4">
           <span className="text-2xl">🎉</span>
         </div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Fire FC</p>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">GoalKickr</p>
         <h1 className="text-xl font-black text-gray-900 mb-2">Confetti test</h1>
         <p className="text-sm text-gray-500 mb-6">
           Preview the post-vote confetti without submitting an actual vote.
@@ -431,7 +431,7 @@ const PublicVote: React.FC = () => {
           <div className="w-14 h-14 rounded-full bg-[#f0f9ff] flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">🔥</span>
           </div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Fire FC</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">GoalKickr</p>
           <h1 className="text-xl font-black text-gray-900">Player of the Match</h1>
           <p className="text-red-500 mt-4 text-sm bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>
         </div>
@@ -452,8 +452,7 @@ const PublicVote: React.FC = () => {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-28 bg-[#159BE3] opacity-10 rounded-full blur-3xl pointer-events-none" />
             <div className="relative">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-[#159BE3] text-xl">🔥</span>
-                <span className="text-white font-black text-lg tracking-[0.25em] uppercase">Fire FC</span>
+                <span className="text-white font-black text-lg tracking-[0.25em] uppercase">GoalKickr</span>
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-[#159BE3] to-transparent mb-5" />
               <h1 className="text-white font-extrabold text-xl tracking-tight">Player of the Match</h1>
@@ -831,8 +830,7 @@ const PublicVote: React.FC = () => {
 
           {/* Footer */}
           <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-center gap-2">
-            <span className="text-[#159BE3] text-sm">🔥</span>
-            <span className="text-xs text-gray-400 font-bold tracking-widest uppercase">Fire FC</span>
+            <span className="text-xs text-gray-400 font-bold tracking-widest uppercase">GoalKickr</span>
           </div>
         </div>
       </div>

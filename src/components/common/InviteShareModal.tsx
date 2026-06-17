@@ -22,15 +22,15 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
   if (!open || !invite) return null;
 
   const url = inviteUrl(invite.id);
-  const subject = invite.type === 'player' && playerName ? `${playerName}'s Fire FC profile` : 'Join Fire FC';
+  const subject = invite.type === 'player' && playerName ? `${playerName}'s GoalKickr profile` : 'Join GoalKickr';
   const smsBody =
     invite.type === 'player' && playerName
-      ? `Join ${playerName} on Fire FC: ${url}`
+      ? `Join ${playerName} on GoalKickr: ${url}`
       : invite.type === 'coach'
-        ? `Coach invite for Fire FC: ${url}`
+        ? `Coach invite for GoalKickr: ${url}`
         : invite.type === 'team_manager'
-          ? `Team manager invite for Fire FC: ${url}`
-          : `Join Fire FC: ${url}`;
+          ? `Team manager invite for GoalKickr: ${url}`
+          : `Join GoalKickr: ${url}`;
 
   const handleCopy = async () => {
     try {

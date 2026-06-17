@@ -69,7 +69,7 @@ const PlatformClubs: React.FC = () => {
           <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Back</Link>
           <h1 className="text-2xl font-black text-fire-950 mt-1">Platform · Clubs</h1>
           <p className="text-sm text-slate-600">
-            Per-club Fire FC platform fee. Stored as basis points (100 = 1%) and passed to Stripe as
+            Per-club GoalKickr platform fee. Stored as basis points (100 = 1%) and passed to Stripe as
             <code className="text-[11px] bg-slate-100 px-1.5 py-0.5 rounded mx-1">application_fee_amount</code>
             on every Checkout Session. Defaults to 0 (club keeps everything minus Stripe's flat take).
           </p>
@@ -124,7 +124,7 @@ const PlatformClubs: React.FC = () => {
                       <p className="text-[10px] text-slate-500 mt-1">
                         {bps === 0
                           ? 'No platform fee — club keeps everything'
-                          : `${(bps / 100).toFixed(2)}% — on a $300 registration, Fire FC nets $${((300 * bps) / 10000).toFixed(2)}`}
+                          : `${(bps / 100).toFixed(2)}% — on a $300 registration, GoalKickr nets $${((300 * bps) / 10000).toFixed(2)}`}
                       </p>
                     </label>
                     <button

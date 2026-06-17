@@ -225,6 +225,6 @@ export function inviteUrl(inviteId: string): string {
 /** Build a tel:// or sms:// link with prefilled message, for the iOS share sheet. */
 export function smsShareLink(playerName: string, inviteId: string): string {
   const url = inviteUrl(inviteId);
-  const body = `Join ${playerName} on Fire FC: ${url}`;
+  const body = `Join ${playerName} on GoalKickr: ${url}`;
   return `sms:&body=${encodeURIComponent(body)}`;
 }

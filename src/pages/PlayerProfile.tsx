@@ -304,7 +304,7 @@ const PlayerProfile: React.FC = () => {
   const handleShareProfile = async () => {
     if (!player) return;
     const url = `${getShareOrigin()}/player/${player.id}`;
-    const data = { title: `${player.name} · Fire FC`, url };
+    const data = { title: `${player.name} · GoalKickr`, url };
     try {
       if (navigator.share) await navigator.share(data);
       else { await navigator.clipboard.writeText(url); alert('Profile link copied!'); }

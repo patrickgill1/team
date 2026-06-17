@@ -96,7 +96,7 @@ const PublicGame: React.FC = () => {
           <h1 className="text-xl font-bold text-white mb-2">Game Not Found</h1>
           <p className="text-white/60 text-sm mb-6">{error}</p>
           <Link to="/" className="inline-block px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg">
-            Go to Fire FC
+            Go to GoalKickr
           </Link>
         </div>
       </div>
@@ -118,8 +118,7 @@ const PublicGame: React.FC = () => {
       <header className="relative z-10 border-b border-white/10 backdrop-blur-sm bg-black/30">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl">🔥</span>
-            <span className="font-bold tracking-tight">Fire FC</span>
+            <span className="font-bold tracking-tight">GoalKickr</span>
           </Link>
           <Link to="/auth" className="text-xs text-white/60 hover:text-white">Team Login</Link>
         </div>

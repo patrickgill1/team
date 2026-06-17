@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const EFFECTIVE_DATE = 'May 17, 2026';
 const CONTACT_EMAIL = 'support@firefc.app';
-const APP_NAME = 'Fire FC';
+const APP_NAME = 'GoalKickr';
 const APP_DOMAIN = 'firefc.app';
 
 const PrivacyPolicy: React.FC = () => {

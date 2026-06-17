@@ -105,7 +105,7 @@ const InstallAppBanner: React.FC = () => {
     ? APP_STORE_URL
     : PLAY_STORE_URL;
   const storeLabel = isAndroidBeta ? 'beta signup' : platform === 'ios' ? 'App Store' : 'Google Play';
-  const ctaTitle = isAndroidBeta ? 'Help test the Fire FC Android app' : 'Get the Fire FC app';
+  const ctaTitle = isAndroidBeta ? 'Help test the GoalKickr Android app' : 'Get the GoalKickr app';
   const ctaSubtitle = isAndroidBeta
     ? "We're in closed beta — tap to join + install."
     : 'Push notifications, faster, works offline.';
@@ -116,7 +116,7 @@ const InstallAppBanner: React.FC = () => {
       <div className="max-w-7xl mx-auto px-3 py-2 flex items-center gap-3">
         <img
           src="/images/logo.png"
-          alt="Fire FC"
+          alt="GoalKickr"
           className="w-9 h-9 rounded-xl bg-white/10 ring-1 ring-white/20 p-1 shrink-0"
         />
         <div className="flex-1 min-w-0">

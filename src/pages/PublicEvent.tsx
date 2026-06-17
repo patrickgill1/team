@@ -497,7 +497,7 @@ const PublicEvent: React.FC = () => {
 
         <p className="text-[11px] text-slate-400 text-center pt-3">
           Get the full team experience —
-          {' '}<a href="/" className="text-cyan-600 font-bold underline">install Fire FC</a>.
+          {' '}<a href="/" className="text-cyan-600 font-bold underline">install GoalKickr</a>.
         </p>
       </div>
     </div>

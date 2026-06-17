@@ -1047,7 +1047,7 @@ const PaymentsTab: React.FC = () => {
             <>
               <p className="text-sm text-slate-700 mb-3">
                 Connect a Stripe account to accept team-fee, tournament-entry, and uniform-order payments
-                directly from parents. Stripe holds the funds and deposits them to your bank — Fire FC never
+                directly from parents. Stripe holds the funds and deposits them to your bank — GoalKickr never
                 touches the money.
               </p>
               {/* Disclosure of the platform-fee rate the worker will pass
@@ -1060,7 +1060,7 @@ const PaymentsTab: React.FC = () => {
                   <b>Stripe processing:</b> 2.9% + 30¢ per transaction (Stripe's standard rate, deducted before payout).
                 </div>
                 <div className="mt-1">
-                  <b>Fire FC platform fee:</b>{' '}
+                  <b>GoalKickr platform fee:</b>{' '}
                   {(club?.platformFeeBps ?? 0) > 0
                     ? <>{((club!.platformFeeBps as number) / 100).toFixed(2)}% per transaction — helps cover the app, hosting, and email infrastructure.</>
                     : <>0% — none for this club.</>
@@ -1124,7 +1124,7 @@ const PaymentsTab: React.FC = () => {
                   Settable only by the platform owner at /platform/clubs
                   — surfaced here so the club always knows their rate. */}
               <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-100">
-                <span>Fire FC platform fee</span>
+                <span>GoalKickr platform fee</span>
                 <span className="font-bold text-slate-900">
                   {((club.platformFeeBps ?? 0) / 100).toFixed(2)}%
                 </span>

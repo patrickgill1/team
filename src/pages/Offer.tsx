@@ -152,7 +152,7 @@ const Offer: React.FC = () => {
         // team view.
         void sendPushToParentEmails([offer.parentEmail], {
           title: `Welcome to ${offer.teamName}!`,
-          body: `${offer.playerName} is officially on the team. Tap to open Fire FC.`,
+          body: `${offer.playerName} is officially on the team. Tap to open GoalKickr.`,
           url: '/dashboard',
         });
         await logActivity({

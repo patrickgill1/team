@@ -206,7 +206,7 @@ const SharedMedia: React.FC = () => {
           href="/"
           className="text-gray-400 hover:text-white text-xs transition-colors"
         >
-          Fire FC ⚽
+          GoalKickr
         </a>
       </div>
     </div>

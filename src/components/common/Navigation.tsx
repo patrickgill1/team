@@ -265,9 +265,9 @@ const Navigation: React.FC = () => {
         {/* Logo + Collapse Toggle */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <Link to="/dashboard" className="flex items-center space-x-3">
-            <img src="/images/logo.png" alt="Fire FC" className="h-10 w-10 object-contain" />
+            <img src="/images/logo.png" alt="GoalKickr" className="h-10 w-10 object-contain" />
             {!sidebarCollapsed && (
-              <span className="text-white font-bold text-lg tracking-wide">Fire FC</span>
+              <span className="text-white font-bold text-lg tracking-wide">GoalKickr</span>
             )}
           </Link>
           <button
@@ -410,8 +410,8 @@ const Navigation: React.FC = () => {
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-fire-950">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/dashboard" className="flex items-center space-x-2">
-            <img src="/images/logo.png" alt="Fire FC" className="h-8 w-8 object-contain" />
-            <span className="text-white font-bold text-base">{selectedTeam?.name || 'Fire FC'}</span>
+            <img src="/images/logo.png" alt="GoalKickr" className="h-8 w-8 object-contain" />
+            <span className="text-white font-bold text-base">{selectedTeam?.name || 'GoalKickr'}</span>
           </Link>
           <div className="flex items-center space-x-2">
             <WallHeaderButton />
@@ -510,9 +510,9 @@ const Navigation: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-3">
               <div className="flex items-center space-x-3">
-                <img src="/images/logo.png" alt="Fire FC" className="h-8 w-8 object-contain" />
+                <img src="/images/logo.png" alt="GoalKickr" className="h-8 w-8 object-contain" />
                 <div>
-                  <div className="font-bold text-white">{selectedTeam?.name || 'Fire FC'}</div>
+                  <div className="font-bold text-white">{selectedTeam?.name || 'GoalKickr'}</div>
                   <div className="text-xs text-white/60">{userData?.name}</div>
                 </div>
               </div>
@@ -663,7 +663,7 @@ const Navigation: React.FC = () => {
             </div>
             <div className="p-5 space-y-3 text-sm text-gray-700">
               <p>
-                This will permanently delete your <strong>Fire FC account</strong>:
+                This will permanently delete your <strong>GoalKickr account</strong>:
               </p>
               <ul className="list-disc pl-5 space-y-1 text-gray-600">
                 <li>Your profile, name, email, and phone number are removed.</li>

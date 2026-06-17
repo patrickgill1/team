@@ -14,7 +14,7 @@ interface HeaderProps {
 // page so every screen reads as one app. Replaces the legacy white
 // header in one go for every page that imports this. Pages that want
 // a different chrome can simply not render <Header />.
-const Header: React.FC<HeaderProps> = ({ title = 'Fire FC', subtitle, action }) => {
+const Header: React.FC<HeaderProps> = ({ title = 'GoalKickr', subtitle, action }) => {
   return (
     <header className="bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 lg:py-4 flex items-center justify-between gap-3">

@@ -419,7 +419,7 @@ const InviteJoin: React.FC = () => {
 
       {/* Footer */}
       <div className="border-t border-white/10 px-6 py-3 text-center text-[11px] text-white/40 font-semibold tracking-wider uppercase">
-        🔥 Fire FC
+        GoalKickr
       </div>
     </Page>
   );

@@ -401,7 +401,7 @@ const PersonAdmin: React.FC = () => {
             onAddGuardian={() => setInviteGuardianOpen(true)}
             onMessage={async () => {
               const primary = guardians.find(g => g.uid);
-              if (!primary?.uid) { alert('No guardian with a Fire FC account to DM yet. Use Add Guardian first.'); return; }
+              if (!primary?.uid) { alert('No guardian with a GoalKickr account to DM yet. Use Add Guardian first.'); return; }
               if (!userData?.uid) return;
               try {
                 const threadId = await getOrCreateDMThread({
@@ -1697,7 +1697,7 @@ const PaymentLinkModal: React.FC<{
       const html = `
         <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;background:#f0f9ff;">
           <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;">
-            <div style="padding:20px;text-align:center;background:#0f172a;color:#fff;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;font-size:16px;border-bottom:3px solid #06b6d4;">Fire FC</div>
+            <div style="padding:20px;text-align:center;background:#0f172a;color:#fff;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;font-size:16px;border-bottom:3px solid #06b6d4;">GoalKickr</div>
             <div style="padding:24px;color:#0f172a;line-height:1.6;font-size:15px;">
               <p style="margin:0 0 12px;color:#475569;">For <b>${playerName}</b></p>
               <p>Your registration balance is ready to settle. Tap below to pay securely with a card.</p>

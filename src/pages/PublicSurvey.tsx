@@ -25,7 +25,7 @@ const InAppSurveyBackBar: React.FC = () => {
           <line x1="19" y1="12" x2="5" y2="12" />
           <polyline points="12 19 5 12 12 5" />
         </svg>
-        Back to Fire FC
+        Back to GoalKickr
       </Link>
       <span className="text-[10px] text-white/40 uppercase tracking-widest">Survey</span>
     </div>
@@ -341,7 +341,7 @@ const PublicSurvey: React.FC = () => {
         </button>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          Powered by Fire FC
+          Powered by GoalKickr
         </p>
       </div>
     </div>

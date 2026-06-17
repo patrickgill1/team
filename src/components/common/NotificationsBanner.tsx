@@ -113,7 +113,7 @@ const NotificationsBanner: React.FC = () => {
           <div className="text-sm font-bold text-slate-900">Turn on notifications</div>
           <p className="text-xs text-slate-600 mt-0.5">
             {state === 'denied'
-              ? `Notifications are off in your ${platform === 'ios' ? 'iOS' : platform === 'android' ? 'Android' : 'browser'} settings. Open settings to turn them back on for Fire FC.`
+              ? `Notifications are off in your ${platform === 'ios' ? 'iOS' : platform === 'android' ? 'Android' : 'browser'} settings. Open settings to turn them back on for GoalKickr.`
               : 'Get pushed when teammates message you, RSVPs change, or game day kicks off.'}
           </p>
 
@@ -121,11 +121,11 @@ const NotificationsBanner: React.FC = () => {
             <div className="mt-2 bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] text-slate-700 leading-relaxed">
               {platform === 'ios' ? (
                 <>
-                  <b>iOS:</b> Settings → Notifications → Fire FC → toggle <b>Allow Notifications</b> on.
+                  <b>iOS:</b> Settings → Notifications → GoalKickr → toggle <b>Allow Notifications</b> on.
                 </>
               ) : platform === 'android' ? (
                 <>
-                  <b>Android:</b> Settings → Apps → Fire FC → Notifications → toggle <b>Allow notifications</b> on.
+                  <b>Android:</b> Settings → Apps → GoalKickr → Notifications → toggle <b>Allow notifications</b> on.
                 </>
               ) : (
                 <>

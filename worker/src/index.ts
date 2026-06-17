@@ -171,6 +171,36 @@ export default {
       return json({ ok: false, error: 'invalid-json' }, 400, cors);
     }
 
+    // Proxy an iCal feed URL so the browser can import its events
+    // without hitting CORS. Used by ImportScheduleModal's URL-paste
+    // flow — most calendar systems (Ollie, GotSoccer, etc.) serve
+    // .ics feeds without CORS headers because they're built for
+    // calendar clients (Apple, Google) that don't enforce CORS.
+    // Worker fetches server-side, returns the text body to the
+    // browser with proper CORS for our origins.
+    if (url.pathname === '/ical-fetch') {
+      const target = String(payload?.url || '');
+      if (!/^https?:\/\//i.test(target)) {
+        return json({ ok: false, error: 'invalid-url' }, 400, cors);
+      }
+      try {
+        const upstream = await fetch(target, {
+          headers: { accept: 'text/calendar, text/plain, */*' },
+          redirect: 'follow',
+        });
+        if (!upstream.ok) {
+          return json({ ok: false, error: `upstream-${upstream.status}` }, 502, cors);
+        }
+        const text = await upstream.text();
+        if (!text.includes('BEGIN:VCALENDAR')) {
+          return json({ ok: false, error: 'not-ical', preview: text.slice(0, 120) }, 422, cors);
+        }
+        return json({ ok: true, text }, 200, cors);
+      } catch (err: any) {
+        return json({ ok: false, error: 'fetch-failed', message: String(err?.message || err) }, 502, cors);
+      }
+    }
+
     if (url.pathname === '/send') {
       const result = await sendOne(payload as MailMessage, env);
       return json(result, result.ok ? 200 : 502, cors);

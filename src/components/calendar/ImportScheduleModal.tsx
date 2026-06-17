@@ -30,6 +30,8 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
   const [warnings, setWarnings] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedUrl, setFeedUrl] = useState('');
+  const [fetchingUrl, setFetchingUrl] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -39,7 +41,71 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
     setFileName(null);
     setWarnings([]);
     setError(null);
+    setFeedUrl('');
+    setFetchingUrl(false);
     if (inputRef.current) inputRef.current.value = '';
+  };
+
+  // Parse a chunk of .ics text into our row format. Shared by the
+  // file picker and the URL-paste flow so they stay in sync.
+  const ingestIcsText = (text: string, label: string) => {
+    const { events, warnings: ws } = parseIcs(text);
+    if (events.length === 0) {
+      setError("Couldn't find any events in that file. Make sure it's a .ics export.");
+      return;
+    }
+    const parsedRows: ParsedRow[] = events.map((raw) => {
+      const isDup = existingEvents.some((ex) => isDuplicate(raw, ex));
+      return { raw, selected: !isDup, isDup };
+    });
+    setFileName(label);
+    setRows(parsedRows);
+    setWarnings(ws);
+  };
+
+  const handleFetchUrl = async () => {
+    const trimmed = feedUrl.trim();
+    if (!trimmed) return;
+    setError(null);
+    setFetchingUrl(true);
+    try {
+      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL || '';
+      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET || '';
+      if (!NOTIFY_URL || !NOTIFY_SECRET) {
+        setError('Calendar URL import is not configured for this build.');
+        return;
+      }
+      const res = await fetch(`${NOTIFY_URL}/ical-fetch`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        const code = data?.error || `http-${res.status}`;
+        if (code === 'not-ical') {
+          setError("That URL didn't return calendar data. Make sure it's the iCal feed URL (usually ends with .ics).");
+        } else if (code === 'invalid-url') {
+          setError('Please paste a full https:// URL.');
+        } else {
+          setError(`Could not fetch that URL (${code}). Try downloading the .ics file instead.`);
+        }
+        return;
+      }
+      // Trim the URL down to a short label for the success state.
+      let label = trimmed;
+      try {
+        const u = new URL(trimmed);
+        label = u.hostname.replace(/^www\./, '') + (u.pathname.length > 1 ? u.pathname : '');
+        if (label.length > 60) label = label.slice(0, 57) + '…';
+      } catch { /* keep raw */ }
+      ingestIcsText(data.text, label);
+    } catch (err) {
+      console.error('[import] url fetch failed', err);
+      setError('Could not reach that URL. Check your connection and try again.');
+    } finally {
+      setFetchingUrl(false);
+    }
   };
 
   const handleClose = () => {
@@ -51,20 +117,9 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
     setError(null);
     const file = e.target.files?.[0];
     if (!file) return;
-    setFileName(file.name);
     try {
       const text = await file.text();
-      const { events, warnings: ws } = parseIcs(text);
-      if (events.length === 0) {
-        setError("Couldn't find any events in that file. Make sure it's a .ics export.");
-        return;
-      }
-      const parsedRows: ParsedRow[] = events.map((raw) => {
-        const isDup = existingEvents.some((ex) => isDuplicate(raw, ex));
-        return { raw, selected: !isDup, isDup };
-      });
-      setRows(parsedRows);
-      setWarnings(ws);
+      ingestIcsText(text, file.name);
     } catch (err) {
       console.error('[import] parse failed', err);
       setError('Could not read that file. Please try again.');
@@ -153,6 +208,52 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
         <div className="flex-1 overflow-y-auto">
           {rows.length === 0 ? (
             <div className="p-6">
+              {/* Paste-URL path. Fast lane for live iCal feeds (Ollie,
+                  GotSoccer, etc.) so coaches don't have to download
+                  a file first. Proxied through the notify worker to
+                  bypass browser CORS — most calendar feeds don't
+                  serve CORS headers because they're built for
+                  server-side calendar clients (Apple, Google). */}
+              <div className="mb-5">
+                <label htmlFor="ics-url" className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+                  Paste a calendar URL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="ics-url"
+                    type="url"
+                    inputMode="url"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    placeholder="https://api.olliesports.com/ical/org-…"
+                    value={feedUrl}
+                    onChange={(e) => setFeedUrl(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleFetchUrl(); }}
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchUrl}
+                    disabled={!feedUrl.trim() || fetchingUrl}
+                    className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg whitespace-nowrap"
+                  >
+                    {fetchingUrl ? 'Fetching…' : 'Fetch'}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-gray-500">
+                  Works with Ollie, GotSoccer, Demosphere, TeamSnap — anything that gives you a public iCal feed URL.
+                </p>
+              </div>
+
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-widest text-gray-400">
+                  <span className="bg-white px-2">or upload a file</span>
+                </div>
+              </div>
+
               <label
                 htmlFor="ics-file"
                 className="block border-2 border-dashed border-cyan-300 rounded-2xl p-8 text-center cursor-pointer hover:bg-cyan-50 transition-colors"
@@ -174,10 +275,13 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
               {error && <p className="mt-4 text-sm text-red-600 text-center">{error}</p>}
               <div className="mt-6 text-xs text-gray-500 space-y-1">
                 <p className="font-semibold text-gray-700">Where do I find this?</p>
+                <p>• <b>Ollie:</b> Team page → Schedule → copy the iCal URL (looks like <code className="text-[10px]">api.olliesports.com/ical/…</code>). See note below for what to do with it.</p>
                 <p>• <b>GotSoccer:</b> Team page → Schedule → "Export iCal" (or copy the .ics URL and save it as a file).</p>
                 <p>• <b>Demosphere:</b> Team Schedule → Subscribe → "Download .ics".</p>
                 <p>• <b>Google Calendar:</b> Settings → "Export" → unzip the file you get.</p>
                 <p>• <b>Apple Calendar:</b> File → Export → "Export…"</p>
+                <p className="mt-3 font-semibold text-gray-700">Got a URL, not a file?</p>
+                <p>Open the URL in a browser (or paste it after the <code>?</code> in your address bar). Most platforms will download a .ics file you can pick here. On a Mac, you can also drag the URL into Apple Calendar → File → Export to convert.</p>
               </div>
             </div>
           ) : (

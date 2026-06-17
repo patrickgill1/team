@@ -340,15 +340,15 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   schedule usually don't want last year's matches
                   too. Defaults to today onwards on first parse;
                   clear it to backfill history. */}
-              <div className="mb-4 rounded-xl ring-1 ring-slate-200 bg-slate-50 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500">
+              <div className="mb-4 rounded-xl ring-1 ring-slate-200 bg-white p-3">
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">
                     Date filter
                   </p>
                   {(dateFrom || dateTo) && (
                     <button
                       onClick={() => { setDateFrom(''); setDateTo(''); }}
-                      className="text-[11px] font-semibold text-cyan-700 hover:text-cyan-900"
+                      className="text-[12px] font-semibold text-cyan-700 hover:text-cyan-900"
                     >
                       Clear
                     </button>
@@ -356,21 +356,27 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-1">From</label>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">From</label>
                     <input
                       type="date"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
+                      // colorScheme: 'light' forces iOS / Safari to render the
+                      // native date picker in light mode even when the system
+                      // is in dark mode — otherwise the input renders dark-on-
+                      // darker against our white card and is unreadable.
+                      style={{ colorScheme: 'light' }}
+                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-1">To</label>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">To</label>
                     <input
                       type="date"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
+                      style={{ colorScheme: 'light' }}
+                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
                     />
                   </div>
                 </div>

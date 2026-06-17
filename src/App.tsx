@@ -293,12 +293,12 @@ function App() {
     });
     return () => { cancelled = true; unsub(); };
   }, []);
-  const applyUpdateNow = async () => {
-    setUpdateReady(false);
-    setUpdateApplying(true);
-    const { reloadToLatestCapgoBundle } = await import('./utils/nativeShell');
-    window.setTimeout(() => { void reloadToLatestCapgoBundle(); }, 1600);
-  };
+  // applyUpdateNow used to be wired to a "Now" button on the pill,
+  // but that flow logged users out (mid-session WebView reload breaks
+  // Firebase Auth recovery). Removed the trigger entirely; the
+  // UpdatingSplash + reloadToLatestCapgoBundle wiring stays in
+  // nativeShell.ts in case a future surface (e.g. a Settings →
+  // 'Install update now' row, with a clear warning) wants it.
 
   return (
     <AuthProvider>
@@ -694,7 +694,7 @@ function App() {
         <UpdateProgressBar percent={downloadPercent} />
       )}
       {updateReady && !updateApplying && (
-        <UpdateReadyPill onTap={applyUpdateNow} />
+        <UpdateReadyPill />
       )}
       {updateApplying && <UpdatingSplash />}
     </AuthProvider>
@@ -735,12 +735,15 @@ const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
   );
 };
 
-// Surfaces after the OTA bundle has finished downloading. Optional —
-// the bundle will apply on its own at the next cold start. Tapping
-// here triggers the cool splash + WebView reload sequence for users
-// who want the update now and don't mind the brief reload (and the
-// re-auth that comes with it).
-const UpdateReadyPill: React.FC<{ onTap: () => void }> = ({ onTap }) => {
+// Informational pill that surfaces after a Capgo bundle has finished
+// downloading. The bundle will apply on its own the next time the
+// user backgrounds and reopens the app — Capgo's safe default. We
+// don't expose a tappable "apply now" action: the mid-session
+// CapacitorUpdater.reload() path WILL log the user out (Firebase
+// Auth can't recover its token in a reloaded WebView), and Patrick
+// hit exactly that footgun when an earlier version showed a 'Now'
+// button. The dismiss X is the only action — purely informational.
+const UpdateReadyPill: React.FC = () => {
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
   return (
@@ -748,21 +751,15 @@ const UpdateReadyPill: React.FC<{ onTap: () => void }> = ({ onTap }) => {
       className="fixed left-0 right-0 z-[9998] pointer-events-none"
       style={{ top: 'env(safe-area-inset-top)' }}
     >
-      <div className="mx-3 mt-1 rounded-full bg-slate-900/90 ring-1 ring-cyan-400/30 backdrop-blur-md shadow-lg shadow-cyan-500/15 pointer-events-auto">
+      <div className="mx-3 mt-1 rounded-full bg-slate-900/90 ring-1 ring-emerald-400/30 backdrop-blur-md shadow-lg shadow-emerald-500/15 pointer-events-auto">
         <div className="flex items-center gap-2 px-3 py-2">
           <span className="relative flex h-2 w-2">
             <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
             <span className="relative rounded-full bg-emerald-400 h-2 w-2" />
           </span>
           <span className="text-[12px] font-semibold text-white/90 flex-1">
-            Update ready · applies next launch
+            Update ready · reopen the app when you're done
           </span>
-          <button
-            onClick={onTap}
-            className="text-[12px] font-bold tracking-wide text-cyan-300 hover:text-cyan-200 px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-          >
-            Now
-          </button>
           <button
             onClick={() => setDismissed(true)}
             aria-label="Dismiss"

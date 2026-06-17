@@ -70,10 +70,29 @@ const config: CapacitorConfig = {
       resize: 'native' as any,
     },
     FirebaseAuthentication: {
-      // We sign into the web Firebase SDK ourselves with the credential the
-      // native plugin returns; otherwise the native iOS Firebase Auth would
-      // be signed in but the WebView's auth instance would still be empty.
-      skipNativeAuth: true,
+      // Was `skipNativeAuth: true` for months — we used the plugin only
+      // to open native Apple/Google sign-in sheets, then signed into
+      // the web Firebase SDK ourselves with the returned credential.
+      // That model meant the native Firebase Auth instance was always
+      // empty, and the only persisted session was the web SDK's
+      // IndexedDB-backed one. IndexedDB doesn't survive a WebView
+      // reload cleanly, which is why every Capgo OTA swap logged
+      // users out (the 12-bundle cascade Patrick hit on 2026-06-17).
+      //
+      // Flipping to `skipNativeAuth: false` makes the native plugin
+      // sign INTO native Firebase Auth, which on iOS is Keychain-
+      // backed and on Android is Keystore-backed. That session
+      // survives WebView reloads. The Web SDK side is then bridged
+      // back via the /auth/exchange-id-token worker endpoint —
+      // see tryBridgeNativeSession in AuthContext.tsx.
+      //
+      // This change requires a native rebuild + App Store / Play
+      // submission. Until that binary is shipped and installed, the
+      // bridge code in AuthContext is dormant (no native session
+      // exists to bridge from), and we fall back to the
+      // localStorage + force-reload recovery from before. Both
+      // paths coexist safely.
+      skipNativeAuth: false,
       providers: ['apple.com', 'google.com'],
     },
     CapacitorUpdater: {

@@ -10,7 +10,8 @@
  * Auth: every request needs `Authorization: Bearer <NOTIFY_SECRET>`.
  */
 
-import { sendPush } from './fcm';
+import { sendPush, parseServiceAccount } from './fcm';
+import { verifyIdToken, mintCustomToken } from './firebaseAuth';
 import { runWeeklyDigest } from './digest';
 import { runRegistrationDrips } from './drips';
 import { runAdminWeeklyRoundup } from './adminDigest';
@@ -169,6 +170,60 @@ export default {
       payload = await req.json();
     } catch {
       return json({ ok: false, error: 'invalid-json' }, 400, cors);
+    }
+
+    // Exchange a Firebase ID token (from the native
+    // @capacitor-firebase/authentication plugin's getIdToken call)
+    // for a Firebase Custom Token the Web SDK can sign in with.
+    //
+    // Path A of the Keychain-backed Auth migration: native Firebase
+    // Auth is the source of truth (Keychain on iOS, Keystore on
+    // Android) because it survives WebView reloads cleanly. After a
+    // Capgo OTA reload, the WebView's Web SDK is a fresh slate; we
+    // ask the native plugin for an ID token, hand it to this
+    // endpoint, get back a custom token, and call
+    // signInWithCustomToken on the Web SDK to bridge the session.
+    //
+    // Security: ID token is verified against Google's JWKS (real
+    // RS256 signature check + claim validation), so a bad actor
+    // can't pass an arbitrary uid and get a token for it. Custom
+    // token's uid is whatever the verified ID token's `sub` claim
+    // says — same identity, just a different token format.
+    if (url.pathname === '/auth/exchange-id-token') {
+      const idToken = String(payload?.idToken || '');
+      if (!idToken) return json({ ok: false, error: 'id-token-required' }, 400, cors);
+      const projectId = env.FIREBASE_PROJECT_ID || '';
+      if (!projectId) return json({ ok: false, error: 'project-id-not-configured' }, 500, cors);
+      if (!env.FCM_SERVICE_ACCOUNT) {
+        return json({ ok: false, error: 'service-account-not-configured' }, 500, cors);
+      }
+      try {
+        const verified = await verifyIdToken(idToken, projectId);
+        const sa = parseServiceAccount(env.FCM_SERVICE_ACCOUNT);
+        const customToken = await mintCustomToken(verified.uid, sa, { ttlSeconds: 3600 });
+        return json({ ok: true, customToken, uid: verified.uid }, 200, cors);
+      } catch (err: any) {
+        const message = String(err?.message || err);
+        // Distinguish "you sent us a bad token" (400) from "we couldn't
+        // verify because of an internal/network issue" (500).
+        const clientErrors = new Set([
+          'id-token-required',
+          'malformed-jwt',
+          'unsupported-algorithm',
+          'unsupported-type',
+          'missing-kid',
+          'token-expired',
+          'token-not-yet-valid',
+          'invalid-audience',
+          'invalid-issuer',
+          'missing-subject',
+          'invalid-auth-time',
+          'unknown-kid',
+          'invalid-signature',
+        ]);
+        const status = clientErrors.has(message) ? 401 : 500;
+        return json({ ok: false, error: message }, status, cors);
+      }
     }
 
     // Proxy an iCal feed URL so the browser can import its events

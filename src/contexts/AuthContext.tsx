@@ -834,6 +834,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => { cancelled = true; };
   }, []);
 
+  // Try to bridge a Keychain-backed native Firebase Auth session
+  // into the Web SDK by exchanging an ID token from the native
+  // plugin for a custom token via the worker, then calling
+  // signInWithCustomToken. Returns true if the bridge succeeded
+  // (caller should expect another onAuthStateChanged with the
+  // user), false otherwise (no native session, no plugin, worker
+  // unreachable, etc.).
+  //
+  // This is the core of the Keychain migration: once the binary
+  // ships with `skipNativeAuth: false`, the native plugin will
+  // sign into native Firebase Auth on every sign-in, which is
+  // Keychain-backed on iOS / Keystore on Android. That session
+  // survives WebView reloads cleanly. After a reload (whether
+  // from Capgo or anywhere else), the Web SDK is blank but the
+  // native plugin still knows who's signed in, and this function
+  // brings the Web SDK back in line.
+  //
+  // While the binary is still running `skipNativeAuth: true` (the
+  // status quo on Patrick's current build), the plugin's
+  // getCurrentUser will return null and this function returns
+  // false — the legacy localStorage + force-reload recovery
+  // takes over. So the bridge is forward-compatible: deploys
+  // safely via OTA, activates on next native binary release.
+  const tryBridgeNativeSession = async (): Promise<boolean> => {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (!Capacitor.isNativePlatform()) return false;
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+      const cur = await FirebaseAuthentication.getCurrentUser();
+      if (!cur?.user?.uid) return false;
+      const tokenRes = await FirebaseAuthentication.getIdToken({ forceRefresh: false });
+      const idToken = tokenRes?.token;
+      if (!idToken) return false;
+      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL || '';
+      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET || '';
+      if (!NOTIFY_URL || !NOTIFY_SECRET) {
+        console.warn('[auth] keychain bridge: notify worker not configured');
+        return false;
+      }
+      const res = await fetch(`${NOTIFY_URL}/auth/exchange-id-token`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${NOTIFY_SECRET}`,
+        },
+        body: JSON.stringify({ idToken }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok || !data?.customToken) {
+        console.warn('[auth] keychain bridge: exchange failed', res.status, data?.error);
+        return false;
+      }
+      const { signInWithCustomToken } = await import('firebase/auth');
+      await signInWithCustomToken(auth, data.customToken);
+      console.log('[auth] keychain bridge: signed in via native session', data.uid);
+      return true;
+    } catch (err) {
+      console.warn('[auth] keychain bridge failed', err);
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Safety timeout: if loading hasn't resolved in 25 seconds, force
     // it off. (Was 8s — too tight: the retry loop in the catch path
@@ -1003,20 +1065,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(tryAgain, 1500);
         }
       } else {
-        // onAuthStateChanged fired with null. Either:
+        // onAuthStateChanged fired with null. Three possibilities:
         // 1) Real sign-out (signOut() called, or never signed in here)
-        // 2) Post-OTA WebView reload — Firebase Auth's IndexedDB
-        //    session is intact, but the SDK can't recover its token in
-        //    this WebView session. Force-closing the app and reopening
-        //    works because that gives Firebase a fresh JS context.
-        //
-        // Patrick verified case (2) by symptom: he was logged out
-        // post-Capgo-swap, force-closed, reopened, was signed in. We
-        // automate that recovery here — if localStorage remembers a
-        // signed-in session, give Firebase ~3 seconds to recover on
-        // its own; if not, programmatically window.location.reload()
-        // (same effect as a force-close + reopen). sessionStorage
-        // guards against an infinite reload loop.
+        // 2) Post-OTA WebView reload — Firebase Web SDK lost its
+        //    session but the NATIVE Firebase Auth (Keychain-backed
+        //    via @capacitor-firebase/authentication, when
+        //    skipNativeAuth: false) still knows who the user is. We
+        //    can BRIDGE that native session into the Web SDK by
+        //    asking the plugin for an ID token, having the worker
+        //    mint a custom token, and signing in with that. This
+        //    is the path that eliminates the logout cascade —
+        //    when it succeeds, onAuthStateChanged fires AGAIN with
+        //    the real user, hitting the success path above.
+        // 3) Same WebView-reload scenario but on a binary still
+        //    running with skipNativeAuth: true — no native session
+        //    to bridge from. Falls through to the legacy
+        //    localStorage + force-reload recovery.
+
+        // Step 1: try the Keychain bridge.
+        const bridged = await tryBridgeNativeSession();
+        if (bridged) {
+          // The bridge called signInWithCustomToken which will
+          // trigger another onAuthStateChanged emission with the
+          // real user. Nothing else to do here.
+          return;
+        }
+
+        // Step 2: legacy recovery — windows.location.reload() when
+        // localStorage remembers a session, accept sign-out otherwise.
         const LAST_UID_KEY = 'firefc.lastKnownUid';
         const RECOVERY_KEY = 'firefc.authRecoveryAttempted';
         const wasSignedIn = (() => {

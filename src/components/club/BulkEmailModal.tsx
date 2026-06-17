@@ -66,7 +66,7 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
         const html = `
           <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;background:#f0f9ff;">
             <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);">
-              <div style="background:linear-gradient(135deg,#0b1220 0%,#0f172a 100%);padding:20px;text-align:center;border-bottom:3px solid #06b6d4;color:#fff;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;font-size:16px;">Fire FC</div>
+              <div style="background:linear-gradient(135deg,#0b1220 0%,#0f172a 100%);padding:20px;text-align:center;border-bottom:3px solid #06b6d4;color:#fff;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;font-size:16px;">GoalKickr</div>
               <div style="padding:24px;color:#0f172a;line-height:1.6;font-size:15px;">
                 <p style="margin:0 0 12px;color:#475569;">For <b style="color:#0f172a;">${lead}</b></p>
                 <div>${safeBody}</div>

@@ -410,8 +410,8 @@ function wrap(inner: string, opts: { footer?: string; signature?: CoachSignature
   return `<div style="${baseStyle}padding:24px 12px;">
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);">
       <div style="background:linear-gradient(135deg,${BRAND_NAVY_DARK} 0%,${BRAND_NAVY} 100%);padding:24px;text-align:center;border-bottom:3px solid ${BRAND_CYAN};">
-        <img src="${LOGO_URL}" alt="Fire FC" width="64" height="64" style="display:inline-block;border:0;outline:none;text-decoration:none;" />
-        <div style="color:#ffffff;font-weight:900;font-size:18px;letter-spacing:2.5px;margin-top:10px;text-transform:uppercase;">Fire FC</div>
+        <img src="${LOGO_URL}" alt="GoalKickr" width="64" height="64" style="display:inline-block;border:0;outline:none;text-decoration:none;" />
+        <div style="color:#ffffff;font-weight:900;font-size:18px;letter-spacing:2.5px;margin-top:10px;text-transform:uppercase;">GoalKickr</div>
       </div>
       <div style="padding:28px 24px 20px;">
         ${inner}
@@ -419,7 +419,7 @@ function wrap(inner: string, opts: { footer?: string; signature?: CoachSignature
       </div>
       <div style="background:#f8fafc;padding:14px 24px;font-size:11px;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;">
         ${footer ? `${footer}<br/>` : ''}
-        Manage your notification preferences on <a href="${APP_BASE}/settings" style="color:${BRAND_CYAN_DEEP};text-decoration:none;font-weight:600;">Fire FC</a>.
+        Manage your notification preferences on <a href="${APP_BASE}/settings" style="color:${BRAND_CYAN_DEEP};text-decoration:none;font-weight:600;">GoalKickr</a>.
       </div>
     </div>
   </div>`;
@@ -530,7 +530,7 @@ export function tplWelcomeAfterOffer(opts: {
       <li><b>Open the app</b> — log in with the same email you registered with. Your player is already on the team.</li>
       <li><b>RSVP the first event</b> when it shows up on the calendar so the coach has a head count.</li>
     </ol>
-    ${button(base, 'Open Fire FC')}
+    ${button(base, 'Open GoalKickr')}
     <p style="margin:8px 0 0;font-size:13px;color:#64748b;">Got questions? Just reply to this email and it goes straight to your coach.</p>
   `, { signature: opts.signature || { name: opts.coachName, role: 'Coach', teamName: opts.teamName } });
   return { subject, html };

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.firefc.team',
-  appName: 'Fire FC',
+  appName: 'GoalKickr',
   // Capacitor copies whatever is in webDir into the iOS app bundle on `cap sync`.
   // CRA emits the production build into ./build, so we point at that.
   webDir: 'build',

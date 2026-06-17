@@ -84,7 +84,7 @@ export async function enablePushForUser(userId) {
   // Foreground messages — show a small in-page notification.
   if (!_registered) {
     onMessage(messaging, (payload) => {
-      const title = payload?.notification?.title || 'Fire FC16';
+      const title = payload?.notification?.title || 'GoalKickr';
       const body = payload?.notification?.body || '';
       try {
         new Notification(title, {

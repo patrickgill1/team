@@ -572,7 +572,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 weekday: 'short', month: 'short', day: 'numeric',
                 hour: 'numeric', minute: '2-digit',
               });
-              const typeLabel = formData.type === 'game' ? '📅 New game' : formData.type === 'practice' ? '📅 New practice' : '📅 New event';
+              const typeLabel = formData.type === 'game' ? 'New game' : formData.type === 'practice' ? 'New practice' : 'New event';
               void sendPushToTeam(selectedTeamId, {
                 title: `${typeLabel}: ${formData.title}`,
                 body: `${whenStr}${formData.location ? ` · ${formData.location}` : ''}`,
@@ -614,13 +614,36 @@ const EventForm: React.FC<EventFormProps> = ({
     }
   };
 
-  const getEventTypeIcon = (type: string) => {
-    switch (type) {
-      case 'game': return '⚽';
-      case 'practice': return '🏃';
-      case 'event': return '📅';
-      default: return '📅';
+  // Monoline SVG icon for a given event type. Replaces the previous
+  // emoji-returning helper — emojis felt cheap (Patrick: "crapy emojis
+  // at the bottom") and clashed with the page's design system.
+  const EventTypeIcon: React.FC<{ type: string; className?: string }> = ({ type, className = 'w-5 h-5' }) => {
+    const stroke = { fill: 'none' as const, stroke: 'currentColor' as const, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+    if (type === 'game') {
+      return (
+        <svg className={className} viewBox="0 0 24 24" {...stroke}>
+          <path d="M6 9a3 3 0 0 1-3-3V4h4" />
+          <path d="M18 9a3 3 0 0 0 3-3V4h-4" />
+          <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+          <path d="M9 17h6" />
+          <path d="M12 14v3" />
+        </svg>
+      );
     }
+    if (type === 'practice') {
+      return (
+        <svg className={className} viewBox="0 0 24 24" {...stroke}>
+          <circle cx="12" cy="13" r="8" />
+          <path d="M12 9v4l2 2" />
+          <line x1="9" y1="2" x2="15" y2="2" />
+        </svg>
+      );
+    }
+    return (
+      <svg className={className} viewBox="0 0 24 24" {...stroke}>
+        <path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z" />
+      </svg>
+    );
   };
 
   const getEventTypeColor = (type: string) => {
@@ -670,7 +693,7 @@ const EventForm: React.FC<EventFormProps> = ({
           <span className="w-12" aria-hidden />
         </div>
 
-        <form ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 space-y-4">
           {/* Event Type — segmented control with monoline SVG icons. */}
           <div>
             <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-2">
@@ -1154,144 +1177,156 @@ const EventForm: React.FC<EventFormProps> = ({
             } catch { return null; }
           })()}
 
-          {/* Integration Options (for new events only) */}
+          {/* Add-ons for a new event — notification, attendance, volunteers.
+              Modernized to match the top of the form: slate palette, the
+              same extra-bold tracking-widest section label pattern, and
+              proper toggle-row styling. */}
           {!editingEvent && (
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">🔗 Create Related Items</h3>
-
-              {/* Notify Team */}
-              <div className="mb-4">
-                <label className="flex items-center space-x-2">
+            <div className="border-t border-slate-200 pt-5">
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-3">
+                Also create
+              </p>
+              <div className="space-y-2.5">
+                {/* Notify team */}
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={formData.notifyTeam}
                     onChange={(e) => setFormData({ ...formData, notifyTeam: e.target.checked })}
-                    className="h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-200 rounded"
+                    className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
                   />
-                  <span className="text-sm font-medium text-gray-700">
-                    🔔 {editingEvent ? 'Notify team of this change' : 'Notify team'}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-900">
+                      {editingEvent ? 'Notify team of this change' : 'Notify team'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {editingEvent
+                        ? 'Sends an "Event updated" push to everyone on the team. Use sparingly — typo fixes don\'t need a re-push.'
+                        : 'Sends a push notification to everyone on the team when this event is saved.'}
+                    </p>
+                  </div>
                 </label>
-                <p className="text-xs text-gray-500 ml-6">
-                  {editingEvent
-                    ? 'Sends a "Event updated" push to everyone on the team. Use sparingly — typo fixes don\'t need a re-push.'
-                    : 'Sends a push notification to everyone on the team when this event is saved.'}
-                </p>
-              </div>
 
-              {/* Attendance Tracking */}
-              {(formData.type === 'practice' || formData.type === 'game') && (
-                <div className="mb-4">
-                  <label className="flex items-center space-x-2">
+                {/* Attendance tracking */}
+                {(formData.type === 'practice' || formData.type === 'game') && (
+                  <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.createAttendance}
                       onChange={(e) => setFormData({ ...formData, createAttendance: e.target.checked })}
-                      className="h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-200 rounded"
+                      className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
                     />
-                    <span className="text-sm font-medium text-gray-700">
-                      📋 Create attendance tracking
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900">Attendance tracking</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Automatically create an attendance event so you can mark who shows up.
+                      </p>
+                    </div>
                   </label>
-                  <p className="text-xs text-gray-500 ml-6">
-                    Automatically create an attendance event for tracking who attends
-                  </p>
-                </div>
-              )}
-
-              {/* Volunteer Opportunities */}
-              <div>
-                <label className="flex items-center space-x-2 mb-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.createVolunteerOpps}
-                    onChange={(e) => setFormData({ ...formData, createVolunteerOpps: e.target.checked })}
-                    className="h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-200 rounded"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    Create volunteer opportunities
-                  </span>
-                </label>
-
-                {formData.createVolunteerOpps && (
-                  <div className="ml-6 space-y-2">
-                    <p className="text-xs text-gray-500 mb-2">Select types of volunteers needed:</p>
-                    {[
-                      { value: 'snacks', label: 'Snacks & Drinks', desc: 'Provide refreshments' },
-                      { value: 'setup', label: 'Setup Help', desc: 'Equipment and field preparation' },
-                      { value: 'cleanup', label: 'Cleanup', desc: 'Post-event cleanup' }
-                    ].map(({ value, label, desc }) => (
-                      <label key={value} className="flex items-start space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.volunteerTypes.includes(value)}
-                          onChange={(e) => handleVolunteerTypeChange(value, e.target.checked)}
-                          className="h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-200 rounded mt-0.5"
-                        />
-                        <div>
-                          <span className="text-sm text-gray-700">{label}</span>
-                          <p className="text-xs text-gray-500">{desc}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
                 )}
+
+                {/* Volunteer opportunities */}
+                <div className="rounded-xl border border-slate-200">
+                  <label className="flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={formData.createVolunteerOpps}
+                      onChange={(e) => setFormData({ ...formData, createVolunteerOpps: e.target.checked })}
+                      className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900">Volunteer opportunities</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Lets parents sign up to help with the event.
+                      </p>
+                    </div>
+                  </label>
+                  {formData.createVolunteerOpps && (
+                    <div className="border-t border-slate-200 p-3 space-y-2">
+                      <p className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500">
+                        Types needed
+                      </p>
+                      {[
+                        { value: 'snacks', label: 'Snacks & drinks', desc: 'Provide refreshments' },
+                        { value: 'setup', label: 'Setup help', desc: 'Equipment and field preparation' },
+                        { value: 'cleanup', label: 'Cleanup', desc: 'Post-event cleanup' },
+                      ].map(({ value, label, desc }) => (
+                        <label key={value} className="flex items-start gap-3 p-2 rounded-lg hover:bg-white cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={formData.volunteerTypes.includes(value)}
+                            onChange={(e) => handleVolunteerTypeChange(value, e.target.checked)}
+                            className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-slate-800">{label}</p>
+                            <p className="text-xs text-slate-500">{desc}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
-          {/* Event Preview */}
+          {/* Event preview — modernized to slate palette and the same
+              monoline SVG icon system used for the type segmented
+              control above. */}
           {formData.title && formData.date && formData.time && formData.location && (
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Preview</h3>
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-start space-x-3">
-                  <div className="text-2xl">{getEventTypeIcon(formData.type)}</div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">{formData.title}</h4>
-                    <div className="text-sm text-gray-600 space-y-1 mt-1">
-                      <div className="flex items-center space-x-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <div className="border-t border-slate-200 pt-5">
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-2">Preview</p>
+              <div className="bg-slate-50 rounded-xl p-4 ring-1 ring-slate-200">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-white ring-1 ring-slate-200 flex items-center justify-center text-slate-700">
+                    <EventTypeIcon type={formData.type} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-slate-900 truncate">{formData.title}</h4>
+                    <div className="text-sm text-slate-600 space-y-1 mt-1">
+                      <div className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <rect x="3" y="5" width="18" height="16" rx="2" />
+                          <line x1="8" y1="3" x2="8" y2="7" />
+                          <line x1="16" y1="3" x2="16" y2="7" />
+                          <line x1="3" y1="11" x2="21" y2="11" />
                         </svg>
                         <span>{new Date(`${formData.date}T${formData.time}`).toLocaleDateString()} at {formData.time}</span>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <div className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <circle cx="12" cy="11" r="3" />
                         </svg>
-                        <span>{formData.location}</span>
+                        <span className="truncate">{formData.location}</span>
                       </div>
                     </div>
                     {formData.description && (
-                      <p className="text-sm text-gray-600 mt-2">{formData.description}</p>
+                      <p className="text-sm text-slate-600 mt-2">{formData.description}</p>
                     )}
                     {weather && (
-                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 border border-fire-200 text-navy-700 text-xs font-semibold">
+                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 ring-1 ring-fire-200 text-navy-700 text-xs font-semibold">
                         <span className="text-base leading-none">{weather.icon}</span>
                         <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
                         {weather.precipChance > 0 && <span className="text-fire-700">· {weather.precipChance}% rain</span>}
                       </div>
                     )}
-                    
-                    {/* Show what will be created */}
+
                     {!editingEvent && (formData.createAttendance || formData.createVolunteerOpps) && (
                       <div className="mt-3 pt-2 border-t border-slate-200">
-                        <p className="text-xs font-medium text-gray-700 mb-1">Will also create:</p>
-                        <ul className="text-xs text-gray-600 space-y-1">
-                          {formData.createAttendance && (
-                            <li>• Attendance tracking event</li>
-                          )}
-                          {formData.createVolunteerOpps && formData.volunteerTypes.map(type => (
+                        <p className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Will also create</p>
+                        <ul className="text-xs text-slate-600 space-y-1">
+                          {formData.createAttendance && <li>• Attendance tracking event</li>}
+                          {formData.createVolunteerOpps && formData.volunteerTypes.map((type) => (
                             <li key={type}>• {type.charAt(0).toUpperCase() + type.slice(1)} volunteer opportunity</li>
                           ))}
                         </ul>
                       </div>
                     )}
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getEventTypeColor(formData.type)}`}>
-                    {formData.type.charAt(0).toUpperCase() + formData.type.slice(1)}
+                  <span className={`flex-shrink-0 px-2 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-full ${getEventTypeColor(formData.type)}`}>
+                    {formData.type}
                   </span>
                 </div>
               </div>

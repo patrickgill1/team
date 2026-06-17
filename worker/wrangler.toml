@@ -14,6 +14,10 @@ workers_dev = true
 FROM_EMAIL = "noreply@firefc16.com"
 FROM_NAME  = "Fire FC"
 APP_ORIGIN = "https://firefc.app"
+# Required by /auth/exchange-id-token to validate the `aud` claim on
+# Firebase ID tokens received from the native plugin's getIdToken(). The
+# project ID isn't secret — Firebase exposes it in client-side config.
+FIREBASE_PROJECT_ID = "soccer-team-app-7f6b4"
 
 # CORS allow-list (comma separated). Vercel preview URLs added later if needed.
 # capacitor://localhost is the iOS WebView origin; without it the native app

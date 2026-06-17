@@ -5,7 +5,7 @@ import {
   indexedDBLocalPersistence,
   type Auth,
 } from 'firebase/auth';
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, memoryLocalCache, type Firestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
 
@@ -67,19 +67,32 @@ let dbInstance: Firestore;
 // writes silently fail and the UI shows no feedback — that was the bug
 // that made the Quick Game Start button look broken.
 //
-// `localCache: persistentLocalCache(...)` enables IndexedDB-backed
-// offline persistence. Two big wins:
-//   1. Cold-start renders cached data immediately (no spinner waiting
-//      for the network round-trip) — the "weird refresh loading" the
-//      user sees on app open.
-//   2. Reads work offline. If the parent's phone is in a dead zone at
-//      the field, the team list / schedule / chat still load.
-// multiTabManager handles the rare case where a coach opens the web
-// version in two browser tabs without trashing the cache.
+// `localCache: memoryLocalCache()` — in-memory only, no IndexedDB.
+//
+// We used to use persistentLocalCache for offline support: cached docs
+// would render immediately on cold start, and reads worked in dead zones
+// at the field. The trade-off cost we discovered tonight: IndexedDB-
+// backed Firestore state DOES NOT recover cleanly across a WebView reload
+// from CapacitorUpdater. Post-reload, the SDK hangs on every read for
+// ~25 seconds (Patrick's logs: 'Attempting to fetch user data for UID'
+// repeated three times, then the 25s auth safety timer fires). That
+// blocks the auto-reload-on-OTA experience entirely, because parents
+// land on a 25s spinner then a forced sign-out.
+//
+// Patrick: 'why would you need offline chat?' Fair — soccer parents
+// check the app at home, in the car, at the field. They always have
+// signal. The 'offline at the field' case is a Firestore best-practice
+// that doesn't match real usage. Trading offline support for a working
+// auto-reload-on-OTA experience is the right deal.
+//
+// Cold-start render speed will be SLIGHTLY worse without the cache
+// (one network round-trip instead of cache-hit), but the WebView's
+// JS bundle is already cached locally and most data is small — the
+// hit is in the tens of milliseconds, not hundreds.
 const firestoreSettings = {
   experimentalForceLongPolling: isNative,
   ignoreUndefinedProperties: true,
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  localCache: memoryLocalCache(),
 };
 try {
   dbInstance = initializeFirestore(app, firestoreSettings as any);

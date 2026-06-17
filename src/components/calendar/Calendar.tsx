@@ -650,8 +650,25 @@ const Calendar: React.FC<CalendarProps> = ({
         arriveLabel = `${arriveMin} MIN EARLY`;
       }
 
-      const myRsvp = userData?.uid ? (ev.rsvps?.[userData.uid]?.status as any) : null;
-      return { goingCount, pendingCount, going, arriveText, arriveLabel, myRsvp };
+      // RSVP routing on the card. If the current user has exactly one
+      // linked player (the common case — coach who's a parent of one
+      // kid on the team), the card's checkmark / question / x buttons
+      // should manage THAT player's RSVP, not the adult's own. Patrick:
+      // 'the little checkmark is still referring to me, in stead of my
+      // son. since we removed my as atending person, this check does
+      // nothing.'
+      //
+      // Multi-kid case: leave the card buttons disabled at the personal
+      // level (the per-player rows in the expanded EventCard handle
+      // each kid individually). For tonight we keep showing the
+      // adult's RSVP as a sensible fallback rather than nothing.
+      const primaryPlayer = (myLinkedPlayers && myLinkedPlayers.length === 1)
+        ? myLinkedPlayers[0]
+        : null;
+      const myRsvp = primaryPlayer
+        ? ((ev as any).playerRsvps?.[primaryPlayer.id]?.status as any)
+        : (userData?.uid ? (ev.rsvps?.[userData.uid]?.status as any) : null);
+      return { goingCount, pendingCount, going, arriveText, arriveLabel, myRsvp, primaryPlayer };
     };
 
     return (
@@ -761,7 +778,17 @@ const Calendar: React.FC<CalendarProps> = ({
                   <EventListCard
                     event={event}
                     myRsvp={p.myRsvp}
-                    onRsvp={(status) => handleRsvp(event.id, status)}
+                    onRsvp={(status) => {
+                      // Route through the linked-player handler when there
+                      // is one, so the inline RSVP buttons manage the kid's
+                      // status (not the coach's own — see buildCardProps).
+                      if (p.primaryPlayer) {
+                        handlePlayerRsvp(event.id, p.primaryPlayer.id, p.primaryPlayer.name, status);
+                      } else {
+                        handleRsvp(event.id, status);
+                      }
+                    }}
+                    rsvpLabel={p.primaryPlayer ? p.primaryPlayer.name.toUpperCase() : undefined}
                     goingCount={p.goingCount}
                     pendingCount={p.pendingCount}
                     goingPreview={p.going.slice(0, 6)}

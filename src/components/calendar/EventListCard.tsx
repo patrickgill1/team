@@ -31,6 +31,10 @@ interface Props {
   weatherText?: string; // e.g. "81°/67°"
   weatherIcon?: string; // emoji
   eventChatUnread?: number;
+  // Prefix on the RSVP status pill. Defaults to "YOU" but the parent
+  // can override with a linked player's name when the card is wired
+  // to the kid's RSVP (coach-who's-also-a-parent case).
+  rsvpLabel?: string;
 }
 
 const Icon: React.FC<{ name: string; className?: string }> = ({ name, className = 'w-3.5 h-3.5' }) => {
@@ -74,6 +78,7 @@ const EventListCard: React.FC<Props> = ({
   weatherText,
   weatherIcon,
   eventChatUnread = 0,
+  rsvpLabel = 'YOU',
 }) => {
   const date = new Date(event.date);
   const end = event.endDate ? new Date(event.endDate) : undefined;
@@ -223,9 +228,9 @@ const EventListCard: React.FC<Props> = ({
               </button>
             </div>
             <div className="text-[10px] font-bold tracking-wider text-slate-500">
-              {myRsvp === 'going' ? 'YOU: GOING'
-                : myRsvp === 'maybe' ? 'YOU: MAYBE'
-                : myRsvp === 'no' ? "YOU: CAN'T"
+              {myRsvp === 'going' ? `${rsvpLabel}: GOING`
+                : myRsvp === 'maybe' ? `${rsvpLabel}: MAYBE`
+                : myRsvp === 'no' ? `${rsvpLabel}: CAN'T`
                 : 'TAP TO RSVP'}
             </div>
           </div>

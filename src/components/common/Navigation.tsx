@@ -30,6 +30,7 @@ const Navigation: React.FC = () => {
   const location = useLocation();
   // isInviteOpen state removed with the legacy modal.
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -408,24 +409,42 @@ const Navigation: React.FC = () => {
           Patrick called out. Solid navy bleeds into the dark hero
           photos naturally AND looks correct on every other tab. */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-charcoal-950">
-        <div className="flex items-center justify-between px-4 h-14">
-          <Link to="/dashboard" className="flex items-center space-x-2">
-            <img src="/images/logo.png" alt="GoalKickr" className="h-8 w-8 object-contain" />
-            <span className="text-white font-bold text-base">{selectedTeam?.name || 'GoalKickr'}</span>
+        <div className="flex items-center gap-2 px-3 h-14">
+          {/* Brand — GoalKickr wordmark in bone. Replaces the 32px
+              badge image that read as washed-out at small sizes on
+              the dark nav. */}
+          <Link to="/dashboard" className="shrink-0 inline-flex items-center" aria-label="GoalKickr home">
+            <span className="text-bone font-black tracking-tight text-base">GoalKickr</span>
           </Link>
-          <div className="flex items-center space-x-2">
-            <WallHeaderButton />
-            {teams.length > 1 && (
-              <select
-                value={selectedTeamId}
-                onChange={e => setSelectedTeamId(e.target.value)}
-                className="text-xs bg-white/10 text-bone border border-white/10 rounded-lg px-2 py-1.5 max-w-[120px]"
+
+          {/* Team switcher — single tappable chip. Tap to open the
+              sheet that lists every team. Replaces the prior
+              duplicate (team name in title + separate native select)
+              that confused parents about how to switch teams. When
+              the user only has one team, the chip is a static label
+              with no chevron and no tap action. */}
+          {selectedTeam && (
+            teams.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => setTeamSwitcherOpen(true)}
+                className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.07] ring-1 ring-white/10 hover:bg-white/[0.12] transition"
+                aria-label="Switch team"
               >
-                {teams.map(t => (
-                  <option key={t.id} value={t.id} className="bg-charcoal-950">{t.name}</option>
-                ))}
-              </select>
-            )}
+                <span className="text-bone font-bold text-sm truncate">{selectedTeam.name}</span>
+                <svg className="w-3.5 h-3.5 text-charcoal-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            ) : (
+              <div className="flex-1 min-w-0 inline-flex items-center justify-center px-3 py-1.5">
+                <span className="text-bone font-bold text-sm truncate">{selectedTeam.name}</span>
+              </div>
+            )
+          )}
+
+          <div className="shrink-0 flex items-center gap-2">
+            <WallHeaderButton />
             <Link
               to="/settings"
               aria-label="Settings"
@@ -440,6 +459,63 @@ const Navigation: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Team-switcher sheet — replaces the native <select> chip
+          with a proper bottom sheet on mobile (centered modal on
+          desktop). One row per team, current one highlighted, big
+          tap target. Closing on dim-tap or 'Close' button. */}
+      {teamSwitcherOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-black/55 flex items-end justify-center animate-fade-in"
+          onClick={() => setTeamSwitcherOpen(false)}
+        >
+          <div
+            className="bg-charcoal-900 w-full rounded-t-2xl shadow-2xl overflow-hidden animate-sheet-up"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
+              <span className="w-12" aria-hidden />
+              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Switch team</div>
+              <button
+                type="button"
+                onClick={() => setTeamSwitcherOpen(false)}
+                className="text-[11px] font-extrabold tracking-widest uppercase text-charcoal-400 hover:text-bone"
+              >
+                Close
+              </button>
+            </div>
+            <ul className="divide-y divide-white/5 max-h-[60vh] overflow-y-auto">
+              {teams.map(t => {
+                const isCurrent = t.id === selectedTeamId;
+                return (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTeamId(t.id);
+                        setTeamSwitcherOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/5 active:bg-white/10 transition-colors ${
+                        isCurrent ? 'bg-crimson-500/10' : ''
+                      }`}
+                    >
+                      <span className={`text-[15px] font-bold truncate ${isCurrent ? 'text-crimson-300' : 'text-bone'}`}>
+                        {t.name}
+                      </span>
+                      {isCurrent && (
+                        <svg className="w-5 h-5 text-crimson-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* ===== MOBILE BOTTOM TAB BAR ===== */}
       {!inChatConversation && (

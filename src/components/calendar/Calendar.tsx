@@ -738,7 +738,7 @@ const Calendar: React.FC<CalendarProps> = ({
             stop) so the charcoal-900 cards above always read as
             visibly lifted blocks instead of blending into the
             container as scroll position moves under them. */}
-        <div className="bg-charcoal-950 px-3 py-3.5 space-y-3 min-h-[200px]">
+        <div className="bg-charcoal-950 px-3 py-4 space-y-4 min-h-[200px]">
           {showing.length === 0 ? (
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-8 text-center">
               <p className="text-gray-600 font-medium text-sm">

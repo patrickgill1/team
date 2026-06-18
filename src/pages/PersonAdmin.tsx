@@ -334,7 +334,7 @@ const PersonAdmin: React.FC = () => {
       {/* Header strip */}
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 pt-4 pb-0 border-b border-crimson-500/10">
         <div className="max-w-5xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
+          <button type="button" onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Back
           </button>
@@ -347,7 +347,7 @@ const PersonAdmin: React.FC = () => {
                 onClick={() => setTab(t.key)}
                 className={`shrink-0 px-3 py-2 text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition ${
                   tab === t.key
-                    ? 'text-crimson-300 border-crimson-400'
+                    ? 'text-crimson-400 border-crimson-400'
                     : 'text-slate-400 border-transparent hover:text-white'
                 }`}
               >

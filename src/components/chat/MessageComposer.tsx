@@ -532,7 +532,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
               >
                 Cancel
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Add</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Add</div>
               <span className="w-12" aria-hidden />
             </div>
             <div className="divide-y divide-slate-100">

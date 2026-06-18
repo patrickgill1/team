@@ -93,7 +93,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           </h1>
           {(positionLabel || teamName) && (
             <p className="mt-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-widest">
-              {positionLabel && <span className="text-crimson-300">{positionLabel}</span>}
+              {positionLabel && <span className="text-crimson-400">{positionLabel}</span>}
               {positionLabel && teamName && <span className="text-white/40 mx-2">·</span>}
               {teamName && <span className="text-white/80">{teamName}</span>}
             </p>
@@ -114,7 +114,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
 
       {/* Tagline strip */}
       <div className="relative px-4 sm:px-6 pb-5 text-center">
-        <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] text-crimson-300/70">
+        <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] text-crimson-400/70">
           Embrace the Soccer Spirit
         </p>
       </div>
@@ -124,7 +124,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
 
 const Pill: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur text-[11px] font-bold">
-    <span className="text-crimson-300">{icon}</span>
+    <span className="text-crimson-400">{icon}</span>
     <span>{label}</span>
   </span>
 );

@@ -219,7 +219,7 @@ const Registrations: React.FC = () => {
     <div className="min-h-screen bg-slate-100">
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-6xl mx-auto">
-          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
+          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
@@ -408,7 +408,7 @@ const Registrations: React.FC = () => {
       </div>
       {selected.size > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-charcoal-900 text-white rounded-2xl shadow-2xl ring-1 ring-crimson-500/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-crimson-300 px-2">{selected.size} selected</span>
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-crimson-400 px-2">{selected.size} selected</span>
           <span className="text-slate-700">|</span>
           <button
             type="button"

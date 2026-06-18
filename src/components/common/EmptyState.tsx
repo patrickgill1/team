@@ -36,7 +36,7 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
   const titleClass = isDark ? 'text-white' : 'text-slate-900';
   const descClass = isDark ? 'text-white/60' : 'text-slate-500';
   const iconTile = isDark
-    ? 'bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300'
+    ? 'bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-400'
     : 'bg-crimson-50 ring-1 ring-crimson-100 text-crimson-600';
 
   return (

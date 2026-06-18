@@ -337,7 +337,7 @@ const Offer: React.FC = () => {
 
 const Detail: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300/80">{label}</div>
+    <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400/80">{label}</div>
     <div className="text-white font-bold mt-0.5">{value}</div>
   </div>
 );
@@ -356,12 +356,12 @@ const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: stri
         ) : tone === 'warning' ? (
           <svg className="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
         ) : (
-          <svg className="w-6 h-6 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg className="w-6 h-6 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         )}
       </div>
       <h1 className="text-xl font-black text-white mb-2">{title}</h1>
       {body && <p className="text-sm text-slate-400 leading-relaxed">{body}</p>}
-      <Link to="/" className="block mt-4 text-crimson-300 hover:text-crimson-200 text-xs font-bold">Home</Link>
+      <Link to="/" className="block mt-4 text-crimson-400 hover:text-bone text-xs font-bold">Home</Link>
     </div>
   </div>
 );

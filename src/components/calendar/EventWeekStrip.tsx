@@ -61,7 +61,7 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
               className={cls}
               aria-label={`${DOWS_SHORT[d.getDay()]} ${d.getDate()}`}
             >
-              <div className={`text-[8px] font-extrabold tracking-widest ${isToday ? 'text-crimson-300' : 'text-slate-500'}`}>
+              <div className={`text-[8px] font-extrabold tracking-widest ${isToday ? 'text-crimson-400' : 'text-slate-500'}`}>
                 {DOWS_SHORT[d.getDay()]}
               </div>
               <div className={`text-[14px] font-black leading-none mt-0.5 ${isToday || has ? 'text-white' : 'text-slate-400'}`}>

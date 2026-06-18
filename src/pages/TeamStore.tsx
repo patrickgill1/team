@@ -27,13 +27,13 @@ const TeamStore: React.FC = () => {
     <div className="min-h-screen bg-slate-100">
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-3xl mx-auto">
-          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
+          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Dashboard
           </Link>
           <div className="flex items-center gap-3">
             <span className="flex-shrink-0 w-11 h-11 rounded-2xl bg-crimson-500/15 ring-1 ring-crimson-500/30 flex items-center justify-center">
-              <svg className="w-5 h-5 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <path d="M16 10a4 4 0 0 1-8 0"/>
@@ -86,12 +86,12 @@ const TeamStore: React.FC = () => {
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300">Shop now</div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400">Shop now</div>
               <div className="text-base font-bold mt-0.5 truncate">team.wegotsoccer.com/firefc</div>
               <div className="text-[12px] text-slate-400 mt-0.5">Opens in your browser. Copy the code above first.</div>
             </div>
             <span className="flex-shrink-0 w-10 h-10 rounded-full bg-crimson-500/20 ring-1 ring-crimson-400/40 flex items-center justify-center">
-              <svg className="w-4 h-4 text-crimson-200" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-bone" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="5" y1="12" x2="19" y2="12"/>
                 <polyline points="12 5 19 12 12 19"/>
               </svg>

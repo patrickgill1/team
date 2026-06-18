@@ -55,7 +55,7 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
 const ACCENT: Record<string, { bg: string; ring: string; badge: string; text: string }> = {
   amber: { bg: 'bg-amber-500/10', ring: 'ring-amber-400/30', badge: 'bg-amber-400', text: 'text-amber-200' },
   orange: { bg: 'bg-orange-500/10', ring: 'ring-orange-400/30', badge: 'bg-orange-400', text: 'text-orange-200' },
-  cyan: { bg: 'bg-crimson-500/10', ring: 'ring-crimson-400/30', badge: 'bg-crimson-400', text: 'text-crimson-200' },
+  cyan: { bg: 'bg-crimson-500/10', ring: 'ring-crimson-400/30', badge: 'bg-crimson-400', text: 'text-bone' },
 };
 
 const StatTile: React.FC<{

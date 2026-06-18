@@ -60,7 +60,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
           >
             Close
           </button>
-          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">
             Reactions <span className="text-slate-500">{totalReactors}</span>
           </div>
           <span className="w-12" aria-hidden />

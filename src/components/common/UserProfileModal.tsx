@@ -134,7 +134,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
           >
             Close
           </button>
-          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Profile</div>
+          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Profile</div>
           <span className="w-12" aria-hidden />
         </div>
 

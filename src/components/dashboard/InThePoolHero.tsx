@@ -110,11 +110,11 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
             {overallVibe === 'offer_action' ? (
-              <>You've got an <span className="text-crimson-300">offer</span> waiting, {firstName}.</>
+              <>You've got an <span className="text-crimson-400">offer</span> waiting, {firstName}.</>
             ) : overallVibe === 'all_rostered' ? (
               <>You're <span className="bg-gradient-to-r from-emerald-300 to-crimson-300 bg-clip-text text-transparent">in</span>, {firstName}.</>
             ) : (
-              <>You're in the <span className="text-crimson-300">Fire FC pool</span>, {firstName}.</>
+              <>You're in the <span className="text-crimson-400">Fire FC pool</span>, {firstName}.</>
             )}
           </h1>
           <p className="text-slate-300 mt-3 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
@@ -160,7 +160,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
               <div className="text-center pt-2">
                 <Link
                   to={`/club/family/${encodeURIComponent(email.toLowerCase())}`}
-                  className="text-xs font-bold text-crimson-300 hover:text-crimson-200"
+                  className="text-xs font-bold text-crimson-400 hover:text-bone"
                 >
                   See the full timeline →
                 </Link>
@@ -172,7 +172,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         {/* What's next card — only shows while waiting */}
         {(overallVibe === 'in_pool' || overallVibe === 'just_registered') && (
           <div className="mt-6 bg-white/[0.03] ring-1 ring-white/10 rounded-2xl p-5">
-            <div className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-300 mb-2">What happens next</div>
+            <div className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-400 mb-2">What happens next</div>
             <ul className="space-y-2 text-sm text-slate-300">
               <li className="flex items-start gap-2"><span className="text-crimson-400 mt-0.5">①</span> Coaches review the pool every Sunday.</li>
               <li className="flex items-start gap-2"><span className="text-crimson-400 mt-0.5">②</span> If a team wants your kid, you'll get an email with an offer link.</li>

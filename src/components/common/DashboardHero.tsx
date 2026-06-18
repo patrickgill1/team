@@ -31,13 +31,17 @@ interface SceneSpec {
 }
 
 function sceneFor(hour: number): SceneSpec {
-  if (hour < 5.5) return { phase: 'night',      gradient: 'from-charcoal-950/85 via-charcoal-950/70 to-charcoal-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-charcoal-900/80 via-indigo-950/70 to-charcoal-800/80',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
-  if (hour < 10)  return { phase: 'morning',    gradient: 'from-charcoal-900/70 via-charcoal-800/55 to-slate-700/65',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
-  if (hour < 16)  return { phase: 'midday',     gradient: 'from-charcoal-900/55 via-charcoal-800/40 to-slate-700/55',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
-  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-charcoal-950/70 via-charcoal-900/55 to-rose-900/40',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
-  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-charcoal-950/80 via-charcoal-900/70 to-charcoal-800/80',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  return            { phase: 'night',      gradient: 'from-charcoal-950/85 via-charcoal-950/70 to-charcoal-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  // Overlay opacity tuned so the time-of-day photo actually reads.
+  // Night/dusk were /85, which smothered the stadium scene — dropped
+  // to /55 with a darker stop at the bottom edge to keep the
+  // greeting/event copy legible.
+  if (hour < 5.5) return { phase: 'night',      gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-charcoal-950/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-charcoal-900/55 via-indigo-950/40 to-charcoal-800/55',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
+  if (hour < 10)  return { phase: 'morning',    gradient: 'from-charcoal-900/55 via-charcoal-800/40 to-charcoal-700/50',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
+  if (hour < 16)  return { phase: 'midday',     gradient: 'from-charcoal-900/45 via-charcoal-800/30 to-charcoal-700/45',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
+  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-crimson-900/35',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
+  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-charcoal-800/55',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  return            { phase: 'night',      gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-charcoal-950/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
 }
 
 interface Props {
@@ -146,14 +150,14 @@ const DashboardHero: React.FC<Props> = ({
               aria-label={`${nextEvent.title} on ${eventMonth} ${eventDay} ${eventDow}`}
               className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-charcoal-900/55 ring-1 ring-crimson-400/40 shadow-lg shadow-crimson-500/10"
             >
-              <span className="text-[10px] font-bold tracking-wider text-crimson-300">{eventMonth}</span>
+              <span className="text-[10px] font-bold tracking-wider text-crimson-400">{eventMonth}</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{eventDay}</span>
               <span className="text-[9px] font-semibold tracking-wider text-slate-300 mt-0.5">{eventDow}</span>
             </Link>
 
             {/* Event title + metadata (when · weather · going count) */}
             <Link to={`/events/${nextEvent.id}`} className="min-w-0 group">
-              <p className="text-base sm:text-lg font-bold text-crimson-300 group-hover:underline leading-tight truncate">
+              <p className="text-base sm:text-lg font-bold text-crimson-400 group-hover:underline leading-tight truncate">
                 {nextEvent.title}
               </p>
               <p className="mt-0.5 text-xs sm:text-sm text-slate-200 truncate">
@@ -178,7 +182,7 @@ const DashboardHero: React.FC<Props> = ({
                 className="flex items-center gap-2 group"
                 aria-label={`${newMessagesCount} new messages`}
               >
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-crimson-500/20 text-crimson-300">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-crimson-500/20 text-crimson-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 11-3.41-6.55L21 4v6h-6" />
                   </svg>
@@ -223,14 +227,14 @@ const DashboardHero: React.FC<Props> = ({
 
             {/* Middle: friendly empty state + CTA */}
             <div className="min-w-0">
-              <p className="text-base sm:text-lg font-bold text-crimson-300 leading-tight">All quiet for now</p>
+              <p className="text-base sm:text-lg font-bold text-crimson-400 leading-tight">All quiet for now</p>
               <p className="mt-0.5 text-xs sm:text-sm text-slate-300">
                 No upcoming events on the calendar.
               </p>
               {isCoach && (
                 <Link
                   to="/calendar"
-                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] sm:text-xs font-extrabold tracking-widest uppercase text-crimson-400 hover:text-crimson-300"
+                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] sm:text-xs font-extrabold tracking-widest uppercase text-crimson-400 hover:text-crimson-400"
                 >
                   + Schedule one
                 </Link>
@@ -244,7 +248,7 @@ const DashboardHero: React.FC<Props> = ({
                 className="flex items-center gap-2 group"
                 aria-label={`${newMessagesCount} new messages`}
               >
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-crimson-500/20 text-crimson-300">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-crimson-500/20 text-crimson-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 11-3.41-6.55L21 4v6h-6" />
                   </svg>

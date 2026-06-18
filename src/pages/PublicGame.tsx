@@ -82,7 +82,7 @@ const PublicGame: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
       </div>
     );
@@ -90,7 +90,7 @@ const PublicGame: React.FC = () => {
 
   if (error || !game) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-5xl mb-4">⚽</div>
           <h1 className="text-xl font-bold text-white mb-2">Game Not Found</h1>
@@ -158,7 +158,7 @@ const PublicGame: React.FC = () => {
 
         <div className="mt-5">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-[11px] uppercase tracking-wider text-crimson-300/80 px-2 py-0.5 rounded-full bg-crimson-500/10 ring-1 ring-crimson-500/30">
+            <span className="text-[11px] uppercase tracking-wider text-crimson-400/80 px-2 py-0.5 rounded-full bg-crimson-500/10 ring-1 ring-crimson-500/30">
               Full Game
             </span>
             {game.result && (
@@ -222,7 +222,7 @@ const PublicGame: React.FC = () => {
         </div>
 
         <p className="text-xs text-white/40 mt-10 text-center">
-          Hosted on <span className="text-crimson-300/80">firefcsoccer.com</span> · Shared by {game.addedByName}
+          Hosted on <span className="text-crimson-400/80">firefcsoccer.com</span> · Shared by {game.addedByName}
         </p>
       </main>
     </div>

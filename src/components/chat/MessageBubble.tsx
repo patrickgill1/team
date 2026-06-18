@@ -955,7 +955,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               >
                 Cancel
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Actions</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Actions</div>
               <span className="w-12" aria-hidden />
             </div>
 

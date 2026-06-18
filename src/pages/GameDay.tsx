@@ -615,16 +615,16 @@ const GameDay: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
       </div>
     );
   }
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-4 text-white">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center p-4 text-white">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300 flex items-center justify-center mb-3">
+          <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-400 flex items-center justify-center mb-3">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="#0f172a" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
           </div>
           <p className="mb-4 text-sm text-white/80">{error || 'Event not found'}</p>
@@ -650,7 +650,7 @@ const GameDay: React.FC = () => {
               status === 'live' ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
               status === 'halftime' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40' :
               status === 'final' ? 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40' :
-              'bg-crimson-500/20 text-crimson-300 ring-1 ring-crimson-500/40'
+              'bg-crimson-500/20 text-crimson-400 ring-1 ring-crimson-500/40'
             }`}>
               {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}
             </span>
@@ -828,7 +828,7 @@ const GameDay: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between text-[11px] text-white/60 mb-1">
                         <span>Next rotation in {formatClock(remaining)}</span>
-                        <button onClick={acknowledgeBell} className="text-crimson-300 hover:text-crimson-200">Reset</button>
+                        <button onClick={acknowledgeBell} className="text-crimson-400 hover:text-bone">Reset</button>
                       </div>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${pct}%` }} />
@@ -939,7 +939,7 @@ const GameDay: React.FC = () => {
                       {t.playerName && (
                         <>
                           {' · '}
-                          <span className="text-crimson-300">
+                          <span className="text-crimson-400">
                             {t.jerseyNumber != null ? `#${t.jerseyNumber} ` : ''}{t.playerName}
                           </span>
                         </>
@@ -951,7 +951,7 @@ const GameDay: React.FC = () => {
                         href={t.clipUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-crimson-300 hover:text-crimson-200"
+                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-crimson-400 hover:text-bone"
                       >
                         🎬 {t.source === 'clip' ? 'Clip credit' : 'Watch clip'}
                       </a>
@@ -1004,7 +1004,7 @@ const GameDay: React.FC = () => {
                   return (
                     <tr key={p.id} className={`border-t border-white/5 ${hasAny ? 'text-white' : 'text-white/40'}`}>
                       <td className="px-3 py-2 truncate">
-                        {p.jerseyNumber != null ? <span className="text-crimson-300 font-bold mr-1">#{p.jerseyNumber}</span> : null}
+                        {p.jerseyNumber != null ? <span className="text-crimson-400 font-bold mr-1">#{p.jerseyNumber}</span> : null}
                         {p.name}
                       </td>
                       <td className="text-center tabular-nums">{tally.goals || ''}</td>

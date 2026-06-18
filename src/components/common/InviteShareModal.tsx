@@ -91,7 +91,7 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
         <div className="p-6 space-y-4">
           <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-1">Share link</p>
-            <p className="text-sm font-mono break-all text-crimson-200">{url}</p>
+            <p className="text-sm font-mono break-all text-bone">{url}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">

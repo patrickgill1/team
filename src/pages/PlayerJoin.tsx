@@ -253,7 +253,7 @@ const PlayerJoin: React.FC = () => {
             </div>
           )}
           <h1 className="text-2xl font-bold">{player?.name}</h1>
-          {player?.position && <p className="text-crimson-200">{player.position}</p>}
+          {player?.position && <p className="text-bone">{player.position}</p>}
           {player?.jerseyNumber && <p className="text-crimson-100 text-sm">#{player.jerseyNumber}</p>}
         </div>
 

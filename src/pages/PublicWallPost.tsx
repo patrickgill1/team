@@ -68,7 +68,7 @@ const PublicWallPost: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 text-center border-b border-crimson-500/15">
-        <p className="text-[10px] font-extrabold tracking-[0.3em] text-crimson-300 uppercase">GoalKickr · The Wall</p>
+        <p className="text-[10px] font-extrabold tracking-[0.3em] text-crimson-400 uppercase">GoalKickr · The Wall</p>
         <h1 className="text-xl sm:text-2xl font-black text-white mt-1">A post from {post.senderName}</h1>
       </header>
 

@@ -85,7 +85,7 @@ const Drills: React.FC = () => {
     <div className="min-h-screen bg-slate-100">
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-5xl mx-auto">
-          <Link to="/development" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
+          <Link to="/development" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Development
           </Link>

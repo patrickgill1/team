@@ -291,7 +291,7 @@ const PublicEvent: React.FC = () => {
 
   const typeChip =
     event.type === 'game' ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
-    : event.type === 'practice' ? 'bg-crimson-500/15 border-crimson-500/30 text-crimson-300'
+    : event.type === 'practice' ? 'bg-crimson-500/15 border-crimson-500/30 text-crimson-400'
     : 'bg-purple-500/15 border-purple-500/30 text-purple-300';
   const countdownClass =
     countdown.variant === 'live' ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
@@ -355,7 +355,7 @@ const PublicEvent: React.FC = () => {
                   lon: (event as any).locationCoords?.lon,
                 })}
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-crimson-300 underline decoration-dotted underline-offset-2"
+                className="inline-flex items-center gap-1 hover:text-crimson-400 underline decoration-dotted underline-offset-2"
               >
                 <Icon name="pin" className="w-3 h-3 text-slate-400" /> {event.location}
               </a>

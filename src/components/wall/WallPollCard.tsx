@@ -145,7 +145,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white">
                 Close
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Voters</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Voters</div>
               <span className="w-12" />
             </div>
             <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

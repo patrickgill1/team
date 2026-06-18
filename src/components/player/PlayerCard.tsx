@@ -35,7 +35,7 @@ const positionDot = (pos?: string): string => {
 const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ label, value, accent }) => {
   const ring =
     accent === 'emerald' ? 'text-emerald-300' :
-    accent === 'cyan' ? 'text-crimson-300' :
+    accent === 'cyan' ? 'text-crimson-400' :
     accent === 'amber' ? 'text-amber-300' :
     'text-violet-300';
   return (
@@ -283,7 +283,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               <button
                 onClick={handleInviteParent}
                 disabled={generatingInvite}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-crimson-400/20 ring-1 ring-crimson-300/40 text-crimson-200 hover:bg-crimson-400/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-crimson-400/20 ring-1 ring-crimson-300/40 text-bone hover:bg-crimson-400/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
                 title="Generate a one-tap link to share with a parent"
               >
                 {generatingInvite ? '…' : '✉ Invite Parent'}
@@ -330,10 +330,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                       <div key={index} className="text-xs text-white/85">
                         <span className="font-semibold">{contact.name}</span>
                         <span className="text-white/60"> ({contact.relationship})</span>
-                        {contact.isPrimary && <span className="text-crimson-300 ml-1">• Primary</span>}
+                        {contact.isPrimary && <span className="text-crimson-400 ml-1">• Primary</span>}
                         <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="block text-crimson-300 hover:text-crimson-200 underline-offset-2 hover:underline"
+                          className="block text-crimson-400 hover:text-bone underline-offset-2 hover:underline"
                         >
                           {contact.phoneNumber}
                         </a>

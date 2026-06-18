@@ -54,7 +54,7 @@ const Frame: React.FC<{ tone: 'success' | 'warning'; title: string; body: string
       {regId && (
         <p className="text-[10px] text-slate-600 mb-3">Ref: {regId}</p>
       )}
-      <Link to="/register" className="inline-block text-crimson-300 hover:text-crimson-200 text-sm font-bold">
+      <Link to="/register" className="inline-block text-crimson-400 hover:text-bone text-sm font-bold">
         Back to registration
       </Link>
     </div>

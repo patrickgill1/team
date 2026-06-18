@@ -262,7 +262,7 @@ const SimpleAuth: React.FC = () => {
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 ring-1 ring-white/10 backdrop-blur-md mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-crimson-400 animate-pulse" />
-            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-crimson-300/90">
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-crimson-400/90">
               {mode === 'login' && 'Member Access'}
               {mode === 'register' && 'Team Invitation'}
             </span>
@@ -554,7 +554,7 @@ const SimpleAuth: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => switchMode('register')}
-                      className="font-semibold text-crimson-300 hover:text-crimson-200 transition-colors duration-200"
+                      className="font-semibold text-crimson-400 hover:text-bone transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Join your team
@@ -568,7 +568,7 @@ const SimpleAuth: React.FC = () => {
                     <button 
                       type="button"
                       onClick={() => switchMode('login')}
-                      className="font-semibold text-crimson-300 hover:text-crimson-200 transition-colors duration-200"
+                      className="font-semibold text-crimson-400 hover:text-bone transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Sign in

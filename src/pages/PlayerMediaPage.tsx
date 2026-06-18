@@ -1262,7 +1262,7 @@ const PlayerMediaPage: React.FC = () => {
             <h1 className="text-5xl sm:text-7xl font-black tracking-[0.15em] uppercase bg-gradient-to-r from-crimson-200 via-white to-crimson-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">
               Media
             </h1>
-            <p className="mt-3 text-crimson-200/80 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">
+            <p className="mt-3 text-bone/80 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">
               Highlights · Moments · Memories
             </p>
           </div>
@@ -1274,7 +1274,7 @@ const PlayerMediaPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('highlights')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'highlights' ? 'text-crimson-300' : 'text-gray-400 hover:text-white'
+                activeTab === 'highlights' ? 'text-crimson-400' : 'text-gray-400 hover:text-white'
               }`}
             >
               Highlights
@@ -1283,7 +1283,7 @@ const PlayerMediaPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('fullgames')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'fullgames' ? 'text-crimson-300' : 'text-gray-400 hover:text-white'
+                activeTab === 'fullgames' ? 'text-crimson-400' : 'text-gray-400 hover:text-white'
               }`}
             >
               Full Games
@@ -1448,7 +1448,7 @@ const PlayerMediaPage: React.FC = () => {
               {selectedPlayerId !== 'all' && (
                 <button
                   onClick={() => setSelectedPlayerId('all')}
-                  className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/5 ring-1 ring-white/10 text-sm font-medium text-crimson-300 hover:bg-white/10 hover:text-crimson-200 transition-colors"
+                  className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/5 ring-1 ring-white/10 text-sm font-medium text-crimson-400 hover:bg-white/10 hover:text-bone transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
                   Back to all clips
@@ -1538,7 +1538,7 @@ const PlayerMediaPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-10 bg-white/5 rounded-xl border border-white/10">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300 flex items-center justify-center mb-3">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-400 flex items-center justify-center mb-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
                     </div>
                     <h3 className="text-lg font-bold text-white">No media yet</h3>
@@ -2019,7 +2019,7 @@ const PlayerMediaPage: React.FC = () => {
               )}
               {replacing && (
                 <div className="w-full mt-2 px-1">
-                  <div className="text-crimson-300 text-xs font-medium mb-1">Replacing video... {replaceProgress}%</div>
+                  <div className="text-crimson-400 text-xs font-medium mb-1">Replacing video... {replaceProgress}%</div>
                   <div className="w-full bg-white/10 rounded-full h-1.5">
                     <div className="h-1.5 rounded-full bg-crimson-400 transition-all" style={{ width: `${replaceProgress}%` }} />
                   </div>
@@ -2391,7 +2391,7 @@ const SectionHeader: React.FC<{ title: string; action?: { label: string; onClick
   <div className="flex items-center justify-between mb-4">
     <h2 className="text-sm sm:text-base font-bold uppercase tracking-[0.15em] text-white">{title}</h2>
     {action && (
-      <button onClick={action.onClick} className="text-xs sm:text-sm text-crimson-400 hover:text-crimson-300 font-medium">
+      <button onClick={action.onClick} className="text-xs sm:text-sm text-crimson-400 hover:text-crimson-400 font-medium">
         {action.label} →
       </button>
     )}

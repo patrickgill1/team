@@ -2256,7 +2256,7 @@ const TeamChat: React.FC = () => {
                   onClick={() => setGlobalSearchOpen(true)}
                   title="Search every chat for a word or phrase"
                   aria-label="Search every chat"
-                  className="px-3 rounded-lg bg-crimson-500/20 ring-1 ring-crimson-400/40 text-crimson-200 text-[11px] font-extrabold uppercase tracking-widest hover:bg-crimson-500/30"
+                  className="px-3 rounded-lg bg-crimson-500/20 ring-1 ring-crimson-400/40 text-bone text-[11px] font-extrabold uppercase tracking-widest hover:bg-crimson-500/30"
                 >
                   Search all
                 </button>

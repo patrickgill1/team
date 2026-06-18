@@ -82,7 +82,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight">
             You're a few clicks from the<br />
-            <span className="text-crimson-300">GoalKickr family.</span>
+            <span className="text-crimson-400">GoalKickr family.</span>
           </h1>
           <p className="text-slate-300 mt-3 text-sm leading-relaxed">
             Sign in or create your account to start your registration. One login covers every kid in your family — past, present, and future seasons.
@@ -132,7 +132,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
               <button
                 type="button"
                 onClick={() => setMode('email-signin')}
-                className="w-full py-2 text-xs font-bold text-crimson-300 hover:text-crimson-200"
+                className="w-full py-2 text-xs font-bold text-crimson-400 hover:text-bone"
               >
                 Already have an account? Sign in
               </button>

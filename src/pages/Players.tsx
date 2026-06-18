@@ -52,7 +52,7 @@ const Players: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950">
       <Header title="Players" subtitle="Roster, profiles, and contact info" />
       <ImportPlayersModal
         isOpen={importOpen}
@@ -124,7 +124,7 @@ const Players: React.FC = () => {
           <div className="pt-2 pb-1 flex justify-center">
             <button
               onClick={() => setImportOpen(true)}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-crimson-300/80 hover:text-crimson-200"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-crimson-400/80 hover:text-bone"
             >
               Import roster from CSV
             </button>

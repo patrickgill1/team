@@ -687,7 +687,7 @@ const EventForm: React.FC<EventFormProps> = ({
           >
             Cancel
           </button>
-          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">
             {editingEvent ? 'Edit event' : 'New event'}
           </div>
           <span className="w-12" aria-hidden />

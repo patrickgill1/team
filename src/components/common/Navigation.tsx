@@ -287,7 +287,7 @@ const Navigation: React.FC = () => {
               <select
                 value={selectedTeamId}
                 onChange={e => setSelectedTeamId(e.target.value)}
-                className="w-full text-sm bg-white/10 text-crimson-200 border border-white/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-crimson-400 focus:border-transparent"
+                className="w-full text-sm bg-white/10 text-bone border border-white/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-crimson-400 focus:border-transparent"
               >
                 {teams.map(t => (
                   <option key={t.id} value={t.id} className="bg-charcoal-950 text-white">{t.name}</option>
@@ -314,8 +314,8 @@ const Navigation: React.FC = () => {
               title={sidebarCollapsed ? item.name : undefined}
               className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive(item.path)
-                  ? 'bg-crimson-500/20 text-crimson-300 shadow-lg shadow-crimson-500/10'
-                  : 'text-crimson-300 hover:bg-white/5 hover:text-white'
+                  ? 'bg-crimson-500/20 text-crimson-400 shadow-lg shadow-crimson-500/10'
+                  : 'text-crimson-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
@@ -337,8 +337,8 @@ const Navigation: React.FC = () => {
               title={sidebarCollapsed ? item.name : undefined}
               className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive(item.path)
-                  ? 'bg-crimson-500/20 text-crimson-300 shadow-lg shadow-crimson-500/10'
-                  : 'text-crimson-300 hover:bg-white/5 hover:text-white'
+                  ? 'bg-crimson-500/20 text-crimson-400 shadow-lg shadow-crimson-500/10'
+                  : 'text-crimson-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
@@ -375,7 +375,7 @@ const Navigation: React.FC = () => {
             </Link>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <Link to="/settings" className="text-sm font-medium text-white truncate block hover:text-crimson-300 transition-colors">
+                <Link to="/settings" className="text-sm font-medium text-white truncate block hover:text-crimson-400 transition-colors">
                   {userData?.name}
                 </Link>
                 <div className="flex items-center gap-3 mt-0.5">
@@ -419,7 +419,7 @@ const Navigation: React.FC = () => {
               <select
                 value={selectedTeamId}
                 onChange={e => setSelectedTeamId(e.target.value)}
-                className="text-xs bg-white/10 text-crimson-200 border border-white/10 rounded-lg px-2 py-1.5 max-w-[120px]"
+                className="text-xs bg-white/10 text-bone border border-white/10 rounded-lg px-2 py-1.5 max-w-[120px]"
               >
                 {teams.map(t => (
                   <option key={t.id} value={t.id} className="bg-charcoal-950">{t.name}</option>
@@ -464,7 +464,7 @@ const Navigation: React.FC = () => {
                     setIsMoreOpen(!isMoreOpen);
                   }}
                   className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                    active ? 'text-crimson-300' : 'text-white/55'
+                    active ? 'text-crimson-400' : 'text-white/55'
                   }`}
                 >
                   <AppIcon name={tab.icon} className="w-6 h-6" strokeWidth={active ? 2.25 : 1.75} />
@@ -478,7 +478,7 @@ const Navigation: React.FC = () => {
                 to={tab.path}
                 onClick={() => void import('../../utils/nativeShell').then(m => m.tapHaptic('light'))}
                 className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  active ? 'text-crimson-300' : 'text-white/55'
+                  active ? 'text-crimson-400' : 'text-white/55'
                 }`}
               >
                 <AppIcon name={tab.icon} className="w-6 h-6" strokeWidth={active ? 2.25 : 1.75} />
@@ -562,7 +562,7 @@ const Navigation: React.FC = () => {
                           className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-crimson-500/15' : 'hover:bg-white/5'}`}
                         >
                           <span className="flex items-center gap-3 min-w-0">
-                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-crimson-500/25 text-crimson-200' : 'bg-crimson-500/10 text-crimson-300'}`}>
+                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-crimson-500/25 text-bone' : 'bg-crimson-500/10 text-crimson-400'}`}>
                               <AppIcon name={item.icon as any} className="w-5 h-5" />
                             </span>
                             <span className={`text-[15px] font-semibold truncate ${active ? 'text-crimson-100' : 'text-white'}`}>{item.name}</span>
@@ -587,7 +587,7 @@ const Navigation: React.FC = () => {
                     className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-crimson-500/10 text-crimson-300 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-crimson-500/10 text-crimson-400 flex items-center justify-center shrink-0">
                         <AppIcon name="survey" className="w-5 h-5" />
                       </span>
                       <span className="text-[15px] font-semibold text-white">Club Support</span>
@@ -600,7 +600,7 @@ const Navigation: React.FC = () => {
                     className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-crimson-500/10 text-crimson-300 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-crimson-500/10 text-crimson-400 flex items-center justify-center shrink-0">
                         <AppIcon name="gear" className="w-5 h-5" />
                       </span>
                       <span className="text-[15px] font-semibold text-white">Settings</span>

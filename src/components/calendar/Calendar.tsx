@@ -707,7 +707,7 @@ const Calendar: React.FC<CalendarProps> = ({
               onClick={() => setListTab(key)}
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 listTab === key
-                  ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/40'
+                  ? 'bg-crimson-500/15 text-crimson-400 border-crimson-400/40'
                   : 'bg-charcoal-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
               }`}
             >

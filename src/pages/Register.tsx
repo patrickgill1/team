@@ -524,7 +524,7 @@ const RegisterForm: React.FC = () => {
               : `One last step and you're in. Tell us about your player and you'll join the ${season.name} pool.`}
           </p>
           {(baseFee > 0 || effectiveFee > 0) && (
-            <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-crimson-500/10 ring-1 ring-crimson-500/30 text-crimson-200 text-sm">
+            <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-crimson-500/10 ring-1 ring-crimson-500/30 text-bone text-sm">
               <span className="font-bold">${(effectiveFee / 100).toFixed(2)}</span>
               {quote.tier?.label && (
                 <span className="text-[11px] uppercase tracking-widest font-extrabold bg-white/10 text-crimson-100 ring-1 ring-white/15 px-2 py-0.5 rounded">
@@ -609,7 +609,7 @@ const RegisterForm: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setParents([...parents, { firstName: '', lastName: '', email: '', phone: '', relationship: 'father' }])}
-                className="text-sm font-bold text-crimson-300 hover:text-crimson-200"
+                className="text-sm font-bold text-crimson-400 hover:text-bone"
               >
                 + Add another parent / guardian
               </button>
@@ -681,7 +681,7 @@ const RegisterForm: React.FC = () => {
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div>
-    <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-300/90 mb-3">{title}</h2>
+    <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-400/90 mb-3">{title}</h2>
     <div className="space-y-3">{children}</div>
   </div>
 );
@@ -870,7 +870,7 @@ const CenterMessage: React.FC<{ title: string; body?: string; success?: boolean 
         {success ? (
           <svg className="w-6 h-6 text-emerald-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         ) : (
-          <svg className="w-6 h-6 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg className="w-6 h-6 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         )}
       </div>
       <h1 className="text-xl font-black text-white mb-2">{title}</h1>

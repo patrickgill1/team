@@ -2033,7 +2033,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => onQuickDidIt(goal.id)}
-                                    className="w-full rounded-xl bg-gradient-to-br from-crimson-500 via-crimson-600 to-violet-600 hover:from-crimson-400 hover:via-crimson-500 hover:to-violet-500 text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
+                                    className="w-full rounded-xl bg-gradient-to-br from-crimson-500 via-crimson-600 to-charcoal-900 hover:from-crimson-400 hover:via-crimson-500 hover:to-charcoal-800 text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
                                   >
                                     <div className="flex items-center justify-center gap-3">
                                       <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center group-hover:scale-110 transition-transform">

@@ -19,7 +19,7 @@ const InAppSurveyBackBar: React.FC = () => {
     <div className="sticky top-0 z-40 bg-charcoal-950 text-white px-4 py-2.5 flex items-center justify-between shadow">
       <Link
         to="/dashboard"
-        className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-crimson-300 hover:text-white"
+        className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-crimson-400 hover:text-white"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <line x1="19" y1="12" x2="5" y2="12" />

@@ -435,7 +435,7 @@ const Surveys: React.FC = () => {
                       <div className="text-xs font-medium text-crimson-400 uppercase tracking-wide mb-1">{QUESTION_TYPE_LABELS[q.type]}</div>
                       <h3 className="font-semibold text-charcoal-900 mb-3">{q.order}. {q.text}</h3>
                       {!ans || ans.value === undefined || ans.value === '' ? (
-                        <span className="text-crimson-300 italic text-sm">No answer</span>
+                        <span className="text-crimson-400 italic text-sm">No answer</span>
                       ) : q.type === 'rating' ? (
                         <div className="flex items-center gap-2">
                           <span className="text-3xl font-bold text-crimson-600">{ans.value}</span>

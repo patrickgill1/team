@@ -579,7 +579,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-charcoal-950">
+    <div className="relative min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950">
       {/* Stadium hero — navy scene with floodlights that toggle on
           at dusk/night, a faint pitch silhouette, and the day's
           most important glance-able info (next-event RSVP count,
@@ -630,7 +630,7 @@ const Dashboard: React.FC = () => {
         {myPlayer && tonightGoal && (
           <Link
             to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-            className="block bg-gradient-to-br from-crimson-600 via-crimson-700 to-violet-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition px-5 py-4"
+            className="block bg-gradient-to-br from-crimson-600 via-crimson-700 to-charcoal-900 text-white rounded-2xl shadow-lg hover:shadow-xl transition px-5 py-4"
           >
             <div className="flex items-center gap-3">
               <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 ring-1 ring-white/30 flex items-center justify-center">
@@ -704,10 +704,10 @@ const Dashboard: React.FC = () => {
           <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
             <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
+                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
                 Announcements
               </h3>
-              <Link to="/wall" className="text-crimson-300 text-sm font-semibold hover:text-white">View all</Link>
+              <Link to="/wall" className="text-crimson-400 text-sm font-semibold hover:text-white">View all</Link>
             </div>
             <ul className="divide-y divide-white/5">
               {wallPosts.map(p => (
@@ -719,7 +719,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-bold text-white">{p.senderName}</span>
                       {p.senderRole === 'coach' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-crimson-200 bg-crimson-500/15 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">Coach</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-bone bg-crimson-500/15 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">Coach</span>
                       )}
                       <span className="text-[11px] text-white/40 ml-auto">
                         {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -979,10 +979,10 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
     <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           Recent chats
         </h3>
-        <Link to="/chat" className="text-crimson-300 text-sm font-semibold hover:text-white">View all</Link>
+        <Link to="/chat" className="text-crimson-400 text-sm font-semibold hover:text-white">View all</Link>
       </div>
       {chats.length === 0 ? (
         <div className="p-5 text-center">
@@ -1248,14 +1248,14 @@ const TeamPulseCard: React.FC<{
     <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
             <line x1="6" y1="20" x2="6" y2="14" />
           </svg>
           Team pulse
         </h3>
-        <Link to="/stats" className="text-crimson-300 text-sm font-semibold hover:text-white">Season stats</Link>
+        <Link to="/stats" className="text-crimson-400 text-sm font-semibold hover:text-white">Season stats</Link>
       </div>
 
       {/* Live game tracker entry point — coach can start a session
@@ -1293,7 +1293,7 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-crimson-200/60">Top scorer</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-bone/60">Top scorer</p>
                 <p className="font-bold text-white text-sm truncate">{topScorer.name}</p>
                 <p className="text-xs text-emerald-300 font-bold">
                   <span className="font-black">{topScorer.stats?.goals || 0}</span>{' '}
@@ -1312,9 +1312,9 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-crimson-200/60">Top assister</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-bone/60">Top assister</p>
                 <p className="font-bold text-white text-sm truncate">{topAssister.name}</p>
-                <p className="text-xs text-crimson-300 font-bold">
+                <p className="text-xs text-crimson-400 font-bold">
                   <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
                   <span className="text-white/40 font-medium uppercase tracking-wider text-[10px]">assists</span>
                 </p>
@@ -1360,7 +1360,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
 
       {/* Top-left: label + headline */}
       <div className="absolute top-4 sm:top-5 left-4 sm:left-5 right-32 text-white">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-crimson-300 mb-1">Latest highlight</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-crimson-400 mb-1">Latest highlight</p>
         <p className="text-2xl sm:text-3xl font-black leading-tight drop-shadow">{headline}</p>
         {ctxLine && (
           <p className="text-sm text-white/85 mt-0.5 drop-shadow">{ctxLine}</p>
@@ -1380,7 +1380,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
 
       {/* Bottom-left: Watch clip link */}
       <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
-        <span className="inline-flex items-center gap-1.5 text-crimson-300 font-bold text-sm drop-shadow">
+        <span className="inline-flex items-center gap-1.5 text-crimson-400 font-bold text-sm drop-shadow">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
             <path d="M10 8l6 4-6 4V8z" />
@@ -1419,7 +1419,7 @@ const DashTile: React.FC<{
       to={to}
       className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ring-white/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-white/20 hover:bg-white/[0.03] active:scale-[0.97] transition shadow"
     >
-      <span className="text-crimson-300">{icon}</span>
+      <span className="text-crimson-400">{icon}</span>
       <span className="text-[11px] font-bold uppercase tracking-widest text-white/85">{label}</span>
       {badge != null && badge !== 0 && badge !== '' && (
         <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-charcoal-950 ${badgeColor}`}>
@@ -1435,7 +1435,7 @@ const FooterStat: React.FC<{
   value: number;
   icon?: React.ReactNode;
   tint?: string;
-}> = ({ label, value, icon, tint = 'bg-white/10 text-crimson-200' }) => (
+}> = ({ label, value, icon, tint = 'bg-white/10 text-bone' }) => (
   <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-xl ring-1 ring-white/10 px-3 py-2.5 flex items-center gap-2.5 shadow">
     {icon && (
       <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tint}`}>
@@ -1444,7 +1444,7 @@ const FooterStat: React.FC<{
     )}
     <div className="min-w-0">
       <div className="text-xl font-black text-white leading-none">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider font-bold text-crimson-200/70 mt-0.5">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider font-bold text-bone/70 mt-0.5">{label}</div>
     </div>
   </div>
 );

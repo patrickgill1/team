@@ -1191,7 +1191,7 @@ const PlayerOfMatch: React.FC = () => {
               >
                 Cancel
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">New vote</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">New vote</div>
               <span className="w-12" aria-hidden />
             </div>
 

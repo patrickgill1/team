@@ -687,7 +687,7 @@ const EventDetail: React.FC = () => {
 
   const typeColors: Record<string, { stripe: string; chip: string }> = {
     game: { stripe: 'from-rose-500 to-orange-500', chip: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
-    practice: { stripe: 'from-crimson-500 to-charcoal-600', chip: 'bg-crimson-500/10 text-crimson-300 border-crimson-500/30' },
+    practice: { stripe: 'from-crimson-500 to-charcoal-600', chip: 'bg-crimson-500/10 text-crimson-400 border-crimson-500/30' },
     event: { stripe: 'from-purple-500 to-pink-500', chip: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
   };
   const colors = typeColors[event.type] || typeColors.event;
@@ -754,7 +754,7 @@ const EventDetail: React.FC = () => {
               })}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-crimson-300 hover:text-crimson-200 underline decoration-dotted underline-offset-2"
+              className="inline-flex items-center gap-1 text-crimson-400 hover:text-bone underline decoration-dotted underline-offset-2"
               title="Open in Maps"
             >
               <Icon name="pin" className="w-3 h-3" /> {event.location}
@@ -763,7 +763,7 @@ const EventDetail: React.FC = () => {
           {(event as any).fieldNumber && (
             <>
               <span className="text-slate-600">·</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-crimson-500/15 text-crimson-200 text-[11px] font-extrabold tracking-widest uppercase">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-crimson-500/15 text-bone text-[11px] font-extrabold tracking-widest uppercase">
                 {(event as any).fieldNumber}
               </span>
             </>
@@ -949,7 +949,7 @@ const EventDetail: React.FC = () => {
               }`} aria-hidden />
               <div>
                 <div className={`text-xs font-extrabold tracking-widest uppercase ${
-                  (event as any).homeAway === 'home' ? 'text-crimson-300' : 'text-slate-700'
+                  (event as any).homeAway === 'home' ? 'text-crimson-400' : 'text-slate-700'
                 }`}>
                   {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
                 </div>
@@ -962,7 +962,7 @@ const EventDetail: React.FC = () => {
             </div>
             <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
               (event as any).homeAway === 'home'
-                ? 'bg-crimson-500/15 text-crimson-200 border-crimson-500/30'
+                ? 'bg-crimson-500/15 text-bone border-crimson-500/30'
                 : 'bg-slate-100 text-slate-600 border-slate-200'
             }`}>
               {(event as any).homeAway === 'home' ? 'Home' : 'Away'}

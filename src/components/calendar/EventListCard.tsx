@@ -116,7 +116,7 @@ const EventListCard: React.FC<Props> = ({
         <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-start">
           {/* Date badge */}
           <div className={`w-[54px] h-[54px] rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${cancelled ? 'bg-slate-300 border border-slate-200' : 'bg-charcoal-950 border border-crimson-400/40'}`}>
-            <span className={`text-[9px] font-extrabold tracking-widest ${cancelled ? 'text-slate-500' : 'text-crimson-300'}`}>{month}</span>
+            <span className={`text-[9px] font-extrabold tracking-widest ${cancelled ? 'text-slate-500' : 'text-crimson-400'}`}>{month}</span>
             <span className={`text-[22px] font-black leading-none ${cancelled ? 'text-slate-600 line-through decoration-2' : 'text-white'}`}>{day}</span>
             <span className={`text-[8px] font-bold tracking-widest mt-0.5 ${cancelled ? 'text-slate-500' : 'text-slate-400'}`}>{dow}</span>
           </div>

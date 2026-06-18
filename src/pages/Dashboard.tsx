@@ -789,32 +789,39 @@ const Dashboard: React.FC = () => {
               </h3>
               <Link to="/wall" className="text-crimson-400 text-sm font-semibold hover:text-white">View all</Link>
             </div>
+            {/* Single-row preview per announcement: sender, date, and
+                one-line content snippet. Patrick: "show only a title
+                or something so it takes up less room." Full markdown,
+                images, and replies live on /wall — tap to expand.
+                Plain-text strip on content so markdown markers like
+                ** or # don't leak into the preview. */}
             <ul className="divide-y divide-white/5">
-              {wallPosts.map(p => (
-                <li key={p.id}>
-                  <Link
-                    to="/wall"
-                    className="block px-5 py-3 hover:bg-white/[0.04] transition-colors"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-bold text-white">{p.senderName}</span>
-                      {p.senderRole === 'coach' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-bone bg-crimson-500/15 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">Coach</span>
-                      )}
-                      <span className="text-[11px] text-white/40 ml-auto">
+              {wallPosts.map(p => {
+                const snippet = p.content
+                  .replace(/[*_#>`~]/g, '')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+                return (
+                  <li key={p.id}>
+                    <Link
+                      to="/wall"
+                      className="flex items-center gap-2 px-5 py-2.5 hover:bg-white/[0.04] transition-colors"
+                    >
+                      <span className="text-xs font-semibold text-white shrink-0">{p.senderName}</span>
+                      <span className="text-[11px] text-white/40 shrink-0">
                         {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
-                    </div>
-                    {/* Capped to 3 visual lines via line-clamp so a long
-                        announcement doesn't blow up the dashboard card.
-                        RichContent renders bold / lists / links so the
-                        preview matches the wall + share-link surfaces. */}
-                    <div className="text-sm text-white/75 line-clamp-3 break-words">
-                      <RichContent text={p.content} />
-                    </div>
-                  </Link>
-                </li>
-              ))}
+                      <span className="text-white/25 shrink-0" aria-hidden>·</span>
+                      <span className="text-xs text-white/60 truncate flex-1 min-w-0">
+                        {snippet}
+                      </span>
+                      <svg className="w-3 h-3 text-white/30 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

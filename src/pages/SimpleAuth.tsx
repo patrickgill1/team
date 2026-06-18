@@ -242,7 +242,17 @@ const SimpleAuth: React.FC = () => {
   // If the user is already authenticated, the redirect useEffect above handles it.
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center px-4 py-10 sm:py-16">
+    <div
+      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-black via-charcoal-950 to-charcoal-900 flex items-start justify-center px-4 pb-10 sm:pb-16"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
+    >
+      {/* Top region pure black so it blends with the native
+          AppDelegate safe-area strip without a visible seam.
+          Patrick: "login screen top needs to blend all the way up.
+          maybe the icon can come down a bit." Extra paddingTop
+          (env(safe-area-inset-top) + 4rem) pushes the logo out of
+          the Dynamic Island shadow zone so it doesn't sit jammed
+          against the status bar. */}
       {/* Ambient gradient orbs */}
       <div className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-crimson-500/20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-violet-600/20 blur-[140px]" />

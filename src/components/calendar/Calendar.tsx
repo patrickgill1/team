@@ -7,6 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { formatDateTime, isCoach } from '../../utils/helpers';
 import EventForm from './EventForm';
+import DeleteEventSheet from './DeleteEventSheet';
 import EventListCard from './EventListCard';
 import EventWeekStrip from './EventWeekStrip';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
@@ -95,7 +96,7 @@ const Calendar: React.FC<CalendarProps> = ({
 }) => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
+  const { getDocuments, addDocument, updateDocument } = useFirestore();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'month' | 'list'>(initialViewMode);
@@ -104,7 +105,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null);
   // In list mode, parents almost always want "what's next" (Scheduled).
   // Past is one tap away.
   // Pill filter for the list view. "upcoming" includes everything in the
@@ -283,25 +284,12 @@ const Calendar: React.FC<CalendarProps> = ({
     setIsEventFormOpen(true);
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
-    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-      return;
-    }
-
-    setDeletingIds(prev => new Set(prev).add(eventId));
-    try {
-      await deleteDocument('events', eventId);
-      setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      alert('Failed to delete event. Please try again.');
-    } finally {
-      setDeletingIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(eventId);
-        return newSet;
-      });
-    }
+  // Open the delete confirmation sheet. The sheet handles the actual
+  // Firestore delete + optional team push notification — this just
+  // surfaces the right event into it.
+  const handleDeleteEvent = (eventId: string) => {
+    const target = events.find(e => e.id === eventId);
+    if (target) setDeletingEvent(target);
   };
 
   const handleRsvp = async (eventId: string, status: 'going' | 'maybe' | 'no') => {
@@ -832,6 +820,19 @@ const Calendar: React.FC<CalendarProps> = ({
         onEventUpdated={handleEventUpdated}
         editingEvent={editingEvent}
         selectedDate={selectedDate || undefined}
+      />
+
+      {/* Delete confirmation — supports an "alert the team" toggle
+          so removing an event can either ping the people who RSVPed
+          or be a silent cleanup. */}
+      <DeleteEventSheet
+        event={deletingEvent}
+        onClose={() => setDeletingEvent(null)}
+        onDeleted={() => {
+          if (deletingEvent) {
+            setEvents(prev => prev.filter(e => e.id !== deletingEvent.id));
+          }
+        }}
       />
 
       {/* Schedule Import Modal */}

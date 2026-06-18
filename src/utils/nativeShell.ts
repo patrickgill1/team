@@ -11,7 +11,7 @@ export async function initNativeShell(): Promise<void> {
     // Status bar: dark hero gradient looks best with light status bar text.
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: Style.Light });
-    await StatusBar.setBackgroundColor({ color: '#0f172a' });
+    await StatusBar.setBackgroundColor({ color: '#0d0d10' });
     // setOverlaysWebView({overlay:false}) shifts the WebView down past
     // the status bar. iOS needs this so content doesn't draw under
     // the notch / Dynamic Island. Android does NOT need it because

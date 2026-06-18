@@ -418,7 +418,7 @@ const Navigation: React.FC = () => {
       <header className={`lg:hidden fixed top-0 inset-x-0 z-40 safe-top ${isDashboardRoute ? 'bg-transparent' : 'bg-black'}`}>
         <div className={`flex items-center gap-2 px-3 h-14 ${
           isDashboardRoute
-            ? 'bg-gradient-to-b from-black/70 via-black/40 to-transparent backdrop-blur-md'
+            ? 'bg-gradient-to-b from-black/45 via-black/20 to-transparent backdrop-blur-sm'
             : 'bg-charcoal-950'
         }`}>
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px

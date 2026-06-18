@@ -2680,8 +2680,15 @@ const TeamChat: React.FC = () => {
                 }}
               >
                 {/* Inner wrapper so ResizeObserver has a stable child
-                    to observe — its height changes as images load. */}
-                <div className="space-y-1">
+                    to observe — its height changes as images load.
+                    Keyed by thread id + fade-in so a thread switch
+                    isn't a flash: the container unmounts/remounts
+                    when the thread changes and animates in, syncing
+                    with the chat-view slide-in-right. Same-thread
+                    re-renders (new message arrival, reaction toggle,
+                    scroll) don't change the key so the fade doesn't
+                    fire on every update. */}
+                <div key={selectedThread?.id || 'no-thread'} className="space-y-1 animate-fade-in">
                 {threadSearchQuery.trim() && visibleMessages.length === 0 && (
                   <div className="text-center text-sm text-slate-500 py-6">
                     No messages match "{threadSearchQuery.trim()}".

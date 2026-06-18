@@ -147,7 +147,7 @@ const SplitInvoiceModal: React.FC<Props> = ({ registration, actorUid, actorName,
       <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-charcoal-950">{existing.length ? 'Edit payment plan' : 'Split into installments'}</h2>
+            <h2 className="font-black text-fire-950">{existing.length ? 'Edit payment plan' : 'Split into installments'}</h2>
             <p className="text-[11px] text-slate-500">
               {registration.player.firstName} {registration.player.lastName} · total ${(totalCents / 100).toFixed(2)}
             </p>
@@ -173,7 +173,7 @@ const SplitInvoiceModal: React.FC<Props> = ({ registration, actorUid, actorName,
                 const n = Math.max(MIN_INSTALLMENTS, Math.min(MAX_INSTALLMENTS, Number(e.target.value) || MIN_INSTALLMENTS));
                 setCount(n);
               }}
-              className="w-24 px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-24 px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
             />
           </label>
 
@@ -220,7 +220,7 @@ const SplitInvoiceModal: React.FC<Props> = ({ registration, actorUid, actorName,
 
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
-          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : existing.length ? 'Update plan' : 'Create plan'}
           </button>
         </div>

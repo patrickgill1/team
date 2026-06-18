@@ -49,7 +49,7 @@ const OfferTemplates: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-            <h1 className="text-2xl font-black text-charcoal-950 mt-1">Offer templates</h1>
+            <h1 className="text-2xl font-black text-fire-950 mt-1">Offer templates</h1>
             <p className="text-sm text-slate-600">
               Reusable message bodies for the Send Offer flow. Scope by team + position so the right templates surface for the right candidates.
             </p>
@@ -83,7 +83,7 @@ const OfferTemplates: React.FC = () => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-bold text-charcoal-950">{t.name}</div>
+                      <div className="font-bold text-fire-950">{t.name}</div>
                       <div className="text-[11px] text-slate-500 mt-0.5">
                         {teams.find(x => x.id === t.teamId)?.name || 'Any team'}
                         {t.position ? ` · ${t.position}` : ' · Any position'}
@@ -171,7 +171,7 @@ const Editor: React.FC<EditorProps> = ({ template, teams, clubId, userData, onCl
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
       <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-charcoal-950">{isNew ? 'New template' : 'Edit template'}</h2>
+          <h2 className="font-black text-fire-950">{isNew ? 'New template' : 'Edit template'}</h2>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
 

@@ -244,7 +244,7 @@ const AttendanceTracker: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
           <span className="text-sm text-gray-400 font-medium">Loading...</span>
         </div>
       </div>
@@ -260,7 +260,7 @@ const AttendanceTracker: React.FC = () => {
             <p className="text-sm text-gray-600">No events found yet.</p>
             <Link
               to="/calendar"
-              className="inline-flex items-center gap-2 bg-crimson-600 hover:bg-crimson-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               <AppIcon name="calendar" className="w-4 h-4" />
               <span>Create events</span>
@@ -290,7 +290,7 @@ const AttendanceTracker: React.FC = () => {
                     <select
                       value={selectedEvent}
                       onChange={(e) => setSelectedEvent(e.target.value)}
-                      className="min-w-0 max-w-full w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 text-sm"
+                      className="min-w-0 max-w-full w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
                       style={{ fontSize: '16px' }}
                     >
                       <option value="">Select an event...</option>
@@ -313,26 +313,26 @@ const AttendanceTracker: React.FC = () => {
                 <div className="p-4 sm:p-6">
                   {/* Event Info — wraps on narrow screens; chip colors
                       follow the brand event palette. */}
-                  <div className="mb-4 p-4 bg-crimson-50 rounded-lg">
+                  <div className="mb-4 p-4 bg-cyan-50 rounded-lg">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 min-w-0">
                       <div className="min-w-0">
-                        <h3 className="font-medium text-crimson-900 truncate">{selectedEventData.title}</h3>
-                        <p className="text-sm text-crimson-700 truncate">
+                        <h3 className="font-medium text-cyan-900 truncate">{selectedEventData.title}</h3>
+                        <p className="text-sm text-cyan-700 truncate">
                           {formatDate(selectedEventData.date)} • {selectedEventData.location || 'No location'}
                         </p>
                         <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
                           selectedEventData.type === 'game'
-                            ? 'bg-charcoal-700/10 text-charcoal-800'
+                            ? 'bg-navy-700/10 text-navy-800'
                             : selectedEventData.type === 'practice'
-                              ? 'bg-crimson-100 text-charcoal-800'
-                              : 'bg-crimson-50 text-charcoal-700'
+                              ? 'bg-fire-100 text-fire-800'
+                              : 'bg-fire-50 text-fire-700'
                         }`}>
                           {selectedEventData.type.charAt(0).toUpperCase() + selectedEventData.type.slice(1)}
                         </span>
                       </div>
                       <Link
                         to="/calendar"
-                        className="inline-flex items-center gap-1 text-crimson-700 hover:text-crimson-800 text-sm font-semibold shrink-0"
+                        className="inline-flex items-center gap-1 text-cyan-700 hover:text-cyan-800 text-sm font-semibold shrink-0"
                       >
                         <AppIcon name="calendar" className="w-4 h-4" />
                         <span>View in Events</span>
@@ -361,12 +361,12 @@ const AttendanceTracker: React.FC = () => {
                                   <img
                                     src={(player as any).profilePhotoUrl}
                                     alt={player.name}
-                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-crimson-100 shrink-0"
+                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-cyan-100 shrink-0"
                                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                                   />
                                 ) : (
-                                  <div className="bg-crimson-50 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
-                                    <span className="text-sm font-bold text-crimson-600">#{player.jerseyNumber}</span>
+                                  <div className="bg-cyan-50 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
+                                    <span className="text-sm font-bold text-cyan-600">#{player.jerseyNumber}</span>
                                   </div>
                                 )}
                                 <div className="min-w-0">
@@ -410,7 +410,7 @@ const AttendanceTracker: React.FC = () => {
                       <p>No players found. Add players to track attendance.</p>
                       <Link
                         to="/players"
-                        className="mt-2 inline-block bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+                        className="mt-2 inline-block bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                       >
                         Add Players
                       </Link>
@@ -423,7 +423,7 @@ const AttendanceTracker: React.FC = () => {
                       <button
                         onClick={saveAttendance}
                         disabled={saving}
-                        className="w-full bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
                       >
                         {saving ? (
                           <>
@@ -452,7 +452,7 @@ const AttendanceTracker: React.FC = () => {
                       </p>
                       <Link
                         to="/calendar"
-                        className="inline-flex items-center gap-2 bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition"
+                        className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition"
                       >
                         <AppIcon name="calendar" className="w-4 h-4" />
                         <span>Go to Events</span>
@@ -480,8 +480,8 @@ const AttendanceTracker: React.FC = () => {
                       return (
                         <div key={player.id} className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className="bg-crimson-50 rounded-full w-8 h-8 flex items-center justify-center">
-                              <span className="text-xs font-bold text-crimson-600">#{player.jerseyNumber}</span>
+                            <div className="bg-cyan-50 rounded-full w-8 h-8 flex items-center justify-center">
+                              <span className="text-xs font-bold text-cyan-600">#{player.jerseyNumber}</span>
                             </div>
                             <span className="text-sm font-medium text-gray-900">{player.name}</span>
                           </div>
@@ -508,10 +508,10 @@ const AttendanceTracker: React.FC = () => {
 };
 
 const TINT_BG: Record<string, string> = {
-  cyan: 'bg-crimson-50 text-crimson-700',
+  cyan: 'bg-cyan-50 text-cyan-700',
   emerald: 'bg-emerald-50 text-emerald-700',
-  fire: 'bg-crimson-50 text-charcoal-700',
-  navy: 'bg-charcoal-700/10 text-charcoal-700',
+  fire: 'bg-fire-50 text-fire-700',
+  navy: 'bg-navy-700/10 text-navy-700',
   amber: 'bg-amber-50 text-amber-700',
 };
 

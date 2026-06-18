@@ -6,61 +6,26 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // GoalKickr brand palette (mirror of goalkickr-site). Cinematic
-      // charcoal + crimson, bone for type. Legacy `fire` and `navy`
-      // aliases are retained as a safety net so any class the sweep
-      // missed still resolves — but every new usage should reach for
-      // crimson/charcoal directly. Legacy aliases re-point at the new
-      // values so they render identically post-migration.
       colors: {
-        charcoal: {
-          50:  '#f5f5f6',
-          100: '#e7e7e9',
-          200: '#cdced1',
-          300: '#a8aaaf',
-          400: '#7e8087',
-          500: '#5f6166',
-          600: '#48494e',
-          700: '#34353a',
-          800: '#1f2024',
-          900: '#15161a',
-          950: '#0d0d10',
-        },
-        crimson: {
-          50:  '#fef2f3',
-          100: '#fde2e4',
-          200: '#fbcbd0',
-          300: '#f7a4ad',
-          400: '#f17282',
-          500: '#e5485d',
-          600: '#c8202c',
-          700: '#a91a26',
-          800: '#8c1922',
-          900: '#741920',
-          950: '#400a10',
-        },
-        bone: {
-          DEFAULT: '#f5f3ee',
-        },
         fire: {
-          50:  '#fef2f3',
-          100: '#fde2e4',
-          200: '#fbcbd0',
-          300: '#f7a4ad',
-          400: '#f17282',
-          500: '#e5485d',
-          600: '#48494e',
-          700: '#34353a',
-          800: '#1f2024',
-          900: '#15161a',
-          950: '#0d0d10',
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+          950: '#0f172a',
         },
         navy: {
-          600: '#48494e',
-          700: '#34353a',
-          800: '#1f2024',
-          900: '#15161a',
-          950: '#0d0d10',
+          600: '#1e3a5f',
+          700: '#172e4a',
+          800: '#122340',
+          900: '#0f1f35',
+          950: '#0a1628',
         },
       },
       animation: {

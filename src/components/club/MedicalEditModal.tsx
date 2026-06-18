@@ -141,7 +141,7 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
       <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-charcoal-950">Medical profile</h2>
+            <h2 className="font-black text-fire-950">Medical profile</h2>
             <p className="text-[11px] text-slate-500">{player.name}</p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
@@ -294,7 +294,7 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
 
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
-          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save medical profile'}
           </button>
         </div>
@@ -309,7 +309,7 @@ const Section: React.FC<{ title: string; onAdd: () => void; children: React.Reac
   <div>
     <div className="flex items-center justify-between mb-2">
       <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-700">{title}</h3>
-      <button type="button" onClick={onAdd} className="text-[11px] font-bold text-crimson-700 hover:text-crimson-900">+ Add</button>
+      <button type="button" onClick={onAdd} className="text-[11px] font-bold text-cyan-700 hover:text-cyan-900">+ Add</button>
     </div>
     <div className="space-y-2">{children}</div>
   </div>

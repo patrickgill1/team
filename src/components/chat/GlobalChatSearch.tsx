@@ -183,7 +183,7 @@ const GlobalChatSearch: React.FC<Props> = ({ threads, onResult, onClose, getThre
           <ul className="divide-y divide-slate-100">
             {results.map(({ thread, messages }) => (
               <li key={thread?.id || messages[0]?.threadId}>
-                <div className="px-4 pt-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-widest text-crimson-700">
+                <div className="px-4 pt-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-widest text-cyan-700">
                   {thread ? getThreadTitle(thread) : 'Conversation'}
                   <span className="text-slate-400 ml-2 normal-case tracking-normal font-bold">{messages.length} match{messages.length === 1 ? '' : 'es'}</span>
                 </div>

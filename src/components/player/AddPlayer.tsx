@@ -505,15 +505,15 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </p>
           </div>
 
-          <div className="bg-crimson-50 border border-crimson-200 rounded-xl p-4 mb-4">
-            <p className="text-xs text-charcoal-600 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
-            <p className="text-sm text-charcoal-900 break-all font-mono mb-3">{inviteLink}</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <p className="text-xs text-blue-600 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
+            <p className="text-sm text-blue-900 break-all font-mono mb-3">{inviteLink}</p>
             <button
               onClick={() => copyInviteLink(inviteLink)}
               className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-medium transition-all duration-200 ${
                 inviteCopied
                   ? 'bg-green-600 text-white'
-                  : 'bg-charcoal-600 hover:bg-charcoal-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
             >
               {inviteCopied ? (
@@ -650,7 +650,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                   <select
                     value={targetTeamId}
                     onChange={(e) => setTargetTeamId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled={isSubmitting}
                   >
                     {pickerTeams.length === 0 && (
@@ -674,7 +674,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               <select
                 value={targetTeamId}
                 onChange={(e) => setTargetTeamId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isSubmitting}
               >
                 {pickerTeams.map(t => (
@@ -693,7 +693,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter player's full name"
@@ -714,7 +714,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 max="99"
                 value={formData.jerseyNumber}
                 onChange={(e) => setFormData({ ...formData, jerseyNumber: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.jerseyNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="1-99"
@@ -747,7 +747,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                       disabled={isSubmitting}
                       className={`px-3 py-1.5 rounded-full text-sm font-semibold ring-1 transition ${
                         active
-                          ? 'bg-crimson-600 text-white ring-crimson-600 shadow-sm'
+                          ? 'bg-cyan-600 text-white ring-cyan-600 shadow-sm'
                           : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
                       }`}
                     >
@@ -769,7 +769,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               type="date"
               value={formData.dateOfBirth}
               onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
               }`}
               disabled={isSubmitting}
@@ -789,7 +789,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                     type="email"
                     value={email}
                     onChange={(e) => updateParentEmail(index, e.target.value)}
-                    className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
+                    className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors[`parentEmail${index}`] ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="parent@example.com"
@@ -816,7 +816,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 type="button"
                 onClick={addParentEmailField}
                 disabled={isSubmitting}
-                className="mt-2 text-charcoal-600 hover:text-charcoal-700 text-sm font-medium disabled:opacity-50"
+                className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
               >
                 + Add another parent email
               </button>
@@ -835,7 +835,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             <textarea
               value={formData.medicalInfo}
               onChange={(e) => setFormData({ ...formData, medicalInfo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               rows={3}
               placeholder="Any allergies, medical conditions, or special instructions..."
               disabled={isSubmitting}
@@ -851,10 +851,10 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Upload Progress */}
           {uploadLoading && (
-            <div className="bg-crimson-50 border border-crimson-200 rounded-lg p-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-charcoal-600"></div>
-                <p className="text-charcoal-600 text-sm">Uploading profile photo...</p>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <p className="text-blue-600 text-sm">Uploading profile photo...</p>
               </div>
             </div>
           )}
@@ -872,7 +872,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || uploadLoading}
-              className="flex-1 bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
             >
               {(isSubmitting || uploadLoading) ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

@@ -357,13 +357,13 @@ export async function sendPushToPlayerParents(
 import { getShareOrigin } from './origin';
 const APP_BASE = getShareOrigin();
 
-const BRAND_NAVY = '#15161a';      // charcoal-900 — the app's primary dark
-const BRAND_NAVY_DARK = '#0d0d10'; // charcoal-950
-const BRAND_CYAN = '#c8202c';      // crimson-600 — the app's accent
-const BRAND_CYAN_DEEP = '#8c1922'; // crimson-800 — for text on light bg
+const BRAND_NAVY = '#0f172a';      // slate-900 — the app's primary dark
+const BRAND_NAVY_DARK = '#020617'; // slate-950
+const BRAND_CYAN = '#06b6d4';      // cyan-500 — the app's accent
+const BRAND_CYAN_DEEP = '#0e7490'; // cyan-700 — for text on light bg
 const LOGO_URL = `${APP_BASE}/images/logo.png`;
 
-const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#15161a;line-height:1.55;background:#f5f3ee;`;
+const baseStyle = `font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#0f172a;line-height:1.55;background:#f0f9ff;`;
 
 /** Coach signature payload — name, role, team, optional email for
  *  replies, optional avatar URL. Threaded through templates that

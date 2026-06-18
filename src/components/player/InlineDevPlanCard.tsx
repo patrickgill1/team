@@ -99,16 +99,16 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
     return (
       <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-300">Development Plan</h2>
+          <h2 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Development Plan</h2>
           <button
             onClick={() => navigate('/development')}
-            className="text-xs font-bold text-crimson-300 hover:text-crimson-200"
+            className="text-xs font-bold text-cyan-300 hover:text-cyan-200"
           >
             Open plan →
           </button>
         </div>
         <p className="text-sm text-white/70">
-          No active plan yet — coach can build one from <button onClick={() => navigate('/development')} className="text-crimson-300 underline">Development</button>.
+          No active plan yet — coach can build one from <button onClick={() => navigate('/development')} className="text-cyan-300 underline">Development</button>.
         </p>
       </div>
     );
@@ -117,7 +117,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
   return (
     <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-300">Development Plan</h2>
+        <h2 className="text-sm font-extrabold uppercase tracking-widest text-cyan-300">Development Plan</h2>
         <div className="flex items-center gap-2">
           {streak > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[11px] font-extrabold">
@@ -126,7 +126,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
           )}
           <button
             onClick={() => navigate('/development')}
-            className="text-xs font-bold text-crimson-300 hover:text-crimson-200"
+            className="text-xs font-bold text-cyan-300 hover:text-cyan-200"
           >
             Open plan →
           </button>
@@ -147,7 +147,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-white">{goal.title}</span>
                     {sessions > 0 && (
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-crimson-500/15 text-crimson-200 ring-1 ring-crimson-400/30">
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/30">
                         {sessions} session{sessions === 1 ? '' : 's'}
                       </span>
                     )}
@@ -166,7 +166,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                   className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-extrabold uppercase tracking-widest transition ${
                     doneToday
                       ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40 cursor-default'
-                      : 'bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50'
+                      : 'bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50'
                   }`}
                   title={doneToday ? 'Already logged today — keep the streak alive tomorrow!' : 'Tap to log a practice for today'}
                 >

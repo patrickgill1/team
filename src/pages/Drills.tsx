@@ -83,9 +83,9 @@ const Drills: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+      <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
         <div className="max-w-5xl mx-auto">
-          <Link to="/development" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
+          <Link to="/development" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Development
           </Link>
@@ -96,7 +96,7 @@ const Drills: React.FC = () => {
             </div>
             <button
               onClick={() => { setEditing(null); setCreateOpen(true); }}
-              className="px-4 py-2 rounded-lg bg-crimson-500 hover:bg-crimson-400 text-charcoal-950 text-sm font-bold whitespace-nowrap"
+              className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-fire-950 text-sm font-bold whitespace-nowrap"
             >
               + New drill
             </button>
@@ -134,7 +134,7 @@ const Drills: React.FC = () => {
             <p className="text-xs text-slate-500 mt-1 mb-4">Type one yourself, or tap Generate to have Claude draft one from a topic.</p>
             <button
               onClick={() => { setEditing(null); setCreateOpen(true); }}
-              className="px-4 py-2 rounded-lg bg-crimson-500 hover:bg-crimson-400 text-charcoal-950 text-sm font-bold"
+              className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-fire-950 text-sm font-bold"
             >
               + Add your first drill
             </button>
@@ -142,7 +142,7 @@ const Drills: React.FC = () => {
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {visible.map(d => (
-              <li key={d.id} className="bg-white rounded-2xl ring-1 ring-slate-200 hover:ring-crimson-300 overflow-hidden transition-shadow hover:shadow-md">
+              <li key={d.id} className="bg-white rounded-2xl ring-1 ring-slate-200 hover:ring-cyan-300 overflow-hidden transition-shadow hover:shadow-md">
                 <button
                   type="button"
                   onClick={() => { setEditing(d); setCreateOpen(true); }}
@@ -166,7 +166,7 @@ const Drills: React.FC = () => {
                   )}
                   <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">
                       {TOPICS.find(t => t.value === d.topic)?.label || d.topic}
                     </span>
                     {d.source === 'ai' && (
@@ -382,7 +382,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Half-turn receive"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
             />
           </Field>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -471,12 +471,12 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                 </button>
               </div>
             ) : uploading ? (
-              <div className="rounded-lg border border-crimson-300 bg-crimson-50 p-3">
-                <div className="text-xs font-semibold text-crimson-800 mb-1.5">
+              <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-3">
+                <div className="text-xs font-semibold text-cyan-800 mb-1.5">
                   Uploading {pendingFile?.name || 'video'}… {uploadPct}%
                 </div>
-                <div className="w-full bg-crimson-100 rounded h-1.5 overflow-hidden">
-                  <div className="bg-crimson-600 h-full transition-all" style={{ width: `${uploadPct}%` }} />
+                <div className="w-full bg-cyan-100 rounded h-1.5 overflow-hidden">
+                  <div className="bg-cyan-600 h-full transition-all" style={{ width: `${uploadPct}%` }} />
                 </div>
               </div>
             ) : (
@@ -523,7 +523,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
           <button
             onClick={handleSave}
             disabled={saving || uploading || !title.trim()}
-            className="px-4 py-2 text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 rounded-lg"
+            className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg"
             title={uploading ? 'Wait for the video upload to finish' : undefined}
           >
             {saving ? 'Saving…' : uploading ? `Uploading video · ${uploadPct}%` : 'Save drill'}

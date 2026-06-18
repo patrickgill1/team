@@ -11,9 +11,9 @@ import type { HelpdeskTicket, HelpdeskComment, TicketStatus } from '../types';
 
 const STATUS_OPTIONS: TicketStatus[] = ['open', 'assigned', 'in_progress', 'resolved', 'closed'];
 const STATUS_CHIP: Record<TicketStatus, string> = {
-  open: 'bg-crimson-50 text-crimson-700 border-crimson-200',
+  open: 'bg-cyan-50 text-cyan-700 border-cyan-200',
   assigned: 'bg-amber-50 text-amber-700 border-amber-200',
-  in_progress: 'bg-crimson-50 text-charcoal-700 border-crimson-200',
+  in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
   resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   closed: 'bg-slate-100 text-slate-500 border-slate-200',
 };
@@ -225,7 +225,7 @@ const HelpdeskTicketPage: React.FC = () => {
   if (!ticket) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-8">
-        <Link to="/helpdesk" className="text-crimson-600 font-semibold text-sm">← Back to tickets</Link>
+        <Link to="/helpdesk" className="text-cyan-600 font-semibold text-sm">← Back to tickets</Link>
       </div>
     );
   }
@@ -235,7 +235,7 @@ const HelpdeskTicketPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Custom navy header so we can fit the back button + status pill */}
-      <header className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-crimson-500/10 px-4 sm:px-6 pt-4 pb-5">
+      <header className="bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10 px-4 sm:px-6 pt-4 pb-5">
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => navigate(-1)}
@@ -272,7 +272,7 @@ const HelpdeskTicketPage: React.FC = () => {
               <button
                 onClick={() => setShowAssignPicker(s => !s)}
                 disabled={assigning}
-                className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900 disabled:opacity-50"
+                className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 disabled:opacity-50"
               >
                 {showAssignPicker ? 'Cancel' : (ticket.assignedTo ? 'Change' : 'Assign')}
               </button>
@@ -290,7 +290,7 @@ const HelpdeskTicketPage: React.FC = () => {
                     className={`w-full text-left text-sm px-2 py-1.5 rounded-md ${
                       a.id === ticket.assignedTo
                         ? 'bg-slate-100 text-slate-400 cursor-default'
-                        : 'hover:bg-crimson-50 text-slate-800'
+                        : 'hover:bg-cyan-50 text-slate-800'
                     } disabled:opacity-60`}
                   >
                     {a.name}{a.id === userData?.uid ? ' (me)' : ''}
@@ -372,7 +372,7 @@ const HelpdeskTicketPage: React.FC = () => {
               <button
                 onClick={post}
                 disabled={!draft.trim() || busy}
-                className="px-3 rounded-lg bg-crimson-600 text-white text-sm font-bold disabled:opacity-50"
+                className="px-3 rounded-lg bg-cyan-600 text-white text-sm font-bold disabled:opacity-50"
               >Send</button>
             </div>
           ) : (

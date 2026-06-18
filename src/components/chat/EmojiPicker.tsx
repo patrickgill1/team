@@ -128,14 +128,14 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
       {/* Dark navy header to match the rest of the app's branded
           chrome (TeamChat action sheet, Wall composer, etc.). Title
           on the left, search + close on the right. */}
-      <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Add Reaction</div>
+      <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">Add Reaction</div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSearchOpen(s => !s)}
             aria-label="Search emoji"
             className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
-              searchOpen ? 'bg-crimson-500/20 text-crimson-200' : 'text-slate-400 hover:text-white hover:bg-white/10'
+              searchOpen ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:text-white hover:bg-white/10'
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -162,7 +162,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search…"
-            className="w-full px-3 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+            className="w-full px-3 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
           />
         </div>
       )}
@@ -178,7 +178,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
               onClick={() => setActiveTab(g.id)}
               aria-label={g.id}
               className={`flex-1 mx-0.5 h-8 rounded-lg text-base flex items-center justify-center transition ${
-                activeTab === g.id ? 'bg-crimson-50 ring-1 ring-crimson-200' : 'hover:bg-slate-50'
+                activeTab === g.id ? 'bg-cyan-50 ring-1 ring-cyan-200' : 'hover:bg-slate-50'
               }`}
             >
               {g.label}

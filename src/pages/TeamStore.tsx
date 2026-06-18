@@ -25,15 +25,15 @@ const TeamStore: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+      <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
         <div className="max-w-3xl mx-auto">
-          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
+          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Dashboard
           </Link>
           <div className="flex items-center gap-3">
-            <span className="flex-shrink-0 w-11 h-11 rounded-2xl bg-crimson-500/15 ring-1 ring-crimson-500/30 flex items-center justify-center">
-              <svg className="w-5 h-5 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <span className="flex-shrink-0 w-11 h-11 rounded-2xl bg-cyan-500/15 ring-1 ring-cyan-500/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <path d="M16 10a4 4 0 0 1-8 0"/>
@@ -52,8 +52,8 @@ const TeamStore: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
         {/* Discount code card — the headline. Large, copyable, can't be
             missed. */}
-        <div className="rounded-2xl bg-white ring-1 ring-crimson-200 overflow-hidden shadow-sm">
-          <div className="bg-gradient-to-br from-crimson-500 to-crimson-600 px-5 py-3 text-white">
+        <div className="rounded-2xl bg-white ring-1 ring-cyan-200 overflow-hidden shadow-sm">
+          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 px-5 py-3 text-white">
             <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">Member discount code</div>
             <div className="text-[11px] opacity-90 mt-0.5">Apply at checkout for the team rate.</div>
           </div>
@@ -69,7 +69,7 @@ const TeamStore: React.FC = () => {
               className={`flex-shrink-0 w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-sm tracking-wider uppercase transition-all ${
                 copied
                   ? 'bg-emerald-500 text-white'
-                  : 'bg-charcoal-900 text-white hover:bg-charcoal-800 active:scale-95'
+                  : 'bg-slate-900 text-white hover:bg-slate-800 active:scale-95'
               }`}
             >
               {copied ? 'Copied!' : 'Copy code'}
@@ -82,16 +82,16 @@ const TeamStore: React.FC = () => {
           href={STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 block rounded-2xl bg-gradient-to-br from-charcoal-950 to-charcoal-900 ring-1 ring-crimson-500/30 text-white px-5 py-5 hover:shadow-lg transition-shadow"
+          className="mt-4 block rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 ring-1 ring-cyan-500/30 text-white px-5 py-5 hover:shadow-lg transition-shadow"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300">Shop now</div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-300">Shop now</div>
               <div className="text-base font-bold mt-0.5 truncate">team.wegotsoccer.com/firefc</div>
               <div className="text-[12px] text-slate-400 mt-0.5">Opens in your browser. Copy the code above first.</div>
             </div>
-            <span className="flex-shrink-0 w-10 h-10 rounded-full bg-crimson-500/20 ring-1 ring-crimson-400/40 flex items-center justify-center">
-              <svg className="w-4 h-4 text-crimson-200" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <span className="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-500/20 ring-1 ring-cyan-400/40 flex items-center justify-center">
+              <svg className="w-4 h-4 text-cyan-200" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="5" y1="12" x2="19" y2="12"/>
                 <polyline points="12 5 19 12 12 19"/>
               </svg>

@@ -243,7 +243,7 @@ const Offer: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black px-4 py-10">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6">
           <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
@@ -294,7 +294,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={handleAccept}
                 disabled={submitting}
-                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 shadow-lg"
+                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 shadow-lg"
               >
                 {submitting ? 'Working…' : 'Accept the offer'}
               </button>
@@ -337,13 +337,13 @@ const Offer: React.FC = () => {
 
 const Detail: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300/80">{label}</div>
+    <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-300/80">{label}</div>
     <div className="text-white font-bold mt-0.5">{value}</div>
   </div>
 );
 
 const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: string }> = ({ tone, title, body }) => (
-  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center p-6">
+  <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center p-6">
     <div className="max-w-md w-full bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-3xl p-8 text-center">
       <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
         <Logo size="lg" variant="full" />
@@ -356,12 +356,12 @@ const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: stri
         ) : tone === 'warning' ? (
           <svg className="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
         ) : (
-          <svg className="w-6 h-6 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg className="w-6 h-6 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         )}
       </div>
       <h1 className="text-xl font-black text-white mb-2">{title}</h1>
       {body && <p className="text-sm text-slate-400 leading-relaxed">{body}</p>}
-      <Link to="/" className="block mt-4 text-crimson-300 hover:text-crimson-200 text-xs font-bold">Home</Link>
+      <Link to="/" className="block mt-4 text-cyan-300 hover:text-cyan-200 text-xs font-bold">Home</Link>
     </div>
   </div>
 );

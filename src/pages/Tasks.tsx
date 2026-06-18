@@ -106,10 +106,10 @@ const Tasks: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-            <h1 className="text-2xl font-black text-charcoal-950 mt-1">Tasks</h1>
+            <h1 className="text-2xl font-black text-fire-950 mt-1">Tasks</h1>
             <p className="text-sm text-slate-600">Admin todos. Overdue + high priority float to the top.</p>
           </div>
-          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
+          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold">
             + New task
           </button>
         </div>
@@ -121,7 +121,7 @@ const Tasks: React.FC = () => {
                 key={s}
                 type="button"
                 onClick={() => setScope(s)}
-                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${scope === s ? 'bg-crimson-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${scope === s ? 'bg-cyan-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
               >
                 {s === 'mine' ? 'Mine' : 'All club'}
               </button>
@@ -133,7 +133,7 @@ const Tasks: React.FC = () => {
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${statusFilter === s ? 'bg-charcoal-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${statusFilter === s ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
               >
                 {s === 'in_progress' ? 'In progress' : s}
               </button>
@@ -193,7 +193,7 @@ const Row: React.FC<{ task: Task; myUid: string; updating: boolean; onUpdate: (s
         {task.description && <p className="text-[11px] text-slate-600 mt-0.5">{task.description}</p>}
         <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
           {task.relatedPlayerName && (
-            <Link to={`/club/person/${task.relatedPlayerId}`} className="font-bold text-crimson-700 hover:text-crimson-900">
+            <Link to={`/club/person/${task.relatedPlayerId}`} className="font-bold text-cyan-700 hover:text-cyan-900">
               {task.relatedPlayerName}
             </Link>
           )}

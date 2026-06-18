@@ -101,10 +101,10 @@ const NotificationsBanner: React.FC = () => {
   const platform = Capacitor.getPlatform();
 
   return (
-    <div className="bg-gradient-to-r from-crimson-50 to-crimson-50 border border-crimson-200 rounded-xl p-3 shadow-sm">
+    <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-3 shadow-sm">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-crimson-500/10 flex items-center justify-center flex-shrink-0">
-          <svg className="w-4 h-4 text-crimson-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <div className="w-9 h-9 rounded-full bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4 text-cyan-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
@@ -139,7 +139,7 @@ const NotificationsBanner: React.FC = () => {
             {state === 'denied' ? (
               <button
                 onClick={() => setShowSettingsHelp(s => !s)}
-                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-crimson-600 text-white hover:bg-crimson-500"
+                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-cyan-600 text-white hover:bg-cyan-500"
               >
                 {showSettingsHelp ? 'Hide steps' : 'Open settings'}
               </button>
@@ -147,7 +147,7 @@ const NotificationsBanner: React.FC = () => {
               <button
                 onClick={enable}
                 disabled={state === 'busy'}
-                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50"
+                className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50"
               >
                 {state === 'busy' ? 'Enabling…' : 'Enable'}
               </button>

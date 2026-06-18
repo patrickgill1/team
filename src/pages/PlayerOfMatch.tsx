@@ -517,7 +517,7 @@ const PlayerOfMatch: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
           <span className="text-sm text-gray-400 font-medium">Loading...</span>
         </div>
       </div>
@@ -532,7 +532,7 @@ const PlayerOfMatch: React.FC = () => {
           <div className="mb-6 flex justify-end">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-crimson-600 hover:bg-crimson-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
               <span>Create Voting</span>
@@ -544,21 +544,21 @@ const PlayerOfMatch: React.FC = () => {
         {isUserCoach && (
           <div className="mb-6">
             {availableGames.length > 0 ? (
-              <div className="bg-crimson-50 border border-crimson-100 rounded-lg p-4">
+              <div className="bg-cyan-50 border border-cyan-100 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <svg className="w-5 h-5 text-crimson-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-cyan-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-crimson-900 mb-2">
+                    <h3 className="text-sm font-medium text-cyan-900 mb-2">
                       Games available for Player of the Match voting
                     </h3>
-                    <p className="text-sm text-crimson-700 mb-3">
+                    <p className="text-sm text-cyan-700 mb-3">
                       Create voting sessions for recent or upcoming games
                     </p>
                     <div className="space-y-2">
                       {availableGames.map(game => (
-                        <div key={game.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-crimson-100">
+                        <div key={game.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-cyan-100">
                           <div>
                             <p className="font-medium text-gray-900">{game.title}</p>
                             <p className="text-sm text-gray-600">
@@ -568,7 +568,7 @@ const PlayerOfMatch: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                            className="bg-crimson-600 hover:bg-crimson-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -584,7 +584,7 @@ const PlayerOfMatch: React.FC = () => {
             ) : !activeVoting && calendarEvents.filter(e => e.type === 'game').length === 0 ? (
               <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-5 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-10 h-10 rounded-full bg-crimson-50 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600">
+                  <span className="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-cyan-600">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <rect x="3" y="4" width="18" height="18" rx="2"/>
                       <line x1="16" y1="2" x2="16" y2="6"/>
@@ -599,7 +599,7 @@ const PlayerOfMatch: React.FC = () => {
                     </p>
                     <Link
                       to="/calendar"
-                      className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-crimson-700 hover:text-crimson-900"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
                     >
                       Open calendar
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -631,14 +631,14 @@ const PlayerOfMatch: React.FC = () => {
         {/* Active Voting */}
         {activeVoting && (
           <div className="card-modern mb-6 overflow-hidden">
-            <div className="px-6 py-4 border-b border-crimson-100 bg-gradient-to-r from-crimson-50 to-white">
+            <div className="px-6 py-4 border-b border-cyan-100 bg-gradient-to-r from-cyan-50 to-white">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-start gap-3 min-w-0">
-                  <span className="w-10 h-10 rounded-xl bg-crimson-100 text-crimson-700 flex items-center justify-center shrink-0">
+                  <span className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center shrink-0">
                     <AppIcon name="trophy" className="w-5 h-5" />
                   </span>
                   <div className="min-w-0">
-                    <h2 className="text-lg font-semibold text-charcoal-950">Active voting</h2>
+                    <h2 className="text-lg font-semibold text-fire-950">Active voting</h2>
                     <p className="text-gray-700 truncate">{activeVoting.gameTitle} — {formatDate(activeVoting.gameDate)}</p>
                     {activeVoting.calendarEventId && (
                       <p className="text-xs text-gray-500 mt-0.5">Linked to a calendar event</p>
@@ -656,7 +656,7 @@ const PlayerOfMatch: React.FC = () => {
                     className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 border ${
                       linkCopied
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                        : 'bg-white border-crimson-200 text-crimson-800 hover:bg-crimson-50'
+                        : 'bg-white border-cyan-200 text-cyan-800 hover:bg-cyan-50'
                     }`}
                     title="Copy vote link to share with parents"
                   >
@@ -680,7 +680,7 @@ const PlayerOfMatch: React.FC = () => {
                     <>
                       <button
                         onClick={handleEditAttendance}
-                        className="bg-crimson-600 hover:bg-crimson-700 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5"
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-1.5"
                         title="Edit which players were present"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -753,7 +753,7 @@ const PlayerOfMatch: React.FC = () => {
                     <select
                       value={selectedPlayer}
                       onChange={(e) => setSelectedPlayer(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     >
                       <option value="">Select a player...</option>
                       {votableePlayers.map(player => (
@@ -777,7 +777,7 @@ const PlayerOfMatch: React.FC = () => {
                       value={voteReason}
                       onChange={(e) => setVoteReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       placeholder="Why does this player deserve to be Player of the Match?"
                     />
                   </div>
@@ -785,7 +785,7 @@ const PlayerOfMatch: React.FC = () => {
                   <button
                     onClick={handleVote}
                     disabled={!selectedPlayer}
-                    className="w-full bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Submit Vote
                   </button>
@@ -814,7 +814,7 @@ const PlayerOfMatch: React.FC = () => {
                           else next.add(activeVoting.id);
                           return next;
                         })}
-                        className="text-xs text-crimson-600 hover:underline font-medium"
+                        className="text-xs text-cyan-600 hover:underline font-medium"
                       >
                         {expandedVoters.has(activeVoting.id) ? 'Hide voter details' : 'Show voter details'}
                       </button>
@@ -833,7 +833,7 @@ const PlayerOfMatch: React.FC = () => {
                             <span className="font-medium text-gray-900 w-28 sm:w-36 truncate">{result.name}</span>
                             <div className="flex-1 bg-gray-100 rounded-full h-2">
                               <div
-                                className="h-2 rounded-full bg-crimson-500 transition-all duration-500"
+                                className="h-2 rounded-full bg-cyan-500 transition-all duration-500"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -862,7 +862,7 @@ const PlayerOfMatch: React.FC = () => {
                                 <span className="inline-flex items-center gap-1.5 flex-wrap">
                                   <span>{v.voterName || '—'}</span>
                                   {v.isCoach && (
-                                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 border border-crimson-200" title="Voted as coach">
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200" title="Voted as coach">
                                       coach
                                     </span>
                                   )}
@@ -940,7 +940,7 @@ const PlayerOfMatch: React.FC = () => {
         {/* Previous Votings */}
         <div className="card-modern">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-charcoal-950">Previous Results</h2>
+            <h2 className="text-lg font-semibold text-fire-950">Previous Results</h2>
           </div>
           <div className="p-6">
             {votings.filter(v => !v.isActive).length === 0 ? (
@@ -981,19 +981,19 @@ const PlayerOfMatch: React.FC = () => {
                         {(voting.winners && voting.winners.length > 0) || voting.winner ? (
                           <div className="text-right">
                             <div className="flex items-center gap-2">
-                              <span className="w-9 h-9 rounded-xl bg-crimson-100 text-crimson-700 flex items-center justify-center shrink-0">
+                              <span className="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center shrink-0">
                                 <AppIcon name="trophy" className="w-5 h-5" />
                               </span>
                               <div>
                                 {voting.winners && voting.winners.length > 1 ? (
                                   <>
-                                    <p className="font-semibold text-crimson-700 text-sm">Co-Players of the Match ({voting.winners.length})</p>
+                                    <p className="font-semibold text-cyan-700 text-sm">Co-Players of the Match ({voting.winners.length})</p>
                                     <p className="text-xs text-gray-600">{voting.winners.map(w => w.playerName).join(', ')}</p>
                                     <p className="text-xs text-gray-500 mt-0.5">{voting.winners[0].voteCount} votes each</p>
                                   </>
                                 ) : (
                                   <>
-                                    <p className="font-semibold text-crimson-700">{(voting.winners?.[0] || voting.winner)!.playerName}</p>
+                                    <p className="font-semibold text-cyan-700">{(voting.winners?.[0] || voting.winner)!.playerName}</p>
                                     <p className="text-sm text-gray-600">{(voting.winners?.[0] || voting.winner)!.voteCount} votes</p>
                                   </>
                                 )}
@@ -1016,7 +1016,7 @@ const PlayerOfMatch: React.FC = () => {
                                   <span className="font-medium text-gray-900 w-28 sm:w-36 truncate">{result.name}</span>
                                   <div className="flex-1 bg-gray-100 rounded-full h-2">
                                     <div
-                                      className="h-2 rounded-full bg-crimson-500"
+                                      className="h-2 rounded-full bg-cyan-500"
                                       style={{ width: `${pct}%` }}
                                     />
                                   </div>
@@ -1038,7 +1038,7 @@ const PlayerOfMatch: React.FC = () => {
                               else next.add(voting.id);
                               return next;
                             })}
-                            className="text-xs text-crimson-600 hover:underline font-medium"
+                            className="text-xs text-cyan-600 hover:underline font-medium"
                           >
                             {expandedVoters.has(voting.id)
                               ? '▲ Hide voter details'
@@ -1061,7 +1061,7 @@ const PlayerOfMatch: React.FC = () => {
                                         <span className="inline-flex items-center gap-1.5 flex-wrap">
                                           <span>{v.voterName || '—'}</span>
                                           {v.isCoach && (
-                                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 border border-crimson-200" title="Voted as coach">
+                                            <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200" title="Voted as coach">
                                               coach
                                             </span>
                                           )}
@@ -1107,7 +1107,7 @@ const PlayerOfMatch: React.FC = () => {
               <div className="space-x-2">
                 <button
                   onClick={() => setAttendancePlayerIds(new Set(players.map(p => p.id)))}
-                  className="text-xs text-crimson-600 hover:underline"
+                  className="text-xs text-cyan-600 hover:underline"
                 >
                   Select all
                 </button>
@@ -1161,7 +1161,7 @@ const PlayerOfMatch: React.FC = () => {
               <button
                 onClick={handleConfirmAttendanceAndCreate}
                 disabled={attendancePlayerIds.size === 0}
-                className="px-4 py-2 bg-crimson-600 text-white rounded-lg hover:bg-crimson-700 disabled:opacity-50 font-medium"
+                className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 font-medium"
               >
                 {editingVotingId ? `Update Attendance (${attendancePlayerIds.size} eligible)` : `Create Voting (${attendancePlayerIds.size} eligible)`}
               </button>
@@ -1184,14 +1184,14 @@ const PlayerOfMatch: React.FC = () => {
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white"
               >
                 Cancel
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">New vote</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">New vote</div>
               <span className="w-12" aria-hidden />
             </div>
 
@@ -1207,7 +1207,7 @@ const PlayerOfMatch: React.FC = () => {
                       <button
                         key={game.id}
                         onClick={() => handleCreateVotingFromCalendarEvent(game.id)}
-                        className="w-full text-left p-3 rounded-xl bg-slate-50 ring-1 ring-slate-200 hover:bg-crimson-50 hover:ring-crimson-300 transition"
+                        className="w-full text-left p-3 rounded-xl bg-slate-50 ring-1 ring-slate-200 hover:bg-cyan-50 hover:ring-cyan-300 transition"
                       >
                         <div className="flex items-center justify-between gap-2 min-w-0">
                           <div className="flex-1 min-w-0">
@@ -1229,9 +1229,9 @@ const PlayerOfMatch: React.FC = () => {
                   one line + a calendar link. The 5-step instructions
                   were overkill for a coach. */}
               {availableGames.length === 0 && calendarEvents.filter(e => e.type === 'game').length === 0 && (
-                <div className="rounded-xl bg-crimson-50 ring-1 ring-crimson-100 px-3 py-2.5 text-[12.5px] text-crimson-900">
+                <div className="rounded-xl bg-cyan-50 ring-1 ring-cyan-100 px-3 py-2.5 text-[12.5px] text-cyan-900">
                   <span className="font-semibold">No games scheduled yet.</span>{' '}
-                  <Link to="/calendar" onClick={() => setShowCreateModal(false)} className="text-crimson-700 font-bold hover:text-crimson-900 underline underline-offset-2">
+                  <Link to="/calendar" onClick={() => setShowCreateModal(false)} className="text-cyan-700 font-bold hover:text-cyan-900 underline underline-offset-2">
                     Add a game on the calendar
                   </Link>{' '}
                   to link voting to it — or fill out a custom vote below.
@@ -1298,7 +1298,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
           type="text"
           value={gameTitle}
           onChange={(e) => setGameTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           placeholder="e.g., vs Eagles, Championship Final"
           required
         />
@@ -1311,7 +1311,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
             type="date"
             value={gameDate}
             onChange={(e) => setGameDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             required
           />
         </div>
@@ -1321,7 +1321,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
             type="time"
             value={gameTime}
             onChange={(e) => setGameTime(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
         </div>
       </div>
@@ -1333,7 +1333,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
             type="text"
             value={opponent}
             onChange={(e) => setOpponent(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             placeholder="e.g. Eagles FC"
           />
         </div>
@@ -1342,7 +1342,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
           <select
             value={homeAway}
             onChange={(e) => setHomeAway(e.target.value as 'home' | 'away' | '')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           >
             <option value="">—</option>
             <option value="home">Home</option>
@@ -1357,7 +1357,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
           type="text"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           placeholder="e.g. Town Park, Pitch 3"
         />
       </div>
@@ -1369,7 +1369,7 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
       <button
         type="submit"
         disabled={!gameTitle.trim() || !gameDate}
-        className="w-full bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
       >
         Create Custom Voting
       </button>
@@ -1393,7 +1393,7 @@ const ResultAvatar: React.FC<{ player: Player | undefined; name: string }> = ({ 
     );
   }
   return (
-    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-crimson-400 to-crimson-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-fire-400 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
       {(name || '?').charAt(0).toUpperCase()}
     </div>
   );
@@ -1405,19 +1405,19 @@ const ResultAvatar: React.FC<{ player: Player | undefined; name: string }> = ({ 
 const PlaceBadge: React.FC<{ index: number }> = ({ index }) => {
   if (index === 0) {
     return (
-      <span className="w-6 h-6 rounded-full bg-crimson-600 text-white flex items-center justify-center flex-shrink-0" title="1st">
+      <span className="w-6 h-6 rounded-full bg-cyan-600 text-white flex items-center justify-center flex-shrink-0" title="1st">
         <AppIcon name="trophy" className="w-3.5 h-3.5" strokeWidth={2.25} />
       </span>
     );
   }
   if (index === 1) {
     return (
-      <span className="w-6 h-6 rounded-full bg-crimson-100 text-crimson-800 flex items-center justify-center text-[11px] font-bold flex-shrink-0" title="2nd">2</span>
+      <span className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center text-[11px] font-bold flex-shrink-0" title="2nd">2</span>
     );
   }
   if (index === 2) {
     return (
-      <span className="w-6 h-6 rounded-full bg-crimson-50 text-crimson-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0" title="3rd">3</span>
+      <span className="w-6 h-6 rounded-full bg-cyan-50 text-cyan-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0" title="3rd">3</span>
     );
   }
   return (

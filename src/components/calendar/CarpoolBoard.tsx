@@ -74,7 +74,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
     <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
-          <Icon name="car" className="w-3 h-3 text-crimson-500" />
+          <Icon name="car" className="w-3 h-3 text-cyan-500" />
           Carpool
         </div>
         {currentUid && !adding && (
@@ -87,7 +87,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
             </button>
             <button
               onClick={() => setAdding('request')}
-              className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-crimson-50 text-crimson-700 border border-crimson-200 hover:bg-crimson-100"
+              className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100"
             >
               + Need ride
             </button>
@@ -134,7 +134,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
             <button
               onClick={submit}
               disabled={busy}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1 rounded bg-crimson-600 text-white disabled:opacity-50"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1 rounded bg-cyan-600 text-white disabled:opacity-50"
             >
               Post
             </button>
@@ -205,22 +205,22 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
           )}
           {requests.length > 0 && (
             <div>
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 mb-1">Requests</div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 mb-1">Requests</div>
               <div className="space-y-1.5">
                 {requests.map(p => {
                   const mine = p.uid === currentUid;
                   const claimedByMe = p.claimedByUid === currentUid;
                   const claimed = !!p.claimedByUid;
                   return (
-                    <div key={p.id} className="rounded-lg bg-crimson-50/50 border border-crimson-200 px-3 py-2">
+                    <div key={p.id} className="rounded-lg bg-cyan-50/50 border border-cyan-200 px-3 py-2">
                       <div className="flex items-start gap-2">
-                        <Icon name="help" className="w-4 h-4 text-crimson-600 mt-0.5" />
+                        <Icon name="help" className="w-4 h-4 text-cyan-600 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-crimson-900">
+                          <div className="text-sm font-semibold text-cyan-900">
                             {p.name} — needs a ride
-                            {p.location && <span className="font-normal text-crimson-700"> from {p.location}</span>}
+                            {p.location && <span className="font-normal text-cyan-700"> from {p.location}</span>}
                           </div>
-                          {p.note && <div className="text-xs text-crimson-700">{p.note}</div>}
+                          {p.note && <div className="text-xs text-cyan-700">{p.note}</div>}
                           {claimed && (
                             <div className="text-[11px] font-bold text-emerald-700 mt-1">
                               {claimedByMe ? "You're driving them" : `${p.claimedByName} is driving them`}
@@ -231,7 +231,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
                           <button
                             onClick={() => onDelete(p.id)}
                             aria-label="Remove post"
-                            className="text-crimson-400 hover:text-crimson-700 flex-shrink-0"
+                            className="text-cyan-400 hover:text-cyan-700 flex-shrink-0"
                           >
                             <Icon name="x" className="w-3 h-3" />
                           </button>
@@ -245,7 +245,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
                               className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded border ${
                                 claimedByMe
                                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                  : 'bg-white text-crimson-700 border-crimson-200 hover:bg-crimson-100'
+                                  : 'bg-white text-cyan-700 border-cyan-200 hover:bg-cyan-100'
                               }`}
                             >
                               {claimedByMe ? "✓ I'm driving — release?" : "I can drive them"}

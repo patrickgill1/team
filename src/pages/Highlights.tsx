@@ -161,7 +161,7 @@ const Highlights: React.FC = () => {
               Clear filters
             </button>
           )}
-          <Link to="/player-media" className="px-4 py-2 bg-crimson-600 hover:bg-crimson-700 rounded-lg text-sm font-medium">
+          <Link to="/player-media" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm font-medium">
             Go to Media
           </Link>
         </div>

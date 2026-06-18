@@ -57,7 +57,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
         className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cyan-50 to-white">
           <div>
             <h3 className="text-lg font-bold text-gray-900">📊 New poll</h3>
             <p className="text-xs text-gray-500">Ask the thread a quick question.</p>
@@ -78,7 +78,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Practice Friday or Saturday?"
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
               style={{ fontSize: '16px' }}
               maxLength={140}
             />
@@ -94,7 +94,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
                     value={o}
                     onChange={(e) => setOption(i, e.target.value)}
                     placeholder={`Option ${i + 1}`}
-                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
+                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
                     style={{ fontSize: '16px' }}
                     maxLength={60}
                   />
@@ -114,7 +114,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
               {options.length < 6 && (
                 <button
                   onClick={addOption}
-                  className="text-sm font-semibold text-crimson-700 hover:text-crimson-900"
+                  className="text-sm font-semibold text-cyan-700 hover:text-cyan-900"
                 >
                   + Add option
                 </button>
@@ -127,7 +127,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
               type="checkbox"
               checked={multi}
               onChange={(e) => setMulti(e.target.checked)}
-              className="w-4 h-4 accent-crimson-600"
+              className="w-4 h-4 accent-cyan-600"
             />
             Allow picking multiple options
           </label>
@@ -140,7 +140,7 @@ const CreatePollModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="bg-gradient-to-br from-crimson-500 to-crimson-600 hover:from-crimson-600 hover:to-crimson-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
+            className="bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
           >
             Send poll
           </button>

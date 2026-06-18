@@ -248,7 +248,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                       onChange={(e) => handleCaptionChange(file.name, e.target.value)}
                       placeholder="Add a caption for this photo..."
                       disabled={isUploading || uploadLoading}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 disabled:opacity-50"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                     />
                   </div>
                 ))}
@@ -265,7 +265,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                       disabled={isUploading || uploadLoading}
                       className={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 disabled:opacity-50 ${
                         selectedTags.includes(tag)
-                          ? 'bg-crimson-100 text-charcoal-800 border border-crimson-300'
+                          ? 'bg-blue-100 text-blue-800 border border-blue-300'
                           : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
                       }`}
                     >
@@ -344,7 +344,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-charcoal-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress.progress}%` }}
                 ></div>
               </div>
@@ -365,7 +365,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               <button
                 onClick={handleUpload}
                 disabled={isUploading || uploadLoading || selectedFiles.length === 0}
-                className="flex-1 bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
               >
                 {(isUploading || uploadLoading) ? (
                   <>

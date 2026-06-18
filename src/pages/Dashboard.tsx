@@ -548,14 +548,14 @@ const Dashboard: React.FC = () => {
   const eventEmoji = (t: string) => t === 'game' ? '⚽' : t === 'practice' ? '🏃' : '📅';
   const eventGradient = (t: string) =>
     t === 'game' ? 'from-rose-500 to-orange-500'
-      : t === 'practice' ? 'from-crimson-500 to-charcoal-600'
+      : t === 'practice' ? 'from-cyan-500 to-blue-600'
       : 'from-violet-500 to-fuchsia-500';
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
           <span className="text-sm text-gray-400 font-medium">Loading...</span>
         </div>
       </div>
@@ -579,7 +579,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-charcoal-950">
+    <div className="relative min-h-screen bg-slate-950">
       {/* Stadium hero — navy scene with floodlights that toggle on
           at dusk/night, a faint pitch silhouette, and the day's
           most important glance-able info (next-event RSVP count,
@@ -630,7 +630,7 @@ const Dashboard: React.FC = () => {
         {myPlayer && tonightGoal && (
           <Link
             to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-            className="block bg-gradient-to-br from-crimson-600 via-crimson-700 to-violet-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition px-5 py-4"
+            className="block bg-gradient-to-br from-cyan-600 via-cyan-700 to-violet-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition px-5 py-4"
           >
             <div className="flex items-center gap-3">
               <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 ring-1 ring-white/30 flex items-center justify-center">
@@ -701,13 +701,13 @@ const Dashboard: React.FC = () => {
             dashboard still sees announcements coaches posted in chat.
             Tap a card → deep-links into the chat tab on that thread. */}
         {wallPosts.length > 0 && (
-          <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
+          <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
             <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
+                <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
                 Announcements
               </h3>
-              <Link to="/wall" className="text-crimson-300 text-sm font-semibold hover:text-white">View all</Link>
+              <Link to="/wall" className="text-cyan-300 text-sm font-semibold hover:text-white">View all</Link>
             </div>
             <ul className="divide-y divide-white/5">
               {wallPosts.map(p => (
@@ -719,7 +719,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-bold text-white">{p.senderName}</span>
                       {p.senderRole === 'coach' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-crimson-200 bg-crimson-500/15 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">Coach</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-200 bg-cyan-500/15 ring-1 ring-cyan-400/30 px-1.5 py-0.5 rounded">Coach</span>
                       )}
                       <span className="text-[11px] text-white/40 ml-auto">
                         {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -836,7 +836,7 @@ const NextEventHero: React.FC<{
   const fullDate = `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`;
   const tileGradient =
     event.type === 'game' ? 'from-rose-500 to-orange-600' :
-    event.type === 'practice' ? 'from-crimson-500 to-charcoal-600' :
+    event.type === 'practice' ? 'from-cyan-500 to-blue-600' :
     'from-violet-500 to-fuchsia-600';
   return (
     <section
@@ -868,7 +868,7 @@ const NextEventHero: React.FC<{
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-crimson-600 mb-0.5">Next event</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 mb-0.5">Next event</p>
           <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight truncate">{event.title}</h2>
           <p className="text-sm text-gray-600 mt-1 flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -924,13 +924,13 @@ const NextEventHero: React.FC<{
             </span>
           )}
           {isCoach && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 text-xs font-bold whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 text-xs font-bold whitespace-nowrap">
               {counts.going} going
             </span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); goToCalendar(); }}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-crimson-50 hover:bg-crimson-100 text-crimson-700 ring-1 ring-crimson-200 text-xs font-bold whitespace-nowrap transition"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-cyan-50 hover:bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200 text-xs font-bold whitespace-nowrap transition"
           >
             View details
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -976,13 +976,13 @@ const AttendancePill: React.FC<{ label: string; value: number; dim?: boolean }> 
 
 const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
   return (
-    <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
+    <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           Recent chats
         </h3>
-        <Link to="/chat" className="text-crimson-300 text-sm font-semibold hover:text-white">View all</Link>
+        <Link to="/chat" className="text-cyan-300 text-sm font-semibold hover:text-white">View all</Link>
       </div>
       {chats.length === 0 ? (
         <div className="p-5 text-center">
@@ -1002,7 +1002,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
             for (let i = 0; i < (displayTitle || '').length; i++) hash = (hash * 31 + displayTitle.charCodeAt(i)) >>> 0;
             // Brand-coherent two-tone fallback — cyan for DMs you've
             // got a photo for and slate for everyone else. No rainbow.
-            const palette = ['bg-crimson-600', 'bg-slate-600'];
+            const palette = ['bg-cyan-600', 'bg-slate-600'];
             const avatarBg = palette[hash % palette.length];
             // For DMs, show the other participant's real photo when we have it.
             const dmPhotoUrl = isDM && otherUid ? userPhotoMap?.[otherUid] : undefined;
@@ -1046,7 +1046,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
                       {last?.senderName ? <span className="font-medium text-white/80">{last.senderName}: </span> : null}
                       {last?.content || (isDM ? 'Tap to start chatting' : 'No messages yet')}
                     </p>
-                    {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-crimson-400" />}
+                    {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-cyan-400" />}
                   </div>
                 </div>
               </Link>
@@ -1088,7 +1088,7 @@ const MyPlayerCard: React.FC<{
   // profile on the dashboard in gold when they get POTM."
   const cardBg = isPotm
     ? 'bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-500 ring-4 ring-amber-300/80 shadow-2xl shadow-amber-500/50'
-    : 'bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ring-white/10';
+    : 'bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 ring-1 ring-white/10';
   const accentText = isPotm ? 'text-amber-50' : 'text-white/70';
   const subText = isPotm ? 'text-amber-100/80' : 'text-white/60';
   return (
@@ -1143,12 +1143,12 @@ const MyPlayerCard: React.FC<{
               loading="lazy"
             />
           ) : (
-            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}>
+            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-blue-700 flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}>
               {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
           )}
           {p.profilePhotoUrl && player.jerseyNumber != null && (
-            <span className="absolute -bottom-1 -right-1 bg-white text-charcoal-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-charcoal-900">
+            <span className="absolute -bottom-1 -right-1 bg-white text-fire-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-fire-900">
               #{player.jerseyNumber}
             </span>
           )}
@@ -1158,10 +1158,10 @@ const MyPlayerCard: React.FC<{
           {streakDays > 0 && (
             <span
               title={`${streakDays}-day practice streak`}
-              className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-full text-[11px] font-black tabular-nums shadow-lg ring-2 ring-charcoal-900 ${
+              className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-full text-[11px] font-black tabular-nums shadow-lg ring-2 ring-fire-900 ${
                 streakDays >= 3
                   ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
-                  : 'bg-crimson-500 text-white'
+                  : 'bg-cyan-500 text-white'
               }`}
             >
               {streakDays >= 3 ? '🔥' : ''}{streakDays}
@@ -1222,7 +1222,7 @@ const MyPlayerCard: React.FC<{
 
         {/* View profile pill */}
         <div className="flex-shrink-0 self-center">
-          <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow ${isPotm ? 'bg-amber-900 text-amber-100' : 'bg-white text-charcoal-950'}`}>
+          <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow ${isPotm ? 'bg-amber-900 text-amber-100' : 'bg-white text-fire-950'}`}>
             View profile
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -1245,17 +1245,17 @@ const TeamPulseCard: React.FC<{
   const ts: any = topScorer;
   const ta: any = topAssister;
   return (
-    <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
+    <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
             <line x1="6" y1="20" x2="6" y2="14" />
           </svg>
           Team pulse
         </h3>
-        <Link to="/stats" className="text-crimson-300 text-sm font-semibold hover:text-white">Season stats</Link>
+        <Link to="/stats" className="text-cyan-300 text-sm font-semibold hover:text-white">Season stats</Link>
       </div>
 
       {/* Live game tracker entry point — coach can start a session
@@ -1264,7 +1264,7 @@ const TeamPulseCard: React.FC<{
         to={`/game-day/quick_${Date.now()}`}
         className="mx-4 mt-4 p-3 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/30 flex items-center gap-3 hover:bg-emerald-500/20 transition active:scale-[0.99]"
       >
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-crimson-600 text-white flex items-center justify-center shadow flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 text-white flex items-center justify-center shadow flex-shrink-0">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="6" />
@@ -1293,7 +1293,7 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-crimson-200/60">Top scorer</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200/60">Top scorer</p>
                 <p className="font-bold text-white text-sm truncate">{topScorer.name}</p>
                 <p className="text-xs text-emerald-300 font-bold">
                   <span className="font-black">{topScorer.stats?.goals || 0}</span>{' '}
@@ -1304,7 +1304,7 @@ const TeamPulseCard: React.FC<{
           )}
           {topAssister && topAssister.id !== topScorer?.id && (
             <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-white/[0.05] transition">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-crimson-500 to-charcoal-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ta.profilePhotoUrl ? (
                   <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
                 ) : (
@@ -1312,9 +1312,9 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-crimson-200/60">Top assister</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-200/60">Top assister</p>
                 <p className="font-bold text-white text-sm truncate">{topAssister.name}</p>
-                <p className="text-xs text-crimson-300 font-bold">
+                <p className="text-xs text-cyan-300 font-bold">
                   <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
                   <span className="text-white/40 font-medium uppercase tracking-wider text-[10px]">assists</span>
                 </p>
@@ -1360,7 +1360,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
 
       {/* Top-left: label + headline */}
       <div className="absolute top-4 sm:top-5 left-4 sm:left-5 right-32 text-white">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-crimson-300 mb-1">Latest highlight</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300 mb-1">Latest highlight</p>
         <p className="text-2xl sm:text-3xl font-black leading-tight drop-shadow">{headline}</p>
         {ctxLine && (
           <p className="text-sm text-white/85 mt-0.5 drop-shadow">{ctxLine}</p>
@@ -1370,7 +1370,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
       {/* Center play button */}
       {clip.type === 'video' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-crimson-500/95 ring-2 ring-white/80 shadow-2xl flex items-center justify-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-cyan-500/95 ring-2 ring-white/80 shadow-2xl flex items-center justify-center">
             <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
@@ -1380,7 +1380,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
 
       {/* Bottom-left: Watch clip link */}
       <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
-        <span className="inline-flex items-center gap-1.5 text-crimson-300 font-bold text-sm drop-shadow">
+        <span className="inline-flex items-center gap-1.5 text-cyan-300 font-bold text-sm drop-shadow">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
             <path d="M10 8l6 4-6 4V8z" />
@@ -1411,18 +1411,18 @@ const DashTile: React.FC<{
 }> = ({ to, label, icon, badge, badgeTone = 'rose' }) => {
   const badgeColor = {
     rose: 'bg-rose-500 text-white',
-    cyan: 'bg-crimson-500 text-white',
+    cyan: 'bg-cyan-500 text-white',
     amber: 'bg-orange-500 text-white',
   }[badgeTone];
   return (
     <Link
       to={to}
-      className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ring-white/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-white/20 hover:bg-white/[0.03] active:scale-[0.97] transition shadow"
+      className="relative bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 ring-1 ring-white/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-white/20 hover:bg-white/[0.03] active:scale-[0.97] transition shadow"
     >
-      <span className="text-crimson-300">{icon}</span>
+      <span className="text-cyan-300">{icon}</span>
       <span className="text-[11px] font-bold uppercase tracking-widest text-white/85">{label}</span>
       {badge != null && badge !== 0 && badge !== '' && (
-        <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-charcoal-950 ${badgeColor}`}>
+        <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-fire-950 ${badgeColor}`}>
           {badge}
         </span>
       )}
@@ -1435,8 +1435,8 @@ const FooterStat: React.FC<{
   value: number;
   icon?: React.ReactNode;
   tint?: string;
-}> = ({ label, value, icon, tint = 'bg-white/10 text-crimson-200' }) => (
-  <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-xl ring-1 ring-white/10 px-3 py-2.5 flex items-center gap-2.5 shadow">
+}> = ({ label, value, icon, tint = 'bg-white/10 text-cyan-200' }) => (
+  <div className="bg-gradient-to-br from-fire-950 via-navy-900 to-fire-950 rounded-xl ring-1 ring-white/10 px-3 py-2.5 flex items-center gap-2.5 shadow">
     {icon && (
       <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tint}`}>
         {icon}
@@ -1444,7 +1444,7 @@ const FooterStat: React.FC<{
     )}
     <div className="min-w-0">
       <div className="text-xl font-black text-white leading-none">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider font-bold text-crimson-200/70 mt-0.5">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider font-bold text-cyan-200/70 mt-0.5">{label}</div>
     </div>
   </div>
 );

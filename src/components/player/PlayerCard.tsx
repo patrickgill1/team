@@ -28,14 +28,14 @@ const positionDot = (pos?: string): string => {
     case 'Forward':
     case 'Striker': return 'bg-rose-400';
     case 'Winger': return 'bg-orange-400';
-    default: return 'bg-crimson-400';
+    default: return 'bg-cyan-400';
   }
 };
 
 const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ label, value, accent }) => {
   const ring =
     accent === 'emerald' ? 'text-emerald-300' :
-    accent === 'cyan' ? 'text-crimson-300' :
+    accent === 'cyan' ? 'text-cyan-300' :
     accent === 'amber' ? 'text-amber-300' :
     'text-violet-300';
   return (
@@ -136,10 +136,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-charcoal-900 to-charcoal-800 p-4 sm:p-5 text-white shadow-md border border-crimson-500/10">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 p-4 sm:p-5 text-white shadow-md border border-cyan-500/10">
         {/* Faint cyan accent — keeps a hint of "card has personality"
             without the bubbly blur-blob look. */}
-        <div className="absolute -top-12 -right-12 w-32 h-32 bg-crimson-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
         {/* Edit / Delete actions */}
         {canEdit && (
@@ -191,10 +191,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               {((player as any).currentStreakDays ?? 0) > 0 && (
                 <span
                   title={`${(player as any).currentStreakDays}-day practice streak`}
-                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-lg ring-2 ring-charcoal-900 ${
+                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-lg ring-2 ring-fire-900 ${
                     ((player as any).currentStreakDays ?? 0) >= 3
                       ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
-                      : 'bg-crimson-500 text-white'
+                      : 'bg-cyan-500 text-white'
                   }`}
                 >
                   {((player as any).currentStreakDays ?? 0) >= 3 ? '🔥' : ''}{(player as any).currentStreakDays}
@@ -220,7 +220,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 </div>
               )}
               {player.profilePhotoUrl && player.jerseyNumber != null && (
-                <span className="absolute -bottom-1 -right-1 bg-white text-charcoal-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-charcoal-900">
+                <span className="absolute -bottom-1 -right-1 bg-white text-fire-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-fire-900">
                   #{player.jerseyNumber}
                 </span>
               )}
@@ -275,7 +275,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="flex flex-wrap gap-2 items-center">
             <Link
               to={`/player/${player.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-fire-800 font-bold text-sm shadow hover:scale-105 transition"
             >
               View Profile →
             </Link>
@@ -283,7 +283,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               <button
                 onClick={handleInviteParent}
                 disabled={generatingInvite}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-crimson-400/20 ring-1 ring-crimson-300/40 text-crimson-200 hover:bg-crimson-400/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-cyan-400/20 ring-1 ring-cyan-300/40 text-cyan-200 hover:bg-cyan-400/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
                 title="Generate a one-tap link to share with a parent"
               >
                 {generatingInvite ? '…' : '✉ Invite Parent'}
@@ -330,10 +330,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                       <div key={index} className="text-xs text-white/85">
                         <span className="font-semibold">{contact.name}</span>
                         <span className="text-white/60"> ({contact.relationship})</span>
-                        {contact.isPrimary && <span className="text-crimson-300 ml-1">• Primary</span>}
+                        {contact.isPrimary && <span className="text-cyan-300 ml-1">• Primary</span>}
                         <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="block text-crimson-300 hover:text-crimson-200 underline-offset-2 hover:underline"
+                          className="block text-cyan-300 hover:text-cyan-200 underline-offset-2 hover:underline"
                         >
                           {contact.phoneNumber}
                         </a>
@@ -366,7 +366,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-charcoal-950 mb-2">Archive Player</h3>
+              <h3 className="text-lg font-semibold text-fire-950 mb-2">Archive Player</h3>
               <p className="text-sm text-gray-500 mb-6">
                 Archive <strong>{player.name}</strong>? They'll be removed from the active roster but their stats, photos, and history are preserved. You can restore them later from the Archived view.
               </p>

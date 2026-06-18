@@ -151,7 +151,7 @@ const RegistrationFormBuilder: React.FC = () => {
           <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">
             ← Club
           </Link>
-          <h1 className="text-2xl font-black text-charcoal-950 mt-1">Registration form</h1>
+          <h1 className="text-2xl font-black text-fire-950 mt-1">Registration form</h1>
           <p className="text-sm text-slate-600">
             Extra questions parents answer on the public registration page.
             Default applies whenever a season-specific form isn't set up.
@@ -164,7 +164,7 @@ const RegistrationFormBuilder: React.FC = () => {
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
             >
               <option value="default">Club default (used when season has no override)</option>
               {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -200,7 +200,7 @@ const RegistrationFormBuilder: React.FC = () => {
               <button
                 type="button"
                 onClick={addQuestion}
-                className="px-3 py-2 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-crimson-400 text-sm font-bold text-slate-700"
+                className="px-3 py-2 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-cyan-400 text-sm font-bold text-slate-700"
               >
                 + Add question
               </button>
@@ -210,7 +210,7 @@ const RegistrationFormBuilder: React.FC = () => {
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
+                  className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold"
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>

@@ -9,7 +9,7 @@ const APP_DOMAIN = 'firefc.app';
 const PrivacyPolicy: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
-      <header className="bg-gradient-to-r from-charcoal-700 via-charcoal-600 to-charcoal-700 text-white">
+      <header className="bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           <Link to="/" className="text-sm text-white/70 hover:text-white inline-flex items-center gap-1">
             ← Back to {APP_NAME}
@@ -28,7 +28,7 @@ const PrivacyPolicy: React.FC = () => {
         </p>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Information We Collect</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Information We Collect</h2>
           <p className="mb-2">We collect only what's needed to run your team:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Account info</strong>: name, email address, and optionally phone number, profile photo, and address (parent role only, optional).</li>
@@ -42,7 +42,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">How We Use This Information</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">How We Use This Information</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>To create and authenticate your account.</li>
             <li>To show team rosters, schedules, photos, messages, and stats to the people on your team.</li>
@@ -56,7 +56,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Who Can See Your Information</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Who Can See Your Information</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li><strong>Your team</strong>: coaches, team managers, and parents on the same team can see player records, rosters, photos, calendar events, and messages within that team.</li>
             <li><strong>Public share links</strong>: when a coach or parent generates a share link for an event, photo, video, or "Player of the Match" vote, anyone with that link can view (and in some cases respond to) the linked item without signing in. Don't share the link with anyone you don't want viewing the content.</li>
@@ -72,7 +72,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Children's Privacy</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Children's Privacy</h2>
           <p>
             {APP_NAME} is intended for use by coaches, team managers, and parents — not by
             children directly. Information about players (who may be under 13) is entered by
@@ -83,17 +83,17 @@ const PrivacyPolicy: React.FC = () => {
           <p className="mt-2">
             If you are a parent or guardian and would like a player's information removed
             from the App, contact your coach or email us at{' '}
-            <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            <a className="text-cyan-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Data Retention & Deletion</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Data Retention & Deletion</h2>
           <p>
             We retain account information and team data for as long as your account is active
             and your team is using the App. You can request deletion of your own account
             (and any data tied solely to you) at any time by emailing{' '}
-            <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{' '}
+            <a className="text-cyan-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{' '}
             from the email address on your account. We will delete or anonymize your data
             within 30 days, except where retention is required for legal, billing, or
             security purposes.
@@ -105,7 +105,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Location</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Location</h2>
           <p>
             <strong>The App does not request your device's location.</strong> Coaches
             create events by searching for a venue on a map and dropping a pin — the
@@ -120,7 +120,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Security</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Security</h2>
           <p>
             Data is transmitted over HTTPS and stored with our service providers (Google
             Firebase, Cloudflare) using their standard at-rest encryption. No system is
@@ -130,19 +130,19 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Your Choices</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Your Choices</h2>
           <ul className="list-disc pl-6 space-y-1">
             <li>You can edit or remove information from your profile inside the App.</li>
             <li>You can disable push notifications in your device settings.</li>
             <li>You can revoke share links you created from the relevant section of the App.</li>
             <li>You can request a copy of, or deletion of, your account data by emailing{' '}
-              <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+              <a className="text-cyan-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
             </li>
           </ul>
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">International Users</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">International Users</h2>
           <p>
             {APP_NAME} is operated from the United States. By using the App you understand
             that your information will be processed in the United States, which may have
@@ -151,7 +151,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Changes to This Policy</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy as the App evolves. If we make a material
             change, we will update the "Effective" date above and, where appropriate, notify
@@ -160,10 +160,10 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Contact</h2>
+          <h2 className="text-xl font-bold text-navy-900 mt-6 mb-2">Contact</h2>
           <p>
             Questions, requests, or concerns? Email{' '}
-            <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            <a className="text-cyan-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
         </section>
 

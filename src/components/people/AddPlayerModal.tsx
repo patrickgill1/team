@@ -148,12 +148,12 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
               <div className="text-sm font-bold text-emerald-900">{result.playerName} added to the roster.</div>
             </div>
             {result.inviteUrl ? (
-              <div className="rounded-lg border border-crimson-200 bg-crimson-50/50 p-3 space-y-2">
-                <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700">Parent invite link</div>
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50/50 p-3 space-y-2">
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700">Parent invite link</div>
                 <div className="text-xs font-mono text-slate-900 break-all">{result.inviteUrl}</div>
                 <button
                   onClick={copy}
-                  className="w-full text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md bg-crimson-600 text-white hover:bg-crimson-500"
+                  className="w-full text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md bg-cyan-600 text-white hover:bg-cyan-500"
                 >
                   {copied ? '✓ Copied' : 'Copy link'}
                 </button>
@@ -164,7 +164,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
             )}
             <button
               onClick={onClose}
-              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-charcoal-900 text-white"
+              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-slate-900 text-white"
             >
               Done
             </button>
@@ -219,11 +219,11 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                       key={t.id}
                       onClick={() => toggleTeam(t.id)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
-                        on ? 'bg-crimson-50 border-crimson-200 text-crimson-900' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                        on ? 'bg-cyan-50 border-cyan-200 text-cyan-900' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
                       }`}
                     >
                       <span className="font-semibold">{t.name}</span>
-                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-slate-300'}`}>
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-cyan-600 border-cyan-600 text-white' : 'border-slate-300'}`}>
                         {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                       </span>
                     </button>
@@ -239,7 +239,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                   type="checkbox"
                   checked={generateInvite}
                   onChange={e => setGenerateInvite(e.target.checked)}
-                  className="rounded text-crimson-600 focus:ring-crimson-500"
+                  className="rounded text-cyan-600 focus:ring-cyan-500"
                 />
                 <span className="text-xs font-bold text-slate-800">Also generate a parent invite link</span>
               </label>
@@ -260,7 +260,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
             <button
               onClick={save}
               disabled={busy || !name.trim() || selectedTeams.size === 0}
-              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white shadow-md shadow-crimson-500/30 disabled:opacity-40"
+              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/30 disabled:opacity-40"
             >
               {busy ? 'Saving…' : 'Add player'}
             </button>

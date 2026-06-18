@@ -80,7 +80,7 @@ const GifPicker: React.FC<Props> = ({ isOpen, onClose, onPick }) => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search GIFs (e.g. goal, high five, celebrate)"
-                className="w-full bg-gray-100 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-300 text-[15px]"
+                className="w-full bg-gray-100 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-[15px]"
                 style={{ fontSize: '16px' }}
               />
             </div>

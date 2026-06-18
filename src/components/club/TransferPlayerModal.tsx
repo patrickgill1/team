@@ -83,7 +83,7 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
         className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cyan-50 to-white">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Move {player.name}</h3>
             <p className="text-xs text-gray-500">Transfer to a new team, or share across multiple teams.</p>
@@ -102,7 +102,7 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
               onClick={() => setMode('move')}
               className={`p-3 rounded-xl text-left ring-1 transition ${
                 mode === 'move'
-                  ? 'ring-crimson-500 bg-crimson-50/60 shadow-sm'
+                  ? 'ring-cyan-500 bg-cyan-50/60 shadow-sm'
                   : 'ring-gray-200 bg-white hover:bg-gray-50'
               }`}
             >
@@ -147,7 +147,7 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
             <select
               value={destinationId}
               onChange={(e) => setDestinationId(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
               style={{ fontSize: '16px' }}
             >
               <option value="">Choose a team…</option>
@@ -170,7 +170,7 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
           <button
             onClick={handleSubmit}
             disabled={!destinationId || saving}
-            className="bg-crimson-600 hover:bg-crimson-700 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition-colors"
+            className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition-colors"
           >
             {saving ? 'Saving…' : mode === 'move' ? 'Transfer' : 'Share'}
           </button>

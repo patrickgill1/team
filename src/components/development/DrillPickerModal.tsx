@@ -104,7 +104,7 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by title or focus…"
-            className="flex-1 min-w-[180px] px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+            className="flex-1 min-w-[180px] px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
           />
           <select
             value={filterTopic}
@@ -138,18 +138,18 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
                       type="button"
                       onClick={() => toggle(d.id)}
                       className={`w-full text-left p-3 rounded-xl border transition-colors ${
-                        isSel ? 'bg-crimson-50 border-crimson-300 ring-1 ring-crimson-300' : 'bg-white border-slate-200 hover:border-slate-300'
+                        isSel ? 'bg-cyan-50 border-cyan-300 ring-1 ring-cyan-300' : 'bg-white border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-white text-xs font-bold ${
-                          isSel ? 'bg-crimson-600' : 'bg-slate-200'
+                          isSel ? 'bg-cyan-600' : 'bg-slate-200'
                         }`}>
                           {isSel && (
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                           )}
                         </span>
-                        <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">
                           {TOPIC_LABELS[d.topic]}
                         </span>
                         {d.source === 'ai' && (
@@ -181,7 +181,7 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
           <button
             onClick={handleAdd}
             disabled={selected.size === 0}
-            className="px-4 py-2 text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 rounded-lg"
+            className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg"
           >
             Add {selected.size} drill{selected.size === 1 ? '' : 's'}
           </button>

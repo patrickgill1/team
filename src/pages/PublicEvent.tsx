@@ -270,7 +270,7 @@ const PublicEvent: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-200 border-t-cyan-500" />
       </div>
     );
   }
@@ -279,7 +279,7 @@ const PublicEvent: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-8 text-center">
         <p className="text-slate-600 mb-4 text-sm">{error || 'Event not found.'}</p>
-        <Link to="/" className="text-crimson-600 font-semibold text-sm">← Go home</Link>
+        <Link to="/" className="text-cyan-600 font-semibold text-sm">← Go home</Link>
       </div>
     );
   }
@@ -291,16 +291,16 @@ const PublicEvent: React.FC = () => {
 
   const typeChip =
     event.type === 'game' ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
-    : event.type === 'practice' ? 'bg-crimson-500/15 border-crimson-500/30 text-crimson-300'
+    : event.type === 'practice' ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
     : 'bg-purple-500/15 border-purple-500/30 text-purple-300';
   const countdownClass =
     countdown.variant === 'live' ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
     : countdown.variant === 'past' ? 'bg-slate-500/10 border-slate-500/20 text-slate-400'
-    : 'bg-crimson-500/10 border-crimson-500/25 text-slate-200';
+    : 'bg-cyan-500/10 border-cyan-500/25 text-slate-200';
   const pulseClass =
     countdown.variant === 'live' ? 'bg-rose-500'
     : countdown.variant === 'past' ? 'bg-slate-500'
-    : 'bg-crimson-400 animate-pulse';
+    : 'bg-cyan-400 animate-pulse';
 
   const RsvpButton: React.FC<{ status: RsvpStatus; label: string; icon: string; activeBg: string; }> = ({ status, label, icon, activeBg }) => {
     const active = myStatus === status;
@@ -323,7 +323,7 @@ const PublicEvent: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* HERO */}
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-crimson-500/10 px-4 sm:px-6 pt-5 pb-6">
+      <section className="bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10 px-4 sm:px-6 pt-5 pb-6">
         <div className="max-w-xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-extrabold tracking-widest uppercase text-slate-300">
@@ -355,7 +355,7 @@ const PublicEvent: React.FC = () => {
                   lon: (event as any).locationCoords?.lon,
                 })}
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-crimson-300 underline decoration-dotted underline-offset-2"
+                className="inline-flex items-center gap-1 hover:text-cyan-300 underline decoration-dotted underline-offset-2"
               >
                 <Icon name="pin" className="w-3 h-3 text-slate-400" /> {event.location}
               </a>
@@ -377,7 +377,7 @@ const PublicEvent: React.FC = () => {
               value={name}
               onChange={(e) => { setName(e.target.value); setMatchedPlayerId(null); }}
               placeholder="Your name (or your kid's)"
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
             />
             {matchedPlayerId && (
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -392,7 +392,7 @@ const PublicEvent: React.FC = () => {
                 <button
                   key={s.id}
                   onClick={() => pickSuggestion(s)}
-                  className="text-[12px] font-bold px-2 py-1 rounded bg-crimson-50 border border-crimson-200 text-crimson-800 hover:bg-crimson-100"
+                  className="text-[12px] font-bold px-2 py-1 rounded bg-cyan-50 border border-cyan-200 text-cyan-800 hover:bg-cyan-100"
                 >
                   {s.name}
                 </button>
@@ -405,7 +405,7 @@ const PublicEvent: React.FC = () => {
               type="checkbox"
               checked={isCoach}
               onChange={(e) => setIsCoach(e.target.checked)}
-              className="rounded text-crimson-600 focus:ring-crimson-500"
+              className="rounded text-cyan-600 focus:ring-cyan-500"
             />
             I'm a coach / staff (not a player)
           </label>
@@ -413,7 +413,7 @@ const PublicEvent: React.FC = () => {
           <div className="mt-3 flex gap-2">
             <RsvpButton status="going" label="Going" icon="check" activeBg="bg-gradient-to-br from-emerald-500 to-emerald-700" />
             <RsvpButton status="maybe" label="Maybe" icon="q" activeBg="bg-gradient-to-br from-amber-500 to-amber-700" />
-            <RsvpButton status="no" label="Can't go" icon="x" activeBg="bg-gradient-to-br from-slate-600 to-charcoal-800" />
+            <RsvpButton status="no" label="Can't go" icon="x" activeBg="bg-gradient-to-br from-slate-600 to-slate-800" />
           </div>
           {justSaved && (
             <p className="mt-2 text-[11px] font-bold tracking-wide text-emerald-700 text-center">
@@ -425,7 +425,7 @@ const PublicEvent: React.FC = () => {
         {/* RSVP buckets + going list */}
         <div className="bg-white rounded-xl shadow-sm p-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
-            <Icon name="users" className="w-3 h-3 text-crimson-500" />
+            <Icon name="users" className="w-3 h-3 text-cyan-500" />
             Headcount
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -449,7 +449,7 @@ const PublicEvent: React.FC = () => {
             <ul className="mt-3 divide-y divide-slate-100">
               {goingPeople.slice(0, 12).map((p, i) => (
                 <li key={i} className="py-1.5 flex items-center gap-2.5">
-                  <span className="w-6 h-6 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 flex-shrink-0" />
+                  <span className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex-shrink-0" />
                   <span className="text-sm font-semibold text-slate-900 flex-1 truncate">{p.name}</span>
                   <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${
                     p.isGuest
@@ -468,7 +468,7 @@ const PublicEvent: React.FC = () => {
         {weather && (
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
-              <Icon name="cloud" className="w-3 h-3 text-crimson-500" />
+              <Icon name="cloud" className="w-3 h-3 text-cyan-500" />
               Weather
             </div>
             <div className="flex items-center gap-3">
@@ -497,7 +497,7 @@ const PublicEvent: React.FC = () => {
 
         <p className="text-[11px] text-slate-400 text-center pt-3">
           Get the full team experience —
-          {' '}<a href="/" className="text-crimson-600 font-bold underline">install GoalKickr</a>.
+          {' '}<a href="/" className="text-cyan-600 font-bold underline">install GoalKickr</a>.
         </p>
       </div>
     </div>

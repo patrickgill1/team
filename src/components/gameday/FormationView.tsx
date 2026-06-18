@@ -200,12 +200,12 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
                     className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-md pointer-events-none"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 text-white font-black flex items-center justify-center ring-2 ring-white shadow-md pointer-events-none">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-cyan-400 to-blue-700 text-white font-black flex items-center justify-center ring-2 ring-white shadow-md pointer-events-none">
                     {(p.name || '?').charAt(0)}
                   </div>
                 )}
                 {p.jerseyNumber != null && (
-                  <span className="absolute -bottom-1 -right-1 px-1 rounded bg-charcoal-900 text-white text-[9px] font-black ring-2 ring-white tabular-nums pointer-events-none">
+                  <span className="absolute -bottom-1 -right-1 px-1 rounded bg-fire-900 text-white text-[9px] font-black ring-2 ring-white tabular-nums pointer-events-none">
                     #{p.jerseyNumber}
                   </span>
                 )}

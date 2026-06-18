@@ -31,13 +31,13 @@ interface SceneSpec {
 }
 
 function sceneFor(hour: number): SceneSpec {
-  if (hour < 5.5) return { phase: 'night',      gradient: 'from-charcoal-950/85 via-charcoal-950/70 to-charcoal-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-charcoal-900/80 via-indigo-950/70 to-charcoal-800/80',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
-  if (hour < 10)  return { phase: 'morning',    gradient: 'from-charcoal-900/70 via-charcoal-800/55 to-slate-700/65',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
-  if (hour < 16)  return { phase: 'midday',     gradient: 'from-charcoal-900/55 via-charcoal-800/40 to-slate-700/55',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
-  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-charcoal-950/70 via-charcoal-900/55 to-rose-900/40',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
-  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-charcoal-950/80 via-charcoal-900/70 to-charcoal-800/80',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  return            { phase: 'night',      gradient: 'from-charcoal-950/85 via-charcoal-950/70 to-charcoal-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  if (hour < 5.5) return { phase: 'night',      gradient: 'from-slate-950/85 via-slate-950/70 to-slate-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-slate-900/80 via-indigo-950/70 to-slate-800/80',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
+  if (hour < 10)  return { phase: 'morning',    gradient: 'from-slate-900/70 via-slate-800/55 to-slate-700/65',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
+  if (hour < 16)  return { phase: 'midday',     gradient: 'from-slate-900/55 via-slate-800/40 to-slate-700/55',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
+  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-slate-950/70 via-slate-900/55 to-rose-900/40',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
+  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-slate-950/80 via-slate-900/70 to-slate-800/80',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  return            { phase: 'night',      gradient: 'from-slate-950/85 via-slate-950/70 to-slate-900/85',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
 }
 
 interface Props {
@@ -93,7 +93,7 @@ const DashboardHero: React.FC<Props> = ({
       // proportionally fills the screen — on a 1784px tall monitor
       // the stadium photo was rendering as a thin strip with empty
       // dark space below the cards. Mobile keeps its natural height.
-      className="relative overflow-hidden bg-charcoal-950 sm:min-h-[260px] lg:min-h-[360px] xl:min-h-[440px]"
+      className="relative overflow-hidden bg-slate-950 sm:min-h-[260px] lg:min-h-[360px] xl:min-h-[440px]"
       aria-label={`${greeting}, ${firstName}`}
     >
       {/* Time-of-day stadium photo behind the gradient. img errors are
@@ -119,7 +119,7 @@ const DashboardHero: React.FC<Props> = ({
           harsh on the transition to the profile card". */}
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-charcoal-950 pointer-events-none"
+        className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-slate-950 pointer-events-none"
       />
       {/* (Painted stars / moon / pitch-perspective SVG removed — the
           real time-of-day stadium photo behind the gradient already
@@ -144,16 +144,16 @@ const DashboardHero: React.FC<Props> = ({
             <Link
               to={`/events/${nextEvent.id}`}
               aria-label={`${nextEvent.title} on ${eventMonth} ${eventDay} ${eventDow}`}
-              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-charcoal-900/55 ring-1 ring-crimson-400/40 shadow-lg shadow-crimson-500/10"
+              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-slate-900/55 ring-1 ring-cyan-400/40 shadow-lg shadow-cyan-500/10"
             >
-              <span className="text-[10px] font-bold tracking-wider text-crimson-300">{eventMonth}</span>
+              <span className="text-[10px] font-bold tracking-wider text-cyan-300">{eventMonth}</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{eventDay}</span>
               <span className="text-[9px] font-semibold tracking-wider text-slate-300 mt-0.5">{eventDow}</span>
             </Link>
 
             {/* Event title + metadata (when · weather · going count) */}
             <Link to={`/events/${nextEvent.id}`} className="min-w-0 group">
-              <p className="text-base sm:text-lg font-bold text-crimson-300 group-hover:underline leading-tight truncate">
+              <p className="text-base sm:text-lg font-bold text-cyan-300 group-hover:underline leading-tight truncate">
                 {nextEvent.title}
               </p>
               <p className="mt-0.5 text-xs sm:text-sm text-slate-200 truncate">
@@ -178,7 +178,7 @@ const DashboardHero: React.FC<Props> = ({
                 className="flex items-center gap-2 group"
                 aria-label={`${newMessagesCount} new messages`}
               >
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-crimson-500/20 text-crimson-300">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 11-3.41-6.55L21 4v6h-6" />
                   </svg>
@@ -215,7 +215,7 @@ const DashboardHero: React.FC<Props> = ({
             <Link
               to="/players"
               aria-label={`${playerCount} players on roster`}
-              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-charcoal-900/55 ring-1 ring-crimson-400/40 shadow-lg shadow-crimson-500/10"
+              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-slate-900/55 ring-1 ring-cyan-400/40 shadow-lg shadow-cyan-500/10"
             >
               <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{playerCount}</span>
               <span className="text-[9px] font-semibold tracking-wider text-slate-300 mt-1">ROSTER</span>
@@ -223,14 +223,14 @@ const DashboardHero: React.FC<Props> = ({
 
             {/* Middle: friendly empty state + CTA */}
             <div className="min-w-0">
-              <p className="text-base sm:text-lg font-bold text-crimson-300 leading-tight">All quiet for now</p>
+              <p className="text-base sm:text-lg font-bold text-cyan-300 leading-tight">All quiet for now</p>
               <p className="mt-0.5 text-xs sm:text-sm text-slate-300">
                 No upcoming events on the calendar.
               </p>
               {isCoach && (
                 <Link
                   to="/calendar"
-                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] sm:text-xs font-extrabold tracking-widest uppercase text-crimson-400 hover:text-crimson-300"
+                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] sm:text-xs font-extrabold tracking-widest uppercase text-cyan-400 hover:text-cyan-300"
                 >
                   + Schedule one
                 </Link>
@@ -244,7 +244,7 @@ const DashboardHero: React.FC<Props> = ({
                 className="flex items-center gap-2 group"
                 aria-label={`${newMessagesCount} new messages`}
               >
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-crimson-500/20 text-crimson-300">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 11-3.41-6.55L21 4v6h-6" />
                   </svg>

@@ -155,12 +155,12 @@ The Team Manager Team`;
 
         {/* Team ID Display for Coaches */}
         {isUserCoach && (
-          <div className="mb-4 p-3 bg-crimson-50 border border-crimson-200 rounded-lg">
-            <p className="text-sm font-medium text-charcoal-900 mb-1">Your Team ID:</p>
-            <p className="text-xs font-mono text-charcoal-700 bg-white px-2 py-1 rounded border">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm font-medium text-blue-900 mb-1">Your Team ID:</p>
+            <p className="text-xs font-mono text-blue-700 bg-white px-2 py-1 rounded border">
               {selectedTeamId || userData?.teamId}
             </p>
-            <p className="text-xs text-charcoal-600 mt-1">
+            <p className="text-xs text-blue-600 mt-1">
               Parents who join will automatically be added to this team
             </p>
           </div>
@@ -203,7 +203,7 @@ The Team Manager Team`;
                 setError('');
               }}
               onKeyPress={handleKeyPress}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter their email address"
               disabled={isSending}
               autoComplete="email"
@@ -219,7 +219,7 @@ The Team Manager Team`;
               id="relationship"
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isSending}
             >
               {isUserCoach ? (
@@ -247,7 +247,7 @@ The Team Manager Team`;
             <button
               onClick={handleSendInvite}
               disabled={isSending || !email.trim()}
-              className="flex-1 bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSending ? (
                 <>
@@ -289,14 +289,14 @@ The Team Manager Team`;
           </div>
 
           {/* Instructions */}
-          <div className="bg-crimson-50 border border-crimson-200 rounded-lg p-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-start">
-              <svg className="w-5 h-5 text-charcoal-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
-                <p className="text-charcoal-800 text-sm font-medium mb-1">How it works:</p>
-                <ol className="text-charcoal-700 text-xs space-y-1">
+                <p className="text-blue-800 text-sm font-medium mb-1">How it works:</p>
+                <ol className="text-blue-700 text-xs space-y-1">
                   <li>1. They'll receive an email with the invite link</li>
                   <li>2. Clicking the link takes them to the registration page</li>
                   <li>3. They create their account and automatically join your team (ID: {selectedTeamId || userData?.teamId})</li>

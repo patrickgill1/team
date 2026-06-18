@@ -16,11 +16,11 @@ const QuickGameLauncher: React.FC = () => {
 
   if (!isCoach(userData?.role || '')) {
     return (
-      <div className="min-h-screen bg-charcoal-950 text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-navy-950 text-white flex items-center justify-center p-6">
         <div className="text-center">
           <div className="text-5xl mb-3">🔒</div>
           <p className="text-white/70">Only coaches can start a game.</p>
-          <Link to="/dashboard" className="mt-4 inline-block text-crimson-300 hover:text-crimson-200 text-sm">← Dashboard</Link>
+          <Link to="/dashboard" className="mt-4 inline-block text-cyan-300 hover:text-cyan-200 text-sm">← Dashboard</Link>
         </div>
       </div>
     );
@@ -56,7 +56,7 @@ const QuickGameLauncher: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 text-white">
       <header className="px-4 py-4 border-b border-white/10 flex items-center justify-between">
         <Link to="/dashboard" className="text-white/60 hover:text-white text-sm">← Back</Link>
         <h1 className="text-lg font-bold">⚡ Quick Game</h1>
@@ -77,7 +77,7 @@ const QuickGameLauncher: React.FC = () => {
               value={opponent}
               onChange={e => setOpponent(e.target.value)}
               placeholder="e.g. Lightning FC"
-              className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-crimson-500"
+              className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               autoFocus
             />
           </div>
@@ -88,7 +88,7 @@ const QuickGameLauncher: React.FC = () => {
                 <button
                   key={v}
                   onClick={() => setHomeAway(v)}
-                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-crimson-600 ring-crimson-400 text-white' : 'bg-white/5 ring-white/10 text-white/70 hover:bg-white/10'}`}
+                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-cyan-600 ring-cyan-400 text-white' : 'bg-white/5 ring-white/10 text-white/70 hover:bg-white/10'}`}
                 >{v === 'home' ? '🏠 Home' : '✈️ Away'}</button>
               ))}
             </div>

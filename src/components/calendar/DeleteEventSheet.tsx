@@ -87,7 +87,7 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
+        <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
@@ -111,7 +111,7 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
           <label className="flex items-start gap-3 rounded-xl ring-1 ring-slate-200 px-3 py-2.5 bg-slate-50 cursor-pointer">
             <input
               type="checkbox"
-              className="mt-1 w-4 h-4 accent-crimson-600"
+              className="mt-1 w-4 h-4 accent-cyan-600"
               checked={alertTeam}
               onChange={(e) => setAlertTeam(e.target.checked)}
             />
@@ -133,7 +133,7 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Why it's gone — e.g. 'rescheduled, watch for the new one'"
                 rows={2}
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-[14px] resize-none"
+                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-[14px] resize-none"
                 style={{ fontSize: '16px' }}
               />
             </div>

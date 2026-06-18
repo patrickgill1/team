@@ -242,9 +242,9 @@ const SimpleAuth: React.FC = () => {
   // If the user is already authenticated, the redirect useEffect above handles it.
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center px-4 py-10 sm:py-16">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center px-4 py-10 sm:py-16">
       {/* Ambient gradient orbs */}
-      <div className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-crimson-500/20 blur-[120px]" />
+      <div className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-cyan-500/20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-violet-600/20 blur-[140px]" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[100px]" />
       {/* Subtle grid */}
@@ -261,14 +261,14 @@ const SimpleAuth: React.FC = () => {
           </div>
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 ring-1 ring-white/10 backdrop-blur-md mb-4">
-            <span className="h-1.5 w-1.5 rounded-full bg-crimson-400 animate-pulse" />
-            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-crimson-300/90">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-cyan-300/90">
               {mode === 'login' && 'Member Access'}
               {mode === 'register' && 'Team Invitation'}
             </span>
           </div>
 
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-crimson-200 to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
             {mode === 'login' && 'Welcome Back'}
             {mode === 'register' && 'Join Your Team'}
           </h2>
@@ -280,7 +280,7 @@ const SimpleAuth: React.FC = () => {
 
         {/* Form Container - dark glass */}
         <div className="relative rounded-3xl bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
-          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-crimson-400/60 to-transparent" />
+          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
           {/* Form padding optimized for mobile */}
           <div className="p-6 sm:p-8">
             {/* Sign in with Apple — native iOS only (Apple Store requirement when offering Google sign-in) */}
@@ -298,7 +298,7 @@ const SimpleAuth: React.FC = () => {
                     }
                   }}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-black hover:bg-charcoal-900 ring-1 ring-white/15 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-black hover:bg-slate-900 ring-1 ring-white/15 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="white">
                     <path d="M17.05 20.28c-.98.95-2.05.86-3.08.43-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.43C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
@@ -316,7 +316,7 @@ const SimpleAuth: React.FC = () => {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-white/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-crimson-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-white/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -352,7 +352,7 @@ const SimpleAuth: React.FC = () => {
                     <div className="w-full border-t border-white/10" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-charcoal-950/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
+                    <span className="px-3 bg-slate-950/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
                   </div>
                 </div>
               </>
@@ -370,7 +370,7 @@ const SimpleAuth: React.FC = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                   }`}
                   placeholder="you@example.com"
                   disabled={isSubmitting}
@@ -390,7 +390,7 @@ const SimpleAuth: React.FC = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                   }`}
                   placeholder={mode === 'login' ? '••••••••' : 'At least 6 characters'}
                   disabled={isSubmitting}
@@ -411,7 +411,7 @@ const SimpleAuth: React.FC = () => {
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                     }`}
                     placeholder="Repeat your password"
                     disabled={isSubmitting}
@@ -433,7 +433,7 @@ const SimpleAuth: React.FC = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-cyan-400/60 focus:bg-white/[0.07]'
                     }`}
                     placeholder="Enter your full name"
                     disabled={isSubmitting}
@@ -452,7 +452,7 @@ const SimpleAuth: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <label className={`flex flex-col items-center p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-200 ring-1 ${
                       formData.role === 'parent' 
-                        ? 'ring-crimson-400/70 bg-crimson-400/10 shadow-lg shadow-crimson-500/20' 
+                        ? 'ring-cyan-400/70 bg-cyan-400/10 shadow-lg shadow-cyan-500/20' 
                         : 'ring-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
                     }`}>
                       <input
@@ -515,7 +515,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.email.trim() || !formData.password.trim()}
-                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] enabled:hover:-translate-y-0.5 bg-crimson-600 hover:bg-crimson-500"
+                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] enabled:hover:-translate-y-0.5 bg-cyan-600 hover:bg-cyan-500"
               >
                 {isSubmitting ? (
                   <>
@@ -554,7 +554,7 @@ const SimpleAuth: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => switchMode('register')}
-                      className="font-semibold text-crimson-300 hover:text-crimson-200 transition-colors duration-200"
+                      className="font-semibold text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Join your team
@@ -568,7 +568,7 @@ const SimpleAuth: React.FC = () => {
                     <button 
                       type="button"
                       onClick={() => switchMode('login')}
-                      className="font-semibold text-crimson-300 hover:text-crimson-200 transition-colors duration-200"
+                      className="font-semibold text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Sign in

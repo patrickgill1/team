@@ -203,7 +203,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                         type="checkbox"
                         checked={keepIds.has(p.id)}
                         onChange={() => toggleKeep(p.id)}
-                        className="w-4 h-4 rounded border-gray-300 text-crimson-600 focus:ring-crimson-500"
+                        className="w-4 h-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
                       />
                       <span className="text-sm font-medium text-gray-900 flex-1">
                         {p.jerseyNumber ? `#${p.jerseyNumber} ` : ''}{p.name}
@@ -217,7 +217,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                 <button
                   type="button"
                   onClick={() => setKeepIds(new Set(players.map(p => p.id)))}
-                  className="text-crimson-600 hover:text-crimson-700 font-semibold"
+                  className="text-cyan-600 hover:text-cyan-700 font-semibold"
                 >
                   Select all
                 </button>
@@ -239,7 +239,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                   type="checkbox"
                   checked={createNext}
                   onChange={(e) => setCreateNext(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-crimson-600 focus:ring-crimson-500"
+                  className="w-4 h-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
                 />
                 Create the next season now
               </label>
@@ -251,7 +251,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                       type="text"
                       value={nextName}
                       onChange={(e) => setNextName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -261,7 +261,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                         type="date"
                         value={nextStart}
                         onChange={(e) => setNextStart(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       />
                     </div>
                     <div>
@@ -270,7 +270,7 @@ const EndSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onComplete }
                         type="date"
                         value={nextEnd}
                         onChange={(e) => setNextEnd(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       />
                     </div>
                   </div>

@@ -17,7 +17,7 @@ interface Props {
 
 const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePct, jugglesBest }) => {
   return (
-    <section className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-3 sm:px-6 pb-5 border-b border-crimson-500/15">
+    <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-black px-3 sm:px-6 pb-5 border-b border-cyan-500/15">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <StatTile
           accent="amber"
@@ -55,7 +55,7 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
 const ACCENT: Record<string, { bg: string; ring: string; badge: string; text: string }> = {
   amber: { bg: 'bg-amber-500/10', ring: 'ring-amber-400/30', badge: 'bg-amber-400', text: 'text-amber-200' },
   orange: { bg: 'bg-orange-500/10', ring: 'ring-orange-400/30', badge: 'bg-orange-400', text: 'text-orange-200' },
-  cyan: { bg: 'bg-crimson-500/10', ring: 'ring-crimson-400/30', badge: 'bg-crimson-400', text: 'text-crimson-200' },
+  cyan: { bg: 'bg-cyan-500/10', ring: 'ring-cyan-400/30', badge: 'bg-cyan-400', text: 'text-cyan-200' },
 };
 
 const StatTile: React.FC<{

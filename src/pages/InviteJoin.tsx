@@ -30,13 +30,13 @@ import type { Player } from '../types';
 
 const Spinner: React.FC = () => (
   <div className="flex items-center justify-center py-20">
-    <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+    <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
   </div>
 );
 
 const Page: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-start justify-center p-4 pt-12 pb-16">
-    <div className="bg-charcoal-900/60 backdrop-blur ring-1 ring-white/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-white">
+  <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-start justify-center p-4 pt-12 pb-16">
+    <div className="bg-slate-900/60 backdrop-blur ring-1 ring-white/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-white">
       {children}
     </div>
   </div>
@@ -309,8 +309,8 @@ const InviteJoin: React.FC = () => {
   return (
     <Page>
       {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black p-6 border-b border-crimson-500/10">
-        <div className="absolute -top-16 -right-16 w-56 h-56 bg-crimson-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden bg-gradient-to-br from-fire-900 via-fire-950 to-black p-6 border-b border-cyan-500/10">
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">{headerInner}</div>
       </div>
@@ -324,7 +324,7 @@ const InviteJoin: React.FC = () => {
           {error && <p className="text-rose-300 text-sm">{error}</p>}
           <button
             onClick={() => handleConsume(currentUser.uid)}
-            className="w-full py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-sm transition"
+            className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition"
           >
             Yes, link this account
           </button>
@@ -383,7 +383,7 @@ const InviteJoin: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-400"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
             />
           )}
           <input
@@ -393,7 +393,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
-            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-400"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
           />
           <input
             type="password"
@@ -402,7 +402,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-400"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
           />
 
           {error && <p className="text-rose-300 text-sm">{error}</p>}
@@ -410,7 +410,7 @@ const InviteJoin: React.FC = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Working…' : mode === 'sign-up' ? 'Create account & join' : 'Sign in & join'}
           </button>

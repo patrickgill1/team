@@ -16,10 +16,10 @@ const InAppSurveyBackBar: React.FC = () => {
   const { userData } = useAuth();
   if (!userData) return null;
   return (
-    <div className="sticky top-0 z-40 bg-charcoal-950 text-white px-4 py-2.5 flex items-center justify-between shadow">
+    <div className="sticky top-0 z-40 bg-slate-950 text-white px-4 py-2.5 flex items-center justify-between shadow">
       <Link
         to="/dashboard"
-        className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-crimson-300 hover:text-white"
+        className="inline-flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-widest text-cyan-300 hover:text-white"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <line x1="19" y1="12" x2="5" y2="12" />
@@ -157,7 +157,7 @@ const PublicSurvey: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
       </div>
     );
   }
@@ -221,13 +221,13 @@ const PublicSurvey: React.FC = () => {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none"
               autoFocus
             />
             <button
               onClick={() => setStep('fill')}
               disabled={!name.trim()}
-              className="w-full mt-4 bg-gradient-to-r from-crimson-500 to-crimson-600 text-white font-semibold py-3 rounded-xl shadow-sm hover:from-crimson-600 hover:to-crimson-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="w-full mt-4 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold py-3 rounded-xl shadow-sm hover:from-cyan-600 hover:to-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               Start Survey
             </button>
@@ -303,7 +303,7 @@ const PublicSurvey: React.FC = () => {
                       onClick={() => setAnswer(q.id, opt)}
                       className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm transition-colors ${
                         answers[q.id] === opt
-                          ? 'border-crimson-400 bg-crimson-50 text-crimson-800 font-medium'
+                          ? 'border-cyan-400 bg-cyan-50 text-cyan-800 font-medium'
                           : 'border-gray-200 text-gray-700 hover:border-gray-300'
                       }`}
                     >
@@ -320,7 +320,7 @@ const PublicSurvey: React.FC = () => {
                   onChange={e => setAnswer(q.id, e.target.value)}
                   rows={3}
                   placeholder="Type your answer…"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none resize-none mt-3"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none resize-none mt-3"
                 />
               )}
             </div>
@@ -331,7 +331,7 @@ const PublicSurvey: React.FC = () => {
         <button
           onClick={handleSubmit}
           disabled={submitting}
-          className="w-full mt-6 bg-gradient-to-r from-crimson-500 to-crimson-600 text-white font-semibold py-3.5 rounded-xl shadow-sm hover:from-crimson-600 hover:to-crimson-700 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
+          className="w-full mt-6 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold py-3.5 rounded-xl shadow-sm hover:from-cyan-600 hover:to-cyan-700 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
         >
           {submitting ? (
             <><div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" /> Submitting…</>

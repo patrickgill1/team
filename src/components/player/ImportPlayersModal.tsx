@@ -204,7 +204,7 @@ const ImportPlayersModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreate
             <div className="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center">
               <p className="text-sm font-semibold text-slate-700 mb-2">Drop your CSV here</p>
               <p className="text-xs text-slate-500 mb-4">Export from Sports Connect → Reports → Roster → CSV.</p>
-              <label className="inline-block px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold cursor-pointer">
+              <label className="inline-block px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold cursor-pointer">
                 Choose file
                 <input
                   type="file"
@@ -223,7 +223,7 @@ const ImportPlayersModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreate
                 Couldn't match any columns to "First Name" / "Last Name" / "Player Name".
                 Check that the header row uses standard names.
               </p>
-              <button onClick={reset} className="mt-4 text-xs font-bold uppercase tracking-widest text-crimson-700">Try another file</button>
+              <button onClick={reset} className="mt-4 text-xs font-bold uppercase tracking-widest text-cyan-700">Try another file</button>
             </div>
           )}
 
@@ -307,7 +307,7 @@ const ImportPlayersModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreate
             <button
               onClick={handleConfirm}
               disabled={parsed.players.length - skipIdx.size === 0}
-              className="px-4 py-2 text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 rounded-lg"
+              className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg"
             >
               Import {parsed.players.length - skipIdx.size} player{parsed.players.length - skipIdx.size === 1 ? '' : 's'} to team
             </button>

@@ -113,13 +113,13 @@ const WallHeaderButton: React.FC = () => {
           <line x1="7" y1="17" x2="13" y2="17" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-charcoal-950" aria-label={`${unreadCount} new posts`} />
+          <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-fire-950" aria-label={`${unreadCount} new posts`} />
         )}
       </button>
 
       {open && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-charcoal-950/85 animate-fade-in"
+          className="fixed inset-0 z-50 bg-slate-950/85 animate-fade-in"
           style={{ left: 0, right: 0, top: 0, bottom: 0, width: '100vw' }}
           onClick={() => setOpen(false)}
         >
@@ -134,22 +134,22 @@ const WallHeaderButton: React.FC = () => {
             style={{ left: 0, right: 0, width: '100vw' }}
           >
             <div
-              className="sticky top-0 z-10 bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 flex items-center justify-between border-b border-white/10"
+              className="sticky top-0 z-10 bg-gradient-to-b from-slate-950 to-slate-900 px-4 flex items-center justify-between border-b border-white/10"
               style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)', paddingBottom: '0.75rem' }}
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                 </svg>
-                <span className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">The Wall</span>
+                <span className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">The Wall</span>
               </div>
               <div className="flex items-center gap-3">
                 <Link
                   to="/wall"
                   onClick={() => setOpen(false)}
-                  className="text-[11px] font-bold uppercase tracking-widest text-crimson-300 hover:text-white"
+                  className="text-[11px] font-bold uppercase tracking-widest text-cyan-300 hover:text-white"
                 >
                   View all →
                 </Link>
@@ -170,7 +170,7 @@ const WallHeaderButton: React.FC = () => {
             <div className="flex-1">
               {posts.length === 0 ? (
                 <div className="px-6 py-10 text-center">
-                  <div className="mx-auto w-12 h-12 rounded-full bg-crimson-50 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600 mb-3">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-cyan-600 mb-3">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
                   <p className="text-sm font-semibold text-slate-700">Nothing posted yet</p>
@@ -193,16 +193,16 @@ const WallHeaderButton: React.FC = () => {
                 a giant white area below the last post — Patrick:
                 "footer bar on the drawer, not the wall page". */}
             <div
-              className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 flex items-center justify-between flex-shrink-0"
+              className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 flex items-center justify-between flex-shrink-0"
               style={{ paddingTop: '0.75rem', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
             >
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300/70">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-300/70">
                 {posts.length === 0 ? 'No posts yet' : `${posts.length} recent post${posts.length === 1 ? '' : 's'}`}
               </span>
               <Link
                 to="/wall"
                 onClick={() => setOpen(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-300 hover:text-white inline-flex items-center gap-1"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-300 hover:text-white inline-flex items-center gap-1"
               >
                 Open the wall
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -237,7 +237,7 @@ const WallDrawerPost: React.FC<{ post: WallPost; onNavigate: () => void }> = ({ 
       <div className="flex items-center gap-2 mb-1.5">
         <span className="text-sm font-bold text-slate-900">{p.senderName}</span>
         {p.senderRole === 'coach' && (
-          <span className="text-[9px] font-bold uppercase tracking-wider text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">Coach</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Coach</span>
         )}
         <span className="text-[11px] text-slate-400 ml-auto">
           {p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
@@ -262,7 +262,7 @@ const WallDrawerPost: React.FC<{ post: WallPost; onNavigate: () => void }> = ({ 
         <button
           type="button"
           onClick={() => setExpanded(v => !v)}
-          className="mt-2 text-[11px] font-bold uppercase tracking-widest text-crimson-700 hover:text-crimson-900"
+          className="mt-2 text-[11px] font-bold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
         >
           {expanded ? 'Show less' : 'Read more'}
         </button>
@@ -285,7 +285,7 @@ const WallDrawerPost: React.FC<{ post: WallPost; onNavigate: () => void }> = ({ 
         <Link
           to="/wall"
           onClick={onNavigate}
-          className="inline-flex items-center gap-1 text-xs font-bold tracking-widest uppercase text-crimson-700 hover:text-crimson-900"
+          className="inline-flex items-center gap-1 text-xs font-bold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
         >
           Open on the wall →
         </Link>

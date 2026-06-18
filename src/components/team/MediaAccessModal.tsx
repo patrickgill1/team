@@ -182,7 +182,7 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cyan-50 to-white">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Media access</h3>
             <p className="text-xs text-gray-500">Pick which parents can upload + tag clips for this team.</p>
@@ -210,7 +210,7 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                 <label
                   key={p.uid}
                   className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 cursor-pointer ring-1 transition ${
-                    isOn ? 'bg-crimson-50 ring-crimson-200' : 'bg-white ring-gray-200 hover:bg-gray-50'
+                    isOn ? 'bg-cyan-50 ring-cyan-200' : 'bg-white ring-gray-200 hover:bg-gray-50'
                   }`}
                 >
                   <div className="min-w-0">
@@ -226,7 +226,7 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                     type="checkbox"
                     checked={isOn}
                     onChange={() => toggle(p.uid)}
-                    className="w-5 h-5 accent-crimson-600 shrink-0"
+                    className="w-5 h-5 accent-cyan-600 shrink-0"
                   />
                 </label>
               );
@@ -242,7 +242,7 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
           <button
             onClick={handleSave}
             disabled={saving || !dirty}
-            className="bg-gradient-to-br from-crimson-500 to-crimson-600 hover:from-crimson-600 hover:to-crimson-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
+            className="bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>

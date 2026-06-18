@@ -496,7 +496,7 @@ const TeamManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crimson-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
       </div>
     );
   }
@@ -506,16 +506,16 @@ const TeamManagement: React.FC = () => {
       {/* Navy page header to match the rest of the new chrome. The
           "+ New team" primary action sits in the header's action slot
           (the small button on the right) — same pattern as Events. */}
-      <header className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-crimson-500/10">
+      <header className="bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Teams</h1>
-            <p className="mt-0.5 text-xs text-slate-400">Create, edit, archive. People & rosters live in <Link to="/people" className="text-crimson-400 underline">People</Link>.</p>
+            <p className="mt-0.5 text-xs text-slate-400">Create, edit, archive. People & rosters live in <Link to="/people" className="text-cyan-400 underline">People</Link>.</p>
           </div>
           <button
             onClick={() => { resetForm(); setShowCreateModal(true); }}
             aria-label="Add team"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500 flex-shrink-0"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500 flex-shrink-0"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -555,7 +555,7 @@ const TeamManagement: React.FC = () => {
                 onClick={() => setSelectedTeamId(team.id)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTeamId(team.id); }}
                 className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all cursor-pointer hover:shadow-md active:scale-[0.99] ${
-                  isActive ? 'border-crimson-500 ring-2 ring-crimson-100' : 'border-gray-200 hover:border-crimson-300'
+                  isActive ? 'border-cyan-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-cyan-300'
                 }`}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -572,7 +572,7 @@ const TeamManagement: React.FC = () => {
                       </span>
                     )}
                     {isActive ? (
-                      <span className="bg-crimson-50 text-crimson-700 text-xs font-medium px-2 py-1 rounded-full">Active</span>
+                      <span className="bg-cyan-50 text-cyan-700 text-xs font-medium px-2 py-1 rounded-full">Active</span>
                     ) : (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tap to select</span>
                     )}
@@ -612,7 +612,7 @@ const TeamManagement: React.FC = () => {
                   {(team.coachIds?.length || 0) > 1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleOpenTransfer(team); }}
-                      className="flex-1 bg-crimson-50 hover:bg-crimson-100 text-charcoal-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="flex-1 bg-fire-50 hover:bg-fire-100 text-fire-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Transfer Head Coach
                     </button>
@@ -677,13 +677,13 @@ const TeamManagement: React.FC = () => {
                     <div className="relative w-10 h-10 flex-shrink-0">
                       <img src={player.profilePhotoUrl} alt={player.name} className="w-10 h-10 rounded-full object-cover" />
                       {player.jerseyNumber != null && (
-                        <span className="absolute -bottom-1 -right-1 bg-crimson-600 text-white rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-black shadow ring-2 ring-white">
+                        <span className="absolute -bottom-1 -right-1 bg-cyan-600 text-white rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-black shadow ring-2 ring-white">
                           {player.jerseyNumber}
                         </span>
                       )}
                     </div>
                   ) : (
-                    <div className="w-10 h-10 bg-crimson-50 rounded-full flex items-center justify-center text-crimson-600 font-bold text-sm flex-shrink-0">
+                    <div className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center text-cyan-600 font-bold text-sm flex-shrink-0">
                       {player.jerseyNumber || player.name.charAt(0)}
                     </div>
                   )}
@@ -694,7 +694,7 @@ const TeamManagement: React.FC = () => {
                     </div>
                     {(player.teamIds?.length || 0) > 1 && (
                       <div className="inline-flex items-center gap-1.5 mt-0.5">
-                        <span className="text-xs bg-crimson-100 text-crimson-700 px-1.5 py-0.5 rounded">Shared</span>
+                        <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded">Shared</span>
                         <button
                           onClick={() => handleUnsharePlayer(player.id, selectedTeamId!)}
                           className="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-medium transition-colors"
@@ -753,7 +753,7 @@ const TeamManagement: React.FC = () => {
                       type="text"
                       value={teamName}
                       onChange={e => setTeamName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                       placeholder="e.g. U12 Lightning"
                     />
                   </div>
@@ -762,7 +762,7 @@ const TeamManagement: React.FC = () => {
                     <textarea
                       value={teamDescription}
                       onChange={e => setTeamDescription(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                       rows={2}
                       placeholder="Brief description of this team"
                     />
@@ -774,7 +774,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamAgeGroup}
                         onChange={e => setTeamAgeGroup(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                         placeholder="e.g. U12"
                       />
                     </div>
@@ -784,7 +784,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamSeason}
                         onChange={e => setTeamSeason(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                         placeholder="e.g. Spring 2026"
                       />
                     </div>
@@ -796,7 +796,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamLeague}
                         onChange={e => setTeamLeague(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                         placeholder="e.g. AYSO"
                       />
                     </div>
@@ -806,7 +806,7 @@ const TeamManagement: React.FC = () => {
                         type="text"
                         value={teamHomeField}
                         onChange={e => setTeamHomeField(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                         placeholder="e.g. River Park Field 3"
                       />
                     </div>
@@ -820,7 +820,7 @@ const TeamManagement: React.FC = () => {
                           key={f}
                           onClick={() => setTeamFormat(f)}
                           className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
-                            teamFormat === f ? 'bg-crimson-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                            teamFormat === f ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
                           }`}
                         >
                           {f}
@@ -840,7 +840,7 @@ const TeamManagement: React.FC = () => {
                   <button
                     onClick={editingTeam ? handleUpdateTeam : handleCreateTeam}
                     disabled={!teamName.trim()}
-                    className="px-4 py-2 bg-crimson-600 text-white rounded-lg hover:bg-crimson-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {editingTeam ? 'Save Changes' : 'Create Team'}
                   </button>
@@ -934,7 +934,7 @@ const TeamManagement: React.FC = () => {
                           type="email"
                           value={inviteEmail}
                           onChange={e => setInviteEmail(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                           placeholder="coach@example.com (optional)"
                         />
                         <p className="text-xs text-gray-500 mt-1">Leave blank if you don't have their email — just share the link</p>
@@ -944,7 +944,7 @@ const TeamManagement: React.FC = () => {
                         <select
                           value={inviteLevel}
                           onChange={e => setInviteLevel(e.target.value as 'head_coach' | 'assistant_coach')}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                         >
                           <option value="assistant_coach">Assistant Coach — Can manage votes & view backend</option>
                           <option value="head_coach">Head Coach — Full admin access</option>
@@ -987,7 +987,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={transferTargetId}
                       onChange={e => setTransferTargetId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     >
                       <option value="">Choose a coach...</option>
                       {teamCoaches
@@ -1010,7 +1010,7 @@ const TeamManagement: React.FC = () => {
                   <button
                     onClick={handleTransferHeadCoach}
                     disabled={!transferTargetId}
-                    className="px-4 py-2 bg-crimson-600 text-white rounded-lg hover:bg-crimson-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50"
                   >
                     Transfer Role
                   </button>
@@ -1035,7 +1035,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={selectedPlayerId}
                       onChange={e => setSelectedPlayerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     >
                       <option value="">Choose a player...</option>
                       {allPlayers.map(player => (
@@ -1050,7 +1050,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={targetTeamId}
                       onChange={e => setTargetTeamId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     >
                       <option value="">Choose target team...</option>
                       {teams
@@ -1076,7 +1076,7 @@ const TeamManagement: React.FC = () => {
                   <button
                     onClick={handleSharePlayer}
                     disabled={!selectedPlayerId || !targetTeamId}
-                    className="px-4 py-2 bg-crimson-600 text-white rounded-lg hover:bg-crimson-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50"
                   >
                     Share Player
                   </button>
@@ -1101,7 +1101,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={addCoachUserId}
                       onChange={e => setAddCoachUserId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     >
                       <option value="">Choose a coach...</option>
                       {allCoaches.map((c: any) => (
@@ -1116,7 +1116,7 @@ const TeamManagement: React.FC = () => {
                     <select
                       value={addCoachTargetTeamId}
                       onChange={e => setAddCoachTargetTeamId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                     >
                       <option value="">Choose target team...</option>
                       {teams

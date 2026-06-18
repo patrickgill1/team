@@ -649,7 +649,7 @@ const EventForm: React.FC<EventFormProps> = ({
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case 'game': return 'border-rose-500 bg-rose-500/10 text-rose-700 ring-2 ring-rose-500/30';
-      case 'practice': return 'border-crimson-500 bg-crimson-500/10 text-charcoal-800 ring-2 ring-crimson-500/30';
+      case 'practice': return 'border-fire-500 bg-fire-500/10 text-fire-800 ring-2 ring-fire-500/30';
       case 'event': return 'border-emerald-500 bg-emerald-500/10 text-emerald-700 ring-2 ring-emerald-500/30';
       default: return 'border-slate-300 bg-slate-100 text-slate-700';
     }
@@ -679,7 +679,7 @@ const EventForm: React.FC<EventFormProps> = ({
       >
         {/* Header — same chrome as LocationPickerModal / UserProfileModal /
             ChatActionSheet so the modal family reads as one system. */}
-        <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -687,7 +687,7 @@ const EventForm: React.FC<EventFormProps> = ({
           >
             Cancel
           </button>
-          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">
             {editingEvent ? 'Edit event' : 'New event'}
           </div>
           <span className="w-12" aria-hidden />
@@ -705,7 +705,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   value: 'practice', label: 'Practice',
                   // Stopwatch — matches the practice/training metaphor.
                   icon: (<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><line x1="9" y1="2" x2="15" y2="2"/></svg>),
-                  activeClass: 'bg-crimson-50 text-crimson-800 border-crimson-400',
+                  activeClass: 'bg-cyan-50 text-cyan-800 border-cyan-400',
                 },
                 {
                   value: 'game', label: 'Game',
@@ -746,7 +746,7 @@ const EventForm: React.FC<EventFormProps> = ({
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
                 errors.title ? 'border-rose-300' : 'border-slate-200'
               }`}
               placeholder={`Enter ${formData.type} title...`}
@@ -764,7 +764,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
                   errors.date ? 'border-rose-300' : 'border-slate-200'
                 }`}
               />
@@ -778,7 +778,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 type="time"
                 value={formData.time}
                 onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
                   errors.time ? 'border-rose-300' : 'border-slate-200'
                 }`}
               />
@@ -797,7 +797,7 @@ const EventForm: React.FC<EventFormProps> = ({
               type="time"
               value={formData.endTime}
               onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
             />
           </div>
 
@@ -825,8 +825,8 @@ const EventForm: React.FC<EventFormProps> = ({
                         onClick={() => pickLocation(f)}
                         className={`text-xs font-bold px-2.5 py-1.5 rounded-md border ${
                           active
-                            ? 'bg-crimson-50 text-crimson-800 border-crimson-300'
-                            : 'bg-white text-slate-700 border-slate-200 hover:border-crimson-300'
+                            ? 'bg-cyan-50 text-cyan-800 border-cyan-300'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-cyan-300'
                         }`}
                       >
                         {f.name}
@@ -853,8 +853,8 @@ const EventForm: React.FC<EventFormProps> = ({
                           onClick={() => pickLocation(r)}
                           className={`text-xs px-2.5 py-1.5 rounded-md border ${
                             active
-                              ? 'bg-crimson-50 text-crimson-800 border-crimson-300 font-bold'
-                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-white hover:border-crimson-300'
+                              ? 'bg-cyan-50 text-cyan-800 border-cyan-300 font-bold'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-white hover:border-cyan-300'
                           }`}
                         >
                           {r.name}
@@ -897,7 +897,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         setSearched(false);
                         setSearchOpen(true);
                       }}
-                      className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900 flex-shrink-0"
+                      className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 flex-shrink-0"
                     >
                       Change ›
                     </button>
@@ -918,7 +918,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                     placeholder="Search venue or address…"
                     autoComplete="off"
-                    className={`w-full pl-9 pr-16 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50 ${
+                    className={`w-full pl-9 pr-16 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
                       errors.location ? 'border-rose-300' : 'border-slate-300'
                     }`}
                   />
@@ -946,7 +946,7 @@ const EventForm: React.FC<EventFormProps> = ({
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery.trim())}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900"
+                          className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
                         >
                           Look it up in Google Maps →
                         </a>
@@ -977,7 +977,7 @@ const EventForm: React.FC<EventFormProps> = ({
                           setSearched(false);
                           setSearchOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2.5 hover:bg-crimson-50 border-b border-slate-100 last:border-b-0"
+                        className="w-full text-left px-3 py-2.5 hover:bg-cyan-50 border-b border-slate-100 last:border-b-0"
                       >
                         <div className="text-sm font-semibold text-slate-900 break-words">{h.label}</div>
                         {h.label !== h.address && (
@@ -1006,7 +1006,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     type="button"
                     onClick={saveCurrentAsFavorite}
                     disabled={savingFavorite}
-                    className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900 disabled:opacity-50"
+                    className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900 disabled:opacity-50"
                   >
                     Save to team
                   </button>
@@ -1030,7 +1030,7 @@ const EventForm: React.FC<EventFormProps> = ({
               value={formData.fieldNumber}
               onChange={(e) => setFormData({ ...formData, fieldNumber: e.target.value })}
               placeholder="e.g. Field 7"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
             />
           </div>
 
@@ -1048,13 +1048,13 @@ const EventForm: React.FC<EventFormProps> = ({
                   onClick={() => setFormData({ ...formData, homeAway: formData.homeAway === 'home' ? '' : 'home' })}
                   className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg border-2 text-sm font-bold transition ${
                     formData.homeAway === 'home'
-                      ? 'bg-charcoal-950 text-white border-slate-950 ring-2 ring-crimson-500/30'
+                      ? 'bg-slate-950 text-white border-slate-950 ring-2 ring-cyan-500/30'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
                   }`}
                 >
                   {/* Black jersey swatch — does double-duty as the icon
                       AND a literal preview of the kit. */}
-                  <span className={`inline-block w-3.5 h-3.5 rounded-sm border ${formData.homeAway === 'home' ? 'bg-charcoal-900 border-slate-600' : 'bg-charcoal-900 border-slate-700'}`} aria-hidden />
+                  <span className={`inline-block w-3.5 h-3.5 rounded-sm border ${formData.homeAway === 'home' ? 'bg-slate-900 border-slate-600' : 'bg-slate-900 border-slate-700'}`} aria-hidden />
                   Home
                   <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-slate-300' : 'text-slate-400'}`}>
                     Black
@@ -1065,7 +1065,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   onClick={() => setFormData({ ...formData, homeAway: formData.homeAway === 'away' ? '' : 'away' })}
                   className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg border-2 text-sm font-bold transition ${
                     formData.homeAway === 'away'
-                      ? 'bg-white text-slate-900 border-slate-900 ring-2 ring-crimson-500/30 shadow-inner'
+                      ? 'bg-white text-slate-900 border-slate-900 ring-2 ring-cyan-500/30 shadow-inner'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
                   }`}
                 >
@@ -1089,7 +1089,7 @@ const EventForm: React.FC<EventFormProps> = ({
             <select
               value={formData.arriveOffsetMinutes}
               onChange={(e) => setFormData({ ...formData, arriveOffsetMinutes: Number(e.target.value) })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
             >
               <option value={0}>No arrive-early time</option>
               <option value={5}>5 minutes early</option>
@@ -1120,7 +1120,7 @@ const EventForm: React.FC<EventFormProps> = ({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50 resize-none"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
               rows={3}
               placeholder="Add any additional details about the event..."
             />
@@ -1136,7 +1136,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 <select
                   value={formData.recurrence}
                   onChange={(e) => setFormData({ ...formData, recurrence: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                 >
                   <option value="none">Does not repeat</option>
                   <option value="daily">Every day</option>
@@ -1155,7 +1155,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     value={formData.recurrenceUntil}
                     onChange={(e) => setFormData({ ...formData, recurrenceUntil: e.target.value })}
                     min={formData.date}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50 ${
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
                       errors.recurrenceUntil ? 'border-rose-300' : 'border-slate-200'
                     }`}
                   />
@@ -1170,7 +1170,7 @@ const EventForm: React.FC<EventFormProps> = ({
               const until = new Date(`${formData.recurrenceUntil}T${formData.time || '10:00'}`);
               const count = generateSeriesDates(dt, until, formData.recurrence).length;
               return (
-                <p className="-mt-2 text-xs font-semibold text-charcoal-700 bg-crimson-50 border border-crimson-200 rounded-lg px-3 py-2">
+                <p className="-mt-2 text-xs font-semibold text-navy-700 bg-fire-50 border border-fire-200 rounded-lg px-3 py-2">
                   Will create <b>{count}</b> events ({formData.recurrence}). Each can be edited or deleted individually.
                 </p>
               );
@@ -1193,7 +1193,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     type="checkbox"
                     checked={formData.notifyTeam}
                     onChange={(e) => setFormData({ ...formData, notifyTeam: e.target.checked })}
-                    className="mt-0.5 h-4 w-4 text-crimson-600 focus:ring-crimson-500/50 border-slate-300 rounded"
+                    className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-slate-900">
@@ -1214,7 +1214,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       type="checkbox"
                       checked={formData.createAttendance}
                       onChange={(e) => setFormData({ ...formData, createAttendance: e.target.checked })}
-                      className="mt-0.5 h-4 w-4 text-crimson-600 focus:ring-crimson-500/50 border-slate-300 rounded"
+                      className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900">Attendance tracking</p>
@@ -1232,7 +1232,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       type="checkbox"
                       checked={formData.createVolunteerOpps}
                       onChange={(e) => setFormData({ ...formData, createVolunteerOpps: e.target.checked })}
-                      className="mt-0.5 h-4 w-4 text-crimson-600 focus:ring-crimson-500/50 border-slate-300 rounded"
+                      className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900">Volunteer opportunities</p>
@@ -1256,7 +1256,7 @@ const EventForm: React.FC<EventFormProps> = ({
                             type="checkbox"
                             checked={formData.volunteerTypes.includes(value)}
                             onChange={(e) => handleVolunteerTypeChange(value, e.target.checked)}
-                            className="mt-0.5 h-4 w-4 text-crimson-600 focus:ring-crimson-500/50 border-slate-300 rounded"
+                            className="mt-0.5 h-4 w-4 text-cyan-600 focus:ring-cyan-500/50 border-slate-300 rounded"
                           />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-slate-800">{label}</p>
@@ -1306,10 +1306,10 @@ const EventForm: React.FC<EventFormProps> = ({
                       <p className="text-sm text-slate-600 mt-2">{formData.description}</p>
                     )}
                     {weather && (
-                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-crimson-50 ring-1 ring-crimson-200 text-charcoal-700 text-xs font-semibold">
+                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-fire-50 ring-1 ring-fire-200 text-navy-700 text-xs font-semibold">
                         <span className="text-base leading-none">{weather.icon}</span>
                         <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
-                        {weather.precipChance > 0 && <span className="text-charcoal-700">· {weather.precipChance}% rain</span>}
+                        {weather.precipChance > 0 && <span className="text-fire-700">· {weather.precipChance}% rain</span>}
                       </div>
                     )}
 
@@ -1348,7 +1348,7 @@ const EventForm: React.FC<EventFormProps> = ({
             type="button"
             onClick={() => formRef.current?.requestSubmit()}
             disabled={isSubmitting}
-            className="w-full bg-gradient-to-br from-crimson-500 to-charcoal-600 hover:from-crimson-400 hover:to-crimson-500 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-crimson-500/30 transition disabled:opacity-50 flex items-center justify-center"
+            className="w-full bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-cyan-500/30 transition disabled:opacity-50 flex items-center justify-center"
           >
             {isSubmitting ? (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/40 border-t-white" />

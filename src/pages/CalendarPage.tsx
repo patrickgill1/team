@@ -17,7 +17,7 @@ const CalendarPage: React.FC = () => {
   // visitors will still see a normal page; the inner component
   // controls its own chrome.
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-slate-950">
       <CalendarComponent
         viewMode={view}
         showCreateButton={true}

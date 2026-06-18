@@ -116,14 +116,15 @@ const DashboardHero: React.FC<Props> = ({
       )}
       {/* Gradient overlay on top so the greeting text always reads. */}
       <div className={`absolute inset-0 bg-gradient-to-b ${scene.gradient}`} aria-hidden />
-      {/* Chrome-zone darkening: subtle, just enough to keep the
-          wordmark / icons readable against any time-of-day photo.
-          Reverted back to the v3.2.40 soft black blend — Patrick:
-          "i liked the way we had it 2 updates ago for that part."
-          The crimson lives in the AppDelegate strip only. */}
+      {/* Photo darkening just below the chrome band. The chrome
+          itself owns the safe-area + h-14 zone (in Navigation.tsx);
+          this overlay handles the soft transition where the chrome
+          fades out into the full-brightness photo. Slightly
+          stronger than the v3.2.42 version so the chrome boundary
+          feels intentional, not accidental. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/30 to-transparent pointer-events-none"
+        className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/45 to-transparent pointer-events-none"
       />
       {/* Soft fade from the bottom of the hero into the page bg
           (slate-950) so the transition into the dashboard content

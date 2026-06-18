@@ -134,8 +134,12 @@ const Wall: React.FC = () => {
   // Edit mode — when set, the composer modal saves back to this post
   // via updateDoc instead of creating a new wall_posts doc. Polls
   // aren't editable here (vote state would need to be merged); the
-  // composer disables the poll toggle while editing.
+  // composer shows the existing poll as a read-only block so the
+  // coach can confirm the votes aren't being wiped, with an optional
+  // "remove poll" path for cleaning up a mistake.
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [existingPoll, setExistingPoll] = useState<WallPost['poll'] | null>(null);
+  const [removeExistingPoll, setRemoveExistingPoll] = useState(false);
 
   // Per-post action sheet (pin / edit / delete). Replaces the legacy
   // window.prompt that asked for "1 or 2" — the sheet matches the
@@ -168,6 +172,8 @@ const Wall: React.FC = () => {
     setComposerCategory((post.category || 'announcement') as WallCategory);
     setPreviewMode(false);
     resetPoll();
+    setExistingPoll(post.poll || null);
+    setRemoveExistingPoll(false);
     setManagePostId(null);
     setComposerOpen(true);
   };
@@ -179,6 +185,8 @@ const Wall: React.FC = () => {
   const closeComposer = () => {
     setComposerOpen(false);
     setEditingPostId(null);
+    setExistingPoll(null);
+    setRemoveExistingPoll(false);
   };
 
   // Vote / unvote on a post's poll. Single-choice (default) means
@@ -491,6 +499,26 @@ const Wall: React.FC = () => {
           attachments: composerAttachments.length > 0 ? composerAttachments : null,
           category: composerCategory,
           editedAt: Date.now(),
+          // Poll handling on edit:
+          // - existingPoll + removeExistingPoll → wipe the poll
+          // - existingPoll + !removeExistingPoll → don't touch field
+          //   (Firestore leaves it as-is on a partial update)
+          // - !existingPoll + pollOn → user added a poll while editing
+          // - !existingPoll + !pollOn → nothing changes
+          ...(existingPoll && removeExistingPoll
+            ? { poll: null }
+            : !existingPoll && pollOn && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2
+              ? {
+                  poll: {
+                    question: pollQuestion.trim(),
+                    multi: false,
+                    options: pollOptions
+                      .map(t => t.trim())
+                      .filter(t => t.length > 0)
+                      .map((text, i) => ({ id: `o_${Date.now()}_${i}`, text, voters: [] as string[] })),
+                  },
+                }
+              : {}),
         });
       } else {
         await addDoc(collection(db, 'wall_posts'), {
@@ -874,9 +902,66 @@ const Wall: React.FC = () => {
                 />
               )}
 
-              {/* Poll editor — toggled on/off via a button. When on,
-                  publishing the post attaches the poll. */}
+              {/* Poll editor — three states depending on edit mode and
+                  whether the post already has a poll attached:
+                  1. Editing a post with a poll → read-only preview so
+                     the coach can see the votes aren't being wiped.
+                     'Remove poll' link if they really want it gone.
+                  2. Editing a post with no poll OR creating a new post
+                     → the normal editor (toggle + question + options).
+                  3. Edit mode + 'remove' chosen → confirmation card
+                     with an undo link before save commits. */}
               <div className="mt-4 rounded-xl ring-1 ring-slate-200 bg-slate-50 px-3 py-3">
+                {existingPoll && !removeExistingPoll ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-cyan-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <rect x="3" y="12" width="4" height="9" rx="1" />
+                          <rect x="10" y="7" width="4" height="14" rx="1" />
+                          <rect x="17" y="3" width="4" height="18" rx="1" />
+                        </svg>
+                        <span className="text-[12px] font-extrabold uppercase tracking-widest text-slate-700">Poll attached</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRemoveExistingPoll(true)}
+                        className="text-[11px] font-extrabold uppercase tracking-widest text-rose-600 hover:text-rose-700"
+                      >
+                        Remove poll
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[12px] text-slate-500 leading-relaxed">
+                      The poll and its votes stay attached when you save. Editing the poll question or options isn't supported — remove and re-create the post if you need to change them.
+                    </p>
+                    <div className="mt-3 rounded-lg bg-white ring-1 ring-slate-200 px-3 py-2.5">
+                      <p className="font-bold text-[13.5px] text-slate-900 leading-snug">{existingPoll.question}</p>
+                      <ul className="mt-2 space-y-1">
+                        {existingPoll.options.map(o => (
+                          <li key={o.id} className="text-[12.5px] text-slate-700 flex items-start justify-between gap-3">
+                            <span className="break-words min-w-0">{o.text}</span>
+                            <span className="shrink-0 text-slate-400 tabular-nums">{o.voters.length}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                ) : existingPoll && removeExistingPoll ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-bold text-rose-700">Poll will be removed on save</p>
+                      <p className="text-[12px] text-slate-500 mt-0.5 leading-snug">All votes will be lost. This can't be undone after you save.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveExistingPoll(false)}
+                      className="shrink-0 text-[11px] font-extrabold uppercase tracking-widest text-cyan-700 hover:text-cyan-900"
+                    >
+                      Undo
+                    </button>
+                  </div>
+                ) : (
+                <>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-cyan-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -898,7 +983,7 @@ const Wall: React.FC = () => {
                     {pollOn ? 'On' : 'Add a poll'}
                   </button>
                 </div>
-                {pollOn && (
+                {pollOn && !existingPoll && (
                   <div className="mt-3 space-y-2">
                     <input
                       type="text"
@@ -940,6 +1025,8 @@ const Wall: React.FC = () => {
                       </button>
                     )}
                   </div>
+                )}
+                </>
                 )}
               </div>
 

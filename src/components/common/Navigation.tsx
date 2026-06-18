@@ -427,12 +427,12 @@ const Navigation: React.FC = () => {
           horizon line on the photo. */}
       <header className={`lg:hidden fixed top-0 inset-x-0 z-40 safe-top ${
         isDashboardRoute
-          ? 'bg-gradient-to-b from-black/90 via-black/85 to-black/85'
+          ? 'bg-gradient-to-b from-charcoal-950/95 via-charcoal-950/90 to-charcoal-950/90'
           : 'bg-black'
       }`}>
         <div className={`flex items-center gap-2 px-3 h-14 ${
           isDashboardRoute
-            ? 'bg-gradient-to-b from-black/85 via-black/55 to-transparent backdrop-blur-md'
+            ? 'bg-gradient-to-b from-charcoal-950/90 via-charcoal-950/60 to-transparent backdrop-blur-md'
             : 'bg-charcoal-950'
         }`}>
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px

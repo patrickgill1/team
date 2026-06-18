@@ -707,7 +707,7 @@ const EventDetail: React.FC = () => {
     : 'bg-crimson-400 animate-pulse';
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
       {/* HERO — cinematic full-bleed treatment per v9 mockup. Ball-in-
           net photo lives on the right edge with a left-to-right
           gradient that fades it to near-black behind the copy, so the

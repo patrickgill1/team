@@ -24,7 +24,7 @@
                              handoff. The logo size (112pt) matches the React
                              splash's w-28 (112px) so it does not appear to
                              shrink between frames. -->
-                        <color key="backgroundColor" red="0.7843137254901961" green="0.12549019607843137" blue="0.17254901960784313" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.5490196078431373" green="0.09803921568627451" blue="0.13333333333333333" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="snD-IY-ifK" firstAttribute="centerX" secondItem="rootView" secondAttribute="centerX" id="cx"/>
                             <constraint firstItem="snD-IY-ifK" firstAttribute="centerY" secondItem="rootView" secondAttribute="centerY" id="cy"/>

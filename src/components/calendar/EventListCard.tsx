@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
 import { mapsUrl } from '../../utils/maps';
 
-// Compact event card for the redesigned list view. Matches the v7 mock:
-// thin colored type-stripe → date badge + title + meta → info strip →
-// avatar preview strip. Tap the body → /events/:id detail page. The
-// three small RSVP buttons set RSVP inline without navigation.
+// Event list card — cinematic dark surface matching the GoalKickr v9
+// mockup. Black-on-black with crimson accents: vertical date badge
+// left, type + RSVP pills top, dense info strip at the bottom, then
+// the avatar preview row Patrick specifically called out as
+// untouchable ("the team bubbles that show who is going at the
+// bottom with their pictures, i love that"). Snacks chip and
+// cancelled state preserved from the previous design.
 
 const MONTHS_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const DOWS_SHORT   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
@@ -25,22 +28,19 @@ interface Props {
   onRsvp: (status: RsvpStatus) => void;
   goingCount: number;
   pendingCount: number;
-  goingPreview: PreviewPerson[]; // first N going for the avatar strip
-  arriveText?: string; // e.g. "Arrive 8:45 · 15 min early"
-  arriveLabel?: string; // e.g. "15 MIN EARLY"
-  weatherText?: string; // e.g. "81°/67°"
-  weatherIcon?: string; // emoji
+  goingPreview: PreviewPerson[];
+  arriveText?: string;
+  arriveLabel?: string;
+  weatherText?: string;
+  weatherIcon?: string;
   eventChatUnread?: number;
-  // Prefix on the RSVP status pill. Defaults to "YOU" but the parent
-  // can override with a linked player's name when the card is wired
-  // to the kid's RSVP (coach-who's-also-a-parent case).
   rsvpLabel?: string;
 }
 
 const Icon: React.FC<{ name: string; className?: string }> = ({ name, className = 'w-3.5 h-3.5' }) => {
   switch (name) {
     case 'check':
-      return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>;
+      return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>;
     case 'q':
       return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
     case 'x':
@@ -49,12 +49,12 @@ const Icon: React.FC<{ name: string; className?: string }> = ({ name, className 
       return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
     case 'pin':
       return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-12a8 8 0 1 1 16 0c0 7.5-8 12-8 12z"/><circle cx="12" cy="10" r="3"/></svg>;
-    case 'cloud':
-      return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="17" cy="9" r="3"/><path d="M9 18h9a4 4 0 0 0 0-8 6 6 0 0 0-11.79-1.5A4 4 0 1 0 7 18h2z"/></svg>;
     case 'users':
       return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>;
     case 'chat':
       return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+    case 'arrive':
+      return <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>;
   }
   return null;
 };
@@ -64,6 +64,27 @@ function formatTimeRange(start: Date, end?: Date): string {
   if (!end) return s;
   const e = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   return `${s} – ${e}`;
+}
+
+// Color spec per event type — drives the type pill and the left-edge
+// accent stripe. Game = crimson (most charged event), practice = also
+// crimson but softer, anything else = amber (events / camps / etc.).
+function typeSpec(type: string | undefined) {
+  switch (type) {
+    case 'game':
+      return { label: 'Game', pillBg: 'bg-crimson-500/15', pillRing: 'ring-crimson-400/40', pillText: 'text-crimson-300', edge: 'bg-crimson-500' };
+    case 'practice':
+      return { label: 'Practice', pillBg: 'bg-crimson-500/10', pillRing: 'ring-crimson-400/30', pillText: 'text-crimson-300', edge: 'bg-crimson-500/70' };
+    default:
+      return { label: 'Event', pillBg: 'bg-amber-500/15', pillRing: 'ring-amber-400/40', pillText: 'text-amber-300', edge: 'bg-amber-500' };
+  }
+}
+
+// First name only on the RSVP pill, so the chip doesn't blow out on
+// long names. "Hunter Gill" → "Hunter".
+function firstName(label?: string): string {
+  if (!label) return '';
+  return label.trim().split(/\s+/)[0] || '';
 }
 
 const EventListCard: React.FC<Props> = ({
@@ -86,15 +107,45 @@ const EventListCard: React.FC<Props> = ({
   const day = date.getDate();
   const dow = DOWS_SHORT[date.getDay()];
 
-  const stripe =
-    event.type === 'game' ? 'from-rose-500 to-orange-500'
-    : event.type === 'practice' ? 'from-crimson-500 to-charcoal-600'
-    : 'from-purple-500 to-pink-500';
+  const t = typeSpec(event.type);
+  const cancelled = !!(event as any).isCancelled;
 
-  const chip =
-    event.type === 'game' ? 'bg-rose-500/10 text-rose-700 border-rose-500/25'
-    : event.type === 'practice' ? 'bg-crimson-500/10 text-crimson-700 border-crimson-500/25'
-    : 'bg-purple-500/10 text-purple-700 border-purple-500/25';
+  // RSVP pill chrome per status. The "going" pill is the loudest
+  // (filled emerald) since it's a celebratory state; maybe/can't are
+  // ringed outlines so they don't shout. Untouched events show "RSVP"
+  // as a faint outline-only nudge.
+  const rsvpPill = (() => {
+    const name = firstName(rsvpLabel === 'YOU' ? 'You' : rsvpLabel);
+    if (myRsvp === 'going') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/50">
+          <Icon name="check" className="w-3 h-3" />
+          {name}: Going
+        </span>
+      );
+    }
+    if (myRsvp === 'maybe') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/50">
+          <Icon name="q" className="w-3 h-3" />
+          {name}: Maybe
+        </span>
+      );
+    }
+    if (myRsvp === 'no') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/50">
+          <Icon name="x" className="w-3 h-3" />
+          {name}: Can't
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase text-charcoal-300 ring-1 ring-charcoal-500/50 hover:ring-crimson-500/40 transition-colors">
+        Tap to RSVP
+      </span>
+    );
+  })();
 
   const handleQuickRsvp = (status: RsvpStatus, e: React.MouseEvent) => {
     e.preventDefault();
@@ -102,174 +153,170 @@ const EventListCard: React.FC<Props> = ({
     onRsvp(status);
   };
 
-  const cancelled = !!(event as any).isCancelled;
-
   return (
     <Link
       to={`/events/${event.id}`}
-      className={`block rounded-xl overflow-hidden bg-white shadow-[0_6px_16px_-4px_rgba(0,0,0,0.25)] hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.35)] transition-shadow ${cancelled ? 'opacity-70' : ''}`}
+      className={`relative block overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/5 hover:ring-crimson-500/40 transition shadow-lg ${cancelled ? 'opacity-60' : ''}`}
     >
-      {/* type stripe — muted when cancelled so the card reads as "not happening". */}
-      <div className={`h-[3px] bg-gradient-to-r ${cancelled ? 'from-slate-400 to-slate-300' : stripe}`} />
+      {/* Left-edge accent stripe, color from event type. Cancelled
+          events go neutral grey so the card reads as "not happening". */}
+      <span
+        aria-hidden
+        className={`absolute inset-y-0 left-0 w-1 ${cancelled ? 'bg-charcoal-600' : t.edge}`}
+      />
 
-      <div className="px-3.5 pt-3 pb-3">
-        <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-start">
-          {/* Date badge */}
-          <div className={`w-[54px] h-[54px] rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${cancelled ? 'bg-slate-300 border border-slate-200' : 'bg-charcoal-950 border border-crimson-400/40'}`}>
-            <span className={`text-[9px] font-extrabold tracking-widest ${cancelled ? 'text-slate-500' : 'text-crimson-400'}`}>{month}</span>
-            <span className={`text-[22px] font-black leading-none ${cancelled ? 'text-slate-600 line-through decoration-2' : 'text-white'}`}>{day}</span>
-            <span className={`text-[8px] font-bold tracking-widest mt-0.5 ${cancelled ? 'text-slate-500' : 'text-slate-400'}`}>{dow}</span>
-          </div>
-
-          {/* Title area */}
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-extrabold tracking-widest uppercase ${chip}`}>
-                {event.type}
+      <div className="relative pl-4 pr-4 py-3.5">
+        {/* Row 1: top pills — type chip on the left, RSVP chip on
+            the right. Cancelled badge folds into the same row. */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase ring-1 ${t.pillBg} ${t.pillRing} ${t.pillText}`}>
+              {t.label}
+            </span>
+            {cancelled && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-extrabold tracking-widest uppercase bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40">
+                Cancelled
               </span>
-              {cancelled && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold tracking-widest uppercase bg-amber-600 text-white">
-                  Cancelled
-                </span>
-              )}
-            </div>
-            <h3 className={`mt-1 text-[15px] font-extrabold leading-tight tracking-tight ${cancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
-              {event.title}
-            </h3>
-            <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-              <span className="inline-flex items-center gap-1">
-                <Icon name="clock" className="w-3 h-3 text-slate-400" />
-                {formatTimeRange(date, end)}
-              </span>
-              {event.location && (<>
-                <span className="text-slate-300">·</span>
-                <a
-                  href={mapsUrl({
-                    name: event.location,
-                    address: (event as any).locationAddress,
-                    lat: (event as any).locationCoords?.lat,
-                    lon: (event as any).locationCoords?.lon,
-                  })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => { e.stopPropagation(); }}
-                  className="inline-flex items-center gap-1 truncate max-w-[140px] hover:text-crimson-700"
-                  title="Open in Maps"
-                >
-                  <Icon name="pin" className="w-3 h-3 text-slate-400" />
-                  <span className="truncate underline decoration-dotted underline-offset-2">{event.location}</span>
-                </a>
-              </>)}
-              {(event as any).fieldNumber && (<>
-                <span className="text-slate-300">·</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 text-[10px] font-extrabold tracking-widest uppercase ring-1 ring-crimson-200">
-                  {(event as any).fieldNumber}
-                </span>
-              </>)}
-              {event.type === 'game' && (event as any).homeAway && (<>
-                <span className="text-slate-300">·</span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase">
-                  <span
-                    className={`inline-block w-2.5 h-2.5 rounded-sm border ${
-                      (event as any).homeAway === 'home'
-                        ? 'bg-charcoal-900 border-slate-700'
-                        : 'bg-white border-slate-300'
-                    }`}
-                    aria-hidden
-                  />
-                  <span className="text-slate-600">{(event as any).homeAway === 'home' ? 'Black' : 'White'}</span>
-                </span>
-              </>)}
-              {weatherText && (<>
-                <span className="text-slate-300">·</span>
-                <span className="inline-flex items-center gap-1">
-                  <span aria-hidden>{weatherIcon}</span>
-                  {weatherText}
-                </span>
-              </>)}
-            </div>
+            )}
           </div>
-
-          {/* Quick RSVP */}
-          <div className="flex flex-col gap-1 items-end flex-shrink-0">
-            <div className="flex gap-1">
-              <button
-                onClick={(e) => handleQuickRsvp('going', e)}
-                aria-label="RSVP going"
-                className={`w-7 h-7 rounded-md border flex items-center justify-center transition-colors ${
-                  myRsvp === 'going'
-                    ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/40 ring-1 ring-emerald-500/30'
-                    : 'bg-slate-100 text-slate-500 border-slate-200 hover:border-emerald-400'
-                }`}
-              >
-                <Icon name="check" className="w-3 h-3" />
-              </button>
-              <button
-                onClick={(e) => handleQuickRsvp('maybe', e)}
-                aria-label="RSVP maybe"
-                className={`w-7 h-7 rounded-md border flex items-center justify-center transition-colors ${
-                  myRsvp === 'maybe'
-                    ? 'bg-amber-500/15 text-amber-700 border-amber-500/40 ring-1 ring-amber-500/30'
-                    : 'bg-slate-100 text-slate-500 border-slate-200 hover:border-amber-400'
-                }`}
-              >
-                <Icon name="q" className="w-3 h-3" />
-              </button>
-              <button
-                onClick={(e) => handleQuickRsvp('no', e)}
-                aria-label="RSVP can't go"
-                className={`w-7 h-7 rounded-md border flex items-center justify-center transition-colors ${
-                  myRsvp === 'no'
-                    ? 'bg-rose-500/15 text-rose-700 border-rose-500/40 ring-1 ring-rose-500/30'
-                    : 'bg-slate-100 text-slate-500 border-slate-200 hover:border-rose-400'
-                }`}
-              >
-                <Icon name="x" className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="text-[10px] font-bold tracking-wider text-slate-500">
-              {myRsvp === 'going' ? `${rsvpLabel}: GOING`
-                : myRsvp === 'maybe' ? `${rsvpLabel}: MAYBE`
-                : myRsvp === 'no' ? `${rsvpLabel}: CAN'T`
-                : 'TAP TO RSVP'}
-            </div>
+          <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+            {/* Tap the pill itself to cycle through RSVP states.
+                Going → Maybe → Can't → none. Keeps the card tappable
+                without nesting three buttons. */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const next: RsvpStatus =
+                  myRsvp === 'going' ? 'maybe' :
+                  myRsvp === 'maybe' ? 'no' :
+                  'going';
+                onRsvp(next);
+              }}
+              aria-label="Cycle RSVP"
+              className="block"
+            >
+              {rsvpPill}
+            </button>
           </div>
         </div>
 
-        {/* Info strip */}
-        <div className="mt-2.5 pt-2.5 border-t border-slate-100 grid grid-cols-3">
-          <div className="flex items-center gap-1.5 px-1.5">
-            <Icon name="users" className="w-3.5 h-3.5 text-crimson-500" />
-            <div>
-              <div className="text-[11px] font-bold text-slate-900 leading-none tracking-wide">{goingCount} GOING</div>
-              <div className="text-[9px] text-slate-400 mt-0.5 tracking-wide">{pendingCount} PENDING</div>
+        {/* Row 2: date badge + title block */}
+        <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
+          <div className="w-[52px] rounded-lg bg-charcoal-950 ring-1 ring-crimson-400/30 flex flex-col items-center justify-center py-1.5">
+            <span className="text-[9px] font-extrabold tracking-widest text-crimson-400">{month}</span>
+            <span className={`text-[22px] font-black leading-none text-white ${cancelled ? 'line-through decoration-2' : ''}`}>{day}</span>
+            <span className="text-[8px] font-bold tracking-widest text-charcoal-400 mt-0.5">{dow}</span>
+          </div>
+
+          <div className="min-w-0">
+            <h3 className={`text-[16px] font-extrabold leading-tight tracking-tight text-bone ${cancelled ? 'line-through' : ''}`}>
+              {event.title}
+            </h3>
+            <div className="mt-1 text-[11.5px] text-charcoal-300 flex items-center gap-1 flex-wrap">
+              <Icon name="clock" className="w-3 h-3 text-crimson-400" />
+              <span>{formatTimeRange(date, end)}</span>
+              {weatherText && (
+                <>
+                  <span className="text-charcoal-500">·</span>
+                  <span className="inline-flex items-center gap-0.5">
+                    <span aria-hidden>{weatherIcon}</span>
+                    <span>{weatherText}</span>
+                  </span>
+                </>
+              )}
+              {(event as any).fieldNumber && (
+                <>
+                  <span className="text-charcoal-500">·</span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-crimson-500/15 text-crimson-300 text-[9px] font-extrabold tracking-widest uppercase ring-1 ring-crimson-400/30">
+                    {(event as any).fieldNumber}
+                  </span>
+                </>
+              )}
+              {event.type === 'game' && (event as any).homeAway && (
+                <>
+                  <span className="text-charcoal-500">·</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase">
+                    <span
+                      className={`inline-block w-2.5 h-2.5 rounded-sm border ${
+                        (event as any).homeAway === 'home'
+                          ? 'bg-charcoal-950 border-charcoal-600'
+                          : 'bg-white border-charcoal-400'
+                      }`}
+                      aria-hidden
+                    />
+                    <span className="text-charcoal-300">{(event as any).homeAway === 'home' ? 'Black' : 'White'}</span>
+                  </span>
+                </>
+              )}
+            </div>
+            {event.location && (
+              <a
+                href={mapsUrl({
+                  name: event.location,
+                  address: (event as any).locationAddress,
+                  lat: (event as any).locationCoords?.lat,
+                  lon: (event as any).locationCoords?.lon,
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => { e.stopPropagation(); }}
+                className="mt-1 inline-flex items-center gap-1 text-[11.5px] text-crimson-400 hover:text-crimson-300 truncate max-w-full"
+                title="Open in Maps"
+              >
+                <Icon name="pin" className="w-3 h-3" />
+                <span className="truncate underline decoration-dotted underline-offset-2">{event.location}</span>
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Row 3: 4-column info strip — GOING / PENDING / ARRIVE / NEW.
+            White-on-charcoal density block, separators are thin charcoal
+            lines. Each column gets a crimson icon + bold number + small
+            label so the eye lands on the count, not the chrome. */}
+        <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-4 gap-2 text-center">
+          <div className="flex items-center gap-1.5 justify-start pl-1">
+            <Icon name="users" className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
+            <div className="text-left">
+              <div className="text-[12px] font-black text-bone leading-none tabular-nums">{goingCount}</div>
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Going</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-white/5">
+            <Icon name="clock" className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
+            <div className="text-left">
+              <div className="text-[12px] font-black text-bone leading-none tabular-nums">{pendingCount}</div>
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Pending</div>
             </div>
           </div>
           {arriveText ? (
-            <div className="flex items-center gap-1.5 px-1.5 border-l border-slate-100">
-              <Icon name="clock" className="w-3.5 h-3.5 text-crimson-500" />
-              <div>
-                <div className="text-[11px] font-bold text-slate-900 leading-none tracking-wide">{arriveText}</div>
-                <div className="text-[9px] text-slate-400 mt-0.5 tracking-wide">{arriveLabel || ''}</div>
+            <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-white/5">
+              <Icon name="arrive" className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
+              <div className="text-left min-w-0">
+                <div className="text-[11px] font-black text-bone leading-none truncate">{arriveText.replace(/^Arrive\s*/i, '')}</div>
+                <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Arrive</div>
               </div>
             </div>
           ) : (
-            <div className="border-l border-slate-100" />
+            <div className="flex items-center justify-start pl-1 border-l border-white/5 text-charcoal-600 text-[10px]">—</div>
           )}
-          <div className="flex items-center gap-1.5 px-1.5 border-l border-slate-100">
-            <Icon name="chat" className="w-3.5 h-3.5 text-crimson-500" />
-            <div>
-              <div className="text-[11px] font-bold text-slate-900 leading-none tracking-wide">
-                {eventChatUnread > 0 ? `${eventChatUnread} NEW` : '0 NEW'}
-              </div>
-              <div className="text-[9px] text-slate-400 mt-0.5 tracking-wide">EVENT CHAT</div>
+          <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-white/5">
+            <Icon name="chat" className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
+            <div className="text-left">
+              <div className="text-[12px] font-black text-bone leading-none tabular-nums">{eventChatUnread}</div>
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">New</div>
             </div>
           </div>
         </div>
 
-        {/* Avatar preview row */}
+        {/* Avatar preview row — UNTOUCHED layout-wise per Patrick:
+            "the only thing i don't want to change it the team bubbles
+            that show who is going at the bottom with their pictures,
+            i love that." Just retoned for dark surface. */}
         {goingPreview.length > 0 && (
-          <div className="mt-2.5 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
             <div className="flex">
               {goingPreview.slice(0, 4).map((p, i) => (
                 p.photoURL ? (
@@ -277,33 +324,40 @@ const EventListCard: React.FC<Props> = ({
                     key={i}
                     src={p.photoURL}
                     alt=""
-                    className={`w-[22px] h-[22px] rounded-full border-2 border-white object-cover ${i > 0 ? '-ml-1.5' : ''}`}
+                    className={`w-[22px] h-[22px] rounded-full ring-2 ring-charcoal-900 object-cover ${i > 0 ? '-ml-1.5' : ''}`}
                   />
                 ) : (
                   <span
                     key={i}
-                    className={`w-[22px] h-[22px] rounded-full border-2 border-white bg-gradient-to-br from-slate-400 to-slate-600 ${i > 0 ? '-ml-1.5' : ''}`}
+                    className={`w-[22px] h-[22px] rounded-full ring-2 ring-charcoal-900 bg-gradient-to-br from-charcoal-700 to-charcoal-500 ${i > 0 ? '-ml-1.5' : ''}`}
                   />
                 )
               ))}
             </div>
-            <span className="text-[11px] font-semibold text-slate-600 truncate">
+            <span className="text-[11px] font-semibold text-charcoal-300 truncate">
               {goingPreview.slice(0, 3).map(p => p.name.split(' ')[0]).join(', ')}
-              {goingPreview.length > 3 && <span className="text-slate-400"> +{goingPreview.length - 3}</span>}
-              <span className="text-crimson-600 font-bold ml-1.5">See all ›</span>
+              {goingPreview.length > 3 && <span className="text-charcoal-500"> +{goingPreview.length - 3}</span>}
+              <span className="text-crimson-400 font-bold ml-1.5">See all ›</span>
             </span>
           </div>
         )}
 
-        {/* Snacks chip — shown on the card so families don't have to
-            tap in to see if they're up. */}
+        {/* Snacks chip — preserved from the prior design. */}
         {(event as any).snackAssignment?.playerName && (
-          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-slate-700">
-            <span className="text-[9px] font-extrabold tracking-widest uppercase text-slate-500">Snacks</span>
-            <span className="font-bold">{(event as any).snackAssignment.playerName}</span>
+          <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-charcoal-300">
+            <span className="text-[9px] font-extrabold tracking-widest uppercase text-charcoal-500">Snacks</span>
+            <span className="font-bold text-bone">{(event as any).snackAssignment.playerName}</span>
           </div>
         )}
       </div>
+
+      {/* Quick-RSVP buttons hidden behind the pill (cycle on tap) but
+          we still expose hidden labels for accessibility. */}
+      <span className="sr-only">
+        <button onClick={(e) => handleQuickRsvp('going', e)}>Mark going</button>
+        <button onClick={(e) => handleQuickRsvp('maybe', e)}>Mark maybe</button>
+        <button onClick={(e) => handleQuickRsvp('no', e)}>Mark can't go</button>
+      </span>
     </Link>
   );
 };

@@ -406,7 +406,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case 'game': return 'bg-rose-500/10 text-rose-700 border-rose-300/50';
-      case 'practice': return 'bg-fire-500/10 text-fire-800 border-fire-300/50';
+      case 'practice': return 'bg-crimson-500/10 text-charcoal-800 border-crimson-300/50';
       case 'event': return 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50';
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
@@ -470,15 +470,15 @@ const Calendar: React.FC<CalendarProps> = ({
           onClick={() => handleDateClick(date)}
           className={`h-24 sm:h-28 border border-slate-200/70 p-1.5 cursor-pointer transition-all duration-150 ${
             isToday
-              ? 'bg-gradient-to-br from-fire-50 to-white ring-1 ring-fire-300/60'
+              ? 'bg-gradient-to-br from-crimson-50 to-white ring-1 ring-crimson-300/60'
               : isPast
                 ? 'bg-slate-50/40 hover:bg-slate-50'
-                : 'bg-white hover:bg-fire-50/40'
+                : 'bg-white hover:bg-crimson-50/40'
           }`}
         >
           <div className={`text-xs font-semibold mb-1 inline-flex items-center justify-center ${
             isToday
-              ? 'w-6 h-6 rounded-full bg-fire-600 text-white shadow-sm'
+              ? 'w-6 h-6 rounded-full bg-charcoal-600 text-white shadow-sm'
               : isPast ? 'text-slate-400' : 'text-slate-700'
           }`}>
             {day}
@@ -493,7 +493,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     handleEditEvent(event);
                   }
                 }}
-                className={`text-[11px] px-1.5 py-0.5 rounded-md truncate border ${getEventTypeColor(event.type)} ${isUserCoach ? 'cursor-pointer hover:ring-1 hover:ring-fire-400' : ''}`}
+                className={`text-[11px] px-1.5 py-0.5 rounded-md truncate border ${getEventTypeColor(event.type)} ${isUserCoach ? 'cursor-pointer hover:ring-1 hover:ring-crimson-400' : ''}`}
                 title={isUserCoach ? `Edit: ${event.title} — ${event.location}` : `${event.title} - ${event.location}`}
               >
                 {getEventTypeIcon(event.type)} {event.title}
@@ -512,7 +512,7 @@ const Calendar: React.FC<CalendarProps> = ({
     return (
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 overflow-hidden">
         {/* Calendar Header */}
-        <div className="bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 px-5 sm:px-6 py-4">
+        <div className="bg-gradient-to-r from-charcoal-700 via-charcoal-600 to-charcoal-700 px-5 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -562,8 +562,8 @@ const Calendar: React.FC<CalendarProps> = ({
 
         {/* Click hint for coaches */}
         {isUserCoach && (
-          <div className="px-5 sm:px-6 py-3 bg-fire-50/60 border-t border-fire-100">
-            <p className="text-xs sm:text-sm text-navy-700 font-medium">
+          <div className="px-5 sm:px-6 py-3 bg-crimson-50/60 border-t border-crimson-100">
+            <p className="text-xs sm:text-sm text-charcoal-700 font-medium">
               💡 Click any date to create a new event
             </p>
           </div>
@@ -665,7 +665,7 @@ const Calendar: React.FC<CalendarProps> = ({
             for new event. No subtitle (we don't need to say what
             events are). Lives in the navy band so the page reads
             as one continuous surface. */}
-        <div className="bg-slate-950 px-4 pt-4 pb-3 flex items-center justify-between">
+        <div className="bg-charcoal-950 px-4 pt-4 pb-3 flex items-center justify-between">
           <h1 className="text-2xl font-black text-white tracking-tight">Events</h1>
           {isUserCoach && (
             <div className="flex items-center gap-2">
@@ -688,7 +688,7 @@ const Calendar: React.FC<CalendarProps> = ({
                   setIsEventFormOpen(true);
                 }}
                 aria-label="Add event"
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -700,15 +700,15 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
 
         {/* Pill filters — same navy continues */}
-        <div className="bg-slate-950 px-3.5 pb-2.5 flex gap-1.5 overflow-x-auto">
+        <div className="bg-charcoal-950 px-3.5 pb-2.5 flex gap-1.5 overflow-x-auto">
           {pillFilters.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setListTab(key)}
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 listTab === key
-                  ? 'bg-cyan-500/15 text-cyan-300 border-cyan-400/40'
-                  : 'bg-slate-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
+                  ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/40'
+                  : 'bg-charcoal-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
               }`}
             >
               {label}
@@ -735,7 +735,7 @@ const Calendar: React.FC<CalendarProps> = ({
         />
 
         {/* Event card list */}
-        <div className="bg-gradient-to-b from-slate-800 to-slate-700 px-3 py-3.5 space-y-2.5 min-h-[200px]">
+        <div className="bg-gradient-to-b from-charcoal-800 to-slate-700 px-3 py-3.5 space-y-2.5 min-h-[200px]">
           {showing.length === 0 ? (
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-8 text-center">
               <p className="text-gray-600 font-medium text-sm">
@@ -748,7 +748,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     setSelectedDate(null);
                     setIsEventFormOpen(true);
                   }}
-                  className="mt-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
+                  className="mt-4 bg-gradient-to-r from-crimson-600 to-charcoal-600 hover:from-crimson-500 hover:to-crimson-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
                 >
                   Add first event
                 </button>
@@ -761,7 +761,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 <div
                   key={event.id}
                   id={`event-${event.id}`}
-                  className={focusEventId === event.id ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-800 rounded-xl' : ''}
+                  className={focusEventId === event.id ? 'ring-2 ring-crimson-400 ring-offset-2 ring-offset-slate-800 rounded-xl' : ''}
                 >
                   <EventListCard
                     event={event}
@@ -795,7 +795,7 @@ const Calendar: React.FC<CalendarProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-fire-200 border-t-fire-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-crimson-200 border-t-fire-600"></div>
       </div>
     );
   }
@@ -888,13 +888,13 @@ interface EventCardProps {
 const eventColors = (type: string) => {
   switch (type) {
     case 'game':
-      return { stripe: 'bg-navy-700', stripeText: 'text-white', pill: 'bg-navy-700/10 text-navy-800' };
+      return { stripe: 'bg-charcoal-700', stripeText: 'text-white', pill: 'bg-charcoal-700/10 text-charcoal-800' };
     case 'practice':
-      return { stripe: 'bg-fire-500', stripeText: 'text-white', pill: 'bg-fire-100 text-fire-800' };
+      return { stripe: 'bg-crimson-500', stripeText: 'text-white', pill: 'bg-crimson-100 text-charcoal-800' };
     case 'event':
-      return { stripe: 'bg-fire-700', stripeText: 'text-white', pill: 'bg-fire-100 text-fire-800' };
+      return { stripe: 'bg-charcoal-700', stripeText: 'text-white', pill: 'bg-crimson-100 text-charcoal-800' };
     default:
-      return { stripe: 'bg-fire-500', stripeText: 'text-white', pill: 'bg-fire-100 text-fire-800' };
+      return { stripe: 'bg-crimson-500', stripeText: 'text-white', pill: 'bg-crimson-100 text-charcoal-800' };
   }
 };
 
@@ -1000,7 +1000,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 <button
                   onClick={() => onEdit(event)}
                   disabled={isDeleting}
-                  className="p-1.5 text-gray-400 hover:text-cyan-700 hover:bg-cyan-50 rounded-lg transition disabled:opacity-50"
+                  className="p-1.5 text-gray-400 hover:text-crimson-700 hover:bg-crimson-50 rounded-lg transition disabled:opacity-50"
                   title="Edit"
                 >
                   <AppIcon name="edit" className="w-4 h-4" />
@@ -1039,7 +1039,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 href={mapsUrlForEvent(event)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 min-w-0 hover:text-cyan-700 transition-colors"
+                className="flex items-center gap-1.5 min-w-0 hover:text-crimson-700 transition-colors"
                 title="Open in Maps"
               >
                 <AppIcon name="map-pin" className="w-4 h-4 shrink-0" />
@@ -1055,7 +1055,7 @@ const EventCard: React.FC<EventCardProps> = ({
           )}
 
           {weather && (
-            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-50 ring-1 ring-cyan-200 text-cyan-900 text-xs font-semibold max-w-full self-start">
+            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-crimson-50 ring-1 ring-crimson-200 text-crimson-900 text-xs font-semibold max-w-full self-start">
               <span className="text-base leading-none shrink-0">{weather.icon}</span>
               <span className="truncate">{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F{weather.precipChance > 0 ? ` · ${weather.precipChance}% rain` : ''}</span>
             </div>
@@ -1084,7 +1084,7 @@ const EventCard: React.FC<EventCardProps> = ({
             {event.type === 'game' && (
               <a
                 href={`/game-day/${event.id}`}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 rounded-full shadow-sm transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-600 to-crimson-600 hover:from-emerald-500 hover:to-crimson-500 rounded-full shadow-sm transition-colors"
                 title="Open Game Day live tracker"
               >
                 <AppIcon name="whistle" className="w-3.5 h-3.5" />
@@ -1272,7 +1272,7 @@ const RsvpBar: React.FC<{
           {playerCounts.going} player{playerCounts.going === 1 ? '' : 's'} going
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-cyan-50 ring-1 ring-cyan-200 text-cyan-700 text-[9px] font-bold">C</span>
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-crimson-50 ring-1 ring-crimson-200 text-crimson-700 text-[9px] font-bold">C</span>
           {staffCounts.going} coach{staffCounts.going === 1 ? '' : 'es'} going
         </span>
       </div>
@@ -1384,7 +1384,7 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-crimson-400 to-crimson-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -1408,13 +1408,13 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-navy-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
                               <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
                               {e.isGuest && (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 border border-crimson-200 shrink-0">
                                   via link
                                 </span>
                               )}
@@ -1447,7 +1447,7 @@ const RsvpBar: React.FC<{
                               )}
                               <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Guest'}</span>
                               {e.isGuest && (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 shrink-0">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 border border-crimson-200 shrink-0">
                                   via link
                                 </span>
                               )}
@@ -1534,7 +1534,7 @@ const CarpoolBar: React.FC<{
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-crimson-400 to-crimson-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">
                     {(p.name || '?').charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -1600,7 +1600,7 @@ const CarpoolBar: React.FC<{
               />
               <button
                 onClick={submit}
-                className="w-full px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded"
+                className="w-full px-2 py-1.5 bg-charcoal-600 hover:bg-charcoal-700 text-white text-xs font-semibold rounded"
               >Post</button>
             </div>
           )}

@@ -59,12 +59,12 @@ const Forms: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-            <h1 className="text-2xl font-black text-fire-950 mt-1">Forms</h1>
+            <h1 className="text-2xl font-black text-charcoal-950 mt-1">Forms</h1>
             <p className="text-sm text-slate-600">
               Waivers, releases, consents, order forms. Each shows up on every player's checklist; admins mark signed as they come in.
             </p>
           </div>
-          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold">
+          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
             + New form
           </button>
         </div>
@@ -74,7 +74,7 @@ const Forms: React.FC = () => {
         ) : forms.length === 0 ? (
           <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-8 text-center">
             <p className="text-sm text-slate-600 mb-3">No forms yet. Player Waiver and Medical Release are usually the first two.</p>
-            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold">
+            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
               Create form
             </button>
           </div>
@@ -82,16 +82,16 @@ const Forms: React.FC = () => {
           <ul className="space-y-2">
             {forms.map(f => (
               <li key={f.id}>
-                <button type="button" onClick={() => setEditing(f)} className="w-full text-left bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-cyan-400 p-4 transition">
+                <button type="button" onClick={() => setEditing(f)} className="w-full text-left bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-crimson-400 p-4 transition">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-bold text-fire-950">{f.name}</div>
+                      <div className="font-bold text-charcoal-950">{f.name}</div>
                       {f.description && <p className="text-[11px] text-slate-500 mt-0.5">{f.description}</p>}
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap text-[10px]">
                         {f.required && <span className="font-extrabold tracking-widest uppercase bg-rose-50 text-rose-700 ring-1 ring-rose-200 px-1.5 py-0.5 rounded">Required</span>}
                         {!f.isActive && <span className="font-extrabold tracking-widest uppercase bg-slate-100 text-slate-500 ring-1 ring-slate-300 px-1.5 py-0.5 rounded">Archived</span>}
                         {f.seasonId && <span className="font-extrabold tracking-widest uppercase bg-amber-50 text-amber-700 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">{seasons.find(s => s.id === f.seasonId)?.name || 'Season scoped'}</span>}
-                        {(f.ageGroups || []).length > 0 && <span className="font-extrabold tracking-widest uppercase bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">{(f.ageGroups || []).join(', ')}</span>}
+                        {(f.ageGroups || []).length > 0 && <span className="font-extrabold tracking-widest uppercase bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">{(f.ageGroups || []).join(', ')}</span>}
                       </div>
                     </div>
                   </div>
@@ -178,37 +178,37 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
       <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-fire-950">{isNew ? 'New form' : 'Edit form'}</h2>
+          <h2 className="font-black text-charcoal-950">{isNew ? 'New form' : 'Edit form'}</h2>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
           </label>
 
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Short description (optional)</span>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm" />
+            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
           </label>
 
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Body text (terms / instructions, optional)</span>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm leading-relaxed" />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm leading-relaxed" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Scope to season (optional)</span>
-              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm">
+              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm">
                 <option value="">Every season</option>
                 {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Display order</span>
-              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm" />
+              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
             </label>
           </div>
 
@@ -218,7 +218,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
               {AGE_GROUP_OPTIONS.map(ag => {
                 const on = ageGroups.includes(ag);
                 return (
-                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-cyan-600 text-white ring-cyan-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-cyan-400'}`}>{ag}</button>
+                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-crimson-400'}`}>{ag}</button>
                 );
               })}
             </div>
@@ -240,7 +240,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
 
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
-          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : isNew ? 'Create form' : 'Save changes'}
           </button>
         </div>

@@ -52,7 +52,7 @@ const Players: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-charcoal-950">
       <Header title="Players" subtitle="Roster, profiles, and contact info" />
       <ImportPlayersModal
         isOpen={importOpen}
@@ -77,7 +77,7 @@ const Players: React.FC = () => {
               placeholder="Search by name or #…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-9 py-2.5 text-sm bg-white/[0.04] ring-1 ring-white/10 text-white placeholder-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              className="w-full pl-9 pr-9 py-2.5 text-sm bg-white/[0.04] ring-1 ring-white/10 text-white placeholder-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-crimson-400"
             />
             {searchTerm && (
               <button
@@ -96,10 +96,10 @@ const Players: React.FC = () => {
             <select
               value={positionFilter}
               onChange={(e) => setPositionFilter(e.target.value)}
-              className="appearance-none bg-white/[0.04] ring-1 ring-white/10 text-white rounded-xl pl-3 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              className="appearance-none bg-white/[0.04] ring-1 ring-white/10 text-white rounded-xl pl-3 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-400"
             >
-              <option value="" className="bg-slate-900">All positions</option>
-              {positions.map(p => <option key={p} value={p} className="bg-slate-900">{p}</option>)}
+              <option value="" className="bg-charcoal-900">All positions</option>
+              {positions.map(p => <option key={p} value={p} className="bg-charcoal-900">{p}</option>)}
             </select>
             <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <polyline points="6 9 12 15 18 9" />
@@ -124,7 +124,7 @@ const Players: React.FC = () => {
           <div className="pt-2 pb-1 flex justify-center">
             <button
               onClick={() => setImportOpen(true)}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-cyan-300/80 hover:text-cyan-200"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-crimson-300/80 hover:text-crimson-200"
             >
               Import roster from CSV
             </button>

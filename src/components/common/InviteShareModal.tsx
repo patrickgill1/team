@@ -69,11 +69,11 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-gradient-to-br from-fire-900 via-fire-950 to-black ring-1 ring-cyan-500/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
+        className="bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black ring-1 ring-crimson-500/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative overflow-hidden p-6 border-b border-cyan-500/15">
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative overflow-hidden p-6 border-b border-crimson-500/15">
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-crimson-500/15 rounded-full blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -91,13 +91,13 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
         <div className="p-6 space-y-4">
           <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-1">Share link</p>
-            <p className="text-sm font-mono break-all text-cyan-200">{url}</p>
+            <p className="text-sm font-mono break-all text-crimson-200">{url}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={handleCopy}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white text-fire-800 font-bold text-sm shadow hover:scale-[1.02] transition"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-[1.02] transition"
             >
               {copied ? '✓ Copied' : '📋 Copy'}
             </button>

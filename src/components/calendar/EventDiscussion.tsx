@@ -132,7 +132,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
   return (
     <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
       <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
-        <svg className="w-3 h-3 text-cyan-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <svg className="w-3 h-3 text-crimson-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Comments
         <span className="ml-1 text-slate-400 font-bold">{comments.length}</span>
       </div>
@@ -160,7 +160,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
                   <div
                     className={`inline-block mt-0.5 px-3 py-1.5 rounded-2xl text-sm break-words whitespace-pre-wrap text-left ${
                       isMine
-                        ? 'bg-cyan-600 text-white rounded-tr-sm'
+                        ? 'bg-crimson-600 text-white rounded-tr-sm'
                         : 'bg-slate-100 text-slate-900 rounded-tl-sm'
                     }`}
                   >
@@ -197,12 +197,12 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
             }}
             placeholder="Say something about this event…"
             rows={2}
-            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
           />
           <button
             onClick={post}
             disabled={!draft.trim() || posting}
-            className="px-4 rounded-lg bg-cyan-600 text-white text-sm font-bold disabled:opacity-50"
+            className="px-4 rounded-lg bg-crimson-600 text-white text-sm font-bold disabled:opacity-50"
           >Send</button>
         </div>
       ) : (

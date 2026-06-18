@@ -171,19 +171,19 @@ const ClubOverview: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => navigate('/people')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Search every player, parent, and coach — tap a player to open their full admin profile"
           >
-            <svg className="w-5 h-5 text-cyan-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg className="w-5 h-5 text-crimson-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">People</div>
             <div className="text-[10px] text-slate-500 mt-0.5">Tap a player → full profile</div>
           </button>
           <button
             onClick={() => navigate('/teams')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Create a new team, edit team details, or end the season"
           >
-            <svg className="w-5 h-5 text-cyan-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <svg className="w-5 h-5 text-crimson-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Teams</div>
             <div className="text-[10px] text-slate-500 mt-0.5">Edit, archive, roles</div>
           </button>
@@ -201,16 +201,16 @@ const ClubOverview: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => navigate('/club/registrations')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Everyone who's registered for the season"
           >
-            <svg className="w-5 h-5 text-cyan-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <svg className="w-5 h-5 text-crimson-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
             <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Registrations</div>
             <div className="text-[10px] text-slate-500 mt-0.5">Funnel + status</div>
           </button>
           <button
             onClick={() => navigate('/club/products')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Products + pricing tiers + coupon codes"
           >
             <svg className="w-5 h-5 text-violet-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 7L12 3 4 7v10l8 4 8-4V7z"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="4" y1="7" x2="20" y2="7"/></svg>
@@ -219,7 +219,7 @@ const ClubOverview: React.FC = () => {
           </button>
           <button
             onClick={() => navigate('/club/registration-form')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Extra questions on the public registration form"
           >
             <svg className="w-5 h-5 text-amber-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -280,15 +280,15 @@ const ClubOverview: React.FC = () => {
           </button>
           <button
             onClick={() => navigate('/club/forms')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-cyan-400 transition group flex items-center gap-3"
+            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group flex items-center gap-3"
             title="Waivers, releases, consents"
           >
-            <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <svg className="w-5 h-5 text-crimson-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             <div className="flex-1">
               <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Forms</div>
               <div className="text-[10px] text-slate-500 mt-0.5">Waivers · releases · consents</div>
             </div>
-            <span className="text-slate-400 group-hover:text-cyan-500">→</span>
+            <span className="text-slate-400 group-hover:text-crimson-500">→</span>
           </button>
           <button
             onClick={() => navigate('/club/tasks')}
@@ -318,7 +318,7 @@ const ClubOverview: React.FC = () => {
               onClick={() => setTab(t.k)}
               className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-widest uppercase whitespace-nowrap border ${
                 tab === t.k
-                  ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                  ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
                   : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
               }`}
             >
@@ -420,7 +420,7 @@ const OverviewTab: React.FC<{
       <SearchBar value={search} onChange={setSearch} placeholder="Search teams…" />
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-fire-950">All teams</h2>
+          <h2 className="font-bold text-charcoal-950">All teams</h2>
           <span className="text-xs text-gray-500">
             {filtered.length === teams.length ? `${teams.length} total` : `${filtered.length} of ${teams.length}`}
           </span>
@@ -438,12 +438,12 @@ const OverviewTab: React.FC<{
                     onClick={() => onTeamClick(t.id)}
                     className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition"
                   >
-                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-crimson-500 to-charcoal-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
                       {(t.name || '?').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-fire-950 truncate">{t.name || 'Untitled team'}</span>
+                        <span className="font-bold text-charcoal-950 truncate">{t.name || 'Untitled team'}</span>
                         {t.ageGroup && (
                           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                             {t.ageGroup}
@@ -508,7 +508,7 @@ const PlayersTab: React.FC<{
 
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-fire-950">Roster pool</h2>
+          <h2 className="font-bold text-charcoal-950">Roster pool</h2>
           <span className="text-xs text-gray-500">{filtered.length} player{filtered.length === 1 ? '' : 's'}</span>
         </div>
         {filtered.length === 0 ? (
@@ -531,7 +531,7 @@ const PlayersTab: React.FC<{
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-fire-950 truncate">
+                      <span className="font-bold text-charcoal-950 truncate">
                         {p.jerseyNumber != null ? `#${p.jerseyNumber} ` : ''}{p.name || 'Player'}
                       </span>
                       {getPlayerPositionsLabel(p) && (
@@ -554,7 +554,7 @@ const PlayersTab: React.FC<{
                     </Link>
                     <button
                       onClick={() => onTransfer(p)}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                      className="px-3 py-1.5 text-xs font-semibold rounded-full bg-crimson-600 hover:bg-crimson-700 text-white"
                     >
                       Move
                     </button>
@@ -620,7 +620,7 @@ const CoachesTab: React.FC<{
       <SearchBar value={search} onChange={setSearch} placeholder="Search by name or email…" />
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-fire-950">Coaches &amp; club admins</h2>
+          <h2 className="font-bold text-charcoal-950">Coaches &amp; club admins</h2>
           <span className="text-xs text-gray-500">{visible.length} member{visible.length === 1 ? '' : 's'}</span>
         </div>
         {visible.length === 0 ? (
@@ -636,12 +636,12 @@ const CoachesTab: React.FC<{
               const isSelf = uid === currentUid;
               return (
                 <li key={uid} className="px-5 py-3 flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 text-white flex items-center justify-center font-bold shadow-sm">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-800 text-white flex items-center justify-center font-bold shadow-sm">
                     {(u.name || u.email || '?').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-fire-950 truncate">{u.name || u.email}</span>
+                      <span className="font-bold text-charcoal-950 truncate">{u.name || u.email}</span>
                       {isClub && (
                         <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700 bg-violet-50 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">
                           Club admin
@@ -709,7 +709,7 @@ const CalendarTab: React.FC<{
   const teamColor = (id: string): string => {
     let h = 0;
     for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-    const palette = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-violet-500', 'bg-blue-500', 'bg-teal-500', 'bg-fuchsia-500'];
+    const palette = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-crimson-500', 'bg-violet-500', 'bg-crimson-500', 'bg-teal-500', 'bg-fuchsia-500'];
     return palette[h % palette.length];
   };
 
@@ -724,7 +724,7 @@ const CalendarTab: React.FC<{
 
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-fire-950">Upcoming across the club</h2>
+          <h2 className="font-bold text-charcoal-950">Upcoming across the club</h2>
           <span className="text-xs text-gray-500">{upcoming.length} event{upcoming.length === 1 ? '' : 's'}</span>
         </div>
         {upcoming.length === 0 ? (
@@ -740,7 +740,7 @@ const CalendarTab: React.FC<{
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-fire-950 truncate">{ev.title || 'Event'}</span>
+                      <span className="font-bold text-charcoal-950 truncate">{ev.title || 'Event'}</span>
                       {t && (
                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                           {t.name}
@@ -854,7 +854,7 @@ const SearchBar: React.FC<{ value: string; onChange: (v: string) => void; placeh
     value={value}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder}
-    className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-[15px]"
+    className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-300 text-[15px]"
     style={{ fontSize: '16px' }}
   />
 );
@@ -863,7 +863,7 @@ const FilterChip: React.FC<{ active: boolean; onClick: () => void; children: Rea
   <button
     onClick={onClick}
     className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap ring-1 transition ${
-      active ? 'bg-cyan-600 text-white ring-cyan-600' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
+      active ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
     }`}
   >
     {children}
@@ -890,7 +890,7 @@ const STAT_ICONS: Record<string, JSX.Element> = {
 const BigStat: React.FC<{ icon: string; label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ icon, label, value, accent }) => {
   const accents: Record<string, string> = {
     emerald: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    cyan: 'text-cyan-700 bg-cyan-50 border-cyan-200',
+    cyan: 'text-crimson-700 bg-crimson-50 border-crimson-200',
     amber: 'text-amber-700 bg-amber-50 border-amber-200',
     violet: 'text-violet-700 bg-violet-50 border-violet-200',
   };
@@ -926,7 +926,7 @@ const LeaderboardCard: React.FC<{ title: string; rows: { id: string; name: strin
                 <p className="font-bold text-gray-900 truncate">{r.name}</p>
                 <p className="text-xs text-gray-500 truncate">{r.sub}</p>
               </div>
-              <div className="font-black text-fire-950">{r.value}</div>
+              <div className="font-black text-charcoal-950">{r.value}</div>
             </Link>
           </li>
         ))}
@@ -1031,7 +1031,7 @@ const PaymentsTab: React.FC = () => {
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-fire-950">Stripe Connect</h2>
+            <h2 className="font-bold text-charcoal-950">Stripe Connect</h2>
             <p className="text-[11px] text-slate-500 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ Stripe fee.</p>
           </div>
           <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded ${
@@ -1179,12 +1179,12 @@ const PaymentsTab: React.FC = () => {
           can actually create Checkout Sessions. */}
       <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-fire-950">Invoices</h2>
+          <h2 className="font-bold text-charcoal-950">Invoices</h2>
           <button
             type="button"
             disabled={!chargesEnabled}
             onClick={() => alert('Coming once Stripe Connect is active.')}
-            className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Create
           </button>

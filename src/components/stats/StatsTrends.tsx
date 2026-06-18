@@ -93,7 +93,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
       bg = 'bg-emerald-500 text-white';
       label = `${g}G ${a}A`;
     } else if (g > 0) {
-      bg = 'bg-blue-600 text-white';
+      bg = 'bg-charcoal-600 text-white';
       label = `${g}G`;
     } else if (a > 0) {
       bg = 'bg-amber-500 text-white';
@@ -167,9 +167,9 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
 
       {/* Streaks grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="text-center bg-blue-50 rounded-lg p-3">
+        <div className="text-center bg-crimson-50 rounded-lg p-3">
           <div className="text-xs text-gray-600 mb-1">Goal streak</div>
-          <div className="text-2xl font-bold text-blue-700">{streaks.currentGoalStreak}</div>
+          <div className="text-2xl font-bold text-charcoal-700">{streaks.currentGoalStreak}</div>
           <div className="text-[10px] text-gray-500">best {streaks.longestGoalStreak}</div>
         </div>
         <div className="text-center bg-emerald-50 rounded-lg p-3">
@@ -197,7 +197,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="text-xs text-gray-600">Goals</div>
-            <div className="text-lg font-bold text-blue-700">{bestGoals}</div>
+            <div className="text-lg font-bold text-charcoal-700">{bestGoals}</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="text-xs text-gray-600">Assists</div>

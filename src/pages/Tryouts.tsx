@@ -232,9 +232,9 @@ const Tryouts: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
+      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-6xl mx-auto">
-          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">
+          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
@@ -406,7 +406,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
               {r.player.ageGroup}
             </span>
             {r.player.playedBefore && (
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 bg-cyan-50 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 bg-crimson-50 px-1.5 py-0.5 rounded">
                 returning
               </span>
             )}
@@ -455,7 +455,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
         {r.promotedToPlayerId && (
           <Link
             to={`/club/person/${r.promotedToPlayerId}`}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-500"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500"
           >
             Profile
           </Link>
@@ -471,7 +471,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
         <button
           type="button"
           onClick={onToggleOpen}
-          className="text-[11px] font-bold text-cyan-700 hover:text-cyan-900"
+          className="text-[11px] font-bold text-crimson-700 hover:text-crimson-900"
         >
           {isOpen ? 'Close notes' : my?.note ? 'Edit note' : '+ Add note'}
         </button>
@@ -506,7 +506,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
             onChange={(e) => setNoteDraft(e.target.value)}
             rows={3}
             placeholder="Scouting notes — visible to all coaches"
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+            className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
           />
           <div className="flex items-center justify-end gap-2 mt-1">
             <button
@@ -517,7 +517,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
                 await onSaveNote(noteDraft);
                 setSavingNote(false);
               }}
-              className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold"
+              className="px-3 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold"
             >
               {savingNote ? 'Saving…' : 'Save note'}
             </button>

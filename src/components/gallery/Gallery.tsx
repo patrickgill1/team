@@ -131,7 +131,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-charcoal-600"></div>
       </div>
     );
   }
@@ -151,7 +151,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('grid')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'grid'
-                  ? 'bg-white text-blue-600 shadow-sm'
+                  ? 'bg-white text-charcoal-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -161,7 +161,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => setViewMode('masonry')}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 viewMode === 'masonry'
-                  ? 'bg-white text-blue-600 shadow-sm'
+                  ? 'bg-white text-charcoal-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -173,7 +173,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
-            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -184,7 +184,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
         {showUploadButton && canManageMedia && (
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2"
+            className="bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -202,7 +202,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
             onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: '' }))}
             className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
               tagFilter === '' 
-                ? 'bg-blue-100 text-blue-800' 
+                ? 'bg-crimson-100 text-charcoal-800' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -214,7 +214,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: tag }))}
               className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
                 tagFilter === tag 
-                  ? 'bg-blue-100 text-blue-800' 
+                  ? 'bg-crimson-100 text-charcoal-800' 
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -241,7 +241,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
           {!searchTerm && !tagFilter && showUploadButton && canManageMedia && (
             <button
               onClick={() => setIsUploadOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+              className="bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
             >
               Upload First Photos
             </button>
@@ -362,7 +362,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
             {photo.tags.slice(0, 3).map(tag => (
               <span
                 key={tag}
-                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                className="px-2 py-1 bg-crimson-100 text-charcoal-800 text-xs rounded-full"
               >
                 {tag}
               </span>
@@ -465,7 +465,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
               {photo.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  className="px-2 py-1 bg-crimson-100 text-charcoal-800 text-sm rounded-full"
                 >
                   {tag}
                 </span>

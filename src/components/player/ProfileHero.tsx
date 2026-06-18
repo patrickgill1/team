@@ -26,10 +26,10 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
   const positionLabel = getPlayerPositionsLabel(player) || (player as any).position;
 
   return (
-    <section className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-black overflow-hidden">
+    <section className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black overflow-hidden">
       {/* Atmospheric glow + faint pitch silhouette */}
       <div className="absolute inset-0 pointer-events-none opacity-30">
-        <div className="absolute -top-32 -right-20 w-[480px] h-[480px] rounded-full bg-cyan-500/15 blur-3xl" />
+        <div className="absolute -top-32 -right-20 w-[480px] h-[480px] rounded-full bg-crimson-500/15 blur-3xl" />
         <div className="absolute -bottom-32 -left-20 w-[480px] h-[480px] rounded-full bg-violet-500/15 blur-3xl" />
       </div>
 
@@ -67,12 +67,12 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
               src={player.profilePhotoUrl}
               alt={player.name}
               className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover ring-4 shadow-2xl ${
-                isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-cyan-400/70 shadow-cyan-400/30'
+                isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-crimson-400/70 shadow-crimson-400/30'
               }`}
             />
           ) : (
             <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-white/10 ring-4 shadow-2xl flex items-center justify-center backdrop-blur ${
-              isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-cyan-400/70'
+              isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-crimson-400/70'
             }`}>
               <span className="text-4xl sm:text-5xl font-black text-white">
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
@@ -80,7 +80,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
             </div>
           )}
           {player.profilePhotoUrl && player.jerseyNumber != null && (
-            <span className="absolute -bottom-2 -right-2 bg-cyan-500 text-white rounded-full min-w-[36px] h-9 px-2.5 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-slate-950">
+            <span className="absolute -bottom-2 -right-2 bg-crimson-500 text-white rounded-full min-w-[36px] h-9 px-2.5 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-slate-950">
               #{player.jerseyNumber}
             </span>
           )}
@@ -93,7 +93,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           </h1>
           {(positionLabel || teamName) && (
             <p className="mt-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-widest">
-              {positionLabel && <span className="text-cyan-300">{positionLabel}</span>}
+              {positionLabel && <span className="text-crimson-300">{positionLabel}</span>}
               {positionLabel && teamName && <span className="text-white/40 mx-2">·</span>}
               {teamName && <span className="text-white/80">{teamName}</span>}
             </p>
@@ -114,7 +114,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
 
       {/* Tagline strip */}
       <div className="relative px-4 sm:px-6 pb-5 text-center">
-        <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] text-cyan-300/70">
+        <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] text-crimson-300/70">
           Embrace the Soccer Spirit
         </p>
       </div>
@@ -124,7 +124,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
 
 const Pill: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur text-[11px] font-bold">
-    <span className="text-cyan-300">{icon}</span>
+    <span className="text-crimson-300">{icon}</span>
     <span>{label}</span>
   </span>
 );

@@ -26,7 +26,7 @@ const GalleryPage: React.FC = () => {
   const hasActiveFilters = searchTerm || tagFilter;
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-charcoal-950">
       <Header 
         title="Team Gallery" 
         subtitle="Share and view team photos and memories"
@@ -49,7 +49,7 @@ const GalleryPage: React.FC = () => {
                   placeholder="Search photos by caption or uploader..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 focus:border-transparent"
                 />
                 {searchTerm && (
                   <button
@@ -70,7 +70,7 @@ const GalleryPage: React.FC = () => {
                   placeholder="Filter by tag..."
                   value={tagFilter}
                   onChange={(e) => setTagFilter(e.target.value)}
-                  className="w-full md:w-48 pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="w-full md:w-48 pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 focus:border-transparent"
                 />
                 {tagFilter && (
                   <button
@@ -104,11 +104,11 @@ const GalleryPage: React.FC = () => {
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="text-sm font-medium text-gray-700">Active filters:</span>
               {searchTerm && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-cyan-50 text-cyan-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-crimson-50 text-crimson-700">
                   Search: "{searchTerm}"
                   <button
                     onClick={() => setSearchTerm('')}
-                    className="ml-2 text-cyan-600 hover:text-cyan-700"
+                    className="ml-2 text-crimson-600 hover:text-crimson-700"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -140,7 +140,7 @@ const GalleryPage: React.FC = () => {
         <div className="mt-8 card-modern p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">📸 Photo Tips</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-cyan-50 rounded-lg">
+            <div className="text-center p-4 bg-crimson-50 rounded-lg">
               <div className="text-2xl mb-2">🏆</div>
               <h4 className="font-medium text-gray-900 mb-1">Game Moments</h4>
               <p className="text-sm text-gray-600">Capture goals, celebrations, and team spirit during matches</p>

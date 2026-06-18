@@ -90,7 +90,7 @@ const NotificationPreferences: React.FC = () => {
           <button
             onClick={enablePush}
             disabled={enabling || denied}
-            className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50"
+            className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50"
           >
             {enabling ? 'Enabling…' : denied ? 'Blocked' : 'Enable'}
           </button>
@@ -113,7 +113,7 @@ const NotificationPreferences: React.FC = () => {
               onClick={() => togglePref(key)}
               disabled={saving === key}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                prefs[key] ? 'bg-cyan-600' : 'bg-slate-300'
+                prefs[key] ? 'bg-crimson-600' : 'bg-slate-300'
               } disabled:opacity-50`}
             >
               <span

@@ -88,12 +88,12 @@ const EventListCard: React.FC<Props> = ({
 
   const stripe =
     event.type === 'game' ? 'from-rose-500 to-orange-500'
-    : event.type === 'practice' ? 'from-cyan-500 to-blue-600'
+    : event.type === 'practice' ? 'from-crimson-500 to-charcoal-600'
     : 'from-purple-500 to-pink-500';
 
   const chip =
     event.type === 'game' ? 'bg-rose-500/10 text-rose-700 border-rose-500/25'
-    : event.type === 'practice' ? 'bg-cyan-500/10 text-cyan-700 border-cyan-500/25'
+    : event.type === 'practice' ? 'bg-crimson-500/10 text-crimson-700 border-crimson-500/25'
     : 'bg-purple-500/10 text-purple-700 border-purple-500/25';
 
   const handleQuickRsvp = (status: RsvpStatus, e: React.MouseEvent) => {
@@ -115,8 +115,8 @@ const EventListCard: React.FC<Props> = ({
       <div className="px-3.5 pt-3 pb-3">
         <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-start">
           {/* Date badge */}
-          <div className={`w-[54px] h-[54px] rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${cancelled ? 'bg-slate-300 border border-slate-200' : 'bg-slate-950 border border-cyan-400/40'}`}>
-            <span className={`text-[9px] font-extrabold tracking-widest ${cancelled ? 'text-slate-500' : 'text-cyan-300'}`}>{month}</span>
+          <div className={`w-[54px] h-[54px] rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${cancelled ? 'bg-slate-300 border border-slate-200' : 'bg-charcoal-950 border border-crimson-400/40'}`}>
+            <span className={`text-[9px] font-extrabold tracking-widest ${cancelled ? 'text-slate-500' : 'text-crimson-300'}`}>{month}</span>
             <span className={`text-[22px] font-black leading-none ${cancelled ? 'text-slate-600 line-through decoration-2' : 'text-white'}`}>{day}</span>
             <span className={`text-[8px] font-bold tracking-widest mt-0.5 ${cancelled ? 'text-slate-500' : 'text-slate-400'}`}>{dow}</span>
           </div>
@@ -153,7 +153,7 @@ const EventListCard: React.FC<Props> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => { e.stopPropagation(); }}
-                  className="inline-flex items-center gap-1 truncate max-w-[140px] hover:text-cyan-700"
+                  className="inline-flex items-center gap-1 truncate max-w-[140px] hover:text-crimson-700"
                   title="Open in Maps"
                 >
                   <Icon name="pin" className="w-3 h-3 text-slate-400" />
@@ -162,7 +162,7 @@ const EventListCard: React.FC<Props> = ({
               </>)}
               {(event as any).fieldNumber && (<>
                 <span className="text-slate-300">·</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 text-[10px] font-extrabold tracking-widest uppercase ring-1 ring-cyan-200">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 text-[10px] font-extrabold tracking-widest uppercase ring-1 ring-crimson-200">
                   {(event as any).fieldNumber}
                 </span>
               </>)}
@@ -172,7 +172,7 @@ const EventListCard: React.FC<Props> = ({
                   <span
                     className={`inline-block w-2.5 h-2.5 rounded-sm border ${
                       (event as any).homeAway === 'home'
-                        ? 'bg-slate-900 border-slate-700'
+                        ? 'bg-charcoal-900 border-slate-700'
                         : 'bg-white border-slate-300'
                     }`}
                     aria-hidden
@@ -239,7 +239,7 @@ const EventListCard: React.FC<Props> = ({
         {/* Info strip */}
         <div className="mt-2.5 pt-2.5 border-t border-slate-100 grid grid-cols-3">
           <div className="flex items-center gap-1.5 px-1.5">
-            <Icon name="users" className="w-3.5 h-3.5 text-cyan-500" />
+            <Icon name="users" className="w-3.5 h-3.5 text-crimson-500" />
             <div>
               <div className="text-[11px] font-bold text-slate-900 leading-none tracking-wide">{goingCount} GOING</div>
               <div className="text-[9px] text-slate-400 mt-0.5 tracking-wide">{pendingCount} PENDING</div>
@@ -247,7 +247,7 @@ const EventListCard: React.FC<Props> = ({
           </div>
           {arriveText ? (
             <div className="flex items-center gap-1.5 px-1.5 border-l border-slate-100">
-              <Icon name="clock" className="w-3.5 h-3.5 text-cyan-500" />
+              <Icon name="clock" className="w-3.5 h-3.5 text-crimson-500" />
               <div>
                 <div className="text-[11px] font-bold text-slate-900 leading-none tracking-wide">{arriveText}</div>
                 <div className="text-[9px] text-slate-400 mt-0.5 tracking-wide">{arriveLabel || ''}</div>
@@ -257,7 +257,7 @@ const EventListCard: React.FC<Props> = ({
             <div className="border-l border-slate-100" />
           )}
           <div className="flex items-center gap-1.5 px-1.5 border-l border-slate-100">
-            <Icon name="chat" className="w-3.5 h-3.5 text-cyan-500" />
+            <Icon name="chat" className="w-3.5 h-3.5 text-crimson-500" />
             <div>
               <div className="text-[11px] font-bold text-slate-900 leading-none tracking-wide">
                 {eventChatUnread > 0 ? `${eventChatUnread} NEW` : '0 NEW'}
@@ -290,7 +290,7 @@ const EventListCard: React.FC<Props> = ({
             <span className="text-[11px] font-semibold text-slate-600 truncate">
               {goingPreview.slice(0, 3).map(p => p.name.split(' ')[0]).join(', ')}
               {goingPreview.length > 3 && <span className="text-slate-400"> +{goingPreview.length - 3}</span>}
-              <span className="text-cyan-600 font-bold ml-1.5">See all ›</span>
+              <span className="text-crimson-600 font-bold ml-1.5">See all ›</span>
             </span>
           </div>
         )}

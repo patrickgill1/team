@@ -34,7 +34,7 @@ const STATUS_TONE: Record<Registration['status'], { label: string; bg: string; t
   },
   tryout_invited: {
     label: 'Tryout invited',
-    bg: 'bg-cyan-50', text: 'text-cyan-900', ring: 'ring-cyan-300',
+    bg: 'bg-crimson-50', text: 'text-crimson-900', ring: 'ring-crimson-300',
     subtitle: 'Check your email for tryout details.',
   },
   offer_sent: {
@@ -105,16 +105,16 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
   }, [kids]);
 
   return (
-    <div className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-black px-4 py-10 sm:py-14">
+    <div className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-10 sm:py-14">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
             {overallVibe === 'offer_action' ? (
-              <>You've got an <span className="text-cyan-300">offer</span> waiting, {firstName}.</>
+              <>You've got an <span className="text-crimson-300">offer</span> waiting, {firstName}.</>
             ) : overallVibe === 'all_rostered' ? (
-              <>You're <span className="bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">in</span>, {firstName}.</>
+              <>You're <span className="bg-gradient-to-r from-emerald-300 to-crimson-300 bg-clip-text text-transparent">in</span>, {firstName}.</>
             ) : (
-              <>You're in the <span className="text-cyan-300">Fire FC pool</span>, {firstName}.</>
+              <>You're in the <span className="text-crimson-300">Fire FC pool</span>, {firstName}.</>
             )}
           </h1>
           <p className="text-slate-300 mt-3 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
@@ -132,7 +132,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         ) : kids.length === 0 ? (
           <div className="bg-white/[0.04] ring-1 ring-white/10 rounded-2xl p-6 text-center">
             <p className="text-sm text-slate-300 mb-4">We don't see a registration on file under <b className="text-white">{email}</b> yet.</p>
-            <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold">
+            <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
               Start registration
             </Link>
           </div>
@@ -160,7 +160,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
               <div className="text-center pt-2">
                 <Link
                   to={`/club/family/${encodeURIComponent(email.toLowerCase())}`}
-                  className="text-xs font-bold text-cyan-300 hover:text-cyan-200"
+                  className="text-xs font-bold text-crimson-300 hover:text-crimson-200"
                 >
                   See the full timeline →
                 </Link>
@@ -172,11 +172,11 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         {/* What's next card — only shows while waiting */}
         {(overallVibe === 'in_pool' || overallVibe === 'just_registered') && (
           <div className="mt-6 bg-white/[0.03] ring-1 ring-white/10 rounded-2xl p-5">
-            <div className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-300 mb-2">What happens next</div>
+            <div className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-300 mb-2">What happens next</div>
             <ul className="space-y-2 text-sm text-slate-300">
-              <li className="flex items-start gap-2"><span className="text-cyan-400 mt-0.5">①</span> Coaches review the pool every Sunday.</li>
-              <li className="flex items-start gap-2"><span className="text-cyan-400 mt-0.5">②</span> If a team wants your kid, you'll get an email with an offer link.</li>
-              <li className="flex items-start gap-2"><span className="text-cyan-400 mt-0.5">③</span> You tap Accept — your kid is on the team and this dashboard becomes their team home.</li>
+              <li className="flex items-start gap-2"><span className="text-crimson-400 mt-0.5">①</span> Coaches review the pool every Sunday.</li>
+              <li className="flex items-start gap-2"><span className="text-crimson-400 mt-0.5">②</span> If a team wants your kid, you'll get an email with an offer link.</li>
+              <li className="flex items-start gap-2"><span className="text-crimson-400 mt-0.5">③</span> You tap Accept — your kid is on the team and this dashboard becomes their team home.</li>
             </ul>
             <p className="text-[11px] text-slate-500 mt-3 italic">Hang tight. You can close this app and we'll email you when something changes.</p>
           </div>

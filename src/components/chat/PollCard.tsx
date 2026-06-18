@@ -46,12 +46,12 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
 
   const labelColor = ownTheme ? 'text-white/85' : 'text-gray-500';
   const bgInactive = ownTheme ? 'bg-white/10 ring-white/20' : 'bg-gray-50 ring-gray-200';
-  const bgActive = ownTheme ? 'bg-white text-cyan-900 ring-white' : 'bg-cyan-50 ring-cyan-300 text-cyan-900';
-  const fillInactive = ownTheme ? 'bg-white/15' : 'bg-cyan-100/60';
-  const fillActive = ownTheme ? 'bg-white/35' : 'bg-cyan-200/80';
+  const bgActive = ownTheme ? 'bg-white text-crimson-900 ring-white' : 'bg-crimson-50 ring-crimson-300 text-crimson-900';
+  const fillInactive = ownTheme ? 'bg-white/15' : 'bg-crimson-100/60';
+  const fillActive = ownTheme ? 'bg-white/35' : 'bg-crimson-200/80';
 
   return (
-    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+    <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-gradient-to-br from-crimson-500 to-crimson-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-base">📊</span>
         <span className={`text-[10px] font-bold uppercase tracking-wider ${labelColor}`}>Poll</span>
@@ -96,7 +96,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
             className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-md transition ${
               ownTheme
                 ? 'bg-white/15 text-white hover:bg-white/25'
-                : 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-100'
+                : 'bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 hover:bg-crimson-100'
             }`}
           >
             Voters
@@ -138,7 +138,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
                       {opt.voters.map(uid => (
                         <li key={uid} className="px-4 py-1 text-sm text-slate-700">
                           {(getUserName ? getUserName(uid) : null) || 'Member'}
-                          {uid === currentUserId && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-600">You</span>}
+                          {uid === currentUserId && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-crimson-600">You</span>}
                         </li>
                       ))}
                     </ul>

@@ -1985,7 +1985,7 @@ const TeamChat: React.FC = () => {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600 mx-auto mb-2"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crimson-600 mx-auto mb-2"></div>
           <p className="text-gray-600">Loading chat...</p>
         </div>
       </div>
@@ -2076,7 +2076,7 @@ const TeamChat: React.FC = () => {
                     checked ? 'bg-violet-100 ring-1 ring-violet-300' : 'hover:bg-violet-50'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-charcoal-600' : 'bg-emerald-600'}`}>
                     {m.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -2209,7 +2209,7 @@ const TeamChat: React.FC = () => {
                 vs-content lane (Wall pills, action sheets, etc.).
                 The threads list below stays light; only this top
                 strip is dark, framing the search + filter controls. */}
-            <div className="p-4 border-b border-white/10 bg-gradient-to-b from-slate-950 to-slate-900">
+            <div className="p-4 border-b border-white/10 bg-gradient-to-b from-charcoal-950 to-charcoal-900">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">Messages</h2>
                 <div className="flex items-center gap-2">
@@ -2225,7 +2225,7 @@ const TeamChat: React.FC = () => {
                   {isUserClubAdmin && (
                     <button
                       onClick={() => setIsCreatingThread(true)}
-                      className="bg-cyan-600 hover:bg-cyan-700 text-white p-2.5 rounded-lg transition-colors"
+                      className="bg-crimson-600 hover:bg-crimson-700 text-white p-2.5 rounded-lg transition-colors"
                       title="New club channel"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2244,7 +2244,7 @@ const TeamChat: React.FC = () => {
                     placeholder="Search threads..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white/10 ring-1 ring-white/15 text-white placeholder-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-base"
+                    className="w-full pl-10 pr-4 py-3 bg-white/10 ring-1 ring-white/15 text-white placeholder-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400 text-base"
                     style={{ fontSize: '16px' }}
                   />
                   <svg className="w-5 h-5 text-white/50 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2256,7 +2256,7 @@ const TeamChat: React.FC = () => {
                   onClick={() => setGlobalSearchOpen(true)}
                   title="Search every chat for a word or phrase"
                   aria-label="Search every chat"
-                  className="px-3 rounded-lg bg-cyan-500/20 ring-1 ring-cyan-400/40 text-cyan-200 text-[11px] font-extrabold uppercase tracking-widest hover:bg-cyan-500/30"
+                  className="px-3 rounded-lg bg-crimson-500/20 ring-1 ring-crimson-400/40 text-crimson-200 text-[11px] font-extrabold uppercase tracking-widest hover:bg-crimson-500/30"
                 >
                   Search all
                 </button>
@@ -2285,7 +2285,7 @@ const TeamChat: React.FC = () => {
                     onClick={() => setFilterTag(key)}
                     className={`px-3 py-2 text-sm rounded-full transition-colors whitespace-nowrap ${
                       filterTag === key
-                        ? 'bg-cyan-500 text-white font-semibold'
+                        ? 'bg-crimson-500 text-white font-semibold'
                         : 'bg-white/10 text-white/75 hover:bg-white/15'
                     }`}
                   >
@@ -2316,7 +2316,7 @@ const TeamChat: React.FC = () => {
                     ? 'bg-slate-500'
                     : isGroup
                       ? 'bg-violet-600'
-                      : 'bg-cyan-600';
+                      : 'bg-crimson-600';
                   const threadPhotoUrl = getThreadPhotoUrl(thread);
                   const preview = thread.lastMessage?.content || (thread.description || (isDM ? 'Tap to send a message' : 'No messages yet'));
                   const ago = formatTime(thread.lastActivity);
@@ -2360,7 +2360,7 @@ const TeamChat: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
                         {unread && (
-                          <span aria-hidden className="w-2 h-2 rounded-full bg-cyan-500 flex-shrink-0" />
+                          <span aria-hidden className="w-2 h-2 rounded-full bg-crimson-500 flex-shrink-0" />
                         )}
                         <span className={`truncate text-[15px] ${unread ? 'font-extrabold text-slate-900' : 'font-semibold text-gray-900'}`}>{displayTitle}</span>
                         {/* Team chip — only shows when the user is on
@@ -2388,7 +2388,7 @@ const TeamChat: React.FC = () => {
                           </span>
                         )}
                         {(thread as any).scope === 'coaches' && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 ring-1 ring-blue-200 flex-shrink-0">
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-crimson-50 text-charcoal-800 ring-1 ring-crimson-200 flex-shrink-0">
                             Coaches
                           </span>
                         )}
@@ -2458,7 +2458,7 @@ const TeamChat: React.FC = () => {
                             {section.label}
                             <span className="text-slate-400">{section.threads.length}</span>
                             {sectionUnread > 0 && (
-                              <span className="px-1.5 py-0.5 rounded-full bg-cyan-500 text-white text-[9px] font-extrabold">
+                              <span className="px-1.5 py-0.5 rounded-full bg-crimson-500 text-white text-[9px] font-extrabold">
                                 {sectionUnread} new
                               </span>
                             )}
@@ -2497,7 +2497,7 @@ const TeamChat: React.FC = () => {
                     {isUserClubAdmin && (
                       <button
                         onClick={() => setIsCreatingThread(true)}
-                        className="px-4 py-2 text-sm font-semibold rounded-full bg-cyan-600 text-white hover:bg-cyan-700"
+                        className="px-4 py-2 text-sm font-semibold rounded-full bg-crimson-600 text-white hover:bg-crimson-700"
                       >
                         New club channel
                       </button>
@@ -2570,7 +2570,7 @@ const TeamChat: React.FC = () => {
                       if (threadSearchOpen) setThreadSearchQuery('');
                     }}
                     className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors flex-shrink-0 ${
-                      threadSearchOpen ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                      threadSearchOpen ? 'bg-crimson-100 text-crimson-700' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
                     }`}
                     aria-label="Search messages"
                     title="Search messages"
@@ -2613,7 +2613,7 @@ const TeamChat: React.FC = () => {
                       value={threadSearchQuery}
                       onChange={(e) => setThreadSearchQuery(e.target.value)}
                       placeholder="Search this conversation…"
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/50"
                     />
                   </div>
                 )}
@@ -2701,7 +2701,7 @@ const TeamChat: React.FC = () => {
                 )}
                 {!threadSearchQuery.trim() && visibleMessages.length === 0 && (
                   <div className="text-center py-12">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-cyan-600 mb-3">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-crimson-50 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600 mb-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     </div>
                     <p className="text-sm font-semibold text-slate-700">
@@ -2857,7 +2857,7 @@ const TeamChat: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { scrollToBottom(true); setUnreadWhileScrolledUp(0); }}
-                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold shadow-lg hover:bg-slate-800 transition animate-fade-in"
+                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-charcoal-900 text-white text-xs font-bold shadow-lg hover:bg-charcoal-800 transition animate-fade-in"
                   >
                     {unreadWhileScrolledUp > 0 ? `${unreadWhileScrolledUp} new ` : ''}
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
@@ -2907,7 +2907,7 @@ const TeamChat: React.FC = () => {
                       type="text"
                       value={newThread.title}
                       onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
                       placeholder="Enter thread title..."
                       style={{ fontSize: '16px' }}
                     />
@@ -2921,7 +2921,7 @@ const TeamChat: React.FC = () => {
                       value={newThread.description}
                       onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
                       placeholder="What's this thread about?"
                       style={{ fontSize: '16px' }}
                     />
@@ -2950,7 +2950,7 @@ const TeamChat: React.FC = () => {
                               type="button"
                               onClick={() => setNewThread(prev => ({ ...prev, scope: opt.k }))}
                               className={`text-left p-2.5 rounded-xl ring-1 transition ${
-                                active ? 'ring-cyan-500 bg-cyan-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
+                                active ? 'ring-crimson-500 bg-crimson-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
                               }`}
                             >
                               <p className="font-semibold text-gray-900 text-sm">{opt.label}</p>
@@ -2969,7 +2969,7 @@ const TeamChat: React.FC = () => {
                         id="isPrivate"
                         checked={newThread.isPrivate}
                         onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                        className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500 w-4 h-4"
+                        className="rounded border-gray-300 text-crimson-600 focus:ring-crimson-500 w-4 h-4"
                       />
                       <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-700">
                         Coach-only thread
@@ -2988,7 +2988,7 @@ const TeamChat: React.FC = () => {
                   <button
                     onClick={createThread}
                     disabled={!newThread.title.trim()}
-                    className="flex-1 px-4 py-2.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:bg-gray-400 transition-colors font-medium"
+                    className="flex-1 px-4 py-2.5 bg-crimson-600 text-white rounded-lg hover:bg-crimson-700 disabled:bg-gray-400 transition-colors font-medium"
                   >
                     Create
                   </button>
@@ -3028,7 +3028,7 @@ const TeamChat: React.FC = () => {
               {isUserClubAdmin && (
                 <button
                   onClick={() => setIsCreatingThread(true)}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white p-2 rounded-lg transition-colors"
+                  className="bg-crimson-600 hover:bg-crimson-700 text-white p-2 rounded-lg transition-colors"
                   title="New club channel"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3045,7 +3045,7 @@ const TeamChat: React.FC = () => {
               placeholder="Search threads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
             />
             <svg className="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -3064,7 +3064,7 @@ const TeamChat: React.FC = () => {
                 onClick={() => setFilterTag(key)}
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   filterTag === key
-                    ? 'bg-cyan-50 text-cyan-700 font-medium'
+                    ? 'bg-crimson-50 text-crimson-700 font-medium'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -3081,7 +3081,7 @@ const TeamChat: React.FC = () => {
               key={thread.id}
               onClick={() => setSelectedThread(thread)}
               className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                selectedThread?.id === thread.id ? 'bg-cyan-50 border-l-4 border-l-blue-600' : ''
+                selectedThread?.id === thread.id ? 'bg-crimson-50 border-l-4 border-l-blue-600' : ''
               }`}
             >
               <div className="flex items-start justify-between">
@@ -3262,7 +3262,7 @@ const TeamChat: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { scrollToBottom(true); setUnreadWhileScrolledUp(0); }}
-                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold shadow-lg hover:bg-slate-800 transition animate-fade-in"
+                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-charcoal-900 text-white text-xs font-bold shadow-lg hover:bg-charcoal-800 transition animate-fade-in"
                   >
                     {unreadWhileScrolledUp > 0 ? `${unreadWhileScrolledUp} new ` : ''}
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
@@ -3322,7 +3322,7 @@ const TeamChat: React.FC = () => {
                     type="text"
                     value={newThread.title}
                     onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-500"
                     placeholder="Enter thread title..."
                   />
                 </div>
@@ -3335,7 +3335,7 @@ const TeamChat: React.FC = () => {
                     value={newThread.description}
                     onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-500"
                     placeholder="What's this thread about?"
                   />
                 </div>
@@ -3357,7 +3357,7 @@ const TeamChat: React.FC = () => {
                             type="button"
                             onClick={() => setNewThread(prev => ({ ...prev, scope: opt.k }))}
                             className={`text-left p-2.5 rounded-xl ring-1 transition ${
-                              active ? 'ring-cyan-500 bg-cyan-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
+                              active ? 'ring-crimson-500 bg-crimson-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
                             }`}
                           >
                             <p className="font-semibold text-gray-900 text-sm">{opt.label}</p>
@@ -3376,7 +3376,7 @@ const TeamChat: React.FC = () => {
                       id="isPrivate"
                       checked={newThread.isPrivate}
                       onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                      className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
+                      className="rounded border-gray-300 text-crimson-600 focus:ring-crimson-500"
                     />
                     <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-700">
                       Coach-only thread
@@ -3395,7 +3395,7 @@ const TeamChat: React.FC = () => {
                 <button
                   onClick={createThread}
                   disabled={!newThread.title.trim()}
-                  className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:bg-gray-400 transition-colors"
+                  className="px-4 py-2 bg-crimson-600 text-white rounded-lg hover:bg-crimson-700 disabled:bg-gray-400 transition-colors"
                 >
                   Create Thread
                 </button>

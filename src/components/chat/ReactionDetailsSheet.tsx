@@ -35,10 +35,10 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
       'from-rose-400 to-rose-600',
       'from-amber-400 to-orange-600',
       'from-emerald-400 to-emerald-600',
-      'from-cyan-400 to-cyan-600',
+      'from-crimson-400 to-crimson-600',
       'from-violet-400 to-violet-600',
       'from-fuchsia-400 to-pink-600',
-      'from-blue-400 to-blue-600',
+      'from-crimson-400 to-charcoal-600',
       'from-teal-400 to-teal-600',
     ];
     return palette[h % palette.length];
@@ -53,14 +53,14 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
         onClick={(e) => e.stopPropagation()}
         className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
       >
-        <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
           <button
             onClick={onClose}
             className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
           >
             Close
           </button>
-          <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">
             Reactions <span className="text-slate-500">{totalReactors}</span>
           </div>
           <span className="w-12" aria-hidden />
@@ -93,7 +93,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
                             {initial}
                           </span>
                         )}
-                        <span className={`text-sm truncate ${isMe ? 'font-bold text-cyan-700' : 'text-slate-900'}`}>
+                        <span className={`text-sm truncate ${isMe ? 'font-bold text-crimson-700' : 'text-slate-900'}`}>
                           {isMe ? 'You' : name}
                         </span>
                       </span>

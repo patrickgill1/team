@@ -178,7 +178,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
       <div className="bg-white w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-fire-950">Push registration email</h2>
+          <h2 className="font-black text-charcoal-950">Push registration email</h2>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
 
@@ -188,7 +188,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
             <select
               value={seasonId}
               onChange={(e) => setSeasonId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
             >
               {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -215,8 +215,8 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                           onClick={() => setAgeFilter(on ? ageFilter.filter(x => x !== ag) : [...ageFilter, ag])}
                           className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${
                             on
-                              ? 'bg-cyan-600 text-white ring-cyan-600'
-                              : 'bg-white text-slate-600 ring-slate-200 hover:ring-cyan-400'
+                              ? 'bg-crimson-600 text-white ring-crimson-600'
+                              : 'bg-white text-slate-600 ring-slate-200 hover:ring-crimson-400'
                           }`}
                         >
                           {ag}
@@ -236,7 +236,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                   onChange={(e) => setCustomIntro(e.target.value)}
                   rows={3}
                   placeholder="e.g. Hey families! Spring tryouts are May 14–15..."
-                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
                 />
               </label>
 
@@ -248,14 +248,14 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                   value={customSignoff}
                   onChange={(e) => setCustomSignoff(e.target.value)}
                   placeholder="See you on the pitch — Coach Ollie"
-                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
                 />
               </label>
 
-              <div className="rounded-xl bg-cyan-50 ring-1 ring-cyan-200 p-3 text-sm flex items-center justify-between">
+              <div className="rounded-xl bg-crimson-50 ring-1 ring-crimson-200 p-3 text-sm flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-800">Recipients</div>
-                  <div className="text-fire-950 font-black text-lg">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-800">Recipients</div>
+                  <div className="text-charcoal-950 font-black text-lg">
                     {recipients.length} famil{recipients.length === 1 ? 'y' : 'ies'}
                   </div>
                 </div>
@@ -279,7 +279,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
               type="button"
               disabled={sending || recipients.length === 0 || !seasonId}
               onClick={handleSend}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold"
+              className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
             >
               {sending ? 'Sending…' : `Send to ${recipients.length}`}
             </button>

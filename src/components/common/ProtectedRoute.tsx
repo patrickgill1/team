@@ -29,8 +29,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // see a color flash transitioning from splash → spinner → app.
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-500/30 border-t-cyan-400" />
+      <div className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-500/30 border-t-cyan-400" />
         <p
           className={`text-xs font-semibold tracking-wide text-white/60 transition-opacity duration-500 ${
             showReconnecting ? 'opacity-100' : 'opacity-0'

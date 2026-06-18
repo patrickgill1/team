@@ -129,7 +129,7 @@ const Reports: React.FC = () => {
         <div className="flex items-end justify-between gap-3 flex-wrap">
           <div>
             <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-            <h1 className="text-2xl font-black text-fire-950 mt-1">Reports</h1>
+            <h1 className="text-2xl font-black text-charcoal-950 mt-1">Reports</h1>
             <p className="text-sm text-slate-600">Funnel + fees + coupon usage. Filter by season.</p>
           </div>
           <select
@@ -239,7 +239,7 @@ const Tile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 const FunnelRow: React.FC<{ label: string; value: number; of: number; tone: 'cyan' | 'emerald' | 'violet' | 'rose' }> = ({ label, value, of, tone }) => {
   const pct = of > 0 ? Math.round((value / of) * 100) : 0;
   const bg = {
-    cyan: 'bg-cyan-500',
+    cyan: 'bg-crimson-500',
     emerald: 'bg-emerald-500',
     violet: 'bg-violet-500',
     rose: 'bg-rose-500',

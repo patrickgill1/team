@@ -1245,7 +1245,7 @@ const PlayerMediaPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
           <span className="text-sm text-gray-400 font-medium">Loading...</span>
         </div>
       </div>
@@ -1253,16 +1253,16 @@ const PlayerMediaPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-fire-950 via-gray-950 to-gray-950">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-gray-950 to-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* ── HERO ─────────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-2xl mb-6 bg-gradient-to-br from-fire-900 via-fire-950 to-black border border-cyan-500/10">
+        <div className="relative overflow-hidden rounded-2xl mb-6 bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black border border-crimson-500/10">
           <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.25),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(239,68,68,0.2),transparent_50%)]" />
           <div className="relative px-6 py-10 sm:py-14 sm:px-10">
-            <h1 className="text-5xl sm:text-7xl font-black tracking-[0.15em] uppercase bg-gradient-to-r from-cyan-200 via-white to-cyan-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">
+            <h1 className="text-5xl sm:text-7xl font-black tracking-[0.15em] uppercase bg-gradient-to-r from-crimson-200 via-white to-crimson-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">
               Media
             </h1>
-            <p className="mt-3 text-cyan-200/80 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">
+            <p className="mt-3 text-crimson-200/80 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">
               Highlights · Moments · Memories
             </p>
           </div>
@@ -1274,20 +1274,20 @@ const PlayerMediaPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('highlights')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'highlights' ? 'text-cyan-300' : 'text-gray-400 hover:text-white'
+                activeTab === 'highlights' ? 'text-crimson-300' : 'text-gray-400 hover:text-white'
               }`}
             >
               Highlights
-              {activeTab === 'highlights' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-cyan-400 rounded-full" />}
+              {activeTab === 'highlights' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-crimson-400 rounded-full" />}
             </button>
             <button
               onClick={() => setActiveTab('fullgames')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'fullgames' ? 'text-cyan-300' : 'text-gray-400 hover:text-white'
+                activeTab === 'fullgames' ? 'text-crimson-300' : 'text-gray-400 hover:text-white'
               }`}
             >
               Full Games
-              {activeTab === 'fullgames' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-cyan-400 rounded-full" />}
+              {activeTab === 'fullgames' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-crimson-400 rounded-full" />}
             </button>
           </div>
           {activeTab === 'highlights' && (
@@ -1298,7 +1298,7 @@ const PlayerMediaPage: React.FC = () => {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search highlights..."
-                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50"
+                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500/50 focus:border-crimson-500/50"
                 />
                 <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
@@ -1308,7 +1308,7 @@ const PlayerMediaPage: React.FC = () => {
                 <>
                   <button
                     onClick={() => setShowEmbedModal(true)}
-                    className="bg-white text-fire-950 ring-1 ring-slate-300 hover:bg-slate-100 px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                    className="bg-white text-charcoal-950 ring-1 ring-slate-300 hover:bg-slate-100 px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
                     title="Paste a YouTube or Trace link"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -1316,7 +1316,7 @@ const PlayerMediaPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
-                    className="bg-cyan-500 hover:bg-cyan-400 text-fire-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                    className="bg-crimson-500 hover:bg-crimson-400 text-charcoal-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -1379,7 +1379,7 @@ const PlayerMediaPage: React.FC = () => {
                       onClick={() => setSelectedPlayerId('all')}
                       className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === 'all' ? 'scale-105' : ''}`}
                     >
-                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-2xl font-black ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === 'all' ? 'ring-cyan-400' : 'ring-transparent'}`}>
+                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 flex items-center justify-center text-white text-2xl font-black ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === 'all' ? 'ring-crimson-400' : 'ring-transparent'}`}>
                         ALL
                       </div>
                       <span className="text-xs text-white font-medium mt-2">All</span>
@@ -1399,7 +1399,7 @@ const PlayerMediaPage: React.FC = () => {
                         onClick={() => setSelectedPlayerId(player.id)}
                         className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === player.id ? 'scale-105' : ''}`}
                       >
-                        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-fire-700 to-fire-900 ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-cyan-400' : 'ring-transparent'}`}>
+                        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-charcoal-700 to-charcoal-900 ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-crimson-400' : 'ring-transparent'}`}>
                           {player.profilePhotoUrl ? (
                             <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
                           ) : (
@@ -1408,7 +1408,7 @@ const PlayerMediaPage: React.FC = () => {
                             </div>
                           )}
                           {player.profilePhotoUrl && player.jerseyNumber != null && (
-                            <span className="absolute -bottom-0.5 -right-0.5 bg-cyan-500 text-gray-950 rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow ring-2 ring-gray-950">
+                            <span className="absolute -bottom-0.5 -right-0.5 bg-crimson-500 text-gray-950 rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow ring-2 ring-gray-950">
                               {player.jerseyNumber}
                             </span>
                           )}
@@ -1448,7 +1448,7 @@ const PlayerMediaPage: React.FC = () => {
               {selectedPlayerId !== 'all' && (
                 <button
                   onClick={() => setSelectedPlayerId('all')}
-                  className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/5 ring-1 ring-white/10 text-sm font-medium text-cyan-300 hover:bg-white/10 hover:text-cyan-200 transition-colors"
+                  className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/5 ring-1 ring-white/10 text-sm font-medium text-crimson-300 hover:bg-white/10 hover:text-crimson-200 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
                   Back to all clips
@@ -1477,7 +1477,7 @@ const PlayerMediaPage: React.FC = () => {
                       key={opt.k}
                       onClick={() => setMediaTypeFilter(opt.k)}
                       className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                        mediaTypeFilter === opt.k ? 'bg-white text-fire-950' : 'text-white/70 hover:text-white'
+                        mediaTypeFilter === opt.k ? 'bg-white text-charcoal-950' : 'text-white/70 hover:text-white'
                       }`}
                     >
                       {opt.label}
@@ -1490,7 +1490,7 @@ const PlayerMediaPage: React.FC = () => {
                     onClick={() => toggleFilterTag(tag)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                       filterTags.includes(tag)
-                        ? 'bg-cyan-500 text-fire-950'
+                        ? 'bg-crimson-500 text-charcoal-950'
                         : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
                     }`}
                   >
@@ -1507,15 +1507,15 @@ const PlayerMediaPage: React.FC = () => {
                         <div className="flex items-center space-x-3 mb-3">
                           {player.profilePhotoUrl ? (
                             <div className="relative w-9 h-9">
-                              <img src={player.profilePhotoUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-cyan-500/30" loading="lazy" />
+                              <img src={player.profilePhotoUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-crimson-500/30" loading="lazy" />
                               {player.jerseyNumber != null && (
-                                <span className="absolute -bottom-1 -right-1 bg-cyan-500 text-gray-950 rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-black ring-1 ring-gray-950">
+                                <span className="absolute -bottom-1 -right-1 bg-crimson-500 text-gray-950 rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-black ring-1 ring-gray-950">
                                   {player.jerseyNumber}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <div className="w-9 h-9 bg-gradient-to-br from-fire-700 to-fire-900 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-cyan-500/30">
+                            <div className="w-9 h-9 bg-gradient-to-br from-charcoal-700 to-charcoal-900 rounded-full flex items-center justify-center text-white font-bold text-xs ring-2 ring-crimson-500/30">
                               {player.jerseyNumber || player.name.charAt(0)}
                             </div>
                           )}
@@ -1538,7 +1538,7 @@ const PlayerMediaPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-10 bg-white/5 rounded-xl border border-white/10">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-cyan-500/15 ring-1 ring-cyan-400/30 text-cyan-300 flex items-center justify-center mb-3">
+                    <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300 flex items-center justify-center mb-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
                     </div>
                     <h3 className="text-lg font-bold text-white">No media yet</h3>
@@ -1640,7 +1640,7 @@ const PlayerMediaPage: React.FC = () => {
                     <select
                       value={uploadPlayerId}
                       onChange={e => setUploadPlayerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500"
                     >
                       <option value="">Select player...</option>
                       {players.map(p => (
@@ -1672,7 +1672,7 @@ const PlayerMediaPage: React.FC = () => {
                       type="text"
                       value={uploadCaption}
                       onChange={e => setUploadCaption(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500"
                       placeholder="Optional caption..."
                     />
                   </div>
@@ -1686,7 +1686,7 @@ const PlayerMediaPage: React.FC = () => {
                           onClick={() => toggleUploadTag(tag)}
                           className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                             uploadTags.includes(tag)
-                              ? 'bg-blue-600 text-white'
+                              ? 'bg-charcoal-600 text-white'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
@@ -1696,7 +1696,7 @@ const PlayerMediaPage: React.FC = () => {
                     </div>
                   </div>
                   {(uploadTags.includes('Goal') || uploadTags.includes('Own Goal')) && players.length > 0 && (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 space-y-3">
+                    <div className="rounded-lg border border-crimson-200 bg-crimson-50/60 p-3 space-y-3">
                       {uploadTags.includes('Own Goal') && (
                         <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-1.5">
                           🥅 <strong>Own goal:</strong> team gets +1, no scorer credit. Award the assist below if applicable.
@@ -1714,7 +1714,7 @@ const PlayerMediaPage: React.FC = () => {
                                   type="button"
                                   onClick={() => setUploadGoalScorerId(p.id)}
                                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                    isSel ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                    isSel ? 'bg-charcoal-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                                   }`}
                                 >
                                   {p.name}
@@ -1758,7 +1758,7 @@ const PlayerMediaPage: React.FC = () => {
                       <select
                         value={uploadGameId}
                         onChange={e => setUploadGameId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
                       >
                         <option value="">— Not linked —</option>
                         {recentGames.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
@@ -1794,12 +1794,12 @@ const PlayerMediaPage: React.FC = () => {
                     <div>
                       {compressionStatus && (
                         <div className="mb-2 flex items-center space-x-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                          <p className="text-sm text-blue-700 font-medium">{compressionStatus}</p>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-charcoal-600"></div>
+                          <p className="text-sm text-charcoal-700 font-medium">{compressionStatus}</p>
                         </div>
                       )}
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="h-2 rounded-full bg-blue-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+                        <div className="h-2 rounded-full bg-crimson-500 transition-all" style={{ width: `${uploadProgress}%` }} />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         {compressionStatus ? 'Optimizing for mobile playback...' : `Uploading... ${uploadProgress}%`}
@@ -1818,7 +1818,7 @@ const PlayerMediaPage: React.FC = () => {
                   <button
                     onClick={handleUpload}
                     disabled={uploading || !uploadPlayerId || uploadFiles.length === 0}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-charcoal-600 text-white rounded-lg hover:bg-charcoal-700 disabled:opacity-50"
                   >
                     {uploading ? 'Uploading...' : 'Upload'}
                   </button>
@@ -1985,7 +1985,7 @@ const PlayerMediaPage: React.FC = () => {
                             onClick={handleSetThumbnailFromCurrentFrame}
                             disabled={savingThumbnail}
                             title="Pause the video at the frame you want, then tap this to use it as the thumbnail"
-                            className="flex items-center space-x-1.5 text-gray-300 hover:text-cyan-400 disabled:opacity-50 transition-colors"
+                            className="flex items-center space-x-1.5 text-gray-300 hover:text-crimson-400 disabled:opacity-50 transition-colors"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             <span className="text-sm font-medium hidden sm:inline">
@@ -1997,7 +1997,7 @@ const PlayerMediaPage: React.FC = () => {
                           onClick={() => replaceFileInputRef.current?.click()}
                           disabled={replacing}
                           title="Replace video (preserves likes, tags, caption)"
-                          className="flex items-center space-x-1.5 text-gray-300 hover:text-cyan-400 disabled:opacity-50 transition-colors"
+                          className="flex items-center space-x-1.5 text-gray-300 hover:text-crimson-400 disabled:opacity-50 transition-colors"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                           <span className="text-sm font-medium hidden sm:inline">{replacing ? `${replaceProgress}%` : 'Replace'}</span>
@@ -2019,9 +2019,9 @@ const PlayerMediaPage: React.FC = () => {
               )}
               {replacing && (
                 <div className="w-full mt-2 px-1">
-                  <div className="text-cyan-300 text-xs font-medium mb-1">Replacing video... {replaceProgress}%</div>
+                  <div className="text-crimson-300 text-xs font-medium mb-1">Replacing video... {replaceProgress}%</div>
                   <div className="w-full bg-white/10 rounded-full h-1.5">
-                    <div className="h-1.5 rounded-full bg-cyan-400 transition-all" style={{ width: `${replaceProgress}%` }} />
+                    <div className="h-1.5 rounded-full bg-crimson-400 transition-all" style={{ width: `${replaceProgress}%` }} />
                   </div>
                 </div>
               )}
@@ -2035,7 +2035,7 @@ const PlayerMediaPage: React.FC = () => {
                         onClick={() => toggleEditTag(tag)}
                         className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                           editingTags.includes(tag)
-                            ? 'bg-blue-500 text-white'
+                            ? 'bg-crimson-500 text-white'
                             : 'bg-white/20 text-white/70 hover:bg-white/30'
                         }`}
                       >
@@ -2077,7 +2077,7 @@ const PlayerMediaPage: React.FC = () => {
                                   key={p.id}
                                   onClick={() => setEditingGoalScorerId(p.id)}
                                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                    isSel ? 'bg-blue-500 text-white' : 'bg-white/15 text-white/70 hover:bg-white/25'
+                                    isSel ? 'bg-crimson-500 text-white' : 'bg-white/15 text-white/70 hover:bg-white/25'
                                   }`}
                                 >
                                   {p.name}
@@ -2126,7 +2126,7 @@ const PlayerMediaPage: React.FC = () => {
                   )}
                   <div className="flex justify-center gap-2">
                     <button onClick={() => { setEditingTags(null); setEditingGoalScorerId(''); setEditingAssistByIds([]); setEditingGameId(''); }} className="px-3 py-1 text-xs text-white/60 hover:text-white">Cancel</button>
-                    <button onClick={handleSaveTags} className="px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600">Save Tags</button>
+                    <button onClick={handleSaveTags} className="px-3 py-1 bg-crimson-500 text-white text-xs rounded-full hover:bg-charcoal-600">Save Tags</button>
                   </div>
                 </div>
               ) : (
@@ -2188,7 +2188,7 @@ const PlayerMediaPage: React.FC = () => {
                     <ul className="divide-y divide-gray-100">
                       {uids.map(uid => (
                         <li key={uid} className="px-4 py-2.5 flex items-center space-x-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-crimson-400 to-crimson-500 flex items-center justify-center text-white text-xs font-bold">
                             {(usersMap[uid] || '?').charAt(0).toUpperCase()}
                           </div>
                           <span className="text-sm text-gray-800">
@@ -2253,7 +2253,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
               {item.tags && item.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {item.tags.map(tag => (
-                    <span key={tag} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium">{tag}</span>
+                    <span key={tag} className="px-1.5 py-0.5 bg-crimson-50 text-charcoal-600 rounded text-[10px] font-medium">{tag}</span>
                   ))}
                 </div>
               )}
@@ -2267,7 +2267,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
                 )}
                 <span className="text-xs">{item.likeCount || 0}</span>
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onShare(item); }} className="text-gray-400 hover:text-blue-500 transition-colors">
+              <button onClick={(e) => { e.stopPropagation(); onShare(item); }} className="text-gray-400 hover:text-crimson-500 transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
               </button>
               {canDelete(item) && (
@@ -2369,8 +2369,8 @@ function timeAgo(date: Date): string {
 }
 
 const ACCENT_BG: Record<string, string> = {
-  cyan: 'from-cyan-500/20 to-cyan-500/5 border-cyan-500/30',
-  blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30',
+  cyan: 'from-crimson-500/20 to-crimson-500/5 border-crimson-500/30',
+  blue: 'from-crimson-500/20 to-crimson-500/5 border-crimson-500/30',
   purple: 'from-purple-500/20 to-purple-500/5 border-purple-500/30',
   orange: 'from-orange-500/20 to-orange-500/5 border-orange-500/30',
 };
@@ -2391,7 +2391,7 @@ const SectionHeader: React.FC<{ title: string; action?: { label: string; onClick
   <div className="flex items-center justify-between mb-4">
     <h2 className="text-sm sm:text-base font-bold uppercase tracking-[0.15em] text-white">{title}</h2>
     {action && (
-      <button onClick={action.onClick} className="text-xs sm:text-sm text-cyan-400 hover:text-cyan-300 font-medium">
+      <button onClick={action.onClick} className="text-xs sm:text-sm text-crimson-400 hover:text-crimson-300 font-medium">
         {action.label} →
       </button>
     )}
@@ -2409,21 +2409,21 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
   const tagColor: Record<string, string> = {
     Goal: 'bg-yellow-400 text-yellow-950',
     Assist: 'bg-green-400 text-green-950',
-    Save: 'bg-blue-400 text-blue-950',
+    Save: 'bg-crimson-400 text-charcoal-950',
     Skill: 'bg-purple-400 text-purple-950',
     Highlight: 'bg-pink-400 text-pink-950',
   };
   return (
     <button
       onClick={onClick}
-      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all hover:shadow-2xl hover:shadow-cyan-500/10 text-left"
+      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/50 transition-all hover:shadow-2xl hover:shadow-crimson-500/10 text-left"
     >
       {item.type === 'video' ? (
         ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
           item.thumbnailUrl ? (
             <img src={item.thumbnailUrl} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-700 to-cyan-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-crimson-700 to-crimson-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
               {(item as any).source}
             </div>
           )
@@ -2458,9 +2458,9 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-3 pt-10">
         <div className="flex items-center gap-2">
           {player?.profilePhotoUrl ? (
-            <img src={player.profilePhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-cyan-500/40" />
+            <img src={player.profilePhotoUrl} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-crimson-500/40" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fire-700 to-fire-900 flex items-center justify-center text-white text-xs font-bold ring-2 ring-cyan-500/40">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-charcoal-700 to-charcoal-900 flex items-center justify-center text-white text-xs font-bold ring-2 ring-crimson-500/40">
               {player?.jerseyNumber || item.playerName?.charAt(0)}
             </div>
           )}
@@ -2489,14 +2489,14 @@ const RankedCard: React.FC<RankedCardProps> = ({ rank, item, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/50 transition-all text-left"
+      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/50 transition-all text-left"
     >
       {item.type === 'video' ? (
         ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
           item.thumbnailUrl ? (
             <img src={item.thumbnailUrl} alt={item.caption || ''} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-700 to-cyan-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-crimson-700 to-crimson-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
               {(item as any).source}
             </div>
           )
@@ -2554,14 +2554,14 @@ const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
       {items.map(item => (
-        <div key={item.id} className="group relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-cyan-500/40 transition-colors">
+        <div key={item.id} className="group relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/40 transition-colors">
           <button onClick={() => onView(item)} className="w-full h-full block">
             {item.type === 'video' ? (
               ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
                 item.thumbnailUrl ? (
                   <img src={item.thumbnailUrl} alt={item.caption || ''} loading="lazy" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-700 to-cyan-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-crimson-700 to-crimson-900 text-white text-[11px] font-extrabold uppercase tracking-widest">
                     {(item as any).source}
                   </div>
                 )

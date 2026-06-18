@@ -40,7 +40,7 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
   }
 
   return (
-    <div className="px-3.5 py-3 bg-gradient-to-b from-slate-950 to-slate-800 border-y border-cyan-500/10">
+    <div className="px-3.5 py-3 bg-gradient-to-b from-charcoal-950 to-charcoal-800 border-y border-crimson-500/10">
       <div className="grid grid-cols-7 gap-1">
         {days.map((d, i) => {
           const key = ymd(d);
@@ -49,10 +49,10 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
           const has = types.length > 0;
           const base = 'text-center py-1.5 rounded-md border transition-colors';
           const cls = isToday
-            ? `${base} bg-cyan-500/15 border-cyan-400/50 ring-1 ring-cyan-400/20`
+            ? `${base} bg-crimson-500/15 border-crimson-400/50 ring-1 ring-crimson-400/20`
             : has
-            ? `${base} bg-slate-950/60 border-slate-700/50`
-            : `${base} bg-slate-950/40 border-slate-800/50`;
+            ? `${base} bg-charcoal-950/60 border-slate-700/50`
+            : `${base} bg-charcoal-950/40 border-slate-800/50`;
           return (
             <button
               key={key}
@@ -61,7 +61,7 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
               className={cls}
               aria-label={`${DOWS_SHORT[d.getDay()]} ${d.getDate()}`}
             >
-              <div className={`text-[8px] font-extrabold tracking-widest ${isToday ? 'text-cyan-300' : 'text-slate-500'}`}>
+              <div className={`text-[8px] font-extrabold tracking-widest ${isToday ? 'text-crimson-300' : 'text-slate-500'}`}>
                 {DOWS_SHORT[d.getDay()]}
               </div>
               <div className={`text-[14px] font-black leading-none mt-0.5 ${isToday || has ? 'text-white' : 'text-slate-400'}`}>
@@ -73,7 +73,7 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
                     key={j}
                     className={`w-1 h-1 rounded-full ${
                       t === 'game' ? 'bg-rose-500'
-                      : t === 'practice' ? 'bg-cyan-400'
+                      : t === 'practice' ? 'bg-crimson-400'
                       : 'bg-purple-500'
                     }`}
                   />

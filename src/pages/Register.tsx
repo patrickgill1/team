@@ -509,7 +509,7 @@ const RegisterForm: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black px-4 py-8 sm:py-14">
+    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-8 sm:py-14">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6">
           <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
@@ -524,10 +524,10 @@ const RegisterForm: React.FC = () => {
               : `One last step and you're in. Tell us about your player and you'll join the ${season.name} pool.`}
           </p>
           {(baseFee > 0 || effectiveFee > 0) && (
-            <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 ring-1 ring-cyan-500/30 text-cyan-200 text-sm">
+            <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-crimson-500/10 ring-1 ring-crimson-500/30 text-crimson-200 text-sm">
               <span className="font-bold">${(effectiveFee / 100).toFixed(2)}</span>
               {quote.tier?.label && (
-                <span className="text-[11px] uppercase tracking-widest font-extrabold bg-white/10 text-cyan-100 ring-1 ring-white/15 px-2 py-0.5 rounded">
+                <span className="text-[11px] uppercase tracking-widest font-extrabold bg-white/10 text-crimson-100 ring-1 ring-white/15 px-2 py-0.5 rounded">
                   {quote.tier.label}
                 </span>
               )}
@@ -609,7 +609,7 @@ const RegisterForm: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setParents([...parents, { firstName: '', lastName: '', email: '', phone: '', relationship: 'father' }])}
-                className="text-sm font-bold text-cyan-300 hover:text-cyan-200"
+                className="text-sm font-bold text-crimson-300 hover:text-crimson-200"
               >
                 + Add another parent / guardian
               </button>
@@ -637,7 +637,7 @@ const RegisterForm: React.FC = () => {
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                   placeholder="EARLYBIRD"
-                  className="flex-1 px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm uppercase tracking-wider"
+                  className="flex-1 px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm uppercase tracking-wider"
                   style={{ fontSize: '16px' }}
                 />
                 {quote.couponCode && (
@@ -662,7 +662,7 @@ const RegisterForm: React.FC = () => {
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-4 rounded-xl font-bold text-base text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
+            className="w-full py-4 rounded-xl font-bold text-base text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
           >
             {submitting ? 'Submitting…' : effectiveFee > 0 ? `Submit & pay $${(effectiveFee / 100).toFixed(2)}` : 'Submit registration'}
           </button>
@@ -681,7 +681,7 @@ const RegisterForm: React.FC = () => {
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div>
-    <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-300/90 mb-3">{title}</h2>
+    <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-300/90 mb-3">{title}</h2>
     <div className="space-y-3">{children}</div>
   </div>
 );
@@ -701,7 +701,7 @@ const Input: React.FC<{ label: string; value: string; onChange: (v: string) => v
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
       style={{ fontSize: '16px' }}
     />
   </label>
@@ -715,7 +715,7 @@ const TextArea: React.FC<{ label: string; value: string; onChange: (v: string) =
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={3}
-      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
       style={{ fontSize: '16px' }}
     />
   </label>
@@ -729,10 +729,10 @@ const Select: React.FC<{ label: string; value: string; onChange: (v: string) => 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
       style={{ fontSize: '16px' }}
     >
-      {options.map(o => <option key={o.value} value={o.value} className="bg-slate-900">{o.label}</option>)}
+      {options.map(o => <option key={o.value} value={o.value} className="bg-charcoal-900">{o.label}</option>)}
     </select>
   </label>
 );
@@ -764,7 +764,7 @@ const CustomQuestion: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             rows={3}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -778,12 +778,12 @@ const CustomQuestion: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
             style={{ fontSize: '16px' }}
           >
-            <option value="" className="bg-slate-900">— Select —</option>
+            <option value="" className="bg-charcoal-900">— Select —</option>
             {(question.options || []).map(o => (
-              <option key={o} value={o} className="bg-slate-900">{o}</option>
+              <option key={o} value={o} className="bg-charcoal-900">{o}</option>
             ))}
           </select>
           {help}
@@ -803,8 +803,8 @@ const CustomQuestion: React.FC<{
                   onClick={() => onChange(opt)}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold ring-1 transition ${
                     selected
-                      ? 'bg-cyan-500 text-white ring-cyan-500'
-                      : 'bg-white/5 text-slate-300 ring-white/10 hover:ring-cyan-400/40'
+                      ? 'bg-crimson-500 text-white ring-crimson-500'
+                      : 'bg-white/5 text-slate-300 ring-white/10 hover:ring-crimson-400/40'
                   }`}
                 >
                   {opt}
@@ -824,7 +824,7 @@ const CustomQuestion: React.FC<{
             value={value == null ? '' : String(value)}
             onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -840,7 +840,7 @@ const CustomQuestion: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -855,14 +855,14 @@ const Checkbox: React.FC<{ label: string; checked: boolean; onChange: (v: boolea
       type="checkbox"
       checked={checked}
       onChange={(e) => onChange(e.target.checked)}
-      className="w-4 h-4 rounded bg-white/10 border-white/20 text-cyan-500"
+      className="w-4 h-4 rounded bg-white/10 border-white/20 text-crimson-500"
     />
     <span className="text-sm text-slate-300">{label}</span>
   </label>
 );
 
 const CenterMessage: React.FC<{ title: string; body?: string; success?: boolean }> = ({ title, body, success }) => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center p-6">
+  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center p-6">
     <div className="max-w-md w-full bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-3xl p-8 text-center">
       <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4 ${
         success ? 'bg-emerald-500/20 ring-1 ring-emerald-400/40' : 'bg-white/5 ring-1 ring-white/10'
@@ -870,7 +870,7 @@ const CenterMessage: React.FC<{ title: string; body?: string; success?: boolean 
         {success ? (
           <svg className="w-6 h-6 text-emerald-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         ) : (
-          <svg className="w-6 h-6 text-cyan-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg className="w-6 h-6 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         )}
       </div>
       <h1 className="text-xl font-black text-white mb-2">{title}</h1>

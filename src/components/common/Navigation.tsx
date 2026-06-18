@@ -415,10 +415,17 @@ const Navigation: React.FC = () => {
           because it is so dark on top. bleed the soccer photo up."
           Other pages keep the solid bg so chat / wall / events
           still have a defined chrome edge. */}
-      <header className={`lg:hidden fixed top-0 inset-x-0 z-40 safe-top ${isDashboardRoute ? 'bg-crimson-800' : 'bg-black'}`}>
+      {/* On the dashboard route, the safe-top region is painted by
+          the AppDelegate native UIView (currently crimson-800 in
+          Swift). The React chrome below it overlays the stadium
+          hero with a soft dark gradient that blends into the photo
+          rather than stamping a brand-color bar. Keeps Patrick's
+          preferred photo-bleed look; the crimson lives strictly in
+          the AppDelegate sliver where it replaces black. */}
+      <header className={`lg:hidden fixed top-0 inset-x-0 z-40 safe-top ${isDashboardRoute ? 'bg-transparent' : 'bg-black'}`}>
         <div className={`flex items-center gap-2 px-3 h-14 ${
           isDashboardRoute
-            ? 'bg-gradient-to-b from-crimson-800/85 via-crimson-900/50 to-transparent backdrop-blur-sm'
+            ? 'bg-gradient-to-b from-black/45 via-black/20 to-transparent backdrop-blur-sm'
             : 'bg-charcoal-950'
         }`}>
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px

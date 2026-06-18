@@ -1,353 +1,519 @@
 rules_version = '2';
+// ──────────────────────────────────────────────────────────────────
+// GoalKickr Firestore rules — multi-tenant safe.
+//
+// Pre-rewrite, most collections were `allow read, write: if request.auth
+// != null` which meant any signed-in user on any team/club could read +
+// write any document. Fine while there was one club. Dangerous before
+// onboarding a second.
+//
+// This rewrite enforces per-team and per-club membership server-side.
+// Helpers at the top look up the requesting user's user doc once and
+// derive their team / club memberships. Each collection's rules use
+// those helpers to gate reads + writes.
+//
+// Public surfaces (no-auth pages) explicitly stay open: share links for
+// events / wall posts / POTM votes, /register and /offer/:id no-auth
+// flows, public player profiles for the vote page.
+// ──────────────────────────────────────────────────────────────────
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Public: anyone can read active votings (for the /vote page)
+    // ── HELPERS ─────────────────────────────────────────────────
+
+    // Hydrate the requesting user's user doc. ONE get() per evaluation,
+    // memoized by Firestore — call freely from other helpers.
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // User's set of team memberships. Tolerates either the legacy
+    // single-team field (teamId) OR the multi-team field (teamIds).
+    // Returns a list either way so callers can use `in` and `hasAny`.
+    function userTeamIds() {
+      return (userDoc().teamIds is list ? userDoc().teamIds : [])
+        .concat(userDoc().teamId is string && userDoc().teamId != '' ? [userDoc().teamId] : []);
+    }
+
+    // User's set of club memberships. Same shape tolerance as teams.
+    function userClubIds() {
+      return (userDoc().clubIds is list ? userDoc().clubIds : [])
+        .concat(userDoc().clubId is string && userDoc().clubId != '' ? [userDoc().clubId] : []);
+    }
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isAuthed() && request.auth.uid == uid;
+    }
+
+    function isTeamMember(teamId) {
+      return isAuthed() && teamId is string && teamId in userTeamIds();
+    }
+
+    function isClubMember(clubId) {
+      return isAuthed() && clubId is string && clubId in userClubIds();
+    }
+
+    function isClubAdmin(clubId) {
+      return isAuthed()
+        && userDoc().isClubAdmin == true
+        && clubId in userClubIds();
+    }
+
+    // Platform owner — Patrick. Has a few god-mode capabilities (set
+    // platformFeeBps, delete clubs, etc.). Email-based check matches
+    // the previous rules.
+    function isPlatformOwner() {
+      return isAuthed() && request.auth.token.email == 'patrickgill4@gmail.com';
+    }
+
+    // Resource matches one of the user's teams. Accepts a single
+    // teamId field OR a teamIds list (for multi-team docs like a
+    // player who's been moved between rosters).
+    function resourceOnUserTeam(res) {
+      return isAuthed() && (
+        (res.teamId is string && res.teamId in userTeamIds())
+        || (res.teamIds is list && res.teamIds.hasAny(userTeamIds()))
+      );
+    }
+
+    function resourceOnUserClub(res) {
+      return isAuthed() && res.clubId is string && res.clubId in userClubIds();
+    }
+
+    // ── PUBLIC: POTM voting ─────────────────────────────────────
+    // The vote page is a no-auth shareable link.
+
     match /match_votings/{votingId} {
       allow read: if true;
-      // Allow votes to be cast (update votes array) without auth
-      allow update: if true;
-      // Only authenticated users can create/delete votings
-      allow create, delete: if request.auth != null;
+      allow update: if true; // cast vote without auth
+      allow create, delete: if isAuthed();
     }
 
-    // Public: anyone can read player profiles (needed to show player cards on vote page)
+    // ── PUBLIC: player profiles ────────────────────────────────
+    // The POTM vote page renders player cards by id; needs public read.
+    // Writes restricted to team coaches.
+
     match /players/{playerId} {
       allow read: if true;
-      // Only authenticated users can write player data
-      allow write: if request.auth != null;
+      allow create: if isAuthed() && resourceOnUserTeam(request.resource.data);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
-    // All other collections require authentication
-    match /teams/{teamId} {
-      allow read, write: if request.auth != null;
-    }
+    // ── USER DOCS ──────────────────────────────────────────────
+    // Reads stay open across the signed-in surface (avatar lookups,
+    // team-member listings, parent-email matching). Writes locked to
+    // the user themself OR a club admin whose club this user belongs to.
 
     match /users/{userId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed();
+      allow create: if isSelf(userId);
+      allow update: if isSelf(userId)
+        || isPlatformOwner()
+        || (isAuthed()
+            && userDoc().isClubAdmin == true
+            && get(/databases/$(database)/documents/users/$(userId)).data.clubId is string
+            && get(/databases/$(database)/documents/users/$(userId)).data.clubId in userClubIds());
+      allow delete: if isSelf(userId) || isPlatformOwner();
     }
 
-    match /news/{newsId} {
-      allow read, write: if request.auth != null;
+    // ── TEAMS ──────────────────────────────────────────────────
+    // Read open to authed users (team picker, parent-of-X lookups).
+    // Writes restricted to team coaches / club admins.
+
+    match /teams/{teamId} {
+      allow read: if isAuthed();
+      allow create: if isAuthed(); // creator becomes the first coach via app logic
+      allow update, delete: if isAuthed() && (
+        isTeamMember(teamId)
+        || (resource.data.clubId is string && isClubAdmin(resource.data.clubId))
+      );
     }
+
+    // ── EVENTS ─────────────────────────────────────────────────
+    // Public read so /event/:id share links work.
+    // Public update only when the diff is publicRsvps (no-auth guest
+    // RSVP). Other writes require team membership.
 
     match /events/{eventId} {
-      // Public read so /event/:id share links work without sign-in.
       allow read: if true;
-      // Public guests can RSVP — but only by writing to publicRsvps. Anything
-      // else (title, date, etc.) still requires an authenticated team member.
+      allow create: if isTeamMember(request.resource.data.teamId);
       allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['publicRsvps']))
-        || request.auth != null;
-      allow create, delete: if request.auth != null;
+        || (isAuthed() && resourceOnUserTeam(resource.data));
+      allow delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
+
+    // ── NEWS ───────────────────────────────────────────────────
+    // Currently auth-only, no teamId field on existing news docs.
+    // Keep auth-required while news exists; revisit if news gets
+    // team scope later.
+
+    match /news/{newsId} {
+      allow read, write: if isAuthed();
+    }
+
+    // ── LEGACY messages collection ─────────────────────────────
+    // No teamId field today; auth-required. Slated for removal once
+    // confirmed nothing reads from it.
 
     match /messages/{messageId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthed();
     }
 
-    // Chat threads — DM/group privacy when participants field is set.
-    // Legacy threads created before the participants field was tracked
-    // fall back to "any auth" so they don't go dark on existing users.
-    // Lock-strict mode (deny missing participants) can come once we
-    // backfill — but the practical privacy goal is met today because
-    // the UI hides DMs/groups from non-participants in the thread list.
+    // ── CHAT THREADS ───────────────────────────────────────────
+    // Already had private/participant gating; tightening to require
+    // team membership for non-private threads too.
+
     match /chat_threads/{threadId} {
-      function hasParticipantsList() {
-        return resource.data.participants is list;
-      }
       function isPrivate() {
         return resource.data.isDM == true || resource.data.isGroup == true;
       }
-      function isParticipant() {
-        return request.auth != null
-          && hasParticipantsList()
-          && request.auth.uid in resource.data.participants;
+      function hasParticipantsList() {
+        return resource.data.participants is list;
       }
-      allow read: if request.auth != null && (
-        !isPrivate()
-        || !hasParticipantsList()  // legacy escape hatch
-        || isParticipant()
+      function isParticipant() {
+        return isAuthed() && hasParticipantsList() && request.auth.uid in resource.data.participants;
+      }
+      allow read: if isAuthed() && (
+        isParticipant()
+        || (!isPrivate() && resourceOnUserTeam(resource.data))
+        || (!isPrivate() && !hasParticipantsList()) // legacy escape hatch
       );
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (
-        !isPrivate()
-        || !hasParticipantsList()
-        || isParticipant()
+      allow create: if isAuthed() && (
+        // Creator on a team thread must be on that team
+        (request.resource.data.teamId is string && isTeamMember(request.resource.data.teamId))
+        // OR creating a DM/group — participants check enforced via update rules
+        || request.resource.data.isDM == true
+        || request.resource.data.isGroup == true
       );
-      allow delete: if request.auth != null && (
-        !isPrivate()
-        || !hasParticipantsList()
-        || isParticipant()
+      allow update: if isAuthed() && (
+        isParticipant()
+        || (!isPrivate() && resourceOnUserTeam(resource.data))
+      );
+      allow delete: if isAuthed() && (
+        isParticipant()
+        || (!isPrivate() && resourceOnUserTeam(resource.data))
       );
     }
 
-    // Chat messages — open to any auth. The privacy gate is at the
-    // thread layer; a non-participant can't list a private thread's
-    // id and can't query messages scoped to one they don't know.
+    // ── CHAT MESSAGES ──────────────────────────────────────────
+    // Membership of the thread the message lives under. One extra
+    // get() per message rule check; acceptable for chat traffic.
+
     match /chat_messages/{messageId} {
-      allow read, write: if request.auth != null;
+      function thread() {
+        return get(/databases/$(database)/documents/chat_threads/$(resource.data.threadId)).data;
+      }
+      function newThread() {
+        return get(/databases/$(database)/documents/chat_threads/$(request.resource.data.threadId)).data;
+      }
+      allow read: if isAuthed() && (
+        // Private thread → must be participant
+        (thread().isDM == true || thread().isGroup == true)
+          ? (thread().participants is list && request.auth.uid in thread().participants)
+          : (thread().teamId is string && isTeamMember(thread().teamId))
+      );
+      allow create: if isAuthed() && (
+        (newThread().isDM == true || newThread().isGroup == true)
+          ? (newThread().participants is list && request.auth.uid in newThread().participants)
+          : (newThread().teamId is string && isTeamMember(newThread().teamId))
+      );
+      allow update, delete: if isAuthed() && resource.data.senderId == request.auth.uid;
     }
 
-    // The Wall is its own surface — separate collection from chat.
-    // Any signed-in user can read (everyone on the team sees the same
-    // wall). Any signed-in user can create their own post. After the
-    // fact, the author OR a club admin can edit/delete; any signed-in
-    // user can update ONLY the reactions array (so likes work).
+    // ── WALL POSTS ─────────────────────────────────────────────
+    // Already had author/admin checks. Adding team-membership gate on
+    // reads + creation so posts don't leak across teams.
+
     match /wall_posts/{postId} {
-      // Public reads only when the post explicitly opted in via
-      // isPublic === true (coach toggled "Share publicly"). Auth users
-      // can read everything as before.
-      allow read: if request.auth != null || resource.data.isPublic == true;
-      allow create: if request.auth != null
-        && request.resource.data.senderId == request.auth.uid;
-      allow update: if request.auth != null
-        && (resource.data.senderId == request.auth.uid
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']));
-      allow delete: if request.auth != null
-        && (resource.data.senderId == request.auth.uid
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
+      allow read: if resource.data.isPublic == true
+        || (isAuthed() && resourceOnUserTeam(resource.data));
+      allow create: if isAuthed()
+        && request.resource.data.senderId == request.auth.uid
+        && isTeamMember(request.resource.data.teamId);
+      allow update: if isAuthed() && (
+        // Author or club admin can edit content
+        (resource.data.senderId == request.auth.uid)
+        || (resource.data.clubId is string && isClubAdmin(resource.data.clubId))
+        // OR anyone on the team can update reactions only
+        || (resourceOnUserTeam(resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']))
+      );
+      allow delete: if isAuthed() && (
+        resource.data.senderId == request.auth.uid
+        || (resource.data.clubId is string && isClubAdmin(resource.data.clubId))
+      );
     }
 
-    // Comments on wall posts. Any signed-in user can read + create
-    // their own; author or club admin can delete after the fact.
+    // ── WALL COMMENTS ──────────────────────────────────────────
+
     match /wall_comments/{commentId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.senderId == request.auth.uid;
-      allow update, delete: if request.auth != null
-        && (resource.data.senderId == request.auth.uid
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
+      allow read: if isAuthed() && resourceOnUserTeam(resource.data);
+      allow create: if isAuthed()
+        && request.resource.data.senderId == request.auth.uid
+        && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && (
+        resource.data.senderId == request.auth.uid
+        || (resource.data.clubId is string && isClubAdmin(resource.data.clubId))
+      );
     }
 
-    // Per-event discussion (comments live with the event, not in the
-    // Chat tab — keeps the inbox clean). Auth required for both read
-    // and create. Only the author can edit or delete their own.
+    // ── EVENT COMMENTS ─────────────────────────────────────────
+
     match /eventComments/{commentId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && resource.data.authorId == request.auth.uid;
+      allow read: if isAuthed() && resourceOnUserTeam(resource.data);
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resource.data.authorId == request.auth.uid;
     }
 
-    // Helpdesk tickets. Anyone authenticated can create / read all
-    // (visibility scoping is done client-side: regular users only see
-    // their own + open tickets they can comment on; club admins see
-    // everything). Only the author OR a club admin can edit / delete
-    // — admins need to update status/assignedTo.
+    // ── HELPDESK ───────────────────────────────────────────────
+    // Helpdesk tickets currently aren't scoped to a club; tightening
+    // would break the existing flow. Leave auth-required for now, add
+    // clubId field + scope as part of phase 4.
+
     match /helpdeskTickets/{ticketId} {
-      allow read, create: if request.auth != null;
-      allow update: if request.auth != null
-        && (resource.data.createdBy == request.auth.uid
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
-      allow delete: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true;
+      allow read, create: if isAuthed();
+      allow update: if isAuthed() && (
+        resource.data.createdBy == request.auth.uid
+        || userDoc().isClubAdmin == true
+      );
+      allow delete: if isAuthed() && userDoc().isClubAdmin == true;
     }
 
     match /helpdeskComments/{commentId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && resource.data.authorId == request.auth.uid;
+      allow read, create: if isAuthed();
+      allow update, delete: if isAuthed() && resource.data.authorId == request.auth.uid;
     }
+
+    // ── PLAYER MEDIA / GALLERY / FULL GAMES ────────────────────
+    // Public read keeps share links + the public gallery working.
+    // Writes require team membership.
 
     match /player_media/{mediaId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
     match /gallery/{photoId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
     match /full_games/{gameId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
+    // ── STATS / ATTENDANCE / VOLUNTEERS / DEV PLANS ────────────
+    // Team-scoped reads + writes.
+
     match /stats/{statId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && resourceOnUserTeam(resource.data);
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
     match /development_plans/{planId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && resourceOnUserTeam(resource.data);
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
     match /attendance/{attendanceId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && resourceOnUserTeam(resource.data);
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
     match /volunteers/{volunteerId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && resourceOnUserTeam(resource.data);
+      allow create: if isAuthed() && isTeamMember(request.resource.data.teamId);
+      allow update, delete: if isAuthed() && resourceOnUserTeam(resource.data);
     }
 
-    // Invites: an unguessable doc ID acts as the capability. The /join/:id
-    // page needs to read it BEFORE the visitor signs up (to show "you're
-    // joining Team X as a coach"). Writes still require auth — consumeInvite
-    // runs after the new user authenticates.
+    // ── INVITES ────────────────────────────────────────────────
+    // Capability-via-URL: anyone with the unguessable id can read.
+    // Writes still require auth (creating + consuming).
+
     match /invites/{inviteId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update, delete: if isAuthed();
     }
 
-    // Legacy collection used by the older email-based coach invite flow.
-    // Same reasoning as /invites above.
     match /coach_invites/{inviteId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update, delete: if isAuthed();
     }
 
-    // ────────────────────────────────────────────────────────────
-    // CLUB MODULE — registration funnel, products, offers, forms,
-    // tasks, activities. Several of these need PUBLIC access because
-    // they're used in no-auth flows (/register, /offer/:id). The
-    // catch-all at the bottom requires auth so we MUST grant public
-    // read/create explicitly where appropriate.
-    // ────────────────────────────────────────────────────────────
+    // ── CLUB MODULE ────────────────────────────────────────────
+    // Most of these are admin-side. Public-required surfaces explicitly
+    // stay open (registration form, season discovery, offer accept).
+    // Everything else gated to club membership.
 
-    // Products — pricing + coupons. Public READ because /register
-    // (no-auth) needs to load the active registration product to quote
-    // a fee. Writes restricted to authenticated users (and further
-    // gated to club admins client-side; full server-side admin check
-    // requires resource.data.clubId lookup against the user doc,
-    // which is doable but adds a get() to every write — current
-    // tradeoff: client-side admin gate is acceptable while there's
-    // one club. Tighten when multi-tenant goes live.).
+    // Products — public READ (registration form quotes fees).
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthed() && (
+        request.resource.data.clubId is string
+          ? isClubAdmin(request.resource.data.clubId)
+          : isClubAdmin(resource.data.clubId)
+      );
     }
 
-    // Seasons — public READ so /register can discover the open season
-    // and its dates. Writes still require auth.
+    // Seasons — public READ.
     match /seasons/{seasonId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthed() && (
+        request.resource.data.clubId is string
+          ? isClubAdmin(request.resource.data.clubId)
+          : isClubAdmin(resource.data.clubId)
+      );
     }
 
-    // Registrations — the /register form is no-auth, so CREATE is
-    // public. READ is restricted to the parent's own (matched by email)
-    // OR any authenticated club member (admins, coaches). Updates +
-    // deletes require auth (admin flips status, etc.).
-    //
-    // For tighter security later: validate request.resource.data.clubId
-    // matches an active Club, that parents[].email is non-empty, etc.
+    // Registrations — public CREATE (no-auth registration form).
+    // READ + admin actions require club membership.
     match /registrations/{registrationId} {
       allow create: if request.resource.data.clubId is string
         && request.resource.data.parents.size() > 0;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if isAuthed() && resourceOnUserClub(resource.data);
     }
 
-    // Registration form configs — public READ (parent loads them on
-    // /register), authed write (admin defines them).
     match /registration_form_configs/{configId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthed() && (
+        request.resource.data.clubId is string
+          ? isClubAdmin(request.resource.data.clubId)
+          : isClubAdmin(resource.data.clubId)
+      );
     }
 
-    // Activities — append-only audit log. CREATE is broadly allowed
-    // (including from /register + /offer/:id) because every meaningful
-    // system event logs to this collection regardless of auth state.
-    // READ requires auth (timeline is admin-side). Updates + deletes
-    // forbidden — keep the trail immutable.
+    // Activities — append-only audit log. CREATE open (every part of
+    // the system logs), READ to club members.
     match /activities/{activityId} {
       allow create: if true;
-      allow read: if request.auth != null;
+      allow read: if isAuthed() && (
+        resource.data.clubId is string
+          ? resourceOnUserClub(resource.data)
+          : isAuthed() // legacy entries without clubId stay readable to all auth users
+      );
       allow update, delete: if false;
     }
 
-    // Offers — /offer/:id is a public, no-auth page. The parent
-    // needs to READ the offer to see what's being offered, and
-    // UPDATE it to accept/decline. CREATE requires auth (coach
-    // sends the offer from the admin UI).
-    //
-    // We don't gate accept/decline by token here — the unguessable
-    // offer id itself is the capability (same pattern as invites).
+    // Offers — /offer/:id is no-auth public capability. READ open.
+    // UPDATE limited to status fields when public, otherwise requires
+    // coach/admin membership of the offering team.
     match /offers/{offerId} {
       allow read: if true;
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['status', 'respondedAt', 'declineReason', 'promotedToPlayerId', 'promotedAt', 'updatedAt'])
-        || request.auth != null;
-      allow create, delete: if request.auth != null;
+      allow update: if (request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['status', 'respondedAt', 'declineReason', 'promotedToPlayerId', 'promotedAt', 'updatedAt']))
+        || (isAuthed() && resourceOnUserClub(resource.data));
+      allow create, delete: if isAuthed() && (
+        request.resource.data.clubId is string
+          ? isClubMember(request.resource.data.clubId)
+          : isClubMember(resource.data.clubId)
+      );
     }
 
-    // Offer templates — admin-only.
     match /offer_templates/{templateId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && resourceOnUserClub(resource.data);
+      allow write: if isAuthed() && (
+        request.resource.data.clubId is string
+          ? isClubAdmin(request.resource.data.clubId)
+          : isClubAdmin(resource.data.clubId)
+      );
     }
 
-    // Form definitions — public READ in case a future parent-facing
-    // sign flow renders them; authed write.
     match /form_definitions/{formId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthed() && (
+        request.resource.data.clubId is string
+          ? isClubAdmin(request.resource.data.clubId)
+          : isClubAdmin(resource.data.clubId)
+      );
     }
 
-    // Form signatures — every authed user can read (coaches need to
-    // see "is this kid cleared?"); writes require auth.
     match /form_signatures/{signatureId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && (
+        // Self can read their own signatures
+        resource.data.signerUid == request.auth.uid
+        || (resource.data.clubId is string && isClubMember(resource.data.clubId))
+      );
+      allow write: if isAuthed();
     }
 
-    // Tasks — admin/coach todos. Authed read + write; further role
-    // gating happens client-side via the Tasks page.
     match /tasks/{taskId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && resourceOnUserClub(resource.data);
+      allow create: if isAuthed() && isClubMember(request.resource.data.clubId);
+      allow update, delete: if isAuthed() && (
+        resourceOnUserClub(resource.data)
+      );
     }
 
-    // Households — admin-linked multi-email families. Authed read +
-    // write; further gating happens client-side (only club admins
-    // surface the link/unlink controls). Public unauthenticated
-    // access would leak family-graph data so we don't open it up
-    // the way registrations are open.
     match /households/{householdId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed() && resourceOnUserClub(resource.data);
+      allow write: if isAuthed() && (
+        request.resource.data.clubId is string
+          ? isClubAdmin(request.resource.data.clubId)
+          : isClubAdmin(resource.data.clubId)
+      );
     }
 
-    // Clubs — every authed user reads (for club picker, member lookups).
-    // Writes require auth AND block `platformFeeBps` mutations to
-    // anyone except the platform owner. Without this gate a club admin
-    // could open the Firestore console and zero out their own platform
-    // fee, defeating the SaaS revenue model. See [[platform-fee]] memory.
-    //
-    // The worker (Cloud Functions / Cloudflare Worker using the admin
-    // service account) bypasses all of these rules and writes
-    // platformFeeBps from the /platform/clubs UI on Patrick's behalf.
+    // ── CLUBS ──────────────────────────────────────────────────
+    // Public read (so the registration form can render club name etc.).
+    // Writes require club admin membership. platformFeeBps mutations
+    // restricted to platform owner (existing rule).
+
     match /clubs/{clubId} {
       allow read: if true;
-      allow create: if request.auth != null
-        && (!('platformFeeBps' in request.resource.data.keys())
-            || request.auth.token.email == 'patrickgill4@gmail.com');
-      allow update: if request.auth != null
+      allow create: if isAuthed()
+        && (!('platformFeeBps' in request.resource.data.keys()) || isPlatformOwner());
+      allow update: if (isClubAdmin(clubId) || isPlatformOwner())
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['platformFeeBps'])
-            || request.auth.token.email == 'patrickgill4@gmail.com');
-      allow delete: if request.auth != null
-        && request.auth.token.email == 'patrickgill4@gmail.com';
+            || isPlatformOwner());
+      allow delete: if isPlatformOwner();
     }
 
-    // Surveys: public read for shared links, creator controls edits
+    // ── SURVEYS ────────────────────────────────────────────────
+
     match /surveys/{surveyId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      // Anyone can increment responseCount (public survey submissions); only creator can change other fields
+      allow create: if isAuthed();
       allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['responseCount']))
-        || (request.auth != null && resource.data.createdBy == request.auth.uid);
-      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+        || (isAuthed() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isAuthed() && resource.data.createdBy == request.auth.uid;
     }
 
-    // Survey responses: anyone can submit, only creator can read
     match /survey_responses/{responseId} {
       allow create: if request.resource.data.surveyId is string;
-
-      allow read: if request.auth != null
+      allow read: if isAuthed()
         && resource.data.surveyId is string
         && get(/databases/$(database)/documents/surveys/$(resource.data.surveyId)).data.createdBy == request.auth.uid;
-
       allow update, delete: if false;
     }
 
-    // Catch-all: deny everything else by default
+    // ── SUBSCRIPTIONS (placeholder for Stripe phase) ──────────
+    // Written by the Stripe webhook (service-account writes bypass
+    // these rules). Readable by the subscription owner only.
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if isSelf(resource.data.uid) || isPlatformOwner();
+      allow write: if isPlatformOwner();
+    }
+
+    // ── CATCH-ALL: DENY ────────────────────────────────────────
+    // Was previously `allow read, write: if request.auth != null` which
+    // silently granted access to any future collection. Flipped to deny
+    // so new collections fail closed — call this out in the rules
+    // PR when adding a new collection so we don't forget to add a
+    // proper rule.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

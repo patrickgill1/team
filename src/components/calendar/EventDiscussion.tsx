@@ -161,7 +161,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
                     className={`inline-block mt-0.5 px-3 py-1.5 rounded-2xl text-sm break-words whitespace-pre-wrap text-left ${
                       isMine
                         ? 'bg-crimson-600 text-white rounded-tr-sm'
-                        : 'bg-slate-100 text-bone rounded-tl-sm'
+                        : 'bg-charcoal-800 text-bone ring-1 ring-white/10 rounded-tl-sm'
                     }`}
                   >
                     {c.content}
@@ -197,7 +197,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
             }}
             placeholder="Say something about this event…"
             rows={2}
-            className="flex-1 px-3 py-2 border border-white/10 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+            className="flex-1 px-3 py-2 bg-charcoal-800 text-bone placeholder:text-charcoal-500 border border-white/10 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
           />
           <button
             onClick={post}

@@ -452,7 +452,7 @@ const Navigation: React.FC = () => {
             <Link
               to="/settings"
               aria-label="Settings"
-              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-crimson-400 to-crimson-400 ring-1 ring-white/20"
+              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-crimson-400 to-crimson-400 ring-2 ring-crimson-500 ring-offset-2 ring-offset-charcoal-950 shadow-lg shadow-crimson-900/40"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />

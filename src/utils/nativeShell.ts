@@ -12,15 +12,15 @@ export async function initNativeShell(): Promise<void> {
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: Style.Light });
     await StatusBar.setBackgroundColor({ color: '#0d0d10' });
-    // setOverlaysWebView({overlay:false}) shifts the WebView down past
-    // the status bar. iOS needs this so content doesn't draw under
-    // the notch / Dynamic Island. Android does NOT need it because
-    // MainActivity already pads the activity root by the system-bar
-    // insets — calling it on Android double-pads the WebView and
-    // produces a tall empty navy strip above the app header.
-    if (Capacitor.getPlatform() === 'ios') {
-      await StatusBar.setOverlaysWebView({ overlay: false });
-    }
+    // setOverlaysWebView({overlay:true}) lets the WebView paint the
+    // ENTIRE screen including the safe-area-inset-top region (notch
+    // / Dynamic Island). Without this, Capacitor on iOS creates a
+    // separate strip above the WebView whose color it can't actually
+    // control on iOS 14+ — Patrick saw it persist as navy regardless
+    // of setBackgroundColor calls. With overlay=true the navigation
+    // header (which has bg-charcoal-950 + safe-top padding) paints
+    // the strip cleanly in brand color.
+    await StatusBar.setOverlaysWebView({ overlay: true });
   } catch (err) {
     console.warn('StatusBar init failed', err);
   }

@@ -60,10 +60,10 @@ function rsvpAvatarColor(name: string): string {
     'from-rose-400 to-rose-600',
     'from-amber-400 to-orange-600',
     'from-emerald-400 to-emerald-600',
-    'from-cyan-400 to-cyan-600',
+    'from-crimson-400 to-crimson-600',
     'from-violet-400 to-violet-600',
     'from-fuchsia-400 to-pink-600',
-    'from-blue-400 to-blue-600',
+    'from-crimson-400 to-charcoal-600',
     'from-teal-400 to-teal-600',
   ];
   return palette[h % palette.length];
@@ -671,7 +671,7 @@ const EventDetail: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-200 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
       </div>
     );
   }
@@ -680,14 +680,14 @@ const EventDetail: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-8 text-center">
         <p className="text-slate-600 mb-4">Event not found.</p>
-        <Link to="/calendar" className="text-cyan-600 font-semibold">← Back to events</Link>
+        <Link to="/calendar" className="text-crimson-600 font-semibold">← Back to events</Link>
       </div>
     );
   }
 
   const typeColors: Record<string, { stripe: string; chip: string }> = {
     game: { stripe: 'from-rose-500 to-orange-500', chip: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
-    practice: { stripe: 'from-cyan-500 to-blue-600', chip: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' },
+    practice: { stripe: 'from-crimson-500 to-charcoal-600', chip: 'bg-crimson-500/10 text-crimson-300 border-crimson-500/30' },
     event: { stripe: 'from-purple-500 to-pink-500', chip: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
   };
   const colors = typeColors[event.type] || typeColors.event;
@@ -697,16 +697,16 @@ const EventDetail: React.FC = () => {
       ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
       : countdown?.variant === 'past'
       ? 'bg-slate-500/10 border-slate-500/20 text-slate-400'
-      : 'bg-cyan-500/10 border-cyan-500/25 text-slate-200';
+      : 'bg-crimson-500/10 border-crimson-500/25 text-slate-200';
   const pulseClass =
     countdown?.variant === 'live' ? 'bg-rose-500'
     : countdown?.variant === 'past' ? 'bg-slate-500'
-    : 'bg-cyan-400 animate-pulse';
+    : 'bg-crimson-400 animate-pulse';
 
   return (
     <div className="min-h-screen bg-slate-100">
       {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900 border-b border-cyan-500/10 px-4 sm:px-6 pt-4 pb-5">
+      <section className="relative overflow-hidden bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-crimson-500/10 px-4 sm:px-6 pt-4 pb-5">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => navigate(-1)}
@@ -754,7 +754,7 @@ const EventDetail: React.FC = () => {
               })}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-200 underline decoration-dotted underline-offset-2"
+              className="inline-flex items-center gap-1 text-crimson-300 hover:text-crimson-200 underline decoration-dotted underline-offset-2"
               title="Open in Maps"
             >
               <Icon name="pin" className="w-3 h-3" /> {event.location}
@@ -763,7 +763,7 @@ const EventDetail: React.FC = () => {
           {(event as any).fieldNumber && (
             <>
               <span className="text-slate-600">·</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-200 text-[11px] font-extrabold tracking-widest uppercase">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-crimson-500/15 text-crimson-200 text-[11px] font-extrabold tracking-widest uppercase">
                 {(event as any).fieldNumber}
               </span>
             </>
@@ -810,7 +810,7 @@ const EventDetail: React.FC = () => {
               className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-slate-50 text-left"
             >
               <div className="flex items-center gap-1.5 min-w-0">
-                <Icon name="check" className="w-3 h-3 text-cyan-500 shrink-0" />
+                <Icon name="check" className="w-3 h-3 text-crimson-500 shrink-0" />
                 <span className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Mark attendance</span>
                 <span className="text-[10px] text-slate-400 font-bold ml-1 truncate">
                   · {goingCount} going · {roster.length} on roster
@@ -863,7 +863,7 @@ const EventDetail: React.FC = () => {
       {myLinkedPlayers.length > 0 && (
         <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
-            <Icon name="users" className="w-3 h-3 text-cyan-500" />
+            <Icon name="users" className="w-3 h-3 text-crimson-500" />
             RSVP for your {myLinkedPlayers.length > 1 ? 'players' : 'player'}
           </div>
           <div className="space-y-2">
@@ -904,7 +904,7 @@ const EventDetail: React.FC = () => {
       <div className={`bg-slate-50 px-4 sm:px-6 py-3 grid ${isUserCoach ? 'grid-cols-2' : 'grid-cols-1'} gap-2 border-b border-slate-200`}>
         <button
           onClick={handleShare}
-          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 text-xs font-bold tracking-wider uppercase hover:border-cyan-400"
+          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 text-xs font-bold tracking-wider uppercase hover:border-crimson-400"
         >
           <Icon name="share" className="w-4 h-4" />
           Share
@@ -936,7 +936,7 @@ const EventDetail: React.FC = () => {
       {event.type === 'game' && (event as any).homeAway && (
         <section className={`px-4 sm:px-6 py-3 border-b ${
           (event as any).homeAway === 'home'
-            ? 'bg-slate-950 border-slate-800'
+            ? 'bg-charcoal-950 border-slate-800'
             : 'bg-white border-slate-200'
         }`}>
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
@@ -944,12 +944,12 @@ const EventDetail: React.FC = () => {
               {/* Jersey swatch doubles as the icon. */}
               <span className={`inline-block w-9 h-9 rounded-md border-2 flex-shrink-0 ${
                 (event as any).homeAway === 'home'
-                  ? 'bg-slate-900 border-slate-600'
+                  ? 'bg-charcoal-900 border-slate-600'
                   : 'bg-white border-slate-300'
               }`} aria-hidden />
               <div>
                 <div className={`text-xs font-extrabold tracking-widest uppercase ${
-                  (event as any).homeAway === 'home' ? 'text-cyan-300' : 'text-slate-700'
+                  (event as any).homeAway === 'home' ? 'text-crimson-300' : 'text-slate-700'
                 }`}>
                   {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
                 </div>
@@ -962,7 +962,7 @@ const EventDetail: React.FC = () => {
             </div>
             <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
               (event as any).homeAway === 'home'
-                ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/30'
+                ? 'bg-crimson-500/15 text-crimson-200 border-crimson-500/30'
                 : 'bg-slate-100 text-slate-600 border-slate-200'
             }`}>
               {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
@@ -975,7 +975,7 @@ const EventDetail: React.FC = () => {
       <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
-            <Icon name="users" className="w-3 h-3 text-cyan-500" />
+            <Icon name="users" className="w-3 h-3 text-crimson-500" />
             RSVPs
           </div>
         </div>
@@ -1002,7 +1002,7 @@ const EventDetail: React.FC = () => {
               type="button"
               onClick={handleRemindPending}
               disabled={remindBusy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-[11px] font-bold tracking-wider uppercase hover:bg-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-crimson-600 text-white text-[11px] font-bold tracking-wider uppercase hover:bg-crimson-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Icon name="bell" className="w-3.5 h-3.5" />
               {remindBusy ? 'Sending…' : `Remind ${buckets.pending} pending`}
@@ -1038,7 +1038,7 @@ const EventDetail: React.FC = () => {
                       className={`text-[9px] font-extrabold tracking-widest px-2 py-0.5 rounded border ${
                         p.matchedPlayerId
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                          : 'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100'
+                          : 'bg-crimson-50 text-crimson-700 border-crimson-200 hover:bg-crimson-100'
                       }`}
                     >
                       {p.matchedPlayerId ? 'ACCEPT MATCH' : 'MERGE'}
@@ -1053,7 +1053,7 @@ const EventDetail: React.FC = () => {
                   </span>
                 </div>
                 {p.isGuest && mergingToken === p.guestToken && (
-                  <div className="mt-2 ml-9 rounded-lg border border-cyan-200 bg-cyan-50/60 p-2">
+                  <div className="mt-2 ml-9 rounded-lg border border-crimson-200 bg-crimson-50/60 p-2">
                     <div className="text-[11px] text-slate-700 mb-1.5">
                       Merge <span className="font-bold">"{p.name}"</span> into roster player:
                     </div>
@@ -1070,12 +1070,12 @@ const EventDetail: React.FC = () => {
                             key={rp.id}
                             disabled={mergeBusy}
                             onClick={() => mergeGuestIntoRoster(p.guestToken, rp.id, rp.name)}
-                            className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between hover:bg-cyan-100 disabled:opacity-50 ${
-                              matches ? 'font-bold text-cyan-900' : 'text-slate-700'
+                            className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between hover:bg-crimson-100 disabled:opacity-50 ${
+                              matches ? 'font-bold text-crimson-900' : 'text-slate-700'
                             }`}
                           >
                             <span>{rp.name}</span>
-                            {matches && <span className="text-[9px] font-extrabold tracking-widest text-cyan-600">SUGGESTED</span>}
+                            {matches && <span className="text-[9px] font-extrabold tracking-widest text-crimson-600">SUGGESTED</span>}
                           </button>
                         );
                       })}
@@ -1100,7 +1100,7 @@ const EventDetail: React.FC = () => {
         <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
-              <Icon name="cloud" className="w-3 h-3 text-cyan-500" />
+              <Icon name="cloud" className="w-3 h-3 text-crimson-500" />
               Weather
             </div>
           </div>
@@ -1303,7 +1303,7 @@ const EventDetail: React.FC = () => {
               })}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
+              className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900"
             >
               Open in Maps →
             </a>
@@ -1373,11 +1373,11 @@ const PackingListSection: React.FC<{
     <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
-          <svg className="w-3 h-3 text-cyan-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <svg className="w-3 h-3 text-crimson-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           What to bring
         </div>
         {isCoach && !editing && (
-          <button onClick={() => setEditing(true)} className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-600">
+          <button onClick={() => setEditing(true)} className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-600">
             {list.length === 0 ? '+ Add' : 'Edit'}
           </button>
         )}
@@ -1430,7 +1430,7 @@ const PackingListSection: React.FC<{
                   setNewLabel('');
                 }
               }}
-              className="px-3 py-1.5 bg-cyan-600 text-white text-xs font-bold rounded-md"
+              className="px-3 py-1.5 bg-crimson-600 text-white text-xs font-bold rounded-md"
             >Add</button>
           </div>
         </div>

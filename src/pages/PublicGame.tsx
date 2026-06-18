@@ -82,20 +82,20 @@ const PublicGame: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
       </div>
     );
   }
 
   if (error || !game) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-5xl mb-4">⚽</div>
           <h1 className="text-xl font-bold text-white mb-2">Game Not Found</h1>
           <p className="text-white/60 text-sm mb-6">{error}</p>
-          <Link to="/" className="inline-block px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg">
+          <Link to="/" className="inline-block px-4 py-2 bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-medium rounded-lg">
             Go to GoalKickr
           </Link>
         </div>
@@ -108,10 +108,10 @@ const PublicGame: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-black text-white">
       {/* Ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-crimson-500/20 rounded-full blur-3xl" />
         <div className="absolute -top-20 right-0 w-96 h-96 bg-violet-500/15 rounded-full blur-3xl" />
       </div>
 
@@ -158,7 +158,7 @@ const PublicGame: React.FC = () => {
 
         <div className="mt-5">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-[11px] uppercase tracking-wider text-cyan-300/80 px-2 py-0.5 rounded-full bg-cyan-500/10 ring-1 ring-cyan-500/30">
+            <span className="text-[11px] uppercase tracking-wider text-crimson-300/80 px-2 py-0.5 rounded-full bg-crimson-500/10 ring-1 ring-crimson-500/30">
               Full Game
             </span>
             {game.result && (
@@ -194,7 +194,7 @@ const PublicGame: React.FC = () => {
                   }
                 }
               }}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
               <span>Share</span>
@@ -222,7 +222,7 @@ const PublicGame: React.FC = () => {
         </div>
 
         <p className="text-xs text-white/40 mt-10 text-center">
-          Hosted on <span className="text-cyan-300/80">firefcsoccer.com</span> · Shared by {game.addedByName}
+          Hosted on <span className="text-crimson-300/80">firefcsoccer.com</span> · Shared by {game.addedByName}
         </p>
       </main>
     </div>

@@ -83,10 +83,10 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-charcoal-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-navy-700 via-navy-600 to-fire-700 px-5 py-4 z-10">
+        <div className="sticky top-0 bg-gradient-to-r from-charcoal-700 via-charcoal-600 to-charcoal-700 px-5 py-4 z-10">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
@@ -112,7 +112,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
                   key={i}
                   type="button"
                   onClick={() => setMessage(p)}
-                  className="text-xs px-2.5 py-1.5 rounded-lg bg-fire-50 hover:bg-fire-100 text-navy-700 border border-fire-200"
+                  className="text-xs px-2.5 py-1.5 rounded-lg bg-crimson-50 hover:bg-crimson-100 text-charcoal-700 border border-crimson-200"
                 >
                   {p.slice(0, 32)}…
                 </button>
@@ -129,7 +129,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
               rows={5}
               maxLength={1000}
               placeholder="Write something kind, specific, and short. (e.g. 'Sara stayed after practice 3 days this week to work on left-foot shots — really paying off.')"
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm"
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
             />
             <div className="text-[10px] text-slate-400 mt-1 text-right">{message.length}/1000</div>
           </div>
@@ -141,7 +141,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
                 type="checkbox"
                 checked={includePlan}
                 onChange={e => setIncludePlan(e.target.checked)}
-                className="mt-0.5 h-4 w-4 text-fire-600 focus:ring-fire-500/30 border-slate-300 rounded"
+                className="mt-0.5 h-4 w-4 text-charcoal-600 focus:ring-crimson-500/30 border-slate-300 rounded"
               />
               <div className="text-sm">
                 <div className="font-semibold text-slate-700">Mention current dev plan</div>
@@ -157,7 +157,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
               <select
                 value={includeClipId}
                 onChange={e => setIncludeClipId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm bg-white"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm bg-white"
               >
                 <option value="none">— None —</option>
                 {recentClips.map(c => (
@@ -187,7 +187,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
               type="button"
               onClick={handleSend}
               disabled={sending || !message.trim()}
-              className="flex-1 bg-gradient-to-r from-fire-600 to-navy-600 hover:from-fire-500 hover:to-navy-500 text-white font-semibold py-3 rounded-xl shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 bg-gradient-to-r from-charcoal-600 to-charcoal-600 hover:from-crimson-500 hover:to-charcoal-500 text-white font-semibold py-3 rounded-xl shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {sending ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/40 border-t-white" /> : <>📨 Send Whisper</>}
             </button>

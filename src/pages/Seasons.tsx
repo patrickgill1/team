@@ -89,7 +89,7 @@ const Seasons: React.FC = () => {
       <div className="max-w-4xl mx-auto space-y-4">
         <div>
           <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-          <h1 className="text-2xl font-black text-fire-950 mt-1">Seasons</h1>
+          <h1 className="text-2xl font-black text-charcoal-950 mt-1">Seasons</h1>
           <p className="text-sm text-slate-600">
             Move each season through its lifecycle. Every transition is logged for the audit trail.
           </p>
@@ -114,7 +114,7 @@ const Seasons: React.FC = () => {
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-black text-fire-950">{s.name}</div>
+                        <div className="font-black text-charcoal-950">{s.name}</div>
                         <div className="text-[11px] text-slate-500 mt-0.5">
                           {fmt(s.startDate)} → {fmt(s.endDate)}
                         </div>
@@ -132,7 +132,7 @@ const Seasons: React.FC = () => {
                             type="button"
                             disabled={transitioning === s.id}
                             onClick={() => handleTransition(s, next)}
-                            className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded bg-cyan-50 hover:bg-cyan-100 text-cyan-800 ring-1 ring-cyan-200 disabled:opacity-50"
+                            className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded bg-crimson-50 hover:bg-crimson-100 text-crimson-800 ring-1 ring-crimson-200 disabled:opacity-50"
                           >
                             → {seasonLifecycleLabel(next)}
                           </button>

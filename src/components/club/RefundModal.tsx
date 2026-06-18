@@ -88,7 +88,7 @@ const RefundModal: React.FC<Props> = ({ registration, actorUid, actorName, onClo
       <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-fire-950">Issue refund</h2>
+            <h2 className="font-black text-charcoal-950">Issue refund</h2>
             <p className="text-[11px] text-slate-500">{registration.player.firstName} {registration.player.lastName}</p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>

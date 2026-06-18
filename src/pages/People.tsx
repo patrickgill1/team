@@ -41,7 +41,7 @@ const ROLE_LABEL: Record<Role, string> = {
   admin: 'Admin',
 };
 const ROLE_CHIP: Record<Role, string> = {
-  player: 'bg-blue-50 text-blue-700 border-blue-200',
+  player: 'bg-crimson-50 text-charcoal-700 border-crimson-200',
   parent: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   coach: 'bg-amber-50 text-amber-700 border-amber-200',
   team_manager: 'bg-violet-50 text-violet-700 border-violet-200',
@@ -265,7 +265,7 @@ const People: React.FC = () => {
             <button
               onClick={() => setChooserOpen(true)}
               aria-label="Add someone"
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -287,7 +287,7 @@ const People: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or kid's name…"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
             />
           </div>
           {teams.length > 1 && (
@@ -312,7 +312,7 @@ const People: React.FC = () => {
               onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()); }}
               className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border ${
                 selectMode
-                  ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                  ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
                   : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
               }`}
             >
@@ -336,11 +336,11 @@ const People: React.FC = () => {
               onClick={() => setRoleFilter(k as any)}
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 roleFilter === k
-                  ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                  ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
                   : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
               }`}
             >
-              {label} <span className={roleFilter === k ? 'text-cyan-600' : 'text-slate-400'}>{counts[k as any]}</span>
+              {label} <span className={roleFilter === k ? 'text-crimson-600' : 'text-slate-400'}>{counts[k as any]}</span>
             </button>
           ))}
         </div>
@@ -348,7 +348,7 @@ const People: React.FC = () => {
         {/* List */}
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-200 border-t-cyan-500" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
@@ -374,12 +374,12 @@ const People: React.FC = () => {
               };
               const RowInner = (
                 <li
-                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-cyan-50' : 'hover:bg-slate-50'}`}
+                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-crimson-50' : 'hover:bg-slate-50'}`}
                   onClick={selectMode ? (e) => { e.preventDefault(); toggleSelect(); } : undefined}
                 >
                   {selectMode && (
                     <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-cyan-600 border-cyan-600 text-white' : 'border-slate-300'
+                      isSelected ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-slate-300'
                     }`}>
                       {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                     </span>
@@ -428,7 +428,7 @@ const People: React.FC = () => {
                       // PersonAdmin → Teams tab does that + more.
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/club/person/${p.id}`); }}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-500 flex-shrink-0"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500 flex-shrink-0"
                       >
                         Profile
                       </button>
@@ -467,14 +467,14 @@ const People: React.FC = () => {
           aren't covered. On desktop the nav is a side rail so bottom-0
           is fine. safe-bottom keeps it clear of the home indicator. */}
       {selectMode && selectedIds.size > 0 && (
-        <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-slate-950 border-t border-cyan-500/20 px-4 py-3 flex items-center gap-3">
+        <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-charcoal-950 border-t border-crimson-500/20 px-4 py-3 flex items-center gap-3">
           <span className="text-xs font-extrabold tracking-widest uppercase text-white flex-shrink-0">
             {selectedIds.size} selected
           </span>
           <select
             value={bulkTarget}
             onChange={(e) => setBulkTarget(e.target.value)}
-            className="flex-1 bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-2 py-1.5"
+            className="flex-1 bg-charcoal-900 border border-slate-700 text-white text-sm rounded-lg px-2 py-1.5"
           >
             <option value="">Add to team…</option>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -503,7 +503,7 @@ const People: React.FC = () => {
                 setBulkBusy(false);
               }
             }}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
+            className="bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
           >
             {bulkBusy ? '…' : 'Add'}
           </button>
@@ -527,7 +527,7 @@ const People: React.FC = () => {
               onClick={() => { setChooserOpen(false); setAddPlayerOpen(true); }}
               className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-3"
             >
-              <span className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center flex-shrink-0">
+              <span className="w-8 h-8 rounded-lg bg-crimson-50 text-crimson-600 flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </span>
               <div className="flex-1">
@@ -728,11 +728,11 @@ const ManagePersonModal: React.FC<{
                   key={t.id}
                   onClick={() => toggle(t.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    on ? 'bg-cyan-50 border-cyan-200 text-cyan-900' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                    on ? 'bg-crimson-50 border-crimson-200 text-crimson-900' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
                   }`}
                 >
                   <span className="font-semibold">{t.name}</span>
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-cyan-600 border-cyan-600 text-white' : 'border-slate-300'}`}>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-slate-300'}`}>
                     {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                   </span>
                 </button>
@@ -742,7 +742,7 @@ const ManagePersonModal: React.FC<{
         </div>
         <div className="px-4 py-3 border-t border-slate-100 flex justify-end gap-2">
           <button onClick={onClose} className="text-xs font-bold tracking-wide text-slate-500 px-3 py-1.5">Cancel</button>
-          <button onClick={save} disabled={busy} className="text-xs font-extrabold tracking-widest uppercase bg-cyan-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button onClick={save} disabled={busy} className="text-xs font-extrabold tracking-widest uppercase bg-crimson-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
             {busy ? '…' : 'Save'}
           </button>
         </div>

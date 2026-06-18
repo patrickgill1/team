@@ -22,15 +22,15 @@ const CATEGORY_LABEL: Record<TicketCategory, string> = {
   other: 'Other',
 };
 const STATUS_CHIP: Record<TicketStatus, string> = {
-  open: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  open: 'bg-crimson-50 text-crimson-700 border-crimson-200',
   assigned: 'bg-amber-50 text-amber-700 border-amber-200',
-  in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
+  in_progress: 'bg-crimson-50 text-charcoal-700 border-crimson-200',
   resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   closed: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 const PRIORITY_CHIP: Record<TicketPriority, string> = {
   low: 'bg-slate-100 text-slate-600 border-slate-200',
-  normal: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  normal: 'bg-crimson-50 text-crimson-700 border-crimson-200',
   high: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
@@ -152,7 +152,7 @@ const Helpdesk: React.FC = () => {
           <button
             onClick={() => setNewOpen(true)}
             aria-label="New ticket"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/30 hover:from-cyan-400 hover:to-blue-500"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -176,7 +176,7 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setStatusFilter(k)}
                   className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     statusFilter === k
-                      ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                      ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
                       : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
                   }`}
                 >
@@ -190,7 +190,7 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setTeamFilter('all')}
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'all'
-                      ? 'bg-slate-900 text-white border-slate-900'
+                      ? 'bg-charcoal-900 text-white border-slate-900'
                       : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
                   }`}
                 >
@@ -200,7 +200,7 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setTeamFilter('unassigned')}
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'unassigned'
-                      ? 'bg-slate-900 text-white border-slate-900'
+                      ? 'bg-charcoal-900 text-white border-slate-900'
                       : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
                   }`}
                 >
@@ -212,7 +212,7 @@ const Helpdesk: React.FC = () => {
                     onClick={() => setTeamFilter(t.id)}
                     className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                       teamFilter === t.id
-                        ? 'bg-slate-900 text-white border-slate-900'
+                        ? 'bg-charcoal-900 text-white border-slate-900'
                         : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
                     }`}
                   >
@@ -226,7 +226,7 @@ const Helpdesk: React.FC = () => {
 
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-200 border-t-cyan-500" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
@@ -391,7 +391,7 @@ const NewTicketModal: React.FC<{
           <button
             onClick={submit}
             disabled={busy || !subject.trim() || !description.trim()}
-            className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/30 disabled:opacity-40"
+            className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white shadow-md shadow-crimson-500/30 disabled:opacity-40"
           >
             {busy ? 'Submitting…' : 'Submit ticket'}
           </button>

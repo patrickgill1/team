@@ -40,12 +40,12 @@ interface PracticePlan {
 // violet/amber). `icon` is an AppIcon name so we render outlines
 // instead of mixed emoji.
 const CATEGORY: Record<Drill['category'], { label: string; color: string; icon: any }> = {
-  warmup:    { label: 'Warm-up',   color: 'bg-fire-50 text-fire-800 border-fire-200',         icon: 'running' },
-  technical: { label: 'Technical', color: 'bg-cyan-50 text-cyan-800 border-cyan-200',         icon: 'soccer' },
-  tactical:  { label: 'Tactical',  color: 'bg-navy-700/10 text-navy-800 border-navy-700/20', icon: 'chart' },
+  warmup:    { label: 'Warm-up',   color: 'bg-crimson-50 text-charcoal-800 border-crimson-200',         icon: 'running' },
+  technical: { label: 'Technical', color: 'bg-crimson-50 text-crimson-800 border-crimson-200',         icon: 'soccer' },
+  tactical:  { label: 'Tactical',  color: 'bg-charcoal-700/10 text-charcoal-800 border-charcoal-700/20', icon: 'chart' },
   scrimmage: { label: 'Scrimmage', color: 'bg-emerald-50 text-emerald-800 border-emerald-200', icon: 'trophy' },
-  fitness:   { label: 'Fitness',   color: 'bg-fire-100 text-fire-800 border-fire-300',        icon: 'highlight' },
-  cooldown:  { label: 'Cool-down', color: 'bg-cyan-100 text-cyan-800 border-cyan-200',        icon: 'check' },
+  fitness:   { label: 'Fitness',   color: 'bg-crimson-100 text-charcoal-800 border-crimson-300',        icon: 'highlight' },
+  cooldown:  { label: 'Cool-down', color: 'bg-crimson-100 text-crimson-800 border-crimson-200',        icon: 'check' },
 };
 
 const DRILL_LIBRARY: Drill[] = [
@@ -103,7 +103,7 @@ const PracticePlanBuilder: React.FC = () => {
           <div className="text-4xl mb-2">🔒</div>
           <h2 className="font-bold text-amber-900">Coaches only</h2>
           <p className="text-sm text-amber-700 mt-1">The Practice Plan Builder is available to coaches only.</p>
-          <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-navy-700 text-white rounded-lg">Back to Dashboard</Link>
+          <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-charcoal-700 text-white rounded-lg">Back to Dashboard</Link>
         </div>
       </div>
     );
@@ -179,7 +179,7 @@ const PracticePlanBuilder: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex justify-end print:hidden">
         <button
           onClick={() => newPlan()}
-          className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-sm flex items-center gap-2"
+          className="bg-crimson-600 hover:bg-crimson-700 text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-sm flex items-center gap-2"
         >
           <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
           <span>New Plan</span>
@@ -201,11 +201,11 @@ const PracticePlanBuilder: React.FC = () => {
                   <li key={p.id}>
                     <button
                       onClick={() => setActiveId(p.id || null)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${activeId === p.id ? 'bg-fire-50 text-navy-800 ring-1 ring-fire-200' : 'hover:bg-slate-50 text-slate-700'}`}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${activeId === p.id ? 'bg-crimson-50 text-charcoal-800 ring-1 ring-crimson-200' : 'hover:bg-slate-50 text-slate-700'}`}
                     >
                       <div className="font-semibold truncate flex items-center gap-1.5">
                         {p.isTemplate && (
-                          <span className="text-cyan-700 shrink-0" title="Reusable template">
+                          <span className="text-crimson-700 shrink-0" title="Reusable template">
                             <AppIcon name="bell" className="w-3.5 h-3.5" />
                           </span>
                         )}
@@ -229,7 +229,7 @@ const PracticePlanBuilder: React.FC = () => {
               </div>
               <h2 className="font-bold text-gray-900 text-lg">Pick a plan, or create a new one</h2>
               <p className="text-gray-500 text-sm mt-1">Build a timeline of drills, save it as a template, share with your assistants, and print before practice.</p>
-              <button onClick={() => newPlan()} className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-xl shadow-sm">
+              <button onClick={() => newPlan()} className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-crimson-600 hover:bg-crimson-700 text-white font-semibold rounded-xl shadow-sm">
                 <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
                 <span>Create Plan</span>
               </button>
@@ -241,13 +241,13 @@ const PracticePlanBuilder: React.FC = () => {
                   <input
                     value={active.title}
                     onChange={e => update(p => ({ ...p, title: e.target.value }))}
-                    className="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-base font-bold text-navy-900"
+                    className="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-base font-bold text-charcoal-900"
                   />
                   <input
                     type="date"
                     value={active.date || ''}
                     onChange={e => update(p => ({ ...p, date: e.target.value }))}
-                    className="px-3 py-2 rounded-xl border border-slate-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm"
+                    className="px-3 py-2 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -269,7 +269,7 @@ const PracticePlanBuilder: React.FC = () => {
                       type="checkbox"
                       checked={!!active.isTemplate}
                       onChange={e => update(p => ({ ...p, isTemplate: e.target.checked }))}
-                      className="h-4 w-4 text-fire-600 focus:ring-fire-500/30 border-slate-300 rounded"
+                      className="h-4 w-4 text-charcoal-600 focus:ring-crimson-500/30 border-slate-300 rounded"
                     />
                     <span className="text-slate-600">Save as reusable template</span>
                   </label>
@@ -278,7 +278,7 @@ const PracticePlanBuilder: React.FC = () => {
                 <div className="flex flex-wrap gap-2 print:hidden">
                   <button
                     onClick={() => setShowLibrary(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-cyan-50 hover:bg-cyan-100 text-cyan-800 rounded-lg ring-1 ring-cyan-200 font-semibold"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-crimson-50 hover:bg-crimson-100 text-crimson-800 rounded-lg ring-1 ring-crimson-200 font-semibold"
                   >
                     <AppIcon name="clipboard" className="w-4 h-4" />
                     <span>Add from library</span>
@@ -380,7 +380,7 @@ const PracticePlanBuilder: React.FC = () => {
                   onChange={e => update(p => ({ ...p, notes: e.target.value }))}
                   placeholder="Anything you want assistants/parents to know about this practice."
                   rows={3}
-                  className="mt-1.5 w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-fire-500 focus:ring-2 focus:ring-fire-500/20 text-sm"
+                  className="mt-1.5 w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
                 />
               </div>
             </div>
@@ -390,9 +390,9 @@ const PracticePlanBuilder: React.FC = () => {
 
       {/* Library modal */}
       {showLibrary && active && (
-        <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden" onClick={() => setShowLibrary(false)}>
+        <div className="fixed inset-0 z-50 bg-charcoal-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden" onClick={() => setShowLibrary(false)}>
           <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-gradient-to-r from-navy-700 to-fire-700 px-5 py-3 flex items-center justify-between">
+            <div className="sticky top-0 bg-gradient-to-r from-charcoal-700 to-charcoal-700 px-5 py-3 flex items-center justify-between">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <AppIcon name="clipboard" className="w-5 h-5" />
                 <span>Drill Library</span>
@@ -406,7 +406,7 @@ const PracticePlanBuilder: React.FC = () => {
                   <button
                     key={d.id}
                     onClick={() => addDrill(d)}
-                    className={`w-full text-left rounded-xl border ${meta.color} p-3 hover:ring-2 hover:ring-fire-300 transition`}
+                    className={`w-full text-left rounded-xl border ${meta.color} p-3 hover:ring-2 hover:ring-crimson-300 transition`}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider">{meta.emoji} {meta.label}</span>

@@ -219,7 +219,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                 value={selectedPlayer}
                 onChange={(e) => setSelectedPlayer(e.target.value)}
                 disabled={isSubmitting}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                 required
               >
                 <option value="">Choose a player...</option>
@@ -255,7 +255,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.minutesPlayed}
                   onChange={(e) => updateStatValue('minutesPlayed', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                 />
               </div>
             </div>
@@ -272,7 +272,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.goals}
                   onChange={(e) => updateStatValue('goals', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                 />
               </div>
 
@@ -286,7 +286,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.assists}
                   onChange={(e) => updateStatValue('assists', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                 />
               </div>
 
@@ -310,7 +310,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                       value={statData.saves}
                       onChange={(e) => updateStatValue('saves', parseInt(e.target.value) || 0)}
                       disabled={isSubmitting}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                     />
                   </div>
                 );
@@ -326,7 +326,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.yellowCards}
                   onChange={(e) => updateStatValue('yellowCards', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                 />
               </div>
 
@@ -340,7 +340,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   value={statData.redCards}
                   onChange={(e) => updateStatValue('redCards', parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                 />
               </div>
             </div>
@@ -359,7 +359,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                       onChange={(e) => updateKeyPlay(index, e.target.value)}
                       placeholder="Describe a key play..."
                       disabled={isSubmitting}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                     />
                     {keyPlays.length > 1 && (
                       <button
@@ -382,7 +382,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
                   type="button"
                   onClick={addKeyPlay}
                   disabled={isSubmitting}
-                  className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  className="mt-2 text-charcoal-600 hover:text-charcoal-700 text-sm font-medium"
                 >
                   + Add Key Play
                 </button>
@@ -402,7 +402,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedPlayer}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                className="flex-1 bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
               >
                 {isSubmitting ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

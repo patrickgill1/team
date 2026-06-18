@@ -22,7 +22,7 @@ type StatusKey = Registration['status'];
 const STATUS_TONES: Record<StatusKey, { bg: string; text: string; ring: string; label: string }> = {
   pending_payment: { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300', label: 'Pending payment' },
   paid: { bg: 'bg-emerald-100', text: 'text-emerald-800', ring: 'ring-emerald-300', label: 'Paid' },
-  tryout_invited: { bg: 'bg-cyan-100', text: 'text-cyan-800', ring: 'ring-cyan-300', label: 'Tryout invited' },
+  tryout_invited: { bg: 'bg-crimson-100', text: 'text-crimson-800', ring: 'ring-crimson-300', label: 'Tryout invited' },
   offer_sent: { bg: 'bg-violet-100', text: 'text-violet-800', ring: 'ring-violet-300', label: 'Offer sent' },
   accepted: { bg: 'bg-emerald-100', text: 'text-emerald-900', ring: 'ring-emerald-400', label: 'Accepted' },
   declined: { bg: 'bg-rose-100', text: 'text-rose-800', ring: 'ring-rose-300', label: 'Declined' },
@@ -217,9 +217,9 @@ const Registrations: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <section className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 sm:px-6 py-5 border-b border-cyan-500/10">
+      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-6xl mx-auto">
-          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-cyan-300 hover:text-cyan-200 mb-2">
+          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-300 hover:text-crimson-200 mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
@@ -234,7 +234,7 @@ const Registrations: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowBlast(true)}
-                className="shrink-0 px-3 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-extrabold uppercase tracking-widest"
+                className="shrink-0 px-3 py-2 rounded-lg bg-crimson-500 hover:bg-crimson-400 text-white text-xs font-extrabold uppercase tracking-widest"
               >
                 Push email
               </button>
@@ -282,7 +282,7 @@ const Registrations: React.FC = () => {
           <button
             type="button"
             onClick={selected.size === visible.length && visible.length > 0 ? clearSelection : selectAllVisible}
-            className="ml-auto text-[11px] font-bold text-slate-600 hover:text-cyan-700"
+            className="ml-auto text-[11px] font-bold text-slate-600 hover:text-crimson-700"
           >
             {selected.size === visible.length && visible.length > 0 ? 'Clear all' : 'Select all'}
           </button>
@@ -313,7 +313,7 @@ const Registrations: React.FC = () => {
                         type="checkbox"
                         checked={selected.has(r.id)}
                         onChange={() => toggleSelect(r.id)}
-                        className="mt-1 w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                        className="mt-1 w-4 h-4 rounded border-slate-300 text-crimson-600 focus:ring-crimson-500"
                         title="Select for bulk action"
                       />
                       <div className="flex-1 min-w-0">
@@ -325,7 +325,7 @@ const Registrations: React.FC = () => {
                             {r.player.ageGroup}
                           </span>
                           {r.player.playedBefore && (
-                            <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 bg-cyan-50 ring-1 ring-cyan-200 px-1.5 py-0.5 rounded">Returning</span>
+                            <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">Returning</span>
                           )}
                           <span className={`ml-auto text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded ${tone.bg} ${tone.text} ring-1 ${tone.ring}`}>
                             {tone.label}
@@ -358,7 +358,7 @@ const Registrations: React.FC = () => {
                         )}
                         <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
                           <span>${((r.amountPaidCents ?? r.registrationFeeCents ?? 0) / 100).toFixed(2)}</span>
-                          {r.pricingTierLabel && <span className="text-cyan-700 font-bold">· {r.pricingTierLabel}</span>}
+                          {r.pricingTierLabel && <span className="text-crimson-700 font-bold">· {r.pricingTierLabel}</span>}
                           {r.couponCode && <span className="text-violet-700 font-bold">· {r.couponCode}</span>}
                           <span>·</span>
                           <span>{(r.createdAt as any)?.toLocaleDateString?.() || ''}</span>
@@ -370,7 +370,7 @@ const Registrations: React.FC = () => {
                       {r.promotedToPlayerId && (
                         <Link
                           to={`/club/person/${r.promotedToPlayerId}`}
-                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-cyan-600 text-white hover:bg-cyan-500"
+                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500"
                         >
                           Profile
                         </Link>
@@ -389,7 +389,7 @@ const Registrations: React.FC = () => {
                         </button>
                       )}
                       {(r.status === 'paid' || r.status === 'pending_payment') && (
-                        <button onClick={() => handleStatusChange(r, 'tryout_invited')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-100">
+                        <button onClick={() => handleStatusChange(r, 'tryout_invited')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 hover:bg-crimson-100">
                           Invite to tryout
                         </button>
                       )}
@@ -407,8 +407,8 @@ const Registrations: React.FC = () => {
         </div>
       </div>
       {selected.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white rounded-2xl shadow-2xl ring-1 ring-cyan-500/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-cyan-300 px-2">{selected.size} selected</span>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-charcoal-900 text-white rounded-2xl shadow-2xl ring-1 ring-crimson-500/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-crimson-300 px-2">{selected.size} selected</span>
           <span className="text-slate-700">|</span>
           <button
             type="button"
@@ -422,7 +422,7 @@ const Registrations: React.FC = () => {
             type="button"
             disabled={bulkRunning}
             onClick={() => handleBulkStatus('tryout_invited')}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-500 hover:bg-crimson-400 disabled:opacity-50"
           >
             Invite to tryout
           </button>
@@ -489,7 +489,7 @@ const Tile: React.FC<{ label: string; value: number; tone: 'amber' | 'emerald' |
   const tones = {
     amber: 'bg-amber-50 ring-amber-200 text-amber-900',
     emerald: 'bg-emerald-50 ring-emerald-200 text-emerald-900',
-    cyan: 'bg-cyan-50 ring-cyan-200 text-cyan-900',
+    cyan: 'bg-crimson-50 ring-crimson-200 text-crimson-900',
     slate: 'bg-white ring-slate-200 text-slate-900',
   } as const;
   return (

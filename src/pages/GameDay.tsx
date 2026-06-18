@@ -74,8 +74,8 @@ interface LineupState {
 const KIND_META: Record<StatKind, { label: string; emoji: string; color: string }> = {
   goal:    { label: 'Goal',     emoji: '⚽', color: 'bg-emerald-500' },
   owngoal: { label: 'Own Goal', emoji: '🥅', color: 'bg-rose-500' },
-  assist:  { label: 'Assist',   emoji: '🅰️', color: 'bg-cyan-500' },
-  save:    { label: 'Save',     emoji: '🧘', color: 'bg-cyan-500' },
+  assist:  { label: 'Assist',   emoji: '🅰️', color: 'bg-crimson-500' },
+  save:    { label: 'Save',     emoji: '🧘', color: 'bg-crimson-500' },
   yellow:  { label: 'Yellow',   emoji: '🟨', color: 'bg-yellow-500' },
   red:     { label: 'Red',      emoji: '🟥', color: 'bg-red-600' },
   sub:     { label: 'Sub',      emoji: '🔄', color: 'bg-purple-500' },
@@ -615,20 +615,20 @@ const GameDay: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-200 border-t-cyan-500" />
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
       </div>
     );
   }
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-4 text-white">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-cyan-500/15 ring-1 ring-cyan-400/30 text-cyan-300 flex items-center justify-center mb-3">
+          <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300 flex items-center justify-center mb-3">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="#0f172a" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
           </div>
           <p className="mb-4 text-sm text-white/80">{error || 'Event not found'}</p>
-          <Link to="/calendar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-bold">Back to Calendar</Link>
+          <Link to="/calendar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-crimson-600 hover:bg-crimson-500 rounded-lg text-sm font-bold">Back to Calendar</Link>
         </div>
       </div>
     );
@@ -640,7 +640,7 @@ const GameDay: React.FC = () => {
   const sortedTimeline = [...(game?.timeline || [])].sort((a, b) => b.at - a.at);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black text-white pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-black text-white pb-32">
       {/* Header / Scoreboard */}
       <header className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-white/10">
         <div className="max-w-3xl mx-auto px-4 py-3">
@@ -650,7 +650,7 @@ const GameDay: React.FC = () => {
               status === 'live' ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
               status === 'halftime' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40' :
               status === 'final' ? 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40' :
-              'bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-500/40'
+              'bg-crimson-500/20 text-crimson-300 ring-1 ring-crimson-500/40'
             }`}>
               {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}
             </span>
@@ -732,7 +732,7 @@ const GameDay: React.FC = () => {
                         key={f}
                         onClick={() => patch({ format: f })}
                         className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full transition ${
-                          active ? 'bg-white text-fire-900 shadow' : 'text-white/70 hover:text-white'
+                          active ? 'bg-white text-charcoal-900 shadow' : 'text-white/70 hover:text-white'
                         }`}
                       >
                         {f}
@@ -828,7 +828,7 @@ const GameDay: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between text-[11px] text-white/60 mb-1">
                         <span>Next rotation in {formatClock(remaining)}</span>
-                        <button onClick={acknowledgeBell} className="text-cyan-300 hover:text-cyan-200">Reset</button>
+                        <button onClick={acknowledgeBell} className="text-crimson-300 hover:text-crimson-200">Reset</button>
                       </div>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${pct}%` }} />
@@ -843,7 +843,7 @@ const GameDay: React.FC = () => {
             {lineup.onField.length === 0 && lineup.benchIds.length === 0 && (
               <button
                 onClick={initRosterToBench}
-                className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 font-semibold text-sm"
+                className="w-full py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 font-semibold text-sm"
               >Load roster to bench</button>
             )}
 
@@ -939,7 +939,7 @@ const GameDay: React.FC = () => {
                       {t.playerName && (
                         <>
                           {' · '}
-                          <span className="text-cyan-300">
+                          <span className="text-crimson-300">
                             {t.jerseyNumber != null ? `#${t.jerseyNumber} ` : ''}{t.playerName}
                           </span>
                         </>
@@ -951,7 +951,7 @@ const GameDay: React.FC = () => {
                         href={t.clipUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-cyan-300 hover:text-cyan-200"
+                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-crimson-300 hover:text-crimson-200"
                       >
                         🎬 {t.source === 'clip' ? 'Clip credit' : 'Watch clip'}
                       </a>
@@ -1004,7 +1004,7 @@ const GameDay: React.FC = () => {
                   return (
                     <tr key={p.id} className={`border-t border-white/5 ${hasAny ? 'text-white' : 'text-white/40'}`}>
                       <td className="px-3 py-2 truncate">
-                        {p.jerseyNumber != null ? <span className="text-cyan-300 font-bold mr-1">#{p.jerseyNumber}</span> : null}
+                        {p.jerseyNumber != null ? <span className="text-crimson-300 font-bold mr-1">#{p.jerseyNumber}</span> : null}
                         {p.name}
                       </td>
                       <td className="text-center tabular-nums">{tally.goals || ''}</td>
@@ -1024,7 +1024,7 @@ const GameDay: React.FC = () => {
       {/* Player picker modal */}
       {pickerKind && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setPickerKind(null)}>
-          <div className="bg-slate-900 ring-1 ring-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-charcoal-900 ring-1 ring-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
               <h3 className="font-bold flex items-center gap-2">
                 <span>{KIND_META[pickerKind].emoji}</span>
@@ -1040,7 +1040,7 @@ const GameDay: React.FC = () => {
                   onChange={e => setNoteText(e.target.value)}
                   placeholder="What happened? (e.g. great defensive stop, weather break)"
                   rows={4}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-crimson-500"
                   autoFocus
                 />
                 <button
@@ -1050,7 +1050,7 @@ const GameDay: React.FC = () => {
                     setPickerKind(null);
                     setNoteText('');
                   }}
-                  className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-semibold"
+                  className="w-full py-2.5 bg-crimson-600 hover:bg-crimson-500 rounded-lg font-semibold"
                 >Save Note</button>
               </div>
             ) : (
@@ -1066,7 +1066,7 @@ const GameDay: React.FC = () => {
                     }}
                     className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 text-left"
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
                       {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
                     </div>
                     <div className="min-w-0">

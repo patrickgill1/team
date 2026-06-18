@@ -141,7 +141,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
                     key={opt.k}
                     onClick={() => setScope(opt.k)}
                     className={`p-2 rounded-xl text-sm font-semibold ring-1 transition ${
-                      active ? 'ring-cyan-500 bg-cyan-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
+                      active ? 'ring-crimson-500 bg-crimson-50/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
                     }`}
                   >
                     {opt.label}
@@ -158,7 +158,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
                       key={t.id}
                       onClick={() => toggleTeam(t.id)}
                       className={`text-xs font-semibold px-2.5 py-1 rounded-full ring-1 transition ${
-                        active ? 'bg-cyan-600 text-white ring-cyan-600' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
+                        active ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
                       }`}
                     >
                       {t.name}
@@ -179,7 +179,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Practice canceled tonight"
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
               style={{ fontSize: '16px' }}
             />
           </div>
@@ -191,7 +191,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
               onChange={(e) => setBody(e.target.value)}
               rows={5}
               placeholder="Field is flooded, practice is canceled for tonight. We'll regroup Thursday."
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
               style={{ fontSize: '16px' }}
             />
           </div>
@@ -201,7 +201,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
               type="checkbox"
               checked={sendPush}
               onChange={(e) => setSendPush(e.target.checked)}
-              className="w-4 h-4 accent-cyan-600"
+              className="w-4 h-4 accent-crimson-600"
             />
             Also send as a push notification
           </label>

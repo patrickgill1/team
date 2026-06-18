@@ -127,7 +127,7 @@ const SharedMedia: React.FC = () => {
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/70 disabled:cursor-wait text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center space-x-1.5 bg-charcoal-600 hover:bg-charcoal-700 disabled:bg-charcoal-600/70 disabled:cursor-wait text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
           >
             {downloading ? (
               <>

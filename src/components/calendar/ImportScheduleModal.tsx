@@ -243,7 +243,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cyan-50 to-white">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Import Schedule</h3>
             <p className="text-xs text-gray-500">Upload an .ics file exported from GotSoccer, Demosphere, TeamSnap, Google Calendar, etc.</p>
@@ -279,13 +279,13 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                     value={feedUrl}
                     onChange={(e) => setFeedUrl(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleFetchUrl(); }}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
                   />
                   <button
                     type="button"
                     onClick={handleFetchUrl}
                     disabled={!feedUrl.trim() || fetchingUrl}
-                    className="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg whitespace-nowrap"
+                    className="px-4 py-2 text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 rounded-lg whitespace-nowrap"
                   >
                     {fetchingUrl ? 'Fetching…' : 'Fetch'}
                   </button>
@@ -306,9 +306,9 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
 
               <label
                 htmlFor="ics-file"
-                className="block border-2 border-dashed border-cyan-300 rounded-2xl p-8 text-center cursor-pointer hover:bg-cyan-50 transition-colors"
+                className="block border-2 border-dashed border-crimson-300 rounded-2xl p-8 text-center cursor-pointer hover:bg-crimson-50 transition-colors"
               >
-                <svg className="w-12 h-12 mx-auto mb-3 text-cyan-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <svg className="w-12 h-12 mx-auto mb-3 text-crimson-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                 </svg>
                 <p className="font-semibold text-gray-900">Choose a .ics file</p>
@@ -348,7 +348,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   {(dateFrom || dateTo) && (
                     <button
                       onClick={() => { setDateFrom(''); setDateTo(''); }}
-                      className="text-[12px] font-semibold text-cyan-700 hover:text-cyan-900"
+                      className="text-[12px] font-semibold text-crimson-700 hover:text-crimson-900"
                     >
                       Clear
                     </button>
@@ -366,7 +366,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                       // is in dark mode — otherwise the input renders dark-on-
                       // darker against our white card and is unreadable.
                       style={{ colorScheme: 'light' }}
-                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
+                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40 bg-white"
                     />
                   </div>
                   <div>
@@ -376,7 +376,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
                       style={{ colorScheme: 'light' }}
-                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/40 bg-white"
+                      className="w-full px-3 py-2 text-sm text-slate-900 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40 bg-white"
                     />
                   </div>
                 </div>
@@ -401,7 +401,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                   )}
                 </p>
                 {visibleRowIdxs.length > 0 && (
-                  <button onClick={toggleAll} className="text-xs font-semibold text-cyan-700 hover:text-cyan-900">
+                  <button onClick={toggleAll} className="text-xs font-semibold text-crimson-700 hover:text-crimson-900">
                     {allVisibleSelected ? 'Deselect all' : 'Select all'}
                   </button>
                 )}
@@ -420,7 +420,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
                         type="checkbox"
                         checked={row.selected}
                         onChange={() => toggleRow(i)}
-                        className="mt-1 w-4 h-4 accent-cyan-600 flex-shrink-0"
+                        className="mt-1 w-4 h-4 accent-crimson-600 flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -461,7 +461,7 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
             <button
               onClick={handleImport}
               disabled={importing || visibleSelectedCount === 0}
-              className="bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2.5 transition-colors"
+              className="bg-crimson-600 hover:bg-crimson-700 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2.5 transition-colors"
             >
               {importing ? 'Importing…' : `Import ${visibleSelectedCount} event${visibleSelectedCount === 1 ? '' : 's'}`}
             </button>

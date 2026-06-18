@@ -346,13 +346,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       }
     >
       {replyingTo && (
-        <div className="mb-2 px-3 py-1.5 bg-cyan-50 ring-1 ring-cyan-200 rounded-xl flex items-center justify-between">
-          <span className="text-xs text-cyan-900 truncate">
+        <div className="mb-2 px-3 py-1.5 bg-crimson-50 ring-1 ring-crimson-200 rounded-xl flex items-center justify-between">
+          <span className="text-xs text-crimson-900 truncate">
             <span className="font-semibold">↪ Replying to {replyingTo.senderName}</span>
           </span>
           <button
             onClick={onCancelReply}
-            className="text-cyan-600 hover:text-cyan-900 ml-2 flex-shrink-0"
+            className="text-crimson-600 hover:text-crimson-900 ml-2 flex-shrink-0"
             aria-label="Cancel reply"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,13 +380,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {postToWall && (
-        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-cyan-100 text-cyan-900 ring-1 ring-cyan-300">
+        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-crimson-100 text-crimson-900 ring-1 ring-crimson-300">
           <span>Posting to wall</span>
           <button
             type="button"
             onClick={() => setPostToWall(false)}
             aria-label="Clear wall post"
-            className="text-cyan-700 hover:text-cyan-900"
+            className="text-crimson-700 hover:text-crimson-900"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -465,7 +465,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             onPaste={onPaste}
             placeholder="Message"
             rows={1}
-            className="block w-full resize-none bg-gray-100 rounded-[20px] px-4 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-cyan-300 text-[15px] text-gray-900 placeholder-gray-400 leading-tight transition-colors"
+            className="block w-full resize-none bg-gray-100 rounded-[20px] px-4 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-crimson-300 text-[15px] text-gray-900 placeholder-gray-400 leading-tight transition-colors"
             style={{ fontSize: '16px', maxHeight: '140px', minHeight: '40px', lineHeight: '24px' }}
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
@@ -485,11 +485,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     }`}
                   >
                     {isTeam && (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-[10px] font-bold flex-shrink-0">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white text-[10px] font-bold flex-shrink-0">
                         @
                       </span>
                     )}
-                    <span className={`font-medium ${isTeam ? 'text-cyan-700' : 'text-gray-900'}`}>
+                    <span className={`font-medium ${isTeam ? 'text-crimson-700' : 'text-gray-900'}`}>
                       @{m.name}
                     </span>
                     {m.role && (
@@ -505,7 +505,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           onClick={doSend}
           disabled={uploading || (!text.trim() && pending.length === 0)}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 active:scale-95 disabled:from-gray-300 disabled:to-gray-300 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-600 hover:from-crimson-600 hover:to-crimson-700 active:scale-95 disabled:from-gray-300 disabled:to-gray-300 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
           aria-label="Send"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -525,14 +525,14 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             onClick={(e) => e.stopPropagation()}
             className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           >
-            <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between">
+            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
               <button
                 onClick={() => setPlusOpen(false)}
                 className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
               >
                 Cancel
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">Add</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Add</div>
               <span className="w-12" aria-hidden />
             </div>
             <div className="divide-y divide-slate-100">
@@ -541,7 +541,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                 onClick={() => { setPlusOpen(false); fileRef.current?.click(); }}
                 className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
               >
-                <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 flex items-center justify-center">
+                <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 flex items-center justify-center">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                     <circle cx="9" cy="9" r="2"/>
@@ -618,7 +618,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
                 >
                   <span className={`flex-shrink-0 w-9 h-9 rounded-lg ring-1 flex items-center justify-center ${
-                    postToWall ? 'bg-cyan-100 text-cyan-800 ring-cyan-300' : 'bg-cyan-50 text-cyan-700 ring-cyan-200'
+                    postToWall ? 'bg-crimson-100 text-crimson-800 ring-crimson-300' : 'bg-crimson-50 text-crimson-700 ring-crimson-200'
                   }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 2v6"/>

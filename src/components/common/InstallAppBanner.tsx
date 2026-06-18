@@ -112,7 +112,7 @@ const InstallAppBanner: React.FC = () => {
   const ctaButtonLabel = isAndroidBeta ? 'Join beta' : 'Install';
 
   return (
-    <div className="lg:hidden bg-gradient-to-r from-cyan-600 to-navy-700 text-white shadow">
+    <div className="lg:hidden bg-gradient-to-r from-crimson-600 to-charcoal-700 text-white shadow">
       <div className="max-w-7xl mx-auto px-3 py-2 flex items-center gap-3">
         <img
           src="/images/logo.png"
@@ -128,7 +128,7 @@ const InstallAppBanner: React.FC = () => {
           target="_blank"
           rel="noopener noreferrer"
           onClick={onInstall}
-          className="shrink-0 inline-flex items-center gap-1.5 bg-white text-navy-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition"
+          className="shrink-0 inline-flex items-center gap-1.5 bg-white text-charcoal-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition"
         >
           <span>{ctaButtonLabel}</span>
         </a>

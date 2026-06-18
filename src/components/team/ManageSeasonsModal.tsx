@@ -169,7 +169,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cyan-50 to-white">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Manage seasons</h3>
             <p className="text-xs text-gray-500">Rename, set active, or delete past seasons for this team.</p>
@@ -197,7 +197,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
                         style={{ fontSize: '16px' }}
                       />
                       <div className="grid grid-cols-2 gap-2">
@@ -205,14 +205,14 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                           type="date"
                           value={editStart}
                           onChange={(e) => setEditStart(e.target.value)}
-                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
                           style={{ fontSize: '16px' }}
                         />
                         <input
                           type="date"
                           value={editEnd}
                           onChange={(e) => setEditEnd(e.target.value)}
-                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-base"
+                          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
                           style={{ fontSize: '16px' }}
                         />
                       </div>
@@ -220,7 +220,7 @@ const ManageSeasonsModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
                         <button onClick={cancelEdit} disabled={busy} className="px-3 py-1.5 text-sm font-semibold text-gray-700">
                           Cancel
                         </button>
-                        <button onClick={saveEdit} disabled={busy} className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1.5 rounded-lg text-sm disabled:opacity-50">
+                        <button onClick={saveEdit} disabled={busy} className="bg-crimson-600 hover:bg-crimson-700 text-white font-semibold px-3 py-1.5 rounded-lg text-sm disabled:opacity-50">
                           Save
                         </button>
                       </div>

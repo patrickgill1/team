@@ -214,7 +214,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
       <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-fire-950">Send offer</h2>
+            <h2 className="font-black text-charcoal-950">Send offer</h2>
             <p className="text-[11px] text-slate-500">{registration.player?.firstName} {registration.player?.lastName}</p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
@@ -226,7 +226,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
             <select
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
             >
               {teams.map(t => <option key={t.id} value={t.id}>{t.name}{t.ageGroup ? ` (${t.ageGroup})` : ''}</option>)}
             </select>
@@ -235,11 +235,11 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Position (optional)</span>
-              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm" />
+              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
             </label>
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Jersey # (optional)</span>
-              <input value={jersey} onChange={(e) => setJersey(e.target.value)} type="number" placeholder="10" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm" />
+              <input value={jersey} onChange={(e) => setJersey(e.target.value)} type="number" placeholder="10" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
             </label>
           </div>
 
@@ -253,7 +253,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
                 step="0.01"
                 min={0}
                 placeholder="0.00"
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
               />
             </label>
             <label className="block">
@@ -264,7 +264,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
                 type="number"
                 min={1}
                 max={60}
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
               />
             </label>
           </div>
@@ -275,7 +275,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
               <select
                 value=""
                 onChange={(e) => { if (e.target.value) applyTemplate(e.target.value); }}
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+                className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
               >
                 <option value="">— Pick a template to load —</option>
                 {matchingTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -289,7 +289,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
               value={message}
               onChange={(e) => { setMessage(e.target.value); setMessageTouched(true); }}
               rows={8}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm leading-relaxed"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm leading-relaxed"
             />
           </label>
 
@@ -306,10 +306,10 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
                 </button>
               </div>
             ) : uploadingVideo ? (
-              <div className="rounded-lg bg-cyan-50 ring-1 ring-cyan-200 p-3">
-                <div className="text-xs text-cyan-800 font-bold mb-2">Uploading… {uploadProgress}%</div>
-                <div className="h-1.5 rounded-full bg-cyan-100 overflow-hidden">
-                  <div className="h-full bg-cyan-500" style={{ width: `${uploadProgress}%` }} />
+              <div className="rounded-lg bg-crimson-50 ring-1 ring-crimson-200 p-3">
+                <div className="text-xs text-crimson-800 font-bold mb-2">Uploading… {uploadProgress}%</div>
+                <div className="h-1.5 rounded-full bg-crimson-100 overflow-hidden">
+                  <div className="h-full bg-crimson-500" style={{ width: `${uploadProgress}%` }} />
                 </div>
               </div>
             ) : (
@@ -348,7 +348,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
             type="button"
             disabled={!canSend}
             onClick={handleSend}
-            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold"
+            className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
           >
             {sending ? 'Sending…' : 'Send offer'}
           </button>

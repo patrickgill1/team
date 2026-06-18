@@ -96,7 +96,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
         {isCoach && !editing && (
           <button
             onClick={() => setEditing(true)}
-            className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-700 hover:text-cyan-900"
+            className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900"
           >
             {assignment ? 'Change' : 'Assign'}
           </button>
@@ -147,7 +147,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             <button
               onClick={save}
               disabled={saving || !pickerId}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-cyan-600 text-white hover:bg-cyan-500 disabled:opacity-50"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50"
             >
               {saving ? 'Saving…' : `Assign${selectedName ? ` to ${selectedName.split(' ')[0]}` : ''}`}
             </button>

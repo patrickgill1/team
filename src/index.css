@@ -2,17 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fire FC Design System — Brand Colors from Logo */
-/* Navy: #0f172a  |  Cyan: #06b6d4 / #22d3ee  |  Sky: #38bdf8  |  Dark: #1e293b  |  White: #fff */
+/* GoalKickr Design System — Cinematic charcoal + crimson palette. */
+/* Charcoal: #0d0d10 / #15161a / #34353a · Crimson: #c8202c / #e5485d · Bone: #f5f3ee */
 
 :root {
-  --fire-navy: #0f172a;
-  --fire-dark: #1e293b;
-  --fire-blue: #1e3a5f;
-  --fire-cyan: #06b6d4;
-  --fire-sky: #38bdf8;
-  --fire-ice: #f0f9ff;
-  --fire-light: #e0f2fe;
+  /* Variable names kept as --fire-* so legacy CSS references resolve
+     identically — values repointed to GoalKickr palette. */
+  --fire-navy:  #0d0d10; /* charcoal-950 */
+  --fire-dark:  #15161a; /* charcoal-900 */
+  --fire-blue:  #34353a; /* charcoal-700 */
+  --fire-cyan:  #c8202c; /* crimson-600 */
+  --fire-sky:   #e5485d; /* crimson-500 */
+  --fire-ice:   #f5f3ee; /* bone (page-level tint) */
+  --fire-light: #fde2e4; /* crimson-100 (faint brand-tinted surfaces) */
 }
 
 * {
@@ -60,7 +62,7 @@ body.chat-conversation nav.fixed.bottom-0 { display: none; }
 /* Force EVERY ancestor of the chat container to white while chat is
    open. The iOS keyboard's slightly-rounded top corners are slightly
    blur-translucent and pick up whatever color sits behind them. Any
-   tinted layer (html bg, App wrapper bg-fire-50, etc.) shows through
+   tinted layer (html bg, App wrapper bg-crimson-50, etc.) shows through
    as gray-blue quarter-circles next to the composer. Compared against
    iMessage, where the page is pure white edge-to-edge, the only way
    to match is to nuke every tint while .chat-locked is active. */

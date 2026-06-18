@@ -114,7 +114,7 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
       <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-fire-950">Email selected</h2>
+            <h2 className="font-black text-charcoal-950">Email selected</h2>
             <p className="text-[11px] text-slate-500">{recipients.length} famil{recipients.length === 1 ? 'y' : 'ies'} ({registrations.length} registration{registrations.length === 1 ? '' : 's'})</p>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
@@ -127,7 +127,7 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Quick update on this weekend's tryout"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
             />
           </label>
 
@@ -138,7 +138,7 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
               onChange={(e) => setBody(e.target.value)}
               rows={9}
               placeholder="Hey there — quick note..."
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-cyan-400 text-sm leading-relaxed"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm leading-relaxed"
             />
             <p className="text-[10px] text-slate-500 mt-1">Plain text. Line breaks preserved. Your signature is appended automatically.</p>
           </label>
@@ -156,7 +156,7 @@ const BulkEmailModal: React.FC<Props> = ({ registrations, clubId, signature, onC
               type="button"
               disabled={!canSend}
               onClick={handleSend}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold"
+              className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
             >
               {sending ? 'Sending…' : `Send to ${recipients.length}`}
             </button>

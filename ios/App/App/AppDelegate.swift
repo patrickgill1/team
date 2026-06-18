@@ -19,15 +19,35 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // WebView. Without this override that area renders in the iOS
         // default (often dark), and bleeds through the keyboard's
         // rounded-corner blur as the "dark blue" Patrick saw.
+        // Brand color paint at every layer we can reach. Hit:
+        //   (1) UIWindow.backgroundColor — fallback when WebView shrinks
+        //   (2) rootViewController.view.backgroundColor — same
+        //   (3) A native UIView pinned at the very top of the window,
+        //       ABOVE every Capacitor plugin's subview, painting the
+        //       safe-area-inset-top region directly. This is the only
+        //       way to guarantee a color in that region on iOS 17+ —
+        //       Capacitor's StatusBar plugin can't paint there
+        //       regardless of overlay mode, and the navy Patrick kept
+        //       seeing was a Capacitor-internal subview we couldn't
+        //       reach from the WebView side.
         DispatchQueue.main.async {
-            // crimson-600 (#c8202c) — diagnostic. If the top strip
-            // shows up as ANYTHING other than red after this, then
-            // the navy is being painted by something deeper than the
-            // UIWindow + rootVC view (probably a Capacitor plugin
-            // internal subview). Revert to .white once confirmed.
-            let brand = UIColor(red: 0.784, green: 0.125, blue: 0.173, alpha: 1.0)
+            let brand = UIColor(red: 0.784, green: 0.125, blue: 0.173, alpha: 1.0) // crimson-600 #c8202c
             self.window?.backgroundColor = brand
             self.window?.rootViewController?.view.backgroundColor = brand
+
+            if let window = self.window {
+                let topStrip = UIView()
+                topStrip.backgroundColor = brand
+                topStrip.translatesAutoresizingMaskIntoConstraints = false
+                window.addSubview(topStrip)
+                NSLayoutConstraint.activate([
+                    topStrip.leadingAnchor.constraint(equalTo: window.leadingAnchor),
+                    topStrip.trailingAnchor.constraint(equalTo: window.trailingAnchor),
+                    topStrip.topAnchor.constraint(equalTo: window.topAnchor),
+                    topStrip.bottomAnchor.constraint(equalTo: window.safeAreaLayoutGuide.topAnchor),
+                ])
+                window.bringSubviewToFront(topStrip)
+            }
         }
 
         return true

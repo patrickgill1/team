@@ -59,6 +59,11 @@ const Dashboard: React.FC = () => {
     focus?: string;
     durationMinutes?: number;
     loggedToday: boolean;
+    /** Last 7 calendar days of practice-log status, oldest first. The
+     *  dashboard strip renders these as filled / outline dots. Sunday
+     *  is flagged separately so the UI can show "rest day" semantics
+     *  (Sundays don't break the streak per computeStreakDays). */
+    lastSeven: { date: Date; logged: boolean; isSunday: boolean }[];
   } | null>(null);
   // Wall posts = docs in the wall_posts collection (its own surface,
   // separate from chat). The dashboard surfaces the 5 most recent.
@@ -334,10 +339,31 @@ const Dashboard: React.FC = () => {
           const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
           const next = goals.find(g => !g.coachVerified);
           if (next) {
+            // Build a Set of day-keys this player logged across EVERY
+            // active plan goal — the streak strip should reflect total
+            // practice, not just this one goal's log. Matches the same
+            // dayKey shape computeStreakDays uses.
+            const dayKeys = new Set<string>();
+            for (const pl of plans) {
+              for (const g of (pl.goals || [])) {
+                for (const l of (g.practiceLog || [])) {
+                  const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+                  dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+                }
+              }
+            }
             const loggedToday = (next.practiceLog || []).some((l: any) => {
               const t = l.date?.toDate ? l.date.toDate().getTime() : new Date(l.date).getTime();
               return t >= todayStart;
             });
+            const lastSeven: { date: Date; logged: boolean; isSunday: boolean }[] = [];
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date();
+              d.setHours(0, 0, 0, 0);
+              d.setDate(d.getDate() - i);
+              const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+              lastSeven.push({ date: d, logged: dayKeys.has(k), isSunday: d.getDay() === 0 });
+            }
             setTonightGoal({
               planId: plan.id,
               goalId: next.id,
@@ -346,6 +372,7 @@ const Dashboard: React.FC = () => {
               focus: next.focus,
               durationMinutes: next.targetMinutes,
               loggedToday,
+              lastSeven,
             });
             return;
           }
@@ -629,69 +656,78 @@ const Dashboard: React.FC = () => {
         {/* The no-event empty state lives in DashboardHero now — no
             second card needed here. */}
 
-        {/* Tonight's-session pill — was a fat red→charcoal gradient
-            card; Patrick: "needs to be cooler and more efficiently
-            used and also the gradient going to dark, makes it look
-            bad." Redesigned as a dark glass card with a vertical
-            crimson accent bar + subtle glow blob, status pill colored
-            by logged-state, and meta (duration) inline with the
-            eyebrow so the title + focus get full width. ~30% shorter
-            than the original. */}
-        {myPlayer && tonightGoal && (
-          <Link
-            to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-            className="block group relative overflow-hidden rounded-2xl bg-gradient-to-br from-charcoal-900 via-charcoal-900 to-charcoal-800 ring-1 ring-crimson-500/25 hover:ring-crimson-500/60 transition shadow-lg shadow-crimson-950/40"
-          >
-            {/* Glow blob in the corner gives the card brand presence
-                without pumping the whole surface red. */}
-            <div className="absolute -top-12 -right-12 w-40 h-40 bg-crimson-500/15 blur-3xl pointer-events-none" aria-hidden />
-            {/* Vertical accent bar — left edge crimson stripe. */}
-            <div className="absolute inset-y-0 left-0 w-1 bg-crimson-500" aria-hidden />
+        {/* Practice-week strip — Patrick: the icon-card "doesn't offer
+            enough to be there." Replaced with a week-at-a-glance
+            ribbon: tonight's focus on the left, streak count on the
+            right, 7 dots underneath showing the last seven days.
+            Sunday rendered with a dash so it reads as "rest day" not
+            "missed" (the streak algo skips Sundays). */}
+        {myPlayer && tonightGoal && (() => {
+          const streak = (myPlayer as any)?.currentStreakDays || 0;
+          const loggedCount = tonightGoal.lastSeven.filter(d => d.logged).length;
+          const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          return (
+            <Link
+              to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
+              className="block group relative overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/5 hover:ring-crimson-500/40 transition shadow-lg"
+            >
+              <div className="absolute -top-12 -right-12 w-40 h-40 bg-crimson-500/10 blur-3xl pointer-events-none" aria-hidden />
 
-            <div className="relative pl-5 pr-4 py-3.5 flex items-center gap-3.5">
-              <span
-                className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ring-1 ${
-                  tonightGoal.loggedToday
-                    ? 'bg-emerald-500/15 ring-emerald-400/40 text-emerald-300'
-                    : 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-300'
-                }`}
-              >
-                {tonightGoal.loggedToday ? (
-                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                ) : (
-                  <svg className="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                )}
-              </span>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-widest uppercase text-crimson-400">
-                  <span>{tonightGoal.loggedToday ? 'Logged today' : "Today's session"}</span>
-                  {tonightGoal.durationMinutes != null && (
-                    <>
-                      <span className="text-charcoal-500">·</span>
-                      <span className="text-charcoal-300">{tonightGoal.durationMinutes} min</span>
-                    </>
+              <div className="relative px-4 pt-3 pb-3.5">
+                {/* Row 1: focus on left, streak chip on right */}
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400">
+                      {tonightGoal.loggedToday ? 'Logged today' : 'This week'}
+                      <span className="text-charcoal-500"> · </span>
+                      <span className="text-charcoal-300 normal-case tracking-normal font-bold">{tonightGoal.planTitle}</span>
+                    </div>
+                    <div className="text-[13.5px] text-bone leading-snug mt-1 line-clamp-2">
+                      {tonightGoal.focus || tonightGoal.goalTitle}
+                    </div>
+                  </div>
+                  {streak > 0 && (
+                    <div className="flex-shrink-0 inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-lg bg-gradient-to-b from-amber-400/20 to-amber-600/20 ring-1 ring-amber-400/40">
+                      <div className="text-[18px] font-black text-amber-300 leading-none tabular-nums">{streak}</div>
+                      <div className="text-[8px] font-extrabold tracking-widest uppercase text-amber-200/80 mt-0.5">Day streak</div>
+                    </div>
                   )}
                 </div>
-                <div className="text-base font-bold text-bone leading-tight truncate mt-0.5">
-                  {tonightGoal.goalTitle}
-                </div>
-                {tonightGoal.focus && (
-                  <div className="text-[12px] text-charcoal-300 leading-snug line-clamp-1 mt-0.5">
-                    {tonightGoal.focus}
-                  </div>
-                )}
-              </div>
 
-              <svg
-                className="w-5 h-5 text-charcoal-400 group-hover:text-crimson-400 transition-colors flex-shrink-0"
-                fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
-              >
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-          </Link>
-        )}
+                {/* Row 2: 7 dots + summary count */}
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    {tonightGoal.lastSeven.map((d, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1">
+                        <span className="text-[8px] font-bold tracking-wider text-charcoal-500">
+                          {DAY_LETTER[d.date.getDay()]}
+                        </span>
+                        {d.isSunday ? (
+                          <span className="w-2 h-2 flex items-center justify-center" aria-label="rest day">
+                            <span className="block w-2 h-[2px] rounded-full bg-charcoal-600" />
+                          </span>
+                        ) : d.logged ? (
+                          <span className="w-2 h-2 rounded-full bg-crimson-500 shadow-sm shadow-crimson-500/50" aria-label="logged" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full ring-1 ring-charcoal-600" aria-label="not logged" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex-1 text-[11px] text-charcoal-400 truncate">
+                    <span className="text-bone font-bold tabular-nums">{loggedCount}</span> of 7 days
+                  </div>
+                  <svg
+                    className="w-4 h-4 text-charcoal-500 group-hover:text-crimson-400 transition-colors flex-shrink-0"
+                    fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
+                  >
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </div>
+            </Link>
+          );
+        })()}
         {myPlayer && (
           <MyPlayerCard
             player={myPlayer}

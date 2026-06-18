@@ -100,11 +100,11 @@ const Wall: React.FC = () => {
     { id: 'practice', label: 'Practice' },
   ];
   const CATEGORY_TONE: Record<WallCategory, { text: string; bg: string; ring: string }> = {
-    announcement: { text: 'text-crimson-800', bg: 'bg-crimson-50', ring: 'ring-crimson-200' },
-    result: { text: 'text-emerald-800', bg: 'bg-emerald-50', ring: 'ring-emerald-200' },
-    spotlight: { text: 'text-amber-800', bg: 'bg-amber-50', ring: 'ring-amber-200' },
-    practice: { text: 'text-violet-800', bg: 'bg-violet-50', ring: 'ring-violet-200' },
-    system: { text: 'text-slate-700', bg: 'bg-slate-100', ring: 'ring-slate-200' },
+    announcement: { text: 'text-crimson-300', bg: 'bg-crimson-500/150/15', ring: 'ring-crimson-400/30' },
+    result: { text: 'text-emerald-300', bg: 'bg-emerald-500/15', ring: 'ring-emerald-400/30' },
+    spotlight: { text: 'text-amber-300', bg: 'bg-amber-500/15', ring: 'ring-amber-400/30' },
+    practice: { text: 'text-violet-300', bg: 'bg-violet-500/15', ring: 'ring-violet-400/30' },
+    system: { text: 'text-bone/85', bg: 'bg-white/[0.08]', ring: 'ring-white/10' },
   };
   const CATEGORY_LABEL: Record<WallCategory, string> = {
     announcement: 'News',
@@ -721,7 +721,7 @@ const Wall: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       {/* Compact mobile header — no big hero strip eating screen real
           estate. Title row + pill filter on a single sticky stack. */}
       <section className="bg-charcoal-950 px-4 sm:px-6 py-3 border-b border-white/5">
@@ -742,7 +742,7 @@ const Wall: React.FC = () => {
           new-post button HERE (instead of a floating FAB) avoids the
           right-edge collision with each post's kebab and keeps the
           CTA always-visible without overlaying content. */}
-      <div className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200">
+      <div className="sticky top-0 z-20 bg-charcoal-950/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-2xl mx-auto px-3 py-2 flex items-center gap-1.5">
           <div className="flex-1 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             {CATEGORIES.map(c => (
@@ -753,7 +753,7 @@ const Wall: React.FC = () => {
                 className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
                   activeCategory === c.id
                     ? 'bg-charcoal-950 text-white'
-                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                    : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/10 hover:bg-white/[0.1]'
                 }`}
               >
                 {c.label}
@@ -764,7 +764,7 @@ const Wall: React.FC = () => {
             <button
               type="button"
               onClick={() => setComposerOpen(true)}
-              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-crimson-600 hover:bg-crimson-500 active:scale-95 text-white text-[12px] font-extrabold uppercase tracking-widest transition shadow-sm"
+              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-crimson-600 hover:bg-crimson-500/150 active:scale-95 text-white text-[12px] font-extrabold uppercase tracking-widest transition shadow-sm"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -783,7 +783,7 @@ const Wall: React.FC = () => {
             onClick={closeComposer}
           >
             <div
-              className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              className="bg-charcoal-900 w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -791,7 +791,7 @@ const Wall: React.FC = () => {
                 <button
                   type="button"
                   onClick={closeComposer}
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white"
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white"
                 >
                   Cancel
                 </button>
@@ -819,7 +819,7 @@ const Wall: React.FC = () => {
                   className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest transition ${
                     composerCategory === cat
                       ? `${CATEGORY_TONE[cat].bg} ${CATEGORY_TONE[cat].text} ring-1 ${CATEGORY_TONE[cat].ring}`
-                      : 'text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50'
+                      : 'text-bone/50 ring-1 ring-white/10 hover:bg-white/[0.05]'
                   }`}
                 >
                   {CATEGORY_LABEL[cat]}
@@ -830,7 +830,7 @@ const Wall: React.FC = () => {
                 tiny syntax to avoid pulling in a 200kb rich editor
                 dep. Old wall clients render the raw markdown text
                 (still readable); new ones render formatted. */}
-            <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-2 py-2 flex items-center gap-0.5 flex-wrap">
+            <div className="sticky top-0 z-10 bg-charcoal-900 border-b border-white/5 px-2 py-2 flex items-center gap-0.5 flex-wrap">
               <ToolGroup>
                 <ToolbarBtn title="Heading 1" onClick={() => insertLinePrefix('# ')} icon={<H1Icon />} />
                 <ToolbarBtn title="Heading 2" onClick={() => insertLinePrefix('## ')} icon={<H2Icon />} />
@@ -848,7 +848,7 @@ const Wall: React.FC = () => {
               </ToolGroup>
               <ToolGroup>
                 <ToolbarBtn title="Link" onClick={insertLink} icon={<LinkIcon />} />
-                <label className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-700 hover:bg-slate-100 cursor-pointer" title="Attach image">
+                <label className="inline-flex items-center justify-center w-8 h-8 rounded-md text-bone/85 hover:bg-white/[0.08] cursor-pointer" title="Attach image">
                   {uploading ? <SpinnerIcon /> : <ImageIcon />}
                   <input
                     type="file"
@@ -869,8 +869,8 @@ const Wall: React.FC = () => {
                 onClick={() => setPreviewMode(v => !v)}
                 className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-[11px] font-extrabold uppercase tracking-widest transition ${
                   previewMode
-                    ? 'bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30'
+                    : 'text-bone/65 hover:bg-white/[0.08]'
                 }`}
                 title={previewMode ? 'Back to edit' : 'Preview'}
               >
@@ -887,7 +887,7 @@ const Wall: React.FC = () => {
                       <RichContent text={composer} />
                     </article>
                   ) : (
-                    <p className="text-sm text-slate-400 italic">Nothing to preview yet — switch back to Edit and start typing.</p>
+                    <p className="text-sm text-bone/40 italic">Nothing to preview yet — switch back to Edit and start typing.</p>
                   )}
                 </div>
               ) : (
@@ -897,7 +897,7 @@ const Wall: React.FC = () => {
                   onChange={(e) => setComposer(e.target.value)}
                   placeholder="Write a beautiful announcement.&#10;&#10;Use the toolbar above for headings, **bold**, lists, quotes, and links. Long posts welcome — the editor grows with you."
                   rows={6}
-                  className="w-full px-0 py-0 border-0 focus:outline-none focus:ring-0 text-[16px] leading-relaxed resize-none placeholder:text-slate-400"
+                  className="w-full px-0 py-0 border-0 focus:outline-none focus:ring-0 text-[16px] leading-relaxed resize-none placeholder:text-bone/40"
                   style={{ fontSize: '16px', minHeight: '160px' }}
                 />
               )}
@@ -911,36 +911,36 @@ const Wall: React.FC = () => {
                      → the normal editor (toggle + question + options).
                   3. Edit mode + 'remove' chosen → confirmation card
                      with an undo link before save commits. */}
-              <div className="mt-4 rounded-xl ring-1 ring-slate-200 bg-slate-50 px-3 py-3">
+              <div className="mt-4 rounded-xl ring-1 ring-white/10 bg-white/[0.04] px-3 py-3">
                 {existingPoll && !removeExistingPoll ? (
                   <>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-crimson-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           <rect x="3" y="12" width="4" height="9" rx="1" />
                           <rect x="10" y="7" width="4" height="14" rx="1" />
                           <rect x="17" y="3" width="4" height="18" rx="1" />
                         </svg>
-                        <span className="text-[12px] font-extrabold uppercase tracking-widest text-slate-700">Poll attached</span>
+                        <span className="text-[12px] font-extrabold uppercase tracking-widest text-bone/85">Poll attached</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setRemoveExistingPoll(true)}
-                        className="text-[11px] font-extrabold uppercase tracking-widest text-rose-600 hover:text-rose-700"
+                        className="text-[11px] font-extrabold uppercase tracking-widest text-rose-400 hover:text-rose-300"
                       >
                         Remove poll
                       </button>
                     </div>
-                    <p className="mt-2 text-[12px] text-slate-500 leading-relaxed">
+                    <p className="mt-2 text-[12px] text-bone/50 leading-relaxed">
                       The poll and its votes stay attached when you save. Editing the poll question or options isn't supported — remove and re-create the post if you need to change them.
                     </p>
-                    <div className="mt-3 rounded-lg bg-white ring-1 ring-slate-200 px-3 py-2.5">
-                      <p className="font-bold text-[13.5px] text-slate-900 leading-snug">{existingPoll.question}</p>
+                    <div className="mt-3 rounded-lg bg-charcoal-800 ring-1 ring-white/10 px-3 py-2.5">
+                      <p className="font-bold text-[13.5px] text-bone leading-snug">{existingPoll.question}</p>
                       <ul className="mt-2 space-y-1">
                         {existingPoll.options.map(o => (
-                          <li key={o.id} className="text-[12.5px] text-slate-700 flex items-start justify-between gap-3">
+                          <li key={o.id} className="text-[12.5px] text-bone/85 flex items-start justify-between gap-3">
                             <span className="break-words min-w-0">{o.text}</span>
-                            <span className="shrink-0 text-slate-400 tabular-nums">{o.voters.length}</span>
+                            <span className="shrink-0 text-bone/40 tabular-nums">{o.voters.length}</span>
                           </li>
                         ))}
                       </ul>
@@ -949,13 +949,13 @@ const Wall: React.FC = () => {
                 ) : existingPoll && removeExistingPoll ? (
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[13px] font-bold text-rose-700">Poll will be removed on save</p>
-                      <p className="text-[12px] text-slate-500 mt-0.5 leading-snug">All votes will be lost. This can't be undone after you save.</p>
+                      <p className="text-[13px] font-bold text-rose-300">Poll will be removed on save</p>
+                      <p className="text-[12px] text-bone/50 mt-0.5 leading-snug">All votes will be lost. This can't be undone after you save.</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setRemoveExistingPoll(false)}
-                      className="shrink-0 text-[11px] font-extrabold uppercase tracking-widest text-crimson-700 hover:text-crimson-900"
+                      className="shrink-0 text-[11px] font-extrabold uppercase tracking-widest text-crimson-300 hover:text-crimson-100"
                     >
                       Undo
                     </button>
@@ -964,20 +964,20 @@ const Wall: React.FC = () => {
                 <>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-crimson-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-crimson-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <rect x="3" y="12" width="4" height="9" rx="1" />
                       <rect x="10" y="7" width="4" height="14" rx="1" />
                       <rect x="17" y="3" width="4" height="18" rx="1" />
                     </svg>
-                    <span className="text-[12px] font-extrabold uppercase tracking-widest text-slate-700">Poll</span>
+                    <span className="text-[12px] font-extrabold uppercase tracking-widest text-bone/85">Poll</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setPollOn(v => !v)}
                     className={`text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
                       pollOn
-                        ? 'bg-crimson-600 text-white hover:bg-crimson-500'
-                        : 'bg-white text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50'
+                        ? 'bg-crimson-600 text-white hover:bg-crimson-500/150'
+                        : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
                     }`}
                   >
                     {pollOn ? 'On' : 'Add a poll'}
@@ -990,7 +990,7 @@ const Wall: React.FC = () => {
                       value={pollQuestion}
                       onChange={(e) => setPollQuestion(e.target.value)}
                       placeholder="Question (e.g. What practice day works best?)"
-                      className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-300 focus:ring-2 focus:ring-crimson-400 text-[15px] bg-white"
+                      className="w-full px-3 py-2 rounded-lg ring-1 ring-white/15 focus:ring-2 focus:ring-crimson-400 text-[15px] bg-charcoal-800 text-bone placeholder:text-bone/30"
                       style={{ fontSize: '16px' }}
                     />
                     {pollOptions.map((opt, i) => (
@@ -1000,7 +1000,7 @@ const Wall: React.FC = () => {
                           value={opt}
                           onChange={(e) => setPollOptions(prev => prev.map((p, idx) => idx === i ? e.target.value : p))}
                           placeholder={`Option ${i + 1}`}
-                          className="flex-1 px-3 py-2 rounded-lg ring-1 ring-slate-300 focus:ring-2 focus:ring-crimson-400 text-[14.5px] bg-white"
+                          className="flex-1 px-3 py-2 rounded-lg ring-1 ring-white/15 focus:ring-2 focus:ring-crimson-400 text-[14.5px] bg-charcoal-800 text-bone placeholder:text-bone/30"
                           style={{ fontSize: '16px' }}
                         />
                         {pollOptions.length > 2 && (
@@ -1008,7 +1008,7 @@ const Wall: React.FC = () => {
                             type="button"
                             onClick={() => setPollOptions(prev => prev.filter((_, idx) => idx !== i))}
                             aria-label="Remove option"
-                            className="w-8 h-8 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center"
+                            className="w-8 h-8 rounded-full text-bone/40 hover:text-rose-400 hover:bg-rose-500/150/15 flex items-center justify-center"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                           </button>
@@ -1019,7 +1019,7 @@ const Wall: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setPollOptions(prev => [...prev, ''])}
-                        className="text-[12px] font-bold uppercase tracking-widest text-crimson-700 hover:text-crimson-900"
+                        className="text-[12px] font-bold uppercase tracking-widest text-crimson-300 hover:text-crimson-100"
                       >
                         + Add option
                       </button>
@@ -1031,15 +1031,15 @@ const Wall: React.FC = () => {
               </div>
 
               {postError && (
-                <div className="mt-3 rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-2 text-[12px] text-rose-700">
+                <div className="mt-3 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/30 px-3 py-2 text-[12px] text-rose-300">
                   {postError}
                 </div>
               )}
             </div>
 
-            <div className="px-4 sm:px-6 py-2.5 border-t border-slate-100 bg-slate-50/60 flex items-center gap-3 text-[11px] text-slate-500">
+            <div className="px-4 sm:px-6 py-2.5 border-t border-white/5 bg-white/[0.03] flex items-center gap-3 text-[11px] text-bone/50">
               {draftStatus === 'saved' && composer.trim() && (
-                <span className="inline-flex items-center gap-1 text-slate-400">
+                <span className="inline-flex items-center gap-1 text-bone/40">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
                   Draft saved
                 </span>
@@ -1048,7 +1048,7 @@ const Wall: React.FC = () => {
                 <button
                   type="button"
                   onClick={discardDraft}
-                  className="text-slate-400 hover:text-rose-600 underline underline-offset-2"
+                  className="text-bone/40 hover:text-rose-400 underline underline-offset-2"
                 >
                   Discard
                 </button>
@@ -1108,8 +1108,8 @@ const Wall: React.FC = () => {
               return (
                 <li
                   key={p.id}
-                  className={`bg-white sm:rounded-2xl overflow-hidden shadow-sm ${
-                    isPinnedTop ? 'ring-2 ring-amber-300' : 'ring-1 ring-slate-200'
+                  className={`bg-charcoal-900 sm:rounded-2xl overflow-hidden shadow-sm ${
+                    isPinnedTop ? 'ring-2 ring-amber-300' : 'ring-1 ring-white/10'
                   }`}
                 >
                   {/* Card header — avatar, name + role, time, category
@@ -1128,21 +1128,21 @@ const Wall: React.FC = () => {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[15px] font-bold text-slate-900 truncate">{p.senderName}</span>
+                        <span className="text-[15px] font-bold text-bone truncate">{p.senderName}</span>
                         {p.senderRole === 'coach' && (
-                          <span className="text-[9px] font-extrabold uppercase tracking-widest text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">Coach</span>
+                          <span className="text-[9px] font-extrabold uppercase tracking-widest text-crimson-300 bg-crimson-500/150/15 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">Coach</span>
                         )}
                       </div>
-                      <div className="text-[12px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <div className="text-[12px] text-bone/50 mt-0.5 flex items-center gap-1.5 flex-wrap">
                         <span>{p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                         {p.editedAt && (
-                          <span className="italic text-slate-400">· edited</span>
+                          <span className="italic text-bone/40">· edited</span>
                         )}
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest ${tone.bg} ${tone.text} ring-1 ${tone.ring}`}>
                           {CATEGORY_LABEL[cat]}
                         </span>
                         {isPinnedTop && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest text-amber-800 bg-amber-50 ring-1 ring-amber-200 inline-flex items-center gap-0.5">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 inline-flex items-center gap-0.5">
                             <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" strokeWidth={2}/><path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" stroke="currentColor" strokeWidth={2}/></svg>
                             Pinned
                           </span>
@@ -1152,7 +1152,7 @@ const Wall: React.FC = () => {
                   </div>
 
                   {p.content && (
-                    <article className="px-4 pb-3 text-slate-800 break-words text-[15.5px] leading-relaxed">
+                    <article className="px-4 pb-3 text-bone/90 break-words text-[15.5px] leading-relaxed">
                       <RichContent text={p.content} />
                     </article>
                   )}
@@ -1175,18 +1175,18 @@ const Wall: React.FC = () => {
                         src={p.attachments[0].url}
                         alt={p.attachments[0].name || 'attachment'}
                         loading="lazy"
-                        className="block w-full max-h-[520px] object-cover bg-slate-100"
+                        className="block w-full max-h-[520px] object-cover bg-charcoal-800"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                       />
                     ) : (
-                      <div className="grid grid-cols-2 gap-0.5 bg-slate-100">
+                      <div className="grid grid-cols-2 gap-0.5 bg-charcoal-800">
                         {p.attachments.slice(0, 4).map((a, i) => (
                           <img
                             key={i}
                             src={a.url}
                             alt={a.name || 'attachment'}
                             loading="lazy"
-                            className="block w-full h-44 sm:h-52 object-cover bg-slate-100"
+                            className="block w-full h-44 sm:h-52 object-cover bg-charcoal-800"
                             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                           />
                         ))}
@@ -1198,7 +1198,7 @@ const Wall: React.FC = () => {
                       Tap to toggle YOUR reaction with that emoji. Tap
                       the comment count to expand the thread. */}
                   {(reactionEntries.length > 0 || (commentCounts[p.id] || 0) > 0) && (
-                    <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-slate-500">
+                    <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-bone/50">
                       {reactionEntries.map(([emoji, info]) => (
                         <button
                           key={emoji}
@@ -1206,8 +1206,8 @@ const Wall: React.FC = () => {
                           onClick={() => void toggleReaction(p, emoji)}
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] ring-1 transition ${
                             info.mine
-                              ? 'bg-crimson-50 ring-crimson-300 text-crimson-900'
-                              : 'bg-slate-50 ring-slate-200 text-slate-700 hover:bg-slate-100'
+                              ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-100'
+                              : 'bg-white/[0.04] ring-white/10 text-bone/85 hover:bg-white/[0.08]'
                           }`}
                         >
                           <span className="text-sm leading-none">{emoji}</span>
@@ -1217,13 +1217,13 @@ const Wall: React.FC = () => {
                       {reactionEntries.length > 0 && (
                         <button
                           onClick={() => setReactorsPostId(p.id)}
-                          className="text-[11px] font-bold uppercase tracking-widest text-crimson-700 hover:text-crimson-900"
+                          className="text-[11px] font-bold uppercase tracking-widest text-crimson-300 hover:text-crimson-100"
                         >
                           Who reacted →
                         </button>
                       )}
                       {(commentCounts[p.id] || 0) > 0 && (
-                        <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-crimson-700 font-semibold">
+                        <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-crimson-300 font-semibold">
                           {commentCounts[p.id]} {commentCounts[p.id] === 1 ? 'comment' : 'comments'}
                         </button>
                       )}
@@ -1285,19 +1285,19 @@ const Wall: React.FC = () => {
                       so engagement feels alive. Tap "View all" or any
                       comment to expand the full thread + composer. */}
                   {previewComments.length > 0 && !expanded[p.id] && (
-                    <div className="px-4 pb-3 border-t border-slate-100 pt-2 space-y-1.5">
+                    <div className="px-4 pb-3 border-t border-white/5 pt-2 space-y-1.5">
                       {hiddenCount > 0 && (
                         <button
                           type="button"
                           onClick={() => toggleExpand(p.id)}
-                          className="text-[12px] text-slate-500 hover:text-crimson-700 font-semibold"
+                          className="text-[12px] text-bone/50 hover:text-crimson-300 font-semibold"
                         >
                           View all {commentCounts[p.id]} comments
                         </button>
                       )}
                       {previewComments.map(c => (
-                        <div key={c.id} className="text-[13.5px] text-slate-800 leading-snug">
-                          <span className="font-bold text-slate-900">{c.senderName}</span>{' '}
+                        <div key={c.id} className="text-[13.5px] text-bone/90 leading-snug">
+                          <span className="font-bold text-bone">{c.senderName}</span>{' '}
                           <span className="break-words">{c.content}</span>
                         </div>
                       ))}
@@ -1305,7 +1305,7 @@ const Wall: React.FC = () => {
                   )}
 
                   {expanded[p.id] && (
-                    <div id={`wall-comments-${p.id}`} className="border-t border-slate-100 bg-slate-50 px-4 py-3 space-y-3">
+                    <div id={`wall-comments-${p.id}`} className="border-t border-white/5 bg-white/[0.04] px-4 py-3 space-y-3">
                       {commentsForPost.length > 0 && (
                         <ul className="space-y-2.5">
                           {commentsForPost.map(c => (
@@ -1317,20 +1317,20 @@ const Wall: React.FC = () => {
                                 variant="parent"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="rounded-2xl bg-white ring-1 ring-slate-200 px-3 py-2">
+                                <div className="rounded-2xl bg-charcoal-800 ring-1 ring-white/10 px-3 py-2">
                                   <div className="flex items-baseline gap-2">
-                                    <span className="text-[13px] font-bold text-slate-900">{c.senderName}</span>
-                                    <span className="text-[10px] text-slate-400">
+                                    <span className="text-[13px] font-bold text-bone">{c.senderName}</span>
+                                    <span className="text-[10px] text-bone/40">
                                       {c.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                     </span>
                                   </div>
-                                  <p className="text-[14px] text-slate-800 whitespace-pre-wrap break-words mt-0.5">{c.content}</p>
+                                  <p className="text-[14px] text-bone/90 whitespace-pre-wrap break-words mt-0.5">{c.content}</p>
                                 </div>
                                 {(c.senderId === userData?.uid || canManage) && (
                                   <button
                                     type="button"
                                     onClick={() => deleteComment(c)}
-                                    className="mt-1 text-[10px] text-slate-400 hover:text-rose-600 underline underline-offset-2"
+                                    className="mt-1 text-[10px] text-bone/40 hover:text-rose-400 underline underline-offset-2"
                                   >
                                     Delete
                                   </button>
@@ -1354,14 +1354,14 @@ const Wall: React.FC = () => {
                               onChange={(e) => setCommentDrafts(prev => ({ ...prev, [p.id]: e.target.value }))}
                               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submitComment(p.id); } }}
                               placeholder="Write a comment…"
-                              className="flex-1 px-3 py-2 rounded-full ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm bg-white"
+                              className="flex-1 px-3 py-2 rounded-full ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm bg-charcoal-800 text-bone placeholder:text-bone/30"
                               style={{ fontSize: '16px' }}
                             />
                             <button
                               type="button"
                               onClick={() => void submitComment(p.id)}
                               disabled={!(commentDrafts[p.id] || '').trim()}
-                              className="px-3 py-2 rounded-full bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-40"
+                              className="px-3 py-2 rounded-full bg-crimson-600 hover:bg-crimson-500/150 text-white text-xs font-extrabold uppercase tracking-widest disabled:opacity-40"
                             >
                               Send
                             </button>
@@ -1417,11 +1417,11 @@ const Wall: React.FC = () => {
             onClick={() => setReactorsPostId(null)}
           >
             <div
-              className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              className="bg-charcoal-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
-                <button onClick={() => setReactorsPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white">
+                <button onClick={() => setReactorsPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white">
                   Close
                 </button>
                 <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">
@@ -1431,19 +1431,19 @@ const Wall: React.FC = () => {
               </div>
               <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 {emojis.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-slate-500">No reactions yet.</div>
+                  <div className="px-4 py-8 text-center text-sm text-bone/50">No reactions yet.</div>
                 ) : (
                   emojis.map(emoji => (
-                    <div key={emoji} className="border-b border-slate-100 last:border-b-0">
-                      <div className="px-4 py-2 bg-slate-50 flex items-center justify-between">
+                    <div key={emoji} className="border-b border-white/5 last:border-b-0">
+                      <div className="px-4 py-2 bg-white/[0.04] flex items-center justify-between">
                         <span className="text-base">{emoji}</span>
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-bone/50">
                           {grouped[emoji].length}
                         </span>
                       </div>
                       <ul>
                         {grouped[emoji].map(r => (
-                          <li key={r.uid} className="px-4 py-2 text-[14px] text-slate-800 border-b border-slate-50 last:border-b-0">
+                          <li key={r.uid} className="px-4 py-2 text-[14px] text-bone/90 border-b border-slate-50 last:border-b-0">
                             {r.name}
                           </li>
                         ))}
@@ -1471,7 +1471,7 @@ const Wall: React.FC = () => {
             onClick={() => setManagePostId(null)}
           >
             <div
-              className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
+              className="bg-charcoal-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1481,7 +1481,7 @@ const Wall: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setManagePostId(null)}
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white"
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white"
                 >
                   Close
                 </button>
@@ -1491,40 +1491,40 @@ const Wall: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { void togglePinTop(target); setManagePostId(null); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 active:bg-slate-100"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.05] active:bg-white/[0.1]"
                   >
                     <svg className="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <line x1="12" y1="17" x2="12" y2="22" />
                       <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
                     </svg>
-                    <span className="text-[15px] font-bold text-slate-900">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
+                    <span className="text-[15px] font-bold text-bone">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
                   </button>
                 </li>
                 <li>
                   <button
                     type="button"
                     onClick={() => openEdit(target)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 active:bg-slate-100"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.05] active:bg-white/[0.1]"
                   >
-                    <svg className="w-5 h-5 text-crimson-700 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-crimson-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 20h9" />
                       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
                     </svg>
-                    <span className="text-[15px] font-bold text-slate-900">Edit post</span>
+                    <span className="text-[15px] font-bold text-bone">Edit post</span>
                   </button>
                 </li>
                 <li>
                   <button
                     type="button"
                     onClick={() => { setManagePostId(null); void removePost(target); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-rose-50 active:bg-rose-100"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-rose-500/150/15 active:bg-rose-100"
                   >
-                    <svg className="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-rose-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
                       <path d="M10 11v6M14 11v6" />
                     </svg>
-                    <span className="text-[15px] font-bold text-rose-700">Delete post</span>
+                    <span className="text-[15px] font-bold text-rose-300">Delete post</span>
                   </button>
                 </li>
               </ul>
@@ -1548,14 +1548,14 @@ const PostAvatar: React.FC<{
   variant?: 'coach' | 'parent';
 }> = ({ photoUrl, name, size = 'md', variant = 'parent' }) => {
   const sz = size === 'sm' ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-[15px]';
-  const ring = variant === 'coach' ? 'ring-crimson-200' : 'ring-slate-200';
+  const ring = variant === 'coach' ? 'ring-crimson-400/30' : 'ring-white/10';
   if (photoUrl) {
     return (
       <img
         src={photoUrl}
         alt={name || ''}
         loading="lazy"
-        className={`${sz} rounded-full object-cover shrink-0 ring-1 ${ring} bg-slate-100`}
+        className={`${sz} rounded-full object-cover shrink-0 ring-1 ${ring} bg-white/[0.1]`}
         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
       />
     );
@@ -1564,8 +1564,8 @@ const PostAvatar: React.FC<{
     <div
       className={`${sz} rounded-full flex items-center justify-center font-extrabold shrink-0 ring-1 ${
         variant === 'coach'
-          ? 'bg-crimson-100 text-crimson-800 ring-crimson-200'
-          : 'bg-slate-100 text-slate-700 ring-slate-200'
+          ? 'bg-crimson-100 text-crimson-200 ring-crimson-400/30'
+          : 'bg-white/[0.08] text-bone/85 ring-white/10'
       }`}
     >
       {(name || '?').charAt(0).toUpperCase()}
@@ -1576,7 +1576,7 @@ const PostAvatar: React.FC<{
 // ── Toolbar building blocks ────────────────────────────────────
 
 const ToolGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="inline-flex items-center border-r border-slate-200 last:border-r-0 pr-1 mr-1 last:pr-0 last:mr-0">
+  <div className="inline-flex items-center border-r border-white/10 last:border-r-0 pr-1 mr-1 last:pr-0 last:mr-0">
     {children}
   </div>
 );
@@ -1587,7 +1587,7 @@ const ToolbarBtn: React.FC<{ title: string; onClick: () => void; icon: React.Rea
     onClick={onClick}
     title={title}
     aria-label={title}
-    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition"
+    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-bone/85 hover:bg-white/[0.08] active:bg-white/[0.12] transition"
   >
     {icon}
   </button>
@@ -1707,7 +1707,7 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
     const text = quoteBuffer.join('\n');
     quoteBuffer = [];
     blocks.push(
-      <blockquote key={keyPrefix} className="my-4 pl-4 border-l-4 border-crimson-300 text-slate-600 italic whitespace-pre-wrap">
+      <blockquote key={keyPrefix} className="my-4 pl-4 border-l-4 border-crimson-300 text-bone/65 italic whitespace-pre-wrap">
         {renderInline(text)}
       </blockquote>
     );
@@ -1728,7 +1728,7 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
           src={imgMatch[2]}
           alt={imgMatch[1] || ''}
           loading="lazy"
-          className="block my-3 rounded-xl w-full max-h-[520px] object-cover ring-1 ring-slate-200"
+          className="block my-3 rounded-xl w-full max-h-[520px] object-cover ring-1 ring-white/10"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       );
@@ -1737,7 +1737,7 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
     // Horizontal rule
     if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
       flushAll(`hr-${i}`);
-      blocks.push(<hr key={`hr-${i}`} className="my-5 border-t border-slate-200" />);
+      blocks.push(<hr key={`hr-${i}`} className="my-5 border-t border-white/10" />);
       return;
     }
     // Headings
@@ -1746,9 +1746,9 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
       flushAll(`h-${i}`);
       const level = headingMatch[1].length;
       const inner = renderInline(headingMatch[2]);
-      if (level === 1) blocks.push(<h2 key={`h-${i}`} className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight mt-5 mb-3 first:mt-0">{inner}</h2>);
-      else if (level === 2) blocks.push(<h3 key={`h-${i}`} className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug mt-5 mb-2 first:mt-0">{inner}</h3>);
-      else blocks.push(<h4 key={`h-${i}`} className="text-base sm:text-lg font-extrabold text-slate-900 uppercase tracking-wide mt-4 mb-2 first:mt-0">{inner}</h4>);
+      if (level === 1) blocks.push(<h2 key={`h-${i}`} className="text-2xl sm:text-3xl font-black text-bone leading-tight mt-5 mb-3 first:mt-0">{inner}</h2>);
+      else if (level === 2) blocks.push(<h3 key={`h-${i}`} className="text-xl sm:text-2xl font-extrabold text-bone leading-snug mt-5 mb-2 first:mt-0">{inner}</h3>);
+      else blocks.push(<h4 key={`h-${i}`} className="text-base sm:text-lg font-extrabold text-bone uppercase tracking-wide mt-4 mb-2 first:mt-0">{inner}</h4>);
       return;
     }
     // Blockquote
@@ -1822,7 +1822,7 @@ function renderInline(text: string): React.ReactNode {
     if (text[i] === '`') {
       const end = text.indexOf('`', i + 1);
       if (end !== -1) {
-        out.push(<code key={key++} className="px-1 py-0.5 rounded bg-slate-100 text-[13px] font-mono">{text.slice(i + 1, end)}</code>);
+        out.push(<code key={key++} className="px-1 py-0.5 rounded bg-white/[0.08] text-bone/85 text-[13px] font-mono">{text.slice(i + 1, end)}</code>);
         i = end + 1;
         continue;
       }

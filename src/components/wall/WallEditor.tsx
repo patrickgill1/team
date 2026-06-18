@@ -6,7 +6,7 @@
 // having to hit view." Output is HTML; posts save with
 // contentFormat: 'tiptap-html'.
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -25,6 +25,13 @@ type Props = {
 };
 
 export default function WallEditor({ value, onChange, placeholder, uploadImage, onUploadingChange }: Props) {
+  // Visible state for the image toolbar button so the user gets
+  // immediate feedback during upload (spinner + disabled) and a
+  // surfaced error if the upload throws. The previous version only
+  // console.error'd, so a failed upload looked like the picker did
+  // nothing — Patrick: "i can't upload a photo on in the editor."
+  const [imgUploading, setImgUploading] = useState(false);
+  const [imgError, setImgError] = useState<string | null>(null);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -98,20 +105,23 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
 
   const insertImage = useCallback(async (file: File) => {
     if (!editor) return;
+    setImgError(null);
+    setImgUploading(true);
     onUploadingChange?.(true);
     try {
       const url = await uploadImage(file);
+      if (!url) throw new Error('Upload returned no URL');
       editor.chain().focus().setImage({ src: url }).run();
-    } catch (err) {
+    } catch (err: any) {
       console.error('[WallEditor] image upload failed', err);
+      setImgError(err?.message || 'Image upload failed. Try again.');
     } finally {
+      setImgUploading(false);
       onUploadingChange?.(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, uploadImage, onUploadingChange]);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const onPickImage = () => fileInputRef.current?.click();
   const onFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (f) void insertImage(f);
@@ -162,15 +172,55 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
         </ToolGroup>
         <ToolGroup>
           <ToolBtn icon={<LinkIcon />} title="Link" active={editor.isActive('link')} onClick={onAddLink} />
-          <ToolBtn icon={<ImageIcon />} title="Image" onClick={onPickImage} />
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onFileChosen} />
+          {/* Image upload — uses a <label>-wrapped <input> so the
+              OS file picker opens reliably on iOS WebView. (The
+              prior version called fileInputRef.current.click()
+              programmatically, which can be silently dropped by
+              Capacitor's WebView depending on version.) */}
+          <label
+            title="Image"
+            className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition text-xs font-bold cursor-pointer ${
+              imgUploading
+                ? 'bg-crimson-500/20 text-crimson-300'
+                : 'text-bone/70 hover:bg-white/[0.06] hover:text-bone'
+            }`}
+          >
+            {imgUploading ? <SpinnerIcon /> : <ImageIcon />}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={imgUploading}
+              onChange={onFileChosen}
+            />
+          </label>
         </ToolGroup>
       </div>
+
+      {imgError && (
+        <div className="px-4 py-2 text-[12px] text-rose-300 bg-rose-500/10 border-b border-rose-400/20 flex items-center justify-between">
+          <span>{imgError}</span>
+          <button
+            type="button"
+            onClick={() => setImgError(null)}
+            className="text-bone/60 hover:text-bone text-[11px] font-bold uppercase tracking-widest"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <EditorContent editor={editor} />
     </div>
   );
 }
+
+const SpinnerIcon = () => (
+  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" strokeOpacity="0.3" />
+    <path strokeLinecap="round" d="M21 12a9 9 0 0 0-9-9" />
+  </svg>
+);
 
 function ToolGroup({ children }: { children: React.ReactNode }) {
   return (

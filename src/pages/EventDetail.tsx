@@ -282,9 +282,10 @@ const EventDetail: React.FC = () => {
   // RSVP aggregation. ROSTER = playerRsvps + authenticated parent rsvps.
   // GUEST = publicRsvps (share-link).
   const buckets = useMemo(() => {
-    if (!event) return { going: [], maybe: [], pending: 0 };
+    if (!event) return { going: [], maybe: [], cant: [], pending: 0 };
     const going: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
     const maybe: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
+    const cant: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
     const seen = new Set<string>();
     const playerR = (event as any).playerRsvps || {};
     for (const pid of Object.keys(playerR)) {
@@ -294,6 +295,7 @@ const EventDetail: React.FC = () => {
       seen.add(key);
       if (r.status === 'going') going.push({ name: r.playerName, playerId: pid, isGuest: false });
       else if (r.status === 'maybe') maybe.push({ name: r.playerName, playerId: pid, isGuest: false });
+      else if (r.status === 'no') cant.push({ name: r.playerName, playerId: pid, isGuest: false });
     }
     // Adult RSVPs (event.rsvps) intentionally NOT included. The going
     // list is the player roster — coaches are obviously there, parents
@@ -310,10 +312,11 @@ const EventDetail: React.FC = () => {
       if (r.matchedPlayerId) entry.matchedPlayerId = r.matchedPlayerId;
       if (r.status === 'going') going.push(entry);
       else if (r.status === 'maybe') maybe.push(entry);
+      else if (r.status === 'no') cant.push(entry);
     }
-    // Pending = roster size minus everyone with a playerRsvp.
+    // Pending = roster size minus everyone with a playerRsvp (any status).
     const pending = Math.max(0, roster.length - Object.keys(playerR).length);
-    return { going, maybe, pending };
+    return { going, maybe, cant, pending };
   }, [event, roster.length]);
 
   // Photo lookup for an RSVP row. Players: roster.photoURL by playerId.
@@ -979,7 +982,7 @@ const EventDetail: React.FC = () => {
             RSVPs
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="relative overflow-hidden rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
             <span className="absolute inset-x-0 top-0 h-0.5 bg-emerald-500" />
             <div className="text-2xl font-black text-emerald-700 leading-none">{buckets.going.length}</div>
@@ -989,6 +992,11 @@ const EventDetail: React.FC = () => {
             <span className="absolute inset-x-0 top-0 h-0.5 bg-amber-500" />
             <div className="text-2xl font-black text-amber-700 leading-none">{buckets.maybe.length}</div>
             <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">MAYBE</div>
+          </div>
+          <div className="relative overflow-hidden rounded-lg bg-rose-50 border border-rose-200 px-3 py-2.5">
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-rose-500" />
+            <div className="text-2xl font-black text-rose-700 leading-none">{buckets.cant.length}</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">CAN'T</div>
           </div>
           <div className="relative overflow-hidden rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
             <span className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />

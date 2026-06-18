@@ -1281,8 +1281,14 @@ export interface WallPost {
   content: string;
   senderId: string;
   senderName: string;
+  /** Avatar snapshotted at post / edit time (matches the chat
+   *  pattern). Falls back to senderName initial if absent. */
+  senderPhotoUrl?: string | null;
   senderRole?: 'coach' | 'parent' | 'admin';
   timestamp: Date;
+  /** Set when a post is edited — surface as "(edited)" beside the
+   *  timestamp so parents know the author updated it. */
+  editedAt?: number | null;
   attachments?: Array<{ url: string; name?: string; type?: string }>;
   reactions?: Array<{ emoji: string; userId: string; userName?: string }>;
   /** Number stored when pinned to top (Date.now() at pin time). Null
@@ -1317,6 +1323,7 @@ export interface WallComment {
   content: string;
   senderId: string;
   senderName: string;
+  senderPhotoUrl?: string | null;
   timestamp: Date;
 }
 

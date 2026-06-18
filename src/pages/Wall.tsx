@@ -131,6 +131,41 @@ const Wall: React.FC = () => {
     setPollOptions(['', '']);
   };
 
+  // Edit mode — when set, the composer modal saves back to this post
+  // via updateDoc instead of creating a new wall_posts doc. Polls
+  // aren't editable here (vote state would need to be merged); the
+  // composer disables the poll toggle while editing.
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+
+  // Per-post action sheet (pin / edit / delete). Replaces the legacy
+  // window.prompt that asked for "1 or 2" — the sheet matches the
+  // chat-action-sheet UX and gives Edit its own home.
+  const [managePostId, setManagePostId] = useState<string | null>(null);
+
+  const userPhotoUrl = (userData?.photoURL || userData?.profilePhotoUrl || null) as string | null;
+
+  // Open the composer pre-populated to edit an existing post.
+  const openEdit = (post: WallPost) => {
+    if (!canManage) return;
+    setEditingPostId(post.id);
+    setComposer(post.content || '');
+    setComposerAttachments(Array.isArray(post.attachments) ? post.attachments.map(a => ({ url: a.url, name: a.name || '', type: a.type || '' })) : []);
+    setComposerCategory((post.category || 'announcement') as WallCategory);
+    setPreviewMode(false);
+    resetPoll();
+    setManagePostId(null);
+    setComposerOpen(true);
+  };
+
+  // Closing the composer should always clear edit mode so the next
+  // open is a clean "New post" — without this, hitting Cancel mid-
+  // edit would leave editingPostId set and the next + tap would
+  // overwrite that post.
+  const closeComposer = () => {
+    setComposerOpen(false);
+    setEditingPostId(null);
+  };
+
   // Vote / unvote on a post's poll. Single-choice (default) means
   // voting on option B removes your vote from option A first.
   const voteOnPoll = async (post: WallPost, optionId: string) => {
@@ -288,8 +323,10 @@ const Wall: React.FC = () => {
           content: data.content || '',
           senderId: data.senderId,
           senderName: data.senderName || 'Coach',
+          senderPhotoUrl: data.senderPhotoUrl || null,
           senderRole: data.senderRole,
           timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
+          editedAt: typeof data.editedAt === 'number' ? data.editedAt : null,
           attachments: Array.isArray(data.attachments) ? data.attachments : undefined,
           reactions: Array.isArray(data.reactions) ? data.reactions : [],
           wallPinnedTop: typeof data.wallPinnedTop === 'number' ? data.wallPinnedTop : null,
@@ -344,6 +381,7 @@ const Wall: React.FC = () => {
             content: data.content || '',
             senderId: data.senderId,
             senderName: data.senderName || 'Friend',
+            senderPhotoUrl: data.senderPhotoUrl || null,
             timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
           };
         });
@@ -384,6 +422,7 @@ const Wall: React.FC = () => {
         content: text,
         senderId: userData.uid,
         senderName: userData.name || 'Friend',
+        senderPhotoUrl: userPhotoUrl,
         timestamp: new Date(),
       });
     } catch (err) {
@@ -417,7 +456,11 @@ const Wall: React.FC = () => {
     }
   };
 
-  // Post a new wall_posts doc. No chat involvement.
+  // Post a new wall_posts doc OR update an existing one when
+  // editingPostId is set. Edits update content / attachments /
+  // category in place and refresh the avatar snapshot — they do NOT
+  // re-send the push, since parents already got pinged on the
+  // original post.
   const handlePost = async () => {
     const content = composer.trim();
     const hasPoll = pollOn && pollQuestion.trim().length > 0 && pollOptions.filter(o => o.trim()).length >= 2;
@@ -425,57 +468,73 @@ const Wall: React.FC = () => {
     setPosting(true);
     setPostError(null);
     try {
-      await addDoc(collection(db, 'wall_posts'), {
-        teamId: selectedTeamId,
-        content,
-        senderId: userData.uid,
-        senderName: userData.name || 'Coach',
-        senderRole: isCoach(userData.role) || (userData as any).isClubAdmin ? 'coach' : 'parent',
-        timestamp: new Date(),
-        attachments: composerAttachments.length > 0 ? composerAttachments : null,
-        reactions: [],
-        wallPinnedTop: null,
-        postedFrom: 'wall',
-        isPublic: false,
-        category: composerCategory,
-        // Only attach a poll if the composer has it ON, a question,
-        // and at least 2 non-empty options. Each option gets a stable
-        // id so vote-toggle updates land on the right one.
-        ...(pollOn && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2
-          ? {
-              poll: {
-                question: pollQuestion.trim(),
-                multi: false,
-                options: pollOptions
-                  .map(t => t.trim())
-                  .filter(t => t.length > 0)
-                  .map((text, i) => ({ id: `o_${Date.now()}_${i}`, text, voters: [] as string[] })),
-              },
-            }
-          : {}),
-      });
+      if (editingPostId) {
+        await updateDoc(doc(db, 'wall_posts', editingPostId), {
+          content,
+          senderName: userData.name || 'Coach',
+          senderPhotoUrl: userPhotoUrl,
+          attachments: composerAttachments.length > 0 ? composerAttachments : null,
+          category: composerCategory,
+          editedAt: Date.now(),
+        });
+      } else {
+        await addDoc(collection(db, 'wall_posts'), {
+          teamId: selectedTeamId,
+          content,
+          senderId: userData.uid,
+          senderName: userData.name || 'Coach',
+          senderPhotoUrl: userPhotoUrl,
+          senderRole: isCoach(userData.role) || (userData as any).isClubAdmin ? 'coach' : 'parent',
+          timestamp: new Date(),
+          attachments: composerAttachments.length > 0 ? composerAttachments : null,
+          reactions: [],
+          wallPinnedTop: null,
+          postedFrom: 'wall',
+          isPublic: false,
+          category: composerCategory,
+          editedAt: null,
+          // Only attach a poll if the composer has it ON, a question,
+          // and at least 2 non-empty options. Each option gets a stable
+          // id so vote-toggle updates land on the right one.
+          ...(pollOn && pollQuestion.trim() && pollOptions.filter(o => o.trim()).length >= 2
+            ? {
+                poll: {
+                  question: pollQuestion.trim(),
+                  multi: false,
+                  options: pollOptions
+                    .map(t => t.trim())
+                    .filter(t => t.length > 0)
+                    .map((text, i) => ({ id: `o_${Date.now()}_${i}`, text, voters: [] as string[] })),
+                },
+              }
+            : {}),
+        });
+      }
+      const wasEdit = !!editingPostId;
       setComposer('');
       setComposerAttachments([]);
       setComposerCategory('announcement');
       resetPoll();
       setPreviewMode(false);
+      setEditingPostId(null);
       try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
       setDraftStatus('idle');
-      // Fire-and-forget push to everyone on the team (except the
-      // poster). Failures are silent so a flaky push tier never
-      // surfaces an error on a successful post.
-      try {
-        const { sendPushToTeam } = await import('../utils/notify');
-        void sendPushToTeam(
-          selectedTeamId,
-          {
-            title: `${userData.name || 'Coach'} posted on the wall`,
-            body: stripMarkdownForPush(content) || 'New announcement',
-            url: '/wall',
-          },
-          { excludeUid: userData.uid },
-        );
-      } catch (e) { console.warn('wall push failed', e); }
+      // Push only fires on NEW posts. Edits silently update — parents
+      // already got pinged on the original.
+      if (!wasEdit) {
+        try {
+          const { sendPushToTeam } = await import('../utils/notify');
+          void sendPushToTeam(
+            selectedTeamId,
+            {
+              title: `${userData.name || 'Coach'} posted on the wall`,
+              body: stripMarkdownForPush(content) || 'New announcement',
+              url: '/wall',
+            },
+            { excludeUid: userData.uid },
+          );
+        } catch (e) { console.warn('wall push failed', e); }
+      }
     } catch (err: any) {
       console.error('wall post failed', err);
       setPostError(err?.message || 'Post failed — try again.');
@@ -678,7 +737,7 @@ const Wall: React.FC = () => {
         {canPost && composerOpen && (
           <div
             className="fixed inset-0 z-40 bg-slate-950/80 animate-fade-in flex items-end sm:items-center justify-center sm:p-4"
-            onClick={() => setComposerOpen(false)}
+            onClick={closeComposer}
           >
             <div
               className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
@@ -688,19 +747,21 @@ const Wall: React.FC = () => {
               <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
                 <button
                   type="button"
-                  onClick={() => setComposerOpen(false)}
+                  onClick={closeComposer}
                   className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white"
                 >
                   Cancel
                 </button>
-                <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">New post</div>
+                <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">
+                  {editingPostId ? 'Edit post' : 'New post'}
+                </div>
                 <button
                   type="button"
-                  onClick={async () => { await handlePost(); if (!postError) setComposerOpen(false); }}
+                  onClick={async () => { await handlePost(); if (!postError) closeComposer(); }}
                   disabled={!composer.trim() || posting}
                   className="text-[11px] font-extrabold tracking-widest uppercase text-cyan-300 hover:text-white disabled:opacity-40"
                 >
-                  {posting ? 'Posting…' : 'Post'}
+                  {posting ? 'Saving…' : (editingPostId ? 'Save' : 'Post')}
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -949,17 +1010,20 @@ const Wall: React.FC = () => {
                     isPinnedTop ? 'ring-2 ring-amber-300' : 'ring-1 ring-slate-200'
                   }`}
                 >
-                  {/* Card header — avatar (initial), name + role, time,
-                      category pill. Mobile-card design, not a desktop
-                      blog post. */}
+                  {/* Card header — avatar, name + role, time, category
+                      pill. Mobile-card design, not a desktop blog
+                      post. Avatar prefers the snapshotted senderPhotoUrl
+                      from the doc; falls back to the current user's
+                      live photo for their own posts (so old posts that
+                      predate the snapshot still show a real photo for
+                      the author viewing them); falls back to the name
+                      initial otherwise. */}
                   <div className="px-4 pt-3.5 pb-3 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-[15px] shrink-0 ${
-                      p.senderRole === 'coach'
-                        ? 'bg-cyan-100 text-cyan-800 ring-1 ring-cyan-200'
-                        : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
-                    }`}>
-                      {(p.senderName || '?').charAt(0).toUpperCase()}
-                    </div>
+                    <PostAvatar
+                      photoUrl={p.senderPhotoUrl || (p.senderId === userData?.uid ? userPhotoUrl : null)}
+                      name={p.senderName}
+                      variant={p.senderRole === 'coach' ? 'coach' : 'parent'}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[15px] font-bold text-slate-900 truncate">{p.senderName}</span>
@@ -969,6 +1033,9 @@ const Wall: React.FC = () => {
                       </div>
                       <div className="text-[12px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                         <span>{p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                        {p.editedAt && (
+                          <span className="italic text-slate-400">· edited</span>
+                        )}
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest ${tone.bg} ${tone.text} ring-1 ${tone.ring}`}>
                           {CATEGORY_LABEL[cat]}
                         </span>
@@ -1102,14 +1169,7 @@ const Wall: React.FC = () => {
                     {canManage && (
                       <button
                         type="button"
-                        onClick={() => {
-                          const action = window.prompt(
-                            `Manage post:\n\n1 = ${isPinnedTop ? 'Unpin' : 'Pin to top'}\n2 = Delete\n\nType 1 or 2:`,
-                            ''
-                          );
-                          if (action === '1') void togglePinTop(p);
-                          if (action === '2') void removePost(p);
-                        }}
+                        onClick={() => setManagePostId(p.id)}
                         aria-label="Manage post"
                         className="w-10 py-2 flex items-center justify-center rounded-lg text-cyan-200/60 hover:text-white active:scale-95"
                       >
@@ -1147,9 +1207,12 @@ const Wall: React.FC = () => {
                         <ul className="space-y-2.5">
                           {commentsForPost.map(c => (
                             <li key={c.id} className="flex items-start gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-cyan-50 ring-1 ring-cyan-100 flex items-center justify-center text-[11px] font-extrabold text-cyan-700 shrink-0">
-                                {(c.senderName || '?').charAt(0).toUpperCase()}
-                              </div>
+                              <PostAvatar
+                                photoUrl={c.senderPhotoUrl || (c.senderId === userData?.uid ? userPhotoUrl : null)}
+                                name={c.senderName}
+                                size="sm"
+                                variant="parent"
+                              />
                               <div className="flex-1 min-w-0">
                                 <div className="rounded-2xl bg-white ring-1 ring-slate-200 px-3 py-2">
                                   <div className="flex items-baseline gap-2">
@@ -1176,9 +1239,12 @@ const Wall: React.FC = () => {
                       )}
                       {userData && (
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-cyan-100 ring-1 ring-cyan-200 flex items-center justify-center text-[11px] font-extrabold text-cyan-800 shrink-0">
-                            {(userData.name || '?').charAt(0).toUpperCase()}
-                          </div>
+                          <PostAvatar
+                            photoUrl={userPhotoUrl}
+                            name={userData.name}
+                            size="sm"
+                            variant={isCoach(userData.role) || (userData as any).isClubAdmin ? 'coach' : 'parent'}
+                          />
                           <div className="flex-1 flex items-center gap-2">
                             <input
                               value={commentDrafts[p.id] || ''}
@@ -1287,6 +1353,119 @@ const Wall: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* Manage-post action sheet — replaces the legacy window.prompt
+          that asked the coach to type 1 or 2. Pin / Edit / Delete in
+          a proper bottom sheet so Edit gets its own home and the dark-
+          navy chrome matches the rest of the app's sheets. */}
+      {managePostId && (() => {
+        const target = posts.find(p => p.id === managePostId);
+        if (!target) return null;
+        const isPinned = !!target.wallPinnedTop;
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+            onClick={() => setManagePostId(null)}
+          >
+            <div
+              className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-b from-slate-950 to-slate-900 px-4 py-3 flex items-center justify-between">
+                <span className="w-12" aria-hidden />
+                <div className="text-xs font-extrabold tracking-widest uppercase text-cyan-300">Manage post</div>
+                <button
+                  type="button"
+                  onClick={() => setManagePostId(null)}
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white"
+                >
+                  Close
+                </button>
+              </div>
+              <ul className="divide-y divide-slate-100">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => { void togglePinTop(target); setManagePostId(null); }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 active:bg-slate-100"
+                  >
+                    <svg className="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <line x1="12" y1="17" x2="12" y2="22" />
+                      <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
+                    </svg>
+                    <span className="text-[15px] font-bold text-slate-900">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(target)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 active:bg-slate-100"
+                  >
+                    <svg className="w-5 h-5 text-cyan-700 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+                    </svg>
+                    <span className="text-[15px] font-bold text-slate-900">Edit post</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => { setManagePostId(null); void removePost(target); }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-rose-50 active:bg-rose-100"
+                  >
+                    <svg className="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                    </svg>
+                    <span className="text-[15px] font-bold text-rose-700">Delete post</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+};
+
+// ── Avatar for wall posts + comments ──────────────────────────
+// Renders an <img> when a senderPhotoUrl is available, otherwise
+// falls back to the original initial-circle treatment. Same look
+// in both spots so post + comment + composer-row read as one.
+
+const PostAvatar: React.FC<{
+  photoUrl?: string | null;
+  name?: string | null;
+  size?: 'sm' | 'md';
+  variant?: 'coach' | 'parent';
+}> = ({ photoUrl, name, size = 'md', variant = 'parent' }) => {
+  const sz = size === 'sm' ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-[15px]';
+  const ring = variant === 'coach' ? 'ring-cyan-200' : 'ring-slate-200';
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name || ''}
+        loading="lazy"
+        className={`${sz} rounded-full object-cover shrink-0 ring-1 ${ring} bg-slate-100`}
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${sz} rounded-full flex items-center justify-center font-extrabold shrink-0 ring-1 ${
+        variant === 'coach'
+          ? 'bg-cyan-100 text-cyan-800 ring-cyan-200'
+          : 'bg-slate-100 text-slate-700 ring-slate-200'
+      }`}
+    >
+      {(name || '?').charAt(0).toUpperCase()}
     </div>
   );
 };

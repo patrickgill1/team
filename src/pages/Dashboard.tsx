@@ -629,38 +629,66 @@ const Dashboard: React.FC = () => {
         {/* The no-event empty state lives in DashboardHero now — no
             second card needed here. */}
 
-        {/* Player card sits full-width when a user has a linked player
-            on this team (parent OR coach-with-kid). */}
+        {/* Tonight's-session pill — was a fat red→charcoal gradient
+            card; Patrick: "needs to be cooler and more efficiently
+            used and also the gradient going to dark, makes it look
+            bad." Redesigned as a dark glass card with a vertical
+            crimson accent bar + subtle glow blob, status pill colored
+            by logged-state, and meta (duration) inline with the
+            eyebrow so the title + focus get full width. ~30% shorter
+            than the original. */}
         {myPlayer && tonightGoal && (
           <Link
             to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-            className="block bg-gradient-to-br from-crimson-600 via-crimson-700 to-charcoal-900 text-white rounded-2xl shadow-lg hover:shadow-xl transition px-5 py-4"
+            className="block group relative overflow-hidden rounded-2xl bg-gradient-to-br from-charcoal-900 via-charcoal-900 to-charcoal-800 ring-1 ring-crimson-500/25 hover:ring-crimson-500/60 transition shadow-lg shadow-crimson-950/40"
           >
-            <div className="flex items-center gap-3">
-              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/15 ring-1 ring-white/30 flex items-center justify-center">
+            {/* Glow blob in the corner gives the card brand presence
+                without pumping the whole surface red. */}
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-crimson-500/15 blur-3xl pointer-events-none" aria-hidden />
+            {/* Vertical accent bar — left edge crimson stripe. */}
+            <div className="absolute inset-y-0 left-0 w-1 bg-crimson-500" aria-hidden />
+
+            <div className="relative pl-5 pr-4 py-3.5 flex items-center gap-3.5">
+              <span
+                className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ring-1 ${
+                  tonightGoal.loggedToday
+                    ? 'bg-emerald-500/15 ring-emerald-400/40 text-emerald-300'
+                    : 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-300'
+                }`}
+              >
                 {tonightGoal.loggedToday ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <svg className="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 )}
               </span>
+
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">
-                  {tonightGoal.loggedToday ? "Today's session logged" : "Tonight's session"}
+                <div className="flex items-center gap-1.5 text-[10px] font-extrabold tracking-widest uppercase text-crimson-400">
+                  <span>{tonightGoal.loggedToday ? 'Logged today' : "Today's session"}</span>
+                  {tonightGoal.durationMinutes != null && (
+                    <>
+                      <span className="text-charcoal-500">·</span>
+                      <span className="text-charcoal-300">{tonightGoal.durationMinutes} min</span>
+                    </>
+                  )}
                 </div>
-                <div className="text-base sm:text-lg font-bold leading-tight truncate">
+                <div className="text-base font-bold text-bone leading-tight truncate mt-0.5">
                   {tonightGoal.goalTitle}
                 </div>
                 {tonightGoal.focus && (
-                  <div className="text-xs opacity-90 mt-0.5 line-clamp-1">Focus: {tonightGoal.focus}</div>
+                  <div className="text-[12px] text-charcoal-300 leading-snug line-clamp-1 mt-0.5">
+                    {tonightGoal.focus}
+                  </div>
                 )}
               </div>
-              <span className="flex-shrink-0 text-right">
-                {tonightGoal.durationMinutes != null && (
-                  <div className="text-xs font-bold opacity-90">{tonightGoal.durationMinutes} min</div>
-                )}
-                <svg className="w-5 h-5 ml-auto mt-1 opacity-80" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-              </span>
+
+              <svg
+                className="w-5 h-5 text-charcoal-400 group-hover:text-crimson-400 transition-colors flex-shrink-0"
+                fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
+              >
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
             </div>
           </Link>
         )}

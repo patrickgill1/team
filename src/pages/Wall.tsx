@@ -10,8 +10,38 @@ import AppIcon from '../components/common/AppIcon';
 import EmptyState from '../components/common/EmptyState';
 import EmojiPicker from '../components/chat/EmojiPicker';
 import WallPollCard from '../components/wall/WallPollCard';
+import WallEditor from '../components/wall/WallEditor';
 import { SkeletonCard } from '../components/common/Skeleton';
+import { marked } from 'marked';
 import type { WallPost, WallComment } from '../types';
+
+// Convert legacy markdown posts to HTML so the TipTap editor can
+// open them for edit. marked() is sync and small (~30kb); we only
+// call it when a user opens an old markdown post for editing.
+function markdownToHTML(md: string): string {
+  try {
+    return marked.parse(md, { async: false }) as string;
+  } catch {
+    return md;
+  }
+}
+
+// Plain-text fallback used by push previews and the dashboard
+// snippet, given an HTML body. Strips tags + collapses whitespace.
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/(p|div|h[1-6]|li|blockquote)>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 const draftKey = (teamId: string | null) => `wall.draft.${teamId || 'unknown'}`;
 
@@ -164,10 +194,16 @@ const Wall: React.FC = () => {
   }, [userData?.uid, userData?.name, posts, comments]);
 
   // Open the composer pre-populated to edit an existing post.
+  // Posts authored after the TipTap editor shipped are stored as
+  // HTML (`contentFormat: 'tiptap-html'`). Posts predating that
+  // store the raw markdown text. We convert markdown → HTML on the
+  // way in so old posts open cleanly in the rich editor.
   const openEdit = (post: WallPost) => {
     if (!canManage) return;
     setEditingPostId(post.id);
-    setComposer(post.content || '');
+    const raw = post.content || '';
+    const isHtml = (post as any).contentFormat === 'tiptap-html';
+    setComposer(isHtml ? raw : markdownToHTML(raw));
     setComposerAttachments(Array.isArray(post.attachments) ? post.attachments.map(a => ({ url: a.url, name: a.name || '', type: a.type || '' })) : []);
     setComposerCategory((post.category || 'announcement') as WallCategory);
     setPreviewMode(false);
@@ -485,15 +521,22 @@ const Wall: React.FC = () => {
   // re-send the push, since parents already got pinged on the
   // original post.
   const handlePost = async () => {
+    // composer now holds HTML emitted by TipTap. We treat an editor
+    // that only contains an empty paragraph as "no content" so an
+    // image-only post (a single <img>) still counts. The plainText
+    // version drives the push notification body + the empty-check.
     const content = composer.trim();
+    const plainText = htmlToPlainText(content);
+    const hasImage = /<img\s/i.test(content);
     const hasPoll = pollOn && pollQuestion.trim().length > 0 && pollOptions.filter(o => o.trim()).length >= 2;
-    if ((!content && composerAttachments.length === 0 && !hasPoll) || !userData || !selectedTeamId || posting) return;
+    if ((!plainText && !hasImage && composerAttachments.length === 0 && !hasPoll) || !userData || !selectedTeamId || posting) return;
     setPosting(true);
     setPostError(null);
     try {
       if (editingPostId) {
         await updateDoc(doc(db, 'wall_posts', editingPostId), {
           content,
+          contentFormat: 'tiptap-html',
           senderName: userData.name || 'Coach',
           senderPhotoUrl: userPhotoUrl,
           attachments: composerAttachments.length > 0 ? composerAttachments : null,
@@ -524,6 +567,7 @@ const Wall: React.FC = () => {
         await addDoc(collection(db, 'wall_posts'), {
           teamId: selectedTeamId,
           content,
+          contentFormat: 'tiptap-html',
           senderId: userData.uid,
           senderName: userData.name || 'Coach',
           senderPhotoUrl: userPhotoUrl,
@@ -571,7 +615,7 @@ const Wall: React.FC = () => {
             selectedTeamId,
             {
               title: `${userData.name || 'Coach'} posted on the wall`,
-              body: stripMarkdownForPush(content) || 'New announcement',
+              body: (plainText.slice(0, 140) || 'New announcement'),
               url: '/wall',
             },
             { excludeUid: userData.uid },
@@ -695,7 +739,7 @@ const Wall: React.FC = () => {
         }
       }
       const r = await uploadToR2(toUpload, 'wall_media');
-      const final = `![](${r.url})`;
+      const final = r.url;
       setComposer(prev => prev.replace(placeholder, final));
       requestAnimationFrame(() => {
         if (!composerRef.current) return;
@@ -710,6 +754,29 @@ const Wall: React.FC = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  // Inline image upload for the TipTap editor — same resize +
+  // R2 pipeline as the legacy handler, but returns just the URL
+  // so WallEditor can insert an Image node at the cursor. No
+  // composer-string mutation here; TipTap handles insertion.
+  const uploadInlineImage = async (file: File): Promise<string> => {
+    let toUpload: File = file;
+    if (!file.type.includes('gif')) {
+      try {
+        const { resizeImage } = await import('../utils/imageResize');
+        const resized = await resizeImage(file, 1600, 0.85);
+        toUpload = new File(
+          [resized.blob],
+          file.name.replace(/\.[a-z0-9]+$/i, '.jpg'),
+          { type: 'image/jpeg' },
+        );
+      } catch (err) {
+        console.warn('[wall] image resize skipped', err);
+      }
+    }
+    const r = await uploadToR2(toUpload, 'wall_media');
+    return r.url;
   };
 
   // Filter feed by selected category pill. 'all' falls through; any
@@ -826,81 +893,23 @@ const Wall: React.FC = () => {
                 </button>
               ))}
             </div>
-            {/* Toolbar — Markdown-style inserts. We use a homegrown
-                tiny syntax to avoid pulling in a 200kb rich editor
-                dep. Old wall clients render the raw markdown text
-                (still readable); new ones render formatted. */}
-            <div className="sticky top-0 z-10 bg-charcoal-900 border-b border-white/5 px-2 py-2 flex items-center gap-0.5 flex-wrap">
-              <ToolGroup>
-                <ToolbarBtn title="Heading 1" onClick={() => insertLinePrefix('# ')} icon={<H1Icon />} />
-                <ToolbarBtn title="Heading 2" onClick={() => insertLinePrefix('## ')} icon={<H2Icon />} />
-              </ToolGroup>
-              <ToolGroup>
-                <ToolbarBtn title="Bold (⌘B)" onClick={() => wrapSelection('**')} icon={<BoldIcon />} />
-                <ToolbarBtn title="Italic (⌘I)" onClick={() => wrapSelection('*')} icon={<ItalicIcon />} />
-                <ToolbarBtn title="Inline code" onClick={() => wrapSelection('`')} icon={<CodeIcon />} />
-              </ToolGroup>
-              <ToolGroup>
-                <ToolbarBtn title="Bullet list" onClick={() => insertLinePrefix('- ')} icon={<BulletIcon />} />
-                <ToolbarBtn title="Numbered list" onClick={() => insertLinePrefix('1. ')} icon={<NumberedIcon />} />
-                <ToolbarBtn title="Quote" onClick={() => insertLinePrefix('> ')} icon={<QuoteIcon />} />
-                <ToolbarBtn title="Divider" onClick={insertHr} icon={<HrIcon />} />
-              </ToolGroup>
-              <ToolGroup>
-                <ToolbarBtn title="Link" onClick={insertLink} icon={<LinkIcon />} />
-                <label className="inline-flex items-center justify-center w-8 h-8 rounded-md text-bone/85 hover:bg-white/[0.08] cursor-pointer" title="Attach image">
-                  {uploading ? <SpinnerIcon /> : <ImageIcon />}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void handleImageUpload(f);
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              </ToolGroup>
-              <div className="flex-1" />
-              <button
-                type="button"
-                onClick={() => setPreviewMode(v => !v)}
-                className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-[11px] font-extrabold uppercase tracking-widest transition ${
-                  previewMode
-                    ? 'bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30'
-                    : 'text-bone/65 hover:bg-white/[0.08]'
-                }`}
-                title={previewMode ? 'Back to edit' : 'Preview'}
-              >
-                {previewMode ? <EditIcon /> : <EyeIcon />}
-                <span>{previewMode ? 'Edit' : 'Preview'}</span>
-              </button>
-            </div>
+            {/* WYSIWYG editor — TipTap. Toolbar lives inside the
+                component. Replaces the old markdown textarea so coaches
+                see bold/italic/lists/images as they type, the way a
+                normal blog post editor works. Old markdown posts
+                still render via RichContent when read; on edit, they
+                convert to HTML via marked() so they open cleanly in
+                the rich editor. Patrick: "if a person chooses bold, it
+                should just show bold." */}
+            <WallEditor
+              value={composer}
+              onChange={setComposer}
+              placeholder="Share an update with the team. Use the toolbar for headings, bold, lists, images, and links."
+              uploadImage={uploadInlineImage}
+              onUploadingChange={setUploading}
+            />
 
             <div className="px-4 sm:px-6 py-4">
-              {previewMode ? (
-                <div className="min-h-[160px]">
-                  {composer.trim() ? (
-                    <article className="prose-wall">
-                      <RichContent text={composer} />
-                    </article>
-                  ) : (
-                    <p className="text-sm text-bone/40 italic">Nothing to preview yet — switch back to Edit and start typing.</p>
-                  )}
-                </div>
-              ) : (
-                <textarea
-                  ref={composerRef}
-                  value={composer}
-                  onChange={(e) => setComposer(e.target.value)}
-                  placeholder="Write a beautiful announcement.&#10;&#10;Use the toolbar above for headings, **bold**, lists, quotes, and links. Long posts welcome — the editor grows with you."
-                  rows={6}
-                  className="w-full px-0 py-0 border-0 focus:outline-none focus:ring-0 text-[16px] leading-relaxed resize-none placeholder:text-bone/40"
-                  style={{ fontSize: '16px', minHeight: '160px' }}
-                />
-              )}
 
               {/* Poll editor — three states depending on edit mode and
                   whether the post already has a poll attached:
@@ -1153,7 +1162,18 @@ const Wall: React.FC = () => {
 
                   {p.content && (
                     <article className="px-4 pb-3 text-bone/90 break-words text-[15.5px] leading-relaxed">
-                      <RichContent text={p.content} />
+                      {(p as any).contentFormat === 'tiptap-html' ? (
+                        <div
+                          className="tiptap-rendered"
+                          // TipTap output is schema-constrained — only
+                          // the nodes/marks our extensions allow are
+                          // ever serialized. No <script>, no inline
+                          // JS, no iframes. Safe to render directly.
+                          dangerouslySetInnerHTML={{ __html: p.content }}
+                        />
+                      ) : (
+                        <RichContent text={p.content} />
+                      )}
                     </article>
                   )}
 

@@ -390,3 +390,88 @@ code {
   .text-hero { font-size: 1.75rem; }
   .btn-primary, .btn-secondary, .btn-success { padding: 10px 16px; font-size: 14px; }
 }
+/* ===== TIPTAP / WALL EDITOR ===== */
+/* Shared styles for both the live editor (.tiptap-wall) and the
+ * read-only rendered output (.tiptap-rendered) on published wall
+ * posts. We target the ProseMirror root via tag selectors inside
+ * either parent so the same content looks identical edited vs.
+ * published. */
+.tiptap-wall, .tiptap-rendered {
+  word-break: break-word;
+}
+.tiptap-wall p, .tiptap-rendered p {
+  margin: 0.5rem 0;
+  line-height: 1.55;
+}
+.tiptap-wall p:first-child, .tiptap-rendered p:first-child { margin-top: 0; }
+.tiptap-wall p:last-child, .tiptap-rendered p:last-child { margin-bottom: 0; }
+.tiptap-wall h1, .tiptap-rendered h1 {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.2;
+  margin: 1rem 0 0.5rem;
+  color: #f3f0eb; /* bone */
+}
+.tiptap-wall h2, .tiptap-rendered h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0.9rem 0 0.4rem;
+  color: #f3f0eb;
+}
+.tiptap-wall ul, .tiptap-rendered ul,
+.tiptap-wall ol, .tiptap-rendered ol {
+  margin: 0.5rem 0;
+  padding-left: 1.4rem;
+}
+.tiptap-wall ul, .tiptap-rendered ul { list-style: disc; }
+.tiptap-wall ol, .tiptap-rendered ol { list-style: decimal; }
+.tiptap-wall li, .tiptap-rendered li { margin: 0.2rem 0; }
+.tiptap-wall li > p, .tiptap-rendered li > p { margin: 0; }
+.tiptap-wall blockquote, .tiptap-rendered blockquote {
+  margin: 0.8rem 0;
+  padding: 0.4rem 0 0.4rem 1rem;
+  border-left: 3px solid rgba(199, 47, 70, 0.6); /* crimson-500/60 */
+  color: rgba(243, 240, 235, 0.7);
+  font-style: italic;
+}
+.tiptap-wall hr, .tiptap-rendered hr {
+  border: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 1rem 0;
+}
+.tiptap-wall code, .tiptap-rendered code {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(243, 240, 235, 0.85);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.tiptap-wall a, .tiptap-rendered a {
+  color: #fda4af; /* crimson-300 ish */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tiptap-wall img, .tiptap-rendered img {
+  border-radius: 0.75rem;
+  margin: 0.75rem 0;
+  max-height: 520px;
+  width: auto;
+  max-width: 100%;
+  display: block;
+}
+.tiptap-wall strong, .tiptap-rendered strong { font-weight: 700; color: #f3f0eb; }
+.tiptap-wall em, .tiptap-rendered em { font-style: italic; }
+.tiptap-wall s, .tiptap-rendered s { text-decoration: line-through; opacity: 0.7; }
+
+/* Placeholder text when editor is empty — uses TipTap's
+ * is-editor-empty class on the first paragraph. */
+.tiptap-wall .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: rgba(243, 240, 235, 0.35);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

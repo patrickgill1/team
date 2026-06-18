@@ -253,8 +253,15 @@ const SimpleAuth: React.FC = () => {
           (env(safe-area-inset-top) + 4rem) pushes the logo out of
           the Dynamic Island shadow zone so it doesn't sit jammed
           against the status bar. */}
-      {/* Ambient gradient orbs */}
-      <div className="pointer-events-none absolute -top-40 -left-32 h-96 w-96 rounded-full bg-crimson-500/20 blur-[120px]" />
+      {/* Ambient gradient orbs. The crimson orb used to sit at
+          -top-40 -left-32 with a 120px blur, which bled red into
+          the WebView's topmost pixels. That made the pure-black
+          AppDelegate native strip above it read as "grey" by
+          simultaneous contrast — Patrick saw a band there. Moved
+          to top-48 so the orb lives below the safe-area zone; the
+          top edge of the WebView is now uniform black and blends
+          seamlessly with the native strip. */}
+      <div className="pointer-events-none absolute top-48 -left-32 h-96 w-96 rounded-full bg-crimson-500/20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-violet-600/20 blur-[140px]" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[100px]" />
       {/* Subtle grid */}

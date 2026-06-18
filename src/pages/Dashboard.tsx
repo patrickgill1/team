@@ -59,11 +59,13 @@ const Dashboard: React.FC = () => {
     focus?: string;
     durationMinutes?: number;
     loggedToday: boolean;
-    /** Last 7 calendar days of practice-log status, oldest first. The
-     *  dashboard strip renders these as filled / outline dots. Sunday
-     *  is flagged separately so the UI can show "rest day" semantics
-     *  (Sundays don't break the streak per computeStreakDays). */
-    lastSeven: { date: Date; logged: boolean; isSunday: boolean }[];
+    /** Current calendar work week (Mon–Sat, 6 entries, oldest first).
+     *  Sunday is intentionally omitted — computeStreakDays skips it
+     *  entirely, so showing 7 dots created an unfillable 7th slot for
+     *  LDS families and overstated the denominator ("X of 7 days"
+     *  when only 6 ever count). Each entry also flags isFuture so the
+     *  card can render upcoming days as dim outlines. */
+    thisWeek: { date: Date; logged: boolean; isFuture: boolean }[];
   } | null>(null);
   // Wall posts = docs in the wall_posts collection (its own surface,
   // separate from chat). The dashboard surfaces the 5 most recent.
@@ -356,13 +358,25 @@ const Dashboard: React.FC = () => {
               const t = l.date?.toDate ? l.date.toDate().getTime() : new Date(l.date).getTime();
               return t >= todayStart;
             });
-            const lastSeven: { date: Date; logged: boolean; isSunday: boolean }[] = [];
-            for (let i = 6; i >= 0; i--) {
-              const d = new Date();
-              d.setHours(0, 0, 0, 0);
-              d.setDate(d.getDate() - i);
+            // Find this week's Monday (treat Sunday as the END of last
+            // week, not the start of this one — week runs Mon→Sat).
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayDow = today.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+            const offsetToMonday = todayDow === 0 ? 6 : todayDow - 1; // Sun→6, Mon→0, Sat→5
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - offsetToMonday);
+            const todayTime = today.getTime();
+            const thisWeek: { date: Date; logged: boolean; isFuture: boolean }[] = [];
+            for (let i = 0; i < 6; i++) {
+              const d = new Date(monday);
+              d.setDate(monday.getDate() + i);
               const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-              lastSeven.push({ date: d, logged: dayKeys.has(k), isSunday: d.getDay() === 0 });
+              thisWeek.push({
+                date: d,
+                logged: dayKeys.has(k),
+                isFuture: d.getTime() > todayTime,
+              });
             }
             setTonightGoal({
               planId: plan.id,
@@ -372,7 +386,7 @@ const Dashboard: React.FC = () => {
               focus: next.focus,
               durationMinutes: next.targetMinutes,
               loggedToday,
-              lastSeven,
+              thisWeek,
             });
             return;
           }
@@ -664,7 +678,7 @@ const Dashboard: React.FC = () => {
             "missed" (the streak algo skips Sundays). */}
         {myPlayer && tonightGoal && (() => {
           const streak = (myPlayer as any)?.currentStreakDays || 0;
-          const loggedCount = tonightGoal.lastSeven.filter(d => d.logged).length;
+          const loggedCount = tonightGoal.thisWeek.filter(d => d.logged).length;
           const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
           return (
             <Link
@@ -696,26 +710,24 @@ const Dashboard: React.FC = () => {
 
                 {/* Row 2: 7 dots + summary count */}
                 <div className="mt-3 flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    {tonightGoal.lastSeven.map((d, i) => (
+                  <div className="flex items-center gap-2">
+                    {tonightGoal.thisWeek.map((d, i) => (
                       <div key={i} className="flex flex-col items-center gap-1">
                         <span className="text-[8px] font-bold tracking-wider text-charcoal-500">
                           {DAY_LETTER[d.date.getDay()]}
                         </span>
-                        {d.isSunday ? (
-                          <span className="w-2 h-2 flex items-center justify-center" aria-label="rest day">
-                            <span className="block w-2 h-[2px] rounded-full bg-charcoal-600" />
-                          </span>
-                        ) : d.logged ? (
+                        {d.logged ? (
                           <span className="w-2 h-2 rounded-full bg-crimson-500 shadow-sm shadow-crimson-500/50" aria-label="logged" />
+                        ) : d.isFuture ? (
+                          <span className="w-2 h-2 rounded-full ring-1 ring-charcoal-700" aria-label="upcoming" />
                         ) : (
-                          <span className="w-2 h-2 rounded-full ring-1 ring-charcoal-600" aria-label="not logged" />
+                          <span className="w-2 h-2 rounded-full ring-1 ring-charcoal-500" aria-label="not logged" />
                         )}
                       </div>
                     ))}
                   </div>
                   <div className="flex-1 text-[11px] text-charcoal-400 truncate">
-                    <span className="text-bone font-bold tabular-nums">{loggedCount}</span> of 7 days
+                    <span className="text-bone font-bold tabular-nums">{loggedCount}</span> of 6 days
                   </div>
                   <svg
                     className="w-4 h-4 text-charcoal-500 group-hover:text-crimson-400 transition-colors flex-shrink-0"

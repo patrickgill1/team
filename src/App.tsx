@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './utils/firebase';
 import { AuthProvider } from './contexts/AuthContext';
@@ -94,6 +94,7 @@ const PageSpinner = () => (
 // Layout component for authenticated pages
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userData, logout } = useAuth();
+  const location = useLocation();
   const [checking, setChecking] = useState(true);
   const [gateReason, setGateReason] = useState<'none' | 'pending-approval' | 'not-linked'>('none');
 
@@ -210,14 +211,22 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
+  // Dashboard bleeds the hero photo UP behind the transparent
+  // chrome (Patrick: "bleed the soccer photo up"), so it skips the
+  // pt-14 offset that other pages need. The hero adds its own
+  // top-padding for the greeting text via DashboardHero's chromePad
+  // prop, so content stays clear of the header.
+  const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   return (
     <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
       <Navigation />
       {/* Main content: offset for desktop sidebar + mobile top/bottom bars */}
       {/* Mobile header is a flat h-14 (no safe-top — native shell
           handles system insets), so pt-14 is exactly the offset
-          we need. Bottom offset accounts for the floating tab bar. */}
-      <main className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0">
+          we need. Bottom offset accounts for the floating tab bar.
+          Dashboard skips pt-14 so the hero photo extends to the
+          top edge under the transparent chrome. */}
+      <main className={`lg:ml-64 ${isDashboardRoute ? 'pt-0' : 'pt-14'} lg:pt-0 pb-20 lg:pb-0`}>
         {/* Mobile-web only: prompt to install the native app. No-ops
             inside Capacitor, on desktop, or after dismissal. */}
         <InstallAppBanner />

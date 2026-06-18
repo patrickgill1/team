@@ -97,7 +97,7 @@ const DashboardHero: React.FC<Props> = ({
       // proportionally fills the screen — on a 1784px tall monitor
       // the stadium photo was rendering as a thin strip with empty
       // dark space below the cards. Mobile keeps its natural height.
-      className="relative overflow-hidden bg-charcoal-950 sm:min-h-[260px] lg:min-h-[360px] xl:min-h-[440px]"
+      className="relative overflow-hidden bg-charcoal-950 min-h-[300px] sm:min-h-[320px] lg:min-h-[420px] xl:min-h-[480px]"
       aria-label={`${greeting}, ${firstName}`}
     >
       {/* Time-of-day stadium photo behind the gradient. img errors are
@@ -116,6 +116,17 @@ const DashboardHero: React.FC<Props> = ({
       )}
       {/* Gradient overlay on top so the greeting text always reads. */}
       <div className={`absolute inset-0 bg-gradient-to-b ${scene.gradient}`} aria-hidden />
+      {/* Chrome-zone darkening: the section now extends to the very
+          top of the WebView (Dashboard skips main's pt-14), so the
+          transparent Navigation header overlays this hero photo.
+          This top-anchored gradient darkens the top ~120px so the
+          wordmark / team chip / icons in the chrome stay readable
+          against any time-of-day photo. Patrick: "bleed the soccer
+          photo up." */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/65 via-black/30 to-transparent pointer-events-none"
+      />
       {/* Soft fade from the bottom of the hero into the page bg
           (slate-950) so the transition into the dashboard content
           area below isn't a hard horizon line. Patrick: "any way to
@@ -134,7 +145,10 @@ const DashboardHero: React.FC<Props> = ({
           desktops the section min-height pushes the bottom edge
           down, so we let the content stretch with the section
           (no absolute positioning) and bump greeting size up at lg+. */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-4 sm:pt-4 sm:pb-5 lg:pt-8 lg:pb-10 h-full flex flex-col justify-end">
+      <div
+        className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-4 sm:pb-5 lg:pb-10 h-full flex flex-col justify-end"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
+      >
         <h1 className="text-base sm:text-lg lg:text-2xl xl:text-3xl font-bold text-white">
           {greeting}, {firstName}!
         </h1>

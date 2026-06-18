@@ -28,6 +28,7 @@ const Navigation: React.FC = () => {
   const { userData, logout, deleteAccount } = useAuth();
   const { teams, selectedTeamId, selectedTeam, setSelectedTeamId } = useTeam();
   const location = useLocation();
+  const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   // isInviteOpen state removed with the legacy modal.
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
@@ -408,8 +409,18 @@ const Navigation: React.FC = () => {
           the blur over the page bg reads as washed-out grey, which
           Patrick called out. Solid navy bleeds into the dark hero
           photos naturally AND looks correct on every other tab. */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-black safe-top">
-        <div className="bg-charcoal-950 flex items-center gap-2 px-3 h-14">
+      {/* On the dashboard, the chrome blends into the stadium hero
+          photo instead of stamping a solid dark band on top of it.
+          Patrick: "after login it looks like the app is incomplete
+          because it is so dark on top. bleed the soccer photo up."
+          Other pages keep the solid bg so chat / wall / events
+          still have a defined chrome edge. */}
+      <header className={`lg:hidden fixed top-0 inset-x-0 z-40 safe-top ${isDashboardRoute ? 'bg-transparent' : 'bg-black'}`}>
+        <div className={`flex items-center gap-2 px-3 h-14 ${
+          isDashboardRoute
+            ? 'bg-gradient-to-b from-black/70 via-black/40 to-transparent backdrop-blur-md'
+            : 'bg-charcoal-950'
+        }`}>
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px
               badge image that read as washed-out at small sizes on
               the dark nav. */}

@@ -20,8 +20,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // default (often dark), and bleeds through the keyboard's
         // rounded-corner blur as the "dark blue" Patrick saw.
         DispatchQueue.main.async {
-            self.window?.backgroundColor = .white
-            self.window?.rootViewController?.view.backgroundColor = .white
+            // crimson-600 (#c8202c) — diagnostic. If the top strip
+            // shows up as ANYTHING other than red after this, then
+            // the navy is being painted by something deeper than the
+            // UIWindow + rootVC view (probably a Capacitor plugin
+            // internal subview). Revert to .white once confirmed.
+            let brand = UIColor(red: 0.784, green: 0.125, blue: 0.173, alpha: 1.0)
+            self.window?.backgroundColor = brand
+            self.window?.rootViewController?.view.backgroundColor = brand
         }
 
         return true

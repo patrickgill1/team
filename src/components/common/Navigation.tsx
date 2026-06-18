@@ -408,8 +408,8 @@ const Navigation: React.FC = () => {
           the blur over the page bg reads as washed-out grey, which
           Patrick called out. Solid navy bleeds into the dark hero
           photos naturally AND looks correct on every other tab. */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-charcoal-950 safe-top">
-        <div className="flex items-center gap-2 px-3 h-14">
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-crimson-600 safe-top">
+        <div className="bg-charcoal-950 flex items-center gap-2 px-3 h-14">
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px
               badge image that read as washed-out at small sizes on
               the dark nav. */}

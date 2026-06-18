@@ -31,7 +31,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         //       seeing was a Capacitor-internal subview we couldn't
         //       reach from the WebView side.
         DispatchQueue.main.async {
-            let brand = UIColor.black // pure black — blends with Dynamic Island, sits below charcoal-950 header without color competition
+            let brand = UIColor(red: 0.549, green: 0.098, blue: 0.133, alpha: 1.0) // crimson-800 #8c1922 — brand chrome at the very top, fades into the dashboard photo bleed below
             self.window?.backgroundColor = brand
             self.window?.rootViewController?.view.backgroundColor = brand
 

@@ -116,14 +116,13 @@ const DashboardHero: React.FC<Props> = ({
       )}
       {/* Gradient overlay on top so the greeting text always reads. */}
       <div className={`absolute inset-0 bg-gradient-to-b ${scene.gradient}`} aria-hidden />
-      {/* Chrome-zone darkening: subtle, just enough to keep the
-          wordmark / icons readable. Earlier version stacked a heavy
-          h-32 from-black/65 overlay on top of the chrome's own dark
-          gradient — Patrick: "still has the big black bar on top."
-          Shrunk + softened so the field is visible much sooner. */}
+      {/* Chrome-zone tinting: subtle crimson at the top of the
+          photo so the field reads as bleeding INTO the crimson
+          chrome above it, not under a hard black band. Soft enough
+          that the field is clearly visible by ~80px down. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/30 to-transparent pointer-events-none"
+        className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-crimson-900/40 to-transparent pointer-events-none"
       />
       {/* Soft fade from the bottom of the hero into the page bg
           (slate-950) so the transition into the dashboard content

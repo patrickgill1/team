@@ -158,7 +158,7 @@ const People: React.FC = () => {
             uid: u.uid,
             name: u.name || (u.email || 'Unknown'),
             email: u.email,
-            photoURL: u.photoURL,
+            photoURL: u.photoURL || u.profilePhotoUrl,
             role,
             teamIds: intersect,
             isActive: u.isActive !== false,

@@ -140,7 +140,11 @@ const Dashboard: React.FC = () => {
         const map: Record<string, string> = {};
         for (const u of allUsers as any[]) {
           const uid = u?.uid || u?.id;
-          if (uid && u?.photoURL) map[uid] = u.photoURL;
+          // Google sign-up users have profilePhotoUrl (OAuth avatar)
+          // but no photoURL (no manual Settings upload). Fall back so
+          // their photos render in Recent Chats DM rows.
+          const photo = u?.photoURL || u?.profilePhotoUrl;
+          if (uid && photo) map[uid] = photo;
         }
         setUserPhotoMap(map);
       } catch { /* fallback to colored initials — not fatal */ }

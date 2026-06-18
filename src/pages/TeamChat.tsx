@@ -861,7 +861,7 @@ const TeamChat: React.FC = () => {
             name: u.name,
             role: u.role,
             email: (u.email || '').trim().toLowerCase(),
-            photoURL: u.photoURL,
+            photoURL: u.photoURL || u.profilePhotoUrl,
             childNames: childrenByParent.get(u.uid || u.id) || [],
           }));
         setTeamMembers(filtered);

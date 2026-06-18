@@ -408,7 +408,7 @@ const Navigation: React.FC = () => {
           the blur over the page bg reads as washed-out grey, which
           Patrick called out. Solid navy bleeds into the dark hero
           photos naturally AND looks correct on every other tab. */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-charcoal-800 safe-top">
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-black safe-top">
         <div className="bg-charcoal-950 flex items-center gap-2 px-3 h-14">
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px
               badge image that read as washed-out at small sizes on
@@ -455,7 +455,7 @@ const Navigation: React.FC = () => {
             <Link
               to="/settings"
               aria-label="Settings"
-              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-crimson-400 to-crimson-400 ring-2 ring-crimson-500 ring-offset-2 ring-offset-charcoal-950 shadow-lg shadow-crimson-900/40"
+              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-crimson-400 to-crimson-400 ring-1 ring-white/20"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />

@@ -1161,6 +1161,23 @@ const MyPlayerCard: React.FC<{
       default: return 'bg-slate-400';
     }
   })();
+  // Position-themed accent. Each player's card gets a subtle aura
+  // in their role's color — defender = sky, goalkeeper = amber,
+  // midfielder = emerald, forward = rose, winger = orange. Reads
+  // as "this card belongs to Hunter" instead of "generic dark
+  // card." Same color palette already used by positionDot above so
+  // the card and the position pill feel like one system.
+  const positionAccent = (() => {
+    switch (position) {
+      case 'Goalkeeper': return { ring: 'ring-amber-500/40', shadow: 'shadow-amber-500/25', blob: 'bg-amber-500/20' };
+      case 'Defender':   return { ring: 'ring-sky-500/40',   shadow: 'shadow-sky-500/25',   blob: 'bg-sky-500/20' };
+      case 'Midfielder': return { ring: 'ring-emerald-500/40', shadow: 'shadow-emerald-500/25', blob: 'bg-emerald-500/20' };
+      case 'Forward':
+      case 'Striker':    return { ring: 'ring-rose-500/40',  shadow: 'shadow-rose-500/25',  blob: 'bg-rose-500/20' };
+      case 'Winger':     return { ring: 'ring-orange-500/40', shadow: 'shadow-orange-500/25', blob: 'bg-orange-500/20' };
+      default:           return { ring: 'ring-white/10',     shadow: 'shadow-black/30',     blob: 'bg-white/5' };
+    }
+  })();
   // POTM-of-the-week treatment — the whole card goes gold. Bright
   // saturated gradient, thick gold ring, glow shadow, animated
   // shimmer stripe, and a "PLAYER OF THE MATCH" banner across the
@@ -1168,13 +1185,13 @@ const MyPlayerCard: React.FC<{
   // profile on the dashboard in gold when they get POTM."
   const cardBg = isPotm
     ? 'bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-500 ring-4 ring-amber-300/80 shadow-2xl shadow-amber-500/50'
-    : 'bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ring-white/10';
+    : `bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ${positionAccent.ring}`;
   const accentText = isPotm ? 'text-amber-50' : 'text-white/70';
   const subText = isPotm ? 'text-amber-100/80' : 'text-white/60';
   return (
     <Link
       to={`/player/${player.id}`}
-      className={`relative overflow-hidden rounded-2xl text-white shadow-lg hover:shadow-xl active:scale-[0.995] transition flex ${cardBg}`}
+      className={`relative overflow-hidden rounded-2xl text-white shadow-xl ${isPotm ? '' : positionAccent.shadow} hover:shadow-2xl active:scale-[0.995] transition flex ${cardBg}`}
     >
       {/* POTM banner across the very top of the card. Black text on
           a deeper amber strip keeps it readable against the bright
@@ -1202,6 +1219,17 @@ const MyPlayerCard: React.FC<{
         >
           <div className="absolute -inset-y-2 -inset-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent rotate-12 potm-shimmer" />
         </div>
+      )}
+      {/* Position-themed aura blob — soft blurred color in the top-
+          left corner that bleeds into the card. Defender = sky,
+          goalie = amber, etc. Subtle (20% opacity + blur) so it
+          reads as ambient color, not a strong overlay. Skipped for
+          POTM since the gold gradient is already busy enough. */}
+      {!isPotm && (
+        <div
+          aria-hidden
+          className={`absolute -top-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none ${positionAccent.blob}`}
+        />
       )}
       {/* Subtle Fire FC logo watermark on the right */}
       <img

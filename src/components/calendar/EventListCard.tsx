@@ -306,7 +306,7 @@ const EventListCard: React.FC<Props> = ({
             <Icon name="chat" className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
             <div className="text-left">
               <div className="text-[12px] font-black text-bone leading-none tabular-nums">{eventChatUnread}</div>
-              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">New</div>
+              <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Comments</div>
             </div>
           </div>
         </div>

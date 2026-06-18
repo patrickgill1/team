@@ -99,6 +99,12 @@ const Calendar: React.FC<CalendarProps> = ({
   const { getDocuments, addDocument, updateDocument } = useFirestore();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  // eventId → total comment count on this team. Powers the
+  // 'COMMENTS' chip on each event card. Patrick: 'I don't want a
+  // button that doesn't do anything. I think the most helpful
+  // thing would to show how many comments have been made on that
+  // specific event.'
+  const [commentCountByEventId, setCommentCountByEventId] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'month' | 'list'>(initialViewMode);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -128,6 +134,36 @@ const Calendar: React.FC<CalendarProps> = ({
   // playerId -> profilePhotoUrl for every player on the team. Drives
   // avatars in the attendee modal for the per-kid RSVPs.
   const [playerPhotoMap, setPlayerPhotoMap] = useState<Record<string, string>>({});
+  // Live subscription to eventComments for this team — build a
+  // {eventId → count} map for the event-list 'COMMENTS' chip. One
+  // collection-scoped onSnapshot, group client-side. Cheap because
+  // every team only has a few events worth of comments at a time.
+  useEffect(() => {
+    if (!selectedTeamId) { setCommentCountByEventId({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { collection, onSnapshot, query, where } = await import('firebase/firestore');
+      const q = query(collection(db, 'eventComments'), where('teamId', '==', selectedTeamId));
+      const unsub = onSnapshot(q, (snap) => {
+        if (cancelled) return;
+        const counts: Record<string, number> = {};
+        snap.forEach(d => {
+          const eid = (d.data() as any).eventId;
+          if (eid) counts[eid] = (counts[eid] || 0) + 1;
+        });
+        setCommentCountByEventId(counts);
+      });
+      // Return cleanup via a ref-style closure since this useEffect
+      // runs the async loader inline.
+      (Calendar as any)._commentUnsub = unsub;
+    })();
+    return () => {
+      cancelled = true;
+      const unsub = (Calendar as any)._commentUnsub;
+      if (typeof unsub === 'function') unsub();
+    };
+  }, [selectedTeamId]);
+
   useEffect(() => {
     if (!userData?.uid || !selectedTeamId) { setMyLinkedPlayers([]); return; }
     let cancelled = false;
@@ -785,6 +821,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     goingPreview={p.going.slice(0, 6)}
                     arriveText={p.arriveText}
                     arriveLabel={p.arriveLabel}
+                    eventChatUnread={commentCountByEventId[event.id] || 0}
                   />
                 </div>
               );

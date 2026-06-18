@@ -414,7 +414,11 @@ const Navigation: React.FC = () => {
               badge image that read as washed-out at small sizes on
               the dark nav. */}
           <Link to="/dashboard" className="shrink-0 inline-flex items-center" aria-label="GoalKickr home">
-            <span className="text-bone font-black tracking-tight text-base">GoalKickr</span>
+            <img
+              src="/images/logo-wordmark.png"
+              alt="GoalKickr"
+              className="h-7 w-auto"
+            />
           </Link>
 
           {/* Team switcher — single tappable chip. Tap to open the
@@ -460,18 +464,18 @@ const Navigation: React.FC = () => {
         </div>
       </header>
 
-      {/* Team-switcher sheet — replaces the native <select> chip
-          with a proper bottom sheet on mobile (centered modal on
-          desktop). One row per team, current one highlighted, big
-          tap target. Closing on dim-tap or 'Close' button. */}
+      {/* Team-switcher sheet — drops down from the top of the screen
+          so it visually attaches to the chip in the nav that opens
+          it. Was originally sliding up from the bottom, which felt
+          disconnected from the tap target. */}
       {teamSwitcherOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/55 flex items-end justify-center animate-fade-in"
+          className="lg:hidden fixed inset-0 z-50 bg-black/55 flex items-start justify-center animate-fade-in"
           onClick={() => setTeamSwitcherOpen(false)}
         >
           <div
-            className="bg-charcoal-900 w-full rounded-t-2xl shadow-2xl overflow-hidden animate-sheet-up"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            className="bg-charcoal-900 w-full rounded-b-2xl shadow-2xl overflow-hidden animate-sheet-down"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">

@@ -289,6 +289,11 @@ code {
 .animate-fade-in { animation: fadeIn 0.18s ease-out; }
 .animate-slide-up { animation: slideUp 0.3s ease-out; }
 .animate-sheet-up { animation: sheetUp 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-sheet-down { animation: sheetDown 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
+@keyframes sheetDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .animate-pop-in { animation: popIn 0.18s cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-slide-in-right { animation: slideInRight 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-slide-out-right { animation: slideOutRight 0.18s cubic-bezier(0.4, 0, 1, 1); }

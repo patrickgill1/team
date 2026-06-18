@@ -49,7 +49,7 @@ const config: CapacitorConfig = {
       // ready, leaving an ugly gap.
       launchShowDuration: 10000,
       autoHide: false,
-      backgroundColor: '#8c1922',
+      backgroundColor: '#1f2024',
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true,

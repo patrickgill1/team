@@ -31,7 +31,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         //       seeing was a Capacitor-internal subview we couldn't
         //       reach from the WebView side.
         DispatchQueue.main.async {
-            let brand = UIColor(red: 0.549, green: 0.098, blue: 0.133, alpha: 1.0) // crimson-800 #8c1922
+            let brand = UIColor(red: 0.122, green: 0.125, blue: 0.141, alpha: 1.0) // charcoal-800 #1f2024
             self.window?.backgroundColor = brand
             self.window?.rootViewController?.view.backgroundColor = brand
 

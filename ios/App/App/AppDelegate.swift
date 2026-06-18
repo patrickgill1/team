@@ -12,42 +12,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Capacitor Firebase plugins (Auth, Messaging) can find their config.
         FirebaseApp.configure()
 
-        // Force the window + root view controller backgrounds to white.
-        // Capacitor's ios.backgroundColor only paints the WKWebView itself;
-        // when Keyboard.resize: 'native' shrinks the WebView the area
-        // BEHIND the keyboard belongs to these parent views, not the
-        // WebView. Without this override that area renders in the iOS
-        // default (often dark), and bleeds through the keyboard's
-        // rounded-corner blur as the "dark blue" Patrick saw.
-        // Brand color paint at every layer we can reach. Hit:
-        //   (1) UIWindow.backgroundColor — fallback when WebView shrinks
-        //   (2) rootViewController.view.backgroundColor — same
-        //   (3) A native UIView pinned at the very top of the window,
-        //       ABOVE every Capacitor plugin's subview, painting the
-        //       safe-area-inset-top region directly. This is the only
-        //       way to guarantee a color in that region on iOS 17+ —
-        //       Capacitor's StatusBar plugin can't paint there
-        //       regardless of overlay mode, and the navy Patrick kept
-        //       seeing was a Capacitor-internal subview we couldn't
-        //       reach from the WebView side.
+        // Window + root view controller backgrounds painted black as
+        // a defensive fallback ONLY. Capacitor's StatusBar plugin
+        // runs in overlay mode (see nativeShell.ts) so the WebView
+        // extends edge-to-edge of the screen, including under the
+        // notch / Dynamic Island. Each React page paints its own
+        // safe-area-inset-top region via its container bg — that's
+        // the source of truth for the top color, and lets us pick a
+        // different color per page (crimson on dashboard, gradient
+        // on login, etc.). These window/rootVC colors only become
+        // visible if the WebView temporarily shrinks (e.g. during a
+        // native keyboard resize), so black is a safe baseline.
+        //
+        // The earlier implementation added a top UIView strip that
+        // painted the safe-area region from Swift. It worked but
+        // forced ONE color for the strip app-wide — no way to vary
+        // it per route without a native bridge. Removed in favor of
+        // per-page React control. Patrick confirmed 2026-06-18.
         DispatchQueue.main.async {
-            let brand = UIColor(red: 0.549, green: 0.098, blue: 0.133, alpha: 1.0) // crimson-800 #8c1922 — brand chrome at the very top, fades into the dashboard photo bleed below
-            self.window?.backgroundColor = brand
-            self.window?.rootViewController?.view.backgroundColor = brand
-
-            if let window = self.window {
-                let topStrip = UIView()
-                topStrip.backgroundColor = brand
-                topStrip.translatesAutoresizingMaskIntoConstraints = false
-                window.addSubview(topStrip)
-                NSLayoutConstraint.activate([
-                    topStrip.leadingAnchor.constraint(equalTo: window.leadingAnchor),
-                    topStrip.trailingAnchor.constraint(equalTo: window.trailingAnchor),
-                    topStrip.topAnchor.constraint(equalTo: window.topAnchor),
-                    topStrip.bottomAnchor.constraint(equalTo: window.safeAreaLayoutGuide.topAnchor),
-                ])
-                window.bringSubviewToFront(topStrip)
-            }
+            let baseline = UIColor.black
+            self.window?.backgroundColor = baseline
+            self.window?.rootViewController?.view.backgroundColor = baseline
         }
 
         return true

@@ -708,70 +708,117 @@ const EventDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-crimson-500/10 px-4 sm:px-6 pt-4 pb-5">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center hover:bg-white/10"
-            aria-label="Back"
-          >
-            <Icon name="arrow-left" className="w-4 h-4" />
-          </button>
-          {countdown && (
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-extrabold tracking-widest uppercase ${countdownClass}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${pulseClass}`} />
-              {countdown.label}
-            </span>
-          )}
-          {isUserCoach ? (
+      {/* HERO — cinematic full-bleed treatment per v9 mockup. Ball-in-
+          net photo lives on the right edge with a left-to-right
+          gradient that fades it to near-black behind the copy, so the
+          eyebrow / title / meta stay legible without a heavy overlay
+          flattening the image. Same hero on every event by design
+          ('feel free to push back' → 'yeah, i agree. same photo for
+          every event'). */}
+      <section className="relative overflow-hidden bg-charcoal-950 border-b border-crimson-500/10">
+        {/* Background photo, right-anchored. object-right keeps the
+            soccer ball in the visible portion when the section is
+            wide; on phone widths the gradient eats the left half
+            anyway so the image presence comes through as a glow on
+            the right side. */}
+        <img
+          src="/images/event-hero.jpg"
+          alt=""
+          aria-hidden
+          className="absolute inset-0 w-full h-full object-cover object-right opacity-90"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+        {/* Left-to-right fade so text reads. The 70% stop sits past
+            the title column, so the photo retains its right-edge
+            presence and isn't washed flat. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-r from-charcoal-950 via-charcoal-950/85 to-charcoal-950/30"
+        />
+        {/* Bottom fade into the page so the hero doesn't sit on a
+            hard horizon line. */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-charcoal-900 pointer-events-none"
+        />
+
+        <div className="relative px-4 sm:px-6 pt-4 pb-6">
+          {/* Top chrome row: back · countdown pill · edit. Pill is
+              dead-center so it reads as the event's status badge. */}
+          <div className="flex items-center justify-between mb-5">
             <button
-              onClick={() => setIsEditOpen(true)}
-              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center hover:bg-white/10"
-              aria-label="Edit event"
+              onClick={() => navigate(-1)}
+              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur ring-1 ring-white/15 text-white flex items-center justify-center hover:bg-white/15"
+              aria-label="Back"
             >
-              <Icon name="edit" className="w-4 h-4" />
+              <Icon name="arrow-left" className="w-4 h-4" />
             </button>
-          ) : (
-            <span className="w-9 h-9" aria-hidden />
-          )}
-        </div>
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-extrabold tracking-widest uppercase ${colors.chip}`}>
-          {event.type}
-        </span>
-        <h1 className="mt-1 text-2xl sm:text-3xl font-black text-white leading-tight">
-          {event.title}
-        </h1>
-        <p className="mt-2 text-sm text-slate-300 flex items-center gap-1.5 flex-wrap">
-          <span className="inline-flex items-center gap-1"><Icon name="cal" className="w-3 h-3 text-slate-400" /> {eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-          <span className="text-slate-600">·</span>
-          <span className="inline-flex items-center gap-1"><Icon name="clock" className="w-3 h-3 text-slate-400" /> {formatTimeRange(eventDate, eventEnd)}</span>
-          {event.location && <>
-            <span className="text-slate-600">·</span>
-            <a
-              href={mapsUrl({
-                name: event.location,
-                address: (event as any).locationAddress,
-                lat: (event as any).locationCoords?.lat,
-                lon: (event as any).locationCoords?.lon,
-              })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-crimson-400 hover:text-bone underline decoration-dotted underline-offset-2"
-              title="Open in Maps"
-            >
-              <Icon name="pin" className="w-3 h-3" /> {event.location}
-            </a>
-          </>}
-          {(event as any).fieldNumber && (
-            <>
-              <span className="text-slate-600">·</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-crimson-500/15 text-bone text-[11px] font-extrabold tracking-widest uppercase">
-                {(event as any).fieldNumber}
+            {countdown && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-extrabold tracking-widest uppercase ${countdownClass}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${pulseClass}`} />
+                {countdown.label}
               </span>
-            </>
-          )}
-        </p>
+            )}
+            {isUserCoach ? (
+              <button
+                onClick={() => setIsEditOpen(true)}
+                className="w-9 h-9 rounded-full bg-white/10 backdrop-blur ring-1 ring-white/15 text-white flex items-center justify-center hover:bg-white/15"
+                aria-label="Edit event"
+              >
+                <Icon name="edit" className="w-4 h-4" />
+              </button>
+            ) : (
+              <span className="w-9 h-9" aria-hidden />
+            )}
+          </div>
+
+          {/* Eyebrow + title + meta — sit on the left column. The
+              max-w cap keeps the title from running into the right-
+              edge photo on tablets/desktop. */}
+          <div className="max-w-[78%]">
+            <span className="inline-block text-[11px] font-extrabold tracking-widest uppercase text-crimson-400">
+              {event.type}
+            </span>
+            <h1 className="mt-1 text-3xl sm:text-4xl font-black text-bone leading-[1.05] tracking-tight">
+              {event.title}
+            </h1>
+            <p className="mt-3 text-[13.5px] text-charcoal-200 flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="cal" className="w-3.5 h-3.5 text-crimson-400" />
+                {eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+              </span>
+              <span className="text-charcoal-500">·</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="clock" className="w-3.5 h-3.5 text-crimson-400" />
+                {formatTimeRange(eventDate, eventEnd)}
+              </span>
+            </p>
+            {event.location && (
+              <a
+                href={mapsUrl({
+                  name: event.location,
+                  address: (event as any).locationAddress,
+                  lat: (event as any).locationCoords?.lat,
+                  lon: (event as any).locationCoords?.lon,
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex items-center gap-1.5 text-[13.5px] text-crimson-400 hover:text-crimson-300 underline decoration-dotted underline-offset-2"
+                title="Open in Maps"
+              >
+                <Icon name="pin" className="w-3.5 h-3.5" />
+                {event.location}
+              </a>
+            )}
+            {(event as any).fieldNumber && (
+              <div className="mt-2">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30 text-[10px] font-extrabold tracking-widest uppercase">
+                  {(event as any).fieldNumber}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* CANCELLED banner — shown to everyone when the event has been

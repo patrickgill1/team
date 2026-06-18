@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
 import type { WallPost } from '../../types';
 
 interface Props {
@@ -10,7 +12,9 @@ interface Props {
   /** Coach / admin gate. When true, "See voters" button opens a
    *  per-option voter list. Hidden for parents. */
   canSeeVoters?: boolean;
-  /** uid → display name lookup. Used by the voter list. */
+  /** Optional uid → display name fast-path. The component will still
+   *  look up any missing names from Firestore when the voter sheet
+   *  opens, so passing this is purely a latency optimization. */
   getUserName?: (uid: string) => string | undefined;
 }
 
@@ -20,12 +24,53 @@ interface Props {
 // showing who voted for what.
 const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVoters, getUserName }) => {
   const [votersOpen, setVotersOpen] = useState(false);
+  // Name cache for the voter sheet. Seeded from the fast-path
+  // getUserName prop; misses are fetched once when the sheet opens.
+  const [names, setNames] = useState<Record<string, string>>({});
+  const resolveName = (uid: string): string => {
+    if (names[uid]) return names[uid];
+    const hit = getUserName?.(uid);
+    return hit || 'Member';
+  };
 
   const totalVoters = new Set<string>();
   for (const o of poll.options) for (const u of o.voters) totalVoters.add(u);
   const totalVotes = poll.multi
     ? poll.options.reduce((s, o) => s + o.voters.length, 0)
     : totalVoters.size;
+
+  // Lazy-fetch user names when the voter sheet opens. Polls store
+  // only uids on each option, so without this lookup the list shows
+  // uid prefixes ("NFLDIfrn"). One getDoc per missing voter; cached
+  // in component state so a re-open doesn't re-fetch.
+  useEffect(() => {
+    if (!votersOpen) return;
+    const missing = Array.from(totalVoters).filter(uid => !names[uid] && !getUserName?.(uid));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(missing.map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          if (!snap.exists()) return [uid, 'Member'] as const;
+          const data = snap.data() as any;
+          return [uid, (data?.name as string) || 'Member'] as const;
+        } catch {
+          return [uid, 'Member'] as const;
+        }
+      }));
+      if (cancelled) return;
+      setNames(prev => {
+        const next = { ...prev };
+        for (const [uid, name] of entries) next[uid] = name;
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+    // totalVoters is a fresh Set each render — depend on its size
+    // and the open flag to re-run when needed without infinite loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [votersOpen, totalVoters.size]);
 
   return (
     <div className="mx-4 mb-3 rounded-2xl ring-1 ring-cyan-200 bg-cyan-50/40 px-3.5 py-3">
@@ -63,9 +108,9 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
                 className={`absolute inset-y-0 left-0 ${mine ? 'bg-cyan-100' : 'bg-cyan-50'} transition-all`}
                 style={{ width: `${pct}%` }}
               />
-              <span className="relative flex items-center justify-between gap-2">
-                <span className="font-semibold text-[14.5px] truncate">{opt.text}</span>
-                <span className="text-[12px] font-bold tabular-nums text-slate-600 shrink-0">
+              <span className="relative flex items-start justify-between gap-3">
+                <span className="font-semibold text-[14.5px] leading-snug break-words min-w-0">{opt.text}</span>
+                <span className="text-[12px] font-bold tabular-nums text-slate-600 shrink-0 pt-0.5">
                   {pct}% · {opt.voters.length}
                 </span>
               </span>
@@ -106,9 +151,9 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
             <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
               {poll.options.map(opt => (
                 <div key={opt.id} className="border-b border-slate-100 last:border-b-0">
-                  <div className="px-4 py-2 bg-slate-50 flex items-center justify-between">
-                    <span className="font-bold text-[14px] text-slate-900">{opt.text}</span>
-                    <span className="text-[12px] text-slate-500 font-semibold">{opt.voters.length}</span>
+                  <div className="px-4 py-2 bg-slate-50 flex items-start justify-between gap-3">
+                    <span className="font-bold text-[14px] text-slate-900 leading-snug break-words min-w-0">{opt.text}</span>
+                    <span className="text-[12px] text-slate-500 font-semibold shrink-0 pt-0.5">{opt.voters.length}</span>
                   </div>
                   {opt.voters.length === 0 ? (
                     <div className="px-4 py-2 text-[12px] text-slate-400 italic">No votes</div>
@@ -116,7 +161,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
                     <ul>
                       {opt.voters.map(uid => (
                         <li key={uid} className="px-4 py-2 text-[14px] text-slate-700">
-                          {getUserName?.(uid) || uid.slice(0, 8)}
+                          {resolveName(uid)}
                         </li>
                       ))}
                     </ul>

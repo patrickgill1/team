@@ -144,6 +144,21 @@ const Wall: React.FC = () => {
 
   const userPhotoUrl = (userData?.photoURL || userData?.profilePhotoUrl || null) as string | null;
 
+  // Fast-path uid → name lookup for the poll voter sheet. Built
+  // from data we already have in memory (current user + every
+  // post / comment author on screen). The poll card lazy-fetches
+  // any uid not in this map, so callers don't need exhaustive
+  // coverage — this just avoids unnecessary Firestore reads for
+  // people who've already shown up on this page.
+  const knownNameByUid = React.useCallback((uid: string): string | undefined => {
+    if (userData?.uid === uid) return userData.name || undefined;
+    for (const p of posts) if (p.senderId === uid && p.senderName) return p.senderName;
+    for (const list of Object.values(comments)) {
+      for (const c of list) if (c.senderId === uid && c.senderName) return c.senderName;
+    }
+    return undefined;
+  }, [userData?.uid, userData?.name, posts, comments]);
+
   // Open the composer pre-populated to edit an existing post.
   const openEdit = (post: WallPost) => {
     if (!canManage) return;
@@ -1061,6 +1076,7 @@ const Wall: React.FC = () => {
                       currentUserId={userData?.uid || ''}
                       onVote={(optionId) => void voteOnPoll(p, optionId)}
                       canSeeVoters={canManage}
+                      getUserName={knownNameByUid}
                     />
                   )}
 

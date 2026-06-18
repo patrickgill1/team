@@ -734,8 +734,11 @@ const Calendar: React.FC<CalendarProps> = ({
           }}
         />
 
-        {/* Event card list */}
-        <div className="bg-gradient-to-b from-charcoal-800 to-slate-700 px-3 py-3.5 space-y-2.5 min-h-[200px]">
+        {/* Event card list — solid charcoal-950 (the darkest brand
+            stop) so the charcoal-900 cards above always read as
+            visibly lifted blocks instead of blending into the
+            container as scroll position moves under them. */}
+        <div className="bg-charcoal-950 px-3 py-3.5 space-y-3 min-h-[200px]">
           {showing.length === 0 ? (
             <div className="bg-white rounded-xl ring-1 ring-gray-200 p-8 text-center">
               <p className="text-gray-600 font-medium text-sm">

@@ -156,7 +156,7 @@ const EventListCard: React.FC<Props> = ({
   return (
     <Link
       to={`/events/${event.id}`}
-      className={`relative block overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/5 hover:ring-crimson-500/40 transition shadow-lg ${cancelled ? 'opacity-60' : ''}`}
+      className={`relative block overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-500/50 transition shadow-xl shadow-black/40 ${cancelled ? 'opacity-60' : ''}`}
     >
       {/* Left-edge accent stripe, color from event type. Cancelled
           events go neutral grey so the card reads as "not happening". */}

@@ -71,7 +71,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
   const requests = posts.filter(p => p.type === 'request');
 
   return (
-    <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+    <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
           <Icon name="car" className="w-3 h-3 text-crimson-500" />

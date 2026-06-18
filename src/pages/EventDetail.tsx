@@ -853,7 +853,7 @@ const EventDetail: React.FC = () => {
       {isUserCoach && roster.length > 0 && (() => {
         const goingCount = Object.values(((event as any).playerRsvps || {})).filter((r: any) => r?.status === 'going').length;
         return (
-          <section className="bg-white border-b border-slate-200">
+          <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden">
             <button
               type="button"
               onClick={() => setAttendanceOpen(o => !o)}
@@ -951,7 +951,7 @@ const EventDetail: React.FC = () => {
           per player above; coaches don't need to mark themselves going
           (they obviously are) and parents follow their kids. This row
           is just Share + Cancel/Restore now. */}
-      <div className={`bg-slate-50 px-4 sm:px-6 py-3 grid ${isUserCoach ? 'grid-cols-2' : 'grid-cols-1'} gap-2 border-b border-slate-200`}>
+      <div className={`bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid ${isUserCoach ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
         <button
           onClick={handleShare}
           className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 text-xs font-bold tracking-wider uppercase hover:border-crimson-400"

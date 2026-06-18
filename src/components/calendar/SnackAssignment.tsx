@@ -88,7 +88,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <div className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">
           Snacks

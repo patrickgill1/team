@@ -583,7 +583,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950">
+    <div className="relative min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
       {/* Stadium hero — navy scene with floodlights that toggle on
           at dusk/night, a faint pitch silhouette, and the day's
           most important glance-able info (next-event RSVP count,

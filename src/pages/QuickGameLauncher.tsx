@@ -16,7 +16,7 @@ const QuickGameLauncher: React.FC = () => {
 
   if (!isCoach(userData?.role || '')) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 text-white flex items-center justify-center p-6">
         <div className="text-center">
           <div className="text-5xl mb-3">🔒</div>
           <p className="text-white/70">Only coaches can start a game.</p>

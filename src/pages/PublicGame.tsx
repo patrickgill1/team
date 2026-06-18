@@ -82,7 +82,7 @@ const PublicGame: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
       </div>
     );
@@ -90,7 +90,7 @@ const PublicGame: React.FC = () => {
 
   if (error || !game) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-5xl mb-4">⚽</div>
           <h1 className="text-xl font-bold text-white mb-2">Game Not Found</h1>

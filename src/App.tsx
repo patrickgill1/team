@@ -142,7 +142,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-500/30 border-t-cyan-400" />
         </div>
@@ -152,7 +152,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (gateReason === 'pending-approval') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center px-4">
         <div className="max-w-sm w-full text-center">
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-charcoal-950 mb-2">Waiting for Approval</h1>
@@ -182,7 +182,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (gateReason === 'not-linked') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center px-4">
         <div className="max-w-sm w-full text-center">
           <div className="text-6xl mb-4">⏳</div>
           <h1 className="text-2xl font-bold text-charcoal-950 mb-2">Almost There!</h1>
@@ -211,7 +211,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
       <Navigation />
       {/* Main content: offset for desktop sidebar + mobile top/bottom bars */}
       {/* Mobile header is a flat h-14 (no safe-top — native shell

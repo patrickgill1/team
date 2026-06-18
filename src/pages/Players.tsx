@@ -52,7 +52,7 @@ const Players: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
       <Header title="Players" subtitle="Roster, profiles, and contact info" />
       <ImportPlayersModal
         isOpen={importOpen}

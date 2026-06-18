@@ -428,7 +428,7 @@ const Navigation: React.FC = () => {
       <header className={`lg:hidden fixed top-0 inset-x-0 z-40 safe-top ${
         isDashboardRoute
           ? 'bg-gradient-to-b from-charcoal-950/95 via-charcoal-950/90 to-charcoal-950/90'
-          : 'bg-black'
+          : 'bg-charcoal-950'
       }`}>
         <div className={`flex items-center gap-2 px-3 h-14 ${
           isDashboardRoute

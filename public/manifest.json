@@ -27,7 +27,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a",
+  "theme_color": "#0d0d10",
+  "background_color": "#0d0d10",
   "description": "The all-in-one team app for youth soccer — calendar, highlights, stats, chat, and more."
 }

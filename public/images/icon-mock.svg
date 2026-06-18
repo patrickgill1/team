@@ -1,0 +1,74 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- GoalKickr icon mock — simplified per the feedback notes:
+       (1) no metallic outer rim (iOS provides the rounded-square mask)
+       (2) tactical board reduced to a single subtle field circle
+       (3) palette pulled to brand: crimson-600, bone, charcoal-950
+       (4) gentle highlight on letters for depth without going skeuomorphic -->
+  <defs>
+    <!-- Subtle inner glow so the surface isn't flat-flat -->
+    <radialGradient id="bg" cx="50%" cy="42%" r="78%">
+      <stop offset="0%" stop-color="#1f2024"/>
+      <stop offset="100%" stop-color="#0d0d10"/>
+    </radialGradient>
+    <!-- Brand crimson with a soft top highlight -->
+    <linearGradient id="redBevel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e5485d"/>
+      <stop offset="55%" stop-color="#c8202c"/>
+      <stop offset="100%" stop-color="#8c1922"/>
+    </linearGradient>
+    <!-- Bone with a soft sheen -->
+    <linearGradient id="boneBevel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#f5f3ee"/>
+      <stop offset="100%" stop-color="#cdced1"/>
+    </linearGradient>
+    <!-- Soft shadow underneath the lockup so it lifts off the surface -->
+    <filter id="lift" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4" result="off"/>
+      <feMerge>
+        <feMergeNode in="off"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Charcoal field surface, edge-to-edge.
+       NO metallic rim — iOS will paint its own rounded-square mask
+       on top, so the icon stays clean at every size. -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Single subtle field circle — the only tactical-board cue we
+       keep. Center halfway point reads as "pitch" without competing
+       with the lockup. -->
+  <circle cx="512" cy="512" r="220" fill="none" stroke="#34353a" stroke-width="3" opacity="0.55"/>
+  <line x1="512" y1="170" x2="512" y2="854" stroke="#34353a" stroke-width="2" opacity="0.35"/>
+
+  <!-- Crest / shield outline. Single stroke in bone, no fill so the
+       background reads through. Rounded joins so it doesn't look
+       razor-edge at small sizes. -->
+  <path d="M 268 232
+           L 756 232
+           L 756 540
+           Q 756 752 512 836
+           Q 268 752 268 540 Z"
+        fill="none"
+        stroke="url(#boneBevel)"
+        stroke-width="26"
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
+
+  <!-- GK lockup, centered inside the shield. System display font
+       for clarity at small sizes. Crimson G + bone K. The subtle
+       drop shadow lifts the lockup off the surface without going
+       full 3D-bevel. -->
+  <text
+    x="512" y="640"
+    text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    font-weight="900"
+    font-size="340"
+    letter-spacing="-18"
+    filter="url(#lift)"
+  ><tspan fill="url(#redBevel)">G</tspan><tspan fill="url(#boneBevel)">K</tspan></text>
+</svg>

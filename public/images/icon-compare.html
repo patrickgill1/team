@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>GoalKickr icon: original vs simplified mock</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0d0d10;
+      color: #f5f3ee;
+    }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin: 0 0 4px 0; }
+    .lede { color: #a8aaaf; font-size: 14px; margin: 0 0 28px 0; }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+      max-width: 1100px;
+    }
+    .card {
+      background: #15161a;
+      border-radius: 16px;
+      padding: 20px;
+      ring: 1px solid #34353a;
+      border: 1px solid #34353a;
+    }
+    .card h2 {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #f17282;
+      margin: 0 0 14px 0;
+    }
+    .sizes {
+      display: flex;
+      align-items: flex-end;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .swatch img {
+      display: block;
+      border-radius: 22.37%; /* Apple iOS app icon corner ratio */
+      background: #000;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+    }
+    .swatch span {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #7e8087;
+      text-transform: uppercase;
+    }
+    .note {
+      margin-top: 32px;
+      max-width: 1100px;
+      background: #15161a;
+      border-radius: 12px;
+      padding: 18px 22px;
+      font-size: 14px;
+      color: #cdced1;
+      line-height: 1.55;
+      border: 1px solid #34353a;
+    }
+    .note b { color: #f5f3ee; }
+    .note code { background: #1f2024; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>GoalKickr app icon — side-by-side comparison</h1>
+  <p class="lede">Left: simplified mock per the feedback. Right: a placeholder for your existing 3D version. Both rendered at App Store (1024), home grid (120), Spotlight (87), and Notification Center (60) sizes with the iOS rounded-square mask applied.</p>
+
+  <div class="row">
+    <div class="card">
+      <h2>Simplified mock</h2>
+      <div class="sizes">
+        <div class="swatch"><img src="icon-mock.svg" width="180" height="180" alt=""/><span>1024 (store)</span></div>
+        <div class="swatch"><img src="icon-mock.svg" width="120" height="120" alt=""/><span>120 (home)</span></div>
+        <div class="swatch"><img src="icon-mock.svg" width="87" height="87" alt=""/><span>87 (spotlight)</span></div>
+        <div class="swatch"><img src="icon-mock.svg" width="60" height="60" alt=""/><span>60 (notif)</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Your current version</h2>
+      <p style="color:#7e8087;font-size:13px;line-height:1.5;margin:0 0 12px 0;">
+        Drop your 3D PNG at <code>public/images/icon-current.png</code> and reload to see it here.
+      </p>
+      <div class="sizes">
+        <div class="swatch"><img src="icon-current.png" width="180" height="180" alt="" onerror="this.style.display='none'"/><span>1024 (store)</span></div>
+        <div class="swatch"><img src="icon-current.png" width="120" height="120" alt="" onerror="this.style.display='none'"/><span>120 (home)</span></div>
+        <div class="swatch"><img src="icon-current.png" width="87" height="87" alt="" onerror="this.style.display='none'"/><span>87 (spotlight)</span></div>
+        <div class="swatch"><img src="icon-current.png" width="60" height="60" alt="" onerror="this.style.display='none'"/><span>60 (notif)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><b>What's different in the simplified mock:</b></p>
+    <ul style="margin:6px 0 0 0;padding-left:20px;">
+      <li>No metallic outer rim (iOS provides its own rounded mask — the existing rim would clip)</li>
+      <li>Tactical board reduced to a single field circle + halfway line (less noise at small sizes)</li>
+      <li>Palette pulled to the brand: <code>#c8202c</code> crimson, <code>#f5f3ee</code> bone, <code>#0d0d10</code> charcoal</li>
+      <li>Subtle drop shadow under the GK instead of heavy 3D bevels</li>
+      <li>Shield is a single bone stroke instead of a chrome outline + interior</li>
+    </ul>
+    <p style="margin-top:12px;">
+      <b>Test:</b> the 60px and 87px swatches are what you'll actually see in Notification Center and Spotlight. If the GK still reads clearly at 60px and the field circle isn't doing anything at that size, the simplification is working.
+    </p>
+  </div>
+</body>
+</html>

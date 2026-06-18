@@ -421,33 +421,36 @@ const Navigation: React.FC = () => {
             />
           </Link>
 
-          {/* Team switcher — single tappable chip. Tap to open the
-              sheet that lists every team. Replaces the prior
-              duplicate (team name in title + separate native select)
-              that confused parents about how to switch teams. When
-              the user only has one team, the chip is a static label
-              with no chevron and no tap action. */}
+          {/* Team switcher — compact text-only chip pinned next to
+              the wordmark. Was previously flex-1 which made the chip
+              fill the entire center of the nav like an oversized
+              pill; the trigger felt bigger than the dropdown it
+              opened. Now it's a content-sized chevron-only affordance
+              that reads as "(currently on) U10 Boys" without claiming
+              the whole header. The vertical divider in front
+              separates brand from team context. */}
           {selectedTeam && (
-            teams.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => setTeamSwitcherOpen(true)}
-                className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.07] ring-1 ring-white/10 hover:bg-white/[0.12] transition"
-                aria-label="Switch team"
-              >
-                <span className="text-bone font-bold text-sm truncate">{selectedTeam.name}</span>
-                <svg className="w-3.5 h-3.5 text-charcoal-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-            ) : (
-              <div className="flex-1 min-w-0 inline-flex items-center justify-center px-3 py-1.5">
-                <span className="text-bone font-bold text-sm truncate">{selectedTeam.name}</span>
-              </div>
-            )
+            <>
+              <span className="h-5 w-px bg-white/15 shrink-0" aria-hidden />
+              {teams.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setTeamSwitcherOpen(true)}
+                  className="min-w-0 inline-flex items-center gap-1 text-bone/85 hover:text-bone transition"
+                  aria-label="Switch team"
+                >
+                  <span className="font-semibold text-sm truncate max-w-[140px]">{selectedTeam.name}</span>
+                  <svg className="w-3 h-3 text-charcoal-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              ) : (
+                <span className="min-w-0 font-semibold text-sm text-bone/85 truncate max-w-[140px]">{selectedTeam.name}</span>
+              )}
+            </>
           )}
 
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="ml-auto shrink-0 flex items-center gap-2">
             <WallHeaderButton />
             <Link
               to="/settings"

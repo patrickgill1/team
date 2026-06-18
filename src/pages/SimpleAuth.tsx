@@ -288,11 +288,27 @@ const SimpleAuth: React.FC = () => {
               <div className="mb-3">
                 <button
                   onClick={async () => {
+                    // Clear any stale errors from a prior Google /
+                    // email attempt BEFORE we try Apple. Without this,
+                    // a previous 'Google sign-in failed' chip stays
+                    // visible on screen — which is exactly the App
+                    // Store rejection 2.1(a) on build 24: reviewer
+                    // tapped Sign in with Apple and saw 'Google
+                    // sign-in failed' from a stale state.
+                    setErrors({});
+                    setIsSubmitting(true);
                     try {
-                      setIsSubmitting(true);
                       await signInWithApple(formData.inviteCode || undefined);
-                    } catch (err) {
-                      // error already surfaced via context.error
+                    } catch (err: any) {
+                      // Surface the Apple-specific error to the chip
+                      // the UI actually renders (errors.submit). Don't
+                      // rely on context.error — the panel below only
+                      // reads errors.submit, so context errors never
+                      // showed for the Apple path.
+                      const msg = err?.message?.includes('cancel') || err?.code === 'cancelled' || err?.code === 'cancel'
+                        ? 'Sign-in was cancelled'
+                        : (err?.message || 'Apple sign-in failed. Please try again.');
+                      setErrors({ submit: msg });
                     } finally {
                       setIsSubmitting(false);
                     }

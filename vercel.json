@@ -24,5 +24,19 @@
     { "source": "/__/auth/:path*", "destination": "https://soccer-team-app-7f6b4.firebaseapp.com/__/auth/:path*" },
     { "source": "/__/firebase/:path*", "destination": "https://soccer-team-app-7f6b4.firebaseapp.com/__/firebase/:path*" },
     { "source": "/((?!api/|__/|\\.well-known/).*)", "destination": "/index.html" }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "firefc.app" }],
+      "destination": "https://goalkickr.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.firefc.app" }],
+      "destination": "https://goalkickr.com/:path*",
+      "permanent": true
+    }
   ]
 }

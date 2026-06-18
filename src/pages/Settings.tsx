@@ -425,7 +425,7 @@ const Settings: React.FC = () => {
               icon="lifebuoy"
               label="Customer Support"
               onClick={() => {
-                window.location.href = 'mailto:support@firefc.app?subject=GoalKickr%20support';
+                window.location.href = 'mailto:support@goalkickr.com?subject=GoalKickr%20support';
               }}
             />
             <SettingsRow

@@ -2,9 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const EFFECTIVE_DATE = 'May 17, 2026';
-const CONTACT_EMAIL = 'support@firefc.app';
+const CONTACT_EMAIL = 'support@goalkickr.com';
 const APP_NAME = 'GoalKickr';
-const APP_DOMAIN = 'firefc.app';
+const APP_DOMAIN = 'goalkickr.com';
 
 const PrivacyPolicy: React.FC = () => {
   return (

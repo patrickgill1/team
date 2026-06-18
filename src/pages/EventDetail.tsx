@@ -926,7 +926,7 @@ const EventDetail: React.FC = () => {
                   className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
                     current === status
                       ? `${active} text-white border-transparent shadow-sm`
-                      : 'bg-white text-charcoal-200 border-slate-200 hover:border-slate-300'
+                      : 'bg-charcoal-800 text-charcoal-200 border-white/10 hover:border-white/20'
                   }`}
                 >
                   {label}
@@ -954,16 +954,16 @@ const EventDetail: React.FC = () => {
       <div className={`bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid ${isUserCoach ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
         <button
           onClick={handleShare}
-          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-white/10 text-bone text-xs font-bold tracking-wider uppercase hover:border-crimson-400"
+          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-charcoal-800 ring-1 ring-white/10 text-bone text-xs font-bold tracking-wider uppercase hover:ring-crimson-400/50 hover:bg-charcoal-700 transition"
         >
-          <Icon name="share" className="w-4 h-4" />
+          <Icon name="share" className="w-4 h-4 text-crimson-400" />
           Share
         </button>
         {isUserCoach && (
           event.isCancelled ? (
             <button
               onClick={handleRestore}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-emerald-200 text-emerald-300 text-xs font-bold tracking-wider uppercase hover:bg-emerald-50"
+              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-300 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
             >
               <Icon name="check" className="w-4 h-4" />
               Restore
@@ -971,7 +971,7 @@ const EventDetail: React.FC = () => {
           ) : (
             <button
               onClick={handleCancel}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-white border border-amber-200 text-amber-300 text-xs font-bold tracking-wider uppercase hover:bg-amber-50"
+              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-300 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
             >
               <Icon name="trash" className="w-4 h-4" />
               Cancel
@@ -1099,10 +1099,10 @@ const EventDetail: React.FC = () => {
                       {p.matchedPlayerId ? 'ACCEPT MATCH' : 'MERGE'}
                     </button>
                   )}
-                  <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${
+                  <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded ring-1 ${
                     p.isGuest
-                      ? 'bg-slate-100 text-charcoal-500 border-slate-300'
-                      : 'bg-emerald-50 text-emerald-300 border-emerald-200'
+                      ? 'bg-charcoal-800 text-charcoal-300 ring-white/10'
+                      : 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/40'
                   }`}>
                     {p.isGuest ? 'GUEST' : 'ROSTER'}
                   </span>

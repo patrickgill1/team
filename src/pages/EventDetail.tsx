@@ -707,7 +707,7 @@ const EventDetail: React.FC = () => {
     : 'bg-crimson-400 animate-pulse';
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       {/* HERO — cinematic full-bleed treatment per v9 mockup. Ball-in-
           net photo lives on the right edge with a left-to-right
           gradient that fades it to near-black behind the copy, so the
@@ -911,7 +911,7 @@ const EventDetail: React.FC = () => {
       })()}
 
       {myLinkedPlayers.length > 0 && (
-        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+        <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-crimson-500" />
             RSVP for your {myLinkedPlayers.length > 1 ? 'players' : 'player'}
@@ -984,10 +984,10 @@ const EventDetail: React.FC = () => {
           icon: a black or white square shows parents at a glance which
           kit to pack. No decorative emoji needed. */}
       {event.type === 'game' && (event as any).homeAway && (
-        <section className={`px-4 sm:px-6 py-3 border-b ${
+        <section className={`px-4 sm:px-6 py-3 ${
           (event as any).homeAway === 'home'
-            ? 'bg-charcoal-950 border-slate-800'
-            : 'bg-white border-slate-200'
+            ? 'bg-charcoal-900 ring-1 ring-charcoal-700 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
+            : 'bg-white ring-1 ring-slate-200/80 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
         }`}>
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -1022,7 +1022,7 @@ const EventDetail: React.FC = () => {
       )}
 
       {/* RSVPS */}
-      <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+      <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-crimson-500" />
@@ -1152,7 +1152,7 @@ const EventDetail: React.FC = () => {
 
       {/* WEATHER */}
       {weather && (
-        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+        <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
               <Icon name="cloud" className="w-3 h-3 text-crimson-500" />
@@ -1178,7 +1178,7 @@ const EventDetail: React.FC = () => {
           team chat). Writes to the eventComments collection — anyone
           on this event can read + post here without flooding the
           team chat firehose. */}
-      <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+      <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
         <EventDiscussion
           eventId={event.id}
           teamId={event.teamId}
@@ -1332,7 +1332,7 @@ const EventDetail: React.FC = () => {
 
       {/* DESCRIPTION */}
       {event.description && (
-        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+        <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-1.5">
             About
           </div>
@@ -1346,7 +1346,7 @@ const EventDetail: React.FC = () => {
           Maps" so users always have an escape hatch to their preferred
           maps app. */}
       {(event as any).locationCoords?.lat && (
-        <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+        <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-1.5">
             <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Map</div>
             <a
@@ -1425,7 +1425,7 @@ const PackingListSection: React.FC<{
   if (list.length === 0 && !isCoach) return null;
 
   return (
-    <section className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200">
+    <section className="bg-white rounded-2xl ring-1 ring-slate-200/80 shadow-sm mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 flex items-center gap-1.5">
           <svg className="w-3 h-3 text-crimson-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>

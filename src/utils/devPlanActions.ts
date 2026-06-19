@@ -42,7 +42,7 @@ export async function quickDidIt(
  *      shape as a Timestamp manually so existing entries auto-heal
  *      in render without a Firestore migration.
  *  Returns null if nothing valid can be derived. */
-function coerceLogDate(raw: any): Date | null {
+export function coerceLogDate(raw: any): Date | null {
   if (!raw) return null;
   if (typeof raw.toDate === 'function') {
     try { return raw.toDate(); } catch { /* fall through */ }

@@ -387,22 +387,28 @@ const Dashboard: React.FC = () => {
           const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
           const next = goals.find(g => !g.coachVerified);
           if (next) {
-            // Build a Set of day-keys this player logged across EVERY
-            // active plan goal — the streak strip should reflect total
-            // practice, not just this one goal's log. Matches the same
-            // dayKey shape computeStreakDays uses.
+            // Build dayKeys via the shared coerceLogDate helper so
+            // legacy {seconds, nanoseconds}-shape entries (corrupted
+            // by the pre-v3.2.57 cleanFirestoreData bug) auto-heal
+            // here too — not just in the streak chip. Without this,
+            // Patrick's screenshot showed the chip at 3 but the
+            // week-dots row still at 1 because this path used the
+            // old narrow coercion (toDate || new Date()) that
+            // produces Invalid Date on the corrupted shape.
+            const { coerceLogDate } = await import('../utils/devPlanActions');
             const dayKeys = new Set<string>();
             for (const pl of plans) {
               for (const g of (pl.goals || [])) {
                 for (const l of (g.practiceLog || [])) {
-                  const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+                  const d = coerceLogDate(l.date);
+                  if (!d) continue;
                   dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
                 }
               }
             }
             const loggedToday = (next.practiceLog || []).some((l: any) => {
-              const t = l.date?.toDate ? l.date.toDate().getTime() : new Date(l.date).getTime();
-              return t >= todayStart;
+              const d = coerceLogDate(l.date);
+              return d ? d.getTime() >= todayStart : false;
             });
             // Find this week's Monday (treat Sunday as the END of last
             // week, not the start of this one — week runs Mon→Sat).

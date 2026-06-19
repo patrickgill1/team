@@ -2190,16 +2190,23 @@ const TeamChat: React.FC = () => {
         // composer; white makes the seam disappear.
         className="fixed inset-x-0 flex flex-col bg-white z-10 overflow-hidden"
         style={{
-          // Mobile top bar is a flat h-14 now (no safe-top — native shell
-          // already positions the WebView below the system bar), so the
-          // chat container slots in cleanly below it.
-          top: '3.5rem',
+          // Chrome height = env(safe-area-inset-top) + h-14 since the
+          // AppDelegate native strip was removed (v3.2.42) and the
+          // React header now owns the safe-area zone via the
+          // safe-top class. The chat container was top:'3.5rem' which
+          // tucked its first ~59px (Dynamic Island safe-area) behind
+          // the chrome — that's why Patrick reported 'no way to get
+          // back to chats': the back button at the top of the chat
+          // view was literally hidden under the GoalKickr header.
+          top: 'calc(env(safe-area-inset-top) + 3.5rem)',
           // Explicit height from window.innerHeight (in CSS pixels).
           // For threads view, also subtract the bottom tab bar height.
+          // Subtract the safe-area too so the bottom edge still lands
+          // above the home indicator instead of running off-screen.
           height:
             currentView === 'chat' && selectedThread
-              ? `calc(${winHeight}px - 3.5rem)`
-              : `calc(${winHeight}px - 3.5rem - 3rem)`,
+              ? `calc(${winHeight}px - env(safe-area-inset-top) - 3.5rem)`
+              : `calc(${winHeight}px - env(safe-area-inset-top) - 3.5rem - 3rem)`,
         }}
       >
         {currentView === 'threads' ? (

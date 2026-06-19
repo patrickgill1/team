@@ -802,18 +802,27 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             kebab + reaction chip floating in the thread. */}
         {(message.content || images.length > 0) && (
           <div className={`mt-1.5 flex items-center gap-1.5 flex-wrap ${isOwn ? 'flex-row-reverse justify-start' : 'justify-start'}`}>
+            {/* 'Message actions' affordance. Was a horizontal three-
+                dot kebab — user feedback (via Patrick): 'the 3 dots
+                under the message seemed like something went wrong
+                with a message.' Horizontal dots read as 'typing
+                indicator / error' to anyone outside the
+                kebab-menu-iconography convention; vertical dots (the
+                iOS standard 'more' affordance) are unambiguous and
+                land on the same actions sheet. */}
             <button
               onClick={() => {
                 void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
                 setActionsOpen(true);
               }}
               aria-label="Message actions"
+              title="Message actions"
               className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-crimson-700 active:scale-95 transition"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="5" cy="12" r="1.9"/>
+                <circle cx="12" cy="5" r="1.9"/>
                 <circle cx="12" cy="12" r="1.9"/>
-                <circle cx="19" cy="12" r="1.9"/>
+                <circle cx="12" cy="19" r="1.9"/>
               </svg>
             </button>
             {Object.keys(grouped).length > 0 && (

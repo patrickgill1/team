@@ -488,32 +488,44 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
   if (!isOpen) return null;
 
+  // Modal wrapper: safe-area padding so the modal never sits behind the
+  // iOS Dynamic Island / status bar. Also overflow-x-hidden so iOS
+  // rubber-band-scroll doesn't reveal a horizontal gutter on devices
+  // where 100vw and the visual viewport disagree.
+  const overlayClass = "fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] animate-fade-in overflow-x-hidden";
+  const overlayStyle: React.CSSProperties = {
+    paddingTop: 'calc(1rem + env(safe-area-inset-top))',
+    paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))',
+    paddingLeft: '1rem',
+    paddingRight: '1rem',
+  };
+
   // Show invite link success screen after player is added
   if (inviteLink) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-        <div className="bg-white rounded-lg max-w-md w-full p-6 animate-pop-in">
+      <div className={overlayClass} style={overlayStyle}>
+        <div className="bg-charcoal-900 ring-1 ring-white/10 rounded-2xl max-w-md w-full p-6 animate-pop-in">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-emerald-500/15 ring-1 ring-emerald-400/30 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-8 h-8 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Player Added! 🎉</h2>
-            <p className="text-gray-600 mt-1 text-sm">
+            <h2 className="text-xl font-black text-bone">Player Added</h2>
+            <p className="text-bone/60 mt-1 text-sm">
               Share this link with the player's parent so they can link their account.
             </p>
           </div>
 
-          <div className="bg-crimson-50 border border-crimson-200 rounded-xl p-4 mb-4">
-            <p className="text-xs text-charcoal-600 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
-            <p className="text-sm text-charcoal-900 break-all font-mono mb-3">{inviteLink}</p>
+          <div className="bg-crimson-500/10 ring-1 ring-crimson-400/30 rounded-xl p-4 mb-4">
+            <p className="text-xs text-bone/60 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
+            <p className="text-sm text-bone break-all font-mono mb-3">{inviteLink}</p>
             <button
               onClick={() => copyInviteLink(inviteLink)}
               className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-medium transition-all duration-200 ${
                 inviteCopied
-                  ? 'bg-green-600 text-white'
-                  : 'bg-charcoal-600 hover:bg-charcoal-700 text-white'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-crimson-600 hover:bg-crimson-700 text-white'
               }`}
             >
               {inviteCopied ? (
@@ -534,13 +546,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </button>
           </div>
 
-          <p className="text-xs text-gray-500 text-center mb-4">
-            💡 The parent clicks the link, signs in or creates a free account, and they'll be linked to this player's profile. They can then vote in Player of the Match polls.
+          <p className="text-xs text-bone/50 text-center mb-4">
+            The parent clicks the link, signs in or creates a free account, and they'll be linked to this player's profile. They can then vote in Player of the Match polls.
           </p>
 
           <button
             onClick={() => { setInviteLink(null); onClose(); }}
-            className="w-full border border-gray-300 text-gray-700 hover:bg-gray-50 py-2.5 rounded-lg font-medium transition-colors"
+            className="w-full border border-white/10 text-bone/80 hover:bg-white/5 py-2.5 rounded-lg font-medium transition-colors"
           >
             Done
           </button>
@@ -550,16 +562,16 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-screen overflow-y-auto animate-pop-in">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+    <div className={overlayClass} style={overlayStyle}>
+      <div className="bg-charcoal-900 ring-1 ring-white/10 rounded-2xl max-w-lg w-full max-h-full overflow-y-auto overflow-x-hidden animate-pop-in">
+        <div className="sticky top-0 bg-charcoal-900 border-b border-white/5 px-6 py-4 z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-black text-bone">
               {editingPlayer ? 'Edit Player' : 'Add New Player'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              className="text-bone/50 hover:text-bone transition-colors duration-200 -mr-2 p-2"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -571,8 +583,8 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Debug Info */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="bg-gray-100 p-3 rounded text-xs">
-              <p><strong>Debug Info:</strong></p>
+            <div className="bg-white/5 ring-1 ring-white/10 text-bone/70 p-3 rounded text-xs">
+              <p><strong className="text-bone">Debug Info:</strong></p>
               <p>Storage Bucket: {process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || 'Not loaded'}</p>
               <p>User Team: {selectedTeamId || 'No team'}</p>
             </div>
@@ -580,19 +592,19 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Profile Photo */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-bone/80 mb-2">
               Profile Photo (Optional)
             </label>
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center">
+              <div className="w-20 h-20 bg-charcoal-950 ring-1 ring-white/10 rounded-full overflow-hidden flex items-center justify-center">
                 {profilePhotoPreview ? (
-                  <img 
-                    src={profilePhotoPreview} 
-                    alt="Profile preview" 
+                  <img
+                    src={profilePhotoPreview}
+                    alt="Profile preview"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-bone/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 )}
@@ -608,49 +620,46 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 />
                 <label
                   htmlFor="profile-photo-input"
-                  className="cursor-pointer inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
+                  className="cursor-pointer inline-flex items-center px-3 py-2 border border-white/10 rounded-md text-sm font-medium text-bone bg-charcoal-950 hover:bg-white/5 transition-colors duration-200 disabled:opacity-50"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                   {editingPlayer?.profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
                 </label>
-                <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
+                <p className="text-xs text-bone/50 mt-1">PNG, JPG up to 5MB</p>
               </div>
             </div>
             {(errors.profilePhoto || uploadError) && (
-              <p className="text-red-500 text-sm mt-1">{errors.profilePhoto || uploadError}</p>
+              <p className="text-rose-300 text-sm mt-1">{errors.profilePhoto || uploadError}</p>
             )}
           </div>
 
-          {/* Team Selector — collapsed disclosure when editing (most
-              coach edits don't touch the team). When creating a new
-              player and the user has access to more than one team,
-              the picker is inlined since the team is required. */}
+          {/* Team Selector */}
           {editingPlayer ? (
-            <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="rounded-lg ring-1 ring-white/10 overflow-hidden">
               <button
                 type="button"
                 onClick={() => setTeamPickerOpen(o => !o)}
-                className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-left"
+                className="w-full flex items-center justify-between px-3 py-2.5 bg-charcoal-950 hover:bg-white/5 text-left"
               >
                 <div className="min-w-0">
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-gray-500">Primary team</div>
-                  <div className="text-sm font-semibold text-gray-900 truncate">
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-bone/50">Primary team</div>
+                  <div className="text-sm font-semibold text-bone truncate">
                     {(pickerTeams.find(t => t.id === targetTeamId)?.name) || 'No team selected'}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-gray-500">
+                <div className="flex items-center gap-2 text-bone/50">
                   <span className="text-[11px] font-bold">{teamPickerOpen ? 'Done' : 'Change'}</span>
                   <svg className={`w-4 h-4 transition-transform ${teamPickerOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
               </button>
               {teamPickerOpen && (
-                <div className="px-3 py-3 border-t border-gray-200 bg-white">
+                <div className="px-3 py-3 border-t border-white/5 bg-charcoal-900">
                   <select
                     value={targetTeamId}
                     onChange={(e) => setTargetTeamId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                    className="w-full px-3 py-2 bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
                     disabled={isSubmitting}
                   >
                     {pickerTeams.length === 0 && (
@@ -660,7 +669,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
-                  <p className="mt-1.5 text-[11px] text-gray-500">
+                  <p className="mt-1.5 text-[11px] text-bone/50">
                     Changing this moves the player. Other teams they're shared with stay intact.
                   </p>
                 </div>
@@ -668,13 +677,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </div>
           ) : pickerTeams.length > 1 ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-bone/80 mb-1">
                 Add to team *
               </label>
               <select
                 value={targetTeamId}
                 onChange={(e) => setTargetTeamId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                className="w-full px-3 py-2 bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
                 disabled={isSubmitting}
               >
                 {pickerTeams.map(t => (
@@ -686,26 +695,26 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Player Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-bone/80 mb-1">
               Player Name *
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+                errors.name ? 'border-rose-500' : 'border-white/10'
               }`}
               placeholder="Enter player's full name"
               disabled={isSubmitting}
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            {errors.name && <p className="text-rose-300 text-sm mt-1">{errors.name}</p>}
           </div>
 
           {/* Jersey Number and Position */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-bone/80 mb-1">
                 Jersey Number
               </label>
               <input
@@ -714,17 +723,17 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 max="99"
                 value={formData.jerseyNumber}
                 onChange={(e) => setFormData({ ...formData, jerseyNumber: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
-                  errors.jerseyNumber ? 'border-red-500' : 'border-gray-300'
+                className={`w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+                  errors.jerseyNumber ? 'border-rose-500' : 'border-white/10'
                 }`}
                 placeholder="1-99"
                 disabled={isSubmitting}
               />
-              {errors.jerseyNumber && <p className="text-red-500 text-sm mt-1">{errors.jerseyNumber}</p>}
+              {errors.jerseyNumber && <p className="text-rose-300 text-sm mt-1">{errors.jerseyNumber}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-bone/80 mb-1">
                 Position{formData.positions.length > 1 ? 's' : ''}
               </label>
               <div className="flex flex-wrap gap-2">
@@ -740,15 +749,14 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                           const next = has
                             ? prev.positions.filter((x) => x !== p)
                             : [...prev.positions, p];
-                          // Don't allow empty — keep at least one selected.
                           return { ...prev, positions: next.length > 0 ? next : prev.positions };
                         });
                       }}
                       disabled={isSubmitting}
                       className={`px-3 py-1.5 rounded-full text-sm font-semibold ring-1 transition ${
                         active
-                          ? 'bg-crimson-600 text-white ring-crimson-600 shadow-sm'
-                          : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
+                          ? 'bg-crimson-600 text-white ring-crimson-500 shadow-sm'
+                          : 'bg-charcoal-950 text-bone/80 ring-white/15 hover:bg-white/5'
                       }`}
                     >
                       {p}
@@ -756,30 +764,30 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-500 mt-1">Tap to select. Pick more than one if the player covers multiple positions (e.g. keeper + striker).</p>
+              <p className="text-xs text-bone/50 mt-1">Tap to select. Pick more than one if the player covers multiple positions (e.g. keeper + striker).</p>
             </div>
           </div>
 
           {/* Date of Birth */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-bone/80 mb-1">
               Date of Birth (Optional)
             </label>
             <input
               type="date"
               value={formData.dateOfBirth}
               onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
-                errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-3 py-2 bg-charcoal-950 text-bone border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+                errors.dateOfBirth ? 'border-rose-500' : 'border-white/10'
               }`}
               disabled={isSubmitting}
             />
-            {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
+            {errors.dateOfBirth && <p className="text-rose-300 text-sm mt-1">{errors.dateOfBirth}</p>}
           </div>
 
           {/* Parent Emails */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-bone/80 mb-1">
               Parent Email Addresses (Optional)
             </label>
             <div className="space-y-2">
@@ -789,8 +797,8 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                     type="email"
                     value={email}
                     onChange={(e) => updateParentEmail(index, e.target.value)}
-                    className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 ${
-                      errors[`parentEmail${index}`] ? 'border-red-500' : 'border-gray-300'
+                    className={`flex-1 min-w-0 px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+                      errors[`parentEmail${index}`] ? 'border-rose-500' : 'border-white/10'
                     }`}
                     placeholder="parent@example.com"
                     disabled={isSubmitting}
@@ -800,7 +808,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                       type="button"
                       onClick={() => removeParentEmailField(index)}
                       disabled={isSubmitting}
-                      className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
+                      className="px-3 py-2 text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors duration-200 disabled:opacity-50 flex-shrink-0"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -810,32 +818,32 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 </div>
               ))}
             </div>
-            
+
             {formData.parentEmails.length < 3 && (
               <button
                 type="button"
                 onClick={addParentEmailField}
                 disabled={isSubmitting}
-                className="mt-2 text-charcoal-600 hover:text-charcoal-700 text-sm font-medium disabled:opacity-50"
+                className="mt-2 text-crimson-300 hover:text-crimson-200 text-sm font-medium disabled:opacity-50"
               >
                 + Add another parent email
               </button>
             )}
-            
+
             {Object.keys(errors).some(key => key.startsWith('parentEmail')) && (
-              <p className="text-red-500 text-sm mt-1">Please check parent email addresses</p>
+              <p className="text-rose-300 text-sm mt-1">Please check parent email addresses</p>
             )}
           </div>
 
           {/* Medical Information */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-bone/80 mb-1">
               Medical Information (Optional)
             </label>
             <textarea
               value={formData.medicalInfo}
               onChange={(e) => setFormData({ ...formData, medicalInfo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 resize-none"
               rows={3}
               placeholder="Any allergies, medical conditions, or special instructions..."
               disabled={isSubmitting}
@@ -844,17 +852,17 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Submit Error */}
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-red-600 text-sm">{errors.submit}</p>
+            <div className="bg-rose-500/10 ring-1 ring-rose-400/30 rounded-lg p-3">
+              <p className="text-rose-200 text-sm">{errors.submit}</p>
             </div>
           )}
 
           {/* Upload Progress */}
           {uploadLoading && (
-            <div className="bg-crimson-50 border border-crimson-200 rounded-lg p-3">
+            <div className="bg-crimson-500/10 ring-1 ring-crimson-400/30 rounded-lg p-3">
               <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-charcoal-600"></div>
-                <p className="text-charcoal-600 text-sm">Uploading profile photo...</p>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-crimson-300"></div>
+                <p className="text-crimson-200 text-sm">Uploading profile photo...</p>
               </div>
             </div>
           )}
@@ -865,14 +873,14 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting || uploadLoading}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+              className="flex-1 bg-white/5 hover:bg-white/10 text-bone/80 ring-1 ring-white/10 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || uploadLoading}
-              className="flex-1 bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+              className="flex-1 bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
             >
               {(isSubmitting || uploadLoading) ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

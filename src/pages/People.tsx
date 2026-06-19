@@ -304,14 +304,14 @@ const People: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or kid's name…"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
             />
           </div>
           {teams.length > 1 && (
             <select
               value={teamFilter}
               onChange={(e) => setTeamFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900"
+              className="px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-950 text-bone"
             >
               <option value="all">All teams</option>
               {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}

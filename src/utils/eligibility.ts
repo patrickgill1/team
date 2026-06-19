@@ -87,15 +87,19 @@ export function computeEligibility(input: EligibilityInput): EligibilityResult {
 }
 
 export function eligibilityTone(status: EligibilityStatus): { bg: string; text: string; ring: string; dot: string; label: string } {
+  // Dark-mode tints: bone+colored-300 on a translucent colored wash so the
+  // card reads against the charcoal-950 page background. The text token
+  // is what the parent uses for both the pill label AND the card heading;
+  // anything below ~AA-on-dark fails for kids reading on outdoor fields.
   switch (status) {
     case 'ready':
-      return { bg: 'bg-emerald-50', text: 'text-emerald-800', ring: 'ring-emerald-300', dot: 'bg-emerald-500', label: 'Ready to play' };
+      return { bg: 'bg-emerald-500/15', text: 'text-emerald-200', ring: 'ring-emerald-400/30', dot: 'bg-emerald-400', label: 'Ready to play' };
     case 'pending':
-      return { bg: 'bg-amber-50', text: 'text-amber-800', ring: 'ring-amber-300', dot: 'bg-amber-500', label: 'Almost ready' };
+      return { bg: 'bg-amber-500/15', text: 'text-amber-200', ring: 'ring-amber-400/30', dot: 'bg-amber-400', label: 'Almost ready' };
     case 'blocked':
-      return { bg: 'bg-rose-50', text: 'text-rose-800', ring: 'ring-rose-300', dot: 'bg-rose-500', label: 'Not eligible' };
+      return { bg: 'bg-rose-500/15', text: 'text-rose-200', ring: 'ring-rose-400/30', dot: 'bg-rose-400', label: 'Not eligible' };
     case 'unknown':
     default:
-      return { bg: 'bg-slate-50', text: 'text-slate-600', ring: 'ring-slate-300', dot: 'bg-slate-400', label: 'Status unknown' };
+      return { bg: 'bg-white/5', text: 'text-bone/70', ring: 'ring-white/15', dot: 'bg-white/40', label: 'Status unknown' };
   }
 }

@@ -334,10 +334,24 @@ const PersonAdmin: React.FC = () => {
       {/* Header strip */}
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 pt-4 pb-0 border-b border-crimson-500/10">
         <div className="max-w-5xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Back
-          </button>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/15 text-bone text-xs font-bold hover:bg-white/15 transition"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/club')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-200 text-xs font-bold hover:bg-crimson-500/25 transition"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Club
+            </button>
+          </div>
           {/* Tab bar */}
           <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1 pb-0">
             {TABS.map(t => (

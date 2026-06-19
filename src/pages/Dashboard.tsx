@@ -899,10 +899,10 @@ const Dashboard: React.FC = () => {
           <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
             <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
+                <svg className="w-4 h-4 text-bone/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
                 Announcements
               </h3>
-              <Link to="/wall" className="text-crimson-400 text-sm font-semibold hover:text-white">View all</Link>
+              <Link to="/wall" className="text-bone/60 text-sm font-semibold hover:text-bone">View all</Link>
             </div>
             {/* Single-row preview per announcement: sender, date, and
                 one-line content snippet. Patrick: "show only a title
@@ -1142,10 +1142,10 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
     <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          <svg className="w-4 h-4 text-bone/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           Recent chats
         </h3>
-        <Link to="/chat" className="text-crimson-400 text-sm font-semibold hover:text-white">View all</Link>
+        <Link to="/chat" className="text-bone/60 text-sm font-semibold hover:text-bone">View all</Link>
       </div>
       {chats.length === 0 ? (
         <div className="p-5 text-center">
@@ -1460,14 +1460,14 @@ const TeamPulseCard: React.FC<{
     <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-bone/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
             <line x1="6" y1="20" x2="6" y2="14" />
           </svg>
           Team pulse
         </h3>
-        <Link to="/stats" className="text-crimson-400 text-sm font-semibold hover:text-white">Season stats</Link>
+        <Link to="/stats" className="text-bone/60 text-sm font-semibold hover:text-bone">Season stats</Link>
       </div>
 
       {/* Live game tracker entry point — coach can start a session

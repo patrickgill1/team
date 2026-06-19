@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
@@ -451,6 +451,81 @@ const Wall: React.FC = () => {
     }
     return () => { unsubs.forEach(u => u()); };
   }, [posts]);
+
+  // ─── View tracking ──────────────────────────────────────────
+  // When a wall post scrolls into view for ≥1s, write the current
+  // user's uid into post.viewedBy as a server timestamp. Author + coach
+  // / admin sees a "Seen by N" pill. Parents never see surveillance,
+  // they just see the wall.
+  //
+  // One IntersectionObserver shared across all posts (not one per
+  // post) so we don't burn a JS observer per row. The "already marked
+  // this session" Set caches uid-confirmed posts so we don't re-write
+  // when the user scrolls back over a post they already saw.
+  const markedViewedRef = useRef<Set<string>>(new Set());
+  const dwellTimersRef = useRef<Map<string, number>>(new Map());
+
+  // Seed the "already marked" set with any posts whose viewedBy
+  // already includes my uid — that way switching teams / cold start
+  // doesn't double-write.
+  useEffect(() => {
+    if (!userData?.uid) return;
+    const seen = markedViewedRef.current;
+    for (const p of posts) {
+      const v = (p as any).viewedBy || {};
+      if (v[userData.uid]) seen.add(p.id);
+    }
+  }, [posts, userData?.uid]);
+
+  useEffect(() => {
+    if (!userData?.uid || typeof IntersectionObserver === 'undefined') return;
+    const myUid = userData.uid;
+    const seen = markedViewedRef.current;
+    const dwell = dwellTimersRef.current;
+
+    const writeViewed = async (postId: string) => {
+      if (seen.has(postId)) return;
+      seen.add(postId);
+      try {
+        await updateDoc(doc(db, 'wall_posts', postId), {
+          [`viewedBy.${myUid}`]: serverTimestamp(),
+        });
+      } catch (err) {
+        // Roll the cache back on failure so a transient rules / network
+        // hiccup doesn't lock us out of ever marking this post viewed.
+        seen.delete(postId);
+        console.warn('[wall] mark viewed failed', postId, err);
+      }
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const el = entry.target as HTMLElement;
+        const postId = el.getAttribute('data-post-id');
+        if (!postId) continue;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          if (dwell.has(postId)) continue;
+          // 1s dwell prevents fast-scroll fly-bys from counting as a view.
+          const timer = window.setTimeout(() => {
+            dwell.delete(postId);
+            void writeViewed(postId);
+          }, 1000);
+          dwell.set(postId, timer);
+        } else {
+          const t = dwell.get(postId);
+          if (t) { window.clearTimeout(t); dwell.delete(postId); }
+        }
+      }
+    }, { threshold: [0, 0.5, 1] });
+
+    document.querySelectorAll('li[data-post-id]').forEach(el => observer.observe(el));
+
+    return () => {
+      observer.disconnect();
+      dwell.forEach((t) => window.clearTimeout(t));
+      dwell.clear();
+    };
+  }, [posts, userData?.uid]);
 
   const toggleExpand = (postId: string) => {
     setExpanded(prev => {
@@ -1114,9 +1189,13 @@ const Wall: React.FC = () => {
               const commentsForPost = comments[p.id] || [];
               const previewComments = commentsForPost.slice(-2);
               const hiddenCount = Math.max(0, (commentCounts[p.id] || commentsForPost.length) - previewComments.length);
+              const viewedByMap = ((p as any).viewedBy || {}) as Record<string, unknown>;
+              const seenCount = Object.keys(viewedByMap).length;
+              const canSeeSeen = !!myUid && (myUid === p.senderId || canManage);
               return (
                 <li
                   key={p.id}
+                  data-post-id={p.id}
                   className={`bg-charcoal-900 sm:rounded-2xl overflow-hidden shadow-sm ${
                     isPinnedTop ? 'ring-2 ring-amber-300' : 'ring-1 ring-white/10'
                   }`}
@@ -1216,8 +1295,11 @@ const Wall: React.FC = () => {
 
                   {/* Reaction chips strip — one per emoji, with count.
                       Tap to toggle YOUR reaction with that emoji. Tap
-                      the comment count to expand the thread. */}
-                  {(reactionEntries.length > 0 || (commentCounts[p.id] || 0) > 0) && (
+                      the comment count to expand the thread.
+                      Coach/author-only "Seen by N" pill rides at the
+                      end of this row so it's grouped with the rest of
+                      the engagement signals. */}
+                  {(reactionEntries.length > 0 || (commentCounts[p.id] || 0) > 0 || (canSeeSeen && seenCount > 0)) && (
                     <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-bone/50">
                       {reactionEntries.map(([emoji, info]) => (
                         <button
@@ -1246,6 +1328,17 @@ const Wall: React.FC = () => {
                         <button onClick={() => toggleExpand(p.id)} className="ml-auto hover:text-crimson-300 font-semibold">
                           {commentCounts[p.id]} {commentCounts[p.id] === 1 ? 'comment' : 'comments'}
                         </button>
+                      )}
+                      {canSeeSeen && seenCount > 0 && (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-bone/55 ${(commentCounts[p.id] || 0) > 0 ? '' : 'ml-auto'}`}
+                          title="People who saw this post on the wall"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                          </svg>
+                          {seenCount} seen
+                        </span>
                       )}
                     </div>
                   )}

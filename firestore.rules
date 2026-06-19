@@ -115,7 +115,10 @@ service cloud.firestore {
       allow update: if request.auth != null
         && (resource.data.senderId == request.auth.uid
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']));
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+            // Any signed-in user can mark a post as seen — touches the
+            // viewedBy map only. Same shape as the reactions self-update.
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy']));
       allow delete: if request.auth != null
         && (resource.data.senderId == request.auth.uid
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);

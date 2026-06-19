@@ -846,32 +846,13 @@ const Dashboard: React.FC = () => {
           />
         )}
 
-        {/* ── QUICK-ACTION TILES ─────────────────────────────────────
-            Six glanceable tiles for the most-used surfaces, with live
-            notification badges (Wall = unread post count, Chat =
-            unread message count, Plan = current streak). The whole
-            grid is 3 cols on mobile, 6 cols on tablet+. Matches the
-            mockup pattern Patrick approved. */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-          <DashTile to="/wall" label="Wall" badge={wallUnreadBadge} badgeTone="rose" icon={(
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="17" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/></svg>
-          )} />
-          <DashTile to="/calendar" label="Events" icon={(
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          )} />
-          <DashTile to="/player-media" label="Media" icon={(
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          )} />
-          <DashTile to="/chat" label="Chat" badge={newMessagesCount > 0 ? newMessagesCount : null} badgeTone="cyan" icon={(
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          )} />
-          <DashTile to="/players" label="Roster" icon={(
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          )} />
-          <DashTile to="/development" label="Plan" badge={planStreakBadge} badgeTone="amber" icon={(
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
-          )} />
-        </div>
+        {/* 6-tile quick-action launcher removed in v3.2.50 — three
+            of the six (Events, Media, Chat) duplicate the bottom tab
+            bar, the other three (Wall, Roster, Plan) are reachable
+            via the More menu and the player card. The dashboard is
+            for "what's next + what do I need to do," not a launcher
+            grid. Patrick: realignment toward communication + events
+            as the core. */}
 
         {/* ── TEAM WALL / ANNOUNCEMENTS ──────────────────────────────
             Pinned messages from any of the team's chat threads, sorted
@@ -924,13 +905,14 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* ── RECENT CHATS + TEAM PULSE ──────────────────────────────
-            Coaches and admins always see Team Pulse. Parents without a
-            linked player also see Team Pulse (so non-staff still see
-            who's leading the team). */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <RecentChatsCard chats={recentChats} userUid={userData?.uid || ''} userPhotoMap={userPhotoMap} />
-          {(isUserCoach || !myPlayer) && (
+        {/* RecentChatsCard removed in v3.2.50 — Patrick: "I don't use
+            recent chats as I thought I would." Chat tab is one tap
+            away on the bottom bar with its own unread badge. Team
+            Pulse stays for coaches / non-parent viewers since it
+            surfaces team-wide leaderboard context that isn't visible
+            anywhere else. */}
+        {(isUserCoach || !myPlayer) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TeamPulseCard
               topScorer={topScorers[0]}
               topAssister={topAssists[0]}
@@ -939,59 +921,19 @@ const Dashboard: React.FC = () => {
               totalGames={totalGames}
               playerCount={players.length}
             />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* ── FEATURED HIGHLIGHT (one big tile) ─────────────────── */}
         {featuredClip && (
           <FeaturedHighlight clip={featuredClip} />
         )}
 
-        {/* ── FOOTER STATS GRID ──────────────────────────────────
-            4-up tiles with iconized accents. Match the design's
-            people / soccer ball / field / video icons in tinted
-            squares. */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <FooterStat
-            label="Players"
-            value={players.length}
-            tint="bg-slate-100 text-slate-600"
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19a3 3 0 00-6 0M12 11a4 4 0 100-8 4 4 0 000 8zm6 0a3 3 0 100-6 3 3 0 000 6zm-12 0a3 3 0 100-6 3 3 0 000 6z" />
-              </svg>
-            }
-          />
-          <FooterStat
-            label="Goals"
-            value={totalGoals}
-            tint="bg-emerald-50 text-emerald-700"
-            icon={<span className="text-base">⚽</span>}
-          />
-          <FooterStat
-            label="Games"
-            value={totalGames}
-            tint="bg-amber-50 text-amber-700"
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <rect x="3" y="6" width="18" height="12" rx="2" />
-                <line x1="12" y1="6" x2="12" y2="18" />
-                <circle cx="12" cy="12" r="2" />
-              </svg>
-            }
-          />
-          <FooterStat
-            label="Clips"
-            value={totalClips}
-            tint="bg-violet-50 text-violet-700"
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <rect x="3" y="5" width="14" height="14" rx="2" />
-                <path d="M17 9l4-2v10l-4-2V9z" />
-              </svg>
-            }
-          />
-        </div>
+        {/* Footer stats grid removed in v3.2.50 — Patrick's half-
+            empty critique flagged it as below-the-fold noise that
+            duplicated info available on the roster + media surfaces.
+            Will reintroduce purposefully if a season-totals view
+            proves desirable, but not as ambient dashboard chrome. */}
       </div>
       </div>
     </div>
@@ -1404,28 +1346,54 @@ const MyPlayerCard: React.FC<{
               bottom-left already shows the count; a second pill under
               the name was duplication. PlayerCard pattern keeps the
               streak as the avatar accent only.) */}
-          <div className="flex items-end gap-4 sm:gap-6">
-            <div>
-              <p className="text-2xl font-black leading-none">{player.stats?.goals || 0}</p>
-              <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Goals</p>
-            </div>
-            <div>
-              <p className="text-2xl font-black leading-none">{player.stats?.assists || 0}</p>
-              <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Assists</p>
-            </div>
-            {/* Saves only renders for goalkeepers — same logic as the
-                full PlayerCard. Outfielders get Goals/Assists/Games. */}
-            {position === 'Goalkeeper' && (
-              <div>
-                <p className="text-2xl font-black leading-none">{(player as any).stats?.saves || 0}</p>
-                <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Saves</p>
+          {/* Stat row hides itself when every stat is zero —
+              advertising 0/0/0 was worse than empty state because
+              it implied "this app shows no stats." Patrick (half-
+              empty critique): "0 GOALS · 0 ASSISTS · 0 GAMES is
+              three big zeros taking real estate to say no data."
+              Replaced with a quiet "Season starts soon" cue when
+              the player has zero numbers across the board, so the
+              card still has visible content beneath the position
+              pill but doesn't proudly display zeros. */}
+          {(() => {
+            const goals  = player.stats?.goals || 0;
+            const assists = player.stats?.assists || 0;
+            const games  = player.stats?.gamesPlayed || 0;
+            const saves  = (player as any).stats?.saves || 0;
+            const anyStat = goals > 0 || assists > 0 || games > 0 || saves > 0;
+            if (!anyStat) {
+              return (
+                <p className={`text-[11px] font-semibold uppercase tracking-widest ${subText}`}>
+                  Season starts soon
+                </p>
+              );
+            }
+            return (
+              <div className="flex items-end gap-4 sm:gap-6">
+                <div>
+                  <p className="text-2xl font-black leading-none">{goals}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Goals</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-black leading-none">{assists}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Assists</p>
+                </div>
+                {/* Saves only renders for goalkeepers — same logic
+                    as the full PlayerCard. Outfielders get
+                    Goals/Assists/Games. */}
+                {position === 'Goalkeeper' && (
+                  <div>
+                    <p className="text-2xl font-black leading-none">{saves}</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Saves</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-2xl font-black leading-none">{games}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Games</p>
+                </div>
               </div>
-            )}
-            <div>
-              <p className="text-2xl font-black leading-none">{player.stats?.gamesPlayed || 0}</p>
-              <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${subText}`}>Games</p>
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* View profile pill */}

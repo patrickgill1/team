@@ -51,17 +51,17 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
+        className="bg-charcoal-900 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
       >
         <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
           <button
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white px-1"
           >
             Close
           </button>
           <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">
-            Reactions <span className="text-slate-500">{totalReactors}</span>
+            Reactions <span className="text-bone/50">{totalReactors}</span>
           </div>
           <span className="w-12" aria-hidden />
         </div>
@@ -71,7 +71,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
             <div key={emoji} className="px-4 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl">{emoji}</span>
-                <span className="text-[11px] font-extrabold tracking-widest uppercase text-slate-500">
+                <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/50">
                   {grouped[emoji].length}
                 </span>
               </div>
@@ -93,7 +93,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
                             {initial}
                           </span>
                         )}
-                        <span className={`text-sm truncate ${isMe ? 'font-bold text-crimson-700' : 'text-slate-900'}`}>
+                        <span className={`text-sm truncate ${isMe ? 'font-bold text-crimson-700' : 'text-bone'}`}>
                           {isMe ? 'You' : name}
                         </span>
                       </span>

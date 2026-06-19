@@ -2023,7 +2023,7 @@ const TeamChat: React.FC = () => {
         className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-violet-50 to-white">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-charcoal-900 to-charcoal-800">
           <div>
             <h3 className="text-lg font-bold text-bone">
               {selectedDmUids.size <= 1 ? 'New chat' : `New group · ${selectedDmUids.size + 1} people`}
@@ -2220,9 +2220,16 @@ const TeamChat: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">Messages</h2>
                 <div className="flex items-center gap-2">
+                  {/* New DM button. Was bg-violet-600 — Patrick: "can
+                      we change the purple chat icon?" Purple read as
+                      off-brand against the crimson/charcoal palette.
+                      Demoted to a quiet charcoal pill with a bone
+                      icon and a hover ring, so the red + ('New
+                      channel', admin-only) keeps its visual primacy
+                      while the DM action stays available. */}
                   <button
                     onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
-                    className="bg-violet-600 hover:bg-violet-700 text-white p-2.5 rounded-lg transition-colors"
+                    className="bg-charcoal-800 ring-1 ring-white/10 hover:bg-charcoal-700 hover:ring-crimson-400/40 text-bone p-2.5 rounded-lg transition-colors"
                     title="Direct message"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3025,7 +3032,7 @@ const TeamChat: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
-                className="bg-violet-600 hover:bg-violet-700 text-white p-2 rounded-lg transition-colors"
+                className="bg-charcoal-800 ring-1 ring-white/10 hover:bg-charcoal-700 hover:ring-crimson-400/40 text-bone p-2 rounded-lg transition-colors"
                 title="Direct message"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

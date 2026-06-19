@@ -27,14 +27,14 @@ const ReadBySheet: React.FC<Props> = ({ readers, threadParticipantCount, onClose
   const sorted = [...readers].sort((a, b) => a.readAt - b.readAt);
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">
+    <div className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/5">
+        <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65">
           Seen by
         </div>
       </div>
       {sorted.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-slate-400">No one's seen this yet.</div>
+        <div className="px-4 py-6 text-center text-sm text-bone/40">No one's seen this yet.</div>
       ) : (
         <ul className="max-h-72 overflow-y-auto py-1">
           {sorted.map(r => (
@@ -47,8 +47,8 @@ const ReadBySheet: React.FC<Props> = ({ readers, threadParticipantCount, onClose
                 </span>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-slate-900 truncate">{r.name}</div>
-                <div className="text-[11px] text-slate-500">{formatRelative(r.readAt)}</div>
+                <div className="text-sm font-semibold text-bone truncate">{r.name}</div>
+                <div className="text-[11px] text-bone/50">{formatRelative(r.readAt)}</div>
               </div>
             </li>
           ))}
@@ -56,7 +56,7 @@ const ReadBySheet: React.FC<Props> = ({ readers, threadParticipantCount, onClose
       )}
       <button
         onClick={onClose}
-        className="w-full text-center py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 border-t border-slate-100"
+        className="w-full text-center py-3 text-sm font-bold text-bone/50 hover:bg-white/[0.05] border-t border-white/5"
       >
         Done
       </button>

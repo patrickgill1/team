@@ -128,7 +128,7 @@ const GlobalChatSearch: React.FC<Props> = ({ threads, onResult, onClose, getThre
     return (
       <>
         {before}
-        <mark className="bg-amber-200 text-slate-900 rounded px-0.5">{match}</mark>
+        <mark className="bg-amber-200 text-bone rounded px-0.5">{match}</mark>
         {after}
       </>
     );
@@ -138,11 +138,11 @@ const GlobalChatSearch: React.FC<Props> = ({ threads, onResult, onClose, getThre
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute inset-x-0 top-0 max-h-[90vh] overflow-y-auto bg-white rounded-b-3xl shadow-2xl animate-sheet-up safe-top"
+        className="absolute inset-x-0 top-0 max-h-[90vh] overflow-y-auto bg-charcoal-900 rounded-b-3xl shadow-2xl animate-sheet-up safe-top"
       >
-        <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3">
+        <div className="sticky top-0 z-10 bg-charcoal-900 border-b border-white/5 px-4 py-3">
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
@@ -150,32 +150,32 @@ const GlobalChatSearch: React.FC<Props> = ({ threads, onResult, onClose, getThre
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search every chat…"
-              className="flex-1 bg-transparent text-base focus:outline-none placeholder:text-slate-400"
+              className="flex-1 bg-transparent text-base focus:outline-none placeholder:text-bone/40"
               style={{ fontSize: '16px' }}
             />
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-700 text-xs font-bold uppercase tracking-widest px-2"
+              className="text-bone/40 hover:text-bone/85 text-xs font-bold uppercase tracking-widest px-2"
             >
               Cancel
             </button>
           </div>
           {loading && (
-            <div className="mt-2 text-[11px] text-slate-400">
+            <div className="mt-2 text-[11px] text-bone/40">
               Indexing {loadProgress.done}/{loadProgress.total} conversations…
             </div>
           )}
         </div>
 
         {!q.trim() ? (
-          <div className="px-6 py-12 text-center text-sm text-slate-500">
+          <div className="px-6 py-12 text-center text-sm text-bone/50">
             Type any word or phrase to search across every chat thread you're in.
           </div>
         ) : results.length === 0 ? (
           loading ? (
-            <div className="px-6 py-10 text-center text-sm text-slate-500">Searching…</div>
+            <div className="px-6 py-10 text-center text-sm text-bone/50">Searching…</div>
           ) : (
-            <div className="px-6 py-12 text-center text-sm text-slate-500">
+            <div className="px-6 py-12 text-center text-sm text-bone/50">
               No matches for "{q.trim()}".
             </div>
           )
@@ -185,7 +185,7 @@ const GlobalChatSearch: React.FC<Props> = ({ threads, onResult, onClose, getThre
               <li key={thread?.id || messages[0]?.threadId}>
                 <div className="px-4 pt-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-widest text-crimson-700">
                   {thread ? getThreadTitle(thread) : 'Conversation'}
-                  <span className="text-slate-400 ml-2 normal-case tracking-normal font-bold">{messages.length} match{messages.length === 1 ? '' : 'es'}</span>
+                  <span className="text-bone/40 ml-2 normal-case tracking-normal font-bold">{messages.length} match{messages.length === 1 ? '' : 'es'}</span>
                 </div>
                 <ul>
                   {messages.slice(0, 5).map(m => (
@@ -193,17 +193,17 @@ const GlobalChatSearch: React.FC<Props> = ({ threads, onResult, onClose, getThre
                       <button
                         type="button"
                         onClick={() => onResult(m.threadId, m.id)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 active:bg-slate-100"
+                        className="w-full text-left px-4 py-2.5 hover:bg-white/[0.05] active:bg-white/[0.1]"
                       >
                         <div className="flex items-baseline gap-2 mb-0.5">
-                          <span className="text-xs font-bold text-slate-900">{m.senderName}</span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-xs font-bold text-bone">{m.senderName}</span>
+                          <span className="text-[10px] text-bone/40">
                             {m.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: m.timestamp.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined })}
                             {' · '}
                             {m.timestamp.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                           </span>
                         </div>
-                        <div className="text-sm text-slate-700 break-words line-clamp-3">
+                        <div className="text-sm text-bone/85 break-words line-clamp-3">
                           {renderSnippet(m.content, q.trim().toLowerCase())}
                         </div>
                       </button>

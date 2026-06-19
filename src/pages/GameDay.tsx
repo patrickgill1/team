@@ -82,6 +82,61 @@ const KIND_META: Record<StatKind, { label: string; emoji: string; color: string 
   note:    { label: 'Note',     emoji: '📝', color: 'bg-gray-500' },
 };
 
+// Tap-to-record action icons. Monoline SVGs — replaces the
+// previous emoji blocks (Patrick: "the game day looks very
+// fisher price"). Uniform stroke weight, bone color, semantic
+// accent only for the cards (yellow stroke on Yellow, red on
+// Red). Wall/timeline shares KIND_META's emoji field for
+// share-text consumption; this icon map is dashboard-only.
+const TAP_ICONS: Record<StatKind, React.ReactNode> = {
+  goal: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3v6m0 6v6M3 12h6m6 0h6" />
+      <path d="m7 7 4 3-1 5-5-2zM17 7l-4 3 1 5 5-2z" />
+    </svg>
+  ),
+  owngoal: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="12" rx="1" />
+      <path d="M7 6v12M11 6v12M15 6v12M19 6v12" />
+      <path d="m4 20 16-12" />
+    </svg>
+  ),
+  assist: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M5 19 12 5l7 14" />
+      <path d="M8 14h8" />
+    </svg>
+  ),
+  save: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M6 11V8a2 2 0 0 1 4 0v3M10 11V6a2 2 0 0 1 4 0v5M14 11V7a2 2 0 0 1 4 0v8a6 6 0 0 1-6 6h-2a4 4 0 0 1-4-4v-1l-2-3a1.5 1.5 0 0 1 2-2l2 2" />
+    </svg>
+  ),
+  yellow: (
+    <svg className="w-6 h-6 text-amber-400" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <rect x="7" y="3" width="11" height="16" rx="1.5" fillOpacity="0.85" />
+    </svg>
+  ),
+  red: (
+    <svg className="w-6 h-6 text-rose-500" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <rect x="7" y="3" width="11" height="16" rx="1.5" fillOpacity="0.85" />
+    </svg>
+  ),
+  sub: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M4 9h13l-3-3M20 15H7l3 3" />
+    </svg>
+  ),
+  note: (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <path d="M14 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9" />
+      <path d="M18 3l3 3-9 9-3 1 1-3z" />
+    </svg>
+  ),
+};
+
 const formatClock = (totalSec: number) => {
   const m = Math.max(0, Math.floor(totalSec / 60));
   const s = Math.max(0, totalSec % 60);
@@ -768,7 +823,7 @@ const GameDay: React.FC = () => {
         {/* Quick action chips (coaches only) */}
         {isUserCoach && status !== 'final' && (
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-white/40 mb-2">Tap to record</h3>
+            <h3 className="text-xs uppercase tracking-wider text-bone/40 mb-2 font-extrabold">Tap to record</h3>
             <div className="grid grid-cols-4 gap-2">
               {(['goal', 'owngoal', 'assist', 'save', 'yellow', 'red', 'sub', 'note'] as StatKind[]).map(k => (
                 <button
@@ -782,11 +837,10 @@ const GameDay: React.FC = () => {
                     setPickerKind(k);
                     setNoteText('');
                   }}
-                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl ring-1 ring-white/10 hover:ring-white/30 ${KIND_META[k].color} bg-opacity-15`}
-                  style={{ backgroundColor: undefined }}
+                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-charcoal-800 ring-1 ring-white/10 hover:ring-crimson-400/50 hover:bg-charcoal-700 active:scale-95 transition"
                 >
-                  <span className="text-2xl">{KIND_META[k].emoji}</span>
-                  <span className="text-[11px] font-medium text-white/90">{KIND_META[k].label}</span>
+                  <span className="text-bone/85">{TAP_ICONS[k]}</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-bone/75">{KIND_META[k].label}</span>
                 </button>
               ))}
             </div>

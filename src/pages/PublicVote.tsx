@@ -159,7 +159,7 @@ const AnimatedBar: React.FC<{ percentage: number; isLeader: boolean }> = ({ perc
     return () => clearTimeout(t);
   }, [percentage]);
   return (
-    <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+    <div className="flex-1 bg-white/[0.08] rounded-full h-2 overflow-hidden">
       <div
         className={`h-2 rounded-full transition-all duration-700 ease-out ${
           isLeader ? 'bg-[#159BE3]' : 'bg-gray-300'
@@ -174,14 +174,14 @@ const AnimatedBar: React.FC<{ percentage: number; isLeader: boolean }> = ({ perc
 const PositionBadge: React.FC<{ position?: string }> = ({ position }) => {
   if (!position) return null;
   const colours: Record<string, string> = {
-    Goalkeeper: 'bg-amber-50 text-amber-700 border border-amber-200',
+    Goalkeeper: 'bg-amber-500/15 text-amber-300 border border-amber-400/30',
     Defender: 'bg-[#f0f9ff] text-[#159BE3] border border-[#159BE3] border-opacity-30',
-    Midfielder: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    Forward: 'bg-red-50 text-red-600 border border-red-200',
-    Striker: 'bg-red-50 text-red-600 border border-red-200',
-    Winger: 'bg-orange-50 text-orange-600 border border-orange-200',
+    Midfielder: 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30',
+    Forward: 'bg-rose-500/15 text-rose-300 border border-rose-400/30',
+    Striker: 'bg-rose-500/15 text-rose-300 border border-rose-400/30',
+    Winger: 'bg-orange-500/15 text-orange-600 border border-orange-400/30',
   };
-  const colour = colours[position] || 'bg-gray-50 text-gray-600 border border-gray-200';
+  const colour = colours[position] || 'bg-white/[0.04] text-bone/65 border border-white/10';
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${colour}`}>
       {position}
@@ -201,13 +201,13 @@ const ConfettiTest: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f0f4f8] flex items-center justify-center p-4">
       <ConfettiCanvas active={active} />
-      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full text-center border border-gray-100 relative z-10">
+      <div className="bg-charcoal-900 rounded-2xl shadow-lg p-8 max-w-sm w-full text-center border border-white/5 relative z-10">
         <div className="w-14 h-14 rounded-full bg-[#f0f9ff] flex items-center justify-center mx-auto mb-4">
           <span className="text-2xl">🎉</span>
         </div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">GoalKickr</p>
-        <h1 className="text-xl font-black text-gray-900 mb-2">Confetti test</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-xs font-bold text-bone/40 uppercase tracking-widest mb-1">GoalKickr</p>
+        <h1 className="text-xl font-black text-bone mb-2">Confetti test</h1>
+        <p className="text-sm text-bone/50 mb-6">
           Preview the post-vote confetti without submitting an actual vote.
         </p>
         <button
@@ -418,7 +418,7 @@ const PublicVote: React.FC = () => {
       <div className="min-h-screen bg-[#f0f4f8] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#159BE3] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400 font-medium text-sm">Loading…</p>
+          <p className="text-bone/40 font-medium text-sm">Loading…</p>
         </div>
       </div>
     );
@@ -427,13 +427,13 @@ const PublicVote: React.FC = () => {
   if (error && !voting) {
     return (
       <div className="min-h-screen bg-[#f0f4f8] flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full text-center border border-gray-100">
+        <div className="bg-charcoal-900 rounded-2xl shadow-lg p-8 max-w-sm w-full text-center border border-white/5">
           <div className="w-14 h-14 rounded-full bg-[#f0f9ff] flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">🔥</span>
           </div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">GoalKickr</p>
-          <h1 className="text-xl font-black text-gray-900">Player of the Match</h1>
-          <p className="text-red-500 mt-4 text-sm bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>
+          <p className="text-xs font-bold text-bone/40 uppercase tracking-widest mb-1">GoalKickr</p>
+          <h1 className="text-xl font-black text-bone">Player of the Match</h1>
+          <p className="text-rose-300 mt-4 text-sm bg-rose-500/15 border border-red-100 p-3 rounded-xl">{error}</p>
         </div>
       </div>
     );
@@ -445,7 +445,7 @@ const PublicVote: React.FC = () => {
       <ConfettiCanvas active={showConfetti} />
 
       <div className="min-h-screen bg-[#f0f4f8] flex items-start justify-center p-4 pt-8 pb-16">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100">
+        <div className="bg-charcoal-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-white/5">
 
           {/* ── Header ── */}
           <div className="bg-black px-6 pt-8 pb-6 text-center relative overflow-hidden">
@@ -458,8 +458,8 @@ const PublicVote: React.FC = () => {
               <h1 className="text-white font-extrabold text-xl tracking-tight">Player of the Match</h1>
               {voting && (
                 <>
-                  <p className="text-gray-300 font-semibold mt-2 text-base">{voting.gameTitle}</p>
-                  <p className="text-gray-500 text-sm mt-0.5">{formatDate(voting.gameDate)}</p>
+                  <p className="text-bone/35 font-semibold mt-2 text-base">{voting.gameTitle}</p>
+                  <p className="text-bone/50 text-sm mt-0.5">{formatDate(voting.gameDate)}</p>
                   <div className="flex flex-wrap justify-center gap-2 mt-4">
                     {voting.homeAway && (
                       <span className="bg-[#159BE3] bg-opacity-20 border border-[#159BE3] border-opacity-50 text-[#159BE3] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
@@ -467,12 +467,12 @@ const PublicVote: React.FC = () => {
                       </span>
                     )}
                     {voting.opponent && (
-                      <span className="bg-white bg-opacity-10 border border-white border-opacity-20 text-gray-300 text-xs font-semibold px-3 py-1 rounded-full">
+                      <span className="bg-charcoal-900 bg-opacity-10 border border-white border-opacity-20 text-bone/35 text-xs font-semibold px-3 py-1 rounded-full">
                         ⚔️ vs {voting.opponent}
                       </span>
                     )}
                     {voting.location && (
-                      <span className="bg-white bg-opacity-10 border border-white border-opacity-20 text-gray-300 text-xs font-semibold px-3 py-1 rounded-full">
+                      <span className="bg-charcoal-900 bg-opacity-10 border border-white border-opacity-20 text-bone/35 text-xs font-semibold px-3 py-1 rounded-full">
                         📍 {voting.location}
                       </span>
                     )}
@@ -485,23 +485,23 @@ const PublicVote: React.FC = () => {
           <div className="p-6">
             {/* Closed banner */}
             {voting && !voting.isActive && (
-              <div className="mb-5 rounded-xl overflow-hidden border border-gray-200">
-                <div className="bg-gray-50 px-4 py-3 text-center">
-                  <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Voting Closed</p>
+              <div className="mb-5 rounded-xl overflow-hidden border border-white/10">
+                <div className="bg-white/[0.04] px-4 py-3 text-center">
+                  <p className="text-bone/40 font-bold text-xs uppercase tracking-widest">Voting Closed</p>
                 </div>
                 {((voting.winners && voting.winners.length > 0) || voting.winner) && (
                   <div className="bg-[#f0f9ff] px-4 py-5 text-center border-t border-[#159BE3] border-opacity-20">
                     {voting.winners && voting.winners.length > 1 ? (
                       <>
                         <p className="text-[#159BE3] text-xs font-black uppercase tracking-widest mb-1">Co-Players of the Match</p>
-                        <p className="text-xl font-black text-gray-900">🏆 {voting.winners.map(w => w.playerName).join(' · ')}</p>
-                        <p className="text-gray-500 text-sm mt-1">{voting.winners[0].voteCount} vote{voting.winners[0].voteCount !== 1 ? 's' : ''} each</p>
+                        <p className="text-xl font-black text-bone">🏆 {voting.winners.map(w => w.playerName).join(' · ')}</p>
+                        <p className="text-bone/50 text-sm mt-1">{voting.winners[0].voteCount} vote{voting.winners[0].voteCount !== 1 ? 's' : ''} each</p>
                       </>
                     ) : (
                       <>
                         <p className="text-[#159BE3] text-xs font-black uppercase tracking-widest mb-1">Winner</p>
-                        <p className="text-2xl font-black text-gray-900">🏆 {(voting.winners?.[0] || voting.winner)!.playerName}</p>
-                        <p className="text-gray-500 text-sm mt-1">{(voting.winners?.[0] || voting.winner)!.voteCount} vote{(voting.winners?.[0] || voting.winner)!.voteCount !== 1 ? 's' : ''}</p>
+                        <p className="text-2xl font-black text-bone">🏆 {(voting.winners?.[0] || voting.winner)!.playerName}</p>
+                        <p className="text-bone/50 text-sm mt-1">{(voting.winners?.[0] || voting.winner)!.voteCount} vote{(voting.winners?.[0] || voting.winner)!.voteCount !== 1 ? 's' : ''}</p>
                       </>
                     )}
                   </div>
@@ -513,8 +513,8 @@ const PublicVote: React.FC = () => {
             {alreadyVoted && voting?.isActive && !submitted && (
               <div className="bg-[#f0f9ff] border border-[#159BE3] border-opacity-30 rounded-xl p-4 mb-5 text-center">
                 <div className="text-3xl mb-1">✅</div>
-                <p className="font-bold text-gray-900">You've already voted!</p>
-                <p className="text-gray-500 text-sm mt-1">Your vote is locked in. Results will be revealed once voting closes.</p>
+                <p className="font-bold text-bone">You've already voted!</p>
+                <p className="text-bone/50 text-sm mt-1">Your vote is locked in. Results will be revealed once voting closes.</p>
               </div>
             )}
 
@@ -522,8 +522,8 @@ const PublicVote: React.FC = () => {
             {submitted && (
               <div className="bg-[#f0f9ff] border border-[#159BE3] border-opacity-40 rounded-xl p-5 mb-5 text-center">
                 <div className="text-4xl mb-2">🎉</div>
-                <p className="font-black text-gray-900 text-lg">Vote submitted!</p>
-                <p className="text-gray-500 text-sm mt-1">Thanks, <strong>{voterName}</strong>! Results will be revealed once voting closes.</p>
+                <p className="font-black text-bone text-lg">Vote submitted!</p>
+                <p className="text-bone/50 text-sm mt-1">Thanks, <strong>{voterName}</strong>! Results will be revealed once voting closes.</p>
               </div>
             )}
 
@@ -531,12 +531,12 @@ const PublicVote: React.FC = () => {
             {step === 'identify' && voting?.isActive && (
               <div className="space-y-5">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Before you vote…</h2>
-                  <p className="text-gray-400 text-sm">Two quick things and you're in.</p>
+                  <h2 className="text-lg font-bold text-bone">Before you vote…</h2>
+                  <p className="text-bone/40 text-sm">Two quick things and you're in.</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-xs font-bold text-bone/40 uppercase tracking-widest mb-1.5">
                     Your name <span className="text-[#159BE3]">*</span>
                   </label>
                   <input
@@ -545,29 +545,29 @@ const PublicVote: React.FC = () => {
                     onChange={e => setVoterName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleProceedToVote(); }}
                     placeholder="e.g. Sarah Jones"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#159BE3] focus:border-transparent text-sm transition-shadow"
+                    className="w-full border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#159BE3] focus:border-transparent text-sm transition-shadow"
                   />
                 </div>
 
-                <label className="flex items-start gap-2.5 p-3 rounded-xl border-2 border-gray-200 hover:border-[#159BE3] hover:border-opacity-40 cursor-pointer select-none transition-colors">
+                <label className="flex items-start gap-2.5 p-3 rounded-xl border-2 border-white/10 hover:border-[#159BE3] hover:border-opacity-40 cursor-pointer select-none transition-colors">
                   <input
                     type="checkbox"
                     checked={iAmCoach}
                     onChange={e => { setIAmCoach(e.target.checked); if (e.target.checked) { setMyChildId(''); } }}
-                    className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#159BE3] focus:ring-[#159BE3]"
+                    className="mt-0.5 w-4 h-4 rounded border-white/15 text-[#159BE3] focus:ring-[#159BE3]"
                   />
                   <div className="flex-1 text-sm">
-                    <div className="font-bold text-gray-900">🧥 I'm a coach (no child on the team)</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Skips the parent check so you can vote for any player.</div>
+                    <div className="font-bold text-bone">🧥 I'm a coach (no child on the team)</div>
+                    <div className="text-xs text-bone/50 mt-0.5">Skips the parent check so you can vote for any player.</div>
                   </div>
                 </label>
 
                 {!iAmCoach && (
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-xs font-bold text-bone/40 uppercase tracking-widest mb-1.5">
                     Your child on the team <span className="text-[#159BE3]">*</span>
                   </label>
-                  <p className="text-xs text-gray-400 mb-2">They'll be excluded from your choices — keeping it fair.</p>
+                  <p className="text-xs text-bone/40 mb-2">They'll be excluded from your choices — keeping it fair.</p>
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1 -mr-1">
                     {players.map(p => {
                       const isSelected = myChildId === p.id;
@@ -579,27 +579,27 @@ const PublicVote: React.FC = () => {
                           className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all duration-150 text-left ${
                             isSelected
                               ? 'border-[#159BE3] bg-[#f0f9ff] shadow-sm'
-                              : 'border-gray-200 hover:border-[#159BE3] hover:border-opacity-40 hover:bg-gray-50'
+                              : 'border-white/10 hover:border-[#159BE3] hover:border-opacity-40 hover:bg-white/[0.05]'
                           }`}
                         >
                           {p.profilePhotoUrl ? (
                             <img
                               src={p.profilePhotoUrl}
                               alt={p.name}
-                              className={`w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 ${isSelected ? 'border-[#159BE3]' : 'border-gray-100'}`}
+                              className={`w-11 h-11 rounded-full object-cover flex-shrink-0 border-2 ${isSelected ? 'border-[#159BE3]' : 'border-white/5'}`}
                             />
                           ) : (
-                            <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${isSelected ? 'bg-[#159BE3]' : 'bg-gray-200'}`}>
-                              <span className={`font-bold text-base ${isSelected ? 'text-white' : 'text-gray-500'}`}>
+                            <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${isSelected ? 'bg-[#159BE3]' : 'bg-white/15'}`}>
+                              <span className={`font-bold text-base ${isSelected ? 'text-white' : 'text-bone/50'}`}>
                                 {p.name.charAt(0).toUpperCase()}
                               </span>
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900 text-sm truncate">{p.name}</p>
+                            <p className="font-bold text-bone text-sm truncate">{p.name}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               {p.jerseyNumber && (
-                                <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full font-mono">
+                                <span className="text-xs text-bone/50 bg-white/[0.08] px-1.5 py-0.5 rounded-full font-mono">
                                   #{p.jerseyNumber}
                                 </span>
                               )}
@@ -617,7 +617,7 @@ const PublicVote: React.FC = () => {
                 )}
 
                 {error && (
-                  <p className="text-red-500 text-sm bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>
+                  <p className="text-rose-300 text-sm bg-rose-500/15 border border-red-100 p-3 rounded-xl">{error}</p>
                 )}
 
                 <button
@@ -633,12 +633,12 @@ const PublicVote: React.FC = () => {
             {step === 'vote' && voting?.isActive && (
               <div className="space-y-5">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Cast your vote</h2>
-                  <p className="text-gray-400 text-sm">
+                  <h2 className="text-lg font-bold text-bone">Cast your vote</h2>
+                  <p className="text-bone/40 text-sm">
                     Who was the standout player?{iAmCoach ? ' Voting as 🧥 coach.' : ' Your child is excluded.'}
                   </p>
                   {voting.eligiblePlayerIds && voting.eligiblePlayerIds.length > 0 && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-bone/40 mt-1">
                       {votablePlayers.length} eligible player{votablePlayers.length !== 1 ? 's' : ''}
                     </p>
                   )}
@@ -655,7 +655,7 @@ const PublicVote: React.FC = () => {
                         className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-150 relative ${
                           isSelected
                             ? 'border-[#159BE3] bg-[#f0f9ff] shadow-md shadow-[#159BE3]/15'
-                            : 'border-gray-200 hover:border-[#159BE3] hover:border-opacity-40 hover:bg-gray-50'
+                            : 'border-white/10 hover:border-[#159BE3] hover:border-opacity-40 hover:bg-white/[0.05]'
                         }`}
                       >
                         {isSelected && (
@@ -665,7 +665,7 @@ const PublicVote: React.FC = () => {
                           <img
                             src={player.profilePhotoUrl}
                             alt={player.name}
-                            className={`w-16 h-16 rounded-full object-cover mb-2 border-2 shadow-sm ${isSelected ? 'border-[#159BE3]' : 'border-gray-100'}`}
+                            className={`w-16 h-16 rounded-full object-cover mb-2 border-2 shadow-sm ${isSelected ? 'border-[#159BE3]' : 'border-white/5'}`}
                           />
                         ) : (
                           <div className="w-16 h-16 rounded-full flex items-center justify-center mb-2 bg-[#159BE3] shadow-sm">
@@ -674,10 +674,10 @@ const PublicVote: React.FC = () => {
                             </span>
                           </div>
                         )}
-                        <span className="font-bold text-gray-900 text-sm text-center leading-tight w-full">{player.name}</span>
+                        <span className="font-bold text-bone text-sm text-center leading-tight w-full">{player.name}</span>
                         <div className="flex flex-wrap justify-center gap-1 mt-1.5">
                           {player.jerseyNumber && (
-                            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full font-mono">
+                            <span className="text-xs text-bone/50 bg-white/[0.08] px-1.5 py-0.5 rounded-full font-mono">
                               #{player.jerseyNumber}
                             </span>
                           )}
@@ -691,25 +691,25 @@ const PublicVote: React.FC = () => {
                 {/* Reason textarea */}
                 {selectedPlayerId && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
-                      Why did they stand out? <span className="text-gray-400 font-normal normal-case tracking-normal">(optional)</span>
+                    <label className="block text-xs font-bold text-bone/40 uppercase tracking-widest mb-1.5">
+                      Why did they stand out? <span className="text-bone/40 font-normal normal-case tracking-normal">(optional)</span>
                     </label>
                     <textarea
                       value={voteReason}
                       onChange={e => setVoteReason(e.target.value)}
                       rows={2}
                       placeholder="Great goal, fantastic defending, never gave up…"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#159BE3] focus:border-transparent text-sm resize-none transition-shadow"
+                      className="w-full border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#159BE3] focus:border-transparent text-sm resize-none transition-shadow"
                     />
                   </div>
                 )}
 
-                {error && <p className="text-red-500 text-sm bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>}
+                {error && <p className="text-rose-300 text-sm bg-rose-500/15 border border-red-100 p-3 rounded-xl">{error}</p>}
 
                 <div className="flex gap-3 pt-1">
                   <button
                     onClick={() => { setStep('identify'); setError(null); }}
-                    className="px-4 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-semibold"
+                    className="px-4 py-3 rounded-xl border border-white/10 text-bone/65 hover:bg-white/[0.05] transition-colors text-sm font-semibold"
                   >
                     ← Back
                   </button>
@@ -731,24 +731,24 @@ const PublicVote: React.FC = () => {
 
             {/* ── STEP 3: Results (hidden while voting is active) ── */}
             {step === 'results' && voting?.isActive && (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
-                <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white/[0.04] border border-white/10 rounded-xl p-6 text-center">
+                <svg className="w-10 h-10 text-bone/40 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                 </svg>
-                <p className="font-bold text-gray-700">Results are hidden while voting is open</p>
-                <p className="text-gray-500 text-sm mt-1">Check back once the coach closes voting to see the results!</p>
-                <p className="text-gray-400 text-xs mt-3">{totalVotes} vote{totalVotes !== 1 ? 's' : ''} cast so far</p>
+                <p className="font-bold text-bone/85">Results are hidden while voting is open</p>
+                <p className="text-bone/50 text-sm mt-1">Check back once the coach closes voting to see the results!</p>
+                <p className="text-bone/40 text-xs mt-3">{totalVotes} vote{totalVotes !== 1 ? 's' : ''} cast so far</p>
               </div>
             )}
 
             {step === 'results' && !voting?.isActive && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Final Results</h2>
+                  <h2 className="text-lg font-bold text-bone">Final Results</h2>
                 </div>
 
                 {results.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
+                  <div className="text-center py-12 text-bone/40">
                     <div className="text-5xl mb-3">🗳️</div>
                     <p className="font-semibold">No votes yet</p>
                     <p className="text-sm mt-1">Be the first to vote!</p>
@@ -766,10 +766,10 @@ const PublicVote: React.FC = () => {
                           className={`rounded-xl border overflow-hidden ${
                             isLeader
                               ? 'border-[#159BE3] border-opacity-40 shadow-sm shadow-[#159BE3]/10'
-                              : 'border-gray-200'
+                              : 'border-white/10'
                           }`}
                         >
-                          <div className={`p-3.5 ${isLeader ? 'bg-[#f0f9ff]' : 'bg-white'}`}>
+                          <div className={`p-3.5 ${isLeader ? 'bg-[#f0f9ff]' : 'bg-charcoal-900'}`}>
                             <div className="flex items-center gap-3">
                               <span className="text-xl w-7 text-center flex-shrink-0">
                                 {medals[index] || `${index + 1}.`}
@@ -787,12 +787,12 @@ const PublicVote: React.FC = () => {
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className="font-bold text-gray-900 truncate text-sm">{result.name}</p>
+                                  <p className="font-bold text-bone truncate text-sm">{result.name}</p>
                                   {result.position && <PositionBadge position={result.position} />}
                                 </div>
                                 <div className="flex items-center gap-2 mt-1.5">
                                   <AnimatedBar percentage={percentage} isLeader={isLeader} />
-                                  <span className="text-xs font-semibold whitespace-nowrap text-gray-500">
+                                  <span className="text-xs font-semibold whitespace-nowrap text-bone/50">
                                     {result.count} · {percentage}%
                                   </span>
                                 </div>
@@ -803,13 +803,13 @@ const PublicVote: React.FC = () => {
                           {/* Comments feed for this player */}
                           {reasons.length > 0 && (
                             <div className={`border-t px-3.5 py-2.5 space-y-1.5 ${
-                              isLeader ? 'border-[#159BE3] border-opacity-20 bg-[#f7fbff]' : 'border-gray-100 bg-gray-50'
+                              isLeader ? 'border-[#159BE3] border-opacity-20 bg-[#f7fbff]' : 'border-white/5 bg-white/[0.04]'
                             }`}>
                               {reasons.map((v, i) => (
-                                <p key={i} className="text-xs text-gray-600 flex gap-1.5">
+                                <p key={i} className="text-xs text-bone/65 flex gap-1.5">
                                   <span className="flex-shrink-0 text-[#159BE3] font-bold">›</span>
                                   <span>
-                                    <span className="font-semibold text-gray-700">{v.voterName}:</span> {v.reason}
+                                    <span className="font-semibold text-bone/85">{v.voterName}:</span> {v.reason}
                                   </span>
                                 </p>
                               ))}
@@ -821,7 +821,7 @@ const PublicVote: React.FC = () => {
                   </div>
                 )}
 
-                <p className="text-center text-gray-400 text-xs mt-5">
+                <p className="text-center text-bone/40 text-xs mt-5">
                   {totalVotes} vote{totalVotes !== 1 ? 's' : ''} cast
                 </p>
               </div>
@@ -829,8 +829,8 @@ const PublicVote: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-center gap-2">
-            <span className="text-xs text-gray-400 font-bold tracking-widest uppercase">GoalKickr</span>
+          <div className="border-t border-white/5 px-6 py-3 flex items-center justify-center gap-2">
+            <span className="text-xs text-bone/40 font-bold tracking-widest uppercase">GoalKickr</span>
           </div>
         </div>
       </div>

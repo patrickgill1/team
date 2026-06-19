@@ -109,48 +109,48 @@ const Stats: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crimson-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading team statistics...</p>
+          <p className="text-bone/65">Loading team statistics...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <Header title="Stats" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
         {loadError && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5">
+          <div className="bg-amber-500/15 border border-amber-400/30 rounded-xl p-3 flex items-start gap-2.5">
             <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
             <div className="flex-1">
-              <p className="text-sm font-bold text-amber-900">Loading issue</p>
-              <p className="text-xs text-amber-800 mt-0.5">{loadError}</p>
+              <p className="text-sm font-bold text-amber-100">Loading issue</p>
+              <p className="text-xs text-amber-200 mt-0.5">{loadError}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-2 text-[11px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-100 text-amber-900 hover:bg-amber-200"
+                className="mt-2 text-[11px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-500/20 text-amber-100 hover:bg-amber-200"
               >Refresh</button>
             </div>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="border-b border-slate-100">
+        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm">
+          <div className="border-b border-white/5">
             <nav className="flex gap-1 px-3 pt-2">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`px-3 py-2 rounded-t-md text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition-colors ${
                   activeTab === 'overview'
-                    ? 'border-crimson-500 text-crimson-700'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                    ? 'border-crimson-500 text-crimson-300'
+                    : 'border-transparent text-bone/50 hover:text-bone/90'
                 }`}
               >
                 Overview
@@ -161,8 +161,8 @@ const Stats: React.FC = () => {
                   onClick={() => setActiveTab('track')}
                   className={`px-3 py-2 rounded-t-md text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition-colors ${
                     activeTab === 'track'
-                      ? 'border-crimson-500 text-crimson-700'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                      ? 'border-crimson-500 text-crimson-300'
+                      : 'border-transparent text-bone/50 hover:text-bone/90'
                   }`}
                 >
                   Track
@@ -191,8 +191,8 @@ const Stats: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Record Player Statistics</h3>
-                    <p className="text-sm text-gray-600">
+                    <h3 className="text-lg font-semibold text-bone">Record Player Statistics</h3>
+                    <p className="text-sm text-bone/65">
                       Track goals, assists, saves, and key plays during games
                     </p>
                   </div>
@@ -211,13 +211,13 @@ const Stats: React.FC = () => {
 
                 {players.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="text-gray-400 mb-4">
+                    <div className="text-bone/40 mb-4">
                       <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Players Added</h3>
-                    <p className="text-gray-600 mb-4">
+                    <h3 className="text-lg font-medium text-bone mb-2">No Players Added</h3>
+                    <p className="text-bone/65 mb-4">
                       You need to add players to your team before you can track statistics.
                     </p>
                     <button
@@ -232,7 +232,7 @@ const Stats: React.FC = () => {
                     {players.map(player => (
                       <div
                         key={player.id}
-                        className="bg-white border border-gray-200 rounded-lg p-4 hover:border-crimson-300 hover:shadow-md transition-all duration-200"
+                        className="bg-charcoal-900 border border-white/10 rounded-lg p-4 hover:border-crimson-400/40 hover:shadow-md transition-all duration-200"
                       >
                         <div
                           onClick={() => {
@@ -242,12 +242,12 @@ const Stats: React.FC = () => {
                           className="cursor-pointer"
                         >
                           <div className="flex items-center space-x-3 mb-3">
-                            <div className="bg-crimson-50 rounded-full w-12 h-12 flex items-center justify-center">
+                            <div className="bg-crimson-500/15 rounded-full w-12 h-12 flex items-center justify-center">
                               <span className="text-lg font-bold text-crimson-600">#{player.jerseyNumber}</span>
                             </div>
                             <div>
-                              <h4 className="font-semibold text-gray-900">{player.name}</h4>
-                              <p className="text-sm text-gray-600">{player.position}</p>
+                              <h4 className="font-semibold text-bone">{player.name}</h4>
+                              <p className="text-sm text-bone/65">{player.position}</p>
                             </div>
                           </div>
 
@@ -259,28 +259,28 @@ const Stats: React.FC = () => {
                               <div className="grid grid-cols-3 gap-2 text-center">
                                 <div>
                                   <div className="text-lg font-bold text-crimson-600">{s.goals || 0}</div>
-                                  <div className="text-xs text-gray-600">Goals</div>
+                                  <div className="text-xs text-bone/65">Goals</div>
                                 </div>
                                 <div>
                                   <div className="text-lg font-bold text-emerald-600">{s.assists || 0}</div>
-                                  <div className="text-xs text-gray-600">Assists</div>
+                                  <div className="text-xs text-bone/65">Assists</div>
                                 </div>
                                 <div>
-                                  <div className="text-lg font-bold text-charcoal-700">{s.saves || 0}</div>
-                                  <div className="text-xs text-gray-600">Saves</div>
+                                  <div className="text-lg font-bold text-bone/85">{s.saves || 0}</div>
+                                  <div className="text-xs text-bone/65">Saves</div>
                                 </div>
                               </div>
                             );
                           })()}
                         </div>
 
-                        <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between gap-2">
+                        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
                           <button
                             onClick={() => {
                               setSelectedPlayerId(player.id);
                               setIsStatsTrackerOpen(true);
                             }}
-                            className="flex-1 inline-flex items-center justify-center text-crimson-600 text-sm font-medium hover:text-crimson-700"
+                            className="flex-1 inline-flex items-center justify-center text-crimson-600 text-sm font-medium hover:text-crimson-300"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -289,7 +289,7 @@ const Stats: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setAdjustingPlayerId(player.id)}
-                            className="flex-1 inline-flex items-center justify-center text-charcoal-700 text-sm font-medium hover:text-charcoal-800"
+                            className="flex-1 inline-flex items-center justify-center text-bone/85 text-sm font-medium hover:text-charcoal-800"
                             title="Fix a stat mistake"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -459,16 +459,16 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
       {/* Scope + per-player filter (for parents) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Team Performance</h3>
-          <p className="text-sm text-gray-600">Players, goals, games, and clips at a glance.</p>
+          <h3 className="text-lg font-semibold text-bone">Team Performance</h3>
+          <p className="text-sm text-bone/65">Players, goals, games, and clips at a glance.</p>
         </div>
         <div className="flex items-center gap-2">
           {activeSeason && (
-            <div className="inline-flex items-center rounded-full bg-gray-100 ring-1 ring-gray-200 p-0.5">
+            <div className="inline-flex items-center rounded-full bg-white/[0.08] ring-1 ring-white/10 p-0.5">
               <button
                 onClick={() => setStatsScope('current')}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                  statsScope === 'current' ? 'bg-crimson-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  statsScope === 'current' ? 'bg-crimson-600 text-white shadow-sm' : 'text-bone/65 hover:text-bone'
                 }`}
               >
                 This Season
@@ -476,7 +476,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
               <button
                 onClick={() => setStatsScope('lifetime')}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                  statsScope === 'lifetime' ? 'bg-crimson-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  statsScope === 'lifetime' ? 'bg-crimson-600 text-white shadow-sm' : 'text-bone/65 hover:text-bone'
                 }`}
               >
                 Overall
@@ -487,7 +487,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
             <select
               value={selectedPlayerId}
               onChange={(e) => setSelectedPlayerId(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
+              className="px-3 py-2 border border-white/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
               style={{ fontSize: '16px' }}
               title="Drill into one player's full breakdown"
             >
@@ -503,12 +503,12 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {players.length === 0 && !loadError ? (
-        <div className="bg-white rounded-2xl ring-1 ring-gray-200 text-center py-12">
-          <div className="text-gray-400 mb-3 flex justify-center">
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 text-center py-12">
+          <div className="text-bone/40 mb-3 flex justify-center">
             <AppIcon name="players" className="w-12 h-12" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No players yet</h3>
-          <p className="text-gray-600 mb-4">Add players to your team to start tracking stats.</p>
+          <h3 className="text-lg font-medium text-bone mb-1">No players yet</h3>
+          <p className="text-bone/65 mb-4">Add players to your team to start tracking stats.</p>
           <button
             onClick={() => window.location.href = '/players'}
             className="bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition"
@@ -527,7 +527,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
       ) : (
         <>
           {/* Quick stats row — 4 tiles. Brand-tinted (no purple/orange) */}
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-3 sm:p-4">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-3 sm:p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <QuickStat icon="players" tint="cyan" value={players.length} label="Players" />
               <QuickStat icon="soccer" tint="emerald" value={totalGoals} label="Goals" />
@@ -537,9 +537,9 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
           </div>
 
           {/* Top Performers */}
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-4 sm:p-5">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900">Top Performers</h3>
+              <h3 className="text-base sm:text-lg font-bold text-bone">Top Performers</h3>
             </div>
             {topScorer || topAssister || topSaver ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -554,20 +554,20 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 text-center py-6">No stats recorded yet — record some goals and assists to populate this.</p>
+              <p className="text-sm text-bone/50 text-center py-6">No stats recorded yet — record some goals and assists to populate this.</p>
             )}
           </div>
 
           {/* All Players Stats — sortable */}
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
             <div className="px-4 sm:px-5 py-4 flex items-center justify-between gap-3">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900">All Players Stats</h3>
-              <label className="inline-flex items-center gap-2 text-xs text-gray-500">
+              <h3 className="text-base sm:text-lg font-bold text-bone">All Players Stats</h3>
+              <label className="inline-flex items-center gap-2 text-xs text-bone/50">
                 <span className="font-semibold uppercase tracking-wide">Sort by</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="px-2 py-1 border border-white/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
                   style={{ fontSize: '16px' }}
                 >
                   <option value="goals">Goals</option>
@@ -579,27 +579,27 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-y border-gray-200">
-                  <tr className="text-[11px] uppercase tracking-wider text-gray-500">
+                <thead className="bg-white/[0.04] border-y border-white/10">
+                  <tr className="text-[11px] uppercase tracking-wider text-bone/50">
                     <th className="text-left font-semibold py-2.5 pl-4 sm:pl-5 pr-2 w-8">#</th>
                     <th className="text-left font-semibold py-2.5 pr-2">Player</th>
-                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='goals' ? 'text-emerald-700' : ''}`}>G</th>
-                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='assists' ? 'text-crimson-700' : ''}`}>A</th>
-                    <th className={`text-center font-semibold py-2.5 px-2 w-16 ${sortBy==='saves' ? 'text-charcoal-700' : ''}`}>Saves</th>
-                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='gamesPlayed' ? 'text-charcoal-700' : ''}`}>Apps</th>
+                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='goals' ? 'text-emerald-300' : ''}`}>G</th>
+                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='assists' ? 'text-crimson-300' : ''}`}>A</th>
+                    <th className={`text-center font-semibold py-2.5 px-2 w-16 ${sortBy==='saves' ? 'text-bone/85' : ''}`}>Saves</th>
+                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='gamesPlayed' ? 'text-bone/85' : ''}`}>Apps</th>
                     <th className="py-2.5 w-8" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-white/5">
                   {sortedRows.map((row, idx) => (
-                    <tr key={row.p.id} className="hover:bg-gray-50 transition">
-                      <td className="py-3 pl-4 sm:pl-5 pr-2 text-gray-400 text-xs font-semibold">{idx + 1}</td>
+                    <tr key={row.p.id} className="hover:bg-white/[0.05] transition">
+                      <td className="py-3 pl-4 sm:pl-5 pr-2 text-bone/40 text-xs font-semibold">{idx + 1}</td>
                       <td className="py-3 pr-2">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <PlayerAvatar player={row.p} />
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 truncate">{row.p.name}</p>
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="font-semibold text-bone truncate">{row.p.name}</p>
+                            <p className="text-xs text-bone/50 truncate">
                               {row.p.jerseyNumber != null ? `#${row.p.jerseyNumber} · ` : ''}{row.p.position || 'Player'}
                             </p>
                           </div>
@@ -608,9 +608,9 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
                       <StatCell value={row.goals} max={maxGoals} color="emerald" />
                       <StatCell value={row.assists} max={maxAssists} color="cyan" />
                       <StatCell value={row.saves} max={maxSaves} color="navy" />
-                      <td className="py-3 px-2 text-center text-gray-700 font-semibold">{row.gamesPlayed}</td>
+                      <td className="py-3 px-2 text-center text-bone/85 font-semibold">{row.gamesPlayed}</td>
                       <td className="py-3 pr-3 text-right">
-                        <a href={`/player/${row.p.id}`} className="text-gray-300 hover:text-crimson-600">
+                        <a href={`/player/${row.p.id}`} className="text-bone/35 hover:text-crimson-600">
                           <AppIcon name="arrow-right" className="w-4 h-4 inline" />
                         </a>
                       </td>
@@ -619,15 +619,15 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
                 </tbody>
               </table>
             </div>
-            <div className="px-4 sm:px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm">
-              <span className="inline-flex items-center gap-2 text-gray-600">
-                <AppIcon name="stats" className="w-4 h-4 text-crimson-700" />
+            <div className="px-4 sm:px-5 py-3 border-t border-white/5 bg-white/[0.04] flex items-center justify-between text-sm">
+              <span className="inline-flex items-center gap-2 text-bone/65">
+                <AppIcon name="stats" className="w-4 h-4 text-crimson-300" />
                 <span>View full breakdown for any player</span>
               </span>
               <button
                 onClick={() => setSelectedPlayerId(players[0]?.id || '')}
                 disabled={players.length === 0}
-                className="inline-flex items-center gap-1 text-crimson-700 hover:text-crimson-800 font-semibold disabled:opacity-50"
+                className="inline-flex items-center gap-1 text-crimson-300 hover:text-crimson-200 font-semibold disabled:opacity-50"
               >
                 <span>Detailed Stats</span>
                 <AppIcon name="arrow-right" className="w-4 h-4" />
@@ -641,10 +641,10 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
 };
 
 const TINT: Record<string, { box: string; icon: string; value: string }> = {
-  cyan:    { box: 'bg-crimson-50',           icon: 'text-crimson-700',    value: 'text-crimson-700'    },
-  emerald: { box: 'bg-emerald-50',        icon: 'text-emerald-700', value: 'text-emerald-700' },
-  navy:    { box: 'bg-charcoal-700/10',       icon: 'text-charcoal-700',    value: 'text-charcoal-700'    },
-  fire:    { box: 'bg-crimson-50',           icon: 'text-charcoal-700',    value: 'text-charcoal-700'    },
+  cyan:    { box: 'bg-crimson-500/15',           icon: 'text-crimson-300',    value: 'text-crimson-300'    },
+  emerald: { box: 'bg-emerald-500/15',        icon: 'text-emerald-300', value: 'text-emerald-300' },
+  navy:    { box: 'bg-charcoal-700/10',       icon: 'text-bone/85',    value: 'text-bone/85'    },
+  fire:    { box: 'bg-crimson-500/15',           icon: 'text-bone/85',    value: 'text-bone/85'    },
 };
 
 const QuickStat: React.FC<{ icon: any; tint: 'cyan' | 'emerald' | 'navy' | 'fire'; value: number; label: string }> = ({
@@ -657,17 +657,17 @@ const QuickStat: React.FC<{ icon: any; tint: 'cyan' | 'emerald' | 'navy' | 'fire
         <AppIcon name={icon} className="w-5 h-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
-        <p className="text-[11px] uppercase tracking-wide text-gray-500 font-semibold">{label}</p>
+        <p className="text-2xl font-bold text-bone leading-tight">{value}</p>
+        <p className="text-[11px] uppercase tracking-wide text-bone/50 font-semibold">{label}</p>
       </div>
     </div>
   );
 };
 
 const RANK_STYLES: Record<number, { card: string; ribbon: string; pill: string; stat: string }> = {
-  1: { card: 'bg-crimson-50 ring-crimson-200',         ribbon: 'bg-amber-400 text-amber-950',   pill: 'bg-amber-400 text-amber-950',   stat: 'text-emerald-700' },
-  2: { card: 'bg-emerald-50 ring-emerald-200',   ribbon: 'bg-gray-300 text-gray-800',     pill: 'bg-emerald-500 text-white',     stat: 'text-emerald-700' },
-  3: { card: 'bg-crimson-50 ring-crimson-200',         ribbon: 'bg-orange-300 text-orange-950', pill: 'bg-crimson-600 text-white',        stat: 'text-crimson-800'    },
+  1: { card: 'bg-crimson-500/15 ring-crimson-400/30',         ribbon: 'bg-amber-400 text-amber-950',   pill: 'bg-amber-400 text-amber-950',   stat: 'text-emerald-300' },
+  2: { card: 'bg-emerald-500/15 ring-emerald-400/30',   ribbon: 'bg-gray-300 text-bone/90',     pill: 'bg-emerald-500/150 text-white',     stat: 'text-emerald-300' },
+  3: { card: 'bg-crimson-500/15 ring-crimson-400/30',         ribbon: 'bg-orange-300 text-orange-950', pill: 'bg-crimson-600 text-white',        stat: 'text-crimson-200'    },
 };
 
 const PerformerCard: React.FC<{
@@ -695,8 +695,8 @@ const PerformerCard: React.FC<{
           </span>
           <PlayerAvatar player={player} large />
         </div>
-        <p className="mt-2 font-bold text-gray-900 truncate w-full">{player.name}</p>
-        <p className="text-xs text-gray-600">{statLabel}</p>
+        <p className="mt-2 font-bold text-bone truncate w-full">{player.name}</p>
+        <p className="text-xs text-bone/65">{statLabel}</p>
         <p className={`mt-0.5 text-sm font-bold ${styles.stat}`}>
           {value} {statName}
         </p>
@@ -721,22 +721,22 @@ const PlayerAvatar: React.FC<{ player: Player; large?: boolean }> = ({ player, l
 const StatCell: React.FC<{ value: number; max: number; color: 'emerald' | 'cyan' | 'navy' | 'fire' }> = ({ value, max, color }) => {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   const text = {
-    emerald: 'text-emerald-700',
-    cyan: 'text-crimson-700',
-    navy: 'text-charcoal-700',
-    fire: 'text-charcoal-700',
+    emerald: 'text-emerald-300',
+    cyan: 'text-crimson-300',
+    navy: 'text-bone/85',
+    fire: 'text-bone/85',
   }[color];
   const bar = {
-    emerald: 'bg-emerald-500',
-    cyan: 'bg-crimson-500',
+    emerald: 'bg-emerald-500/150',
+    cyan: 'bg-crimson-500/150',
     navy: 'bg-charcoal-700',
-    fire: 'bg-crimson-500',
+    fire: 'bg-crimson-500/150',
   }[color];
   return (
     <td className="py-3 px-2">
       <div className="flex flex-col items-center gap-1 min-w-[2.5rem]">
-        <span className={`text-base font-bold tabular-nums ${value > 0 ? text : 'text-gray-300'}`}>{value}</span>
-        <div className="h-[3px] w-full rounded-full bg-gray-100 overflow-hidden">
+        <span className={`text-base font-bold tabular-nums ${value > 0 ? text : 'text-bone/35'}`}>{value}</span>
+        <div className="h-[3px] w-full rounded-full bg-white/[0.08] overflow-hidden">
           <div className={`h-full ${bar}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
@@ -756,12 +756,12 @@ interface AdjustStatsModalProps {
 // no emoji. Yellow/red cards keep their semantic colors since those
 // match the actual referee cards they represent.
 const STAT_FIELDS: { key: keyof Player['stats']; label: string; icon: 'soccer' | 'highlight' | 'check' | 'trophy' | 'flag' | 'shield'; tint: string }[] = [
-  { key: 'goals',       label: 'Goals',     icon: 'soccer',    tint: 'text-emerald-700' },
-  { key: 'assists',     label: 'Assists',   icon: 'highlight', tint: 'text-crimson-700' },
-  { key: 'saves',       label: 'Saves',     icon: 'check',     tint: 'text-charcoal-700' },
-  { key: 'gamesPlayed', label: 'Games',     icon: 'trophy',    tint: 'text-charcoal-700' },
+  { key: 'goals',       label: 'Goals',     icon: 'soccer',    tint: 'text-emerald-300' },
+  { key: 'assists',     label: 'Assists',   icon: 'highlight', tint: 'text-crimson-300' },
+  { key: 'saves',       label: 'Saves',     icon: 'check',     tint: 'text-bone/85' },
+  { key: 'gamesPlayed', label: 'Games',     icon: 'trophy',    tint: 'text-bone/85' },
   { key: 'yellowCards', label: 'Yellow',    icon: 'flag',      tint: 'text-yellow-700' },
-  { key: 'redCards',    label: 'Red',       icon: 'shield',    tint: 'text-rose-700' },
+  { key: 'redCards',    label: 'Red',       icon: 'shield',    tint: 'text-rose-300' },
 ];
 
 const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, onSave }) => {
@@ -794,14 +794,14 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white sticky top-0">
+        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white sticky top-0">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Fix Stats</h3>
-            <p className="text-xs text-gray-500">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
+            <h3 className="text-lg font-bold text-bone">Fix Stats</h3>
+            <p className="text-xs text-bone/50">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/[0.08] text-bone/50" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -810,34 +810,34 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
 
         {/* Body */}
         <div className="p-6 space-y-3">
-          <p className="text-xs text-gray-500 mb-2">
+          <p className="text-xs text-bone/50 mb-2">
             Set the correct totals for this player. Adjustments are saved as a correction record so per-team stats stay accurate (including for players on multiple teams).
           </p>
           {STAT_FIELDS.map(f => (
-            <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-              <div className={`w-9 h-9 rounded-lg bg-white ring-1 ring-gray-200 flex items-center justify-center ${f.tint}`}>
+            <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04]">
+              <div className={`w-9 h-9 rounded-lg bg-charcoal-900 ring-1 ring-white/10 flex items-center justify-center ${f.tint}`}>
                 <AppIcon name={f.icon} className="w-5 h-5" />
               </div>
               <div className="flex-1">
                 <p className={`text-sm font-bold ${f.tint}`}>{f.label}</p>
-                <p className="text-[11px] text-gray-500">Currently {(cur as any)[f.key] || 0}</p>
+                <p className="text-[11px] text-bone/50">Currently {(cur as any)[f.key] || 0}</p>
               </div>
-              <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">−</button>
+              <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-charcoal-900 ring-1 ring-white/10 text-lg font-bold text-bone/65 hover:bg-white/[0.08]">−</button>
               <input
                 type="number"
                 min={0}
                 value={values[f.key]}
                 onChange={e => set(String(f.key), parseInt(e.target.value || '0', 10))}
-                className="w-16 text-center font-bold text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-crimson-300"
+                className="w-16 text-center font-bold text-bone border border-white/10 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-crimson-300"
               />
-              <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-white ring-1 ring-gray-200 text-lg font-bold text-gray-600 hover:bg-gray-100">+</button>
+              <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-charcoal-900 ring-1 ring-white/10 text-lg font-bold text-bone/65 hover:bg-white/[0.08]">+</button>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 sticky bottom-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200" disabled={saving}>
+        <div className="px-6 py-4 border-t border-white/5 flex justify-end gap-2 bg-white/[0.04] sticky bottom-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-bone/85 hover:bg-white/[0.08]" disabled={saving}>
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-700 disabled:opacity-50">

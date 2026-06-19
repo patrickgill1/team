@@ -147,11 +147,11 @@ const ClubOverview: React.FC = () => {
       <div>
         <Header title="Club" subtitle="Restricted area" />
         <div className="max-w-3xl mx-auto p-6">
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-6 text-center">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-center">
             <div className="text-4xl mb-2">🔒</div>
-            <p className="font-bold text-gray-900">Club admin only</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Ask your club admin to flip <code className="bg-gray-100 px-1 rounded text-xs">isClubAdmin</code> on
+            <p className="font-bold text-bone">Club admin only</p>
+            <p className="text-sm text-bone/50 mt-1">
+              Ask your club admin to flip <code className="bg-white/[0.08] px-1 rounded text-xs">isClubAdmin</code> on
               your user record to gain access.
             </p>
           </div>
@@ -161,7 +161,7 @@ const ClubOverview: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <Header
         title="Club"
         subtitle={`${teams.length} team${teams.length === 1 ? '' : 's'} · ${players.length} player${players.length === 1 ? '' : 's'} · ${users.length} member${users.length === 1 ? '' : 's'}`}
@@ -171,21 +171,21 @@ const ClubOverview: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => navigate('/people')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Search every player, parent, and coach — tap a player to open their full admin profile"
           >
             <svg className="w-5 h-5 text-crimson-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">People</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Tap a player → full profile</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">People</div>
+            <div className="text-[10px] text-bone/50 mt-0.5">Tap a player → full profile</div>
           </button>
           <button
             onClick={() => navigate('/teams')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Create a new team, edit team details, or end the season"
           >
             <svg className="w-5 h-5 text-crimson-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Teams</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Edit, archive, roles</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Teams</div>
+            <div className="text-[10px] text-bone/50 mt-0.5">Edit, archive, roles</div>
           </button>
           <button
             onClick={() => setBroadcastOpen(true)}
@@ -201,30 +201,30 @@ const ClubOverview: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => navigate('/club/registrations')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Everyone who's registered for the season"
           >
             <svg className="w-5 h-5 text-crimson-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Registrations</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Funnel + status</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Registrations</div>
+            <div className="text-[10px] text-bone/50 mt-0.5">Funnel + status</div>
           </button>
           <button
             onClick={() => navigate('/club/products')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Products + pricing tiers + coupon codes"
           >
             <svg className="w-5 h-5 text-violet-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 7L12 3 4 7v10l8 4 8-4V7z"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="4" y1="7" x2="20" y2="7"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Products</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Pricing + coupons</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Products</div>
+            <div className="text-[10px] text-bone/50 mt-0.5">Pricing + coupons</div>
           </button>
           <button
             onClick={() => navigate('/club/registration-form')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group"
             title="Extra questions on the public registration form"
           >
             <svg className="w-5 h-5 text-amber-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Form</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">Custom questions</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Form</div>
+            <div className="text-[10px] text-bone/50 mt-0.5">Custom questions</div>
           </button>
         </div>
 
@@ -232,75 +232,75 @@ const ClubOverview: React.FC = () => {
         <div className="grid grid-cols-1 gap-2">
           <button
             onClick={() => navigate('/club/tryouts')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
             title="Coach view of the tryout candidate pool"
           >
-            <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <svg className="w-5 h-5 text-rose-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Tryout pool</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Favorites · holds · ratings · notes — shared across coaches</div>
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Tryout pool</div>
+              <div className="text-[10px] text-bone/50 mt-0.5">Favorites · holds · ratings · notes — shared across coaches</div>
             </div>
-            <span className="text-slate-400 group-hover:text-rose-500">→</span>
+            <span className="text-bone/40 group-hover:text-rose-500">→</span>
           </button>
           <button
             onClick={() => navigate('/club/offer-templates')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-violet-400 transition group flex items-center gap-3"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-violet-400 transition group flex items-center gap-3"
             title="Reusable message bodies for the Send Offer flow"
           >
             <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Offer templates</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Reusable message bodies, scoped by team + position</div>
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Offer templates</div>
+              <div className="text-[10px] text-bone/50 mt-0.5">Reusable message bodies, scoped by team + position</div>
             </div>
-            <span className="text-slate-400 group-hover:text-violet-500">→</span>
+            <span className="text-bone/40 group-hover:text-violet-500">→</span>
           </button>
           <button
             onClick={() => navigate('/club/seasons')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-amber-400 transition group flex items-center gap-3"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-amber-400 transition group flex items-center gap-3"
             title="Season lifecycle — draft → registration → tryouts → in-season → ended"
           >
             <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Seasons</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Lifecycle state machine + audit history</div>
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Seasons</div>
+              <div className="text-[10px] text-bone/50 mt-0.5">Lifecycle state machine + audit history</div>
             </div>
-            <span className="text-slate-400 group-hover:text-amber-500">→</span>
+            <span className="text-bone/40 group-hover:text-amber-500">→</span>
           </button>
           <button
             onClick={() => navigate('/club/reports')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-emerald-400 transition group flex items-center gap-3"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-emerald-400 transition group flex items-center gap-3"
             title="Funnel + fees + coupon usage"
           >
             <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Reports</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Conversion funnel · fees · coupons</div>
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Reports</div>
+              <div className="text-[10px] text-bone/50 mt-0.5">Conversion funnel · fees · coupons</div>
             </div>
-            <span className="text-slate-400 group-hover:text-emerald-500">→</span>
+            <span className="text-bone/40 group-hover:text-emerald-500">→</span>
           </button>
           <button
             onClick={() => navigate('/club/forms')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group flex items-center gap-3"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group flex items-center gap-3"
             title="Waivers, releases, consents"
           >
             <svg className="w-5 h-5 text-crimson-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Forms</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Waivers · releases · consents</div>
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Forms</div>
+              <div className="text-[10px] text-bone/50 mt-0.5">Waivers · releases · consents</div>
             </div>
-            <span className="text-slate-400 group-hover:text-crimson-500">→</span>
+            <span className="text-bone/40 group-hover:text-crimson-500">→</span>
           </button>
           <button
             onClick={() => navigate('/club/tasks')}
-            className="bg-white border border-slate-200 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
+            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
             title="Admin todos and follow-ups"
           >
-            <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <svg className="w-5 h-5 text-rose-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-slate-700">Tasks</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">Admin todos · assignments · due dates</div>
+              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Tasks</div>
+              <div className="text-[10px] text-bone/50 mt-0.5">Admin todos · assignments · due dates</div>
             </div>
-            <span className="text-slate-400 group-hover:text-rose-500">→</span>
+            <span className="text-bone/40 group-hover:text-rose-500">→</span>
           </button>
         </div>
 
@@ -318,8 +318,8 @@ const ClubOverview: React.FC = () => {
               onClick={() => setTab(t.k)}
               className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-widest uppercase whitespace-nowrap border ${
                 tab === t.k
-                  ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
-                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30'
+                  : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
               }`}
             >
               {t.label}
@@ -328,7 +328,7 @@ const ClubOverview: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-8 text-center text-sm text-gray-500">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">
             Loading club data…
           </div>
         ) : (
@@ -418,17 +418,17 @@ const OverviewTab: React.FC<{
   return (
     <div className="space-y-3">
       <SearchBar value={search} onChange={setSearch} placeholder="Search teams…" />
-      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
           <h2 className="font-bold text-charcoal-950">All teams</h2>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-bone/50">
             {filtered.length === teams.length ? `${teams.length} total` : `${filtered.length} of ${teams.length}`}
           </span>
         </div>
         {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">No teams match.</div>
+          <div className="p-8 text-center text-sm text-bone/50">No teams match.</div>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-white/5">
             {filtered.map((t) => {
               const s = teamStats[t.id] || { players: 0, upcoming: 0 };
               const headCoach = t.headCoachId ? coachNameByUid(t.headCoachId) : '';
@@ -436,7 +436,7 @@ const OverviewTab: React.FC<{
                 <li key={t.id}>
                   <button
                     onClick={() => onTeamClick(t.id)}
-                    className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition"
+                    className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.05] transition"
                   >
                     <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-crimson-500 to-charcoal-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
                       {(t.name || '?').charAt(0).toUpperCase()}
@@ -445,18 +445,18 @@ const OverviewTab: React.FC<{
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-charcoal-950 truncate">{t.name || 'Untitled team'}</span>
                         {t.ageGroup && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
                             {t.ageGroup}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
+                      <p className="text-xs text-bone/50 truncate mt-0.5">
                         {s.players} player{s.players === 1 ? '' : 's'}
                         {headCoach ? ` · Head coach: ${headCoach}` : ''}
                         {s.upcoming > 0 ? ` · ${s.upcoming} upcoming` : ''}
                       </p>
                     </div>
-                    <svg className="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-bone/35 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -506,15 +506,15 @@ const PlayersTab: React.FC<{
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
           <h2 className="font-bold text-charcoal-950">Roster pool</h2>
-          <span className="text-xs text-gray-500">{filtered.length} player{filtered.length === 1 ? '' : 's'}</span>
+          <span className="text-xs text-bone/50">{filtered.length} player{filtered.length === 1 ? '' : 's'}</span>
         </div>
         {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">No players match.</div>
+          <div className="p-8 text-center text-sm text-bone/50">No players match.</div>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-white/5">
             {filtered.map((p) => {
               const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds : (p.teamId ? [p.teamId] : []);
               const teamLabels = tIds.map((id) => teamById.get(id)?.name || '').filter(Boolean);
@@ -535,12 +535,12 @@ const PlayersTab: React.FC<{
                         {p.jerseyNumber != null ? `#${p.jerseyNumber} ` : ''}{p.name || 'Player'}
                       </span>
                       {getPlayerPositionsLabel(p) && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
                           {getPlayerPositionsLabel(p)}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                    <p className="text-xs text-bone/50 truncate mt-0.5">
                       {teamLabels.length === 0 ? 'No team' : teamLabels.join(' · ')}
                       {parentNames.length > 0 ? ` · ${parentNames.join(', ')}` : ''}
                     </p>
@@ -548,7 +548,7 @@ const PlayersTab: React.FC<{
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Link
                       to={`/player/${p.id}`}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-full ring-1 ring-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="px-3 py-1.5 text-xs font-semibold rounded-full ring-1 ring-white/15 text-bone/85 hover:bg-white/[0.05]"
                     >
                       View
                     </Link>
@@ -618,15 +618,15 @@ const CoachesTab: React.FC<{
   return (
     <div className="space-y-3">
       <SearchBar value={search} onChange={setSearch} placeholder="Search by name or email…" />
-      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
           <h2 className="font-bold text-charcoal-950">Coaches &amp; club admins</h2>
-          <span className="text-xs text-gray-500">{visible.length} member{visible.length === 1 ? '' : 's'}</span>
+          <span className="text-xs text-bone/50">{visible.length} member{visible.length === 1 ? '' : 's'}</span>
         </div>
         {visible.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">No coaches or admins yet.</div>
+          <div className="p-8 text-center text-sm text-bone/50">No coaches or admins yet.</div>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-white/5">
             {visible.map((u: any) => {
               const uid = u.uid || u.id;
               const tIds: string[] = Array.isArray(u.teamIds) && u.teamIds.length > 0 ? u.teamIds : (u.teamId ? [u.teamId] : []);
@@ -643,22 +643,22 @@ const CoachesTab: React.FC<{
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-charcoal-950 truncate">{u.name || u.email}</span>
                       {isClub && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700 bg-violet-50 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300 bg-violet-500/15 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">
                           Club admin
                         </span>
                       )}
                       {isHead && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">
                           Head coach
                         </span>
                       )}
                       {u.role === 'team_manager' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-400/30 px-1.5 py-0.5 rounded">
                           Team manager
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                    <p className="text-xs text-bone/50 truncate mt-0.5">
                       {u.email}{teamLabels.length > 0 ? ` · ${teamLabels.join(' · ')}` : ' · Not on any team'}
                     </p>
                   </div>
@@ -667,7 +667,7 @@ const CoachesTab: React.FC<{
                     disabled={busyUid === uid}
                     className={`flex-shrink-0 px-3 py-1.5 text-xs font-semibold rounded-full transition ${
                       isClub
-                        ? 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50'
+                        ? 'bg-charcoal-900 text-bone/85 ring-1 ring-white/15 hover:bg-white/[0.05]'
                         : 'bg-violet-600 hover:bg-violet-700 text-white'
                     } ${busyUid === uid ? 'opacity-50 cursor-wait' : ''}`}
                     title={isClub ? 'Remove club-admin access' : 'Promote to club admin'}
@@ -684,7 +684,7 @@ const CoachesTab: React.FC<{
           </ul>
         )}
       </div>
-      <p className="text-xs text-gray-500 px-1">
+      <p className="text-xs text-bone/50 px-1">
         Club admins can see every team, manage rosters across the club, and promote or remove other admins.
       </p>
     </div>
@@ -709,7 +709,7 @@ const CalendarTab: React.FC<{
   const teamColor = (id: string): string => {
     let h = 0;
     for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-    const palette = ['bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-crimson-500', 'bg-violet-500', 'bg-crimson-500', 'bg-teal-500', 'bg-fuchsia-500'];
+    const palette = ['bg-rose-500/150', 'bg-amber-500/150', 'bg-emerald-500/150', 'bg-crimson-500/150', 'bg-violet-500/150', 'bg-crimson-500/150', 'bg-teal-500', 'bg-fuchsia-500/150'];
     return palette[h % palette.length];
   };
 
@@ -722,15 +722,15 @@ const CalendarTab: React.FC<{
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
           <h2 className="font-bold text-charcoal-950">Upcoming across the club</h2>
-          <span className="text-xs text-gray-500">{upcoming.length} event{upcoming.length === 1 ? '' : 's'}</span>
+          <span className="text-xs text-bone/50">{upcoming.length} event{upcoming.length === 1 ? '' : 's'}</span>
         </div>
         {upcoming.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">No upcoming events.</div>
+          <div className="p-8 text-center text-sm text-bone/50">No upcoming events.</div>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-white/5">
             {upcoming.map((ev: any) => {
               const t = teamById.get(ev.teamId);
               return (
@@ -742,15 +742,15 @@ const CalendarTab: React.FC<{
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-charcoal-950 truncate">{ev.title || 'Event'}</span>
                       {t && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
                           {t.name}
                         </span>
                       )}
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-bone/40">
                         {ev.type}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                    <p className="text-xs text-bone/50 truncate mt-0.5">
                       {formatDateTime(ev.date)}{ev.location ? ` · ${ev.location}` : ''}
                     </p>
                   </div>
@@ -814,26 +814,26 @@ const StatsTab: React.FC<{
         }))} />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <h2 className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Team leaderboard</h2>
-          <p className="text-[11px] text-slate-400 mt-0.5">Ranked by goals scored</p>
+      <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/5">
+          <h2 className="text-xs font-extrabold tracking-widest uppercase text-bone/65">Team leaderboard</h2>
+          <p className="text-[11px] text-bone/40 mt-0.5">Ranked by goals scored</p>
         </div>
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-white/5">
           {teamLeaders.map((t, i) => {
             const s = teamStats[t.id] || { players: 0, goals: 0, assists: 0 };
             return (
               <li key={t.id} className="px-5 py-3 flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 font-bold flex items-center justify-center text-sm">
+                <div className="w-7 h-7 rounded-full bg-white/[0.08] text-bone/85 font-bold flex items-center justify-center text-sm">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 truncate">{t.name}</p>
-                  <p className="text-xs text-gray-500">{s.players} player{s.players === 1 ? '' : 's'} · {s.assists} assists</p>
+                  <p className="font-bold text-bone truncate">{t.name}</p>
+                  <p className="text-xs text-bone/50">{s.players} player{s.players === 1 ? '' : 's'} · {s.assists} assists</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-emerald-700 leading-tight">{s.goals}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">goals</p>
+                  <p className="font-black text-emerald-300 leading-tight">{s.goals}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-bone/50 font-bold">goals</p>
                 </div>
               </li>
             );
@@ -854,7 +854,7 @@ const SearchBar: React.FC<{ value: string; onChange: (v: string) => void; placeh
     value={value}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder}
-    className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-300 text-[15px]"
+    className="w-full bg-charcoal-900 border border-white/15 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-300 text-[15px]"
     style={{ fontSize: '16px' }}
   />
 );
@@ -863,7 +863,7 @@ const FilterChip: React.FC<{ active: boolean; onClick: () => void; children: Rea
   <button
     onClick={onClick}
     className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap ring-1 transition ${
-      active ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
+      active ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-charcoal-900 text-bone/85 ring-white/15 hover:bg-white/[0.05]'
     }`}
   >
     {children}
@@ -889,10 +889,10 @@ const STAT_ICONS: Record<string, JSX.Element> = {
 
 const BigStat: React.FC<{ icon: string; label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ icon, label, value, accent }) => {
   const accents: Record<string, string> = {
-    emerald: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-    cyan: 'text-crimson-700 bg-crimson-50 border-crimson-200',
-    amber: 'text-amber-700 bg-amber-50 border-amber-200',
-    violet: 'text-violet-700 bg-violet-50 border-violet-200',
+    emerald: 'text-emerald-300 bg-emerald-500/15 border-emerald-400/30',
+    cyan: 'text-crimson-300 bg-crimson-500/15 border-crimson-400/30',
+    amber: 'text-amber-300 bg-amber-500/15 border-amber-400/30',
+    violet: 'text-violet-300 bg-violet-500/15 border-violet-400/30',
   };
   return (
     <div className={`rounded-xl px-3 py-2.5 border ${accents[accent]}`}>
@@ -906,25 +906,25 @@ const BigStat: React.FC<{ icon: string; label: string; value: number; accent: 'e
 };
 
 const LeaderboardCard: React.FC<{ title: string; rows: { id: string; name: string; sub: string; value: number; photoUrl?: string }[] }> = ({ title, rows }) => (
-  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-    <div className="px-4 py-3 border-b border-slate-100">
-      <h3 className="text-xs font-extrabold tracking-widest uppercase text-slate-600">{title}</h3>
+  <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
+    <div className="px-4 py-3 border-b border-white/5">
+      <h3 className="text-xs font-extrabold tracking-widest uppercase text-bone/65">{title}</h3>
     </div>
     {rows.length === 0 ? (
-      <div className="p-6 text-center text-sm text-gray-500">No data yet.</div>
+      <div className="p-6 text-center text-sm text-bone/50">No data yet.</div>
     ) : (
-      <ul className="divide-y divide-gray-100">
+      <ul className="divide-y divide-white/5">
         {rows.map((r, i) => (
           <li key={r.id}>
-            <Link to={`/player/${r.id}`} className="px-5 py-2.5 flex items-center gap-3 hover:bg-gray-50">
+            <Link to={`/player/${r.id}`} className="px-5 py-2.5 flex items-center gap-3 hover:bg-white/[0.05]">
               <div className={`w-7 h-7 rounded-full text-sm font-black flex items-center justify-center ${
-                i === 0 ? 'bg-amber-100 text-amber-800' : i === 1 ? 'bg-gray-200 text-gray-700' : i === 2 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
+                i === 0 ? 'bg-amber-500/20 text-amber-200' : i === 1 ? 'bg-white/15 text-bone/85' : i === 2 ? 'bg-orange-500/20 text-orange-200' : 'bg-white/[0.08] text-bone/65'
               }`}>
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 truncate">{r.name}</p>
-                <p className="text-xs text-gray-500 truncate">{r.sub}</p>
+                <p className="font-bold text-bone truncate">{r.name}</p>
+                <p className="text-xs text-bone/50 truncate">{r.sub}</p>
               </div>
               <div className="font-black text-charcoal-950">{r.value}</div>
             </Link>
@@ -1017,27 +1017,27 @@ const PaymentsTab: React.FC = () => {
   const chargesEnabled = !!club?.stripeChargesEnabled;
 
   if (loading) {
-    return <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-6 text-sm text-gray-500">Loading…</div>;
+    return <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>;
   }
 
   return (
     <div className="space-y-3">
       {connectFinishing && (
-        <div className="rounded-xl bg-violet-50 ring-1 ring-violet-200 px-4 py-3 text-sm text-violet-800">
+        <div className="rounded-xl bg-violet-500/15 ring-1 ring-violet-200 px-4 py-3 text-sm text-violet-200">
           Finalizing Stripe Connect…
         </div>
       )}
       {/* Stripe Connect status card */}
-      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-charcoal-950">Stripe Connect</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ Stripe fee.</p>
+            <p className="text-[11px] text-bone/50 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ Stripe fee.</p>
           </div>
           <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded ${
-            chargesEnabled ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300'
-              : connected ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
-              : 'bg-slate-100 text-slate-600 ring-1 ring-slate-300'
+            chargesEnabled ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-300'
+              : connected ? 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-300'
+              : 'bg-charcoal-950 text-bone/65 ring-1 ring-white/15'
           }`}>
             {chargesEnabled ? 'Active' : connected ? 'Onboarding' : 'Not connected'}
           </span>
@@ -1045,7 +1045,7 @@ const PaymentsTab: React.FC = () => {
         <div className="p-5">
           {!connected ? (
             <>
-              <p className="text-sm text-slate-700 mb-3">
+              <p className="text-sm text-bone/85 mb-3">
                 Connect a Stripe account to accept team-fee, tournament-entry, and uniform-order payments
                 directly from parents. Stripe holds the funds and deposits them to your bank — GoalKickr never
                 touches the money.
@@ -1054,8 +1054,8 @@ const PaymentsTab: React.FC = () => {
                   as application_fee_amount. Pulled from the club doc so
                   the rate is always accurate to what's actually
                   configured for THIS club. */}
-              <div className="mb-3 rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 text-[12px] text-slate-700 leading-relaxed">
-                <div className="font-bold text-slate-900 mb-1">What this costs</div>
+              <div className="mb-3 rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 text-[12px] text-bone/85 leading-relaxed">
+                <div className="font-bold text-bone mb-1">What this costs</div>
                 <div>
                   <b>Stripe processing:</b> 2.9% + 30¢ per transaction (Stripe's standard rate, deducted before payout).
                 </div>
@@ -1097,42 +1097,42 @@ const PaymentsTab: React.FC = () => {
                   }
                 }}
                 disabled={!clubId}
-                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold"
+                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 disabled:opacity-50 text-white text-sm font-bold"
               >
                 {clubId ? 'Connect Stripe' : 'Resolving club…'}
               </button>
             </>
           ) : (
-            <div className="space-y-2 text-sm text-slate-700">
+            <div className="space-y-2 text-sm text-bone/85">
               <div className="flex items-center justify-between">
                 <span>Account ID</span>
-                <code className="text-[11px] text-slate-500">{club.stripeAccountId}</code>
+                <code className="text-[11px] text-bone/50">{club.stripeAccountId}</code>
               </div>
               <div className="flex items-center justify-between">
                 <span>Charges enabled</span>
-                <span className={chargesEnabled ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
+                <span className={chargesEnabled ? 'text-emerald-300 font-bold' : 'text-amber-300 font-bold'}>
                   {chargesEnabled ? 'Yes' : 'Pending KYC'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Payouts enabled</span>
-                <span className={club.stripePayoutsEnabled ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
+                <span className={club.stripePayoutsEnabled ? 'text-emerald-300 font-bold' : 'text-amber-300 font-bold'}>
                   {club.stripePayoutsEnabled ? 'Yes' : 'Pending'}
                 </span>
               </div>
               {/* Read-only platform fee disclosure for the club.
                   Settable only by the platform owner at /platform/clubs
                   — surfaced here so the club always knows their rate. */}
-              <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/5">
                 <span>GoalKickr platform fee</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-bone">
                   {((club.platformFeeBps ?? 0) / 100).toFixed(2)}%
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-bone/50">
                 Plus Stripe's standard 2.9% + 30¢ per transaction.
               </p>
-              <div className="pt-3 mt-2 border-t border-slate-100">
+              <div className="pt-3 mt-2 border-t border-white/5">
                 <button
                   type="button"
                   onClick={async () => {
@@ -1165,7 +1165,7 @@ const PaymentsTab: React.FC = () => {
                       alert(err?.message || 'Network error.');
                     }
                   }}
-                  className="text-[10px] font-extrabold tracking-widest uppercase text-rose-700 hover:text-rose-900"
+                  className="text-[10px] font-extrabold tracking-widest uppercase text-rose-300 hover:text-rose-900"
                 >
                   Disconnect Stripe
                 </button>
@@ -1177,19 +1177,19 @@ const PaymentsTab: React.FC = () => {
 
       {/* Invoices list — empty for now; lights up when the worker
           can actually create Checkout Sessions. */}
-      <div className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
           <h2 className="font-bold text-charcoal-950">Invoices</h2>
           <button
             type="button"
             disabled={!chargesEnabled}
             onClick={() => alert('Coming once Stripe Connect is active.')}
-            className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Create
           </button>
         </div>
-        <div className="p-8 text-center text-sm text-slate-500">
+        <div className="p-8 text-center text-sm text-bone/50">
           {connected
             ? 'No invoices yet — create one to see it here.'
             : 'Connect Stripe above to start creating invoices.'}

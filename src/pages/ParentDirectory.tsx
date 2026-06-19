@@ -331,27 +331,27 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
-          <span className="text-sm text-gray-400 font-medium">Loading directory...</span>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
+          <span className="text-sm text-bone/40 font-medium">Loading directory...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Team Directory</h1>
-              <p className="text-gray-600 mt-1">Connect with team families and coaches</p>
+              <h1 className="text-3xl font-bold text-bone">Team Directory</h1>
+              <p className="text-bone/65 mt-1">Connect with team families and coaches</p>
             </div>
             <div className="flex space-x-3">
               <button
                 onClick={handleRefreshDirectory}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                className="bg-white/[0.04]0 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -378,10 +378,10 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+              className="w-full pl-10 pr-4 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
               placeholder="Search by name or player name..."
             />
-            <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-bone/40 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -389,22 +389,22 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
         {/* Pending Members (coach only) */}
         {isUserCoach && pendingMembers.length > 0 && (
-          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
+          <div className="mb-6 bg-amber-500/15 border border-amber-400/30 rounded-xl p-5">
             <div className="flex items-center mb-4">
               <svg className="w-5 h-5 text-amber-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
               </svg>
-              <h2 className="text-lg font-bold text-amber-900">
+              <h2 className="text-lg font-bold text-amber-100">
                 Pending Approval ({pendingMembers.length})
               </h2>
             </div>
             <div className="space-y-3">
               {pendingMembers.map((member: any) => (
-                <div key={member.uid} className="bg-white rounded-lg border border-amber-200 p-4 flex items-center justify-between">
+                <div key={member.uid} className="bg-charcoal-900 rounded-lg border border-amber-400/30 p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-gray-900">{member.name || 'Unknown'}</p>
-                    <p className="text-sm text-gray-500">{member.email}</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="font-semibold text-bone">{member.name || 'Unknown'}</p>
+                    <p className="text-sm text-bone/50">{member.email}</p>
+                    <p className="text-xs text-bone/40 mt-1">
                       Signed up {member.createdAt?.toDate ? member.createdAt.toDate().toLocaleDateString() : 'recently'}
                     </p>
                   </div>
@@ -417,7 +417,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     </button>
                     <button
                       onClick={() => handleRejectMember(member.uid)}
-                      className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="bg-red-100 hover:bg-red-200 text-rose-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Reject
                     </button>
@@ -441,8 +441,8 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                 className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-charcoal-700 via-charcoal-800 to-charcoal-900 p-5 sm:p-6 text-white shadow-2xl ring-1 ring-white/10"
               >
                 {/* decorative blobs */}
-                <div className={`absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none ${isCoachRole ? 'bg-violet-500/20' : 'bg-crimson-500/20'}`} />
-                <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className={`absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none ${isCoachRole ? 'bg-violet-500/150/20' : 'bg-crimson-500/150/20'}`} />
+                <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/150/20 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Head coach controls (top-right) */}
                 {isUserHeadCoach && entry.user.uid !== userData?.uid && (isUserOwner || !isHeadCoach(entry.user)) && (
@@ -464,7 +464,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     </button>
                     <button
                       onClick={() => handleRemoveMember(entry.user.uid, entry.user.name)}
-                      className="p-2 bg-white/10 hover:bg-rose-500/40 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+                      className="p-2 bg-white/10 hover:bg-rose-500/150/40 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
                       title="Remove member"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -578,7 +578,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ) : (
                           <button
                             onClick={() => setLinkingUid(entry.user.uid)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-charcoal-900 text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
                           >
                             Link to Player
                           </button>
@@ -626,7 +626,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
                   {/* Emergency contact (coach only) */}
                   {isUserCoach && entry.user.emergencyContact && (
-                    <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-300/30 p-3 backdrop-blur mb-4">
+                    <div className="rounded-xl bg-rose-500/150/15 ring-1 ring-rose-300/30 p-3 backdrop-blur mb-4">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-rose-200 mb-1">Emergency Contact</p>
                       <p className="text-sm text-white font-semibold">{entry.user.emergencyContact}</p>
                       {entry.user.emergencyPhone && (
@@ -645,7 +645,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     {entry.privacy.showEmail && entry.user.email && (
                       <button
                         onClick={() => window.open(`mailto:${entry.user.email}`)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-charcoal-900 text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -674,15 +674,15 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
         {/* Empty State */}
         {filteredDirectory.length === 0 && !loading && (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
+            <div className="text-bone/40 mb-4">
               <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 616 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-bone mb-2">
               {searchTerm ? 'No matches found' : 'No team members found'}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-bone/65">
               {searchTerm 
                 ? 'Try adjusting your search terms'
                 : 'Team members will appear here once they join'}
@@ -694,13 +694,13 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
       {/* Profile Editor Modal */}
       {showProfileEditor && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-screen overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+          <div className="bg-charcoal-900 rounded-lg max-w-md w-full max-h-screen overflow-y-auto">
+            <div className="sticky top-0 bg-charcoal-900 border-b border-white/10 px-6 py-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Edit My Profile</h2>
+                <h2 className="text-xl font-semibold text-bone">Edit My Profile</h2>
                 <button
                   onClick={() => setShowProfileEditor(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-bone/40 hover:text-bone/65"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -712,27 +712,27 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
             <div className="p-6 space-y-6">
               {/* Phone Number */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-bone/85 mb-1">
                   Phone Number
                 </label>
                 <input
                   type="tel"
                   value={profileForm.phoneNumber}
                   onChange={(e) => setProfileForm({...profileForm, phoneNumber: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                   placeholder="(555) 123-4567"
                 />
               </div>
 
               {/* Address */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-bone/85 mb-1">
                   Address
                 </label>
                 <textarea
                   value={profileForm.address}
                   onChange={(e) => setProfileForm({...profileForm, address: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                   rows={3}
                   placeholder="123 Main St, City, State 12345"
                 />
@@ -740,38 +740,38 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
               {/* Emergency Contact */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-bone/85 mb-1">
                   Emergency Contact Name
                 </label>
                 <input
                   type="text"
                   value={profileForm.emergencyContact}
                   onChange={(e) => setProfileForm({...profileForm, emergencyContact: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                   placeholder="John Doe"
                 />
               </div>
 
               {/* Emergency Phone */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-bone/85 mb-1">
                   Emergency Contact Phone
                 </label>
                 <input
                   type="tel"
                   value={profileForm.emergencyPhone}
                   onChange={(e) => setProfileForm({...profileForm, emergencyPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
                   placeholder="(555) 987-6543"
                 />
               </div>
 
               {/* Privacy Settings */}
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Privacy Settings</h3>
+                <h3 className="text-sm font-medium text-bone/85 mb-3">Privacy Settings</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">Show Email Address</span>
+                    <span className="text-sm text-bone/85">Show Email Address</span>
                     <input
                       type="checkbox"
                       checked={profileForm.privacy.showEmail}
@@ -779,11 +779,11 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ...profileForm, 
                         privacy: {...profileForm.privacy, showEmail: e.target.checked}
                       })}
-                      className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-white/15 rounded"
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">Show Phone Number</span>
+                    <span className="text-sm text-bone/85">Show Phone Number</span>
                     <input
                       type="checkbox"
                       checked={profileForm.privacy.showPhone}
@@ -791,11 +791,11 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ...profileForm, 
                         privacy: {...profileForm.privacy, showPhone: e.target.checked}
                       })}
-                      className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-white/15 rounded"
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">Show Address</span>
+                    <span className="text-sm text-bone/85">Show Address</span>
                     <input
                       type="checkbox"
                       checked={profileForm.privacy.showAddress}
@@ -803,7 +803,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         ...profileForm, 
                         privacy: {...profileForm.privacy, showAddress: e.target.checked}
                       })}
-                      className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-gray-300 rounded"
+                      className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-white/15 rounded"
                     />
                   </div>
                 </div>
@@ -811,8 +811,8 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
               {/* Email Notifications */}
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Email Notifications</h3>
-                <p className="text-xs text-gray-500 mb-3">Pick which GoalKickr emails you want to receive at <b>{userData?.email}</b>.</p>
+                <h3 className="text-sm font-medium text-bone/85 mb-1">Email Notifications</h3>
+                <p className="text-xs text-bone/50 mb-3">Pick which GoalKickr emails you want to receive at <b>{userData?.email}</b>.</p>
                 <div className="space-y-3">
                   {([
                     { key: 'devPlan', label: 'New development plan for my player' },
@@ -821,7 +821,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     { key: 'digest', label: 'Weekly Sunday digest (upcoming + recap)' },
                   ] as const).map(({ key, label }) => (
                     <div key={key} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700 pr-3">{label}</span>
+                      <span className="text-sm text-bone/85 pr-3">{label}</span>
                       <input
                         type="checkbox"
                         checked={profileForm.emailPreferences[key]}
@@ -829,7 +829,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                           ...profileForm,
                           emailPreferences: { ...profileForm.emailPreferences, [key]: e.target.checked }
                         })}
-                        className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-crimson-600 focus:ring-crimson-500 border-white/15 rounded"
                       />
                     </div>
                   ))}
@@ -838,19 +838,19 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
               {/* Push Notifications */}
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Push Notifications</h3>
-                <p className="text-xs text-gray-500 mb-3">
+                <h3 className="text-sm font-medium text-bone/85 mb-1">Push Notifications</h3>
+                <p className="text-xs text-bone/50 mb-3">
                   Get instant notifications on this device when there's news, a new clip, or a chat mention.
                 </p>
                 {pushPerm === 'unsupported' ? (
-                  <div className="text-xs text-gray-500">This browser doesn't support push notifications.</div>
+                  <div className="text-xs text-bone/50">This browser doesn't support push notifications.</div>
                 ) : pushPerm === 'granted' ? (
-                  <div className="flex items-center gap-2 text-sm text-emerald-700">
-                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                  <div className="flex items-center gap-2 text-sm text-emerald-300">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500/150" />
                     Push notifications are enabled on this device.
                   </div>
                 ) : pushPerm === 'denied' ? (
-                  <div className="text-xs text-amber-700">
+                  <div className="text-xs text-amber-300">
                     Notifications are blocked. Enable them in your browser site settings, then reload.
                   </div>
                 ) : (
@@ -875,7 +875,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     {pushBusy ? 'Enabling…' : 'Enable on this device'}
                   </button>
                 )}
-                {pushMsg && <div className="mt-2 text-xs text-red-600">{pushMsg}</div>}
+                {pushMsg && <div className="mt-2 text-xs text-rose-300">{pushMsg}</div>}
               </div>
 
               {/* Action Buttons */}
@@ -883,7 +883,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                 <button
                   onClick={() => setShowProfileEditor(false)}
                   disabled={isUpdating}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-bone/90 font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>

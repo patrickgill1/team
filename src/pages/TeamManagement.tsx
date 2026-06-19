@@ -484,10 +484,10 @@ const TeamManagement: React.FC = () => {
 
   if (!isUserCoach) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Coach Access Required</h2>
-          <p className="text-gray-600 mt-2">Only coaches can manage teams.</p>
+          <h2 className="text-2xl font-bold text-bone">Coach Access Required</h2>
+          <p className="text-bone/65 mt-2">Only coaches can manage teams.</p>
         </div>
       </div>
     );
@@ -495,14 +495,14 @@ const TeamManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crimson-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       {/* Navy page header to match the rest of the new chrome. The
           "+ New team" primary action sits in the header's action slot
           (the small button on the right) — same pattern as Events. */}
@@ -510,7 +510,7 @@ const TeamManagement: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Teams</h1>
-            <p className="mt-0.5 text-xs text-slate-400">Create, edit, archive. People & rosters live in <Link to="/people" className="text-crimson-400 underline">People</Link>.</p>
+            <p className="mt-0.5 text-xs text-bone/40">Create, edit, archive. People & rosters live in <Link to="/people" className="text-crimson-400 underline">People</Link>.</p>
           </div>
           <button
             onClick={() => { resetForm(); setShowCreateModal(true); }}
@@ -528,14 +528,14 @@ const TeamManagement: React.FC = () => {
         {/* Per-team config actions — only the truly team-level stuff
             stays here. Adding players, sharing players, inviting
             coaches all live in the People directory now. */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex flex-wrap gap-2">
+        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-3 flex flex-wrap gap-2">
           <SecondaryAction emoji="" label="New season" onClick={() => setNewSeasonOpen(true)} />
           <SecondaryAction emoji="" label="Manage seasons" onClick={() => setManageSeasonsOpen(true)} />
           <SecondaryAction emoji="" label="Media access" onClick={() => setMediaAccessOpen(true)} />
           {activeSeasonForSelected && (
             <button
               onClick={() => setEndSeasonOpen(true)}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-rose-500/15 text-rose-300 border-rose-400/30 hover:bg-rose-500/20"
               title={`Archive "${activeSeasonForSelected.name}" and pick which players carry over`}
             >
               End {activeSeasonForSelected.name}
@@ -554,50 +554,50 @@ const TeamManagement: React.FC = () => {
                 tabIndex={0}
                 onClick={() => setSelectedTeamId(team.id)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTeamId(team.id); }}
-                className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all cursor-pointer hover:shadow-md active:scale-[0.99] ${
-                  isActive ? 'border-crimson-500 ring-2 ring-crimson-100' : 'border-gray-200 hover:border-crimson-300'
+                className={`bg-charcoal-900 rounded-xl shadow-sm border-2 p-6 transition-all cursor-pointer hover:shadow-md active:scale-[0.99] ${
+                  isActive ? 'border-crimson-500 ring-2 ring-crimson-100' : 'border-white/10 hover:border-crimson-400/40'
                 }`}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">{team.name}</h3>
+                    <h3 className="text-lg font-bold text-bone">{team.name}</h3>
                     {team.description && (
-                      <p className="text-sm text-gray-500 mt-1">{team.description}</p>
+                      <p className="text-sm text-bone/50 mt-1">{team.description}</p>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     {(team as any).isActive === false && (
-                      <span className="bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ring-1 ring-gray-300">
+                      <span className="bg-white/[0.08] text-bone/65 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ring-1 ring-white/15">
                         Archived
                       </span>
                     )}
                     {isActive ? (
-                      <span className="bg-crimson-50 text-crimson-700 text-xs font-medium px-2 py-1 rounded-full">Active</span>
+                      <span className="bg-crimson-500/15 text-crimson-300 text-xs font-medium px-2 py-1 rounded-full">Active</span>
                     ) : (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tap to select</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-bone/40">Tap to select</span>
                     )}
                   </div>
                 </div>
 
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
                   {team.ageGroup && (<>
-                    <dt className="text-slate-500 uppercase tracking-wider font-bold">Age</dt>
-                    <dd className="text-slate-900 font-semibold text-right truncate">{team.ageGroup}</dd>
+                    <dt className="text-bone/50 uppercase tracking-wider font-bold">Age</dt>
+                    <dd className="text-bone font-semibold text-right truncate">{team.ageGroup}</dd>
                   </>)}
                   {team.season && (<>
-                    <dt className="text-slate-500 uppercase tracking-wider font-bold">Season</dt>
-                    <dd className="text-slate-900 font-semibold text-right truncate">{team.season}</dd>
+                    <dt className="text-bone/50 uppercase tracking-wider font-bold">Season</dt>
+                    <dd className="text-bone font-semibold text-right truncate">{team.season}</dd>
                   </>)}
                   {team.league && (<>
-                    <dt className="text-slate-500 uppercase tracking-wider font-bold">League</dt>
-                    <dd className="text-slate-900 font-semibold text-right truncate">{team.league}</dd>
+                    <dt className="text-bone/50 uppercase tracking-wider font-bold">League</dt>
+                    <dd className="text-bone font-semibold text-right truncate">{team.league}</dd>
                   </>)}
-                  <dt className="text-slate-500 uppercase tracking-wider font-bold">Players</dt>
-                  <dd className="text-slate-900 font-semibold text-right">
+                  <dt className="text-bone/50 uppercase tracking-wider font-bold">Players</dt>
+                  <dd className="text-bone font-semibold text-right">
                     {allPlayers.filter(p => p.teamId === team.id || p.teamIds?.includes(team.id)).length}
                   </dd>
-                  <dt className="text-slate-500 uppercase tracking-wider font-bold">Coaches</dt>
-                  <dd className="text-slate-900 font-semibold text-right">{team.coachIds?.length || 1}</dd>
+                  <dt className="text-bone/50 uppercase tracking-wider font-bold">Coaches</dt>
+                  <dd className="text-bone font-semibold text-right">{team.coachIds?.length || 1}</dd>
                 </dl>
 
                 {/* Action buttons — stopPropagation so they don't also fire
@@ -605,14 +605,14 @@ const TeamManagement: React.FC = () => {
                 <div className="mt-4 flex space-x-2">
                   <button
                     onClick={(e) => { e.stopPropagation(); startEditTeam(team); }}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    className="flex-1 bg-white/[0.08] hover:bg-white/[0.08] text-bone/85 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
                     Edit
                   </button>
                   {(team.coachIds?.length || 0) > 1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleOpenTransfer(team); }}
-                      className="flex-1 bg-crimson-50 hover:bg-crimson-100 text-charcoal-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="flex-1 bg-crimson-500/15 hover:bg-crimson-500/20 text-charcoal-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Transfer Head Coach
                     </button>
@@ -632,7 +632,7 @@ const TeamManagement: React.FC = () => {
                           alert('Could not archive the team. Please try again.');
                         }
                       }}
-                      className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="flex-1 bg-rose-500/15 hover:bg-rose-500/20 text-rose-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                       title="Hide team from active rosters; history is preserved"
                     >
                       Archive
@@ -651,7 +651,7 @@ const TeamManagement: React.FC = () => {
                           alert('Could not restore the team. Please try again.');
                         }
                       }}
-                      className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="flex-1 bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       Restore
                     </button>
@@ -663,16 +663,16 @@ const TeamManagement: React.FC = () => {
         </div>
 
         {/* Current Team Players */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <div className="bg-charcoal-900 rounded-xl shadow-sm border border-white/10 p-6 mb-8">
+          <h2 className="text-xl font-bold text-bone mb-4">
             Players on {teams.find(t => t.id === selectedTeamId)?.name || 'Current Team'}
           </h2>
           {players.length === 0 ? (
-            <p className="text-gray-500">No players on this team yet. Add players from the Players page.</p>
+            <p className="text-bone/50">No players on this team yet. Add players from the Players page.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {players.map(player => (
-                <div key={player.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div key={player.id} className="flex items-center space-x-3 p-3 bg-white/[0.04] rounded-lg">
                   {player.profilePhotoUrl ? (
                     <div className="relative w-10 h-10 flex-shrink-0">
                       <img src={player.profilePhotoUrl} alt={player.name} className="w-10 h-10 rounded-full object-cover" />
@@ -683,21 +683,21 @@ const TeamManagement: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="w-10 h-10 bg-crimson-50 rounded-full flex items-center justify-center text-crimson-600 font-bold text-sm flex-shrink-0">
+                    <div className="w-10 h-10 bg-crimson-500/15 rounded-full flex items-center justify-center text-crimson-600 font-bold text-sm flex-shrink-0">
                       {player.jerseyNumber || player.name.charAt(0)}
                     </div>
                   )}
                   <div>
-                    <div className="font-medium text-gray-900">{player.name}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="font-medium text-bone">{player.name}</div>
+                    <div className="text-xs text-bone/50">
                       {player.position || 'No position'} {player.jerseyNumber ? `• #${player.jerseyNumber}` : ''}
                     </div>
                     {(player.teamIds?.length || 0) > 1 && (
                       <div className="inline-flex items-center gap-1.5 mt-0.5">
-                        <span className="text-xs bg-crimson-100 text-crimson-700 px-1.5 py-0.5 rounded">Shared</span>
+                        <span className="text-xs bg-crimson-500/20 text-crimson-300 px-1.5 py-0.5 rounded">Shared</span>
                         <button
                           onClick={() => handleUnsharePlayer(player.id, selectedTeamId!)}
-                          className="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-medium transition-colors"
+                          className="text-xs bg-rose-500/15 hover:bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded font-medium transition-colors"
                           title={`Remove ${player.name} from this team (keeps them on their other team(s))`}
                         >
                           Unshare
@@ -713,22 +713,22 @@ const TeamManagement: React.FC = () => {
 
         {/* Coach Invites */}
         {coachInvites.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Coach Invitations</h2>
+          <div className="bg-charcoal-900 rounded-xl shadow-sm border border-white/10 p-6">
+            <h2 className="text-xl font-bold text-bone mb-4">Coach Invitations</h2>
             <div className="space-y-3">
               {coachInvites.map((invite: any) => (
-                <div key={invite.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={invite.id} className="flex items-center justify-between p-3 bg-white/[0.04] rounded-lg">
                   <div>
-                    <div className="font-medium text-gray-900">{invite.email}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="font-medium text-bone">{invite.email}</div>
+                    <div className="text-xs text-bone/50">
                       {invite.coachLevel === 'head_coach' ? 'Head Coach' : 'Assistant Coach'} • 
                       Invited by {invite.invitedByName}
                     </div>
                   </div>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                     invite.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                    invite.status === 'accepted' ? 'bg-green-100 text-emerald-700' :
-                    'bg-red-100 text-red-700'
+                    invite.status === 'accepted' ? 'bg-green-100 text-emerald-300' :
+                    'bg-red-100 text-rose-300'
                   }`}>
                     {invite.status}
                   </span>
@@ -741,99 +741,99 @@ const TeamManagement: React.FC = () => {
         {/* Create/Edit Team Modal */}
         {(showCreateModal || editingTeam) && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-charcoal-900 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-xl font-bold text-bone mb-4">
                   {editingTeam ? 'Edit Team' : 'Create New Team'}
                 </h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Team Name *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Team Name *</label>
                     <input
                       type="text"
                       value={teamName}
                       onChange={e => setTeamName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                       placeholder="e.g. U12 Lightning"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Description</label>
                     <textarea
                       value={teamDescription}
                       onChange={e => setTeamDescription(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                       rows={2}
                       placeholder="Brief description of this team"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">Age Group</label>
                       <input
                         type="text"
                         value={teamAgeGroup}
                         onChange={e => setTeamAgeGroup(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                         placeholder="e.g. U12"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Season</label>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">Season</label>
                       <input
                         type="text"
                         value={teamSeason}
                         onChange={e => setTeamSeason(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                         placeholder="e.g. Spring 2026"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">League</label>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">League</label>
                       <input
                         type="text"
                         value={teamLeague}
                         onChange={e => setTeamLeague(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                         placeholder="e.g. AYSO"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Home Field</label>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">Home Field</label>
                       <input
                         type="text"
                         value={teamHomeField}
                         onChange={e => setTeamHomeField(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                         placeholder="e.g. River Park Field 3"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Match Format</label>
-                    <div className="inline-flex items-center bg-gray-100 ring-1 ring-gray-200 rounded-full p-0.5">
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Match Format</label>
+                    <div className="inline-flex items-center bg-white/[0.08] ring-1 ring-white/10 rounded-full p-0.5">
                       {(['7v7', '9v9', '11v11'] as const).map((f) => (
                         <button
                           type="button"
                           key={f}
                           onClick={() => setTeamFormat(f)}
                           className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
-                            teamFormat === f ? 'bg-crimson-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                            teamFormat === f ? 'bg-crimson-600 text-white shadow-sm' : 'text-bone/65 hover:text-bone'
                           }`}
                         >
                           {f}
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Drives the formation field size + default player positions in the live tracker.</p>
+                    <p className="text-xs text-bone/50 mt-1">Drives the formation field size + default player positions in the live tracker.</p>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     onClick={() => { resetForm(); setShowCreateModal(false); setEditingTeam(null); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    className="px-4 py-2 border border-white/15 rounded-lg text-bone/85 hover:bg-white/[0.05]"
                   >
                     Cancel
                   </button>
@@ -884,34 +884,34 @@ const TeamManagement: React.FC = () => {
         {/* Invite Coach Modal */}
         {showInviteCoachModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="bg-charcoal-900 rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Invite a Coach</h2>
-                <p className="text-sm text-gray-600 mb-4">
+                <h2 className="text-xl font-bold text-bone mb-4">Invite a Coach</h2>
+                <p className="text-sm text-bone/65 mb-4">
                   Generate an invite link to share with another coach. They'll use it to join {teams.find(t => t.id === selectedTeamId)?.name || 'this team'}.
                 </p>
 
                 {inviteLink ? (
                   <div className="space-y-4">
-                    <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                    <div className="bg-emerald-500/15 border border-emerald-400/20 rounded-lg p-4">
                       <div className="flex items-center space-x-2 mb-2">
                         <span className="text-emerald-600 text-lg">✅</span>
                         <span className="font-medium text-green-800">Invite Created!</span>
                       </div>
-                      <p className="text-sm text-emerald-700 mb-3">Share this link with the coach:</p>
+                      <p className="text-sm text-emerald-300 mb-3">Share this link with the coach:</p>
                       <div className="flex items-center space-x-2">
                         <input
                           type="text"
                           readOnly
                           value={inviteLink}
-                          className="flex-1 px-3 py-2 bg-white border border-green-300 rounded-lg text-sm font-mono"
+                          className="flex-1 px-3 py-2 bg-charcoal-900 border border-green-300 rounded-lg text-sm font-mono"
                         />
                         <button
                           onClick={copyInviteLink}
                           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             linkCopied
                               ? 'bg-emerald-600 text-white'
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                              : 'bg-white/[0.08] hover:bg-white/[0.08] text-bone/85'
                           }`}
                         >
                           {linkCopied ? '✓ Copied' : 'Copy'}
@@ -920,7 +920,7 @@ const TeamManagement: React.FC = () => {
                     </div>
                     <button
                       onClick={() => { setInviteLink(null); setInviteEmail(''); setShowInviteCoachModal(false); }}
-                      className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium"
+                      className="w-full px-4 py-2 bg-white/[0.08] hover:bg-white/[0.08] text-bone/85 rounded-lg font-medium"
                     >
                       Done
                     </button>
@@ -929,22 +929,22 @@ const TeamManagement: React.FC = () => {
                   <>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Coach Email (optional)</label>
+                        <label className="block text-sm font-medium text-bone/85 mb-1">Coach Email (optional)</label>
                         <input
                           type="email"
                           value={inviteEmail}
                           onChange={e => setInviteEmail(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                          className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                           placeholder="coach@example.com (optional)"
                         />
-                        <p className="text-xs text-gray-500 mt-1">Leave blank if you don't have their email — just share the link</p>
+                        <p className="text-xs text-bone/50 mt-1">Leave blank if you don't have their email — just share the link</p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Coach Role</label>
+                        <label className="block text-sm font-medium text-bone/85 mb-1">Coach Role</label>
                         <select
                           value={inviteLevel}
                           onChange={e => setInviteLevel(e.target.value as 'head_coach' | 'assistant_coach')}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                          className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                         >
                           <option value="assistant_coach">Assistant Coach — Can manage votes & view backend</option>
                           <option value="head_coach">Head Coach — Full admin access</option>
@@ -954,7 +954,7 @@ const TeamManagement: React.FC = () => {
                     <div className="flex justify-end space-x-3 mt-6">
                       <button
                         onClick={() => { setInviteEmail(''); setInviteLink(null); setShowInviteCoachModal(false); }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                        className="px-4 py-2 border border-white/15 rounded-lg text-bone/85 hover:bg-white/[0.05]"
                       >
                         Cancel
                       </button>
@@ -975,19 +975,19 @@ const TeamManagement: React.FC = () => {
         {/* Transfer Head Coach Modal */}
         {showTransferModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="bg-charcoal-900 rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Transfer Head Coach</h2>
-                <p className="text-sm text-gray-600 mb-4">
+                <h2 className="text-xl font-bold text-bone mb-2">Transfer Head Coach</h2>
+                <p className="text-sm text-bone/65 mb-4">
                   Transfer the head coach role on <strong>{showTransferModal.name}</strong> to another coach. You will become an assistant coach.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">New Head Coach *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">New Head Coach *</label>
                     <select
                       value={transferTargetId}
                       onChange={e => setTransferTargetId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                     >
                       <option value="">Choose a coach...</option>
                       {teamCoaches
@@ -1003,7 +1003,7 @@ const TeamManagement: React.FC = () => {
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     onClick={() => { setShowTransferModal(null); setTransferTargetId(''); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    className="px-4 py-2 border border-white/15 rounded-lg text-bone/85 hover:bg-white/[0.05]"
                   >
                     Cancel
                   </button>
@@ -1023,19 +1023,19 @@ const TeamManagement: React.FC = () => {
         {/* Share Player Modal */}
         {showSharePlayerModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="bg-charcoal-900 rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Share Player Across Teams</h2>
-                <p className="text-sm text-gray-600 mb-4">
+                <h2 className="text-xl font-bold text-bone mb-2">Share Player Across Teams</h2>
+                <p className="text-sm text-bone/65 mb-4">
                   Move or share a player to another team. Their parent(s) will automatically get access to the new team.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Player *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Select Player *</label>
                     <select
                       value={selectedPlayerId}
                       onChange={e => setSelectedPlayerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                     >
                       <option value="">Choose a player...</option>
                       {allPlayers.map(player => (
@@ -1046,11 +1046,11 @@ const TeamManagement: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Share To Team *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Share To Team *</label>
                     <select
                       value={targetTeamId}
                       onChange={e => setTargetTeamId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                     >
                       <option value="">Choose target team...</option>
                       {teams
@@ -1069,7 +1069,7 @@ const TeamManagement: React.FC = () => {
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     onClick={() => { setSelectedPlayerId(''); setTargetTeamId(''); setShowSharePlayerModal(false); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    className="px-4 py-2 border border-white/15 rounded-lg text-bone/85 hover:bg-white/[0.05]"
                   >
                     Cancel
                   </button>
@@ -1089,19 +1089,19 @@ const TeamManagement: React.FC = () => {
         {/* Add Coach to Team Modal */}
         {showAddCoachToTeamModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="bg-charcoal-900 rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Add Coach to Another Team</h2>
-                <p className="text-sm text-gray-600 mb-4">
+                <h2 className="text-xl font-bold text-bone mb-2">Add Coach to Another Team</h2>
+                <p className="text-sm text-bone/65 mb-4">
                   Give an existing coach access to an additional team. They'll be added as an assistant coach.
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Coach *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Select Coach *</label>
                     <select
                       value={addCoachUserId}
                       onChange={e => setAddCoachUserId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                     >
                       <option value="">Choose a coach...</option>
                       {allCoaches.map((c: any) => (
@@ -1112,11 +1112,11 @@ const TeamManagement: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Add to Team *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Add to Team *</label>
                     <select
                       value={addCoachTargetTeamId}
                       onChange={e => setAddCoachTargetTeamId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                     >
                       <option value="">Choose target team...</option>
                       {teams
@@ -1134,7 +1134,7 @@ const TeamManagement: React.FC = () => {
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     onClick={() => { setAddCoachUserId(''); setAddCoachTargetTeamId(''); setShowAddCoachToTeamModal(false); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    className="px-4 py-2 border border-white/15 rounded-lg text-bone/85 hover:bg-white/[0.05]"
                   >
                     Cancel
                   </button>
@@ -1164,7 +1164,7 @@ const SecondaryAction: React.FC<{
   <button
     onClick={onClick}
     disabled={disabled}
-    className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+    className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-charcoal-900 text-bone/65 border-white/10 hover:text-bone hover:border-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
   >
     {label}
   </button>

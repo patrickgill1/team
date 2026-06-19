@@ -75,17 +75,17 @@ const Equipment: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-6">
         <div className="text-center max-w-md">
-          <p className="text-sm font-bold text-slate-700">Coach access only</p>
-          <p className="text-xs text-slate-500 mt-1">Equipment tracking is visible to coaches and to the parents of each player on that player's profile.</p>
+          <p className="text-sm font-bold text-bone/85">Coach access only</p>
+          <p className="text-xs text-bone/50 mt-1">Equipment tracking is visible to coaches and to the parents of each player on that player's profile.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-4xl mx-auto">
           <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
@@ -93,7 +93,7 @@ const Equipment: React.FC = () => {
             Dashboard
           </Link>
           <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Equipment</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <p className="text-sm text-bone/40 mt-0.5">
             {selectedTeam?.name ? `${selectedTeam.name} — ` : ''}who has what gear, who hasn't returned.
           </p>
         </div>
@@ -109,25 +109,25 @@ const Equipment: React.FC = () => {
 
         {/* Filter + sort row */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg bg-white ring-1 ring-slate-200 p-0.5">
+          <div className="inline-flex rounded-lg bg-charcoal-900 ring-1 ring-white/10 p-0.5">
             {(['outstanding', 'returned', 'all'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded ${
-                  filter === f ? 'bg-crimson-600 text-white' : 'text-slate-500 hover:text-slate-800'
+                  filter === f ? 'bg-crimson-600 text-white' : 'text-bone/50 hover:text-bone/90'
                 }`}
               >
                 {f}
               </button>
             ))}
           </div>
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-slate-600">
+          <div className="ml-auto flex items-center gap-2 text-[11px] text-bone/65">
             <span className="font-bold uppercase tracking-widest">Sort</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="bg-white border border-slate-300 rounded-md px-2 py-1 text-xs"
+              className="bg-charcoal-900 border border-white/15 rounded-md px-2 py-1 text-xs"
             >
               <option value="name">Name</option>
               <option value="jersey">Jersey #</option>
@@ -137,17 +137,17 @@ const Equipment: React.FC = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-sm text-slate-500">Loading…</div>
+            <div className="p-8 text-center text-sm text-bone/50">Loading…</div>
           ) : rows.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-500">
+            <div className="p-8 text-center text-sm text-bone/50">
               {filter === 'outstanding' ? 'Nothing outstanding — everyone returned their gear (or nothing was issued).' :
                filter === 'returned' ? 'No returned gear logged yet.' :
                'No players on this team yet.'}
             </div>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-white/5">
               {rows.map(p => {
                 const eq = (p as any).equipment || {};
                 const hasAny = !!(eq.jerseyHomeSize || eq.jerseyAwaySize || eq.shortsSize || eq.socksSize || eq.trainingTopSize);
@@ -159,10 +159,10 @@ const Equipment: React.FC = () => {
                 if (eq.trainingTopSize) sizes.push(`Tr ${eq.trainingTopSize}`);
                 return (
                   <li key={p.id}>
-                    <Link to={`/player/${p.id}`} className="block px-4 py-3 hover:bg-slate-50">
+                    <Link to={`/player/${p.id}`} className="block px-4 py-3 hover:bg-white/[0.05]">
                       <div className="flex items-center gap-3">
                         {p.profilePhotoUrl ? (
-                          <img src={p.profilePhotoUrl} alt={p.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-slate-200" />
+                          <img src={p.profilePhotoUrl} alt={p.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-white/10" />
                         ) : (
                           <span className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-700 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                             {p.jerseyNumber != null ? `#${p.jerseyNumber}` : p.name.charAt(0).toUpperCase()}
@@ -170,17 +170,17 @@ const Equipment: React.FC = () => {
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-900 truncate">{p.name}</span>
-                            {p.jerseyNumber != null && <span className="text-[10px] font-bold text-slate-500 tabular-nums">#{p.jerseyNumber}</span>}
+                            <span className="text-sm font-bold text-bone truncate">{p.name}</span>
+                            {p.jerseyNumber != null && <span className="text-[10px] font-bold text-bone/50 tabular-nums">#{p.jerseyNumber}</span>}
                           </div>
-                          <div className="text-[11px] text-slate-500 truncate">
+                          <div className="text-[11px] text-bone/50 truncate">
                             {hasAny ? sizes.join(' · ') : 'No gear recorded'}
                           </div>
                         </div>
                         <span className={`flex-shrink-0 text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded ${
-                          !hasAny ? 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
-                            : eq.returned ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300'
-                            : 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                          !hasAny ? 'bg-charcoal-950 text-bone/50 ring-1 ring-white/10'
+                            : eq.returned ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-300'
+                            : 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-300'
                         }`}>
                           {!hasAny ? 'No record' : eq.returned ? 'Returned' : 'Outstanding'}
                         </span>
@@ -199,9 +199,9 @@ const Equipment: React.FC = () => {
 
 const Tile: React.FC<{ label: string; value: number; tone: 'amber' | 'emerald' | 'slate' }> = ({ label, value, tone }) => {
   const tones = {
-    amber: 'bg-amber-50 text-amber-900 ring-amber-200',
-    emerald: 'bg-emerald-50 text-emerald-900 ring-emerald-200',
-    slate: 'bg-white text-slate-900 ring-slate-200',
+    amber: 'bg-amber-500/15 text-amber-100 ring-amber-400/30',
+    emerald: 'bg-emerald-500/15 text-emerald-100 ring-emerald-400/30',
+    slate: 'bg-charcoal-900 text-bone ring-white/10',
   } as const;
   return (
     <div className={`rounded-xl ring-1 px-4 py-3 ${tones[tone]}`}>

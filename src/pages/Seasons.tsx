@@ -81,24 +81,24 @@ const Seasons: React.FC = () => {
   };
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">Club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Club admins only.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto space-y-4">
         <div>
-          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-          <h1 className="text-2xl font-black text-charcoal-950 mt-1">Seasons</h1>
-          <p className="text-sm text-slate-600">
+          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
+          <h1 className="text-2xl font-black text-bone mt-1">Seasons</h1>
+          <p className="text-sm text-bone/65">
             Move each season through its lifecycle. Every transition is logged for the audit trail.
           </p>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-6 text-sm text-slate-500">Loading…</div>
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
         ) : seasons.length === 0 ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-8 text-center text-sm text-slate-500">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">
             No seasons exist yet. Create one from the Team management page.
           </div>
         ) : (
@@ -110,12 +110,12 @@ const Seasons: React.FC = () => {
               const isHistoryOpen = openHistoryFor === s.id;
               const history = (s.lifecycleHistory || []).slice().reverse();
               return (
-                <li key={s.id} className="bg-white rounded-2xl ring-1 ring-gray-200 overflow-hidden">
+                <li key={s.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-black text-charcoal-950">{s.name}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                        <div className="font-black text-bone">{s.name}</div>
+                        <div className="text-[11px] text-bone/50 mt-0.5">
                           {fmt(s.startDate)} → {fmt(s.endDate)}
                         </div>
                       </div>
@@ -132,7 +132,7 @@ const Seasons: React.FC = () => {
                             type="button"
                             disabled={transitioning === s.id}
                             onClick={() => handleTransition(s, next)}
-                            className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded bg-crimson-50 hover:bg-crimson-100 text-crimson-800 ring-1 ring-crimson-200 disabled:opacity-50"
+                            className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded bg-crimson-500/15 hover:bg-crimson-500/20 text-crimson-200 ring-1 ring-crimson-400/30 disabled:opacity-50"
                           >
                             → {seasonLifecycleLabel(next)}
                           </button>
@@ -144,7 +144,7 @@ const Seasons: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setOpenHistoryFor(isHistoryOpen ? null : s.id)}
-                        className="mt-3 text-[11px] font-bold text-slate-500 hover:text-slate-700"
+                        className="mt-3 text-[11px] font-bold text-bone/50 hover:text-bone/85"
                       >
                         {isHistoryOpen ? 'Hide history' : `History (${history.length})`}
                       </button>
@@ -152,17 +152,17 @@ const Seasons: React.FC = () => {
                   </div>
 
                   {isHistoryOpen && history.length > 0 && (
-                    <ul className="border-t border-slate-100 divide-y divide-slate-100">
+                    <ul className="border-t border-white/5 divide-y divide-white/5">
                       {history.map((e, i) => {
                         const ts = toDate(e.at);
                         return (
                           <li key={i} className="px-4 py-2 text-[11px] flex items-start gap-3">
-                            <div className="font-bold text-slate-700 shrink-0 whitespace-nowrap">
+                            <div className="font-bold text-bone/85 shrink-0 whitespace-nowrap">
                               {e.fromState ? `${seasonLifecycleLabel(e.fromState)} → ` : ''}{seasonLifecycleLabel(e.toState)}
                             </div>
-                            <div className="flex-1 min-w-0 text-slate-500">
+                            <div className="flex-1 min-w-0 text-bone/50">
                               {e.byName || 'System'} · {ts.toLocaleDateString()} {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                              {e.note && <div className="text-slate-700 italic mt-0.5">"{e.note}"</div>}
+                              {e.note && <div className="text-bone/85 italic mt-0.5">"{e.note}"</div>}
                             </div>
                           </li>
                         );

@@ -356,7 +356,7 @@ const OverviewTab: React.FC<{
       <SearchBar value={search} onChange={setSearch} placeholder="Search teams…" />
       <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-charcoal-950">All teams</h2>
+          <h2 className="font-bold text-bone">All teams</h2>
           <span className="text-xs text-bone/50">
             {filtered.length === teams.length ? `${teams.length} total` : `${filtered.length} of ${teams.length}`}
           </span>
@@ -379,7 +379,7 @@ const OverviewTab: React.FC<{
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-charcoal-950 truncate">{t.name || 'Untitled team'}</span>
+                        <span className="font-bold text-bone truncate">{t.name || 'Untitled team'}</span>
                         {t.ageGroup && (
                           <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
                             {t.ageGroup}
@@ -440,7 +440,7 @@ const CalendarTab: React.FC<{
 
       <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-charcoal-950">Upcoming across the club</h2>
+          <h2 className="font-bold text-bone">Upcoming across the club</h2>
           <span className="text-xs text-bone/50">{upcoming.length} event{upcoming.length === 1 ? '' : 's'}</span>
         </div>
         {upcoming.length === 0 ? (
@@ -476,7 +476,7 @@ const CalendarTab: React.FC<{
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-charcoal-950 truncate">{ev.title || 'Event'}</span>
+                      <span className="font-bold text-bone truncate">{ev.title || 'Event'}</span>
                       {t && (
                         <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
                           {t.name}
@@ -662,7 +662,7 @@ const LeaderboardCard: React.FC<{ title: string; rows: { id: string; name: strin
                 <p className="font-bold text-bone truncate">{r.name}</p>
                 <p className="text-xs text-bone/50 truncate">{r.sub}</p>
               </div>
-              <div className="font-black text-charcoal-950">{r.value}</div>
+              <div className="font-black text-bone">{r.value}</div>
             </Link>
           </li>
         ))}
@@ -767,7 +767,7 @@ const PaymentsTab: React.FC = () => {
       <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-charcoal-950">Stripe Connect</h2>
+            <h2 className="font-bold text-bone">Stripe Connect</h2>
             <p className="text-[11px] text-bone/50 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ Stripe fee.</p>
           </div>
           <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded ${
@@ -915,7 +915,7 @@ const PaymentsTab: React.FC = () => {
           can actually create Checkout Sessions. */}
       <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-charcoal-950">Invoices</h2>
+          <h2 className="font-bold text-bone">Invoices</h2>
           <button
             type="button"
             disabled={!chargesEnabled}

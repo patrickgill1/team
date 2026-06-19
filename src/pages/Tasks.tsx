@@ -97,55 +97,55 @@ const Tasks: React.FC = () => {
   };
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">Coaches + club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Coaches + club admins only.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-            <h1 className="text-2xl font-black text-charcoal-950 mt-1">Tasks</h1>
-            <p className="text-sm text-slate-600">Admin todos. Overdue + high priority float to the top.</p>
+            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
+            <h1 className="text-2xl font-black text-bone mt-1">Tasks</h1>
+            <p className="text-sm text-bone/65">Admin todos. Overdue + high priority float to the top.</p>
           </div>
-          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
+          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold">
             + New task
           </button>
         </div>
 
-        <div className="bg-white rounded-xl ring-1 ring-slate-200 p-3 flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden">
+        <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 p-3 flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg ring-1 ring-white/10 overflow-hidden">
             {(['mine', 'all'] as const).map(s => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setScope(s)}
-                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${scope === s ? 'bg-crimson-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${scope === s ? 'bg-crimson-600 text-white' : 'bg-charcoal-900 text-bone/65 hover:bg-white/[0.05]'}`}
               >
                 {s === 'mine' ? 'Mine' : 'All club'}
               </button>
             ))}
           </div>
-          <div className="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden">
+          <div className="inline-flex rounded-lg ring-1 ring-white/10 overflow-hidden">
             {(['open', 'in_progress', 'done', 'all'] as const).map(s => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${statusFilter === s ? 'bg-charcoal-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${statusFilter === s ? 'bg-charcoal-900 text-white' : 'bg-charcoal-900 text-bone/65 hover:bg-white/[0.05]'}`}
               >
                 {s === 'in_progress' ? 'In progress' : s}
               </button>
             ))}
           </div>
-          <span className="ml-auto text-xs text-slate-500">{visible.length} of {tasks.length}</span>
+          <span className="ml-auto text-xs text-bone/50">{visible.length} of {tasks.length}</span>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-6 text-sm text-slate-500">Loading…</div>
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
         ) : visible.length === 0 ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-10 text-center text-sm text-slate-500">No tasks here. Hit + New task to add one.</div>
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-10 text-center text-sm text-bone/50">No tasks here. Hit + New task to add one.</div>
         ) : (
           <ul className="space-y-2">
             {visible.map(t => <Row key={t.id} task={t} myUid={myUid} updating={updating === t.id} onUpdate={(s) => updateStatus(t, s)} />)}
@@ -169,15 +169,15 @@ const Tasks: React.FC = () => {
 const Row: React.FC<{ task: Task; myUid: string; updating: boolean; onUpdate: (s: Task['status']) => void }> = ({ task, updating, onUpdate }) => {
   const overdue = task.status !== 'done' && task.dueDate && toDate(task.dueDate).getTime() < Date.now();
   return (
-    <li className="bg-white rounded-2xl ring-1 ring-slate-200 p-3 flex items-start gap-3">
+    <li className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-3 flex items-start gap-3">
       <button
         type="button"
         disabled={updating}
         onClick={() => onUpdate(task.status === 'done' ? 'open' : 'done')}
         className={`mt-0.5 w-5 h-5 rounded-full ring-1 flex items-center justify-center transition shrink-0 ${
           task.status === 'done'
-            ? 'bg-emerald-500 ring-emerald-500 text-white'
-            : 'bg-white ring-slate-300 hover:ring-emerald-400'
+            ? 'bg-emerald-500/150 ring-emerald-500 text-white'
+            : 'bg-charcoal-900 ring-white/15 hover:ring-emerald-400'
         }`}
         title={task.status === 'done' ? 'Mark not done' : 'Mark done'}
       >
@@ -185,15 +185,15 @@ const Row: React.FC<{ task: Task; myUid: string; updating: boolean; onUpdate: (s
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-sm font-bold ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{task.title}</span>
-          {task.priority === 'high' && <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 ring-1 ring-rose-200">High</span>}
-          {task.priority === 'low' && <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 ring-1 ring-slate-200">Low</span>}
-          {overdue && <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 ring-1 ring-amber-200">Overdue</span>}
+          <span className={`text-sm font-bold ${task.status === 'done' ? 'text-bone/40 line-through' : 'text-bone'}`}>{task.title}</span>
+          {task.priority === 'high' && <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 ring-1 ring-rose-200">High</span>}
+          {task.priority === 'low' && <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-charcoal-950 text-bone/50 ring-1 ring-white/10">Low</span>}
+          {overdue && <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/30">Overdue</span>}
         </div>
-        {task.description && <p className="text-[11px] text-slate-600 mt-0.5">{task.description}</p>}
-        <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+        {task.description && <p className="text-[11px] text-bone/65 mt-0.5">{task.description}</p>}
+        <div className="text-[11px] text-bone/50 mt-1 flex items-center gap-2 flex-wrap">
           {task.relatedPlayerName && (
-            <Link to={`/club/person/${task.relatedPlayerId}`} className="font-bold text-crimson-700 hover:text-crimson-900">
+            <Link to={`/club/person/${task.relatedPlayerId}`} className="font-bold text-crimson-300 hover:text-crimson-100">
               {task.relatedPlayerName}
             </Link>
           )}
@@ -206,7 +206,7 @@ const Row: React.FC<{ task: Task; myUid: string; updating: boolean; onUpdate: (s
           value={task.status}
           onChange={(e) => onUpdate(e.target.value as Task['status'])}
           disabled={updating}
-          className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ring-1 ring-slate-200 bg-white shrink-0"
+          className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ring-1 ring-white/10 bg-charcoal-900 shrink-0"
         >
           <option value="open">Open</option>
           <option value="in_progress">In progress</option>

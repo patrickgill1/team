@@ -20,13 +20,13 @@ import { useClubId } from '../hooks/useClubId';
 type StatusKey = Registration['status'];
 
 const STATUS_TONES: Record<StatusKey, { bg: string; text: string; ring: string; label: string }> = {
-  pending_payment: { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300', label: 'Pending payment' },
-  paid: { bg: 'bg-emerald-100', text: 'text-emerald-800', ring: 'ring-emerald-300', label: 'Paid' },
-  tryout_invited: { bg: 'bg-crimson-100', text: 'text-crimson-800', ring: 'ring-crimson-300', label: 'Tryout invited' },
-  offer_sent: { bg: 'bg-violet-100', text: 'text-violet-800', ring: 'ring-violet-300', label: 'Offer sent' },
-  accepted: { bg: 'bg-emerald-100', text: 'text-emerald-900', ring: 'ring-emerald-400', label: 'Accepted' },
-  declined: { bg: 'bg-rose-100', text: 'text-rose-800', ring: 'ring-rose-300', label: 'Declined' },
-  withdrawn: { bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-300', label: 'Withdrawn' },
+  pending_payment: { bg: 'bg-amber-500/20', text: 'text-amber-200', ring: 'ring-amber-300', label: 'Pending payment' },
+  paid: { bg: 'bg-emerald-500/20', text: 'text-emerald-200', ring: 'ring-emerald-300', label: 'Paid' },
+  tryout_invited: { bg: 'bg-crimson-500/20', text: 'text-crimson-200', ring: 'ring-crimson-300', label: 'Tryout invited' },
+  offer_sent: { bg: 'bg-violet-500/20', text: 'text-violet-200', ring: 'ring-violet-300', label: 'Offer sent' },
+  accepted: { bg: 'bg-emerald-500/20', text: 'text-emerald-100', ring: 'ring-emerald-400', label: 'Accepted' },
+  declined: { bg: 'bg-rose-500/20', text: 'text-rose-800', ring: 'ring-rose-300', label: 'Declined' },
+  withdrawn: { bg: 'bg-charcoal-950', text: 'text-bone/85', ring: 'ring-white/15', label: 'Withdrawn' },
 };
 
 const Registrations: React.FC = () => {
@@ -206,17 +206,17 @@ const Registrations: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-6 text-center">
         <div className="max-w-md">
-          <p className="text-sm font-bold text-slate-700">Club admin access only</p>
-          <p className="text-xs text-slate-500 mt-1">Registrations are visible to club administrators.</p>
+          <p className="text-sm font-bold text-bone/85">Club admin access only</p>
+          <p className="text-xs text-bone/50 mt-1">Registrations are visible to club administrators.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-6xl mx-auto">
           <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
@@ -226,7 +226,7 @@ const Registrations: React.FC = () => {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Registrations</h1>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="text-sm text-bone/40 mt-0.5">
                 Everyone who's signed up for the season — pending, paid, in tryouts, on a team.
               </p>
             </div>
@@ -234,7 +234,7 @@ const Registrations: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowBlast(true)}
-                className="shrink-0 px-3 py-2 rounded-lg bg-crimson-500 hover:bg-crimson-400 text-white text-xs font-extrabold uppercase tracking-widest"
+                className="shrink-0 px-3 py-2 rounded-lg bg-crimson-500/150 hover:bg-crimson-400 text-white text-xs font-extrabold uppercase tracking-widest"
               >
                 Push email
               </button>
@@ -253,20 +253,20 @@ const Registrations: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl ring-1 ring-slate-200 p-3 flex flex-wrap items-center gap-2">
-          <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+        <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 p-3 flex flex-wrap items-center gap-2">
+          <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
             <option value="all">All seasons</option>
             {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
             <option value="all">All statuses</option>
             {(Object.keys(STATUS_TONES) as StatusKey[]).map(s => <option key={s} value={s}>{STATUS_TONES[s].label}</option>)}
           </select>
-          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
             <option value="all">All ages</option>
             {ageGroups.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm border border-slate-300 rounded-lg px-3 py-2">
+          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
             <option value="all">All genders</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
@@ -277,69 +277,69 @@ const Registrations: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by player or parent…"
-            className="flex-1 min-w-[180px] text-sm border border-slate-300 rounded-lg px-3 py-2"
+            className="flex-1 min-w-[180px] text-sm border border-white/15 rounded-lg px-3 py-2"
           />
           <button
             type="button"
             onClick={selected.size === visible.length && visible.length > 0 ? clearSelection : selectAllVisible}
-            className="ml-auto text-[11px] font-bold text-slate-600 hover:text-crimson-700"
+            className="ml-auto text-[11px] font-bold text-bone/65 hover:text-crimson-300"
           >
             {selected.size === visible.length && visible.length > 0 ? 'Clear all' : 'Select all'}
           </button>
-          <span className="text-xs text-slate-500">{visible.length} of {registrations.length}</span>
+          <span className="text-xs text-bone/50">{visible.length} of {registrations.length}</span>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-sm text-slate-500">Loading…</div>
+            <div className="p-8 text-center text-sm text-bone/50">Loading…</div>
           ) : visible.length === 0 ? (
             <div className="p-10 text-center">
-              <p className="text-sm font-bold text-slate-700">No registrations match.</p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-sm font-bold text-bone/85">No registrations match.</p>
+              <p className="text-xs text-bone/50 mt-1">
                 {registrations.length === 0
                   ? 'Once parents start submitting at /register, they show up here.'
                   : 'Try a different filter combination.'}
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-white/5">
               {visible.map(r => {
                 const tone = STATUS_TONES[r.status] || STATUS_TONES.pending_payment;
                 return (
-                  <li key={r.id} className="px-4 py-3 hover:bg-slate-50">
+                  <li key={r.id} className="px-4 py-3 hover:bg-white/[0.05]">
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         checked={selected.has(r.id)}
                         onChange={() => toggleSelect(r.id)}
-                        className="mt-1 w-4 h-4 rounded border-slate-300 text-crimson-600 focus:ring-crimson-500"
+                        className="mt-1 w-4 h-4 rounded border-white/15 text-crimson-600 focus:ring-crimson-500"
                         title="Select for bulk action"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-sm font-bold text-slate-900">
+                          <span className="text-sm font-bold text-bone">
                             {r.player.firstName} {r.player.lastName}
                           </span>
-                          <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 bg-charcoal-950 px-1.5 py-0.5 rounded">
                             {r.player.ageGroup}
                           </span>
                           {r.player.playedBefore && (
-                            <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">Returning</span>
+                            <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 bg-crimson-500/15 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">Returning</span>
                           )}
                           <span className={`ml-auto text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded ${tone.bg} ${tone.text} ring-1 ${tone.ring}`}>
                             {tone.label}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-600 mb-0.5">
+                        <div className="text-xs text-bone/65 mb-0.5">
                           {r.player.gender} · DOB {r.player.dateOfBirth}
                           {r.player.preferredPosition ? ` · ${r.player.preferredPosition}` : ''}
                         </div>
-                        <div className="text-xs text-slate-500 truncate">
+                        <div className="text-xs text-bone/50 truncate">
                           {r.parents.map(p => `${p.firstName} ${p.lastName} · ${p.email}`).join(' · ')}
                         </div>
                         {r.player.medicalNotes && (
-                          <div className="mt-1 text-[11px] text-amber-700 italic">Med: {r.player.medicalNotes}</div>
+                          <div className="mt-1 text-[11px] text-amber-300 italic">Med: {r.player.medicalNotes}</div>
                         )}
                         {r.customAnswers && Object.keys(r.customAnswers).length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -348,18 +348,18 @@ const Registrations: React.FC = () => {
                               const display = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val);
                               if (!display.trim()) return null;
                               return (
-                                <span key={qid} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 ring-1 ring-slate-200 text-slate-700">
-                                  <span className="text-slate-500">{label}:</span>{' '}
+                                <span key={qid} className="text-[10px] px-2 py-0.5 rounded bg-charcoal-950 ring-1 ring-white/10 text-bone/85">
+                                  <span className="text-bone/50">{label}:</span>{' '}
                                   <span className="font-bold">{display}</span>
                                 </span>
                               );
                             })}
                           </div>
                         )}
-                        <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+                        <div className="mt-2 flex items-center gap-2 text-[11px] text-bone/50">
                           <span>${((r.amountPaidCents ?? r.registrationFeeCents ?? 0) / 100).toFixed(2)}</span>
-                          {r.pricingTierLabel && <span className="text-crimson-700 font-bold">· {r.pricingTierLabel}</span>}
-                          {r.couponCode && <span className="text-violet-700 font-bold">· {r.couponCode}</span>}
+                          {r.pricingTierLabel && <span className="text-crimson-300 font-bold">· {r.pricingTierLabel}</span>}
+                          {r.couponCode && <span className="text-violet-300 font-bold">· {r.couponCode}</span>}
                           <span>·</span>
                           <span>{(r.createdAt as any)?.toLocaleDateString?.() || ''}</span>
                         </div>
@@ -370,7 +370,7 @@ const Registrations: React.FC = () => {
                       {r.promotedToPlayerId && (
                         <Link
                           to={`/club/person/${r.promotedToPlayerId}`}
-                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500"
+                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500/150"
                         >
                           Profile
                         </Link>
@@ -378,23 +378,23 @@ const Registrations: React.FC = () => {
                       {r.parents?.[0]?.email && (
                         <Link
                           to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`}
-                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-slate-50 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white/[0.04] text-bone/85 ring-1 ring-white/10 hover:bg-white/[0.08]"
                         >
                           Family
                         </Link>
                       )}
                       {r.status === 'pending_payment' && (
-                        <button onClick={() => handleStatusChange(r, 'paid')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100">
+                        <button onClick={() => handleStatusChange(r, 'paid')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30 hover:bg-emerald-500/20">
                           Mark paid
                         </button>
                       )}
                       {(r.status === 'paid' || r.status === 'pending_payment') && (
-                        <button onClick={() => handleStatusChange(r, 'tryout_invited')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 hover:bg-crimson-100">
+                        <button onClick={() => handleStatusChange(r, 'tryout_invited')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30 hover:bg-crimson-500/20">
                           Invite to tryout
                         </button>
                       )}
                       {r.status !== 'withdrawn' && r.status !== 'declined' && r.status !== 'accepted' && (
-                        <button onClick={() => handleStatusChange(r, 'withdrawn')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100">
+                        <button onClick={() => handleStatusChange(r, 'withdrawn')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white/[0.04] text-bone/65 ring-1 ring-white/10 hover:bg-white/[0.08]">
                           Withdraw
                         </button>
                       )}
@@ -409,12 +409,12 @@ const Registrations: React.FC = () => {
       {selected.size > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-charcoal-900 text-white rounded-2xl shadow-2xl ring-1 ring-crimson-500/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
           <span className="text-[11px] font-extrabold uppercase tracking-widest text-crimson-400 px-2">{selected.size} selected</span>
-          <span className="text-slate-700">|</span>
+          <span className="text-bone/85">|</span>
           <button
             type="button"
             disabled={bulkRunning}
             onClick={() => handleBulkStatus('paid')}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-500/150 hover:bg-emerald-400 disabled:opacity-50"
           >
             Mark paid
           </button>
@@ -422,7 +422,7 @@ const Registrations: React.FC = () => {
             type="button"
             disabled={bulkRunning}
             onClick={() => handleBulkStatus('tryout_invited')}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-500 hover:bg-crimson-400 disabled:opacity-50"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-500/150 hover:bg-crimson-400 disabled:opacity-50"
           >
             Invite to tryout
           </button>
@@ -430,7 +430,7 @@ const Registrations: React.FC = () => {
             type="button"
             disabled={bulkRunning}
             onClick={() => handleBulkStatus('withdrawn')}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-50"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-700 hover:bg-charcoal-600 disabled:opacity-50"
           >
             Withdraw
           </button>
@@ -438,14 +438,14 @@ const Registrations: React.FC = () => {
             type="button"
             disabled={bulkRunning}
             onClick={() => setShowBulkEmail(true)}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-violet-500 hover:bg-violet-400 disabled:opacity-50"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-violet-500/150 hover:bg-violet-400 disabled:opacity-50"
           >
             Email
           </button>
           <button
             type="button"
             onClick={clearSelection}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded text-slate-300 hover:text-white"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded text-bone/35 hover:text-white"
           >
             Clear
           </button>
@@ -487,10 +487,10 @@ const Registrations: React.FC = () => {
 
 const Tile: React.FC<{ label: string; value: number; tone: 'amber' | 'emerald' | 'cyan' | 'slate' }> = ({ label, value, tone }) => {
   const tones = {
-    amber: 'bg-amber-50 ring-amber-200 text-amber-900',
-    emerald: 'bg-emerald-50 ring-emerald-200 text-emerald-900',
-    cyan: 'bg-crimson-50 ring-crimson-200 text-crimson-900',
-    slate: 'bg-white ring-slate-200 text-slate-900',
+    amber: 'bg-amber-500/15 ring-amber-400/30 text-amber-900',
+    emerald: 'bg-emerald-500/15 ring-emerald-400/30 text-emerald-100',
+    cyan: 'bg-crimson-500/15 ring-crimson-400/30 text-crimson-100',
+    slate: 'bg-charcoal-900 ring-white/10 text-bone',
   } as const;
   return (
     <div className={`rounded-xl ring-1 px-4 py-3 ${tones[tone]}`}>

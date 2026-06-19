@@ -40,35 +40,35 @@ const OfferTemplates: React.FC = () => {
   useEffect(() => { void reload(); }, [allowed, clubId]);
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">Coaches + club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Coaches + club admins only.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-            <h1 className="text-2xl font-black text-charcoal-950 mt-1">Offer templates</h1>
-            <p className="text-sm text-slate-600">
+            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
+            <h1 className="text-2xl font-black text-bone mt-1">Offer templates</h1>
+            <p className="text-sm text-bone/65">
               Reusable message bodies for the Send Offer flow. Scope by team + position so the right templates surface for the right candidates.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold"
+            className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 text-white text-sm font-bold"
           >
             + New template
           </button>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-6 text-sm text-slate-500">Loading…</div>
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
         ) : templates.length === 0 ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-8 text-center">
-            <p className="text-sm text-slate-600 mb-3">No templates yet. Build one and the SendOffer modal will offer it as a quick-pick.</p>
-            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center">
+            <p className="text-sm text-bone/65 mb-3">No templates yet. Build one and the SendOffer modal will offer it as a quick-pick.</p>
+            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 text-white text-sm font-bold">
               Create template
             </button>
           </div>
@@ -79,21 +79,21 @@ const OfferTemplates: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditing(t)}
-                  className="w-full text-left bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-violet-400 p-4 transition"
+                  className="w-full text-left bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-violet-400 p-4 transition"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-bold text-charcoal-950">{t.name}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
+                      <div className="font-bold text-bone">{t.name}</div>
+                      <div className="text-[11px] text-bone/50 mt-0.5">
                         {teams.find(x => x.id === t.teamId)?.name || 'Any team'}
                         {t.position ? ` · ${t.position}` : ' · Any position'}
                       </div>
                     </div>
                     {!t.isActive && (
-                      <span className="text-[10px] font-extrabold tracking-widest uppercase bg-slate-100 text-slate-500 ring-1 ring-slate-300 px-1.5 py-0.5 rounded shrink-0">Archived</span>
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase bg-charcoal-950 text-bone/50 ring-1 ring-white/15 px-1.5 py-0.5 rounded shrink-0">Archived</span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-600 mt-2 line-clamp-3 whitespace-pre-wrap">{t.message}</p>
+                  <p className="text-xs text-bone/65 mt-2 line-clamp-3 whitespace-pre-wrap">{t.message}</p>
                 </button>
               </li>
             ))}
@@ -169,53 +169,53 @@ const Editor: React.FC<EditorProps> = ({ template, teams, clubId, userData, onCl
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-charcoal-950">{isNew ? 'New template' : 'Edit template'}</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+      <div className="bg-charcoal-900 w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <h2 className="font-black text-bone">{isNew ? 'New template' : 'Edit template'}</h2>
+          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="U10 Forward — Welcome Aboard" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-violet-400 text-sm" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="U10 Forward — Welcome Aboard" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Scope to team (optional)</span>
-              <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-violet-400 text-sm">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to team (optional)</span>
+              <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm">
                 <option value="">Any team</option>
                 {teams.map(t => <option key={t.id} value={t.id}>{t.name}{t.ageGroup ? ` (${t.ageGroup})` : ''}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Scope to position (optional)</span>
-              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-violet-400 text-sm" />
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to position (optional)</span>
+              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm" />
             </label>
           </div>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Message body</span>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-violet-400 text-sm leading-relaxed" />
-            <p className="text-[10px] text-slate-500 mt-1">Plain text. The coach can still edit this after picking the template.</p>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Message body</span>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm leading-relaxed" />
+            <p className="text-[10px] text-bone/50 mt-1">Plain text. The coach can still edit this after picking the template.</p>
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-bone/85">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
             Active (uncheck to archive without deleting)
           </label>
 
-          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
+          {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
+        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
           <button
             type="button"
             disabled={!canSave}
             onClick={handleSave}
-            className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-bold"
+            className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 disabled:opacity-50 text-white text-sm font-bold"
           >
             {saving ? 'Saving…' : isNew ? 'Create' : 'Save changes'}
           </button>

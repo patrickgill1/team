@@ -50,31 +50,31 @@ const Forms: React.FC = () => {
   useEffect(() => { void reload(); }, [allowed, clubId]);
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">Club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Club admins only.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700">← Club</Link>
-            <h1 className="text-2xl font-black text-charcoal-950 mt-1">Forms</h1>
-            <p className="text-sm text-slate-600">
+            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
+            <h1 className="text-2xl font-black text-bone mt-1">Forms</h1>
+            <p className="text-sm text-bone/65">
               Waivers, releases, consents, order forms. Each shows up on every player's checklist; admins mark signed as they come in.
             </p>
           </div>
-          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
+          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold">
             + New form
           </button>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-6 text-sm text-slate-500">Loading…</div>
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
         ) : forms.length === 0 ? (
-          <div className="bg-white rounded-2xl ring-1 ring-gray-200 p-8 text-center">
-            <p className="text-sm text-slate-600 mb-3">No forms yet. Player Waiver and Medical Release are usually the first two.</p>
-            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center">
+            <p className="text-sm text-bone/65 mb-3">No forms yet. Player Waiver and Medical Release are usually the first two.</p>
+            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold">
               Create form
             </button>
           </div>
@@ -82,16 +82,16 @@ const Forms: React.FC = () => {
           <ul className="space-y-2">
             {forms.map(f => (
               <li key={f.id}>
-                <button type="button" onClick={() => setEditing(f)} className="w-full text-left bg-white rounded-2xl ring-1 ring-gray-200 hover:ring-crimson-400 p-4 transition">
+                <button type="button" onClick={() => setEditing(f)} className="w-full text-left bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-crimson-400 p-4 transition">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-bold text-charcoal-950">{f.name}</div>
-                      {f.description && <p className="text-[11px] text-slate-500 mt-0.5">{f.description}</p>}
+                      <div className="font-bold text-bone">{f.name}</div>
+                      {f.description && <p className="text-[11px] text-bone/50 mt-0.5">{f.description}</p>}
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap text-[10px]">
-                        {f.required && <span className="font-extrabold tracking-widest uppercase bg-rose-50 text-rose-700 ring-1 ring-rose-200 px-1.5 py-0.5 rounded">Required</span>}
-                        {!f.isActive && <span className="font-extrabold tracking-widest uppercase bg-slate-100 text-slate-500 ring-1 ring-slate-300 px-1.5 py-0.5 rounded">Archived</span>}
-                        {f.seasonId && <span className="font-extrabold tracking-widest uppercase bg-amber-50 text-amber-700 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">{seasons.find(s => s.id === f.seasonId)?.name || 'Season scoped'}</span>}
-                        {(f.ageGroups || []).length > 0 && <span className="font-extrabold tracking-widest uppercase bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">{(f.ageGroups || []).join(', ')}</span>}
+                        {f.required && <span className="font-extrabold tracking-widest uppercase bg-rose-500/15 text-rose-300 ring-1 ring-rose-200 px-1.5 py-0.5 rounded">Required</span>}
+                        {!f.isActive && <span className="font-extrabold tracking-widest uppercase bg-charcoal-950 text-bone/50 ring-1 ring-white/15 px-1.5 py-0.5 rounded">Archived</span>}
+                        {f.seasonId && <span className="font-extrabold tracking-widest uppercase bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">{seasons.find(s => s.id === f.seasonId)?.name || 'Season scoped'}</span>}
+                        {(f.ageGroups || []).length > 0 && <span className="font-extrabold tracking-widest uppercase bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">{(f.ageGroups || []).join(', ')}</span>}
                       </div>
                     </div>
                   </div>
@@ -176,55 +176,55 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-charcoal-950">{isNew ? 'New form' : 'Edit form'}</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+      <div className="bg-charcoal-900 w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <h2 className="font-black text-bone">{isNew ? 'New form' : 'Edit form'}</h2>
+          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
           </label>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Short description (optional)</span>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Short description (optional)</span>
+            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
           </label>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Body text (terms / instructions, optional)</span>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm leading-relaxed" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Body text (terms / instructions, optional)</span>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm leading-relaxed" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Scope to season (optional)</span>
-              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to season (optional)</span>
+              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm">
                 <option value="">Every season</option>
                 {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Display order</span>
-              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Display order</span>
+              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
             </label>
           </div>
 
           <div>
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Scope to age groups (optional)</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to age groups (optional)</span>
             <div className="flex flex-wrap gap-1.5">
               {AGE_GROUP_OPTIONS.map(ag => {
                 const on = ageGroups.includes(ag);
                 return (
-                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-crimson-400'}`}>{ag}</button>
+                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-charcoal-900 text-bone/65 ring-white/10 hover:ring-crimson-400'}`}>{ag}</button>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-slate-700">
+          <div className="flex items-center gap-4 text-sm text-bone/85">
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
               Required
@@ -235,12 +235,12 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
             </label>
           </div>
 
-          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
+          {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
-          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
+          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : isNew ? 'Create form' : 'Save changes'}
           </button>
         </div>

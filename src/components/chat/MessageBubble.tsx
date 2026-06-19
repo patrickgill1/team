@@ -181,6 +181,12 @@ function renderRichContent(text: string, ownTheme: boolean): string {
 /** Standard rich-row used inside the action sheet. Icon chip in a
  *  tone color, bold label, single-line description. ~64px tall so it
  *  hits the "easy to tap on mobile" bar comfortably. */
+// Dark-mode action row. The 'tone' kicks the icon tile color
+// — same semantic meaning as before, just rebuilt as solid colored
+// chips on a charcoal sheet so they pop without the light-mode
+// trickery. Patrick: 'can you change the chat menus as well to
+// something like this to match?' (referring to a dark sheet
+// mockup with solid colored tiles).
 const ActionRow: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -189,23 +195,23 @@ const ActionRow: React.FC<{
   onClick: () => void;
 }> = ({ icon, label, description, tone = 'slate', onClick }) => {
   const chipClass = {
-    cyan: 'bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200',
-    amber: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-    rose: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
-    slate: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+    cyan: 'bg-rose-600 text-white',          // reply / view profile / DM (primary action)
+    amber: 'bg-amber-500 text-charcoal-950', // pin (warm fill / dark text — POTM pattern)
+    rose: 'bg-rose-600 text-white',          // delete (label below also goes rose)
+    slate: 'bg-charcoal-800 text-bone ring-1 ring-white/10', // copy / seen-by / mute (neutral)
   }[tone];
-  const labelColor = tone === 'rose' ? 'text-rose-700' : 'text-slate-900';
+  const labelColor = tone === 'rose' ? 'text-rose-300' : 'text-bone';
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-3 flex items-start gap-3 border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors"
+      className="w-full text-left px-4 py-3 flex items-start gap-3 border-b border-white/5 last:border-b-0 hover:bg-white/[0.04] transition-colors"
     >
       <span className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${chipClass}`}>
         {icon}
       </span>
       <span className="min-w-0 flex-1 pt-0.5">
         <span className={`block text-[15px] font-bold ${labelColor}`}>{label}</span>
-        <span className="block text-[12px] text-slate-500 leading-snug mt-0.5">{description}</span>
+        <span className="block text-[12px] text-bone/55 leading-snug mt-0.5">{description}</span>
       </span>
     </button>
   );
@@ -952,15 +958,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           onClick={() => setActionsOpen(false)}
         >
           <div
-            className="bg-white w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[84vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+            className="bg-charcoal-900 ring-1 ring-white/10 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[84vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Branded header — same chrome as UserProfileModal so the
                 two surfaces feel like one design system. */}
-            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0 border-b border-white/5">
               <button
                 onClick={() => setActionsOpen(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-bone/50 hover:text-bone px-1"
               >
                 Cancel
               </button>
@@ -971,17 +977,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
               {/* Quick-reaction row — kept at the top because reactions are
                   the most-used action by far. Tap "+" for the full picker. */}
-              <div className="px-3 py-3 border-b border-slate-100 grid grid-cols-9 gap-0.5">
+              <div className="px-3 py-3 border-b border-white/5 grid grid-cols-9 gap-0.5">
                 {['👍','❤️','🔥','⚽','🏆','😂','🙌','👏'].map((e) => (
                   <button
                     key={e}
                     onClick={() => { onToggleReaction(message, e); setActionsOpen(false); }}
-                    className="text-2xl py-1.5 rounded-lg hover:bg-slate-100 active:scale-95"
+                    className="text-2xl py-1.5 rounded-lg hover:bg-white/[0.08] active:scale-95"
                   >{e}</button>
                 ))}
                 <button
                   onClick={() => { setActionsOpen(false); setEmojiOpen(true); }}
-                  className="text-lg py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold"
+                  className="text-lg py-1.5 rounded-lg bg-charcoal-800 ring-1 ring-white/10 hover:bg-charcoal-700 text-bone font-bold"
                   aria-label="More emoji"
                 >+</button>
               </div>

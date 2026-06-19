@@ -523,25 +523,25 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            className="bg-charcoal-900 ring-1 ring-white/10 w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           >
-            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
+            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between border-b border-white/5">
               <button
                 onClick={() => setPlusOpen(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-bone/50 hover:text-bone px-1"
               >
                 Cancel
               </button>
               <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Add</div>
               <span className="w-12" aria-hidden />
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-white/5">
               <button
                 type="button"
                 onClick={() => { setPlusOpen(false); fileRef.current?.click(); }}
-                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/[0.04]"
               >
-                <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 flex items-center justify-center">
+                <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                     <circle cx="9" cy="9" r="2"/>
@@ -549,22 +549,22 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   </svg>
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-slate-900">Photo</span>
-                  <span className="block text-[11px] text-slate-500">Send images from your library.</span>
+                  <span className="block text-sm font-bold text-bone">Photo</span>
+                  <span className="block text-[11px] text-bone/55">Send images from your library.</span>
                 </span>
               </button>
               {tenorEnabled() && (
                 <button
                   type="button"
                   onClick={() => { setPlusOpen(false); setIsGifPickerOpen(true); }}
-                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/[0.04]"
                 >
-                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-50 text-violet-700 ring-1 ring-violet-200 flex items-center justify-center text-[10px] font-extrabold tracking-wider">
+                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-600 text-white flex items-center justify-center text-[10px] font-extrabold tracking-wider">
                     GIF
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-slate-900">GIF</span>
-                    <span className="block text-[11px] text-slate-500">Search Tenor and send.</span>
+                    <span className="block text-sm font-bold text-bone">GIF</span>
+                    <span className="block text-[11px] text-bone/55">Search Tenor and send.</span>
                   </span>
                 </button>
               )}
@@ -572,9 +572,9 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                 <button
                   type="button"
                   onClick={() => { setPlusOpen(false); setIsPollOpen(true); }}
-                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/[0.04]"
                 >
-                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 flex items-center justify-center">
+                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <rect x="3" y="12" width="4" height="9" rx="1"/>
                       <rect x="10" y="7" width="4" height="14" rx="1"/>
@@ -582,8 +582,8 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     </svg>
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-slate-900">Poll</span>
-                    <span className="block text-[11px] text-slate-500">Quick yes/no or pick-an-option.</span>
+                    <span className="block text-sm font-bold text-bone">Poll</span>
+                    <span className="block text-[11px] text-bone/55">Quick yes/no or pick-an-option.</span>
                   </span>
                 </button>
               )}
@@ -591,10 +591,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                 <button
                   type="button"
                   onClick={() => { setMarkImportant(v => !v); setPlusOpen(false); }}
-                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/[0.04]"
                 >
-                  <span className={`flex-shrink-0 w-9 h-9 rounded-lg ring-1 flex items-center justify-center ${
-                    markImportant ? 'bg-amber-100 text-amber-800 ring-amber-300' : 'bg-amber-50 text-amber-700 ring-amber-200'
+                  <span className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
+                    markImportant ? 'bg-amber-400 text-charcoal-950 ring-2 ring-amber-300' : 'bg-amber-500 text-charcoal-950'
                   }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -602,10 +602,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     </svg>
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-slate-900">
+                    <span className="block text-sm font-bold text-bone">
                       {markImportant ? 'Important (on)' : 'Mark as important'}
                     </span>
-                    <span className="block text-[11px] text-slate-500">
+                    <span className="block text-[11px] text-bone/55">
                       Requires every recipient to tap "I see this."
                     </span>
                   </span>
@@ -615,10 +615,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                 <button
                   type="button"
                   onClick={() => { setPostToWall(v => !v); setPlusOpen(false); }}
-                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50"
+                  className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/[0.04]"
                 >
-                  <span className={`flex-shrink-0 w-9 h-9 rounded-lg ring-1 flex items-center justify-center ${
-                    postToWall ? 'bg-crimson-100 text-crimson-800 ring-crimson-300' : 'bg-crimson-50 text-crimson-700 ring-crimson-200'
+                  <span className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
+                    postToWall ? 'bg-crimson-500 text-white ring-2 ring-crimson-300' : 'bg-crimson-600 text-white'
                   }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 2v6"/>
@@ -627,10 +627,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     </svg>
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-slate-900">
+                    <span className="block text-sm font-bold text-bone">
                       {postToWall ? 'Posting to wall (on)' : 'Post to wall'}
                     </span>
-                    <span className="block text-[11px] text-slate-500">
+                    <span className="block text-[11px] text-bone/55">
                       Pins in chat + shows on the team dashboard.
                     </span>
                   </span>

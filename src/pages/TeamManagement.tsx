@@ -89,6 +89,7 @@ const TeamManagement: React.FC = () => {
   const [allCoaches, setAllCoaches] = useState<any[]>([]);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
+  const isUserClubAdmin = !!(userData as any)?.isClubAdmin;
 
   useEffect(() => {
     loadData();
@@ -472,7 +473,15 @@ const TeamManagement: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">Teams</h1>
-            <p className="mt-0.5 text-xs text-bone/40">Create, edit, archive. People & rosters live in <Link to="/people" className="text-crimson-400 underline">People</Link>.</p>
+            <p className="mt-0.5 text-xs text-bone/40">
+              Create, edit, archive. People & rosters live in <Link to="/people" className="text-bone/65 hover:text-bone underline">People</Link>
+              {isUserClubAdmin && (
+                <>
+                  {' · '}
+                  <Link to="/club" className="text-bone/65 hover:text-bone underline">Club overview</Link>
+                </>
+              )}.
+            </p>
           </div>
           <button
             onClick={() => { resetForm(); setShowCreateModal(true); }}

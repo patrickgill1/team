@@ -230,80 +230,31 @@ const ClubOverview: React.FC = () => {
           </button>
         </div>
 
-        {/* Coach surfaces */}
-        <div className="grid grid-cols-1 gap-2">
-          <button
-            onClick={() => navigate('/club/tryouts')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
-            title="Coach view of the tryout candidate pool"
-          >
-            <svg className="w-5 h-5 text-rose-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Tryout pool</div>
-              <div className="text-[10px] text-bone/50 mt-0.5">Favorites · holds · ratings · notes — shared across coaches</div>
-            </div>
-            <span className="text-bone/40 group-hover:text-rose-500">→</span>
-          </button>
-          <button
-            onClick={() => navigate('/club/offer-templates')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-violet-400 transition group flex items-center gap-3"
-            title="Reusable message bodies for the Send Offer flow"
-          >
-            <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Offer templates</div>
-              <div className="text-[10px] text-bone/50 mt-0.5">Reusable message bodies, scoped by team + position</div>
-            </div>
-            <span className="text-bone/40 group-hover:text-violet-500">→</span>
-          </button>
-          <button
-            onClick={() => navigate('/club/seasons')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-amber-400 transition group flex items-center gap-3"
-            title="Season lifecycle — draft → registration → tryouts → in-season → ended"
-          >
-            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Seasons</div>
-              <div className="text-[10px] text-bone/50 mt-0.5">Lifecycle state machine + audit history</div>
-            </div>
-            <span className="text-bone/40 group-hover:text-amber-500">→</span>
-          </button>
-          <button
-            onClick={() => navigate('/club/reports')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-emerald-400 transition group flex items-center gap-3"
-            title="Funnel + fees + coupon usage"
-          >
-            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Reports</div>
-              <div className="text-[10px] text-bone/50 mt-0.5">Conversion funnel · fees · coupons</div>
-            </div>
-            <span className="text-bone/40 group-hover:text-emerald-500">→</span>
-          </button>
-          <button
-            onClick={() => navigate('/club/forms')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-crimson-400 transition group flex items-center gap-3"
-            title="Waivers, releases, consents"
-          >
-            <svg className="w-5 h-5 text-crimson-600" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Forms</div>
-              <div className="text-[10px] text-bone/50 mt-0.5">Waivers · releases · consents</div>
-            </div>
-            <span className="text-bone/40 group-hover:text-crimson-500">→</span>
-          </button>
-          <button
-            onClick={() => navigate('/club/tasks')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-rose-400 transition group flex items-center gap-3"
-            title="Admin todos and follow-ups"
-          >
-            <svg className="w-5 h-5 text-rose-300" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <div className="flex-1">
-              <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Tasks</div>
-              <div className="text-[10px] text-bone/50 mt-0.5">Admin todos · assignments · due dates</div>
-            </div>
-            <span className="text-bone/40 group-hover:text-rose-500">→</span>
-          </button>
+        {/* Coach-admin tools — compressed from 6 full-width rows to a
+            single horizontal-scroll strip of small chips. v3.2.64
+            cleanup per Option 1: ClubOverview is an admin cockpit
+            (read-only summaries + broadcast + payments), not a
+            launcher menu. The 6 tools are still one tap away, just
+            no longer claiming ~250px of vertical real estate. */}
+        <div className="-mx-4 sm:-mx-6 px-4 sm:px-6 overflow-x-auto pb-1">
+          <div className="flex items-center gap-2 min-w-max">
+            {[
+              { to: '/club/tryouts',          label: 'Tryouts',           accent: 'hover:border-rose-400' },
+              { to: '/club/seasons',          label: 'Seasons',           accent: 'hover:border-amber-400' },
+              { to: '/club/offer-templates',  label: 'Offer templates',   accent: 'hover:border-violet-400' },
+              { to: '/club/reports',          label: 'Reports',           accent: 'hover:border-emerald-400' },
+              { to: '/club/forms',            label: 'Forms',             accent: 'hover:border-crimson-400' },
+              { to: '/club/tasks',            label: 'Tasks',             accent: 'hover:border-rose-400' },
+            ].map(t => (
+              <button
+                key={t.to}
+                onClick={() => navigate(t.to)}
+                className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest text-bone/75 bg-charcoal-900 border border-white/10 transition ${t.accent} hover:text-bone`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tabs — overview/calendar/stats. Players + Coaches tabs are

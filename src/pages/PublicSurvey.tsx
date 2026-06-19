@@ -157,7 +157,7 @@ const PublicSurvey: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
       </div>
     );
   }
@@ -169,8 +169,8 @@ const PublicSurvey: React.FC = () => {
         <InAppSurveyBackBar />
         <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">😕</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">{error || 'Survey not found'}</h1>
-          <p className="text-gray-500 text-sm">This link might be invalid or the survey may have been removed.</p>
+          <h1 className="text-xl font-bold text-bone mb-2">{error || 'Survey not found'}</h1>
+          <p className="text-bone/50 text-sm">This link might be invalid or the survey may have been removed.</p>
         </div>
       </div>
     );
@@ -183,8 +183,8 @@ const PublicSurvey: React.FC = () => {
         <InAppSurveyBackBar />
         <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">🔒</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Survey Closed</h1>
-          <p className="text-gray-500 text-sm">This survey is no longer accepting responses.</p>
+          <h1 className="text-xl font-bold text-bone mb-2">Survey Closed</h1>
+          <p className="text-bone/50 text-sm">This survey is no longer accepting responses.</p>
         </div>
       </div>
     );
@@ -197,8 +197,8 @@ const PublicSurvey: React.FC = () => {
         <InAppSurveyBackBar />
         <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">🎉</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Thank You!</h1>
-          <p className="text-gray-500 text-sm">Your response has been recorded. We appreciate your feedback!</p>
+          <h1 className="text-xl font-bold text-bone mb-2">Thank You!</h1>
+          <p className="text-bone/50 text-sm">Your response has been recorded. We appreciate your feedback!</p>
         </div>
       </div>
     );
@@ -211,17 +211,17 @@ const PublicSurvey: React.FC = () => {
         <InAppSurveyBackBar />
         <div className="w-full max-w-md mx-auto my-auto">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">{survey.title}</h1>
-            {survey.description && <p className="text-gray-500 mt-2 text-sm">{survey.description}</p>}
+            <h1 className="text-2xl font-bold text-bone">{survey.title}</h1>
+            {survey.description && <p className="text-bone/50 mt-2 text-sm">{survey.description}</p>}
           </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Your name</label>
+          <div className="bg-charcoal-900 rounded-2xl shadow-sm border border-white/10 p-6">
+            <label className="block text-sm font-medium text-bone/85 mb-2">Your name</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none"
+              className="w-full border border-white/10 rounded-xl px-4 py-3 text-bone focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none"
               autoFocus
             />
             <button
@@ -244,10 +244,10 @@ const PublicSurvey: React.FC = () => {
       <div className="max-w-lg mx-auto py-8 px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">{survey.title}</h1>
-          {survey.description && <p className="text-gray-500 mt-2 text-sm">{survey.description}</p>}
+          <h1 className="text-2xl font-bold text-bone">{survey.title}</h1>
+          {survey.description && <p className="text-bone/50 mt-2 text-sm">{survey.description}</p>}
           {survey.isAnonymous && (
-            <div className="inline-flex items-center gap-1 mt-2 text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+            <div className="inline-flex items-center gap-1 mt-2 text-xs text-bone/40 bg-white/[0.08] px-3 py-1 rounded-full">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
               Your responses are anonymous
             </div>
@@ -257,12 +257,12 @@ const PublicSurvey: React.FC = () => {
         {/* Questions */}
         <div className="space-y-4">
           {survey.questions.map(q => (
-            <div key={q.id} className={`bg-white rounded-2xl shadow-sm border p-5 transition-colors ${validationErrors[q.id] ? 'border-red-300 bg-red-50/30' : 'border-gray-100'}`}>
-              <h3 className="font-medium text-gray-900 mb-1">
+            <div key={q.id} className={`bg-charcoal-900 rounded-2xl shadow-sm border p-5 transition-colors ${validationErrors[q.id] ? 'border-rose-400/40 bg-rose-500/10' : 'border-white/10'}`}>
+              <h3 className="font-medium text-bone mb-1">
                 {q.order}. {q.text}
-                {q.required && <span className="text-red-400 ml-1">*</span>}
+                {q.required && <span className="text-rose-400 ml-1">*</span>}
               </h3>
-              {validationErrors[q.id] && <p className="text-xs text-red-500 mb-2">This question is required</p>}
+              {validationErrors[q.id] && <p className="text-xs text-rose-300 mb-2">This question is required</p>}
 
               {/* Rating */}
               {q.type === 'rating' && (
@@ -282,9 +282,9 @@ const PublicSurvey: React.FC = () => {
                       className={`flex-1 py-3 rounded-xl font-medium text-sm border-2 transition-colors ${
                         answers[q.id] === opt
                           ? opt === 'yes'
-                            ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                            : 'border-red-300 bg-red-50 text-red-600'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300'
+                            : 'border-rose-400/40 bg-rose-500/15 text-rose-300'
+                          : 'border-white/10 text-bone/65 hover:border-gray-300'
                       }`}
                     >
                       {opt === 'yes' ? '👍 Yes' : '👎 No'}
@@ -303,8 +303,8 @@ const PublicSurvey: React.FC = () => {
                       onClick={() => setAnswer(q.id, opt)}
                       className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm transition-colors ${
                         answers[q.id] === opt
-                          ? 'border-crimson-400 bg-crimson-50 text-crimson-800 font-medium'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                          ? 'border-crimson-400/40 bg-crimson-500/15 text-crimson-200 font-medium'
+                          : 'border-white/10 text-bone/85 hover:border-gray-300'
                       }`}
                     >
                       {opt}
@@ -320,7 +320,7 @@ const PublicSurvey: React.FC = () => {
                   onChange={e => setAnswer(q.id, e.target.value)}
                   rows={3}
                   placeholder="Type your answer…"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none resize-none mt-3"
+                  className="w-full border border-white/10 rounded-xl px-4 py-3 text-sm text-bone focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none resize-none mt-3"
                 />
               )}
             </div>
@@ -340,7 +340,7 @@ const PublicSurvey: React.FC = () => {
           )}
         </button>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
+        <p className="text-center text-xs text-bone/40 mt-4">
           Powered by GoalKickr
         </p>
       </div>

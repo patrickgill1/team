@@ -245,7 +245,7 @@ const Surveys: React.FC = () => {
   if (loading) {
     return (
       <div className="p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
       </div>
     );
   }
@@ -276,7 +276,7 @@ const Surveys: React.FC = () => {
         </button>
 
         {responsesLoading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" /></div>
+          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" /></div>
         ) : responses.length === 0 ? (
           <div className="card-modern p-8 text-center">
             <p className="text-crimson-400 text-lg">No responses yet</p>
@@ -288,21 +288,21 @@ const Surveys: React.FC = () => {
           <div className="space-y-4">
             {/* Header bar */}
             <div className="card-modern p-4 flex items-center justify-between">
-              <span className="text-charcoal-600 font-medium">{responses.length} response{responses.length !== 1 ? 's' : ''}</span>
+              <span className="text-bone/65 font-medium">{responses.length} response{responses.length !== 1 ? 's' : ''}</span>
               {selectedSurvey.isAnonymous && <span className="text-xs bg-crimson-100 text-crimson-500 px-2 py-0.5 rounded-full">Anonymous</span>}
             </div>
 
             {/* Tab toggle */}
-            <div className="flex rounded-xl overflow-hidden border border-crimson-200 w-fit">
+            <div className="flex rounded-xl overflow-hidden border border-crimson-400/30 w-fit">
               <button
                 onClick={() => setResultsTab('summary')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-crimson-500 text-white' : 'bg-white text-charcoal-600 hover:bg-crimson-50'}`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-crimson-500 text-white' : 'bg-charcoal-800 text-bone/65 hover:bg-white/[0.08]'}`}
               >
                 Summary
               </button>
               <button
                 onClick={() => { setResultsTab('individual'); setIndividualIndex(0); }}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-crimson-500 text-white' : 'bg-white text-charcoal-600 hover:bg-crimson-50'}`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-crimson-500 text-white' : 'bg-charcoal-800 text-bone/65 hover:bg-white/[0.08]'}`}
               >
                 Individual
               </button>
@@ -348,13 +348,13 @@ const Surveys: React.FC = () => {
                       const total = yes + no;
                       return (
                         <div className="flex gap-4">
-                          <div className="flex-1 bg-emerald-50 rounded-xl p-3 text-center border border-emerald-200">
+                          <div className="flex-1 bg-emerald-500/15 rounded-xl p-3 text-center border border-emerald-400/30">
                             <div className="text-2xl font-bold text-emerald-600">{yes}</div>
                             <div className="text-xs text-emerald-500">Yes {total > 0 && `(${Math.round((yes / total) * 100)}%)`}</div>
                           </div>
-                          <div className="flex-1 bg-red-50 rounded-xl p-3 text-center border border-red-200">
-                            <div className="text-2xl font-bold text-red-500">{no}</div>
-                            <div className="text-xs text-red-400">No {total > 0 && `(${Math.round((no / total) * 100)}%)`}</div>
+                          <div className="flex-1 bg-rose-500/15 rounded-xl p-3 text-center border border-rose-400/30">
+                            <div className="text-2xl font-bold text-rose-300">{no}</div>
+                            <div className="text-xs text-rose-400">No {total > 0 && `(${Math.round((no / total) * 100)}%)`}</div>
                           </div>
                         </div>
                       );
@@ -367,7 +367,7 @@ const Surveys: React.FC = () => {
                         <div className="space-y-2">
                           {(q.options || []).map(opt => (
                             <div key={opt} className="flex items-center gap-3">
-                              <span className="text-sm text-charcoal-700 w-40 truncate">{opt}</span>
+                              <span className="text-sm text-bone/85 w-40 truncate">{opt}</span>
                               <div className="flex-1 h-6 bg-crimson-100 rounded-full overflow-hidden">
                                 <div className="h-6 bg-crimson-400 rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
                                   {counts[opt] ? <span className="text-xs font-medium text-white">{counts[opt]}</span> : null}
@@ -385,7 +385,7 @@ const Surveys: React.FC = () => {
                           const ans = r.answers.find(a => a.questionId === q.id);
                           if (!ans || !ans.value) return null;
                           return (
-                            <div key={r.id} className="bg-crimson-50 rounded-lg p-3 text-sm text-charcoal-700 border border-crimson-100">
+                            <div key={r.id} className="bg-crimson-500/15 rounded-lg p-3 text-sm text-bone/85 border border-crimson-400/30">
                               "{String(ans.value)}"
                               {!selectedSurvey.isAnonymous && r.respondentName && (
                                 <span className="block text-xs text-crimson-400 mt-1">— {r.respondentName}</span>
@@ -408,12 +408,12 @@ const Surveys: React.FC = () => {
                   <button
                     onClick={() => setIndividualIndex(i => Math.max(0, i - 1))}
                     disabled={individualIndex === 0}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-crimson-100 text-charcoal-600 disabled:opacity-30 hover:bg-crimson-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-crimson-100 text-bone/65 disabled:opacity-30 hover:bg-crimson-200 transition-colors"
                   >
                     ← Prev
                   </button>
                   <div className="text-center">
-                    <span className="text-charcoal-600 font-medium text-sm">
+                    <span className="text-bone/65 font-medium text-sm">
                       {selectedSurvey.isAnonymous ? `Response ${individualIndex + 1}` : (currentResp.respondentName || 'Anonymous')}
                     </span>
                     <div className="text-xs text-crimson-400">{individualIndex + 1} of {responses.length} · {currentResp.submittedAt.toLocaleDateString()}</div>
@@ -421,7 +421,7 @@ const Surveys: React.FC = () => {
                   <button
                     onClick={() => setIndividualIndex(i => Math.min(responses.length - 1, i + 1))}
                     disabled={individualIndex === responses.length - 1}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-crimson-100 text-charcoal-600 disabled:opacity-30 hover:bg-crimson-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-crimson-100 text-bone/65 disabled:opacity-30 hover:bg-crimson-200 transition-colors"
                   >
                     Next →
                   </button>
@@ -449,7 +449,7 @@ const Surveys: React.FC = () => {
                       ) : q.type === 'multiple_choice' ? (
                         <span className="inline-block bg-crimson-100 text-crimson-700 px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
                       ) : (
-                        <p className="text-charcoal-700 text-sm bg-crimson-50 rounded-lg p-3 border border-crimson-100">"{String(ans.value)}"</p>
+                        <p className="text-bone/85 text-sm bg-crimson-500/15 rounded-lg p-3 border border-crimson-400/30">"{String(ans.value)}"</p>
                       )}
                     </div>
                   );
@@ -477,7 +477,7 @@ const Surveys: React.FC = () => {
 
         {/* Template Button */}
         {!editingSurvey && questions.length === 0 && (
-          <button onClick={useTemplate} className="w-full card-modern p-4 mb-4 border-2 border-dashed border-crimson-300 hover:border-crimson-400 hover:bg-crimson-50/50 transition-colors text-left">
+          <button onClick={useTemplate} className="w-full card-modern p-4 mb-4 border-2 border-dashed border-crimson-400/50 hover:border-crimson-400 hover:bg-crimson-500/10 transition-colors text-left">
             <div className="font-semibold text-charcoal-900">Use "How Am I Doing?" Template</div>
             <div className="text-sm text-crimson-500 mt-1">Pre-built anonymous coach feedback survey — 5 questions ready to go</div>
           </button>
@@ -486,28 +486,28 @@ const Surveys: React.FC = () => {
         {/* Title & Description */}
         <div className="card-modern p-5 space-y-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-charcoal-700 mb-1">Survey Title *</label>
+            <label className="block text-sm font-medium text-bone/85 mb-1">Survey Title *</label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. End of Season Feedback"
-              className="w-full border border-crimson-200 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none"
+              className="w-full border border-crimson-400/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-bone/85 mb-1">Description</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={2}
               placeholder="Brief description shown to respondents…"
-              className="w-full border border-crimson-200 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none resize-none"
+              className="w-full border border-crimson-400/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none resize-none"
             />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} className="w-4 h-4 rounded text-crimson-500 focus:ring-crimson-400" />
-            <span className="text-sm text-charcoal-700">Anonymous responses</span>
+            <span className="text-sm text-bone/85">Anonymous responses</span>
           </label>
           <p className="text-xs text-crimson-500">Survey results are private and visible only to the survey creator.</p>
         </div>
@@ -517,11 +517,11 @@ const Surveys: React.FC = () => {
           {questions.map((q, idx) => (
             <div key={q.id} className="card-modern p-4 border-l-4 border-l-cyan-400">
               <div className="flex items-start justify-between gap-2 mb-3">
-                <span className="text-xs font-semibold text-crimson-600 bg-crimson-50 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
+                <span className="text-xs font-semibold text-crimson-300 bg-crimson-500/15 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => moveQuestion(q.id, 'up')} disabled={idx === 0} className="p-1 text-crimson-400 hover:text-charcoal-700 disabled:opacity-30">↑</button>
-                  <button onClick={() => moveQuestion(q.id, 'down')} disabled={idx === questions.length - 1} className="p-1 text-crimson-400 hover:text-charcoal-700 disabled:opacity-30">↓</button>
-                  <button onClick={() => removeQuestion(q.id)} className="p-1 text-red-400 hover:text-red-600 ml-1">✕</button>
+                  <button onClick={() => moveQuestion(q.id, 'up')} disabled={idx === 0} className="p-1 text-crimson-400 hover:text-bone/85 disabled:opacity-30">↑</button>
+                  <button onClick={() => moveQuestion(q.id, 'down')} disabled={idx === questions.length - 1} className="p-1 text-crimson-400 hover:text-bone/85 disabled:opacity-30">↓</button>
+                  <button onClick={() => removeQuestion(q.id)} className="p-1 text-rose-400 hover:text-rose-300 ml-1">✕</button>
                 </div>
               </div>
 
@@ -530,13 +530,13 @@ const Surveys: React.FC = () => {
                 value={q.text}
                 onChange={e => updateQuestion(q.id, { text: e.target.value })}
                 placeholder="Question text…"
-                className="w-full border border-crimson-200 rounded-lg px-3 py-2 text-sm text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none mb-2"
+                className="w-full border border-crimson-400/30 rounded-lg px-3 py-2 text-sm text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none mb-2"
               />
 
               {q.type === 'rating' && (
                 <div className="flex items-center gap-2 text-sm text-crimson-500">
                   <span>Max rating:</span>
-                  <select value={q.maxRating || 5} onChange={e => updateQuestion(q.id, { maxRating: Number(e.target.value) })} className="border border-crimson-200 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-crimson-400 outline-none">
+                  <select value={q.maxRating || 5} onChange={e => updateQuestion(q.id, { maxRating: Number(e.target.value) })} className="border border-crimson-400/30 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-crimson-400 outline-none">
                     {[3, 4, 5, 7, 10].map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
@@ -555,10 +555,10 @@ const Surveys: React.FC = () => {
                           next[oi] = e.target.value;
                           updateQuestion(q.id, { options: next });
                         }}
-                        className="flex-1 border border-crimson-200 rounded-lg px-3 py-1.5 text-sm text-charcoal-900 focus:ring-2 focus:ring-crimson-400 outline-none"
+                        className="flex-1 border border-crimson-400/30 rounded-lg px-3 py-1.5 text-sm text-charcoal-900 focus:ring-2 focus:ring-crimson-400 outline-none"
                       />
                       {(q.options || []).length > 2 && (
-                        <button onClick={() => updateQuestion(q.id, { options: (q.options || []).filter((_, i) => i !== oi) })} className="text-red-400 hover:text-red-600 text-sm">✕</button>
+                        <button onClick={() => updateQuestion(q.id, { options: (q.options || []).filter((_, i) => i !== oi) })} className="text-rose-400 hover:text-rose-300 text-sm">✕</button>
                       )}
                     </div>
                   ))}
@@ -576,13 +576,13 @@ const Surveys: React.FC = () => {
 
         {/* Add Question */}
         <div className="card-modern p-4 mb-6">
-          <p className="text-sm font-medium text-charcoal-700 mb-3">Add a question</p>
+          <p className="text-sm font-medium text-bone/85 mb-3">Add a question</p>
           <div className="grid grid-cols-2 gap-2">
             {(Object.keys(QUESTION_TYPE_LABELS) as SurveyQuestionType[]).map(type => (
               <button
                 key={type}
                 onClick={() => addQuestion(type)}
-                className="px-3 py-2.5 rounded-xl border border-crimson-200 hover:border-crimson-400 hover:bg-crimson-50/50 text-sm text-charcoal-700 font-medium transition-colors text-left"
+                className="px-3 py-2.5 rounded-xl border border-crimson-400/30 hover:border-crimson-400 hover:bg-crimson-500/10 text-sm text-bone/85 font-medium transition-colors text-left"
               >
                 {QUESTION_TYPE_LABELS[type]}
               </button>
@@ -606,7 +606,7 @@ const Surveys: React.FC = () => {
   //  LIST VIEW
   // ════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <Header
         title="Surveys"
         action={
@@ -624,21 +624,21 @@ const Surveys: React.FC = () => {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-3">
         {surveys.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-            <p className="text-slate-500 text-sm">No surveys yet. Tap + to create one.</p>
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 p-8 text-center">
+            <p className="text-bone/50 text-sm">No surveys yet. Tap + to create one.</p>
           </div>
         ) : (
           surveys.map(s => (
-            <div key={s.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div key={s.id} className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
               {/* Type stripe — active = cyan, closed = slate */}
-              <div className={`h-[3px] ${s.isActive ? 'bg-gradient-to-r from-emerald-500 to-crimson-500' : 'bg-slate-300'}`} />
+              <div className={`h-[3px] ${s.isActive ? 'bg-gradient-to-r from-emerald-500 to-crimson-500' : 'bg-white/15'}`} />
               <div className="px-4 py-3">
                 <div className="flex items-start gap-2 flex-wrap mb-1">
-                  <h3 className="font-bold text-slate-900 text-base truncate flex-1">{s.title}</h3>
+                  <h3 className="font-bold text-bone text-base truncate flex-1">{s.title}</h3>
                   <span className={`text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border ${
                     s.isActive
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
+                      : 'bg-white/[0.04] text-bone/50 border-white/10'
                   }`}>
                     {s.isActive ? 'Active' : 'Closed'}
                   </span>
@@ -652,12 +652,12 @@ const Surveys: React.FC = () => {
                   </span>
                 </div>
                 {s.description && (
-                  <p className="text-sm text-slate-600 line-clamp-2 mt-1">{s.description}</p>
+                  <p className="text-sm text-bone/65 line-clamp-2 mt-1">{s.description}</p>
                 )}
-                <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
-                  <span><span className="font-bold text-slate-700">{s.questions.length}</span> question{s.questions.length !== 1 ? 's' : ''}</span>
+                <div className="mt-2 flex items-center gap-2 text-[11px] text-bone/50">
+                  <span><span className="font-bold text-bone/85">{s.questions.length}</span> question{s.questions.length !== 1 ? 's' : ''}</span>
                   <span className="text-slate-300">·</span>
-                  <span><span className="font-bold text-slate-700">{s.responseCount}</span> response{s.responseCount !== 1 ? 's' : ''}</span>
+                  <span><span className="font-bold text-bone/85">{s.responseCount}</span> response{s.responseCount !== 1 ? 's' : ''}</span>
                   <span className="text-slate-300">·</span>
                   <span>{formatDate(s.createdAt)}</span>
                 </div>
@@ -665,7 +665,7 @@ const Surveys: React.FC = () => {
                 <div className="mt-3 flex items-center gap-1.5 flex-wrap">
                   <button
                     onClick={() => copyShareLink(s.id)}
-                    className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-crimson-50 text-crimson-700 border-crimson-200 hover:bg-crimson-100 inline-flex items-center gap-1"
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-crimson-500/15 text-crimson-300 border-crimson-400/30 hover:bg-crimson-500/25 inline-flex items-center gap-1"
                   >
                     {copySuccess === s.id ? (
                       <><svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Copied</>
@@ -676,7 +676,7 @@ const Surveys: React.FC = () => {
                   {s.createdBy === userData?.uid && (
                     <button
                       onClick={() => { setSelectedSurvey(s); loadResponses(s); setView('results'); }}
-                      className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400"
+                      className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-charcoal-800 text-bone/65 border-white/10 hover:text-bone hover:bg-charcoal-700"
                     >
                       Results
                     </button>
@@ -685,19 +685,19 @@ const Surveys: React.FC = () => {
                     <>
                       <button
                         onClick={() => startEdit(s)}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-charcoal-800 text-bone/65 border-white/10 hover:text-bone hover:bg-charcoal-700"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleToggleActive(s)}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-400"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-charcoal-800 text-bone/65 border-white/10 hover:text-bone hover:bg-charcoal-700"
                       >
                         {s.isActive ? 'Close' : 'Reopen'}
                       </button>
                       <button
                         onClick={() => handleDelete(s.id)}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-white text-rose-600 border-rose-200 hover:bg-rose-50"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-charcoal-800 text-rose-300 border-rose-400/30 hover:bg-rose-500/15"
                       >
                         Delete
                       </button>

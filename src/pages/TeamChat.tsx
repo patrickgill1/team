@@ -2392,17 +2392,17 @@ const TeamChat: React.FC = () => {
                           </span>
                         )}
                         {thread.isPrivate && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 ring-1 ring-red-200 flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-rose-600 text-white flex-shrink-0">
                             Coach only
                           </span>
                         )}
                         {(thread as any).scope === 'club' && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30 flex-shrink-0">
-                            🏛️ Club
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500 text-charcoal-950 flex-shrink-0">
+                            Club
                           </span>
                         )}
                         {(thread as any).scope === 'coaches' && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-crimson-500/15 text-charcoal-800 ring-1 ring-crimson-200 flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-crimson-600 text-white flex-shrink-0">
                             Coaches
                           </span>
                         )}
@@ -2416,12 +2416,12 @@ const TeamChat: React.FC = () => {
                           </svg>
                         )}
                         {(thread as any).scope === 'admins' && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 ring-1 ring-violet-200 flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-sky-600 text-white flex-shrink-0">
                             Admins
                           </span>
                         )}
                         {isDM && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 ring-1 ring-violet-200 flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-charcoal-800 text-bone/80 ring-1 ring-white/15 flex-shrink-0">
                             DM
                           </span>
                         )}

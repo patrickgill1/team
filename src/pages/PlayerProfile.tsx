@@ -1462,49 +1462,15 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                     </div>
                   )}
 
-                  {/* Log Practice button */}
-                  {plan.status === 'active' && !goal.coachVerified && (
-                    <div className="mt-2">
-                      {logGoalId === goal.id ? (
-                        <div className="bg-crimson-50 border border-crimson-100 rounded-lg p-3 space-y-2">
-                          <p className="text-xs font-medium text-crimson-700">Log a practice session</p>
-                          <input
-                            type="text"
-                            value={logNote}
-                            onChange={e => setLogNote(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSubmitLog(); }}
-                            className="w-full text-sm px-3 py-2 border border-crimson-100 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
-                            placeholder="What did you work on?"
-                            autoFocus
-                          />
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600 whitespace-nowrap">Duration:</span>
-                            <input
-                              type="number"
-                              value={logMinutes}
-                              onChange={e => setLogMinutes(e.target.value)}
-                              className="flex-1 min-w-0 text-sm px-2 py-1.5 border border-crimson-100 rounded-lg focus:ring-2 focus:ring-crimson-500"
-                              placeholder="Min"
-                              min="1"
-                            />
-                            <span className="text-xs text-gray-500 whitespace-nowrap">min</span>
-                          </div>
-                          <div className="flex items-center justify-end gap-2 pt-1">
-                            <button onClick={() => { setLogGoalId(null); setLogNote(''); setLogMinutes(''); }} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
-                            <button onClick={handleSubmitLog} disabled={!logNote.trim()} className="text-sm bg-crimson-600 text-white px-4 py-1.5 rounded-lg hover:bg-crimson-700 disabled:opacity-50 font-medium">Save</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setLogGoalId(goal.id)}
-                          className="inline-flex items-center space-x-1.5 text-sm bg-crimson-50 text-crimson-700 hover:bg-crimson-50 px-3 py-1.5 rounded-lg font-medium transition-colors border border-crimson-100"
-                        >
-                          <span>📝</span>
-                          <span>Log Practice</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  {/* 'Log Practice' expanded form removed in v3.2.57
+                      per Patrick: "we don't need [both] 'I did it' AND
+                      'log practice.' The 'I did it' assumes they did
+                      what they were supposed to do for as long as
+                      they were supposed to do it." The 'I did it'
+                      button on the InlineDevPlanCard already covers
+                      the one-tap log path; the longer form with
+                      duration + free-text note added friction without
+                      collecting data anyone consumed. */}
                 </div>
                 </div>
               </div>

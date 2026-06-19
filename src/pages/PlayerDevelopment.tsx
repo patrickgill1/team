@@ -1947,16 +1947,39 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   </span>
                                 )}
                               </div>
-                              {logs.slice().reverse().slice(0, showAllLogs === goal.id ? undefined : 3).map((entry: any) => (
+                              {logs.slice().reverse().slice(0, showAllLogs === goal.id ? undefined : 3).map((entry: any) => {
+                                // Same coercion the streak math uses
+                                // (utils/devPlanActions: coerceLogDate).
+                                // Inlined here so we don't have to
+                                // export the helper just for one
+                                // render path.
+                                const rawDate: any = entry.date;
+                                const parsed: Date | null = (() => {
+                                  if (!rawDate) return null;
+                                  if (typeof rawDate.toDate === 'function') { try { return rawDate.toDate(); } catch { return null; } }
+                                  if (rawDate instanceof Date) return Number.isNaN(rawDate.getTime()) ? null : rawDate;
+                                  if (typeof rawDate === 'number' || typeof rawDate === 'string') {
+                                    const d = new Date(rawDate);
+                                    return Number.isNaN(d.getTime()) ? null : d;
+                                  }
+                                  if (typeof rawDate.seconds === 'number') {
+                                    const ms = rawDate.seconds * 1000 + Math.floor((rawDate.nanoseconds || 0) / 1e6);
+                                    const d = new Date(ms);
+                                    return Number.isNaN(d.getTime()) ? null : d;
+                                  }
+                                  return null;
+                                })();
+                                return (
                                 <div key={entry.id} className="text-xs text-gray-600 bg-white rounded px-2 py-1 border border-gray-100">
                                   <span className="text-gray-400">
-                                    {entry.date?.toDate ? entry.date.toDate().toLocaleDateString() : new Date(entry.date).toLocaleDateString()}
+                                    {parsed ? parsed.toLocaleDateString() : 'Date unknown'}
                                   </span>
                                   {entry.minutes && <span className="text-crimson-600 font-medium ml-1">({entry.minutes} min)</span>}
                                   {' — '}{entry.note}
                                   {entry.loggedByName && <span className="text-gray-400 ml-1">— {entry.loggedByName}</span>}
                                 </div>
-                              ))}
+                                );
+                              })}
                               {logs.length > 3 && showAllLogs !== goal.id && (
                                 <button
                                   onClick={() => setShowAllLogs(goal.id)}

@@ -32,6 +32,34 @@ export async function quickDidIt(
   return updatedGoals;
 }
 
+/** Coerce a practiceLog entry's `date` to a Date regardless of how
+ *  it was stored. Three valid shapes:
+ *    - Firestore Timestamp object (.toDate())
+ *    - plain JS Date already converted on read
+ *    - corrupted { seconds, nanoseconds } map left behind by the
+ *      old cleanFirestoreData bug that flattened nested Timestamps
+ *      on writeback (Patrick's pre-v3.2.57 entries). Treat the map
+ *      shape as a Timestamp manually so existing entries auto-heal
+ *      in render without a Firestore migration.
+ *  Returns null if nothing valid can be derived. */
+function coerceLogDate(raw: any): Date | null {
+  if (!raw) return null;
+  if (typeof raw.toDate === 'function') {
+    try { return raw.toDate(); } catch { /* fall through */ }
+  }
+  if (raw instanceof Date) return Number.isNaN(raw.getTime()) ? null : raw;
+  if (typeof raw === 'number' || typeof raw === 'string') {
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof raw.seconds === 'number') {
+    const ms = raw.seconds * 1000 + Math.floor((raw.nanoseconds || 0) / 1e6);
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
 /** Bucket every practice-log date across the player's active plans
  *  into a Set of day keys ("YYYY-M-D"). Used by streak math + any other
  *  consumer that needs "did they practice on day X". */
@@ -40,7 +68,8 @@ export function buildPracticeDayKeys(activePlans: DevelopmentPlan[]): Set<string
   for (const p of activePlans) {
     for (const g of (p.goals || [])) {
       for (const l of ((g as any).practiceLog || [])) {
-        const d = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+        const d = coerceLogDate(l.date);
+        if (!d) continue;
         dayKeys.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
       }
     }

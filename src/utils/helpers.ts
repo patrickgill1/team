@@ -4,27 +4,40 @@ export const cleanFirestoreData = (data: any): any => {
   if (data === null || data === undefined) {
     return null;
   }
-  
+
   if (Array.isArray(data)) {
     return data.map(item => cleanFirestoreData(item));
   }
-  
+
   if (data instanceof Date) {
     return data;
   }
-  
+
+  // Firestore Timestamp passthrough. Without this, recursing into a
+  // Timestamp's enumerable fields converts it to a plain
+  // { seconds, nanoseconds } map on write — the SDK then stores it
+  // as a map, not a Timestamp, and the next read gives back
+  // 'Invalid Date'. Patrick hit this on dev-plan practiceLog
+  // entries: his 'I did it today' taps from prior days rendered as
+  // 'Invalid Date' because their nested Timestamps had been
+  // flattened by the previous version of this helper on the
+  // writeback round-trip.
+  if (data instanceof Timestamp) {
+    return data;
+  }
+
   if (typeof data === 'object') {
     const cleaned: any = {};
-    
+
     for (const [key, value] of Object.entries(data)) {
       if (value !== undefined) {
         cleaned[key] = cleanFirestoreData(value);
       }
     }
-    
+
     return cleaned;
   }
-  
+
   return data;
 };
 

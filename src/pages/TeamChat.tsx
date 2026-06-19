@@ -2332,11 +2332,28 @@ const TeamChat: React.FC = () => {
                   const isGroup = (thread as any).isGroup === true;
                   const displayTitle = getThreadDisplayTitle(thread);
                   const initial = (displayTitle || '?').charAt(0).toUpperCase();
-                  // Color BY TYPE, not by hash. Cyan = team channels,
-                  // violet = group chats, slate = DMs. Predictable so a
-                  // glance at the avatar tells you what kind of thread.
+                  // DM avatars: stable hash of the OTHER user's uid (or
+                  // the thread id as a fallback) into a small palette.
+                  // Same contact always gets the same color across cold
+                  // starts, so muscle memory works ("Taylor's the green
+                  // one"). Channels stay crimson + groups stay violet so
+                  // a glance still tells you what kind of thread it is.
+                  // Previously this used bg-white/[0.04]0 — a typo'd
+                  // Tailwind class that produced zero CSS, leaving the
+                  // initial floating with no circle.
+                  const dmAvatarBg = (): string => {
+                    const palette = [
+                      'bg-amber-500', 'bg-emerald-600', 'bg-sky-600',
+                      'bg-fuchsia-600', 'bg-orange-500', 'bg-teal-600',
+                      'bg-rose-500', 'bg-indigo-600',
+                    ];
+                    const seed = (thread.participants || []).find(uid => uid !== userData?.uid) || thread.id || displayTitle;
+                    let h = 0;
+                    for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+                    return palette[Math.abs(h) % palette.length];
+                  };
                   const avatarBg = isDM
-                    ? 'bg-white/[0.04]0'
+                    ? dmAvatarBg()
                     : isGroup
                       ? 'bg-violet-600'
                       : 'bg-crimson-600';

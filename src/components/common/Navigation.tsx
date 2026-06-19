@@ -19,6 +19,7 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import WallHeaderButton from './WallHeaderButton';
+import ChatHeaderButton from './ChatHeaderButton';
 import { useTeam } from '../../contexts/TeamContext';
 import { isCoach, isClubAdmin } from '../../utils/helpers';
 // Legacy InviteSystem import removed — invites now live on /people.
@@ -463,6 +464,7 @@ const Navigation: React.FC = () => {
 
           <div className="ml-auto shrink-0 flex items-center gap-2">
             <WallHeaderButton />
+            <ChatHeaderButton />
             <Link
               to="/settings"
               aria-label="Settings"

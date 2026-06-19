@@ -223,10 +223,16 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           (3.5rem) offset so page content always starts cleanly
           below the chrome regardless of device. lg sidebar layout
           unchanged. */}
-      <main
-        className="lg:ml-64 lg:pt-0 pb-20 lg:pb-0"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}
-      >
+      {/* paddingTop was an inline style that always WON against
+          lg:pt-0 (Tailwind responsive class), so on desktop / iPad
+          landscape the main element still had ~115px of top
+          padding it shouldn't have. Pages using height: 100dvh
+          (TeamChat's desktop two-pane layout) then overflowed by
+          that amount and pushed the composer off-screen. Patrick:
+          'i can[not] get a type box to show up on ipad simulator
+          in chat.' Switched to Tailwind arbitrary-value class so
+          lg:pt-0 can actually override it. */}
+      <main className="lg:ml-64 pt-[calc(env(safe-area-inset-top)+3.5rem)] lg:pt-0 pb-20 lg:pb-0">
         {/* Mobile-web only: prompt to install the native app. No-ops
             inside Capacitor, on desktop, or after dismissal. */}
         <InstallAppBanner />

@@ -20,7 +20,10 @@ const TeamManagement: React.FC = () => {
   const { createTeam, updateTeam, updateDocument, getDocuments, getCoachInvitesByTeam, getPlayersByTeam, deleteDocument } = useFirestore();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showInviteCoachModal, setShowInviteCoachModal] = useState(false);
+  // showInviteCoachModal + the matching modal at the bottom of
+  // this file were retired with the unified invite flow that now
+  // funnels through generateShareInvite() / InviteShareModal.
+  // State removed v3.2.63.
   const [showSharePlayerModal, setShowSharePlayerModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -38,10 +41,8 @@ const TeamManagement: React.FC = () => {
   const [teamFormat, setTeamFormat] = useState<'7v7' | '9v9' | '11v11'>('7v7');
 
   // Coach invite form
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteLevel, setInviteLevel] = useState<'head_coach' | 'assistant_coach'>('assistant_coach');
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
+  // inviteEmail / inviteLevel / inviteLink / linkCopied state
+  // removed v3.2.63 with the dead Invite Coach modal.
 
   // Share player form
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
@@ -192,49 +193,10 @@ const TeamManagement: React.FC = () => {
     }
   };
 
-  const handleInviteCoach = async () => {
-    if (!userData || !selectedTeamId) return;
-    const selectedTeam = teams.find(t => t.id === selectedTeamId);
-    if (!selectedTeam) return;
-
-    // Use the SAME unified invite flow as the "Share coach link" button.
-    // This page used to write to /coach_invites + link to /coach-join, which
-    // had its own broken auto-join logic. Now everything funnels through
-    // /invites + /join/:id which has a proper consumeInvite transaction.
-    try {
-      const inv = await createStaffInvite({
-        teamId: selectedTeamId,
-        role: inviteLevel === 'head_coach' ? 'head_coach' : 'assistant_coach',
-        createdBy: userData.uid,
-      });
-      const link = `${getShareOrigin()}/join/${inv.id}`;
-      setInviteLink(link);
-      setLinkCopied(false);
-      loadData();
-    } catch (error) {
-      console.error('Error inviting coach:', error);
-      alert('Failed to generate invite link. Please try again.');
-    }
-  };
-
-  const copyInviteLink = async () => {
-    if (!inviteLink) return;
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 3000);
-    } catch {
-      // Fallback
-      const input = document.createElement('input');
-      input.value = inviteLink;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 3000);
-    }
-  };
+  // handleInviteCoach + copyInviteLink retired v3.2.63 together
+  // with the dead Invite Coach modal — invite flow now goes
+  // through generateShareInvite() (lines 66-82) +
+  // InviteShareModal.
 
   const handleSharePlayer = async () => {
     if (!selectedPlayerId || !targetTeamId) return;
@@ -881,96 +843,8 @@ const TeamManagement: React.FC = () => {
           teamId={selectedTeamId}
         />
 
-        {/* Invite Coach Modal */}
-        {showInviteCoachModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-charcoal-900 rounded-xl shadow-xl max-w-md w-full">
-              <div className="p-6">
-                <h2 className="text-xl font-bold text-bone mb-4">Invite a Coach</h2>
-                <p className="text-sm text-bone/65 mb-4">
-                  Generate an invite link to share with another coach. They'll use it to join {teams.find(t => t.id === selectedTeamId)?.name || 'this team'}.
-                </p>
-
-                {inviteLink ? (
-                  <div className="space-y-4">
-                    <div className="bg-emerald-500/15 border border-emerald-400/20 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-emerald-600 text-lg">✅</span>
-                        <span className="font-medium text-green-800">Invite Created!</span>
-                      </div>
-                      <p className="text-sm text-emerald-300 mb-3">Share this link with the coach:</p>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={inviteLink}
-                          className="flex-1 px-3 py-2 bg-charcoal-900 border border-green-300 rounded-lg text-sm font-mono"
-                        />
-                        <button
-                          onClick={copyInviteLink}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            linkCopied
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-white/[0.08] hover:bg-white/[0.08] text-bone/85'
-                          }`}
-                        >
-                          {linkCopied ? '✓ Copied' : 'Copy'}
-                        </button>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => { setInviteLink(null); setInviteEmail(''); setShowInviteCoachModal(false); }}
-                      className="w-full px-4 py-2 bg-white/[0.08] hover:bg-white/[0.08] text-bone/85 rounded-lg font-medium"
-                    >
-                      Done
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-bone/85 mb-1">Coach Email (optional)</label>
-                        <input
-                          type="email"
-                          value={inviteEmail}
-                          onChange={e => setInviteEmail(e.target.value)}
-                          className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
-                          placeholder="coach@example.com (optional)"
-                        />
-                        <p className="text-xs text-bone/50 mt-1">Leave blank if you don't have their email — just share the link</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-bone/85 mb-1">Coach Role</label>
-                        <select
-                          value={inviteLevel}
-                          onChange={e => setInviteLevel(e.target.value as 'head_coach' | 'assistant_coach')}
-                          className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
-                        >
-                          <option value="assistant_coach">Assistant Coach — Can manage votes & view backend</option>
-                          <option value="head_coach">Head Coach — Full admin access</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex justify-end space-x-3 mt-6">
-                      <button
-                        onClick={() => { setInviteEmail(''); setInviteLink(null); setShowInviteCoachModal(false); }}
-                        className="px-4 py-2 border border-white/15 rounded-lg text-bone/85 hover:bg-white/[0.05]"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleInviteCoach}
-                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-                      >
-                        Generate Invite Link
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Invite Coach Modal removed v3.2.63 — dead since the
+            unified generateShareInvite() flow replaced it. */}
 
         {/* Transfer Head Coach Modal */}
         {showTransferModal && (

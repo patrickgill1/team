@@ -25,7 +25,9 @@ import BroadcastModal from '../components/club/BroadcastModal';
  * Header has a "Broadcast" button that opens a modal to send a
  * cross-team announcement (email + optional push).
  */
-type TabKey = 'overview' | 'players' | 'coaches' | 'calendar' | 'stats' | 'payments';
+// 'players' + 'coaches' tab keys removed v3.2.63 — those tabs
+// were retired when /people became the unified directory.
+type TabKey = 'overview' | 'calendar' | 'stats' | 'payments';
 
 const ClubOverview: React.FC = () => {
   const navigate = useNavigate();
@@ -343,28 +345,11 @@ const ClubOverview: React.FC = () => {
                 onTeamClick={goToTeam}
               />
             )}
-            {tab === 'players' && (
-              <PlayersTab
-                players={players}
-                teams={teams}
-                teamById={teamById}
-                userByUid={userByUid}
-                search={search}
-                setSearch={setSearch}
-                onTransfer={(p) => setTransferPlayer(p)}
-              />
-            )}
-            {tab === 'coaches' && (
-              <CoachesTab
-                users={users}
-                teams={teams}
-                teamById={teamById}
-                search={search}
-                setSearch={setSearch}
-                currentUid={userData?.uid || ''}
-                reload={reload}
-              />
-            )}
+            {/* tab === 'players' + tab === 'coaches' branches
+                removed v3.2.63 — both tabs were intentionally
+                retired when /people became the unified directory,
+                but the conditional render + component impls were
+                left behind as unreachable dead code. */}
             {tab === 'calendar' && (
               <CalendarTab events={events} teamById={teamById} />
             )}
@@ -470,226 +455,6 @@ const OverviewTab: React.FC<{
   );
 };
 
-const PlayersTab: React.FC<{
-  players: any[];
-  teams: any[];
-  teamById: Map<string, any>;
-  userByUid: Map<string, any>;
-  search: string;
-  setSearch: (s: string) => void;
-  onTransfer: (p: any) => void;
-}> = ({ players, teams, teamById, userByUid, search, setSearch, onTransfer }) => {
-  const [teamFilter, setTeamFilter] = useState<string>('');
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return players
-      .filter((p) => {
-        if (teamFilter) {
-          const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds : (p.teamId ? [p.teamId] : []);
-          if (!tIds.includes(teamFilter)) return false;
-        }
-        if (!q) return true;
-        if ((p.name || '').toLowerCase().includes(q)) return true;
-        if ((Array.isArray(p.positions) ? p.positions : (p.position ? [p.position] : [])).join(' ').toLowerCase().includes(q)) return true;
-        return false;
-      })
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  }, [players, search, teamFilter]);
-
-  return (
-    <div className="space-y-3">
-      <SearchBar value={search} onChange={setSearch} placeholder="Search players by name or position…" />
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
-        <FilterChip active={!teamFilter} onClick={() => setTeamFilter('')}>All teams</FilterChip>
-        {teams.map((t) => (
-          <FilterChip key={t.id} active={teamFilter === t.id} onClick={() => setTeamFilter(t.id)}>{t.name}</FilterChip>
-        ))}
-      </div>
-
-      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-charcoal-950">Roster pool</h2>
-          <span className="text-xs text-bone/50">{filtered.length} player{filtered.length === 1 ? '' : 's'}</span>
-        </div>
-        {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-bone/50">No players match.</div>
-        ) : (
-          <ul className="divide-y divide-white/5">
-            {filtered.map((p) => {
-              const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds : (p.teamId ? [p.teamId] : []);
-              const teamLabels = tIds.map((id) => teamById.get(id)?.name || '').filter(Boolean);
-              const parentIds: string[] = Array.isArray(p.parentIds) ? p.parentIds : (p.parentId ? [p.parentId] : []);
-              const parentNames = parentIds.map((u) => userByUid.get(u)?.name).filter(Boolean);
-              return (
-                <li key={p.id} className="px-5 py-3 flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-bold shadow-sm">
-                    {p.profilePhotoUrl ? (
-                      <img src={p.profilePhotoUrl} alt={p.name} className="w-full h-full object-cover rounded-full" loading="lazy" />
-                    ) : (
-                      (p.name || '?').charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-charcoal-950 truncate">
-                        {p.jerseyNumber != null ? `#${p.jerseyNumber} ` : ''}{p.name || 'Player'}
-                      </span>
-                      {getPlayerPositionsLabel(p) && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
-                          {getPlayerPositionsLabel(p)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-bone/50 truncate mt-0.5">
-                      {teamLabels.length === 0 ? 'No team' : teamLabels.join(' · ')}
-                      {parentNames.length > 0 ? ` · ${parentNames.join(', ')}` : ''}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Link
-                      to={`/player/${p.id}`}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-full ring-1 ring-white/15 text-bone/85 hover:bg-white/[0.05]"
-                    >
-                      View
-                    </Link>
-                    <button
-                      onClick={() => onTransfer(p)}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-full bg-crimson-600 hover:bg-crimson-700 text-white"
-                    >
-                      Move
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const CoachesTab: React.FC<{
-  users: any[];
-  teams: any[];
-  teamById: Map<string, any>;
-  search: string;
-  setSearch: (s: string) => void;
-  currentUid: string;
-  reload: () => void;
-}> = ({ users, teams, teamById, search, setSearch, currentUid, reload }) => {
-  const { updateDocument } = useFirestore();
-  const [busyUid, setBusyUid] = useState<string | null>(null);
-
-  // We surface coaches + team_managers AND anyone with isClubAdmin so a
-  // parent who got promoted to club admin still shows up here for
-  // management (otherwise they'd be invisible).
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return users
-      .filter((u) => u && (u.role === 'coach' || u.role === 'team_manager' || u.isClubAdmin))
-      .filter((u) => !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  }, [users, search]);
-
-  const toggleAdmin = async (u: any) => {
-    const uid = u.uid || u.id;
-    if (!uid) return;
-    const next = !u.isClubAdmin;
-    if (!next && uid === currentUid) {
-      if (!window.confirm("You're about to remove your OWN club-admin access. You'll lose access to this page until someone else re-adds you. Continue?")) return;
-    } else if (next) {
-      if (!window.confirm(`Make ${u.name || u.email} a club admin? They'll see every team and every member, and can promote others.`)) return;
-    } else {
-      if (!window.confirm(`Remove club-admin access from ${u.name || u.email}?`)) return;
-    }
-    setBusyUid(uid);
-    try {
-      await updateDocument('users', uid, { isClubAdmin: next });
-      reload();
-    } catch (err) {
-      console.error('[club] promote/demote failed', err);
-      alert('Could not update. Please try again.');
-    } finally {
-      setBusyUid(null);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <SearchBar value={search} onChange={setSearch} placeholder="Search by name or email…" />
-      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-charcoal-950">Coaches &amp; club admins</h2>
-          <span className="text-xs text-bone/50">{visible.length} member{visible.length === 1 ? '' : 's'}</span>
-        </div>
-        {visible.length === 0 ? (
-          <div className="p-8 text-center text-sm text-bone/50">No coaches or admins yet.</div>
-        ) : (
-          <ul className="divide-y divide-white/5">
-            {visible.map((u: any) => {
-              const uid = u.uid || u.id;
-              const tIds: string[] = Array.isArray(u.teamIds) && u.teamIds.length > 0 ? u.teamIds : (u.teamId ? [u.teamId] : []);
-              const teamLabels = tIds.map((id) => teamById.get(id)?.name || '').filter(Boolean);
-              const isHead = teams.some((t) => t.headCoachId === uid);
-              const isClub = !!u.isClubAdmin;
-              const isSelf = uid === currentUid;
-              return (
-                <li key={uid} className="px-5 py-3 flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-800 text-white flex items-center justify-center font-bold shadow-sm">
-                    {(u.name || u.email || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-charcoal-950 truncate">{u.name || u.email}</span>
-                      {isClub && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-violet-300 bg-violet-500/15 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">
-                          Club admin
-                        </span>
-                      )}
-                      {isHead && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">
-                          Head coach
-                        </span>
-                      )}
-                      {u.role === 'team_manager' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-400/30 px-1.5 py-0.5 rounded">
-                          Team manager
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-bone/50 truncate mt-0.5">
-                      {u.email}{teamLabels.length > 0 ? ` · ${teamLabels.join(' · ')}` : ' · Not on any team'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => toggleAdmin(u)}
-                    disabled={busyUid === uid}
-                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-semibold rounded-full transition ${
-                      isClub
-                        ? 'bg-charcoal-900 text-bone/85 ring-1 ring-white/15 hover:bg-white/[0.05]'
-                        : 'bg-violet-600 hover:bg-violet-700 text-white'
-                    } ${busyUid === uid ? 'opacity-50 cursor-wait' : ''}`}
-                    title={isClub ? 'Remove club-admin access' : 'Promote to club admin'}
-                  >
-                    {busyUid === uid
-                      ? '…'
-                      : isClub
-                        ? (isSelf ? 'Remove (self)' : 'Remove admin')
-                        : 'Make admin'}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-      <p className="text-xs text-bone/50 px-1">
-        Club admins can see every team, manage rosters across the club, and promote or remove other admins.
-      </p>
-    </div>
-  );
-};
 
 const CalendarTab: React.FC<{
   events: any[];
@@ -735,8 +500,28 @@ const CalendarTab: React.FC<{
               const t = teamById.get(ev.teamId);
               return (
                 <li key={ev.id} className="px-5 py-3 flex items-center gap-3">
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${teamColor(ev.teamId || '')} text-white flex items-center justify-center font-bold shadow-sm`}>
-                    {ev.type === 'game' ? '⚽' : ev.type === 'practice' ? '🏃' : '📅'}
+                  {/* Monoline SVG glyph instead of emoji (per
+                      [no emojis] memory). Game = ball outline,
+                      practice = runner, other = calendar. */}
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${teamColor(ev.teamId || '')} text-white flex items-center justify-center shadow-sm`}>
+                    {ev.type === 'game' ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="m12 3 3 4-1.5 5L8.5 12 7 7zM12 21l-3-4 1.5-5 5 0 1.5 5z" />
+                      </svg>
+                    ) : ev.type === 'practice' ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <circle cx="13" cy="4" r="2" />
+                        <path d="M4 22l4-4 2-6 4 4-2 6M14 9l2-2 3 1-2 4 4 2" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

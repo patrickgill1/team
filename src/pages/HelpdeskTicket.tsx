@@ -11,11 +11,11 @@ import type { HelpdeskTicket, HelpdeskComment, TicketStatus } from '../types';
 
 const STATUS_OPTIONS: TicketStatus[] = ['open', 'assigned', 'in_progress', 'resolved', 'closed'];
 const STATUS_CHIP: Record<TicketStatus, string> = {
-  open: 'bg-crimson-50 text-crimson-700 border-crimson-200',
-  assigned: 'bg-amber-50 text-amber-700 border-amber-200',
-  in_progress: 'bg-crimson-50 text-charcoal-700 border-crimson-200',
-  resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  closed: 'bg-slate-100 text-slate-500 border-slate-200',
+  open: 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30',
+  assigned: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
+  in_progress: 'bg-crimson-500/15 text-bone/85 border-crimson-400/30',
+  resolved: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
+  closed: 'bg-charcoal-950 text-bone/50 border-white/10',
 };
 
 function formatRel(d: Date): string {
@@ -224,7 +224,7 @@ const HelpdeskTicketPage: React.FC = () => {
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-8">
         <Link to="/helpdesk" className="text-crimson-600 font-semibold text-sm">← Back to tickets</Link>
       </div>
     );
@@ -233,13 +233,13 @@ const HelpdeskTicketPage: React.FC = () => {
   const canChangeStatus = isAdmin || ticket.createdBy === userData?.uid;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       {/* Custom navy header so we can fit the back button + status pill */}
       <header className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-crimson-500/10 px-4 sm:px-6 pt-4 pb-5">
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-slate-300 hover:text-white text-xs font-extrabold tracking-widest uppercase mb-3"
+            className="inline-flex items-center gap-1.5 text-bone/35 hover:text-white text-xs font-extrabold tracking-widest uppercase mb-3"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Back
@@ -250,7 +250,7 @@ const HelpdeskTicketPage: React.FC = () => {
               {ticket.status.replace('_', ' ')}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-bone/40">
             {ticket.createdByName} · {formatRel(new Date(ticket.createdAt))}
             {ticket.assignedToName ? ` · assigned to ${ticket.assignedToName}` : ''}
           </p>
@@ -259,29 +259,29 @@ const HelpdeskTicketPage: React.FC = () => {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-3">
         {/* Description */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2">Description</div>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{ticket.description}</p>
+        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-2">Description</div>
+          <p className="text-sm text-bone/85 whitespace-pre-wrap">{ticket.description}</p>
         </div>
 
         {/* Assignee (admin only) */}
         {isAdmin && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500">Assigned to</div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50">Assigned to</div>
               <button
                 onClick={() => setShowAssignPicker(s => !s)}
                 disabled={assigning}
-                className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900 disabled:opacity-50"
+                className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 hover:text-crimson-900 disabled:opacity-50"
               >
                 {showAssignPicker ? 'Cancel' : (ticket.assignedTo ? 'Change' : 'Assign')}
               </button>
             </div>
-            <div className="text-sm text-slate-800">
-              {ticket.assignedToName || <span className="italic text-slate-400">Unassigned</span>}
+            <div className="text-sm text-bone/90">
+              {ticket.assignedToName || <span className="italic text-bone/40">Unassigned</span>}
             </div>
             {showAssignPicker && (
-              <div className="mt-2 pt-2 border-t border-slate-100 space-y-1">
+              <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
                 {admins.map(a => (
                   <button
                     key={a.id}
@@ -289,8 +289,8 @@ const HelpdeskTicketPage: React.FC = () => {
                     disabled={assigning || a.id === ticket.assignedTo}
                     className={`w-full text-left text-sm px-2 py-1.5 rounded-md ${
                       a.id === ticket.assignedTo
-                        ? 'bg-slate-100 text-slate-400 cursor-default'
-                        : 'hover:bg-crimson-50 text-slate-800'
+                        ? 'bg-charcoal-950 text-bone/40 cursor-default'
+                        : 'hover:bg-crimson-500/15 text-bone/90'
                     } disabled:opacity-60`}
                   >
                     {a.name}{a.id === userData?.uid ? ' (me)' : ''}
@@ -300,7 +300,7 @@ const HelpdeskTicketPage: React.FC = () => {
                   <button
                     onClick={() => assignTo(null)}
                     disabled={assigning}
-                    className="w-full text-left text-sm px-2 py-1.5 rounded-md hover:bg-rose-50 text-rose-700 disabled:opacity-60"
+                    className="w-full text-left text-sm px-2 py-1.5 rounded-md hover:bg-rose-500/15 text-rose-300 disabled:opacity-60"
                   >
                     Unassign
                   </button>
@@ -312,8 +312,8 @@ const HelpdeskTicketPage: React.FC = () => {
 
         {/* Status changer (admin or creator) */}
         {canChangeStatus && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
-            <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-2">Change status</div>
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-3">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-2">Change status</div>
             <div className="flex flex-wrap gap-1">
               {STATUS_OPTIONS.map(s => (
                 <button
@@ -322,7 +322,7 @@ const HelpdeskTicketPage: React.FC = () => {
                   onClick={() => changeStatus(s)}
                   className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded-md border ${
                     s === ticket.status
-                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-default'
+                      ? 'bg-charcoal-950 text-bone/40 border-white/10 cursor-default'
                       : `${STATUS_CHIP[s]} hover:opacity-80`
                   } disabled:opacity-50`}
                 >
@@ -334,24 +334,24 @@ const HelpdeskTicketPage: React.FC = () => {
         )}
 
         {/* Comments */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2">
-            Replies <span className="text-slate-400 font-bold">{comments.length}</span>
+        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-2">
+            Replies <span className="text-bone/40 font-bold">{comments.length}</span>
           </div>
           {comments.length === 0 ? (
-            <p className="text-sm text-slate-500 mb-3">No replies yet.</p>
+            <p className="text-sm text-bone/50 mb-3">No replies yet.</p>
           ) : (
             <ul className="space-y-2 mb-3">
               {comments.map(c => (
-                <li key={c.id} className={`rounded-lg p-2.5 ${c.statusChange ? 'bg-slate-50 border border-slate-200' : 'bg-white border border-slate-100'}`}>
-                  <div className="text-[11px] text-slate-500 mb-1">
-                    <span className="font-semibold text-slate-700">{c.authorName}</span>
+                <li key={c.id} className={`rounded-lg p-2.5 ${c.statusChange ? 'bg-white/[0.04] border border-white/10' : 'bg-charcoal-900 border border-white/5'}`}>
+                  <div className="text-[11px] text-bone/50 mb-1">
+                    <span className="font-semibold text-bone/85">{c.authorName}</span>
                     {c.authorRole === 'admin' && (
-                      <span className="ml-1.5 text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200">Admin</span>
+                      <span className="ml-1.5 text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-400/30">Admin</span>
                     )}
                     <span className="ml-1.5">{formatRel(c.createdAt)}</span>
                   </div>
-                  <div className="text-sm text-slate-800 whitespace-pre-wrap">{c.content}</div>
+                  <div className="text-sm text-bone/90 whitespace-pre-wrap">{c.content}</div>
                 </li>
               ))}
             </ul>
@@ -367,7 +367,7 @@ const HelpdeskTicketPage: React.FC = () => {
                 }}
                 rows={2}
                 placeholder="Add a reply…"
-                className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none"
+                className="flex-1 px-3 py-2 text-sm border border-white/10 rounded-lg resize-none"
               />
               <button
                 onClick={post}
@@ -376,7 +376,7 @@ const HelpdeskTicketPage: React.FC = () => {
               >Send</button>
             </div>
           ) : (
-            <p className="text-xs text-slate-400">Sign in to reply.</p>
+            <p className="text-xs text-bone/40">Sign in to reply.</p>
           )}
         </div>
       </div>

@@ -40,12 +40,12 @@ interface PracticePlan {
 // violet/amber). `icon` is an AppIcon name so we render outlines
 // instead of mixed emoji.
 const CATEGORY: Record<Drill['category'], { label: string; color: string; icon: any }> = {
-  warmup:    { label: 'Warm-up',   color: 'bg-crimson-50 text-charcoal-800 border-crimson-200',         icon: 'running' },
-  technical: { label: 'Technical', color: 'bg-crimson-50 text-crimson-800 border-crimson-200',         icon: 'soccer' },
+  warmup:    { label: 'Warm-up',   color: 'bg-crimson-500/15 text-charcoal-800 border-crimson-400/30',         icon: 'running' },
+  technical: { label: 'Technical', color: 'bg-crimson-500/15 text-crimson-200 border-crimson-400/30',         icon: 'soccer' },
   tactical:  { label: 'Tactical',  color: 'bg-charcoal-700/10 text-charcoal-800 border-charcoal-700/20', icon: 'chart' },
-  scrimmage: { label: 'Scrimmage', color: 'bg-emerald-50 text-emerald-800 border-emerald-200', icon: 'trophy' },
-  fitness:   { label: 'Fitness',   color: 'bg-crimson-100 text-charcoal-800 border-crimson-300',        icon: 'highlight' },
-  cooldown:  { label: 'Cool-down', color: 'bg-crimson-100 text-crimson-800 border-crimson-200',        icon: 'check' },
+  scrimmage: { label: 'Scrimmage', color: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30', icon: 'trophy' },
+  fitness:   { label: 'Fitness',   color: 'bg-crimson-500/20 text-charcoal-800 border-crimson-400/40',        icon: 'highlight' },
+  cooldown:  { label: 'Cool-down', color: 'bg-crimson-500/20 text-crimson-200 border-crimson-400/30',        icon: 'check' },
 };
 
 const DRILL_LIBRARY: Drill[] = [
@@ -99,10 +99,10 @@ const PracticePlanBuilder: React.FC = () => {
   if (!isUserCoach) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+        <div className="bg-amber-500/15 border border-amber-400/30 rounded-xl p-6 text-center">
           <div className="text-4xl mb-2">🔒</div>
           <h2 className="font-bold text-amber-900">Coaches only</h2>
-          <p className="text-sm text-amber-700 mt-1">The Practice Plan Builder is available to coaches only.</p>
+          <p className="text-sm text-amber-300 mt-1">The Practice Plan Builder is available to coaches only.</p>
           <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-charcoal-700 text-white rounded-lg">Back to Dashboard</Link>
         </div>
       </div>
@@ -172,7 +172,7 @@ const PracticePlanBuilder: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 print:bg-white">
+    <div className="min-h-screen bg-charcoal-950 print:bg-charcoal-900">
       <div className="print:hidden">
         <Header title="Practice Plans" subtitle="Build a timeline of drills, save it as a template, print before practice." />
       </div>
@@ -189,29 +189,29 @@ const PracticePlanBuilder: React.FC = () => {
       <div className="max-w-6xl mx-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
         {/* Sidebar: plan list */}
         <aside className="print:hidden">
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-3">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-2 mb-2">Your plans</div>
+          <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10/70 p-3">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-bone/50 px-2 mb-2">Your plans</div>
             {loading ? (
-              <div className="text-sm text-slate-400 px-2 py-4">Loading…</div>
+              <div className="text-sm text-bone/40 px-2 py-4">Loading…</div>
             ) : plans.length === 0 ? (
-              <div className="text-sm text-slate-400 px-2 py-4">No plans yet. Click <b>+ New Plan</b>.</div>
+              <div className="text-sm text-bone/40 px-2 py-4">No plans yet. Click <b>+ New Plan</b>.</div>
             ) : (
               <ul className="space-y-1">
                 {plans.map(p => (
                   <li key={p.id}>
                     <button
                       onClick={() => setActiveId(p.id || null)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${activeId === p.id ? 'bg-crimson-50 text-charcoal-800 ring-1 ring-crimson-200' : 'hover:bg-slate-50 text-slate-700'}`}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${activeId === p.id ? 'bg-crimson-500/15 text-charcoal-800 ring-1 ring-crimson-200' : 'hover:bg-white/[0.05] text-bone/85'}`}
                     >
                       <div className="font-semibold truncate flex items-center gap-1.5">
                         {p.isTemplate && (
-                          <span className="text-crimson-700 shrink-0" title="Reusable template">
+                          <span className="text-crimson-300 shrink-0" title="Reusable template">
                             <AppIcon name="bell" className="w-3.5 h-3.5" />
                           </span>
                         )}
                         {p.title}
                       </div>
-                      <div className="text-[11px] text-slate-500">{p.drills.length} drill{p.drills.length === 1 ? '' : 's'} · {p.drills.reduce((s, d) => s + (d.durationMin || 0), 0)} min</div>
+                      <div className="text-[11px] text-bone/50">{p.drills.length} drill{p.drills.length === 1 ? '' : 's'} · {p.drills.reduce((s, d) => s + (d.durationMin || 0), 0)} min</div>
                     </button>
                   </li>
                 ))}
@@ -223,12 +223,12 @@ const PracticePlanBuilder: React.FC = () => {
         {/* Main: editor */}
         <main>
           {!active ? (
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-12 text-center">
-              <div className="mb-3 flex justify-center text-gray-300">
+            <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10 p-12 text-center">
+              <div className="mb-3 flex justify-center text-bone/35">
                 <AppIcon name="clipboard" className="w-12 h-12" />
               </div>
-              <h2 className="font-bold text-gray-900 text-lg">Pick a plan, or create a new one</h2>
-              <p className="text-gray-500 text-sm mt-1">Build a timeline of drills, save it as a template, share with your assistants, and print before practice.</p>
+              <h2 className="font-bold text-bone text-lg">Pick a plan, or create a new one</h2>
+              <p className="text-bone/50 text-sm mt-1">Build a timeline of drills, save it as a template, share with your assistants, and print before practice.</p>
               <button onClick={() => newPlan()} className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 bg-crimson-600 hover:bg-crimson-700 text-white font-semibold rounded-xl shadow-sm">
                 <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
                 <span>Create Plan</span>
@@ -236,32 +236,32 @@ const PracticePlanBuilder: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10/70 p-5 print:shadow-none print:ring-0">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <input
                     value={active.title}
                     onChange={e => update(p => ({ ...p, title: e.target.value }))}
-                    className="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-base font-bold text-charcoal-900"
+                    className="sm:col-span-2 px-3 py-2 rounded-xl border border-white/15 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-base font-bold text-bone/90"
                   />
                   <input
                     type="date"
                     value={active.date || ''}
                     onChange={e => update(p => ({ ...p, date: e.target.value }))}
-                    className="px-3 py-2 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
+                    className="px-3 py-2 rounded-xl border border-white/15 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                   <label className="flex items-center gap-1.5 text-sm">
-                    <span className="text-slate-600">Target length</span>
+                    <span className="text-bone/65">Target length</span>
                     <input
                       type="number"
                       min={15} max={180} step={5}
                       value={active.durationMin}
                       onChange={e => update(p => ({ ...p, durationMin: parseInt(e.target.value || '0', 10) }))}
-                      className="w-20 px-2 py-1 rounded border border-slate-300 text-sm"
-                    /> <span className="text-slate-500 text-sm">min</span>
+                      className="w-20 px-2 py-1 rounded border border-white/15 text-sm"
+                    /> <span className="text-bone/50 text-sm">min</span>
                   </label>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${totalMin > active.durationMin ? 'bg-rose-100 text-rose-700' : totalMin === active.durationMin ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${totalMin > active.durationMin ? 'bg-rose-500/20 text-rose-300' : totalMin === active.durationMin ? 'bg-emerald-500/20 text-emerald-300' : 'bg-charcoal-950 text-bone/65'}`}>
                     Filled: {totalMin}/{active.durationMin} min
                   </span>
                   <label className="flex items-center gap-1.5 text-xs ml-auto">
@@ -269,44 +269,44 @@ const PracticePlanBuilder: React.FC = () => {
                       type="checkbox"
                       checked={!!active.isTemplate}
                       onChange={e => update(p => ({ ...p, isTemplate: e.target.checked }))}
-                      className="h-4 w-4 text-charcoal-600 focus:ring-crimson-500/30 border-slate-300 rounded"
+                      className="h-4 w-4 text-bone/65 focus:ring-crimson-500/30 border-white/15 rounded"
                     />
-                    <span className="text-slate-600">Save as reusable template</span>
+                    <span className="text-bone/65">Save as reusable template</span>
                   </label>
                 </div>
 
                 <div className="flex flex-wrap gap-2 print:hidden">
                   <button
                     onClick={() => setShowLibrary(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-crimson-50 hover:bg-crimson-100 text-crimson-800 rounded-lg ring-1 ring-crimson-200 font-semibold"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-crimson-500/15 hover:bg-crimson-500/20 text-crimson-200 rounded-lg ring-1 ring-crimson-200 font-semibold"
                   >
                     <AppIcon name="clipboard" className="w-4 h-4" />
                     <span>Add from library</span>
                   </button>
                   <button
                     onClick={() => addDrill({ id: newId(), name: 'New drill', durationMin: 10, category: 'technical' })}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white/[0.08] hover:bg-white/[0.1] text-bone/85 rounded-lg font-semibold"
                   >
                     <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
                     <span>Custom drill</span>
                   </button>
                   <button
                     onClick={() => newPlan(active)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white/[0.08] hover:bg-white/[0.1] text-bone/85 rounded-lg font-semibold"
                   >
                     <AppIcon name="edit" className="w-4 h-4" />
                     <span>Duplicate</span>
                   </button>
                   <button
                     onClick={printPlan}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white/[0.08] hover:bg-white/[0.1] text-bone/85 rounded-lg font-semibold"
                   >
                     <AppIcon name="news" className="w-4 h-4" />
                     <span>Print / PDF</span>
                   </button>
                   <button
                     onClick={() => active.id && removePlan(active.id)}
-                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-rose-600 hover:bg-rose-50 rounded-lg font-semibold"
+                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-rose-300 hover:bg-rose-500/15 rounded-lg font-semibold"
                   >
                     <AppIcon name="trash" className="w-4 h-4" />
                     <span>Delete</span>
@@ -315,9 +315,9 @@ const PracticePlanBuilder: React.FC = () => {
               </div>
 
               {/* Timeline */}
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10/70 p-5 print:shadow-none print:ring-0">
                 {active.drills.length === 0 ? (
-                  <div className="text-center text-slate-400 py-8 text-sm">No drills yet. Add from the library or build a custom block.</div>
+                  <div className="text-center text-bone/40 py-8 text-sm">No drills yet. Add from the library or build a custom block.</div>
                 ) : (
                   <ol className="space-y-3">
                     {active.drills.map((d, idx) => {
@@ -326,7 +326,7 @@ const PracticePlanBuilder: React.FC = () => {
                       return (
                         <li key={d.id} className={`rounded-xl border ${meta.color} p-3 print:break-inside-avoid`}>
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-mono tabular-nums text-slate-600 bg-white/60 rounded px-1.5 py-0.5">
+                            <span className="text-[10px] font-mono tabular-nums text-bone/65 bg-white/60 rounded px-1.5 py-0.5">
                               {String(Math.floor(startMin / 60)).padStart(1, '0')}:{String(startMin % 60).padStart(2, '0')}
                             </span>
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
@@ -343,7 +343,7 @@ const PracticePlanBuilder: React.FC = () => {
                               min={1} max={120}
                               value={d.durationMin}
                               onChange={e => editDrill(d.id, { durationMin: parseInt(e.target.value || '0', 10) })}
-                              className="w-14 bg-white/60 rounded px-2 py-0.5 text-xs text-slate-700"
+                              className="w-14 bg-white/60 rounded px-2 py-0.5 text-xs text-bone/85"
                             /><span className="text-xs">min</span>
                             <select
                               value={d.category}
@@ -355,7 +355,7 @@ const PracticePlanBuilder: React.FC = () => {
                             <div className="flex items-center gap-1 print:hidden">
                               <button onClick={() => moveDrill(idx, -1)} disabled={idx === 0} className="text-xs px-1.5 disabled:opacity-30">↑</button>
                               <button onClick={() => moveDrill(idx, 1)} disabled={idx === active.drills.length - 1} className="text-xs px-1.5 disabled:opacity-30">↓</button>
-                              <button onClick={() => removeDrill(d.id)} className="text-xs px-1.5 text-rose-700">✕</button>
+                              <button onClick={() => removeDrill(d.id)} className="text-xs px-1.5 text-rose-300">✕</button>
                             </div>
                           </div>
                           <textarea
@@ -363,7 +363,7 @@ const PracticePlanBuilder: React.FC = () => {
                             onChange={e => editDrill(d.id, { notes: e.target.value })}
                             placeholder="Notes (setup, key coaching points, equipment…)"
                             rows={2}
-                            className="w-full bg-white/40 rounded-lg p-2 text-xs text-slate-700 placeholder-slate-500/70 focus:outline-none focus:bg-white/70"
+                            className="w-full bg-white/40 rounded-lg p-2 text-xs text-bone/85 placeholder-bone/50/70 focus:outline-none focus:bg-white/70"
                           />
                         </li>
                       );
@@ -373,14 +373,14 @@ const PracticePlanBuilder: React.FC = () => {
               </div>
 
               {/* Plan-level notes */}
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5 print:shadow-none print:ring-0">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">General notes</label>
+              <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10/70 p-5 print:shadow-none print:ring-0">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-bone/50">General notes</label>
                 <textarea
                   value={active.notes || ''}
                   onChange={e => update(p => ({ ...p, notes: e.target.value }))}
                   placeholder="Anything you want assistants/parents to know about this practice."
                   rows={3}
-                  className="mt-1.5 w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
+                  className="mt-1.5 w-full px-3 py-2 rounded-xl border border-white/15 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
                 />
               </div>
             </div>
@@ -391,7 +391,7 @@ const PracticePlanBuilder: React.FC = () => {
       {/* Library modal */}
       {showLibrary && active && (
         <div className="fixed inset-0 z-50 bg-charcoal-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden" onClick={() => setShowLibrary(false)}>
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
+          <div className="bg-charcoal-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
             <div className="sticky top-0 bg-gradient-to-r from-charcoal-700 to-charcoal-700 px-5 py-3 flex items-center justify-between">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <AppIcon name="clipboard" className="w-5 h-5" />
@@ -410,7 +410,7 @@ const PracticePlanBuilder: React.FC = () => {
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider">{meta.emoji} {meta.label}</span>
-                      <span className="ml-auto text-[10px] bg-white/60 rounded px-1.5 py-0.5 text-slate-700 font-semibold">{d.durationMin} min</span>
+                      <span className="ml-auto text-[10px] bg-white/60 rounded px-1.5 py-0.5 text-bone/85 font-semibold">{d.durationMin} min</span>
                     </div>
                     <div className="font-semibold text-sm mt-1">{d.name}</div>
                     {d.notes && <div className="text-xs opacity-80 mt-0.5">{d.notes}</div>}

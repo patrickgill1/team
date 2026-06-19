@@ -311,26 +311,26 @@ const PersonAdmin: React.FC = () => {
   // ── Render ────────────────────────────────────────────────────────
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">Coaches + club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Coaches + club admins only.</div>;
   }
 
   if (loading && !player) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-slate-500 text-sm">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/50 text-sm">Loading…</div>;
   }
 
   if (!player) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">
+      <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">
         <div className="text-center">
           <p>Player not found.</p>
-          <button type="button" onClick={() => navigate(-1)} className="mt-2 text-crimson-600 hover:text-crimson-800 text-xs font-bold">← Back</button>
+          <button type="button" onClick={() => navigate(-1)} className="mt-2 text-crimson-600 hover:text-crimson-200 text-xs font-bold">← Back</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       {/* Header strip */}
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 pt-4 pb-0 border-b border-crimson-500/10">
         <div className="max-w-5xl mx-auto">
@@ -348,7 +348,7 @@ const PersonAdmin: React.FC = () => {
                 className={`shrink-0 px-3 py-2 text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition ${
                   tab === t.key
                     ? 'text-crimson-400 border-crimson-400'
-                    : 'text-slate-400 border-transparent hover:text-white'
+                    : 'text-bone/40 border-transparent hover:text-white'
                 }`}
               >
                 {t.label}
@@ -366,15 +366,15 @@ const PersonAdmin: React.FC = () => {
 
       {/* Player ID card */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-4">
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-5 flex items-start gap-5">
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-5 flex items-start gap-5">
           <Avatar player={player} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-black text-charcoal-950 leading-tight">{player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()}</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-bone leading-tight">{player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()}</h1>
               <span className="inline-block px-2 py-0.5 rounded bg-crimson-500 text-white text-[10px] font-extrabold tracking-widest uppercase">Player</span>
               <EligibilityPill result={eligibility} />
             </div>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-bone/50 mt-0.5">
               {primaryTeam?.ageGroup ? `${primaryTeam.ageGroup}` : ''}
               {player.dateOfBirth ? ` (${toDate(player.dateOfBirth).getFullYear()})` : ''}
             </p>
@@ -617,18 +617,18 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
               {teams.map(t => (
                 <li key={t.id} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded bg-slate-100 ring-1 ring-slate-200 flex items-center justify-center shrink-0">
-                      {t.logoUrl ? <img src={t.logoUrl} alt="" className="w-full h-full object-cover rounded" /> : <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                    <div className="w-7 h-7 rounded bg-charcoal-950 ring-1 ring-white/10 flex items-center justify-center shrink-0">
+                      {t.logoUrl ? <img src={t.logoUrl} alt="" className="w-full h-full object-cover rounded" /> : <svg className="w-4 h-4 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-slate-900 truncate">{t.name}</div>
-                      <div className="text-[11px] text-slate-500">{t.id === primaryTeamId ? 'Primary team' : 'Additional'}</div>
+                      <div className="text-sm font-bold text-bone truncate">{t.name}</div>
+                      <div className="text-[11px] text-bone/50">{t.id === primaryTeamId ? 'Primary team' : 'Additional'}</div>
                     </div>
                   </div>
                   <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 shrink-0 ${
                     t.id === primaryTeamId
-                      ? 'bg-crimson-50 text-charcoal-700 ring-crimson-200'
-                      : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                      ? 'bg-crimson-500/15 text-bone/85 ring-crimson-200'
+                      : 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
                   }`}>
                     {t.id === primaryTeamId ? 'Primary' : 'Additional'}
                   </span>
@@ -646,18 +646,18 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
             <ul className="space-y-3">
               {guardians.map(g => (
                 <li key={g.id} className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded-full bg-crimson-100 text-crimson-800 font-bold flex items-center justify-center shrink-0 text-xs">
+                  <div className="w-8 h-8 rounded-full bg-crimson-500/20 text-crimson-200 font-bold flex items-center justify-center shrink-0 text-xs">
                     {(g.name || '?').split(/\s+/).slice(0, 2).map((x: string) => x[0]?.toUpperCase()).join('')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-bold text-slate-900">{g.name}</span>
-                      <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 ring-1 ring-slate-200">
+                      <span className="text-sm font-bold text-bone">{g.name}</span>
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-charcoal-950 text-bone/65 ring-1 ring-white/10">
                         {(g.role || 'parent').replace('_', ' ')}
                       </span>
                     </div>
-                    {g.phoneNumber && <div className="text-[11px] text-slate-600 mt-0.5">{g.phoneNumber}</div>}
-                    {g.email && <div className="text-[11px] text-slate-500 truncate">{g.email}</div>}
+                    {g.phoneNumber && <div className="text-[11px] text-bone/65 mt-0.5">{g.phoneNumber}</div>}
+                    {g.email && <div className="text-[11px] text-bone/50 truncate">{g.email}</div>}
                   </div>
                 </li>
               ))}
@@ -675,17 +675,17 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
           {!registration ? (
             <Empty text="No registration on file." />
           ) : (
-            <dl className="text-sm divide-y divide-slate-100">
+            <dl className="text-sm divide-y divide-white/5">
               <Field label="Season" value={registration.seasonId || '—'} />
               <Field label="Status" value={statusLabel(registration.status)} />
               <Field label="Product" value={registration.productName || '—'} />
               {registration.customAnswers && Object.keys(registration.customAnswers).length > 0 && (
                 <div className="py-2">
-                  <dt className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-1">Custom answers</dt>
-                  <dd className="text-[11px] text-slate-700 space-y-0.5">
+                  <dt className="text-[11px] font-bold uppercase tracking-widest text-bone/50 mb-1">Custom answers</dt>
+                  <dd className="text-[11px] text-bone/85 space-y-0.5">
                     {Object.entries(registration.customAnswers).map(([k, v]) => (
                       <div key={k}>
-                        <span className="text-slate-500">{registration.customAnswerLabels?.[k] || k}:</span>{' '}
+                        <span className="text-bone/50">{registration.customAnswerLabels?.[k] || k}:</span>{' '}
                         <span className="font-bold">{typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)}</span>
                       </div>
                     ))}
@@ -701,7 +701,7 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
           title="Payments"
           icon={<DollarIcon />}
           action={<ActionLink onClick={() => alert('Payments tab — next batch.')}>View Payment History</ActionLink>}
-          badge={payments?.balanceCents ? <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-amber-100 text-amber-800 ring-1 ring-amber-300">Pending</span> : payments ? <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300">Paid</span> : undefined}
+          badge={payments?.balanceCents ? <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-amber-500/20 text-amber-200 ring-1 ring-amber-300">Pending</span> : payments ? <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-300">Paid</span> : undefined}
         >
           {!payments ? (
             <Empty text="No invoice activity yet." />
@@ -709,8 +709,8 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
             <>
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="text-[11px] text-slate-500">Balance Due</div>
-                  <div className="text-3xl font-black text-slate-900 leading-none mt-1">${(payments.balanceCents / 100).toFixed(2)}</div>
+                  <div className="text-[11px] text-bone/50">Balance Due</div>
+                  <div className="text-3xl font-black text-bone leading-none mt-1">${(payments.balanceCents / 100).toFixed(2)}</div>
                 </div>
                 {payments.balanceCents > 0 && (
                   <button
@@ -724,12 +724,12 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
                 )}
               </div>
               {payments.lastPaidAt && (
-                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px]">
                   <div>
-                    <div className="text-slate-500">Recent Payment</div>
-                    <div className="text-slate-700 font-bold">${(payments.lastPaidCents / 100).toFixed(2)} <span className="text-slate-400">· {payments.lastPaidAt.toLocaleDateString()}</span></div>
+                    <div className="text-bone/50">Recent Payment</div>
+                    <div className="text-bone/85 font-bold">${(payments.lastPaidCents / 100).toFixed(2)} <span className="text-bone/40">· {payments.lastPaidAt.toLocaleDateString()}</span></div>
                   </div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">Paid</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30">Paid</span>
                 </div>
               )}
             </>
@@ -747,7 +747,7 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
                 <li className="flex items-center justify-between"><span className="flex items-center gap-1.5"><Dot color="emerald" /> Present</span><span className="font-bold tabular-nums">{attendance.present}</span></li>
                 <li className="flex items-center justify-between"><span className="flex items-center gap-1.5"><Dot color="amber" /> Excused</span><span className="font-bold tabular-nums">{attendance.excused}</span></li>
                 <li className="flex items-center justify-between"><span className="flex items-center gap-1.5"><Dot color="rose" /> Absent</span><span className="font-bold tabular-nums">{attendance.absent}</span></li>
-                {attendance.unknown > 0 && <li className="flex items-center justify-between text-slate-400"><span className="flex items-center gap-1.5"><Dot color="slate" /> No RSVP</span><span className="tabular-nums">{attendance.unknown}</span></li>}
+                {attendance.unknown > 0 && <li className="flex items-center justify-between text-bone/40"><span className="flex items-center gap-1.5"><Dot color="slate" /> No RSVP</span><span className="tabular-nums">{attendance.unknown}</span></li>}
               </ul>
             </div>
           )}
@@ -758,18 +758,18 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
           {forms.length === 0 ? (
             <Empty text="No forms defined for this club yet." />
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-white/5">
               {forms.map(f => {
                 const sig = formSigs.get(f.id);
                 const signed = !!sig;
                 return (
                   <li key={f.id} className="py-2 flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-sm text-slate-800 truncate">{f.name}</div>
-                      {sig && <div className="text-[10px] text-slate-500">Signed by {sig.signedByName} · {toDate(sig.signedAt).toLocaleDateString()}</div>}
+                      <div className="text-sm text-bone/90 truncate">{f.name}</div>
+                      {sig && <div className="text-[10px] text-bone/50">Signed by {sig.signedByName} · {toDate(sig.signedAt).toLocaleDateString()}</div>}
                     </div>
                     {signed ? (
-                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-700 flex items-center gap-1 shrink-0">
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300 flex items-center gap-1 shrink-0">
                         Signed
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                       </span>
@@ -779,8 +779,8 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
                         onClick={() => onSignForm(f.id)}
                         className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 shrink-0 ${
                           f.required
-                            ? 'bg-rose-50 text-rose-700 ring-rose-200 hover:bg-rose-100'
-                            : 'bg-amber-50 text-amber-700 ring-amber-200 hover:bg-amber-100'
+                            ? 'bg-rose-500/15 text-rose-300 ring-rose-200 hover:bg-rose-500/20'
+                            : 'bg-amber-500/15 text-amber-300 ring-amber-400/30 hover:bg-amber-500/20'
                         }`}
                       >
                         {f.required ? 'Required · Mark signed' : 'Pending · Mark signed'}
@@ -795,10 +795,10 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-4">
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4">
         <div className="flex items-center gap-2 mb-3">
           <svg className="w-4 h-4 text-crimson-500" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-          <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-700">Quick Actions</span>
+          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/85">Quick Actions</span>
         </div>
         <div className="grid grid-cols-4 gap-2">
           <QuickAction icon={<MsgIcon />} label="Message" onClick={onMessage} />
@@ -826,7 +826,7 @@ const MedicalAlertsBanner: React.FC<{ alerts: MedicalAlert[] }> = ({ alerts }) =
           <div
             key={i}
             className={`rounded-xl ring-1 p-3 flex items-start gap-3 ${
-              isCrit ? 'bg-rose-50 ring-rose-300' : 'bg-amber-50 ring-amber-300'
+              isCrit ? 'bg-rose-500/15 ring-rose-300' : 'bg-amber-500/15 ring-amber-300'
             }`}
           >
             <span className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isCrit ? 'bg-rose-500' : 'bg-amber-500'}`}>
@@ -837,9 +837,9 @@ const MedicalAlertsBanner: React.FC<{ alerts: MedicalAlert[] }> = ({ alerts }) =
             </span>
             <div className="flex-1 min-w-0">
               <div className={`text-sm font-bold ${isCrit ? 'text-rose-900' : 'text-amber-900'}`}>{a.title}</div>
-              {a.detail && <div className={`text-[11px] mt-0.5 ${isCrit ? 'text-rose-800' : 'text-amber-800'}`}>{a.detail}</div>}
+              {a.detail && <div className={`text-[11px] mt-0.5 ${isCrit ? 'text-rose-800' : 'text-amber-200'}`}>{a.detail}</div>}
             </div>
-            <span className={`text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 shrink-0 ${isCrit ? 'bg-white text-rose-700 ring-rose-300' : 'bg-white text-amber-800 ring-amber-300'}`}>
+            <span className={`text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 shrink-0 ${isCrit ? 'bg-charcoal-900 text-rose-300 ring-rose-300' : 'bg-charcoal-900 text-amber-200 ring-amber-300'}`}>
               {isCrit ? 'Critical' : 'Warning'}
             </span>
           </div>
@@ -864,13 +864,13 @@ const MedicalSummaryCard: React.FC<{ player: any; alerts: MedicalAlert[]; onEdit
   const warnCount = alerts.filter(a => a.level === 'warning').length;
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="w-7 h-7 rounded bg-rose-50 ring-1 ring-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+          <span className="w-7 h-7 rounded bg-rose-500/15 ring-1 ring-rose-100 flex items-center justify-center text-rose-300 shrink-0">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg>
           </span>
-          <h2 className="font-bold text-slate-800">Medical</h2>
+          <h2 className="font-bold text-bone/90">Medical</h2>
           {hasEpiPen && (
             <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-rose-500 text-white">
               EpiPen
@@ -882,13 +882,13 @@ const MedicalSummaryCard: React.FC<{ player: any; alerts: MedicalAlert[]; onEdit
             </span>
           )}
         </div>
-        <button type="button" onClick={onEdit} className="text-xs font-bold text-crimson-700 hover:text-crimson-900">
+        <button type="button" onClick={onEdit} className="text-xs font-bold text-crimson-300 hover:text-crimson-900">
           {isEmpty ? '+ Add medical' : 'Edit'}
         </button>
       </div>
       <div className="p-4">
         {isEmpty ? (
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-bone/50">
             No medical profile on file. Add at minimum an allergies row ("No known allergies" works) + a primary-care contact.
           </p>
         ) : (
@@ -899,29 +899,29 @@ const MedicalSummaryCard: React.FC<{ player: any; alerts: MedicalAlert[]; onEdit
               <Tile label="Meds" value={String(medCount)} />
               <Tile label="Concussions" value={String(concussionCount)} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-600">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-bone/65">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Last physical</div>
-                <div className="font-bold text-slate-800">{lastPhysical ? toDate(lastPhysical).toLocaleDateString() : '—'}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-bone/40">Last physical</div>
+                <div className="font-bold text-bone/90">{lastPhysical ? toDate(lastPhysical).toLocaleDateString() : '—'}</div>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Primary care</div>
-                <div className="font-bold text-slate-800 truncate">{m?.primaryCare?.name || '—'}{m?.primaryCare?.phone ? ` · ${m.primaryCare.phone}` : ''}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-bone/40">Primary care</div>
+                <div className="font-bold text-bone/90 truncate">{m?.primaryCare?.name || '—'}{m?.primaryCare?.phone ? ` · ${m.primaryCare.phone}` : ''}</div>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Insurance</div>
-                <div className="font-bold text-slate-800 truncate">{m?.insurance?.carrier || '—'}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-bone/40">Insurance</div>
+                <div className="font-bold text-bone/90 truncate">{m?.insurance?.carrier || '—'}</div>
               </div>
             </div>
             {(critCount > 0 || warnCount > 0) && (
-              <div className="mt-3 text-[11px] text-slate-500">
-                {critCount > 0 && <span className="text-rose-700 font-bold">{critCount} critical alert{critCount === 1 ? '' : 's'}</span>}
+              <div className="mt-3 text-[11px] text-bone/50">
+                {critCount > 0 && <span className="text-rose-300 font-bold">{critCount} critical alert{critCount === 1 ? '' : 's'}</span>}
                 {critCount > 0 && warnCount > 0 && ' · '}
-                {warnCount > 0 && <span className="text-amber-700 font-bold">{warnCount} warning{warnCount === 1 ? '' : 's'}</span>}
+                {warnCount > 0 && <span className="text-amber-300 font-bold">{warnCount} warning{warnCount === 1 ? '' : 's'}</span>}
               </div>
             )}
             {player?.medicalInfo && !m && (
-              <div className="mt-3 rounded-lg bg-amber-50 ring-1 ring-amber-300 px-3 py-2 text-[11px] text-amber-900">
+              <div className="mt-3 rounded-lg bg-amber-500/15 ring-1 ring-amber-300 px-3 py-2 text-[11px] text-amber-900">
                 Legacy medical notes on file. Open Edit to fold them into structured fields.
               </div>
             )}
@@ -960,12 +960,12 @@ const EligibilityCard: React.FC<{ result: EligibilityResult }> = ({ result }) =>
       <ul className="space-y-1.5">
         {result.gates.map((g, i) => (
           <li key={i} className="flex items-start gap-2 text-sm">
-            <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${g.ok ? 'bg-emerald-500 text-white' : 'bg-white ring-1 ring-slate-300 text-transparent'}`}>
+            <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${g.ok ? 'bg-emerald-500 text-white' : 'bg-charcoal-900 ring-1 ring-white/15 text-transparent'}`}>
               {g.ok && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
             </span>
             <div className="flex-1 min-w-0">
-              <div className={g.ok ? 'text-slate-700' : 'text-slate-900 font-bold'}>{g.label}</div>
-              {g.hint && !g.ok && <div className="text-[11px] text-slate-500 mt-0.5">{g.hint}</div>}
+              <div className={g.ok ? 'text-bone/85' : 'text-bone font-bold'}>{g.label}</div>
+              {g.hint && !g.ok && <div className="text-[11px] text-bone/50 mt-0.5">{g.hint}</div>}
             </div>
           </li>
         ))}
@@ -979,30 +979,30 @@ const EligibilityCard: React.FC<{ result: EligibilityResult }> = ({ result }) =>
 const TeamsTab: React.FC<{ player: any; teams: any[]; onAssignTeam: () => void }> = ({ player, teams, onAssignTeam }) => {
   const primaryId = player.teamId || teams[0]?.id;
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-        <h2 className="font-bold text-slate-800">Team assignments</h2>
-        <button type="button" onClick={onAssignTeam} className="text-xs font-bold text-crimson-700 hover:text-crimson-900">+ Assign / transfer</button>
+    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+        <h2 className="font-bold text-bone/90">Team assignments</h2>
+        <button type="button" onClick={onAssignTeam} className="text-xs font-bold text-crimson-300 hover:text-crimson-900">+ Assign / transfer</button>
       </div>
       {teams.length === 0 ? (
-        <div className="p-6 text-center text-sm text-slate-500">Not on any team yet.</div>
+        <div className="p-6 text-center text-sm text-bone/50">Not on any team yet.</div>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-white/5">
           {teams.map(t => (
             <li key={t.id} className="px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded bg-slate-100 ring-1 ring-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
-                  {t.logoUrl ? <img src={t.logoUrl} alt="" className="w-full h-full object-cover" /> : <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                <div className="w-10 h-10 rounded bg-charcoal-950 ring-1 ring-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                  {t.logoUrl ? <img src={t.logoUrl} alt="" className="w-full h-full object-cover" /> : <svg className="w-5 h-5 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
                 </div>
                 <div className="min-w-0">
-                  <div className="font-bold text-slate-900 truncate">{t.name}</div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="font-bold text-bone truncate">{t.name}</div>
+                  <div className="text-[11px] text-bone/50">
                     {t.ageGroup ? `${t.ageGroup} · ` : ''}{t.season || ''} {t.league ? `· ${t.league}` : ''}
                   </div>
                 </div>
               </div>
               <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 shrink-0 ${
-                t.id === primaryId ? 'bg-crimson-50 text-charcoal-700 ring-crimson-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                t.id === primaryId ? 'bg-crimson-500/15 text-bone/85 ring-crimson-200' : 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
               }`}>
                 {t.id === primaryId ? 'Primary' : 'Additional'}
               </span>
@@ -1016,16 +1016,16 @@ const TeamsTab: React.FC<{ player: any; teams: any[]; onAssignTeam: () => void }
 
 const RegistrationTab: React.FC<{ registrations: Registration[] }> = ({ registrations }) => {
   if (registrations.length === 0) {
-    return <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No registrations on file.</div>;
+    return <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">No registrations on file.</div>;
   }
   return (
     <div className="space-y-3">
       {registrations.map(r => (
-        <div key={r.id} className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+        <div key={r.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between gap-2">
             <div>
-              <div className="font-bold text-slate-900">{r.productName || 'Registration'}</div>
-              <div className="text-[11px] text-slate-500">Submitted {toDate(r.createdAt).toLocaleDateString()}</div>
+              <div className="font-bold text-bone">{r.productName || 'Registration'}</div>
+              <div className="text-[11px] text-bone/50">Submitted {toDate(r.createdAt).toLocaleDateString()}</div>
             </div>
             <StatusBadge status={r.status} />
           </div>
@@ -1037,11 +1037,11 @@ const RegistrationTab: React.FC<{ registrations: Registration[] }> = ({ registra
           </div>
           {r.customAnswers && Object.keys(r.customAnswers).length > 0 && (
             <div className="px-4 pb-4">
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Custom answers</div>
-              <ul className="text-[11px] text-slate-700 space-y-0.5">
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Custom answers</div>
+              <ul className="text-[11px] text-bone/85 space-y-0.5">
                 {Object.entries(r.customAnswers).map(([k, v]) => (
                   <li key={k}>
-                    <span className="text-slate-500">{r.customAnswerLabels?.[k] || k}:</span>{' '}
+                    <span className="text-bone/50">{r.customAnswerLabels?.[k] || k}:</span>{' '}
                     <span className="font-bold">{typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)}</span>
                   </li>
                 ))}
@@ -1049,8 +1049,8 @@ const RegistrationTab: React.FC<{ registrations: Registration[] }> = ({ registra
             </div>
           )}
           {r.parents?.[0]?.email && (
-            <div className="px-4 py-2 border-t border-slate-100 text-center">
-              <Link to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`} className="text-xs font-bold text-crimson-700 hover:text-crimson-900">
+            <div className="px-4 py-2 border-t border-white/5 text-center">
+              <Link to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`} className="text-xs font-bold text-crimson-300 hover:text-crimson-900">
                 Full family timeline →
               </Link>
             </div>
@@ -1100,13 +1100,13 @@ const PaymentsTab: React.FC<{
         <Tile label="Balance" value={`$${(totalOwed / 100).toFixed(2)}`} />
       </div>
       {rows.length === 0 ? (
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No payment history.</div>
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">No payment history.</div>
       ) : (
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100">
-            <h2 className="font-bold text-slate-800">Invoices</h2>
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/5">
+            <h2 className="font-bold text-bone/90">Invoices</h2>
           </div>
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-white/5">
             {rows.map(r => {
               const netCents = r.amountCents - r.refundsCents;
               const fullyRefunded = r.refundsCents > 0 && netCents <= 0;
@@ -1115,34 +1115,34 @@ const PaymentsTab: React.FC<{
                 <li key={r.id} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-bold text-slate-900">{r.label}</div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="font-bold text-bone">{r.label}</div>
+                      <div className="text-[11px] text-bone/50">
                         {r.createdAt.toLocaleDateString()}
                         {r.couponCode && <span className="text-violet-600 font-bold"> · {r.couponCode}</span>}
-                        {r.stripePaymentIntentId && <span className="text-slate-400"> · {r.stripePaymentIntentId.slice(0, 12)}…</span>}
+                        {r.stripePaymentIntentId && <span className="text-bone/40"> · {r.stripePaymentIntentId.slice(0, 12)}…</span>}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-black text-slate-900 tabular-nums">${(r.amountCents / 100).toFixed(2)}</div>
+                      <div className="font-black text-bone tabular-nums">${(r.amountCents / 100).toFixed(2)}</div>
                       <span className={`text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 ${
-                        fullyRefunded ? 'bg-rose-50 text-rose-700 ring-rose-200'
-                          : r.refundsCents > 0 ? 'bg-amber-50 text-amber-700 ring-amber-200'
-                          : r.paid ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                          : 'bg-amber-50 text-amber-700 ring-amber-200'
+                        fullyRefunded ? 'bg-rose-500/15 text-rose-300 ring-rose-200'
+                          : r.refundsCents > 0 ? 'bg-amber-500/15 text-amber-300 ring-amber-400/30'
+                          : r.paid ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
+                          : 'bg-amber-500/15 text-amber-300 ring-amber-400/30'
                       }`}>
                         {fullyRefunded ? 'Refunded' : r.refundsCents > 0 ? 'Partial refund' : r.paid ? 'Paid' : 'Pending'}
                       </span>
                     </div>
                   </div>
                   {r.refundsCents > 0 && (
-                    <div className="mt-2 pl-3 border-l-2 border-rose-200 text-[11px] space-y-1">
+                    <div className="mt-2 pl-3 border-l-2 border-rose-400/30 text-[11px] space-y-1">
                       {(r.raw.refunds || []).map(rr => (
-                        <div key={rr.id} className="flex items-center justify-between text-slate-600">
+                        <div key={rr.id} className="flex items-center justify-between text-bone/65">
                           <span>
                             {rr.refundedByName || 'System'} · {toDate(rr.refundedAt).toLocaleDateString()}
-                            {rr.reason && <span className="text-slate-400"> · {rr.reason}</span>}
+                            {rr.reason && <span className="text-bone/40"> · {rr.reason}</span>}
                           </span>
-                          <span className="font-bold tabular-nums text-rose-700">-${((rr.amountCents || 0) / 100).toFixed(2)} <span className="text-slate-400">({rr.status})</span></span>
+                          <span className="font-bold tabular-nums text-rose-300">-${((rr.amountCents || 0) / 100).toFixed(2)} <span className="text-bone/40">({rr.status})</span></span>
                         </div>
                       ))}
                     </div>
@@ -1160,7 +1160,7 @@ const PaymentsTab: React.FC<{
                       <button
                         type="button"
                         onClick={() => onSplit(r.raw)}
-                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white text-crimson-700 ring-1 ring-crimson-200 hover:bg-crimson-50"
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-900 text-crimson-300 ring-1 ring-crimson-200 hover:bg-crimson-500/15"
                       >
                         Split into installments
                       </button>
@@ -1169,7 +1169,7 @@ const PaymentsTab: React.FC<{
                       <button
                         type="button"
                         onClick={() => onSplit(r.raw)}
-                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white text-crimson-700 ring-1 ring-crimson-200 hover:bg-crimson-50"
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-900 text-crimson-300 ring-1 ring-crimson-200 hover:bg-crimson-500/15"
                       >
                         Edit plan
                       </button>
@@ -1178,7 +1178,7 @@ const PaymentsTab: React.FC<{
                       <button
                         type="button"
                         onClick={() => onRefund(r.raw)}
-                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white text-rose-700 ring-1 ring-rose-200 hover:bg-rose-50"
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-900 text-rose-300 ring-1 ring-rose-200 hover:bg-rose-500/15"
                       >
                         {r.refundsCents > 0 ? 'Refund more' : 'Refund'}
                       </button>
@@ -1294,7 +1294,7 @@ const InstallmentList: React.FC<{
 
   if (installments.length === 0) return null;
   return (
-    <div className="mt-3 pl-3 border-l-2 border-crimson-200 space-y-1.5">
+    <div className="mt-3 pl-3 border-l-2 border-crimson-400/30 space-y-1.5">
       {installments.map(inst => {
         const due = inst.dueDate ? toDate(inst.dueDate) : null;
         const overdue = inst.status === 'pending' && due && due.getTime() < Date.now();
@@ -1302,35 +1302,35 @@ const InstallmentList: React.FC<{
           <div key={inst.id} className="text-[11px]">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="font-bold text-slate-900">
+                <div className="font-bold text-bone">
                   {inst.label}
-                  <span className="ml-2 text-slate-400 font-normal tabular-nums">${((inst.amountCents || 0) / 100).toFixed(2)}</span>
+                  <span className="ml-2 text-bone/40 font-normal tabular-nums">${((inst.amountCents || 0) / 100).toFixed(2)}</span>
                 </div>
                 {due && (
-                  <div className={`text-[10px] ${overdue ? 'text-amber-700 font-bold' : 'text-slate-500'}`}>
+                  <div className={`text-[10px] ${overdue ? 'text-amber-300 font-bold' : 'text-bone/50'}`}>
                     Due {due.toLocaleDateString()}{overdue ? ' · overdue' : ''}
                   </div>
                 )}
                 {inst.status === 'waived' && inst.waivedReason && (
-                  <div className="text-[10px] text-slate-500 italic">Waived: {inst.waivedReason}</div>
+                  <div className="text-[10px] text-bone/50 italic">Waived: {inst.waivedReason}</div>
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <span className={`text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded ring-1 ${
-                  inst.status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                  : inst.status === 'waived' ? 'bg-slate-100 text-slate-600 ring-slate-300'
-                  : overdue ? 'bg-amber-50 text-amber-700 ring-amber-200'
-                  : 'bg-white text-slate-600 ring-slate-200'
+                  inst.status === 'paid' ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
+                  : inst.status === 'waived' ? 'bg-charcoal-950 text-bone/65 ring-white/15'
+                  : overdue ? 'bg-amber-500/15 text-amber-300 ring-amber-400/30'
+                  : 'bg-charcoal-900 text-bone/65 ring-white/10'
                 }`}>{inst.status}</span>
                 {inst.status === 'pending' && (
                   <>
                     <button type="button" disabled={busyId === inst.id} onClick={() => sendLink(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50">
                       Link
                     </button>
-                    <button type="button" disabled={busyId === inst.id} onClick={() => markPaid(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-50">
+                    <button type="button" disabled={busyId === inst.id} onClick={() => markPaid(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-charcoal-900 text-emerald-300 ring-1 ring-emerald-400/30 hover:bg-emerald-500/15">
                       Mark paid
                     </button>
-                    <button type="button" disabled={busyId === inst.id} onClick={() => waive(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">
+                    <button type="button" disabled={busyId === inst.id} onClick={() => waive(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-charcoal-900 text-bone/65 ring-1 ring-white/10 hover:bg-white/[0.05]">
                       Waive
                     </button>
                   </>
@@ -1338,18 +1338,18 @@ const InstallmentList: React.FC<{
               </div>
             </div>
             {linkFor?.id === inst.id && (
-              <div className="mt-1 rounded bg-crimson-50 ring-1 ring-crimson-200 p-2">
-                <div className="text-[10px] text-slate-700 font-mono break-all">{linkFor.url}</div>
+              <div className="mt-1 rounded bg-crimson-500/15 ring-1 ring-crimson-200 p-2">
+                <div className="text-[10px] text-bone/85 font-mono break-all">{linkFor.url}</div>
                 <div className="mt-1 flex items-center gap-2">
                   <button type="button" onClick={async () => {
                     try { await navigator.clipboard.writeText(linkFor.url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
                   }} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-crimson-600 text-white hover:bg-crimson-500">
                     {copied ? 'Copied' : 'Copy link'}
                   </button>
-                  <a href={linkFor.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-white ring-1 ring-crimson-200 text-crimson-700">
+                  <a href={linkFor.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-charcoal-900 ring-1 ring-crimson-200 text-crimson-300">
                     Open
                   </a>
-                  <button type="button" onClick={() => setLinkFor(null)} className="text-[9px] text-slate-500 hover:text-slate-800 ml-auto">
+                  <button type="button" onClick={() => setLinkFor(null)} className="text-[9px] text-bone/50 hover:text-bone/90 ml-auto">
                     Close
                   </button>
                 </div>
@@ -1366,23 +1366,23 @@ const NotesTab: React.FC<{ activities: Activity[]; onAddNote: () => void }> = ({
   const notes = activities.filter(a => a.kind === 'note_added' && a.payload?.note);
   return (
     <div className="space-y-3">
-      <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-4 flex items-center justify-between">
-        <div className="text-sm text-slate-600">{notes.length} note{notes.length === 1 ? '' : 's'} on file.</div>
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4 flex items-center justify-between">
+        <div className="text-sm text-bone/65">{notes.length} note{notes.length === 1 ? '' : 's'} on file.</div>
         <button type="button" onClick={onAddNote} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">+ Add note</button>
       </div>
       {notes.length === 0 ? (
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No notes yet — add one for the rest of the staff to see.</div>
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">No notes yet — add one for the rest of the staff to see.</div>
       ) : (
         <ul className="space-y-2">
           {notes.map(a => {
             const ts = toDate(a.createdAt);
             return (
-              <li key={a.id} className="bg-white rounded-2xl ring-1 ring-slate-200 p-4">
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-1">
-                  <span className="font-bold text-slate-700">{a.actorName || 'Staff'}</span>
+              <li key={a.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4">
+                <div className="flex items-center gap-2 text-[11px] text-bone/50 mb-1">
+                  <span className="font-bold text-bone/85">{a.actorName || 'Staff'}</span>
                   <span>· {ts.toLocaleDateString()} {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">{a.payload?.note}</p>
+                <p className="text-sm text-bone/90 whitespace-pre-wrap">{a.payload?.note}</p>
               </li>
             );
           })}
@@ -1395,26 +1395,26 @@ const NotesTab: React.FC<{ activities: Activity[]; onAddNote: () => void }> = ({
 const CommunicationsTab: React.FC<{ activities: Activity[] }> = ({ activities }) => {
   const comms = activities.filter(a => a.kind === 'email_sent');
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100">
-        <h2 className="font-bold text-slate-800">Emails sent</h2>
+    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/5">
+        <h2 className="font-bold text-bone/90">Emails sent</h2>
       </div>
       {comms.length === 0 ? (
-        <div className="p-6 text-center text-sm text-slate-500">No emails on record for this family.</div>
+        <div className="p-6 text-center text-sm text-bone/50">No emails on record for this family.</div>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-white/5">
           {comms.map(a => {
             const ts = toDate(a.createdAt);
             return (
               <li key={a.id} className="px-4 py-3 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="font-bold text-slate-900 truncate">{a.payload?.subject || '(no subject)'}</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
+                  <div className="font-bold text-bone truncate">{a.payload?.subject || '(no subject)'}</div>
+                  <div className="text-[11px] text-bone/50 mt-0.5">
                     {a.payload?.channel || 'email'}
                     {a.parentEmail && <span> · to {a.parentEmail}</span>}
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-400 shrink-0 tabular-nums">{ts.toLocaleDateString()}</div>
+                <div className="text-[10px] text-bone/40 shrink-0 tabular-nums">{ts.toLocaleDateString()}</div>
               </li>
             );
           })}
@@ -1426,32 +1426,32 @@ const CommunicationsTab: React.FC<{ activities: Activity[] }> = ({ activities })
 
 const ActivityTab: React.FC<{ activities: Activity[] }> = ({ activities }) => {
   if (activities.length === 0) {
-    return <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-8 text-center text-sm text-slate-500">No activity yet.</div>;
+    return <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">No activity yet.</div>;
   }
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100">
-        <h2 className="font-bold text-slate-800">All activity ({activities.length})</h2>
+    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/5">
+        <h2 className="font-bold text-bone/90">All activity ({activities.length})</h2>
       </div>
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-white/5">
         {activities.map(a => {
           const ts = toDate(a.createdAt);
           return (
             <li key={a.id} className="px-4 py-3 flex items-start gap-3">
               <div className={`shrink-0 w-2 h-2 rounded-full mt-2 ${activityTone(a.kind)}`} />
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-slate-800">
+                <div className="text-sm text-bone/90">
                   <span className="font-bold">{a.actorName || 'System'}</span>{' '}
-                  <span className="text-slate-500">{activityVerb(a.kind)}</span>{' '}
+                  <span className="text-bone/50">{activityVerb(a.kind)}</span>{' '}
                   {a.payload?.playerName && <span className="font-bold">{a.payload.playerName}</span>}
                   {a.payload?.teamName && <span className="font-bold">{a.payload.teamName}</span>}
                   {a.payload?.title && <span className="font-bold">"{a.payload.title}"</span>}
                   {a.payload?.formName && <span className="font-bold">{a.payload.formName}</span>}
                 </div>
-                {a.payload?.note && <div className="text-[11px] text-slate-500 mt-0.5 italic">"{a.payload.note}"</div>}
-                {a.payload?.subject && <div className="text-[11px] text-slate-500 mt-0.5">{a.payload.subject}</div>}
+                {a.payload?.note && <div className="text-[11px] text-bone/50 mt-0.5 italic">"{a.payload.note}"</div>}
+                {a.payload?.subject && <div className="text-[11px] text-bone/50 mt-0.5">{a.payload.subject}</div>}
               </div>
-              <div className="text-[10px] text-slate-400 shrink-0 mt-1 tabular-nums">{ts.toLocaleDateString()} · {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+              <div className="text-[10px] text-bone/40 shrink-0 mt-1 tabular-nums">{ts.toLocaleDateString()} · {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
             </li>
           );
         })}
@@ -1462,15 +1462,15 @@ const ActivityTab: React.FC<{ activities: Activity[] }> = ({ activities }) => {
 
 const Mini: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</div>
-    <div className="text-sm font-bold text-slate-900 mt-0.5 truncate">{value}</div>
+    <div className="text-[10px] font-bold uppercase tracking-widest text-bone/50">{label}</div>
+    <div className="text-sm font-bold text-bone mt-0.5 truncate">{value}</div>
   </div>
 );
 
 const Tile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="bg-white rounded-xl ring-1 ring-slate-200 px-4 py-3">
-    <div className="text-2xl font-black text-slate-900 leading-none tabular-nums">{value}</div>
-    <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mt-1">{label}</div>
+  <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 px-4 py-3">
+    <div className="text-2xl font-black text-bone leading-none tabular-nums">{value}</div>
+    <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mt-1">{label}</div>
   </div>
 );
 
@@ -1479,9 +1479,9 @@ function activityTone(kind: Activity['kind']): string {
   if (kind === 'offer_sent' || kind === 'tryout_invited') return 'bg-violet-500';
   if (kind === 'offer_declined') return 'bg-rose-500';
   if (kind.startsWith('coach_')) return 'bg-amber-500';
-  if (kind === 'email_sent') return 'bg-slate-400';
+  if (kind === 'email_sent') return 'bg-white/40';
   if (kind.startsWith('task_')) return 'bg-crimson-500';
-  return 'bg-slate-300';
+  return 'bg-white/25';
 }
 
 function activityVerb(kind: Activity['kind']): string {
@@ -1539,10 +1539,10 @@ const NoteModal: React.FC<{ player: any; onClose: () => void; onSaved: () => voi
   };
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-charcoal-950">Add note</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+      <div className="bg-charcoal-900 w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <h2 className="font-black text-bone">Add note</h2>
+          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
         </div>
         <div className="p-5">
           <textarea
@@ -1550,11 +1550,11 @@ const NoteModal: React.FC<{ player: any; onClose: () => void; onSaved: () => voi
             onChange={(e) => setText(e.target.value)}
             rows={5}
             placeholder="Anything worth remembering about this player — visible to coaches + admins."
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+            className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
           />
         </div>
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
+        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
           <button type="button" disabled={!text.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save note'}
           </button>
@@ -1618,43 +1618,43 @@ const SignFormModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-charcoal-900 w-full sm:max-w-lg sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-charcoal-950">Mark as signed</h2>
-            <p className="text-[11px] text-slate-500">{formDef.name}</p>
+            <h2 className="font-black text-bone">Mark as signed</h2>
+            <p className="text-[11px] text-bone/50">{formDef.name}</p>
           </div>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {formDef.body && (
-            <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 text-xs text-slate-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+            <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 text-xs text-bone/85 whitespace-pre-wrap max-h-40 overflow-y-auto">
               {formDef.body}
             </div>
           )}
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Signed by</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Signed by</span>
             <input
               value={signedByName}
               onChange={(e) => setSignedByName(e.target.value)}
               placeholder="Full name of the parent/guardian who signed"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
             />
           </label>
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Note (optional)</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Note (optional)</span>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="e.g. Paper copy in office binder, signed in person at tryouts"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
             />
           </label>
-          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
+          {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
         </div>
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
+        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
           <button type="button" disabled={!signedByName.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Record signature'}
           </button>
@@ -1729,20 +1729,20 @@ const PaymentLinkModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-black text-charcoal-950">Payment link</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+      <div className="bg-charcoal-900 w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <h2 className="font-black text-bone">Payment link</h2>
+          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="text-xs text-slate-600">One-time Stripe Checkout URL for {playerName}'s outstanding balance. Send it to the parent or copy and share however you like.</div>
-          <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200 px-3 py-2 text-[11px] text-slate-700 font-mono break-all">{link}</div>
-          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
+          <div className="text-xs text-bone/65">One-time Stripe Checkout URL for {playerName}'s outstanding balance. Send it to the parent or copy and share however you like.</div>
+          <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-3 py-2 text-[11px] text-bone/85 font-mono break-all">{link}</div>
+          {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
           <div className="flex items-center gap-2">
-            <button type="button" onClick={handleCopy} className="flex-1 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold">
+            <button type="button" onClick={handleCopy} className="flex-1 px-3 py-2 rounded-lg bg-charcoal-950 hover:bg-white/15 text-bone/90 text-sm font-bold">
               {copied ? 'Copied' : 'Copy link'}
             </button>
-            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-3 py-2 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-crimson-400 text-slate-800 text-sm font-bold">
+            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-3 py-2 rounded-lg bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-400 text-bone/90 text-sm font-bold">
               Open
             </a>
           </div>
@@ -1765,7 +1765,7 @@ const Avatar: React.FC<{ player: any }> = ({ player }) => {
   }
   const initials = (player.name || '?').split(/\s+/).slice(0, 2).map((x: string) => x[0]?.toUpperCase()).join('');
   return (
-    <div className="w-24 h-24 rounded-full bg-slate-200 ring-2 ring-slate-100 flex items-center justify-center text-slate-500 text-2xl font-black shrink-0">
+    <div className="w-24 h-24 rounded-full bg-white/15 ring-2 ring-slate-100 flex items-center justify-center text-bone/50 text-2xl font-black shrink-0">
       {initials}
     </div>
   );
@@ -1773,62 +1773,62 @@ const Avatar: React.FC<{ player: any }> = ({ player }) => {
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</div>
-    <div className="text-base font-black text-slate-900 mt-1 truncate">{value}</div>
+    <div className="text-[10px] font-bold uppercase tracking-widest text-bone/50">{label}</div>
+    <div className="text-base font-black text-bone mt-1 truncate">{value}</div>
   </div>
 );
 
 const Card: React.FC<{ title: string; icon?: React.ReactNode; subtitle?: string; badge?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, subtitle, badge, action, children }) => (
-  <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+  <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+    <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        {icon && <span className="w-7 h-7 rounded bg-crimson-50 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600 shrink-0">{icon}</span>}
-        <h2 className="font-bold text-slate-800 truncate">{title} {subtitle && <span className="text-[11px] text-slate-500 font-normal">{subtitle}</span>}</h2>
+        {icon && <span className="w-7 h-7 rounded bg-crimson-500/15 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600 shrink-0">{icon}</span>}
+        <h2 className="font-bold text-bone/90 truncate">{title} {subtitle && <span className="text-[11px] text-bone/50 font-normal">{subtitle}</span>}</h2>
       </div>
       {badge}
     </div>
     <div className="p-4">{children}</div>
-    {action && <div className="px-4 py-2 border-t border-slate-100 text-center">{action}</div>}
+    {action && <div className="px-4 py-2 border-t border-white/5 text-center">{action}</div>}
   </div>
 );
 
 const Field: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="py-2 flex items-center justify-between gap-2">
-    <dt className="text-slate-500">{label}</dt>
-    <dd className="text-slate-900 font-bold text-right">{value}</dd>
+    <dt className="text-bone/50">{label}</dt>
+    <dd className="text-bone font-bold text-right">{value}</dd>
   </div>
 );
 
 const ActionLink: React.FC<{ children: React.ReactNode; onClick?: () => void }> = ({ children, onClick }) => (
-  <button type="button" onClick={onClick} className="text-crimson-600 hover:text-crimson-800 text-xs font-bold">{children}</button>
+  <button type="button" onClick={onClick} className="text-crimson-600 hover:text-crimson-200 text-xs font-bold">{children}</button>
 );
 
-const Empty: React.FC<{ text: string }> = ({ text }) => <p className="text-[11px] text-slate-500">{text}</p>;
+const Empty: React.FC<{ text: string }> = ({ text }) => <p className="text-[11px] text-bone/50">{text}</p>;
 
 const QuickAction: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl hover:bg-slate-50 transition"
+    className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl hover:bg-white/[0.05] transition"
   >
-    <span className="w-10 h-10 rounded-full bg-crimson-50 ring-1 ring-crimson-100 text-crimson-600 flex items-center justify-center">{icon}</span>
-    <span className="text-[10px] font-bold text-slate-700">{label}</span>
+    <span className="w-10 h-10 rounded-full bg-crimson-500/15 ring-1 ring-crimson-100 text-crimson-600 flex items-center justify-center">{icon}</span>
+    <span className="text-[10px] font-bold text-bone/85">{label}</span>
   </button>
 );
 
 const Dot: React.FC<{ color: 'emerald' | 'amber' | 'rose' | 'slate' }> = ({ color }) => (
-  <span className={`w-2 h-2 rounded-full ${{ emerald: 'bg-emerald-500', amber: 'bg-amber-500', rose: 'bg-rose-500', slate: 'bg-slate-300' }[color]}`} />
+  <span className={`w-2 h-2 rounded-full ${{ emerald: 'bg-emerald-500', amber: 'bg-amber-500', rose: 'bg-rose-500', slate: 'bg-white/25' }[color]}`} />
 );
 
 const StatusBadge: React.FC<{ status: Registration['status'] }> = ({ status }) => {
   const map: Record<Registration['status'], string> = {
-    pending_payment: 'bg-amber-100 text-amber-800 ring-amber-300',
-    paid: 'bg-emerald-100 text-emerald-800 ring-emerald-300',
-    tryout_invited: 'bg-crimson-100 text-crimson-800 ring-crimson-300',
-    offer_sent: 'bg-violet-100 text-violet-800 ring-violet-300',
-    accepted: 'bg-emerald-100 text-emerald-900 ring-emerald-400',
-    declined: 'bg-rose-100 text-rose-800 ring-rose-300',
-    withdrawn: 'bg-slate-100 text-slate-700 ring-slate-300',
+    pending_payment: 'bg-amber-500/20 text-amber-200 ring-amber-300',
+    paid: 'bg-emerald-500/20 text-emerald-200 ring-emerald-300',
+    tryout_invited: 'bg-crimson-500/20 text-crimson-200 ring-crimson-300',
+    offer_sent: 'bg-violet-500/20 text-violet-200 ring-violet-300',
+    accepted: 'bg-emerald-500/20 text-emerald-100 ring-emerald-400',
+    declined: 'bg-rose-500/20 text-rose-800 ring-rose-300',
+    withdrawn: 'bg-charcoal-950 text-bone/85 ring-white/15',
   };
   return <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded ring-1 ${map[status]}`}>{statusLabel(status)}</span>;
 };
@@ -1857,8 +1857,8 @@ const Donut: React.FC<{ total: number; present: number; excused: number; absent:
         })}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-lg font-black text-slate-900 leading-none">{pct}%</div>
-        <div className="text-[9px] text-slate-500 tabular-nums">{present}/{total}</div>
+        <div className="text-lg font-black text-bone leading-none">{pct}%</div>
+        <div className="text-[9px] text-bone/50 tabular-nums">{present}/{total}</div>
       </div>
     </div>
   );

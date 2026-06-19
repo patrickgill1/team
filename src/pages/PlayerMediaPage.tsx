@@ -1245,8 +1245,8 @@ const PlayerMediaPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
-          <span className="text-sm text-gray-400 font-medium">Loading...</span>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
+          <span className="text-sm text-bone/40 font-medium">Loading...</span>
         </div>
       </div>
     );
@@ -1273,7 +1273,7 @@ const PlayerMediaPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('highlights')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'highlights' ? 'text-crimson-400' : 'text-gray-400 hover:text-white'
+                activeTab === 'highlights' ? 'text-crimson-400' : 'text-bone/40 hover:text-white'
               }`}
             >
               Highlights
@@ -1282,7 +1282,7 @@ const PlayerMediaPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('fullgames')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'fullgames' ? 'text-crimson-400' : 'text-gray-400 hover:text-white'
+                activeTab === 'fullgames' ? 'text-crimson-400' : 'text-bone/40 hover:text-white'
               }`}
             >
               Full Games
@@ -1297,9 +1297,9 @@ const PlayerMediaPage: React.FC = () => {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search highlights..."
-                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500/50 focus:border-crimson-500/50"
+                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-bone/50 focus:outline-none focus:ring-2 focus:ring-crimson-500/50 focus:border-crimson-500/50"
                 />
-                <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-bone/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
                 </svg>
               </div>
@@ -1307,7 +1307,7 @@ const PlayerMediaPage: React.FC = () => {
                 <>
                   <button
                     onClick={() => setShowEmbedModal(true)}
-                    className="bg-white text-charcoal-950 ring-1 ring-slate-300 hover:bg-slate-100 px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                    className="bg-charcoal-900 text-bone ring-1 ring-white/15 hover:bg-white/[0.08] px-3 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
                     title="Paste a YouTube or Trace link"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -1315,7 +1315,7 @@ const PlayerMediaPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
-                    className="bg-crimson-500 hover:bg-crimson-400 text-charcoal-950 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
+                    className="bg-crimson-500 hover:bg-crimson-400 text-bone px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -1329,7 +1329,7 @@ const PlayerMediaPage: React.FC = () => {
         </div>
 
         {activeTab === 'fullgames' ? (
-          <div className="bg-white rounded-2xl overflow-hidden">
+          <div className="bg-charcoal-900 rounded-2xl overflow-hidden">
             <FullGames />
           </div>
         ) : (
@@ -1382,7 +1382,7 @@ const PlayerMediaPage: React.FC = () => {
                         ALL
                       </div>
                       <span className="text-xs text-white font-medium mt-2">All</span>
-                      <span className="text-[10px] text-gray-500">{media.length} clips</span>
+                      <span className="text-[10px] text-bone/50">{media.length} clips</span>
                     </button>
                     {/* Parent's kid floats to the front for them. */}
                     {playersWithCounts
@@ -1407,13 +1407,13 @@ const PlayerMediaPage: React.FC = () => {
                             </div>
                           )}
                           {player.profilePhotoUrl && player.jerseyNumber != null && (
-                            <span className="absolute -bottom-0.5 -right-0.5 bg-crimson-500 text-gray-950 rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow ring-2 ring-gray-950">
+                            <span className="absolute -bottom-0.5 -right-0.5 bg-crimson-500 text-bone rounded-full min-w-[22px] h-[22px] px-1.5 flex items-center justify-center text-[11px] font-black shadow ring-2 ring-charcoal-950">
                               {player.jerseyNumber}
                             </span>
                           )}
                         </div>
                         <span className="text-xs text-white font-medium mt-2 max-w-[80px] truncate">{player.name.split(' ')[0]}</span>
-                        <span className="text-[10px] text-gray-500">{count} clip{count !== 1 ? 's' : ''}</span>
+                        <span className="text-[10px] text-bone/50">{count} clip{count !== 1 ? 's' : ''}</span>
                       </button>
                     ))}
                   </div>
@@ -1476,7 +1476,7 @@ const PlayerMediaPage: React.FC = () => {
                       key={opt.k}
                       onClick={() => setMediaTypeFilter(opt.k)}
                       className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                        mediaTypeFilter === opt.k ? 'bg-white text-charcoal-950' : 'text-white/70 hover:text-white'
+                        mediaTypeFilter === opt.k ? 'bg-charcoal-900 text-bone' : 'text-white/70 hover:text-white'
                       }`}
                     >
                       {opt.label}
@@ -1489,8 +1489,8 @@ const PlayerMediaPage: React.FC = () => {
                     onClick={() => toggleFilterTag(tag)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                       filterTags.includes(tag)
-                        ? 'bg-crimson-500 text-charcoal-950'
-                        : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
+                        ? 'bg-crimson-500 text-bone'
+                        : 'bg-white/5 text-bone/35 hover:bg-white/10 border border-white/10'
                     }`}
                   >
                     {tag}
@@ -1508,7 +1508,7 @@ const PlayerMediaPage: React.FC = () => {
                             <div className="relative w-9 h-9">
                               <img src={player.profilePhotoUrl} alt={player.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-crimson-500/30" loading="lazy" />
                               {player.jerseyNumber != null && (
-                                <span className="absolute -bottom-1 -right-1 bg-crimson-500 text-gray-950 rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-black ring-1 ring-gray-950">
+                                <span className="absolute -bottom-1 -right-1 bg-crimson-500 text-bone rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-black ring-1 ring-charcoal-950">
                                   {player.jerseyNumber}
                                 </span>
                               )}
@@ -1519,7 +1519,7 @@ const PlayerMediaPage: React.FC = () => {
                             </div>
                           )}
                           <h3 className="text-base font-bold text-white">{player.name}</h3>
-                          <span className="text-xs text-gray-500">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-bone/50">{items.length} item{items.length !== 1 ? 's' : ''}</span>
                         </div>
                         <DarkMediaGrid items={items} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} />
                       </div>
@@ -1541,7 +1541,7 @@ const PlayerMediaPage: React.FC = () => {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
                     </div>
                     <h3 className="text-lg font-bold text-white">No media yet</h3>
-                    <p className="text-sm text-gray-400 mt-1">Upload photos and videos for your players.</p>
+                    <p className="text-sm text-bone/40 mt-1">Upload photos and videos for your players.</p>
                   </div>
                 )
               ) : (
@@ -1630,16 +1630,16 @@ const PlayerMediaPage: React.FC = () => {
         {/* Upload Modal */}
         {showUploadModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+            <div className="bg-charcoal-900 rounded-xl shadow-xl max-w-lg w-full">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Upload Player Media</h2>
+                <h2 className="text-xl font-bold text-bone mb-4">Upload Player Media</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Player *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Player *</label>
                     <select
                       value={uploadPlayerId}
                       onChange={e => setUploadPlayerId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500"
                     >
                       <option value="">Select player...</option>
                       {players.map(p => (
@@ -1648,17 +1648,17 @@ const PlayerMediaPage: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Files (Photos & Videos)</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Files (Photos & Videos)</label>
                     <input
                       ref={fileInputRef}
                       type="file"
                       multiple
                       accept="image/*,video/*"
                       onChange={handleFileSelect}
-                      className="w-full text-sm text-gray-600"
+                      className="w-full text-sm text-bone/65"
                     />
                     {uploadFiles.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-bone/50 mt-1">
                         {uploadFiles.length} file{uploadFiles.length !== 1 ? 's' : ''} selected ({
                           formatFileSize(uploadFiles.reduce((s, f) => s + f.size, 0))
                         })
@@ -1666,17 +1666,17 @@ const PlayerMediaPage: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Caption</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Caption</label>
                     <input
                       type="text"
                       value={uploadCaption}
                       onChange={e => setUploadCaption(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500"
                       placeholder="Optional caption..."
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Tags</label>
                     <div className="flex flex-wrap gap-1.5">
                       {ACTIVITY_TAGS.map(tag => (
                         <button
@@ -1686,7 +1686,7 @@ const PlayerMediaPage: React.FC = () => {
                           className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                             uploadTags.includes(tag)
                               ? 'bg-charcoal-600 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              : 'bg-white/[0.08] text-bone/65 hover:bg-white/[0.1]'
                           }`}
                         >
                           {tag}
@@ -1695,15 +1695,15 @@ const PlayerMediaPage: React.FC = () => {
                     </div>
                   </div>
                   {(uploadTags.includes('Goal') || uploadTags.includes('Own Goal')) && players.length > 0 && (
-                    <div className="rounded-lg border border-crimson-200 bg-crimson-50/60 p-3 space-y-3">
+                    <div className="rounded-lg border border-crimson-400/30 bg-crimson-500/15/60 p-3 space-y-3">
                       {uploadTags.includes('Own Goal') && (
-                        <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded px-2 py-1.5">
+                        <div className="text-xs text-rose-300 bg-rose-500/15 border border-rose-400/30 rounded px-2 py-1.5">
                           🥅 <strong>Own goal:</strong> team gets +1, no scorer credit. Award the assist below if applicable.
                         </div>
                       )}
                       {!uploadTags.includes('Own Goal') && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">⚽ Goal scorer</label>
+                          <label className="block text-sm font-medium text-bone/85 mb-1">⚽ Goal scorer</label>
                           <div className="flex flex-wrap gap-1.5">
                             {players.map(p => {
                               const isSel = (uploadGoalScorerId || uploadPlayerId) === p.id;
@@ -1713,7 +1713,7 @@ const PlayerMediaPage: React.FC = () => {
                                   type="button"
                                   onClick={() => setUploadGoalScorerId(p.id)}
                                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                    isSel ? 'bg-charcoal-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                    isSel ? 'bg-charcoal-600 text-white' : 'bg-charcoal-900 text-bone/65 border border-white/10 hover:bg-white/[0.05]'
                                   }`}
                                 >
                                   {p.name}
@@ -1721,11 +1721,11 @@ const PlayerMediaPage: React.FC = () => {
                               );
                             })}
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">Defaults to the player this clip is for. +1 to their goals.</p>
+                          <p className="text-xs text-bone/50 mt-1">Defaults to the player this clip is for. +1 to their goals.</p>
                         </div>
                       )}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">🅰️ Assisted by <span className="text-gray-400 font-normal">(optional)</span></label>
+                        <label className="block text-sm font-medium text-bone/85 mb-1">🅰️ Assisted by <span className="text-bone/40 font-normal">(optional)</span></label>
                         <div className="flex flex-wrap gap-1.5">
                           {players
                             .filter(p => uploadTags.includes('Own Goal') || p.id !== (uploadGoalScorerId || uploadPlayerId))
@@ -1737,7 +1737,7 @@ const PlayerMediaPage: React.FC = () => {
                                   type="button"
                                   onClick={() => setUploadAssistByIds(prev => isSel ? prev.filter(x => x !== p.id) : [...prev, p.id])}
                                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                    isSel ? 'bg-violet-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                    isSel ? 'bg-violet-600 text-white' : 'bg-charcoal-900 text-bone/65 border border-white/10 hover:bg-white/[0.05]'
                                   }`}
                                 >
                                   {p.name}
@@ -1745,29 +1745,29 @@ const PlayerMediaPage: React.FC = () => {
                               );
                             })}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Each pick gets +1 to their assists.</p>
+                        <p className="text-xs text-bone/50 mt-1">Each pick gets +1 to their assists.</p>
                       </div>
                     </div>
                   )}
                   {recentGames.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Link to game <span className="text-gray-400 font-normal">(optional, prevents double-counting)</span>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">
+                        Link to game <span className="text-bone/40 font-normal">(optional, prevents double-counting)</span>
                       </label>
                       <select
                         value={uploadGameId}
                         onChange={e => setUploadGameId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
+                        className="w-full px-3 py-2 rounded-xl border border-white/15 focus:border-crimson-500 focus:ring-2 focus:ring-crimson-500/20 text-sm"
                       >
                         <option value="">— Not linked —</option>
                         {recentGames.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">If the coach already tapped this goal on Game Day, linking attaches your clip without doubling stats.</p>
+                      <p className="text-xs text-bone/50 mt-1">If the coach already tapped this goal on Game Day, linking attaches your clip without doubling stats.</p>
                     </div>
                   )}
                   {players.length > 1 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tag Other Players</label>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">Tag Other Players</label>
                       <div className="flex flex-wrap gap-1.5">
                         {players
                           .filter(p => p.id !== uploadPlayerId)
@@ -1779,14 +1779,14 @@ const PlayerMediaPage: React.FC = () => {
                               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                                 uploadTaggedPlayers.includes(p.id)
                                   ? 'bg-green-600 text-white'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  : 'bg-white/[0.08] text-bone/65 hover:bg-white/[0.1]'
                               }`}
                             >
                               {p.name}
                             </button>
                           ))}
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">Tag players involved in this clip</p>
+                      <p className="text-xs text-bone/40 mt-1">Tag players involved in this clip</p>
                     </div>
                   )}
                   {uploading && (
@@ -1794,13 +1794,13 @@ const PlayerMediaPage: React.FC = () => {
                       {compressionStatus && (
                         <div className="mb-2 flex items-center space-x-2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-charcoal-600"></div>
-                          <p className="text-sm text-charcoal-700 font-medium">{compressionStatus}</p>
+                          <p className="text-sm text-bone/85 font-medium">{compressionStatus}</p>
                         </div>
                       )}
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-white/15 rounded-full h-2">
                         <div className="h-2 rounded-full bg-crimson-500 transition-all" style={{ width: `${uploadProgress}%` }} />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-bone/50 mt-1">
                         {compressionStatus ? 'Optimizing for mobile playback...' : `Uploading... ${uploadProgress}%`}
                       </p>
                     </div>
@@ -1810,7 +1810,7 @@ const PlayerMediaPage: React.FC = () => {
                   <button
                     onClick={() => { resetUploadForm(); setShowUploadModal(false); }}
                     disabled={uploading}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    className="px-4 py-2 border border-white/15 rounded-lg text-bone/85 hover:bg-white/[0.05] disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -1895,7 +1895,7 @@ const PlayerMediaPage: React.FC = () => {
                     className="flex items-center space-x-1.5 text-white hover:scale-110 transition-transform"
                   >
                     {selectedMedia.likes?.includes(userData?.uid || '') ? (
-                      <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                      <svg className="w-6 h-6 text-rose-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     ) : (
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                     )}
@@ -1984,7 +1984,7 @@ const PlayerMediaPage: React.FC = () => {
                             onClick={handleSetThumbnailFromCurrentFrame}
                             disabled={savingThumbnail}
                             title="Pause the video at the frame you want, then tap this to use it as the thumbnail"
-                            className="flex items-center space-x-1.5 text-gray-300 hover:text-crimson-400 disabled:opacity-50 transition-colors"
+                            className="flex items-center space-x-1.5 text-bone/35 hover:text-crimson-400 disabled:opacity-50 transition-colors"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             <span className="text-sm font-medium hidden sm:inline">
@@ -1996,7 +1996,7 @@ const PlayerMediaPage: React.FC = () => {
                           onClick={() => replaceFileInputRef.current?.click()}
                           disabled={replacing}
                           title="Replace video (preserves likes, tags, caption)"
-                          className="flex items-center space-x-1.5 text-gray-300 hover:text-crimson-400 disabled:opacity-50 transition-colors"
+                          className="flex items-center space-x-1.5 text-bone/35 hover:text-crimson-400 disabled:opacity-50 transition-colors"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                           <span className="text-sm font-medium hidden sm:inline">{replacing ? `${replaceProgress}%` : 'Replace'}</span>
@@ -2006,7 +2006,7 @@ const PlayerMediaPage: React.FC = () => {
                     <button
                       onClick={() => { handleDelete(selectedMedia); setSelectedMedia(null); }}
                       disabled={replacing}
-                      className="flex items-center space-x-1.5 text-gray-400 hover:text-red-400 disabled:opacity-50 transition-colors"
+                      className="flex items-center space-x-1.5 text-bone/40 hover:text-red-400 disabled:opacity-50 transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
@@ -2117,8 +2117,8 @@ const PlayerMediaPage: React.FC = () => {
                         onChange={e => setEditingGameId(e.target.value)}
                         className="w-full bg-white/10 ring-1 ring-white/20 rounded-lg px-2 py-1.5 text-xs text-white"
                       >
-                        <option value="" className="text-gray-900">— Not linked —</option>
-                        {recentGames.map(g => <option key={g.id} value={g.id} className="text-gray-900">{g.label}</option>)}
+                        <option value="" className="text-bone">— Not linked —</option>
+                        {recentGames.map(g => <option key={g.id} value={g.id} className="text-bone">{g.label}</option>)}
                       </select>
                       <p className="text-[10px] text-white/40 mt-1">Linking dedupes against the coach’s live taps so stats aren’t doubled.</p>
                     </div>
@@ -2149,7 +2149,7 @@ const PlayerMediaPage: React.FC = () => {
                   )}
                 </div>
               )}
-              <p className="text-gray-400 text-center mt-1 text-xs">
+              <p className="text-bone/40 text-center mt-1 text-xs">
                 {selectedMedia.playerName} • Uploaded by {selectedMedia.uploadedByName}
               </p>
             </div>
@@ -2173,26 +2173,26 @@ const PlayerMediaPage: React.FC = () => {
               onClick={close}
             >
               <div
-                className="bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
+                className="bg-charcoal-900 rounded-2xl shadow-2xl max-w-sm w-full max-h-[70vh] overflow-hidden flex flex-col"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-800">{title}</h3>
-                  <button onClick={close} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+                <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                  <h3 className="font-semibold text-bone/90">{title}</h3>
+                  <button onClick={close} className="text-bone/40 hover:text-bone/65 text-xl leading-none">✕</button>
                 </div>
                 <div className="overflow-y-auto flex-1">
                   {uids.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm text-gray-500">{empty}</p>
+                    <p className="px-4 py-6 text-center text-sm text-bone/50">{empty}</p>
                   ) : (
-                    <ul className="divide-y divide-gray-100">
+                    <ul className="divide-y divide-white/5">
                       {uids.map(uid => (
                         <li key={uid} className="px-4 py-2.5 flex items-center space-x-3">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-crimson-400 to-crimson-500 flex items-center justify-center text-white text-xs font-bold">
                             {(usersMap[uid] || '?').charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm text-gray-800">
+                          <span className="text-sm text-bone/90">
                             {usersMap[uid] || 'Unknown user'}
-                            {uid === userData?.uid && <span className="text-gray-400 ml-1">(you)</span>}
+                            {uid === userData?.uid && <span className="text-bone/40 ml-1">(you)</span>}
                           </span>
                         </li>
                       ))}
@@ -2222,7 +2222,7 @@ interface MediaGridProps {
 const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData, viewMode }) => {
   if (items.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-bone/50">
         No media uploaded yet.
       </div>
     );
@@ -2235,42 +2235,42 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
     return (
       <div className="space-y-2">
         {items.map(item => (
-          <div key={item.id} className="flex items-center space-x-4 bg-white rounded-lg border border-gray-200 p-3 hover:bg-gray-50">
+          <div key={item.id} className="flex items-center space-x-4 bg-charcoal-900 rounded-lg border border-white/10 p-3 hover:bg-white/[0.05]">
             <div
-              className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer"
+              className="w-16 h-16 rounded-lg overflow-hidden bg-white/[0.08] flex-shrink-0 cursor-pointer"
               onClick={() => onView(item)}
             >
               {item.type === 'video' ? (
-                <div className="w-full h-full flex items-center justify-center bg-gray-800 text-white text-2xl">▶</div>
+                <div className="w-full h-full flex items-center justify-center bg-charcoal-800 text-white text-2xl">▶</div>
               ) : (
                 <img src={item.url} alt={item.caption || ''} className="w-full h-full object-cover" loading="lazy" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{item.caption || item.fileName}</p>
-              <p className="text-xs text-gray-500">{item.playerName} • {item.type} • {item.uploadedByName}</p>
+              <p className="text-sm font-medium text-bone truncate">{item.caption || item.fileName}</p>
+              <p className="text-xs text-bone/50">{item.playerName} • {item.type} • {item.uploadedByName}</p>
               {item.tags && item.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {item.tags.map(tag => (
-                    <span key={tag} className="px-1.5 py-0.5 bg-crimson-50 text-charcoal-600 rounded text-[10px] font-medium">{tag}</span>
+                    <span key={tag} className="px-1.5 py-0.5 bg-crimson-500/15 text-bone/65 rounded text-[10px] font-medium">{tag}</span>
                   ))}
                 </div>
               )}
             </div>
             <div className="flex items-center space-x-3 flex-shrink-0">
-              <button onClick={(e) => { e.stopPropagation(); onLike(item); }} className="flex items-center space-x-1 text-gray-500 hover:text-red-500 transition-colors">
+              <button onClick={(e) => { e.stopPropagation(); onLike(item); }} className="flex items-center space-x-1 text-bone/50 hover:text-rose-300 transition-colors">
                 {isLiked(item) ? (
-                  <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <svg className="w-4 h-4 text-rose-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                 )}
                 <span className="text-xs">{item.likeCount || 0}</span>
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onShare(item); }} className="text-gray-400 hover:text-crimson-500 transition-colors">
+              <button onClick={(e) => { e.stopPropagation(); onShare(item); }} className="text-bone/40 hover:text-crimson-500 transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
               </button>
               {canDelete(item) && (
-                <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} className="text-gray-400 hover:text-red-500 transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); onDelete(item); }} className="text-bone/40 hover:text-rose-300 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
               )}
@@ -2284,11 +2284,11 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
       {items.map(item => (
-        <div key={item.id} className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+        <div key={item.id} className="group relative aspect-square bg-white/[0.08] rounded-lg overflow-hidden">
           <div className="cursor-pointer w-full h-full" onClick={() => onView(item)}>
             {item.type === 'video' ? (
               <>
-                <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                <div className="w-full h-full bg-charcoal-800 flex items-center justify-center">
                   <div className="w-10 h-10 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
                     <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                   </div>
@@ -2322,7 +2322,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ items, onView, onDelete, onLike, 
                   className="flex items-center space-x-1 transition-transform hover:scale-110"
                 >
                   {isLiked(item) ? (
-                    <svg className="w-4 h-4 text-red-500 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <svg className="w-4 h-4 text-rose-300 drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                   ) : (
                     <svg className="w-4 h-4 text-white/90 drop-shadow" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                   )}
@@ -2379,7 +2379,7 @@ const StatCard: React.FC<{ icon: string; label: string; value: string; accent: s
     <div className="flex items-center gap-3">
       <div className="text-2xl sm:text-3xl">{icon}</div>
       <div className="min-w-0">
-        <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">{label}</div>
+        <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-bone/40">{label}</div>
         <div className="text-base sm:text-xl font-black text-white truncate">{value}</div>
       </div>
     </div>
@@ -2408,14 +2408,14 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
   const tagColor: Record<string, string> = {
     Goal: 'bg-yellow-400 text-yellow-950',
     Assist: 'bg-green-400 text-green-950',
-    Save: 'bg-crimson-400 text-charcoal-950',
+    Save: 'bg-crimson-400 text-bone',
     Skill: 'bg-purple-400 text-purple-950',
     Highlight: 'bg-pink-400 text-pink-950',
   };
   return (
     <button
       onClick={onClick}
-      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/50 transition-all hover:shadow-2xl hover:shadow-crimson-500/10 text-left"
+      className="group relative aspect-video w-full bg-charcoal-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/50 transition-all hover:shadow-2xl hover:shadow-crimson-500/10 text-left"
     >
       {item.type === 'video' ? (
         ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
@@ -2465,7 +2465,7 @@ const FeaturedCard: React.FC<FeaturedCardProps> = ({ item, player, timeAgo, onCl
           )}
           <div className="flex-1 min-w-0">
             <div className="text-white text-sm font-bold truncate uppercase tracking-wide">{item.playerName}</div>
-            <div className="text-gray-300 text-xs truncate">{timeAgo}{item.caption ? ` · ${item.caption}` : ''}</div>
+            <div className="text-bone/35 text-xs truncate">{timeAgo}{item.caption ? ` · ${item.caption}` : ''}</div>
           </div>
           {primaryTag && (
             <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex-shrink-0 ${tagColor[primaryTag]}`}>
@@ -2488,7 +2488,7 @@ const RankedCard: React.FC<RankedCardProps> = ({ rank, item, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="group relative aspect-video w-full bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/50 transition-all text-left"
+      className="group relative aspect-video w-full bg-charcoal-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/50 transition-all text-left"
     >
       {item.type === 'video' ? (
         ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
@@ -2523,7 +2523,7 @@ const RankedCard: React.FC<RankedCardProps> = ({ rank, item, onClick }) => {
       </div>
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-3 pt-10">
         <div className="text-white text-sm font-bold truncate uppercase">{item.playerName}</div>
-        <div className="flex items-center justify-between text-xs text-gray-300 mt-0.5">
+        <div className="flex items-center justify-between text-xs text-bone/35 mt-0.5">
           <span className="truncate">{item.caption || (item.tags && item.tags[0]) || 'Highlight'}</span>
           <span className="flex items-center gap-1 flex-shrink-0 ml-2">
             <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
@@ -2546,14 +2546,14 @@ interface DarkMediaGridProps {
 }
 const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, onLike, onShare, userData }) => {
   if (items.length === 0) {
-    return <div className="text-center py-8 text-gray-500 text-sm">No clips here.</div>;
+    return <div className="text-center py-8 text-bone/50 text-sm">No clips here.</div>;
   }
   const isLiked = (item: PlayerMediaType) => item.likes?.includes(userData?.uid || '') || false;
   const canDelete = (item: PlayerMediaType) => userData?.uid === item.uploadedBy || userData?.role === 'coach';
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
       {items.map(item => (
-        <div key={item.id} className="group relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/40 transition-colors">
+        <div key={item.id} className="group relative aspect-square bg-charcoal-900 rounded-xl overflow-hidden border border-white/5 hover:border-crimson-500/40 transition-colors">
           <button onClick={() => onView(item)} className="w-full h-full block">
             {item.type === 'video' ? (
               ((item as any).source === 'youtube' || (item as any).source === 'trace') ? (
@@ -2595,7 +2595,7 @@ const DarkMediaGrid: React.FC<DarkMediaGridProps> = ({ items, onView, onDelete, 
             <div className="flex items-center justify-between">
               <button onClick={(e) => { e.stopPropagation(); onLike(item); }} className="flex items-center gap-1 hover:scale-110 transition-transform">
                 {isLiked(item) ? (
-                  <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                  <svg className="w-4 h-4 text-rose-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
                 ) : (
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                 )}

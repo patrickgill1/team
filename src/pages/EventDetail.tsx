@@ -673,15 +673,15 @@ const EventDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-400/30 border-t-cyan-500" />
       </div>
     );
   }
 
   if (!event || !eventDate) {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-8 text-center">
+      <div className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center p-8 text-center">
         <p className="text-charcoal-400 mb-4">Event not found.</p>
         <Link to="/calendar" className="text-crimson-600 font-semibold">← Back to events</Link>
       </div>
@@ -699,11 +699,11 @@ const EventDetail: React.FC = () => {
     countdown?.variant === 'live'
       ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
       : countdown?.variant === 'past'
-      ? 'bg-slate-500/10 border-slate-500/20 text-charcoal-500'
-      : 'bg-crimson-500/10 border-crimson-500/25 text-slate-200';
+      ? 'bg-white/[0.04]0/10 border-slate-500/20 text-bone/50'
+      : 'bg-crimson-500/10 border-crimson-500/25 text-bone/85';
   const pulseClass =
     countdown?.variant === 'live' ? 'bg-rose-500'
-    : countdown?.variant === 'past' ? 'bg-slate-500'
+    : countdown?.variant === 'past' ? 'bg-white/[0.04]0'
     : 'bg-crimson-400 animate-pulse';
 
   return (
@@ -787,7 +787,7 @@ const EventDetail: React.FC = () => {
                 <Icon name="cal" className="w-3.5 h-3.5 text-crimson-400" />
                 {eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
-              <span className="text-charcoal-500">·</span>
+              <span className="text-bone/50">·</span>
               <span className="inline-flex items-center gap-1.5">
                 <Icon name="clock" className="w-3.5 h-3.5 text-crimson-400" />
                 {formatTimeRange(eventDate, eventEnd)}
@@ -825,7 +825,7 @@ const EventDetail: React.FC = () => {
           called off. Keeps the event visible so attendees see WHY
           nothing's happening, instead of the event silently vanishing. */}
       {event.isCancelled && (
-        <div className="bg-amber-50 border-y border-amber-200 px-4 sm:px-6 py-3">
+        <div className="bg-amber-500/15 border-y border-amber-400/30 px-4 sm:px-6 py-3">
           <div className="flex items-start gap-3 max-w-3xl mx-auto">
             <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-white flex-shrink-0">
               Cancelled
@@ -834,7 +834,7 @@ const EventDetail: React.FC = () => {
               {event.cancelReason ? (
                 <p className="leading-snug">{event.cancelReason}</p>
               ) : (
-                <p className="leading-snug italic text-amber-800">No reason given.</p>
+                <p className="leading-snug italic text-amber-200">No reason given.</p>
               )}
             </div>
           </div>
@@ -857,16 +857,16 @@ const EventDetail: React.FC = () => {
             <button
               type="button"
               onClick={() => setAttendanceOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-slate-50 text-left"
+              className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-white/[0.05] text-left"
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <Icon name="check" className="w-3 h-3 text-crimson-500 shrink-0" />
                 <span className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400">Mark attendance</span>
-                <span className="text-[10px] text-charcoal-500 font-bold ml-1 truncate">
+                <span className="text-[10px] text-bone/50 font-bold ml-1 truncate">
                   · {goingCount} going · {roster.length} on roster
                 </span>
               </div>
-              <svg className={`w-4 h-4 text-charcoal-500 shrink-0 transition-transform ${attendanceOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              <svg className={`w-4 h-4 text-bone/50 shrink-0 transition-transform ${attendanceOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
             </button>
             {attendanceOpen && (
               <ul className="divide-y divide-white/10 px-4 sm:px-6 pb-3">
@@ -880,7 +880,7 @@ const EventDetail: React.FC = () => {
                       className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
                         current === status
                           ? `${active} text-white border-transparent shadow-sm`
-                          : 'bg-white text-charcoal-400 border-slate-200 hover:border-slate-300'
+                          : 'bg-charcoal-900 text-charcoal-400 border-white/10 hover:border-white/15'
                       }`}
                     >
                       {label}
@@ -889,9 +889,9 @@ const EventDetail: React.FC = () => {
                   return (
                     <li key={p.id} className="flex items-center gap-2 py-1.5">
                       {p.photoURL ? (
-                        <img src={p.photoURL} alt="" className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 shrink-0" />
+                        <img src={p.photoURL} alt="" className="w-7 h-7 rounded-full object-cover ring-1 ring-white/10 shrink-0" />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold text-charcoal-400 shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-charcoal-950 flex items-center justify-center text-[11px] font-bold text-charcoal-400 shrink-0">
                           {(p.name || '?').charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -987,7 +987,7 @@ const EventDetail: React.FC = () => {
         <section className={`px-4 sm:px-6 py-3 ${
           (event as any).homeAway === 'home'
             ? 'bg-charcoal-900 ring-1 ring-charcoal-700 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
-            : 'bg-white ring-1 ring-slate-200/80 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
+            : 'bg-charcoal-900 ring-1 ring-white/10/80 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
         }`}>
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -995,7 +995,7 @@ const EventDetail: React.FC = () => {
               <span className={`inline-block w-9 h-9 rounded-md border-2 flex-shrink-0 ${
                 (event as any).homeAway === 'home'
                   ? 'bg-charcoal-900 border-slate-600'
-                  : 'bg-white border-slate-300'
+                  : 'bg-charcoal-900 border-white/15'
               }`} aria-hidden />
               <div>
                 <div className={`text-xs font-extrabold tracking-widest uppercase ${
@@ -1004,7 +1004,7 @@ const EventDetail: React.FC = () => {
                   {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
                 </div>
                 <div className={`text-[11px] mt-0.5 ${
-                  (event as any).homeAway === 'home' ? 'text-charcoal-500' : 'text-charcoal-500'
+                  (event as any).homeAway === 'home' ? 'text-bone/50' : 'text-bone/50'
                 }`}>
                   Wear your <span className="font-bold">{(event as any).homeAway === 'home' ? 'black' : 'white'}</span> jersey
                 </div>
@@ -1013,7 +1013,7 @@ const EventDetail: React.FC = () => {
             <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
               (event as any).homeAway === 'home'
                 ? 'bg-crimson-500/15 text-bone border-crimson-500/30'
-                : 'bg-slate-100 text-charcoal-400 border-slate-200'
+                : 'bg-charcoal-950 text-charcoal-400 border-white/10'
             }`}>
               {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
             </span>
@@ -1046,7 +1046,7 @@ const EventDetail: React.FC = () => {
             <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">CAN'T</div>
           </div>
           <div className="relative overflow-hidden rounded-lg bg-charcoal-800 ring-1 ring-white/10 px-3 py-2.5">
-            <span className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-white/40" />
             <div className="text-2xl font-black text-charcoal-200 leading-none">{buckets.pending}</div>
             <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">PENDING</div>
           </div>
@@ -1078,7 +1078,7 @@ const EventDetail: React.FC = () => {
                     <img
                       src={photo}
                       alt=""
-                      className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 flex-shrink-0"
+                      className="w-7 h-7 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                     />
                   ) : (
@@ -1092,8 +1092,8 @@ const EventDetail: React.FC = () => {
                       onClick={() => setMergingToken(mergingToken === p.guestToken ? null : p.guestToken)}
                       className={`text-[9px] font-extrabold tracking-widest px-2 py-0.5 rounded border ${
                         p.matchedPlayerId
-                          ? 'bg-emerald-50 text-emerald-300 border-emerald-300 hover:bg-emerald-100'
-                          : 'bg-crimson-50 text-crimson-700 border-crimson-200 hover:bg-crimson-100'
+                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-300 hover:bg-emerald-500/20'
+                          : 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30 hover:bg-crimson-500/20'
                       }`}
                     >
                       {p.matchedPlayerId ? 'ACCEPT MATCH' : 'MERGE'}
@@ -1108,7 +1108,7 @@ const EventDetail: React.FC = () => {
                   </span>
                 </div>
                 {p.isGuest && mergingToken === p.guestToken && (
-                  <div className="mt-2 ml-9 rounded-lg border border-crimson-200 bg-crimson-50/60 p-2">
+                  <div className="mt-2 ml-9 rounded-lg border border-crimson-400/30 bg-crimson-500/15/60 p-2">
                     <div className="text-[11px] text-charcoal-200 mb-1.5">
                       Merge <span className="font-bold">"{p.name}"</span> into roster player:
                     </div>
@@ -1125,7 +1125,7 @@ const EventDetail: React.FC = () => {
                             key={rp.id}
                             disabled={mergeBusy}
                             onClick={() => mergeGuestIntoRoster(p.guestToken, rp.id, rp.name)}
-                            className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between hover:bg-crimson-100 disabled:opacity-50 ${
+                            className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between hover:bg-crimson-500/20 disabled:opacity-50 ${
                               matches ? 'font-bold text-crimson-900' : 'text-charcoal-200'
                             }`}
                           >
@@ -1137,7 +1137,7 @@ const EventDetail: React.FC = () => {
                     </div>
                     <button
                       onClick={() => setMergingToken(null)}
-                      className="mt-1 w-full text-center text-[11px] font-bold text-charcoal-500 py-1 hover:text-charcoal-200"
+                      className="mt-1 w-full text-center text-[11px] font-bold text-bone/50 py-1 hover:text-charcoal-200"
                     >
                       Cancel
                     </button>
@@ -1163,9 +1163,9 @@ const EventDetail: React.FC = () => {
             <span className="text-3xl" aria-hidden>{weather.icon}</span>
             <div>
               <div className="text-xl font-black text-bone leading-none">
-                {weather.tempMaxF}° <span className="text-charcoal-500 font-semibold text-sm">/ {weather.tempMinF}°</span>
+                {weather.tempMaxF}° <span className="text-bone/50 font-semibold text-sm">/ {weather.tempMinF}°</span>
               </div>
-              <div className="text-[11px] text-charcoal-500 mt-1 tracking-wide uppercase">
+              <div className="text-[11px] text-bone/50 mt-1 tracking-wide uppercase">
                 {weather.label}
                 {weather.precipChance >= 20 && ` · ${weather.precipChance}% rain`}
               </div>
@@ -1358,7 +1358,7 @@ const EventDetail: React.FC = () => {
               })}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-700 hover:text-crimson-900"
+              className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 hover:text-crimson-900"
             >
               Open in Maps →
             </a>
@@ -1367,12 +1367,12 @@ const EventDetail: React.FC = () => {
             <iframe
               title="Event location"
               src={osmEmbedUrl((event as any).locationCoords.lat, (event as any).locationCoords.lon, 16)}
-              className="w-full h-44 block bg-slate-100"
+              className="w-full h-44 block bg-charcoal-950"
               loading="lazy"
             />
           </div>
           {(event as any).locationAddress && (
-            <p className="mt-1.5 text-[11px] text-charcoal-500">{(event as any).locationAddress}</p>
+            <p className="mt-1.5 text-[11px] text-bone/50">{(event as any).locationAddress}</p>
           )}
         </section>
       )}
@@ -1438,7 +1438,7 @@ const PackingListSection: React.FC<{
         )}
         {editing && (
           <div className="flex gap-2">
-            <button onClick={() => setEditing(false)} className="text-[11px] font-bold tracking-wide text-charcoal-500">Cancel</button>
+            <button onClick={() => setEditing(false)} className="text-[11px] font-bold tracking-wide text-bone/50">Cancel</button>
             <button onClick={saveEdits} className="text-[11px] font-extrabold tracking-widest uppercase text-emerald-600">Save</button>
           </div>
         )}
@@ -1460,7 +1460,7 @@ const PackingListSection: React.FC<{
               />
               <button
                 onClick={() => setDraftLabels(draftLabels.filter((_, j) => j !== i))}
-                className="text-rose-500 text-xs font-bold"
+                className="text-rose-300 text-xs font-bold"
               >Remove</button>
             </div>
           ))}
@@ -1490,7 +1490,7 @@ const PackingListSection: React.FC<{
           </div>
         </div>
       ) : list.length === 0 ? (
-        <p className="text-sm text-charcoal-500">No packing list set yet.</p>
+        <p className="text-sm text-bone/50">No packing list set yet.</p>
       ) : (
         <ul className="space-y-1.5">
           {list.map((item: any) => {
@@ -1503,13 +1503,13 @@ const PackingListSection: React.FC<{
                   className="w-full flex items-center gap-2.5 py-1 text-left disabled:cursor-not-allowed"
                 >
                   <span className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                    isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'
+                    isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/15'
                   }`}>
                     {isChecked && (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                     )}
                   </span>
-                  <span className={`text-sm ${isChecked ? 'line-through text-charcoal-500' : 'text-charcoal-200'}`}>
+                  <span className={`text-sm ${isChecked ? 'line-through text-bone/50' : 'text-charcoal-200'}`}>
                     {item.label}
                   </span>
                 </button>

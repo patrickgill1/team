@@ -244,20 +244,20 @@ const AttendanceTracker: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
-          <span className="text-sm text-gray-400 font-medium">Loading...</span>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
+          <span className="text-sm text-bone/40 font-medium">Loading...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <Header title="Attendance" subtitle="Track who showed up to practices, games, and events" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {calendarEvents.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-6 mb-6 flex items-center justify-between gap-4">
-            <p className="text-sm text-gray-600">No events found yet.</p>
+          <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10 p-6 mb-6 flex items-center justify-between gap-4">
+            <p className="text-sm text-bone/65">No events found yet.</p>
             <Link
               to="/calendar"
               className="inline-flex items-center gap-2 bg-crimson-600 hover:bg-crimson-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
@@ -280,17 +280,17 @@ const AttendanceTracker: React.FC = () => {
           {/* Attendance Taking */}
           <div className="lg:col-span-2">
             <div className="card-modern">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-4 border-b border-white/10">
                 {/* Stack on mobile so a long event name in the select
                     can't push the row past the viewport (which was
                     triggering horizontal scroll on the whole page). */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
-                  <h2 className="text-lg font-semibold text-gray-900 shrink-0">RSVP Players</h2>
+                  <h2 className="text-lg font-semibold text-bone shrink-0">RSVP Players</h2>
                   {calendarEvents.length > 0 && (
                     <select
                       value={selectedEvent}
                       onChange={(e) => setSelectedEvent(e.target.value)}
-                      className="min-w-0 max-w-full w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 text-sm"
+                      className="min-w-0 max-w-full w-full sm:w-auto px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 text-sm"
                       style={{ fontSize: '16px' }}
                     >
                       <option value="">Select an event...</option>
@@ -313,26 +313,26 @@ const AttendanceTracker: React.FC = () => {
                 <div className="p-4 sm:p-6">
                   {/* Event Info — wraps on narrow screens; chip colors
                       follow the brand event palette. */}
-                  <div className="mb-4 p-4 bg-crimson-50 rounded-lg">
+                  <div className="mb-4 p-4 bg-crimson-500/15 rounded-lg">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 min-w-0">
                       <div className="min-w-0">
                         <h3 className="font-medium text-crimson-900 truncate">{selectedEventData.title}</h3>
-                        <p className="text-sm text-crimson-700 truncate">
+                        <p className="text-sm text-crimson-300 truncate">
                           {formatDate(selectedEventData.date)} • {selectedEventData.location || 'No location'}
                         </p>
                         <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
                           selectedEventData.type === 'game'
                             ? 'bg-charcoal-700/10 text-charcoal-800'
                             : selectedEventData.type === 'practice'
-                              ? 'bg-crimson-100 text-charcoal-800'
-                              : 'bg-crimson-50 text-charcoal-700'
+                              ? 'bg-crimson-500/20 text-charcoal-800'
+                              : 'bg-crimson-500/15 text-bone/85'
                         }`}>
                           {selectedEventData.type.charAt(0).toUpperCase() + selectedEventData.type.slice(1)}
                         </span>
                       </div>
                       <Link
                         to="/calendar"
-                        className="inline-flex items-center gap-1 text-crimson-700 hover:text-crimson-800 text-sm font-semibold shrink-0"
+                        className="inline-flex items-center gap-1 text-crimson-300 hover:text-crimson-200 text-sm font-semibold shrink-0"
                       >
                         <AppIcon name="calendar" className="w-4 h-4" />
                         <span>View in Events</span>
@@ -347,7 +347,7 @@ const AttendanceTracker: React.FC = () => {
                         const currentStatus = attendanceData[player.id] || '';
 
                         return (
-                          <div key={player.id} className="p-3 border border-gray-200 rounded-lg">
+                          <div key={player.id} className="p-3 border border-white/10 rounded-lg">
                             {/* Stack player + buttons vertically on mobile,
                                 row layout on sm+. Buttons get their own
                                 wrappable row so 4 of them can sit on a
@@ -365,26 +365,26 @@ const AttendanceTracker: React.FC = () => {
                                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                                   />
                                 ) : (
-                                  <div className="bg-crimson-50 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
+                                  <div className="bg-crimson-500/15 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
                                     <span className="text-sm font-bold text-crimson-600">#{player.jerseyNumber}</span>
                                   </div>
                                 )}
                                 <div className="min-w-0">
-                                  <p className="font-medium text-gray-900 truncate">
+                                  <p className="font-medium text-bone truncate">
                                     {player.name}
                                     {player.jerseyNumber != null && (player as any).profilePhotoUrl && (
-                                      <span className="text-xs text-gray-500 font-normal ml-1.5">#{player.jerseyNumber}</span>
+                                      <span className="text-xs text-bone/50 font-normal ml-1.5">#{player.jerseyNumber}</span>
                                     )}
                                   </p>
-                                  <p className="text-sm text-gray-600 truncate">{player.position}</p>
+                                  <p className="text-sm text-bone/65 truncate">{player.position}</p>
                                 </div>
                               </div>
 
                               <div className="flex flex-wrap gap-1.5 sm:gap-2 sm:shrink-0">
                                 {[
-                                  { key: 'going', label: 'Going', active: 'bg-emerald-100 text-emerald-800' },
-                                  { key: 'maybe', label: 'Maybe', active: 'bg-amber-100 text-amber-800' },
-                                  { key: 'no', label: "Can't", active: 'bg-rose-100 text-rose-800' },
+                                  { key: 'going', label: 'Going', active: 'bg-emerald-500/20 text-emerald-200' },
+                                  { key: 'maybe', label: 'Maybe', active: 'bg-amber-500/20 text-amber-200' },
+                                  { key: 'no', label: "Can't", active: 'bg-rose-500/20 text-rose-800' },
                                 ].map(({ key, label, active }) => (
                                   <button
                                     key={key}
@@ -393,7 +393,7 @@ const AttendanceTracker: React.FC = () => {
                                     className={`flex-1 sm:flex-initial min-w-0 px-2.5 py-1 rounded text-xs sm:text-sm font-medium transition-colors ${
                                       currentStatus === key
                                         ? active
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        : 'bg-white/[0.08] text-bone/65 hover:bg-white/[0.1]'
                                     } ${!isUserCoach ? 'cursor-not-allowed opacity-50' : ''}`}
                                   >
                                     {label}
@@ -406,7 +406,7 @@ const AttendanceTracker: React.FC = () => {
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-600">
+                    <div className="text-center py-8 text-bone/65">
                       <p>No players found. Add players to track attendance.</p>
                       <Link
                         to="/players"
@@ -419,7 +419,7 @@ const AttendanceTracker: React.FC = () => {
 
                   {/* Save Button */}
                   {isUserCoach && players.length > 0 && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="mt-6 pt-4 border-t border-white/10">
                       <button
                         onClick={saveAttendance}
                         disabled={saving}
@@ -441,13 +441,13 @@ const AttendanceTracker: React.FC = () => {
                 <div className="p-6 text-center">
                   {calendarEvents.length === 0 ? (
                     <div>
-                      <div className="text-gray-400 mb-4">
+                      <div className="text-bone/40 mb-4">
                         <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Events Found</h3>
-                      <p className="text-gray-600 mb-4">
+                      <h3 className="text-lg font-medium text-bone mb-2">No Events Found</h3>
+                      <p className="text-bone/65 mb-4">
                         Create events in the calendar first, then track attendance here.
                       </p>
                       <Link
@@ -459,7 +459,7 @@ const AttendanceTracker: React.FC = () => {
                       </Link>
                     </div>
                   ) : (
-                    <p className="text-gray-600">Select an event to take attendance</p>
+                    <p className="text-bone/65">Select an event to take attendance</p>
                   )}
                 </div>
               )}
@@ -469,8 +469,8 @@ const AttendanceTracker: React.FC = () => {
           {/* Player Stats */}
           <div>
             <div className="card-modern">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Player Stats</h2>
+              <div className="px-6 py-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold text-bone">Player Stats</h2>
               </div>
               <div className="p-6">
                 {players.length > 0 ? (
@@ -480,21 +480,21 @@ const AttendanceTracker: React.FC = () => {
                       return (
                         <div key={player.id} className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className="bg-crimson-50 rounded-full w-8 h-8 flex items-center justify-center">
+                            <div className="bg-crimson-500/15 rounded-full w-8 h-8 flex items-center justify-center">
                               <span className="text-xs font-bold text-crimson-600">#{player.jerseyNumber}</span>
                             </div>
-                            <span className="text-sm font-medium text-gray-900">{player.name}</span>
+                            <span className="text-sm font-medium text-bone">{player.name}</span>
                           </div>
                           <div className="text-right">
-                            <div className="text-sm font-medium text-gray-900">{playerStat.percentage}%</div>
-                            <div className="text-xs text-gray-600">{playerStat.present}/{playerStat.total}</div>
+                            <div className="text-sm font-medium text-bone">{playerStat.percentage}%</div>
+                            <div className="text-xs text-bone/65">{playerStat.present}/{playerStat.total}</div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-600">
+                  <div className="text-center text-bone/65">
                     <p>No players to show stats for</p>
                   </div>
                 )}
@@ -508,21 +508,21 @@ const AttendanceTracker: React.FC = () => {
 };
 
 const TINT_BG: Record<string, string> = {
-  cyan: 'bg-crimson-50 text-crimson-700',
-  emerald: 'bg-emerald-50 text-emerald-700',
-  fire: 'bg-crimson-50 text-charcoal-700',
-  navy: 'bg-charcoal-700/10 text-charcoal-700',
-  amber: 'bg-amber-50 text-amber-700',
+  cyan: 'bg-crimson-500/15 text-crimson-300',
+  emerald: 'bg-emerald-500/15 text-emerald-300',
+  fire: 'bg-crimson-500/15 text-bone/85',
+  navy: 'bg-charcoal-700/10 text-bone/85',
+  amber: 'bg-amber-500/15 text-amber-300',
 };
 
 const StatTile: React.FC<{ icon: any; tint: string; label: string; value: React.ReactNode }> = ({ icon, tint, label, value }) => (
-  <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 p-5 flex items-center gap-4">
+  <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10 p-5 flex items-center gap-4">
     <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${TINT_BG[tint] || TINT_BG.cyan}`}>
       <AppIcon name={icon} className="w-5 h-5" />
     </span>
     <div className="min-w-0">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-bone/50">{label}</p>
+      <p className="text-2xl font-bold text-bone mt-0.5">{value}</p>
     </div>
   </div>
 );

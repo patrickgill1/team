@@ -22,16 +22,16 @@ const CATEGORY_LABEL: Record<TicketCategory, string> = {
   other: 'Other',
 };
 const STATUS_CHIP: Record<TicketStatus, string> = {
-  open: 'bg-crimson-50 text-crimson-700 border-crimson-200',
-  assigned: 'bg-amber-50 text-amber-700 border-amber-200',
-  in_progress: 'bg-crimson-50 text-charcoal-700 border-crimson-200',
-  resolved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  closed: 'bg-slate-100 text-slate-500 border-slate-200',
+  open: 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30',
+  assigned: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
+  in_progress: 'bg-crimson-500/15 text-bone/85 border-crimson-400/30',
+  resolved: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
+  closed: 'bg-charcoal-950 text-bone/50 border-white/10',
 };
 const PRIORITY_CHIP: Record<TicketPriority, string> = {
-  low: 'bg-slate-100 text-slate-600 border-slate-200',
-  normal: 'bg-crimson-50 text-crimson-700 border-crimson-200',
-  high: 'bg-rose-50 text-rose-700 border-rose-200',
+  low: 'bg-charcoal-950 text-bone/65 border-white/10',
+  normal: 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30',
+  high: 'bg-rose-500/15 text-rose-300 border-rose-400/30',
 };
 
 async function notifyAdminsOfNewTicket(
@@ -144,7 +144,7 @@ const Helpdesk: React.FC = () => {
   }), [tickets, userData?.uid]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <Header
         title="Club Support"
         subtitle={isAdmin ? `${counts.open} open · ${counts.all} total` : 'Ask the club anything — logistics, issues, ideas'}
@@ -176,8 +176,8 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setStatusFilter(k)}
                   className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     statusFilter === k
-                      ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
-                      : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                      ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30'
+                      : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
                   }`}
                 >
                   {label}
@@ -191,7 +191,7 @@ const Helpdesk: React.FC = () => {
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'all'
                       ? 'bg-charcoal-900 text-white border-slate-900'
-                      : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                      : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
                   }`}
                 >
                   All teams
@@ -201,7 +201,7 @@ const Helpdesk: React.FC = () => {
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'unassigned'
                       ? 'bg-charcoal-900 text-white border-slate-900'
-                      : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                      : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
                   }`}
                 >
                   General
@@ -213,7 +213,7 @@ const Helpdesk: React.FC = () => {
                     className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                       teamFilter === t.id
                         ? 'bg-charcoal-900 text-white border-slate-900'
-                        : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                        : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
                     }`}
                   >
                     {t.name}
@@ -226,22 +226,22 @@ const Helpdesk: React.FC = () => {
 
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-400/30 border-t-cyan-500" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-            <p className="text-slate-500 text-sm mb-1">No tickets {statusFilter === 'open' ? 'open' : 'yet'}.</p>
-            <p className="text-[11px] text-slate-400">Tap + to ask a question or submit an issue.</p>
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 p-8 text-center">
+            <p className="text-bone/50 text-sm mb-1">No tickets {statusFilter === 'open' ? 'open' : 'yet'}.</p>
+            <p className="text-[11px] text-bone/40">Tap + to ask a question or submit an issue.</p>
           </div>
         ) : (
-          <ul className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+          <ul className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm divide-y divide-white/5 overflow-hidden">
             {filtered.map(t => (
               <li key={t.id}>
-                <Link to={`/helpdesk/${t.id}`} className="block px-3 py-3 hover:bg-slate-50 transition-colors">
+                <Link to={`/helpdesk/${t.id}`} className="block px-3 py-3 hover:bg-white/[0.05] transition-colors">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-slate-900 text-sm truncate">{t.subject}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
+                      <div className="font-semibold text-bone text-sm truncate">{t.subject}</div>
+                      <div className="text-[11px] text-bone/50 mt-0.5">
                         {t.createdByName}{t.assignedToName ? ` · → ${t.assignedToName}` : ''} · {formatRel(new Date(t.createdAt))}
                       </div>
                     </div>
@@ -250,11 +250,11 @@ const Helpdesk: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
+                    <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-white/[0.04] text-bone/65 border-white/10">
                       {CATEGORY_LABEL[t.category]}
                     </span>
                     {isAdmin && (
-                      <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-white text-slate-500 border-slate-200">
+                      <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-charcoal-900 text-bone/50 border-white/10">
                         {t.teamId ? (teams.find(x => x.id === t.teamId)?.name || 'Team') : 'General'}
                       </span>
                     )}
@@ -334,41 +334,41 @@ const NewTicketModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">New ticket</div>
-          <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-700">
+      <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65">New ticket</div>
+          <button onClick={onClose} aria-label="Close" className="text-bone/40 hover:text-bone/85">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <div className="px-4 py-3 space-y-3 overflow-y-auto flex-1">
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Subject</label>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Subject</label>
             <input
               value={subject}
               onChange={e => setSubject(e.target.value)}
               placeholder="Short summary"
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg"
               autoFocus
             />
           </div>
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">What's going on?</label>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">What's going on?</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Steps to reproduce, what you expected, etc."
               rows={4}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Category</label>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Category</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value as any)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900"
               >
                 {(Object.keys(CATEGORY_LABEL) as TicketCategory[]).map(k => (
                   <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
@@ -376,11 +376,11 @@ const NewTicketModal: React.FC<{
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Priority</label>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Priority</label>
               <select
                 value={priority}
                 onChange={e => setPriority(e.target.value as any)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900"
               >
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>

@@ -269,16 +269,16 @@ const PublicEvent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-400/30 border-t-cyan-500" />
       </div>
     );
   }
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-8 text-center">
-        <p className="text-slate-600 mb-4 text-sm">{error || 'Event not found.'}</p>
+      <div className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-bone/65 mb-4 text-sm">{error || 'Event not found.'}</p>
         <Link to="/" className="text-crimson-600 font-semibold text-sm">← Go home</Link>
       </div>
     );
@@ -295,11 +295,11 @@ const PublicEvent: React.FC = () => {
     : 'bg-purple-500/15 border-purple-500/30 text-purple-300';
   const countdownClass =
     countdown.variant === 'live' ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
-    : countdown.variant === 'past' ? 'bg-slate-500/10 border-slate-500/20 text-slate-400'
-    : 'bg-crimson-500/10 border-crimson-500/25 text-slate-200';
+    : countdown.variant === 'past' ? 'bg-white/[0.04]0/10 border-slate-500/20 text-bone/40'
+    : 'bg-crimson-500/10 border-crimson-500/25 text-bone/85';
   const pulseClass =
     countdown.variant === 'live' ? 'bg-rose-500'
-    : countdown.variant === 'past' ? 'bg-slate-500'
+    : countdown.variant === 'past' ? 'bg-white/[0.04]0'
     : 'bg-crimson-400 animate-pulse';
 
   const RsvpButton: React.FC<{ status: RsvpStatus; label: string; icon: string; activeBg: string; }> = ({ status, label, icon, activeBg }) => {
@@ -311,7 +311,7 @@ const PublicEvent: React.FC = () => {
         className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
           active
             ? `${activeBg} text-white shadow-md`
-            : 'bg-white border border-slate-200 text-slate-900 hover:border-slate-400'
+            : 'bg-charcoal-900 border border-white/10 text-bone hover:border-white/20'
         } disabled:opacity-40 disabled:cursor-not-allowed`}
       >
         <Icon name={icon} className="w-4 h-4" />
@@ -321,12 +321,12 @@ const PublicEvent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       {/* HERO */}
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-crimson-500/10 px-4 sm:px-6 pt-5 pb-6">
         <div className="max-w-xl mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-extrabold tracking-widest uppercase text-slate-300">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-extrabold tracking-widest uppercase text-bone/35">
               <Icon name="users" className="w-3 h-3" /> Public invite
             </span>
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-extrabold tracking-widest uppercase ${countdownClass}`}>
@@ -341,12 +341,12 @@ const PublicEvent: React.FC = () => {
           <h1 className="mt-1.5 text-2xl sm:text-3xl font-black text-white leading-tight">
             {event.title}
           </h1>
-          <p className="mt-2 text-sm text-slate-300 flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1"><Icon name="cal" className="w-3 h-3 text-slate-400" /> {startDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-            <span className="text-slate-600">·</span>
-            <span className="inline-flex items-center gap-1"><Icon name="clock" className="w-3 h-3 text-slate-400" /> {formatTimeRange(startDate, endDate)}</span>
+          <p className="mt-2 text-sm text-bone/35 flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1"><Icon name="cal" className="w-3 h-3 text-bone/40" /> {startDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+            <span className="text-bone/65">·</span>
+            <span className="inline-flex items-center gap-1"><Icon name="clock" className="w-3 h-3 text-bone/40" /> {formatTimeRange(startDate, endDate)}</span>
             {event.location && <>
-              <span className="text-slate-600">·</span>
+              <span className="text-bone/65">·</span>
               <a
                 href={mapsUrl({
                   name: event.location,
@@ -357,7 +357,7 @@ const PublicEvent: React.FC = () => {
                 target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 hover:text-crimson-400 underline decoration-dotted underline-offset-2"
               >
-                <Icon name="pin" className="w-3 h-3 text-slate-400" /> {event.location}
+                <Icon name="pin" className="w-3 h-3 text-bone/40" /> {event.location}
               </a>
             </>}
           </p>
@@ -366,8 +366,8 @@ const PublicEvent: React.FC = () => {
 
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-4 space-y-3">
         {/* RSVP form */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2">
+        <div className="bg-charcoal-900 rounded-xl shadow-sm p-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-2">
             Your RSVP
           </div>
 
@@ -377,22 +377,22 @@ const PublicEvent: React.FC = () => {
               value={name}
               onChange={(e) => { setName(e.target.value); setMatchedPlayerId(null); }}
               placeholder="Your name (or your kid's)"
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
             />
             {matchedPlayerId && (
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
                 Matched
               </span>
             )}
           </div>
           {suggestions.length > 0 && !matchedPlayerId && (
             <div className="mt-1.5 -mb-1 flex flex-wrap gap-1.5">
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-400 self-center">Did you mean:</span>
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/40 self-center">Did you mean:</span>
               {suggestions.map(s => (
                 <button
                   key={s.id}
                   onClick={() => pickSuggestion(s)}
-                  className="text-[12px] font-bold px-2 py-1 rounded bg-crimson-50 border border-crimson-200 text-crimson-800 hover:bg-crimson-100"
+                  className="text-[12px] font-bold px-2 py-1 rounded bg-crimson-500/15 border border-crimson-400/30 text-crimson-200 hover:bg-crimson-500/20"
                 >
                   {s.name}
                 </button>
@@ -400,7 +400,7 @@ const PublicEvent: React.FC = () => {
             </div>
           )}
 
-          <label className="mt-3 flex items-center gap-2 text-xs text-slate-600">
+          <label className="mt-3 flex items-center gap-2 text-xs text-bone/65">
             <input
               type="checkbox"
               checked={isCoach}
@@ -416,45 +416,45 @@ const PublicEvent: React.FC = () => {
             <RsvpButton status="no" label="Can't go" icon="x" activeBg="bg-gradient-to-br from-slate-600 to-charcoal-800" />
           </div>
           {justSaved && (
-            <p className="mt-2 text-[11px] font-bold tracking-wide text-emerald-700 text-center">
+            <p className="mt-2 text-[11px] font-bold tracking-wide text-emerald-300 text-center">
               ✓ Saved. Thanks!
             </p>
           )}
         </div>
 
         {/* RSVP buckets + going list */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
+        <div className="bg-charcoal-900 rounded-xl shadow-sm p-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-2 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-crimson-500" />
             Headcount
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <div className="relative overflow-hidden rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+            <div className="relative overflow-hidden rounded-lg bg-emerald-500/15 border border-emerald-400/30 px-3 py-2.5">
               <span className="absolute inset-x-0 top-0 h-0.5 bg-emerald-500" />
-              <div className="text-2xl font-black text-emerald-700 leading-none">{counts.going}</div>
-              <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">GOING</div>
+              <div className="text-2xl font-black text-emerald-300 leading-none">{counts.going}</div>
+              <div className="text-[9px] font-extrabold tracking-widest text-bone/65 mt-1">GOING</div>
             </div>
-            <div className="relative overflow-hidden rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+            <div className="relative overflow-hidden rounded-lg bg-amber-500/15 border border-amber-400/30 px-3 py-2.5">
               <span className="absolute inset-x-0 top-0 h-0.5 bg-amber-500" />
-              <div className="text-2xl font-black text-amber-700 leading-none">{counts.maybe}</div>
-              <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">MAYBE</div>
+              <div className="text-2xl font-black text-amber-300 leading-none">{counts.maybe}</div>
+              <div className="text-[9px] font-extrabold tracking-widest text-bone/65 mt-1">MAYBE</div>
             </div>
-            <div className="relative overflow-hidden rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
-              <span className="absolute inset-x-0 top-0 h-0.5 bg-slate-400" />
-              <div className="text-2xl font-black text-slate-700 leading-none">{counts.no}</div>
-              <div className="text-[9px] font-extrabold tracking-widest text-slate-600 mt-1">CAN'T GO</div>
+            <div className="relative overflow-hidden rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2.5">
+              <span className="absolute inset-x-0 top-0 h-0.5 bg-white/40" />
+              <div className="text-2xl font-black text-bone/85 leading-none">{counts.no}</div>
+              <div className="text-[9px] font-extrabold tracking-widest text-bone/65 mt-1">CAN'T GO</div>
             </div>
           </div>
           {goingPeople.length > 0 && (
-            <ul className="mt-3 divide-y divide-slate-100">
+            <ul className="mt-3 divide-y divide-white/5">
               {goingPeople.slice(0, 12).map((p, i) => (
                 <li key={i} className="py-1.5 flex items-center gap-2.5">
                   <span className="w-6 h-6 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-slate-900 flex-1 truncate">{p.name}</span>
+                  <span className="text-sm font-semibold text-bone flex-1 truncate">{p.name}</span>
                   <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${
                     p.isGuest
-                      ? 'bg-slate-100 text-slate-500 border-slate-300'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      ? 'bg-charcoal-950 text-bone/50 border-white/15'
+                      : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
                   }`}>
                     {p.isGuest ? 'GUEST' : 'ROSTER'}
                   </span>
@@ -466,18 +466,18 @@ const PublicEvent: React.FC = () => {
 
         {/* Weather */}
         {weather && (
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-2 flex items-center gap-1.5">
+          <div className="bg-charcoal-900 rounded-xl shadow-sm p-4">
+            <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-2 flex items-center gap-1.5">
               <Icon name="cloud" className="w-3 h-3 text-crimson-500" />
               Weather
             </div>
             <div className="flex items-center gap-3">
               <span className="text-3xl" aria-hidden>{weather.icon}</span>
               <div>
-                <div className="text-xl font-black text-slate-900 leading-none">
-                  {weather.tempMaxF}° <span className="text-slate-400 font-semibold text-sm">/ {weather.tempMinF}°</span>
+                <div className="text-xl font-black text-bone leading-none">
+                  {weather.tempMaxF}° <span className="text-bone/40 font-semibold text-sm">/ {weather.tempMinF}°</span>
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1 tracking-wide uppercase">
+                <div className="text-[11px] text-bone/50 mt-1 tracking-wide uppercase">
                   {weather.label}{weather.precipChance >= 20 && ` · ${weather.precipChance}% rain`}
                 </div>
               </div>
@@ -487,15 +487,15 @@ const PublicEvent: React.FC = () => {
 
         {/* Description */}
         {event.description && (
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600 mb-1.5">
+          <div className="bg-charcoal-900 rounded-xl shadow-sm p-4">
+            <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-1.5">
               About
             </div>
-            <p className="text-sm text-slate-700 whitespace-pre-wrap">{event.description}</p>
+            <p className="text-sm text-bone/85 whitespace-pre-wrap">{event.description}</p>
           </div>
         )}
 
-        <p className="text-[11px] text-slate-400 text-center pt-3">
+        <p className="text-[11px] text-bone/40 text-center pt-3">
           Get the full team experience —
           {' '}<a href="/" className="text-crimson-600 font-bold underline">install GoalKickr</a>.
         </p>

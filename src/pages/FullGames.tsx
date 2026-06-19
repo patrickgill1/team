@@ -262,7 +262,7 @@ const FullGames: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
       </div>
     );
   }
@@ -272,8 +272,8 @@ const FullGames: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">🎬 Full Games</h1>
-          <p className="text-sm text-gray-500 mt-1">Watch full match recordings hosted on GoalKickr or YouTube.</p>
+          <h1 className="text-2xl font-bold text-bone">🎬 Full Games</h1>
+          <p className="text-sm text-bone/50 mt-1">Watch full match recordings hosted on GoalKickr or YouTube.</p>
         </div>
         {canManageMedia && (
           <button
@@ -288,10 +288,10 @@ const FullGames: React.FC = () => {
 
       {/* Empty state */}
       {games.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+        <div className="text-center py-16 bg-charcoal-900 rounded-xl border border-white/10">
           <div className="text-5xl mb-4">📺</div>
-          <h3 className="text-lg font-medium text-gray-900">No Full Games Yet</h3>
-          <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
+          <h3 className="text-lg font-medium text-bone">No Full Games Yet</h3>
+          <p className="text-bone/50 text-sm mt-1 max-w-sm mx-auto">
             {canManageMedia
               ? 'Add a YouTube link to share a full game recording with the team.'
               : 'Full game recordings will appear here once the coach adds them.'}
@@ -309,10 +309,10 @@ const FullGames: React.FC = () => {
         <div className="space-y-8">
           {groupedByYear.map(([year, yearGames]) => (
             <div key={year}>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{year} Season</h2>
+              <h2 className="text-sm font-semibold text-bone/50 uppercase tracking-wide mb-3">{year} Season</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {yearGames.map(g => (
-                  <div key={g.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                  <div key={g.id} className="bg-charcoal-900 rounded-xl border border-white/10 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
                     <button
                       type="button"
                       onClick={() => setSelectedGame(g)}
@@ -356,22 +356,22 @@ const FullGames: React.FC = () => {
                     </button>
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{g.title}</h3>
+                        <h3 className="font-semibold text-bone text-sm leading-snug line-clamp-2">{g.title}</h3>
                         {g.result && (
                           <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded ${
-                            g.result.startsWith('W') ? 'bg-green-100 text-emerald-700'
-                              : g.result.startsWith('L') ? 'bg-red-100 text-red-700'
-                              : 'bg-gray-100 text-gray-700'
+                            g.result.startsWith('W') ? 'bg-green-100 text-emerald-300'
+                              : g.result.startsWith('L') ? 'bg-red-100 text-rose-300'
+                              : 'bg-white/[0.08] text-bone/85'
                           }`}>
                             {g.result}
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                      <div className="text-xs text-bone/50 mt-1 space-y-0.5">
                         {g.opponent && <div>vs {g.opponent}</div>}
                         <div>{formatDate(g.gameDate as any)}</div>
                       </div>
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
                         <button
                           onClick={() => setSelectedGame(g)}
                           className="text-xs text-crimson-600 hover:underline font-medium"
@@ -382,13 +382,13 @@ const FullGames: React.FC = () => {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => openEditForm(g)}
-                              className="text-xs text-gray-500 hover:text-gray-700"
+                              className="text-xs text-bone/50 hover:text-bone/85"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDelete(g)}
-                              className="text-xs text-red-500 hover:text-red-700"
+                              className="text-xs text-rose-300 hover:text-rose-300"
                             >
                               Delete
                             </button>
@@ -503,16 +503,16 @@ const FullGames: React.FC = () => {
       {/* Add/Edit form modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl max-w-lg w-full my-auto">
+          <div className="bg-charcoal-900 rounded-xl max-w-lg w-full my-auto">
             <form onSubmit={handleSubmit} className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900">
+                <h2 className="text-lg font-bold text-bone">
                   {editingId ? 'Edit Game' : 'Add Full Game'}
                 </h2>
                 <button
                   type="button"
                   onClick={() => { setShowForm(false); resetForm(); }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                  className="text-bone/40 hover:text-bone/65 text-2xl leading-none"
                 >
                   ×
                 </button>
@@ -520,50 +520,50 @@ const FullGames: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                  <label className="block text-sm font-medium text-bone/85 mb-1">Title *</label>
                   <input
                     type="text"
                     value={formTitle}
                     onChange={e => setFormTitle(e.target.value)}
                     placeholder="e.g. Spring Tournament Final"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Date *</label>
                     <input
                       type="date"
                       value={formDate}
                       onChange={e => setFormDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Opponent</label>
+                    <label className="block text-sm font-medium text-bone/85 mb-1">Opponent</label>
                     <input
                       type="text"
                       value={formOpponent}
                       onChange={e => setFormOpponent(e.target.value)}
                       placeholder="e.g. Lightning FC"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                      className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Video Source</label>
-                  <div className="grid grid-cols-2 gap-2 mb-3 p-1 bg-gray-100 rounded-lg">
+                  <label className="block text-sm font-medium text-bone/85 mb-1">Video Source</label>
+                  <div className="grid grid-cols-2 gap-2 mb-3 p-1 bg-white/[0.08] rounded-lg">
                     <button
                       type="button"
                       onClick={() => setFormSource('upload')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         formSource === 'upload'
-                          ? 'bg-white text-crimson-700 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? 'bg-charcoal-900 text-crimson-300 shadow-sm'
+                          : 'text-bone/65 hover:text-bone'
                       }`}
                     >
                       Upload to GoalKickr
@@ -573,8 +573,8 @@ const FullGames: React.FC = () => {
                       onClick={() => setFormSource('youtube')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         formSource === 'youtube'
-                          ? 'bg-white text-red-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? 'bg-charcoal-900 text-rose-300 shadow-sm'
+                          : 'text-bone/65 hover:text-bone'
                       }`}
                     >
                       🔗 YouTube link
@@ -584,7 +584,7 @@ const FullGames: React.FC = () => {
                   {formSource === 'upload' ? (
                     <div>
                       {existingVideoUrl && !formFile && (
-                        <div className="mb-2 px-3 py-2 bg-crimson-50 border border-crimson-200 rounded-lg text-xs text-crimson-800">
+                        <div className="mb-2 px-3 py-2 bg-crimson-500/15 border border-crimson-400/30 rounded-lg text-xs text-crimson-200">
                           Currently hosted on GoalKickr: <span className="font-mono">{existingVideoFileName || 'video file'}</span>. Choose a new file below to replace it, or leave blank to keep it.
                         </div>
                       )}
@@ -593,22 +593,22 @@ const FullGames: React.FC = () => {
                         type="file"
                         accept="video/*"
                         onChange={e => setFormFile(e.target.files?.[0] || null)}
-                        className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-crimson-600 file:text-white file:text-sm file:font-medium hover:file:bg-crimson-700"
+                        className="w-full text-sm text-bone/65 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-crimson-600 file:text-white file:text-sm file:font-medium hover:file:bg-crimson-700"
                       />
                       {formFile && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-bone/50 mt-1">
                           {formFile.name} ({(formFile.size / (1024 * 1024)).toFixed(1)} MB)
                         </p>
                       )}
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-bone/50 mt-2">
                         Hosted on GoalKickr. Anyone with the share link can watch — no YouTube account needed. Up to 2GB.
                       </p>
                       {saving && uploadProgress > 0 && (
                         <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="h-2 rounded-full bg-crimson-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+                          <div className="w-full bg-white/15 rounded-full h-2">
+                            <div className="h-2 rounded-full bg-crimson-500/150 transition-all" style={{ width: `${uploadProgress}%` }} />
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">Uploading... {uploadProgress}%</p>
+                          <p className="text-xs text-bone/50 mt-1">Uploading... {uploadProgress}%</p>
                         </div>
                       )}
                     </div>
@@ -619,43 +619,43 @@ const FullGames: React.FC = () => {
                         value={formUrl}
                         onChange={e => setFormUrl(e.target.value)}
                         placeholder="https://youtu.be/... or https://youtube.com/watch?v=..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                       />
                       {formUrl && !extractYouTubeId(formUrl) && (
-                        <p className="text-xs text-red-600 mt-1">Doesn't look like a valid YouTube link.</p>
+                        <p className="text-xs text-rose-300 mt-1">Doesn't look like a valid YouTube link.</p>
                       )}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Result</label>
+                  <label className="block text-sm font-medium text-bone/85 mb-1">Result</label>
                   <input
                     type="text"
                     value={formResult}
                     onChange={e => setFormResult(e.target.value)}
                     placeholder="e.g. W 3-1, L 2-4, T 1-1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <label className="block text-sm font-medium text-bone/85 mb-1">Notes</label>
                   <textarea
                     value={formNotes}
                     onChange={e => setFormNotes(e.target.value)}
                     rows={3}
                     placeholder="Highlights, timestamps, etc."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
+                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 focus:border-crimson-500"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-2 mt-6 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-end space-x-2 mt-6 pt-4 border-t border-white/5">
                 <button
                   type="button"
                   onClick={() => { setShowForm(false); resetForm(); }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                  className="px-4 py-2 text-sm font-medium text-bone/85 hover:bg-white/[0.08] rounded-lg"
                 >
                   Cancel
                 </button>

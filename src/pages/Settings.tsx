@@ -225,18 +225,18 @@ const Settings: React.FC = () => {
   const userInitial = (userData?.name || userData?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-12">
+    <div className="min-h-screen bg-charcoal-950 pb-12">
       {/* Page title row — sits below the global AppLayout top bar, no
           second dark header. */}
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-2 flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-semibold"
+          className="inline-flex items-center gap-1.5 text-bone/65 hover:text-bone text-sm font-semibold"
         >
           <AppIcon name="arrow-right" className="w-4 h-4 rotate-180" />
           <span>Back</span>
         </button>
-        <h1 className="text-base font-bold text-gray-900">Settings</h1>
+        <h1 className="text-base font-bold text-bone">Settings</h1>
         <div className="w-14" />
       </div>
 
@@ -244,11 +244,11 @@ const Settings: React.FC = () => {
         {/* ── MY ACCOUNT ─────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-2xl font-bold text-gray-900">My Account</h2>
+            <h2 className="text-2xl font-bold text-bone">My Account</h2>
             {!editingProfile && (
               <button
                 onClick={() => setEditingProfile(true)}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-crimson-700 hover:text-crimson-900"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-crimson-300 hover:text-crimson-900"
               >
                 <AppIcon name="edit" className="w-4 h-4" />
                 <span>Edit</span>
@@ -256,7 +256,7 @@ const Settings: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
             <div className="flex items-start gap-4">
               {/* Avatar */}
               <button
@@ -269,14 +269,14 @@ const Settings: React.FC = () => {
                   <img
                     src={userData.photoURL}
                     alt={userData.name}
-                    className="w-20 h-20 rounded-full object-cover ring-2 ring-gray-200"
+                    className="w-20 h-20 rounded-full object-cover ring-2 ring-white/10"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-700 flex items-center justify-center text-white text-2xl font-bold ring-2 ring-gray-200">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-700 flex items-center justify-center text-white text-2xl font-bold ring-2 ring-white/10">
                     {userInitial}
                   </div>
                 )}
-                <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-white ring-1 ring-gray-200 shadow-sm flex items-center justify-center text-gray-700 group-hover:bg-gray-50">
+                <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-charcoal-900 ring-1 ring-white/10 shadow-sm flex items-center justify-center text-bone/85 group-hover:bg-white/[0.05]">
                   <AppIcon name="edit" className="w-3.5 h-3.5" />
                 </div>
                 {uploadingPhoto && (
@@ -298,22 +298,22 @@ const Settings: React.FC = () => {
                 {editingProfile ? (
                   <div className="space-y-2">
                     <div>
-                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Name</label>
+                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-bone/50 mb-1">Name</label>
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-crimson-500"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Phone</label>
+                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-bone/50 mb-1">Phone</label>
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="(555) 555-5555"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-crimson-500"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
@@ -325,7 +325,7 @@ const Settings: React.FC = () => {
                           setPhone(userData?.phoneNumber || '');
                         }}
                         disabled={savingProfile}
-                        className="px-3 py-1.5 text-sm font-semibold text-gray-700 disabled:opacity-50"
+                        className="px-3 py-1.5 text-sm font-semibold text-bone/85 disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -340,12 +340,12 @@ const Settings: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-lg font-bold text-gray-900 truncate">{userData?.name || 'Your Name'}</h3>
-                    <p className="text-sm text-gray-600 truncate">{userData?.email}</p>
+                    <h3 className="text-lg font-bold text-bone truncate">{userData?.name || 'Your Name'}</h3>
+                    <p className="text-sm text-bone/65 truncate">{userData?.email}</p>
                     {userData?.phoneNumber && (
-                      <p className="text-sm text-gray-600">{userData.phoneNumber}</p>
+                      <p className="text-sm text-bone/65">{userData.phoneNumber}</p>
                     )}
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mt-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-bone/40 mt-1">
                       {roleLabel(userData?.role, userData?.coachLevel, userData?.isClubAdmin)}
                     </p>
                   </>
@@ -358,11 +358,11 @@ const Settings: React.FC = () => {
         {/* ── MY PLAYERS PROFILES ───────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-2xl font-bold text-gray-900">My Players</h2>
+            <h2 className="text-2xl font-bold text-bone">My Players</h2>
             {isCoach(userData?.role || '') && (
               <Link
                 to="/players?add=1"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-crimson-700 hover:text-crimson-900"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-crimson-300 hover:text-crimson-900"
               >
                 <AppIcon name="plus" className="w-4 h-4" />
                 <span>Add Player</span>
@@ -370,11 +370,11 @@ const Settings: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
             {loadingPlayers ? (
-              <p className="text-sm text-gray-500 text-center py-4">Loading…</p>
+              <p className="text-sm text-bone/50 text-center py-4">Loading…</p>
             ) : linkedPlayers.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">
+              <p className="text-sm text-bone/50 text-center py-4">
                 You're not linked to a player yet. {isCoach(userData?.role || '') ? 'Create a team and add players first.' : 'Ask your coach to send you a link with your child\'s name on it.'}
               </p>
             ) : (
@@ -383,22 +383,22 @@ const Settings: React.FC = () => {
                   <Link
                     key={p.id}
                     to={`/player/${p.id}`}
-                    className="flex flex-col items-center text-center rounded-xl ring-1 ring-gray-200 hover:ring-crimson-300 hover:shadow-sm p-3 transition"
+                    className="flex flex-col items-center text-center rounded-xl ring-1 ring-white/10 hover:ring-crimson-300 hover:shadow-sm p-3 transition"
                   >
                     {p.profilePhotoUrl ? (
                       <img
                         src={p.profilePhotoUrl}
                         alt={p.name}
-                        className="w-20 h-20 rounded-full object-cover ring-2 ring-gray-200"
+                        className="w-20 h-20 rounded-full object-cover ring-2 ring-white/10"
                       />
                     ) : (
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-charcoal-900 to-charcoal-700 flex items-center justify-center text-white text-xl font-bold ring-2 ring-gray-200">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-charcoal-900 to-charcoal-700 flex items-center justify-center text-white text-xl font-bold ring-2 ring-white/10">
                         {(p.name || '?').charAt(0)}
                       </div>
                     )}
-                    <p className="mt-2 text-sm font-bold text-gray-900 truncate w-full">{p.name}</p>
+                    <p className="mt-2 text-sm font-bold text-bone truncate w-full">{p.name}</p>
                     {p.teamNames && p.teamNames.length > 0 && (
-                      <p className="text-[11px] text-gray-500 truncate w-full">{p.teamNames.join(' · ')}</p>
+                      <p className="text-[11px] text-bone/50 truncate w-full">{p.teamNames.join(' · ')}</p>
                     )}
                   </Link>
                 ))}
@@ -409,13 +409,13 @@ const Settings: React.FC = () => {
 
         {/* ── MANAGE ACCOUNT ────────────────────────────────────── */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 px-1">Notifications</h2>
+          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Notifications</h2>
           <NotificationPreferences />
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 px-1">Manage Account</h2>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-gray-100">
+          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Manage Account</h2>
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
             <SettingsRow
               icon="calendar"
               label="Calendar Syncing (Google, Apple, etc)"
@@ -462,28 +462,28 @@ const Settings: React.FC = () => {
 
         {/* ── DANGER ────────────────────────────────────────────── */}
         <section>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-gray-100">
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition"
+              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.05] transition"
             >
               <span className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
+                <span className="w-9 h-9 rounded-lg bg-white/[0.08] text-bone/65 flex items-center justify-center">
                   <AppIcon name="logout" className="w-5 h-5" />
                 </span>
-                <span className="text-base font-semibold text-gray-900">Sign Out</span>
+                <span className="text-base font-semibold text-bone">Sign Out</span>
               </span>
-              <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300" />
+              <AppIcon name="arrow-right" className="w-4 h-4 text-bone/35" />
             </button>
             <button
               onClick={() => { setShowDelete(true); setDeleteText(''); setDeleteError(null); }}
-              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-rose-50 transition"
+              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-rose-500/15 transition"
             >
               <span className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                <span className="w-9 h-9 rounded-lg bg-rose-500/15 text-rose-300 flex items-center justify-center">
                   <AppIcon name="trash" className="w-5 h-5" />
                 </span>
-                <span className="text-base font-semibold text-rose-700">Delete Account</span>
+                <span className="text-base font-semibold text-rose-300">Delete Account</span>
               </span>
               <AppIcon name="arrow-right" className="w-4 h-4 text-rose-200" />
             </button>
@@ -498,11 +498,11 @@ const Settings: React.FC = () => {
           onClick={() => !deletingAccount && setShowDelete(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5"
+            className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-sm p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-bold text-gray-900">Delete your account?</h3>
-            <p className="text-sm text-gray-600 mt-2">
+            <h3 className="text-lg font-bold text-bone">Delete your account?</h3>
+            <p className="text-sm text-bone/65 mt-2">
               This permanently removes your profile and access. Player records you've created stay on the team.
               Type <b>delete</b> to confirm.
             </p>
@@ -510,16 +510,16 @@ const Settings: React.FC = () => {
               value={deleteText}
               onChange={(e) => setDeleteText(e.target.value)}
               placeholder="delete"
-              className="mt-3 w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="mt-3 w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-rose-500"
               style={{ fontSize: '16px' }}
               disabled={deletingAccount}
             />
-            {deleteError && <p className="text-sm text-red-600 mt-2">{deleteError}</p>}
+            {deleteError && <p className="text-sm text-rose-300 mt-2">{deleteError}</p>}
             <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => setShowDelete(false)}
                 disabled={deletingAccount}
-                className="px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-semibold text-bone/85 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -548,18 +548,18 @@ const SettingsRow: React.FC<{
   <button
     onClick={onClick}
     disabled={busy}
-    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition disabled:opacity-60 text-left"
+    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.05] transition disabled:opacity-60 text-left"
   >
     <span className="flex items-center gap-3 min-w-0">
-      <span className="w-9 h-9 rounded-lg bg-crimson-50 text-crimson-700 flex items-center justify-center shrink-0">
+      <span className="w-9 h-9 rounded-lg bg-crimson-500/15 text-crimson-300 flex items-center justify-center shrink-0">
         <AppIcon name={icon} className="w-5 h-5" />
       </span>
       <span className="min-w-0">
-        <span className="block text-base font-semibold text-gray-900 truncate">{label}</span>
-        {hint && <span className="block text-xs text-gray-500 truncate">{hint}</span>}
+        <span className="block text-base font-semibold text-bone truncate">{label}</span>
+        {hint && <span className="block text-xs text-bone/50 truncate">{hint}</span>}
       </span>
     </span>
-    <AppIcon name="arrow-right" className="w-4 h-4 text-gray-300 shrink-0" />
+    <AppIcon name="arrow-right" className="w-4 h-4 text-bone/35 shrink-0" />
   </button>
 );
 

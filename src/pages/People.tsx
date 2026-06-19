@@ -41,11 +41,11 @@ const ROLE_LABEL: Record<Role, string> = {
   admin: 'Admin',
 };
 const ROLE_CHIP: Record<Role, string> = {
-  player: 'bg-crimson-50 text-charcoal-700 border-crimson-200',
-  parent: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  coach: 'bg-amber-50 text-amber-700 border-amber-200',
-  team_manager: 'bg-violet-50 text-violet-700 border-violet-200',
-  admin: 'bg-rose-50 text-rose-700 border-rose-200',
+  player: 'bg-crimson-500/15 text-bone/85 border-crimson-400/30',
+  parent: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
+  coach: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
+  team_manager: 'bg-violet-500/15 text-violet-300 border-violet-400/30',
+  admin: 'bg-rose-500/15 text-rose-300 border-rose-400/30',
 };
 
 const People: React.FC = () => {
@@ -231,11 +231,11 @@ const People: React.FC = () => {
 
   if (!canViewDirectory) {
     return (
-      <div className="min-h-screen bg-slate-100">
+      <div className="min-h-screen bg-charcoal-950">
         <Header title="People" />
         <div className="max-w-md mx-auto px-4 py-12 text-center">
-          <p className="text-slate-700 font-semibold mb-1">This area is for coaches.</p>
-          <p className="text-slate-500 text-sm">
+          <p className="text-bone/85 font-semibold mb-1">This area is for coaches.</p>
+          <p className="text-bone/50 text-sm">
             The People directory holds contact info for everyone in the club, so it's
             limited to coaches, team managers, and club admins.
           </p>
@@ -245,7 +245,7 @@ const People: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <Header
         title="People"
         subtitle={people.length ? `${people.length} in your club` : undefined}
@@ -278,23 +278,23 @@ const People: React.FC = () => {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
         {/* Search + team filter */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex flex-col sm:flex-row gap-2">
+        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-3 flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
-            <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or kid's name…"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
             />
           </div>
           {teams.length > 1 && (
             <select
               value={teamFilter}
               onChange={(e) => setTeamFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+              className="px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900"
             >
               <option value="all">All teams</option>
               {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -305,15 +305,15 @@ const People: React.FC = () => {
         {/* Coach-only header: Select toggle for bulk actions */}
         {isUserCoach && people.length > 0 && (
           <div className="flex items-center justify-between -mb-1">
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/40">
               {filtered.length} match{filtered.length === 1 ? '' : 'es'}
             </span>
             <button
               onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()); }}
               className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border ${
                 selectMode
-                  ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
-                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30'
+                  : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
               }`}
             >
               {selectMode ? 'Done' : 'Select'}
@@ -336,11 +336,11 @@ const People: React.FC = () => {
               onClick={() => setRoleFilter(k as any)}
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 roleFilter === k
-                  ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
-                  : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
+                  ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30'
+                  : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
               }`}
             >
-              {label} <span className={roleFilter === k ? 'text-crimson-600' : 'text-slate-400'}>{counts[k as any]}</span>
+              {label} <span className={roleFilter === k ? 'text-crimson-600' : 'text-bone/40'}>{counts[k as any]}</span>
             </button>
           ))}
         </div>
@@ -348,14 +348,14 @@ const People: React.FC = () => {
         {/* List */}
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-400/30 border-t-cyan-500" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-            <p className="text-slate-500 text-sm">No one matches.</p>
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 p-8 text-center">
+            <p className="text-bone/50 text-sm">No one matches.</p>
           </div>
         ) : (
-          <ul className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+          <ul className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm divide-y divide-white/5 overflow-hidden">
             {filtered.map(p => {
               const key = `${p.type}-${p.id}`;
               const initial = (p.name || '?').charAt(0).toUpperCase();
@@ -374,12 +374,12 @@ const People: React.FC = () => {
               };
               const RowInner = (
                 <li
-                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-crimson-50' : 'hover:bg-slate-50'}`}
+                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-crimson-500/15' : 'hover:bg-white/[0.05]'}`}
                   onClick={selectMode ? (e) => { e.preventDefault(); toggleSelect(); } : undefined}
                 >
                   {selectMode && (
                     <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-slate-300'
+                      isSelected ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-white/15'
                     }`}>
                       {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                     </span>
@@ -391,17 +391,17 @@ const People: React.FC = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-slate-900 truncate">{p.name}</span>
+                      <span className="text-sm font-semibold text-bone truncate">{p.name}</span>
                       <span className={`text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
                         {ROLE_LABEL[p.role]}
                       </span>
                       {!p.isActive && (
-                        <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-slate-100 text-slate-400 border-slate-200">
+                        <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-charcoal-950 text-bone/40 border-white/10">
                           Inactive
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                    <div className="text-[11px] text-bone/50 truncate mt-0.5">
                       {p.role === 'parent' && p.childNames && p.childNames.length
                         ? `Kid${p.childNames.length === 1 ? '' : 's'}: ${p.childNames.join(', ')}`
                         : p.email || (p.teamIds.length ? p.teamIds.map(t => teamNameById[t] || '').filter(Boolean).join(' · ') : '')}
@@ -410,12 +410,12 @@ const People: React.FC = () => {
                   {!selectMode && p.teamIds.length > 0 && (
                     <div className="hidden sm:flex flex-wrap gap-1 justify-end max-w-[200px]">
                       {p.teamIds.slice(0, 2).map(tid => (
-                        <span key={tid} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                        <span key={tid} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-charcoal-950 text-bone/65 border border-white/10">
                           {teamNameById[tid] || tid.slice(0, 6)}
                         </span>
                       ))}
                       {p.teamIds.length > 2 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-charcoal-950 text-bone/65 border border-white/10">
                           +{p.teamIds.length - 2}
                         </span>
                       )}
@@ -428,7 +428,7 @@ const People: React.FC = () => {
                       // PersonAdmin → Teams tab does that + more.
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/club/person/${p.id}`); }}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500 flex-shrink-0"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500/150 flex-shrink-0"
                       >
                         Profile
                       </button>
@@ -438,7 +438,7 @@ const People: React.FC = () => {
                       // equivalent for users yet.
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setManaging(p); }}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-white text-slate-500 border-slate-200 hover:text-slate-800 flex-shrink-0"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90 flex-shrink-0"
                       >
                         Manage
                       </button>
@@ -456,7 +456,7 @@ const People: React.FC = () => {
         )}
 
         {!isUserCoach && people.length > 0 && (
-          <p className="text-[11px] text-slate-400 text-center py-2">
+          <p className="text-[11px] text-bone/40 text-center py-2">
             Viewing your club's people. Coaches can add or remove members.
           </p>
         )}
@@ -503,13 +503,13 @@ const People: React.FC = () => {
                 setBulkBusy(false);
               }
             }}
-            className="bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
+            className="bg-crimson-600 hover:bg-crimson-500/150 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
           >
             {bulkBusy ? '…' : 'Add'}
           </button>
           <button
             onClick={() => { setSelectMode(false); setSelectedIds(new Set()); setBulkTarget(''); }}
-            className="text-slate-400 hover:text-white text-xs font-extrabold tracking-widest uppercase"
+            className="text-bone/40 hover:text-white text-xs font-extrabold tracking-widest uppercase"
           >
             Cancel
           </button>
@@ -519,37 +519,37 @@ const People: React.FC = () => {
       {/* + chooser sheet — pick what kind of thing you're adding */}
       {chooserOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={() => setChooserOpen(false)}>
-          <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100">
-              <div className="text-xs font-extrabold tracking-widest uppercase text-slate-600">Add</div>
+          <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/5">
+              <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65">Add</div>
             </div>
             <button
               onClick={() => { setChooserOpen(false); setAddPlayerOpen(true); }}
-              className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-3"
+              className="w-full text-left px-4 py-3 hover:bg-white/[0.05] border-b border-white/5 flex items-center gap-3"
             >
-              <span className="w-8 h-8 rounded-lg bg-crimson-50 text-crimson-600 flex items-center justify-center flex-shrink-0">
+              <span className="w-8 h-8 rounded-lg bg-crimson-500/15 text-crimson-600 flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </span>
               <div className="flex-1">
-                <div className="text-sm font-bold text-slate-900">Add player</div>
-                <div className="text-[11px] text-slate-500">New player on the roster (+ optional parent invite)</div>
+                <div className="text-sm font-bold text-bone">Add player</div>
+                <div className="text-[11px] text-bone/50">New player on the roster (+ optional parent invite)</div>
               </div>
             </button>
             <button
               onClick={() => { setChooserOpen(false); setInviteOpen(true); }}
-              className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 flex items-center gap-3"
+              className="w-full text-left px-4 py-3 hover:bg-white/[0.05] border-b border-white/5 flex items-center gap-3"
             >
-              <span className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0">
+              <span className="w-8 h-8 rounded-lg bg-violet-500/15 text-violet-600 flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
               </span>
               <div className="flex-1">
-                <div className="text-sm font-bold text-slate-900">Invite someone</div>
-                <div className="text-[11px] text-slate-500">Parent (for an existing player) or coach / manager</div>
+                <div className="text-sm font-bold text-bone">Invite someone</div>
+                <div className="text-[11px] text-bone/50">Parent (for an existing player) or coach / manager</div>
               </div>
             </button>
             <button
               onClick={() => setChooserOpen(false)}
-              className="w-full text-center px-4 py-2.5 text-xs font-bold tracking-wide text-slate-500 hover:bg-slate-50"
+              className="w-full text-center px-4 py-2.5 text-xs font-bold tracking-wide text-bone/50 hover:bg-white/[0.05]"
             >
               Cancel
             </button>
@@ -708,18 +708,18 @@ const ManagePersonModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2.5">
+      <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2.5">
           {person.photoURL
             ? <img src={person.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
             : <span className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-white text-sm font-bold flex items-center justify-center">{(person.name||'?').charAt(0).toUpperCase()}</span>}
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-slate-900 truncate">{person.name}</div>
-            <div className="text-[11px] text-slate-500 truncate">{ROLE_LABEL[person.role]}{person.email ? ` · ${person.email}` : ''}</div>
+            <div className="text-sm font-bold text-bone truncate">{person.name}</div>
+            <div className="text-[11px] text-bone/50 truncate">{ROLE_LABEL[person.role]}{person.email ? ` · ${person.email}` : ''}</div>
           </div>
         </div>
         <div className="px-4 py-3">
-          <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-2">Teams</div>
+          <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-2">Teams</div>
           <div className="space-y-1">
             {teams.map(t => {
               const on = draft.has(t.id);
@@ -728,11 +728,11 @@ const ManagePersonModal: React.FC<{
                   key={t.id}
                   onClick={() => toggle(t.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    on ? 'bg-crimson-50 border-crimson-200 text-crimson-900' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                    on ? 'bg-crimson-500/15 border-crimson-400/30 text-crimson-900' : 'bg-charcoal-900 border-white/10 text-bone/85 hover:border-white/20'
                   }`}
                 >
                   <span className="font-semibold">{t.name}</span>
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-slate-300'}`}>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-white/15'}`}>
                     {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                   </span>
                 </button>
@@ -740,8 +740,8 @@ const ManagePersonModal: React.FC<{
             })}
           </div>
         </div>
-        <div className="px-4 py-3 border-t border-slate-100 flex justify-end gap-2">
-          <button onClick={onClose} className="text-xs font-bold tracking-wide text-slate-500 px-3 py-1.5">Cancel</button>
+        <div className="px-4 py-3 border-t border-white/5 flex justify-end gap-2">
+          <button onClick={onClose} className="text-xs font-bold tracking-wide text-bone/50 px-3 py-1.5">Cancel</button>
           <button onClick={save} disabled={busy} className="text-xs font-extrabold tracking-widest uppercase bg-crimson-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
             {busy ? '…' : 'Save'}
           </button>

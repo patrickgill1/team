@@ -126,7 +126,7 @@ const FamilyTimeline: React.FC = () => {
   }, [email, allowed, reloadKey]);
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-slate-600 text-sm">Club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Club admins only.</div>;
   }
 
   const parentName = useMemo(() => {
@@ -144,7 +144,7 @@ const FamilyTimeline: React.FC = () => {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
         <div className="max-w-4xl mx-auto">
           <Link to="/club/registrations" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
@@ -154,7 +154,7 @@ const FamilyTimeline: React.FC = () => {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">{parentName || email}</h1>
-              {parentName && <p className="text-sm text-slate-400 mt-0.5">{email}</p>}
+              {parentName && <p className="text-sm text-bone/40 mt-0.5">{email}</p>}
             </div>
             <button
               type="button"
@@ -169,22 +169,22 @@ const FamilyTimeline: React.FC = () => {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-3">
         {loading ? (
-          <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-6 text-sm text-slate-500">Loading…</div>
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
         ) : error ? (
-          <div className="bg-rose-50 ring-1 ring-rose-300 rounded-2xl p-4 text-sm text-rose-700">{error}</div>
+          <div className="bg-rose-500/15 ring-1 ring-rose-300 rounded-2xl p-4 text-sm text-rose-300">{error}</div>
         ) : !data ? (
-          <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-6 text-sm text-slate-500">Nothing found for {email}.</div>
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Nothing found for {email}.</div>
         ) : (
           <>
             {/* Household banner — only when multi-email linked. */}
             {data.household && data.emails.length > 1 && (
-              <div className="bg-crimson-50 ring-1 ring-crimson-200 rounded-2xl p-3 flex items-start gap-3">
+              <div className="bg-crimson-500/15 ring-1 ring-crimson-200 rounded-2xl p-3 flex items-start gap-3">
                 <svg className="w-4 h-4 text-crimson-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-800">Household · {data.emails.length} emails</div>
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-200">Household · {data.emails.length} emails</div>
                   <div className="text-xs text-crimson-900 mt-0.5 truncate">
                     {data.emails.map(e => (
-                      <Link key={e} to={`/club/family/${encodeURIComponent(e)}`} className={`inline-block mr-2 ${e === email ? 'font-extrabold' : 'underline hover:text-crimson-700'}`}>
+                      <Link key={e} to={`/club/family/${encodeURIComponent(e)}`} className={`inline-block mr-2 ${e === email ? 'font-extrabold' : 'underline hover:text-crimson-300'}`}>
                         {e}
                       </Link>
                     ))}
@@ -203,20 +203,20 @@ const FamilyTimeline: React.FC = () => {
 
             {/* Kids list */}
             {data.registrations.length > 0 && (
-              <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-                <div className="px-4 py-2 border-b border-slate-100">
-                  <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-600">Kids</h2>
+              <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+                <div className="px-4 py-2 border-b border-white/5">
+                  <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-bone/65">Kids</h2>
                 </div>
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-white/5">
                   {data.registrations.map(r => {
                     const promotedTo = data.players.find(p => p.id === r.promotedToPlayerId);
                     return (
                       <li key={r.id} className="px-4 py-3 flex items-start justify-between gap-3">
                         <div>
-                          <div className="font-bold text-slate-900">
+                          <div className="font-bold text-bone">
                             {r.player.firstName} {r.player.lastName}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[11px] text-bone/50">
                             {r.player.ageGroup} · {r.player.gender}
                             {r.player.preferredPosition ? ` · ${r.player.preferredPosition}` : ''}
                             {r.player.playedBefore ? ' · returning' : ''}
@@ -224,13 +224,13 @@ const FamilyTimeline: React.FC = () => {
                           {promotedTo && (
                             <Link
                               to={`/club/person/${promotedTo.id}`}
-                              className="inline-block mt-1 text-[11px] font-extrabold uppercase tracking-widest text-crimson-700 hover:text-crimson-900"
+                              className="inline-block mt-1 text-[11px] font-extrabold uppercase tracking-widest text-crimson-300 hover:text-crimson-900"
                             >
                               Open profile →
                             </Link>
                           )}
                         </div>
-                        <span className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-slate-100 text-slate-700 ring-1 ring-slate-200 shrink-0">
+                        <span className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-charcoal-950 text-bone/85 ring-1 ring-white/10 shrink-0">
                           {r.status}
                         </span>
                       </li>
@@ -242,22 +242,22 @@ const FamilyTimeline: React.FC = () => {
 
             {/* Offers */}
             {data.offers.length > 0 && (
-              <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-                <div className="px-4 py-2 border-b border-slate-100">
-                  <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-600">Offers</h2>
+              <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+                <div className="px-4 py-2 border-b border-white/5">
+                  <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-bone/65">Offers</h2>
                 </div>
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-white/5">
                   {data.offers.map(o => (
                     <li key={o.id} className="px-4 py-3 flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-bold text-slate-900">{o.teamName} <span className="text-slate-400 font-normal">→</span> {o.playerName}</div>
-                        <div className="text-[11px] text-slate-500">From {o.coachName} · {toDate(o.createdAt).toLocaleDateString()}</div>
+                        <div className="font-bold text-bone">{o.teamName} <span className="text-bone/40 font-normal">→</span> {o.playerName}</div>
+                        <div className="text-[11px] text-bone/50">From {o.coachName} · {toDate(o.createdAt).toLocaleDateString()}</div>
                       </div>
                       <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded shrink-0 ${
-                        o.status === 'accepted' ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300'
-                          : o.status === 'declined' ? 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'
-                          : o.status === 'expired' ? 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
-                          : 'bg-violet-100 text-violet-700 ring-1 ring-violet-200'
+                        o.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-300'
+                          : o.status === 'declined' ? 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-200'
+                          : o.status === 'expired' ? 'bg-charcoal-950 text-bone/50 ring-1 ring-white/10'
+                          : 'bg-violet-500/20 text-violet-300 ring-1 ring-violet-200'
                       }`}>{o.status}</span>
                     </li>
                   ))}
@@ -266,14 +266,14 @@ const FamilyTimeline: React.FC = () => {
             )}
 
             {/* Timeline */}
-            <div className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-              <div className="px-4 py-2 border-b border-slate-100">
-                <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-600">Timeline</h2>
+            <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+              <div className="px-4 py-2 border-b border-white/5">
+                <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-bone/65">Timeline</h2>
               </div>
               {data.activities.length === 0 ? (
-                <div className="p-6 text-center text-sm text-slate-500">No activity yet.</div>
+                <div className="p-6 text-center text-sm text-bone/50">No activity yet.</div>
               ) : (
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-white/5">
                   {data.activities.map(a => <TimelineRow key={a.id} activity={a} />)}
                 </ul>
               )}
@@ -298,9 +298,9 @@ const FamilyTimeline: React.FC = () => {
 };
 
 const Tile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="bg-white rounded-xl ring-1 ring-slate-200 px-4 py-3">
-    <div className="text-2xl font-black text-slate-900 leading-none">{value}</div>
-    <div className="text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mt-1">{label}</div>
+  <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 px-4 py-3">
+    <div className="text-2xl font-black text-bone leading-none">{value}</div>
+    <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mt-1">{label}</div>
   </div>
 );
 
@@ -310,17 +310,17 @@ const TimelineRow: React.FC<{ activity: Activity }> = ({ activity: a }) => {
     <li className="px-4 py-3 flex items-start gap-3">
       <div className={`shrink-0 w-2 h-2 rounded-full mt-2 ${kindTone(a.kind)}`} />
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-slate-800">
+        <div className="text-sm text-bone/90">
           <span className="font-bold">{a.actorName || 'System'}</span>{' '}
-          <span className="text-slate-500">{verbFor(a.kind)}</span>{' '}
+          <span className="text-bone/50">{verbFor(a.kind)}</span>{' '}
           <span className="font-bold">{a.payload?.playerName || a.payload?.teamName || ''}</span>
           {a.payload?.rating && <span className="ml-1 text-amber-600 font-bold">{a.payload.rating}★</span>}
-          {a.payload?.totalCents && <span className="ml-1 text-emerald-700 font-bold">${(a.payload.totalCents / 100).toFixed(2)}</span>}
+          {a.payload?.totalCents && <span className="ml-1 text-emerald-300 font-bold">${(a.payload.totalCents / 100).toFixed(2)}</span>}
         </div>
-        {a.payload?.note && <div className="text-[11px] text-slate-500 mt-0.5 italic">"{a.payload.note}"</div>}
-        {a.payload?.subject && <div className="text-[11px] text-slate-500 mt-0.5">{a.payload.subject}</div>}
+        {a.payload?.note && <div className="text-[11px] text-bone/50 mt-0.5 italic">"{a.payload.note}"</div>}
+        {a.payload?.subject && <div className="text-[11px] text-bone/50 mt-0.5">{a.payload.subject}</div>}
       </div>
-      <div className="text-[10px] text-slate-400 shrink-0 mt-1 tabular-nums">{ts.toLocaleDateString()} · {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+      <div className="text-[10px] text-bone/40 shrink-0 mt-1 tabular-nums">{ts.toLocaleDateString()} · {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
     </li>
   );
 };
@@ -331,8 +331,8 @@ function kindTone(kind: Activity['kind']): string {
   if (kind === 'offer_sent' || kind === 'tryout_invited') return 'bg-violet-500';
   if (kind === 'offer_declined') return 'bg-rose-500';
   if (kind.startsWith('coach_')) return 'bg-amber-500';
-  if (kind === 'email_sent') return 'bg-slate-400';
-  return 'bg-slate-300';
+  if (kind === 'email_sent') return 'bg-white/40';
+  return 'bg-white/25';
 }
 
 function verbFor(kind: Activity['kind']): string {

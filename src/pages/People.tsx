@@ -40,12 +40,18 @@ const ROLE_LABEL: Record<Role, string> = {
   team_manager: 'Manager',
   admin: 'Admin',
 };
+// Role chips were rendered at 9px font + 15%-opacity bg + tier-300
+// text after the v3.2.66 dark-sweep. Result: legibly impossible.
+// Patrick: "the pill next to the coaches, managers and staff is
+// not readible." Bumped bg opacity to /25, text to tier-200, and
+// the chip size up one notch — same compact pill but no longer
+// disappearing into its background.
 const ROLE_CHIP: Record<Role, string> = {
-  player: 'bg-crimson-500/15 text-bone/85 border-crimson-400/30',
-  parent: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
-  coach: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
-  team_manager: 'bg-violet-500/15 text-violet-300 border-violet-400/30',
-  admin: 'bg-rose-500/15 text-rose-300 border-rose-400/30',
+  player: 'bg-crimson-500/25 text-crimson-100 border-crimson-400/40',
+  parent: 'bg-emerald-500/25 text-emerald-100 border-emerald-400/40',
+  coach: 'bg-amber-500/25 text-amber-100 border-amber-400/40',
+  team_manager: 'bg-violet-500/25 text-violet-100 border-violet-400/40',
+  admin: 'bg-rose-500/25 text-rose-100 border-rose-400/40',
 };
 
 const People: React.FC = () => {
@@ -392,7 +398,7 @@ const People: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-bone truncate">{p.name}</span>
-                      <span className={`text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
+                      <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
                         {ROLE_LABEL[p.role]}
                       </span>
                       {!p.isActive && (

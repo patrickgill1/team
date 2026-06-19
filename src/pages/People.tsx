@@ -40,18 +40,29 @@ const ROLE_LABEL: Record<Role, string> = {
   team_manager: 'Manager',
   admin: 'Admin',
 };
-// Role chips were rendered at 9px font + 15%-opacity bg + tier-300
-// text after the v3.2.66 dark-sweep. Result: legibly impossible.
-// Patrick: "the pill next to the coaches, managers and staff is
-// not readible." Bumped bg opacity to /25, text to tier-200, and
-// the chip size up one notch — same compact pill but no longer
-// disappearing into its background.
+// Role chips use SOLID colored pills, not opacity-tinted ones.
+// The previous translucent treatment (bg-{color}-500/15-25 +
+// text-{color}-100-300) kept failing — Patrick had to flag it
+// twice. Translucent tints at chip-sized fonts (9-10px) collapse
+// against any moderately-textured background; solid fills guarantee
+// the contrast level a status pill needs to do its job.
+//
+// Color choice:
+//   coach = amber (bright fill, dark text — the readable warm-color
+//                  pattern from POTM gold)
+//   admin = crimson (brand primary, matches +POST and other primary
+//                    CTAs — admins are 'the action')
+//   manager = sky (cool fill, white text — distinct from coach/admin
+//                  without grabbing for violet again)
+//   parent = emerald (calm fill, white text)
+//   player = bone outline (neutral; most rows are players, so leave
+//                          them quiet so coaches/admins stand out)
 const ROLE_CHIP: Record<Role, string> = {
-  player: 'bg-crimson-500/25 text-crimson-100 border-crimson-400/40',
-  parent: 'bg-emerald-500/25 text-emerald-100 border-emerald-400/40',
-  coach: 'bg-amber-500/25 text-amber-100 border-amber-400/40',
-  team_manager: 'bg-violet-500/25 text-violet-100 border-violet-400/40',
-  admin: 'bg-rose-500/25 text-rose-100 border-rose-400/40',
+  player: 'bg-charcoal-800 text-bone/80 border-white/15',
+  parent: 'bg-emerald-600 text-white border-emerald-700',
+  coach: 'bg-amber-400 text-charcoal-950 border-amber-500',
+  team_manager: 'bg-sky-600 text-white border-sky-700',
+  admin: 'bg-crimson-600 text-white border-crimson-700',
 };
 
 const People: React.FC = () => {

@@ -327,12 +327,21 @@ const TeamChat: React.FC = () => {
   // the ORIGINAL viewport bottom (an iOS WKWebView quirk). We work around
   // it by setting the chat container's height explicitly from
   // window.innerHeight, instead of relying on CSS bottom anchoring.
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // 1024 (Tailwind 'lg') instead of 768 so iPad portrait
+  // (768x1024) uses the mobile single-view layout. The desktop
+  // two-pane layout assumes 'no top/bottom nav' and uses
+  // height: 100dvh — but Navigation.tsx only hides its mobile
+  // chrome at lg+. Between 768 and 1023 the mobile chrome IS
+  // showing AND the desktop layout doesn't subtract for it, so
+  // the composer at the bottom of the chat gets pushed off the
+  // viewport. Patrick: 'i can[not] get a type box to show up
+  // on ipad simulator in chat.'
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [winHeight, setWinHeight] = useState(window.innerHeight);
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 768;
+      const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       setWinHeight(window.innerHeight);
       // Previously forced currentView = 'threads' on every desktop

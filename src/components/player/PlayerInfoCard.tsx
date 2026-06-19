@@ -24,12 +24,12 @@ const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
     <>
       <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-400">Player Info</h2>
+          <h2 className="text-sm font-extrabold uppercase tracking-widest text-bone/55">Player Info</h2>
           {canEdit && (
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-xs font-bold text-crimson-400 hover:text-bone"
+              className="text-xs font-bold text-bone/65 hover:text-bone"
             >
               Edit
             </button>
@@ -57,7 +57,7 @@ const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
 const Row: React.FC<{ icon: React.ReactNode; label: string; value?: string }> = ({ icon, label, value }) => (
   <div className="flex items-center justify-between py-2.5 gap-2">
     <dt className="flex items-center gap-2 text-sm text-white/70">
-      <span className="text-crimson-400">{icon}</span>
+      <span className="text-bone/40">{icon}</span>
       <span className="font-medium">{label}</span>
     </dt>
     <dd className="text-sm font-bold text-white text-right truncate">{value || <span className="text-white/40">—</span>}</dd>

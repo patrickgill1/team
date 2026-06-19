@@ -327,7 +327,7 @@ const PlayerProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crimson-600"></div>
       </div>
     );
@@ -335,7 +335,7 @@ const PlayerProfile: React.FC = () => {
 
   if (!player) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4">😕</div>
           <h2 className="text-xl font-bold text-gray-900">Player Not Found</h2>
@@ -376,7 +376,7 @@ const PlayerProfile: React.FC = () => {
   })();
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-charcoal-950">
       {/* ───── HERO (v2) ─────
           Dark gradient hero band + 4-tile glance stats. Replaces the
           old fire-700→navy-900 gradient + hand-rolled photo/name block. */}
@@ -918,10 +918,10 @@ const PlayerProfile: React.FC = () => {
               return (
                 <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-400">Juggle counter</h2>
+                    <h2 className="text-sm font-extrabold uppercase tracking-widest text-bone/55">Juggle counter</h2>
                     <button
                       onClick={() => { setJuggleDraft(''); setJuggleOpen(true); }}
-                      className="text-xs font-bold uppercase tracking-widest text-crimson-400 hover:text-bone"
+                      className="text-xs font-bold uppercase tracking-widest text-bone/65 hover:text-bone"
                     >
                       + Log
                     </button>

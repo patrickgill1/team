@@ -99,10 +99,10 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
     return (
       <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-400">Development Plan</h2>
+          <h2 className="text-sm font-extrabold uppercase tracking-widest text-bone/55">Development Plan</h2>
           <button
             onClick={() => navigate('/development')}
-            className="text-xs font-bold text-crimson-400 hover:text-bone"
+            className="text-xs font-bold text-bone/65 hover:text-bone"
           >
             Open plan →
           </button>
@@ -117,7 +117,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
   return (
     <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-400">Development Plan</h2>
+        <h2 className="text-sm font-extrabold uppercase tracking-widest text-bone/55">Development Plan</h2>
         <div className="flex items-center gap-2">
           {streak > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500 text-white text-[11px] font-extrabold">
@@ -126,7 +126,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
           )}
           <button
             onClick={() => navigate('/development')}
-            className="text-xs font-bold text-crimson-400 hover:text-bone"
+            className="text-xs font-bold text-bone/65 hover:text-bone"
           >
             Open plan →
           </button>

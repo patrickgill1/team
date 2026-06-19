@@ -213,11 +213,20 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
       <Navigation />
-      {/* Main content: offset for desktop sidebar + mobile top/bottom bars.
-          pt-14 across all routes — the dashboard's next-event photo lives
-          INSIDE its NextEventPoster card now, no photo-under-chrome bleed
-          to accommodate. */}
-      <main className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0">
+      {/* Main content offset: chrome is safe-top + h-14 (the React
+          header has safe-top padding now that the AppDelegate
+          native strip is gone). pt-14 alone clears the h-14
+          content row but NOT the safe-area-top padding, so on
+          devices with a Dynamic Island / notch the first ~59px of
+          page content was rendering behind the chrome. The inline
+          style adds env(safe-area-inset-top) on top of the h-14
+          (3.5rem) offset so page content always starts cleanly
+          below the chrome regardless of device. lg sidebar layout
+          unchanged. */}
+      <main
+        className="lg:ml-64 lg:pt-0 pb-20 lg:pb-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}
+      >
         {/* Mobile-web only: prompt to install the native app. No-ops
             inside Capacitor, on desktop, or after dismissal. */}
         <InstallAppBanner />

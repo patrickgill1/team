@@ -582,7 +582,11 @@ async function seedMedia() {
       teamId: DEMO_TEAM_ID,
       type: 'video',
       url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-      thumbnailUrl: `https://images.unsplash.com/photo-1542652694-40abf526446e?w=640&q=60`,
+      // Soccer ball on grass — replaces the previous Unsplash ID
+      // that turned out to be a basketball photo. Patrick on the
+      // demo screenshots: 'thumbnail is a basketball, can you switch
+      // it for a soccer thumbnail?'
+      thumbnailUrl: `https://images.unsplash.com/photo-1551958219-acbc608c6377?w=640&q=60`,
       createdAt: daysAgo(3),
       reactions: { '🔥': 5, '⚽': 3 },
       viewCount: 24,

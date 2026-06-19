@@ -66,6 +66,14 @@ const Dashboard: React.FC = () => {
      *  when only 6 ever count). Each entry also flags isFuture so the
      *  card can render upcoming days as dim outlines. */
     thisWeek: { date: Date; logged: boolean; isFuture: boolean }[];
+    /** Streak recomputed from the freshly-fetched active plans, NOT
+     *  the cached myPlayer.currentStreakDays denormalized field. The
+     *  cached field can lag behind reality if a prior streak persist
+     *  raced with the Dashboard fetch (Patrick: "i did it 3 days
+     *  now, it stays at one"). Reading from here ensures the strip
+     *  always shows the truth, and the self-heal in the same effect
+     *  writes the corrected value back to Firestore. */
+    streakDays: number;
   } | null>(null);
   // Wall posts = docs in the wall_posts collection (its own surface,
   // separate from chat). The dashboard surfaces the 5 most recent.
@@ -378,6 +386,29 @@ const Dashboard: React.FC = () => {
                 isFuture: d.getTime() > todayTime,
               });
             }
+            // Compute the real streak from these freshly-fetched
+            // active plans and self-heal the cached field on the
+            // player doc if it disagrees. Without this, the cached
+            // currentStreakDays could lag indefinitely if a prior
+            // tap's persist write raced with Dashboard's fetch —
+            // the symptom Patrick reported: "i did it 3 days now,
+            // and it stays at one." Same self-heal pattern
+            // InlineDevPlanCard uses on the player profile.
+            const { computeStreakDays, recomputeAndPersistPlayerStreak } = await import('../utils/devPlanActions');
+            const freshStreak = computeStreakDays(plans as any);
+            const cachedStreak: number = (myPlayer as any)?.currentStreakDays || 0;
+            if (freshStreak !== cachedStreak) {
+              try {
+                await recomputeAndPersistPlayerStreak(myPlayer.id, plans as any);
+                // Local mirror so this render uses the fresh number
+                // even before getPlayersByTeam refetches.
+                setPlayers((prev) => prev.map((p: any) =>
+                  p.id === myPlayer.id ? { ...p, currentStreakDays: freshStreak } : p
+                ));
+              } catch (err) {
+                console.warn('[dashboard] streak self-heal write skipped', err);
+              }
+            }
             setTonightGoal({
               planId: plan.id,
               goalId: next.id,
@@ -387,6 +418,7 @@ const Dashboard: React.FC = () => {
               durationMinutes: next.targetMinutes,
               loggedToday,
               thisWeek,
+              streakDays: freshStreak,
             });
             return;
           }
@@ -775,7 +807,11 @@ const Dashboard: React.FC = () => {
             Sunday rendered with a dash so it reads as "rest day" not
             "missed" (the streak algo skips Sundays). */}
         {myPlayer && tonightGoal && (() => {
-          const streak = (myPlayer as any)?.currentStreakDays || 0;
+          // Streak source of truth = the value computed in
+          // tonightGoal's effect from the freshly-fetched plans. The
+          // cached myPlayer.currentStreakDays can lag if a prior
+          // persist write raced with the dashboard fetch.
+          const streak = tonightGoal.streakDays;
           const loggedCount = tonightGoal.thisWeek.filter(d => d.logged).length;
           const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
           return (

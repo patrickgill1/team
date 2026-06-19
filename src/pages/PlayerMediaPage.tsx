@@ -1255,17 +1255,16 @@ const PlayerMediaPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-gray-950 to-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* ── HERO ─────────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-2xl mb-6 bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black border border-crimson-500/10">
-          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.25),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(239,68,68,0.2),transparent_50%)]" />
-          <div className="relative px-6 py-10 sm:py-14 sm:px-10">
-            <h1 className="text-5xl sm:text-7xl font-black tracking-[0.15em] uppercase bg-gradient-to-r from-crimson-200 via-white to-crimson-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">
-              Media
-            </h1>
-            <p className="mt-3 text-bone/80 text-xs sm:text-sm font-bold tracking-[0.3em] uppercase">
-              Highlights · Moments · Memories
-            </p>
-          </div>
+        {/* Page title — Patrick's half-empty critique flagged the
+            previous 'MEDIA / HIGHLIGHTS · MOMENTS · MEMORIES' hero
+            as a 200px banner that earned nothing. Replaced with a
+            single-row title; the tab bar below carries the rest of
+            the navigation. */}
+        <div className="mb-4 flex items-baseline gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-bone">Media</h1>
+          <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40">
+            Highlights · Moments · Memories
+          </span>
         </div>
 
         {/* ── TABS + SEARCH + UPLOAD ──────────────────────────────── */}

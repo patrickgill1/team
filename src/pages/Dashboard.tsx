@@ -344,6 +344,44 @@ const Dashboard: React.FC = () => {
         ));
         if (cancelled) return;
         const plans = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+
+        // STREAK SELF-HEAL — runs UNCONDITIONALLY on every dashboard
+        // mount so the cached currentStreakDays is corrected even
+        // when there's no 'next' goal to surface (e.g., all goals
+        // coach-verified). Was previously nested inside the
+        // for(plan of plans) loop's if(next) branch, which skipped
+        // the recompute whenever the player had no unfinished goals
+        // — bug Patrick hit: 'he only has one, and he clicked it
+        // today, yesterday, and the day before' but the streak
+        // stayed at 1. Hunter's lone goal may already be verified,
+        // so the old code path never even attempted the heal.
+        try {
+          const { computeStreakDays, recomputeAndPersistPlayerStreak } = await import('../utils/devPlanActions');
+          const freshStreak = computeStreakDays(plans as any);
+          const cachedStreak: number = (myPlayer as any)?.currentStreakDays || 0;
+          if (process.env.NODE_ENV !== 'production') {
+            const dayKeys: string[] = [];
+            for (const p of plans) {
+              for (const g of (p.goals || [])) {
+                for (const l of (g.practiceLog || [])) {
+                  const dt = l.date?.toDate ? l.date.toDate() : new Date(l.date);
+                  dayKeys.push(`${dt.getFullYear()}-${dt.getMonth()+1}-${dt.getDate()}`);
+                }
+              }
+            }
+            // eslint-disable-next-line no-console
+            console.debug('[dashboard streak]', { playerId: myPlayer.id, activePlans: plans.length, dayKeys, freshStreak, cachedStreak });
+          }
+          if (freshStreak !== cachedStreak) {
+            await recomputeAndPersistPlayerStreak(myPlayer.id, plans as any);
+            setPlayers((prev) => prev.map((p: any) =>
+              p.id === myPlayer.id ? { ...p, currentStreakDays: freshStreak } : p
+            ));
+          }
+        } catch (err) {
+          console.warn('[dashboard] streak self-heal failed', err);
+        }
+
         const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
         for (const plan of plans) {
           const goals: any[] = Array.isArray(plan.goals) ? plan.goals : [];
@@ -386,29 +424,11 @@ const Dashboard: React.FC = () => {
                 isFuture: d.getTime() > todayTime,
               });
             }
-            // Compute the real streak from these freshly-fetched
-            // active plans and self-heal the cached field on the
-            // player doc if it disagrees. Without this, the cached
-            // currentStreakDays could lag indefinitely if a prior
-            // tap's persist write raced with Dashboard's fetch —
-            // the symptom Patrick reported: "i did it 3 days now,
-            // and it stays at one." Same self-heal pattern
-            // InlineDevPlanCard uses on the player profile.
-            const { computeStreakDays, recomputeAndPersistPlayerStreak } = await import('../utils/devPlanActions');
-            const freshStreak = computeStreakDays(plans as any);
-            const cachedStreak: number = (myPlayer as any)?.currentStreakDays || 0;
-            if (freshStreak !== cachedStreak) {
-              try {
-                await recomputeAndPersistPlayerStreak(myPlayer.id, plans as any);
-                // Local mirror so this render uses the fresh number
-                // even before getPlayersByTeam refetches.
-                setPlayers((prev) => prev.map((p: any) =>
-                  p.id === myPlayer.id ? { ...p, currentStreakDays: freshStreak } : p
-                ));
-              } catch (err) {
-                console.warn('[dashboard] streak self-heal write skipped', err);
-              }
-            }
+            // Streak self-heal moved OUT of this branch (above the
+            // for-loop) so it runs even when there's no unfinished
+            // goal to surface. Use the same recomputed value here.
+            const { computeStreakDays: csd } = await import('../utils/devPlanActions');
+            const freshStreak = csd(plans as any);
             setTonightGoal({
               planId: plan.id,
               goalId: next.id,

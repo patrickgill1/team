@@ -8,7 +8,7 @@ import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types'
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import { RichContent } from './Wall';
-import DashboardHero from '../components/common/DashboardHero';
+import NextEventPoster from '../components/common/NextEventPoster';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import { useActiveSeason } from '../hooks/useActiveSeason';
@@ -548,6 +548,101 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Linked players for the current parent user, so the dashboard
+  // poster can RSVP THE KID(S) on a tap instead of the parent. Same
+  // query as EventDetail uses; runs for everyone but only matters
+  // when the user is a non-coach parent with linked kids. Skipped
+  // entirely if there's no next event to RSVP for.
+  const [myLinkedPlayers, setMyLinkedPlayers] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    if (!userData?.uid || !nextEvent?.teamId) { setMyLinkedPlayers([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection: c, getDocs: gd, query: q, where: w } = await import('firebase/firestore');
+        const { db: d } = await import('../utils/firebase');
+        const snap = await gd(q(
+          c(d, 'players'),
+          w('parentIds', 'array-contains', userData.uid),
+        ));
+        if (cancelled) return;
+        const list = snap.docs
+          .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
+          .filter((p: any) => p.isActive !== false)
+          .filter((p: any) => Array.isArray(p.teamIds) ? p.teamIds.includes(nextEvent.teamId) : true)
+          .map((p: any) => ({ id: p.id, name: p.name as string }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setMyLinkedPlayers(list);
+      } catch (err) {
+        console.warn('[dashboard] linked players load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userData?.uid, nextEvent?.teamId]);
+
+  // Dashboard RSVP — when the user is a parent with linked kids,
+  // tapping Going/Maybe/Can't RSVPs the KID(S), matching the
+  // EventDetail "Quick Actions" behavior. Coaches and parents-
+  // without-linked-kids RSVP themselves.
+  const useKidQuickRsvp = !isUserCoach && myLinkedPlayers.length > 0;
+  const quickRsvp = async (status: 'going' | 'maybe' | 'no') => {
+    if (!nextEvent) return;
+    if (useKidQuickRsvp && userData?.uid) {
+      const nextMap: Record<string, any> = { ...(((nextEvent as any).playerRsvps) || {}) };
+      for (const p of myLinkedPlayers) {
+        nextMap[p.id] = {
+          status,
+          playerName: p.name,
+          byUid: userData.uid,
+          byName: userData.name || undefined,
+          respondedAt: new Date(),
+        };
+      }
+      setUpcomingEvents((prev) =>
+        prev.map((e) => (e.id === nextEvent.id ? ({ ...e, playerRsvps: nextMap } as any) : e))
+      );
+      try {
+        await updateDocument('events', nextEvent.id, { playerRsvps: nextMap });
+      } catch (err) {
+        console.error('[dashboard] quick kid rsvp failed', err);
+      }
+      return;
+    }
+    await setMyRsvp(status);
+  };
+
+  // Current RSVP status to show as "active" on the poster buttons.
+  // Kid mode: only highlight when all linked kids share the same
+  // status (otherwise it'd be misleading). Adult mode: the user's
+  // own rsvp.
+  const posterCurrentStatus = (() => {
+    if (!nextEvent) return null;
+    if (useKidQuickRsvp) {
+      const playerR = ((nextEvent as any).playerRsvps || {}) as Record<string, { status: string }>;
+      const statuses = myLinkedPlayers.map(p => playerR[p.id]?.status);
+      if (statuses.length > 0 && statuses.every(s => s === 'going')) return 'going' as const;
+      if (statuses.length > 0 && statuses.every(s => s === 'maybe')) return 'maybe' as const;
+      if (statuses.length > 0 && statuses.every(s => s === 'no')) return 'no' as const;
+      return null;
+    }
+    return (myRsvp?.status as 'going' | 'maybe' | 'no' | null) || null;
+  })();
+
+  // Button labels — adjust copy when RSVPing a kid so the parent
+  // knows who they're marking going. "Hunter going" / "All going"
+  // / "I'm going" / etc.
+  const posterGoingLabel = (() => {
+    if (useKidQuickRsvp) {
+      return myLinkedPlayers.length === 1
+        ? `${myLinkedPlayers[0].name.split(' ')[0]} going`
+        : 'All going';
+    }
+    return "I'm going";
+  })();
+  const posterNoLabel = useKidQuickRsvp
+    ? (myLinkedPlayers.length === 1 ? "Can't go" : "None going")
+    : "Can't go";
+
   // "Tomorrow at 5:00 PM" / "in 3 days" / "in 2 hours"
   const friendlyWhen = (d: Date): string => {
     const now = new Date();
@@ -630,17 +725,20 @@ const Dashboard: React.FC = () => {
           most important glance-able info (next-event RSVP count,
           unread chats, fresh photos). Replaces the standalone
           greeting + the Next Event card. */}
-      <DashboardHero
+      <NextEventPoster
         greeting={greeting}
         firstName={firstName}
         nextEvent={nextEvent}
-        goingCount={rsvpCounts.going}
-        pendingRsvpCount={rsvpCounts.pending}
         whenText={nextEvent ? friendlyWhen(new Date(nextEvent.date)) : ''}
-        newMessagesCount={newMessagesCount}
         weather={nextEventWeather}
+        goingCount={rsvpCounts.going}
+        pendingCount={rsvpCounts.pending}
         playerCount={players.length}
         isCoach={isUserCoach}
+        currentStatus={posterCurrentStatus}
+        goingLabel={posterGoingLabel}
+        noLabel={posterNoLabel}
+        onRsvp={quickRsvp}
       />
       <div className="relative">
 

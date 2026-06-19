@@ -28,7 +28,6 @@ const Navigation: React.FC = () => {
   const { userData, logout, deleteAccount } = useAuth();
   const { teams, selectedTeamId, selectedTeam, setSelectedTeamId } = useTeam();
   const location = useLocation();
-  const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   // isInviteOpen state removed with the legacy modal.
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
@@ -415,26 +414,13 @@ const Navigation: React.FC = () => {
           because it is so dark on top. bleed the soccer photo up."
           Other pages keep the solid bg so chat / wall / events
           still have a defined chrome edge. */}
-      {/* On the dashboard route the chrome is intentionally a
-          defined band — fully dark over the safe-area + the h-14
-          chrome content, then fading to transparent over an extra
-          h-6 so it transitions cleanly into the stadium photo
-          below. Patrick: "lean into, maybe darken the gradient a
-          bit and not try to hide it so much." This anchors the
-          wordmark / team chip / icons on a guaranteed-readable
-          backdrop across every time-of-day photo (sunset, noon,
-          night), and the fade-out at the bottom prevents a hard
-          horizon line on the photo. */}
-      <header className={`lg:hidden fixed top-0 inset-x-0 z-40 safe-top ${
-        isDashboardRoute
-          ? 'bg-gradient-to-b from-charcoal-800/95 via-charcoal-800/90 to-charcoal-800/90'
-          : 'bg-charcoal-800'
-      }`}>
-        <div className={`flex items-center gap-2 px-3 h-14 ${
-          isDashboardRoute
-            ? 'bg-gradient-to-b from-charcoal-800/90 via-charcoal-800/60 to-transparent backdrop-blur-md'
-            : 'bg-charcoal-800'
-        }`}>
+      {/* Flat charcoal-800 chrome on every route. The next-event
+          photo no longer lives behind the chrome — it's the bg of
+          the NextEventPoster card BELOW the chrome — so there's no
+          "let the photo bleed through" tension. Chrome reads as
+          iOS chrome, end of debate. */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 safe-top bg-charcoal-800">
+        <div className="flex items-center gap-2 px-3 h-14 bg-charcoal-800">
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px
               badge image that read as washed-out at small sizes on
               the dark nav. */}

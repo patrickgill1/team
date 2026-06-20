@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, serverTimestamp, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, updateDoc, addDoc, collection, setDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { logActivity } from '../utils/activityLog';
 import { sendEmail, sendPushToParentEmails, tplWelcomeAfterOffer } from '../utils/notify';
 import { streamIframeUrl } from '../utils/streamUpload';
 import Logo from '../components/common/Logo';
-import type { OfferLetter, Registration } from '../types';
+import type { FormDefinition, OfferLetter, Registration } from '../types';
 
 // Public, no-auth offer page. Parent lands here from a unique link in
 // the offer email and accepts or declines. Acceptance promotes the
@@ -22,6 +22,14 @@ const Offer: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
   const [showingDecline, setShowingDecline] = useState(false);
+  // Bundled waiver flow — loaded the moment the offer is fetched, then
+  // surfaced as an inline signing step the first time the family taps
+  // Accept. handleAccept proceeds only once every required waiver has
+  // a signature.
+  const [waivers, setWaivers] = useState<FormDefinition[]>([]);
+  const [showingWaivers, setShowingWaivers] = useState(false);
+  const [signedByName, setSignedByName] = useState('');
+  const [waiverAck, setWaiverAck] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +44,16 @@ const Offer: React.FC = () => {
         const rSnap = await getDoc(doc(db, 'registrations', o.registrationId));
         if (rSnap.exists() && !cancelled) {
           setRegistration({ id: rSnap.id, ...(rSnap.data() as any) } as Registration);
+        }
+        // Bundled waivers — load the FormDefinition docs the coach
+        // pinned to this offer's template. Missing entries (form was
+        // deleted) are silently dropped; the parent only sees waivers
+        // that still exist.
+        const ids = Array.isArray(o.requiredWaiverIds) ? o.requiredWaiverIds : [];
+        if (ids.length > 0) {
+          const snaps = await Promise.all(ids.map(id => getDoc(doc(db, 'form_definitions', id))));
+          const list = snaps.filter(s => s.exists()).map(s => ({ id: s.id, ...(s.data() as any) }) as FormDefinition);
+          if (!cancelled) setWaivers(list);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -99,6 +117,41 @@ const Offer: React.FC = () => {
         playerId = playerRef.id;
       }
 
+      // Persist a form_signatures doc per bundled waiver before the
+      // offer flips to accepted. We key each doc as ${playerId}_${formId}
+      // so PersonAdmin's existing checklist reads them the same way it
+      // reads admin-recorded signatures.
+      if (waivers.length > 0 && signedByName.trim() && playerId) {
+        for (const w of waivers) {
+          try {
+            const sigId = `${playerId}_${w.id}`;
+            await setDoc(doc(db, 'form_signatures', sigId), {
+              clubId: offer.clubId,
+              playerId,
+              formDefinitionId: w.id,
+              formName: w.name,
+              signedByName: signedByName.trim(),
+              signedBy: 'parent',
+              signedAt: serverTimestamp(),
+              source: 'offer_accept',
+              offerId: offer.id,
+            } as any);
+            await logActivity({
+              clubId: offer.clubId,
+              kind: 'form_signed',
+              playerId,
+              parentEmail: offer.parentEmail,
+              seasonId: registration.seasonId,
+              actorUid: 'public',
+              actorName: signedByName.trim(),
+              payload: { formName: w.name, signedByName: signedByName.trim(), source: 'offer_accept' },
+            });
+          } catch (err) {
+            console.warn('waiver signature write failed', w.id, err);
+          }
+        }
+      }
+
       // Flip the offer + registration.
       await updateDoc(doc(db, 'offers', offer.id), {
         status: 'accepted',
@@ -137,6 +190,27 @@ const Offer: React.FC = () => {
         actorUid: 'system',
         payload: { fromOfferId: offer.id, teamName: offer.teamName },
       });
+
+      // Funnel stage 4 — offer accepted. Sibling stamp to offer_sent
+      // upstream in SendOfferModal. The fifth stage (external league
+      // registration) stays manual; the sixth (club dues) fires from
+      // the Stripe payment confirmation webhook.
+      try {
+        await updateDoc(doc(db, 'players', playerId), {
+          'funnelProgress.offer_accept': {
+            completedAt: serverTimestamp(),
+            by: 'public',
+            meta: {
+              offerId: offer.id,
+              teamId: offer.teamId,
+              teamName: offer.teamName,
+              signedWaiverIds: waivers.map(w => w.id),
+            },
+          },
+        } as any);
+      } catch (err) {
+        console.warn('funnel.offer_accept write failed', err);
+      }
 
       // Welcome email — fire-and-forget. Parent will get it within
       // seconds. Failure doesn't roll back the acceptance.
@@ -280,7 +354,99 @@ const Offer: React.FC = () => {
             From {offer.coachName} · expires {toDate(offer.expiresAt).toLocaleDateString()}
           </div>
 
-          {!showingDecline ? (
+          {/* Waiver signing step — only renders when the coach attached
+              required waivers AND the parent has tapped Accept. Each
+              waiver gets a check + an "I agree" toggle; the typed-name
+              signature is one input shared across all of them, so a
+              parent who's signing three releases types their name once. */}
+          {showingWaivers && !showingDecline ? (
+            <div className="space-y-4">
+              <div>
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 mb-1">Sign to finish</div>
+                <h2 className="text-lg font-black text-bone">{waivers.length === 1 ? 'One quick release' : `${waivers.length} releases`} before {offer.playerName} is rostered</h2>
+                <p className="text-[12px] text-slate-400 mt-1">Tap each to read, then type your name to sign.</p>
+              </div>
+
+              <ul className="space-y-2">
+                {waivers.map(w => {
+                  const ack = !!waiverAck[w.id];
+                  return (
+                    <li key={w.id} className={`rounded-2xl ring-1 transition px-4 py-3 ${
+                      ack ? 'bg-emerald-500/10 ring-emerald-400/40' : 'bg-charcoal-950 ring-white/10'
+                    }`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-bold text-bone">{w.name}</div>
+                          {w.description && (
+                            <p className="text-[12px] text-bone/60 mt-1 leading-snug">{w.description}</p>
+                          )}
+                          {w.body && (
+                            <details className="mt-2">
+                              <summary className="text-[11px] font-bold uppercase tracking-widest text-crimson-300 cursor-pointer">Read full text</summary>
+                              <div className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-black/40 ring-1 ring-white/10 px-3 py-2 text-[12px] text-bone/80 whitespace-pre-wrap leading-relaxed">
+                                {w.body}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setWaiverAck(prev => ({ ...prev, [w.id]: !prev[w.id] }))}
+                          className={`shrink-0 w-7 h-7 rounded-full ring-1 flex items-center justify-center ${
+                            ack
+                              ? 'bg-emerald-500 ring-emerald-400 text-white'
+                              : 'bg-charcoal-900 ring-white/20 text-bone/40 hover:ring-emerald-400/60'
+                          }`}
+                          aria-pressed={ack}
+                          title={ack ? 'Acknowledged' : 'Mark as acknowledged'}
+                        >
+                          {ack && <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <label className="block">
+                <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  Type your full name to sign <span className="text-rose-300 ml-0.5">*</span>
+                </span>
+                <input
+                  type="text"
+                  value={signedByName}
+                  onChange={(e) => setSignedByName(e.target.value)}
+                  placeholder="First Last"
+                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-950 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                  style={{ fontSize: '16px' }}
+                />
+                <p className="text-[10px] text-bone/45 mt-1">This name is bound to each release as your e-signature.</p>
+              </label>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setShowingWaivers(false); setWaiverAck({}); setSignedByName(''); }}
+                  disabled={submitting}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-white/15 text-slate-300 hover:text-white hover:ring-white/30 disabled:opacity-50"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAccept}
+                  disabled={
+                    submitting
+                    || !signedByName.trim()
+                    || waivers.some(w => !waiverAck[w.id])
+                  }
+                  className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 shadow-lg"
+                >
+                  {submitting ? 'Working…' : 'Sign & accept'}
+                </button>
+              </div>
+            </div>
+          ) : !showingDecline ? (
             <div className="flex gap-3">
               <button
                 type="button"
@@ -292,11 +458,11 @@ const Offer: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={handleAccept}
+                onClick={() => waivers.length > 0 ? setShowingWaivers(true) : handleAccept()}
                 disabled={submitting}
                 className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 shadow-lg"
               >
-                {submitting ? 'Working…' : 'Accept the offer'}
+                {submitting ? 'Working…' : waivers.length > 0 ? `Accept · sign ${waivers.length} release${waivers.length === 1 ? '' : 's'}` : 'Accept the offer'}
               </button>
             </div>
           ) : (

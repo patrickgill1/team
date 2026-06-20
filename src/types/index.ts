@@ -750,6 +750,13 @@ export interface OfferTemplate {
    *  matches. Free-form string match — empty position = always shows. */
   position?: string;
   message: string;
+  /** Form definitions (waivers, releases, consents) the family must
+   *  sign on the way through accepting an offer that uses this
+   *  template. Ids resolve against /form_definitions. Stored on the
+   *  template AND snapshotted onto the outgoing OfferLetter so a later
+   *  edit to the template doesn't retroactively change what a family
+   *  already saw. Empty / missing = no bundled waivers (legacy behavior). */
+  requiredWaiverIds?: string[];
   isActive: boolean;
   createdBy: string;
   createdByName?: string;
@@ -792,6 +799,13 @@ export interface OfferLetter {
    *  surfaced as a link in the welcome email after acceptance. */
   videoStreamUid?: string;
   videoStreamReady?: boolean;
+  /** Snapshot of the offer template's required waivers at send time.
+   *  Each is a form definition id whose signature is required before
+   *  the family can accept. The offer page renders the signature step
+   *  inline AFTER the accept tap, and only flips status → 'accepted'
+   *  once every required form has a signature. Empty / missing = no
+   *  bundled waivers (legacy offers without this flow). */
+  requiredWaiverIds?: string[];
   status: 'sent' | 'accepted' | 'declined' | 'expired' | 'rescinded';
   /** Parent's response. */
   respondedAt?: Date;

@@ -43,6 +43,10 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
   const [messageTouched, setMessageTouched] = useState(false);
   const [expiresDays, setExpiresDays] = useState<number>(7);
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
+  // Snapshot of the picked template's waivers — folded into the offer
+  // payload at send time so a later template edit doesn't retro-change
+  // an in-flight family's signing requirements.
+  const [requiredWaiverIds, setRequiredWaiverIds] = useState<string[]>([]);
   const [videoUid, setVideoUid] = useState<string>('');
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -87,6 +91,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
     if (!tpl) return;
     setMessage(tpl.message);
     setMessageTouched(true);
+    setRequiredWaiverIds(tpl.requiredWaiverIds || []);
   };
 
   // Re-template the message when team changes (only if user hasn't typed yet).
@@ -127,6 +132,7 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
         expiresAt,
         videoStreamUid: videoUid || undefined,
         videoStreamReady: videoUid ? true : undefined,
+        requiredWaiverIds: requiredWaiverIds.length > 0 ? requiredWaiverIds : undefined,
         status: 'sent',
         createdAt: serverTimestamp(),
       };
@@ -139,6 +145,24 @@ const SendOfferModal: React.FC<Props> = ({ registration, myUid, myName, signatur
           updatedAt: serverTimestamp(),
         });
       } catch {/* fine — coach may not have write on Registration; offer is the source of truth */}
+
+      // Funnel stage 3 — auto-stamp offer_sent on the linked player doc
+      // so the FunnelStepper's third circle fills the moment the offer
+      // goes out. Non-fatal: the offer doc is still the source of truth.
+      const linkedPlayerId = (registration as any).playerId || (registration as any).promotedToPlayerId;
+      if (linkedPlayerId) {
+        try {
+          await updateDoc(doc(db, 'players', linkedPlayerId), {
+            'funnelProgress.offer_sent': {
+              completedAt: serverTimestamp(),
+              by: myUid,
+              meta: { offerId: id, teamId, teamName: selectedTeam.name },
+            },
+          } as any);
+        } catch (err) {
+          console.warn('funnel.offer_sent write failed', err);
+        }
+      }
 
       // Email the parent the unique link.
       const origin = getShareOrigin();

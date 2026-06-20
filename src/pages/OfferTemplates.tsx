@@ -5,7 +5,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
 import { useClubId } from '../hooks/useClubId';
-import type { OfferTemplate } from '../types';
+import type { FormDefinition, OfferTemplate } from '../types';
 
 // Manager for reusable offer letter templates. Lives at
 // /club/offer-templates. Coaches + admins both manage their own; the
@@ -18,6 +18,10 @@ const OfferTemplates: React.FC = () => {
 
   const [templates, setTemplates] = useState<OfferTemplate[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
+  // Active form definitions for the club — surfaced as the waiver
+  // picker inside the editor so a coach can bundle "Player Waiver +
+  // Photo Release" with every U10 offer without rebuilding the list.
+  const [forms, setForms] = useState<FormDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<OfferTemplate | null>(null);
   const [creating, setCreating] = useState(false);
@@ -26,12 +30,14 @@ const OfferTemplates: React.FC = () => {
     if (!allowed || !clubId) return;
     try {
       setLoading(true);
-      const [tplSnap, teamSnap] = await Promise.all([
+      const [tplSnap, teamSnap, formSnap] = await Promise.all([
         getDocs(query(collection(db, 'offer_templates'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'))),
         getDocs(query(collection(db, 'teams'), where('clubId', '==', clubId))),
+        getDocs(query(collection(db, 'form_definitions'), where('clubId', '==', clubId))),
       ]);
       setTemplates(tplSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as OfferTemplate));
       setTeams(teamSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) })));
+      setForms(formSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as FormDefinition).filter(f => f.isActive !== false));
     } finally {
       setLoading(false);
     }
@@ -111,6 +117,7 @@ const OfferTemplates: React.FC = () => {
         <Editor
           template={editing}
           teams={teams}
+          forms={forms}
           clubId={clubId!}
           userData={userData}
           onClose={() => { setCreating(false); setEditing(null); }}
@@ -124,23 +131,29 @@ const OfferTemplates: React.FC = () => {
 interface EditorProps {
   template: OfferTemplate | null;
   teams: any[];
+  forms: FormDefinition[];
   clubId: string;
   userData: any;
   onClose: () => void;
   onSaved: () => void;
 }
 
-const Editor: React.FC<EditorProps> = ({ template, teams, clubId, userData, onClose, onSaved }) => {
+const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userData, onClose, onSaved }) => {
   const isNew = !template;
   const [name, setName] = useState(template?.name || '');
   const [teamId, setTeamId] = useState(template?.teamId || '');
   const [position, setPosition] = useState(template?.position || '');
   const [message, setMessage] = useState(template?.message || '');
   const [isActive, setIsActive] = useState(template?.isActive ?? true);
+  const [requiredWaiverIds, setRequiredWaiverIds] = useState<string[]>(template?.requiredWaiverIds || []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canSave = !!(name.trim() && message.trim() && !saving);
+
+  const toggleWaiver = (id: string) => {
+    setRequiredWaiverIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -154,6 +167,7 @@ const Editor: React.FC<EditorProps> = ({ template, teams, clubId, userData, onCl
         position: position.trim() || undefined,
         message: message.trim(),
         isActive,
+        requiredWaiverIds: requiredWaiverIds.length > 0 ? requiredWaiverIds : undefined,
         updatedAt: serverTimestamp(),
       };
       if (isNew) {
@@ -206,6 +220,49 @@ const Editor: React.FC<EditorProps> = ({ template, teams, clubId, userData, onCl
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm leading-relaxed" />
             <p className="text-[10px] text-bone/50 mt-1">Plain text. The coach can still edit this after picking the template.</p>
           </label>
+
+          {/* Required waivers — bundled with the offer at send time and
+              snapshotted onto the OfferLetter so a later template edit
+              doesn't retroactively change what an in-flight family
+              has to sign. Families who accept this offer get a
+              "sign these to finish" step before status → accepted. */}
+          <div>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Required waivers <span className="text-bone/40 font-normal normal-case tracking-normal">(signed at acceptance)</span></span>
+            {forms.length === 0 ? (
+              <p className="text-[12px] text-bone/55 rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2">
+                No form definitions in this club yet. Create them at <Link to="/club/forms" className="text-crimson-300 hover:text-crimson-200 underline">Club → Forms</Link>, then come back to attach.
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {forms.map(f => {
+                  const on = requiredWaiverIds.includes(f.id);
+                  return (
+                    <li key={f.id}>
+                      <button
+                        type="button"
+                        onClick={() => toggleWaiver(f.id)}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg ring-1 transition text-left text-sm ${
+                          on
+                            ? 'bg-violet-500/15 ring-violet-400/40 text-violet-100'
+                            : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-violet-600 border-violet-600 text-white' : 'border-white/25'}`}>
+                            {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+                          </span>
+                          <span className="truncate font-semibold">{f.name}</span>
+                        </span>
+                        {f.required && (
+                          <span className="text-[9px] font-extrabold tracking-widest uppercase text-rose-300 shrink-0">Club-required</span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
 
           <label className="flex items-center gap-2 text-sm text-bone/85">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />

@@ -704,10 +704,43 @@ export interface FormDefinition {
   ageGroups?: string[];
   /** Display order in the checklist. Lower = top. */
   order?: number;
+  /** Questionnaire mode — when present and non-empty, the parent-facing
+   *  fill UI renders these inputs and the submission writes a
+   *  form_submissions doc with the answer map. Coexists with `body`:
+   *  a form can be questions-only, signature-only, or both. Same
+   *  shape as RegistrationQuestion so the existing input renderer +
+   *  validation reuses without translation. */
+  questions?: RegistrationQuestion[];
   createdBy: string;
   createdByName?: string;
   createdAt: Date;
   updatedAt?: Date;
+}
+
+/** A parent's answers to a FormDefinition's questionnaire. Doc id is
+ *  composed `${playerId}_${formDefinitionId}` so the existing checklist
+ *  read pattern reuses (alongside form_signatures for the signature
+ *  side). A form can have BOTH — the submission lives here, the
+ *  signature lives there, both keyed off the same player+form pair. */
+export interface FormSubmission {
+  id: string;
+  clubId: string;
+  playerId: string;
+  formDefinitionId: string;
+  /** Snapshot of the form's name at submit time. */
+  formName: string;
+  /** Question id → answer. Numbers stay numbers; yes_no stays the
+   *  literal "Yes"/"No" string the question renderer emits. */
+  answers: Record<string, string | number | boolean>;
+  /** Snapshot of question labels at submit time so a later rename of
+   *  the form's questions doesn't muddy the audit. */
+  answerLabels: Record<string, string>;
+  submittedByName?: string;
+  submittedAt: Date;
+  /** Where the submission came from. 'family_forms' is the parent
+   *  inbox path; 'event_signup' is reserved for the tournament/camp
+   *  variant. */
+  source?: 'family_forms' | 'event_signup';
 }
 
 /** Per-player signed state for one FormDefinition. Doc id is composed

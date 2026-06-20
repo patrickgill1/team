@@ -5,7 +5,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
 import { useClubId } from '../hooks/useClubId';
-import type { FormDefinition } from '../types';
+import type { FormDefinition, RegistrationQuestion } from '../types';
 
 // Manager for club-wide form definitions (Player Waiver, Medical
 // Release, Photo Consent, Uniform Order, etc.). Per-player signature
@@ -175,8 +175,34 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
   const [seasonId, setSeasonId] = useState(form?.seasonId || '');
   const [ageGroups, setAgeGroups] = useState<string[]>(form?.ageGroups || []);
   const [order, setOrder] = useState<number>(form?.order ?? 0);
+  const [questions, setQuestions] = useState<RegistrationQuestion[]>(form?.questions || []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const addQuestion = () => {
+    const id = `q_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    setQuestions(prev => [
+      ...prev,
+      { id, label: 'New question', type: 'text', required: false, order: prev.length },
+    ]);
+  };
+  const updateQuestion = (id: string, patch: Partial<RegistrationQuestion>) => {
+    setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...patch } : q));
+  };
+  const removeQuestion = (id: string) => {
+    setQuestions(prev => prev.filter(q => q.id !== id).map((q, i) => ({ ...q, order: i })));
+  };
+  const moveQuestion = (id: string, dir: -1 | 1) => {
+    setQuestions(prev => {
+      const idx = prev.findIndex(q => q.id === id);
+      if (idx < 0) return prev;
+      const swap = idx + dir;
+      if (swap < 0 || swap >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      return next.map((q, i) => ({ ...q, order: i }));
+    });
+  };
 
   const canSave = !!(name.trim() && !saving);
 
@@ -195,6 +221,9 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
         seasonId: seasonId || undefined,
         ageGroups: ageGroups.length > 0 ? ageGroups : undefined,
         order: Math.max(0, Math.round(Number(order) || 0)),
+        questions: questions.length > 0
+          ? questions.map((q, i) => ({ ...q, order: i, label: q.label.trim() || 'Untitled' }))
+          : undefined,
         updatedAt: serverTimestamp(),
       };
       if (isNew) {
@@ -273,6 +302,82 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
               <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
               Active
             </label>
+          </div>
+
+          {/* Questionnaire builder — when this list is empty, the form
+              is a pure signature waiver (parent reads the body + types
+              their name). When it has entries, the parent fills the
+              questions too (and signs if there's a body). One form can
+              be both: e.g. tournament registration ASKS for jersey
+              size / meal pref AND captures a liability signature. */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65">
+                Questions <span className="text-bone/40 font-normal normal-case tracking-normal">(optional — adds a fill-out step before signing)</span>
+              </span>
+              <button type="button" onClick={addQuestion} className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md bg-crimson-600 hover:bg-crimson-500 text-white">+ Question</button>
+            </div>
+            {questions.length === 0 ? (
+              <p className="text-[11px] text-bone/45 rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2">
+                Signature-only form. Add a question to turn this into a tournament / camp signup or info-gathering form.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {questions.map((q, i) => (
+                  <li key={q.id} className="rounded-lg bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/45 shrink-0">Q{i + 1}</span>
+                      <input
+                        value={q.label}
+                        onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
+                        placeholder="Question label"
+                        className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-sm"
+                      />
+                      <button type="button" disabled={i === 0} onClick={() => moveQuestion(q.id, -1)} className="text-bone/50 hover:text-bone disabled:opacity-30 px-1" title="Move up" aria-label="Move up">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+                      </button>
+                      <button type="button" disabled={i === questions.length - 1} onClick={() => moveQuestion(q.id, 1)} className="text-bone/50 hover:text-bone disabled:opacity-30 px-1" title="Move down" aria-label="Move down">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <button type="button" onClick={() => removeQuestion(q.id)} className="text-rose-300 hover:text-rose-200 px-1" title="Delete" aria-label="Delete">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={q.type}
+                        onChange={(e) => updateQuestion(q.id, { type: e.target.value as any })}
+                        className="px-2 py-1.5 rounded-md bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-sm"
+                      >
+                        <option value="text">Short text</option>
+                        <option value="textarea">Long text</option>
+                        <option value="select">Dropdown</option>
+                        <option value="yes_no">Yes / No</option>
+                        <option value="number">Number</option>
+                      </select>
+                      <label className="flex items-center gap-2 text-[12px] text-bone/85">
+                        <input type="checkbox" checked={!!q.required} onChange={(e) => updateQuestion(q.id, { required: e.target.checked })} />
+                        Required
+                      </label>
+                    </div>
+                    {q.type === 'select' && (
+                      <input
+                        value={(q.options || []).join(', ')}
+                        onChange={(e) => updateQuestion(q.id, { options: e.target.value.split(',').map(o => o.trim()).filter(Boolean) })}
+                        placeholder="Comma-separated options: Youth Small, Youth Medium, Youth Large"
+                        className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-[12px]"
+                      />
+                    )}
+                    <input
+                      value={q.help || ''}
+                      onChange={(e) => updateQuestion(q.id, { help: e.target.value || undefined })}
+                      placeholder="Helper text (optional)"
+                      className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-[12px]"
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}

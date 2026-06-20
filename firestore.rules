@@ -303,6 +303,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Questionnaire submissions — parents writing their answers to a
+    // form's questions (alongside the signature side, when both are
+    // present). Same auth gate as form_signatures: any signed-in user
+    // can write since the doc id ${playerId}_${formId} composition + the
+    // existing form_definitions club scoping fence off cross-club leaks.
+    match /form_submissions/{submissionId} {
+      allow read, write: if request.auth != null;
+    }
+
     // Tasks — admin/coach todos. Authed read + write; further role
     // gating happens client-side via the Tasks page.
     match /tasks/{taskId} {

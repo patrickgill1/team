@@ -5,7 +5,7 @@ import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { logActivity } from '../utils/activityLog';
-import type { FormDefinition, Player } from '../types';
+import type { FormDefinition, Player, RegistrationQuestion } from '../types';
 
 // Parent-facing inbox of unsigned waivers / releases / consents.
 // Lists each kid + their pending forms; tapping one opens the inline
@@ -28,6 +28,7 @@ const FamilyForms: React.FC = () => {
   const [pending, setPending] = useState<PendingForm[]>([]);
   const [signing, setSigning] = useState<{ playerId: string; formId: string } | null>(null);
   const [signedByName, setSignedByName] = useState('');
+  const [answers, setAnswers] = useState<Record<string, string | number | boolean>>({});
   const [savingSig, setSavingSig] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
 
@@ -88,12 +89,31 @@ const FamilyForms: React.FC = () => {
           // the form side will hide non-matching cards via the same
           // computation that runs in PersonAdmin.
           for (const form of all) {
-            const sigId = `${kid.id}_${form.id}`;
+            const hasQuestions = Array.isArray(form.questions) && form.questions.length > 0;
+            const hasBody = !!(form.body && form.body.trim());
+            const docId = `${kid.id}_${form.id}`;
+            // Pending iff a required artifact is missing:
+            //   pure signature → form_signatures must exist
+            //   pure questionnaire → form_submissions must exist
+            //   mixed → both must exist
+            let signed = false;
+            let submitted = false;
             try {
-              const sigSnap = await getDoc(doc(db, 'form_signatures', sigId));
-              if (sigSnap.exists()) continue;
+              const sigSnap = await getDoc(doc(db, 'form_signatures', docId));
+              signed = sigSnap.exists();
             } catch { /* treat as unsigned */ }
-            list.push({ player: kid, form });
+            if (hasQuestions) {
+              try {
+                const subSnap = await getDoc(doc(db, 'form_submissions', docId));
+                submitted = subSnap.exists();
+              } catch { /* treat as unsubmitted */ }
+            }
+            const needsSign = hasBody && !signed;
+            const needsSubmit = hasQuestions && !submitted;
+            // If neither artifact is required (form has no body AND no
+            // questions — basically empty), don't surface it.
+            if (!hasBody && !hasQuestions) continue;
+            if (needsSign || needsSubmit) list.push({ player: kid, form });
           }
         }
         // Required forms float to the top; within each group, alpha by
@@ -122,34 +142,68 @@ const FamilyForms: React.FC = () => {
   }, [pending]);
 
   const handleSign = async (player: Player, form: FormDefinition) => {
-    if (!signedByName.trim()) return;
+    const hasQuestions = Array.isArray(form.questions) && form.questions.length > 0;
+    const hasBody = !!(form.body && form.body.trim());
+    // Gate: signature input only required when there's a body to sign.
+    // Question answers are gated by the per-question required check
+    // below (caller side disables the Submit button when any required
+    // answer is missing).
+    if (hasBody && !signedByName.trim()) return;
     setSavingSig(true);
     try {
-      const sigId = `${player.id}_${form.id}`;
-      await setDoc(doc(db, 'form_signatures', sigId), {
-        clubId: (player as any).clubId || form.clubId,
-        playerId: player.id,
-        formDefinitionId: form.id,
-        formName: form.name,
-        signedByName: signedByName.trim(),
-        signedBy: 'parent',
-        signedAt: serverTimestamp(),
-        source: 'family_forms',
-      } as any);
+      const docId = `${player.id}_${form.id}`;
+      const clubId = (player as any).clubId || form.clubId;
+
+      if (hasQuestions) {
+        const labels: Record<string, string> = {};
+        (form.questions || []).forEach(q => { labels[q.id] = q.label; });
+        await setDoc(doc(db, 'form_submissions', docId), {
+          clubId,
+          playerId: player.id,
+          formDefinitionId: form.id,
+          formName: form.name,
+          answers,
+          answerLabels: labels,
+          submittedByName: signedByName.trim() || undefined,
+          submittedAt: serverTimestamp(),
+          source: 'family_forms',
+        } as any);
+      }
+
+      if (hasBody) {
+        await setDoc(doc(db, 'form_signatures', docId), {
+          clubId,
+          playerId: player.id,
+          formDefinitionId: form.id,
+          formName: form.name,
+          signedByName: signedByName.trim(),
+          signedBy: 'parent',
+          signedAt: serverTimestamp(),
+          source: 'family_forms',
+        } as any);
+      }
+
       await logActivity({
-        clubId: (player as any).clubId || form.clubId,
+        clubId,
         kind: 'form_signed',
         playerId: player.id,
         actorUid: userData?.uid || 'public',
-        actorName: signedByName.trim(),
-        payload: { formName: form.name, signedByName: signedByName.trim(), source: 'family_forms' },
+        actorName: signedByName.trim() || (userData?.name || 'Parent'),
+        payload: {
+          formName: form.name,
+          signedByName: signedByName.trim() || undefined,
+          questionCount: hasQuestions ? (form.questions || []).length : 0,
+          hasSignature: hasBody,
+          source: 'family_forms',
+        },
       });
       setSigning(null);
       setSignedByName('');
+      setAnswers({});
       setSavedCount(c => c + 1);
     } catch (err) {
-      console.warn('sign failed', err);
-      alert('Sign failed — try again.');
+      console.warn('submit failed', err);
+      alert('Submit failed — try again.');
     } finally {
       setSavingSig(false);
     }
@@ -195,6 +249,17 @@ const FamilyForms: React.FC = () => {
                 <ul className="divide-y divide-white/5">
                   {forms.map(form => {
                     const openHere = signing?.playerId === player.id && signing.formId === form.id;
+                    const hasQuestions = Array.isArray(form.questions) && form.questions.length > 0;
+                    const hasBody = !!(form.body && form.body.trim());
+                    const ctaLabel = hasQuestions && hasBody ? 'Fill & sign' : hasQuestions ? 'Fill out' : 'Sign';
+                    const allRequiredAnswered = !hasQuestions || (form.questions || []).every(q => {
+                      if (!q.required) return true;
+                      const v = answers[q.id];
+                      if (v === undefined || v === null) return false;
+                      if (typeof v === 'string') return v.trim().length > 0;
+                      return true;
+                    });
+                    const canSubmit = (hasBody ? !!signedByName.trim() : true) && allRequiredAnswered;
                     return (
                       <li key={form.id} className="px-4 py-3">
                         <div className="flex items-start justify-between gap-3">
@@ -204,6 +269,9 @@ const FamilyForms: React.FC = () => {
                               {form.required && (
                                 <span className="text-[9px] font-extrabold tracking-widest uppercase text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/30 px-1.5 py-0.5 rounded">Required</span>
                               )}
+                              {hasQuestions && (
+                                <span className="text-[9px] font-extrabold tracking-widest uppercase text-bone/70 bg-white/10 ring-1 ring-white/15 px-1.5 py-0.5 rounded">{(form.questions || []).length} question{(form.questions || []).length === 1 ? '' : 's'}</span>
+                              )}
                             </div>
                             {form.description && (
                               <p className="text-[12px] text-bone/60 mt-1 leading-snug">{form.description}</p>
@@ -212,10 +280,10 @@ const FamilyForms: React.FC = () => {
                           {!openHere && (
                             <button
                               type="button"
-                              onClick={() => { setSigning({ playerId: player.id, formId: form.id }); setSignedByName(''); }}
+                              onClick={() => { setSigning({ playerId: player.id, formId: form.id }); setSignedByName(''); setAnswers({}); }}
                               className="shrink-0 text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-crimson-600 hover:bg-crimson-500 text-white"
                             >
-                              Sign
+                              {ctaLabel}
                             </button>
                           )}
                         </div>
@@ -226,33 +294,57 @@ const FamilyForms: React.FC = () => {
                                 {form.body}
                               </div>
                             )}
-                            <label className="block">
-                              <span className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Type your full name to sign</span>
-                              <input
-                                type="text"
-                                value={signedByName}
-                                onChange={(e) => setSignedByName(e.target.value)}
-                                placeholder="First Last"
-                                className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
-                                style={{ fontSize: '16px' }}
-                              />
-                              <p className="text-[10px] text-bone/45 mt-1">Recorded as your e-signature for this release.</p>
-                            </label>
+                            {hasQuestions && (
+                              <ul className="space-y-3">
+                                {(form.questions || []).map((q: RegistrationQuestion) => (
+                                  <li key={q.id}>
+                                    <QuestionInput question={q} value={answers[q.id]} onChange={(v) => setAnswers(prev => ({ ...prev, [q.id]: v }))} />
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {hasBody && (
+                              <label className="block">
+                                <span className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Type your full name to sign</span>
+                                <input
+                                  type="text"
+                                  value={signedByName}
+                                  onChange={(e) => setSignedByName(e.target.value)}
+                                  placeholder="First Last"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                                  style={{ fontSize: '16px' }}
+                                />
+                                <p className="text-[10px] text-bone/45 mt-1">Recorded as your e-signature for this release.</p>
+                              </label>
+                            )}
+                            {!hasBody && hasQuestions && (
+                              <label className="block">
+                                <span className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Your name <span className="text-bone/40 normal-case tracking-normal">(optional, for the audit log)</span></span>
+                                <input
+                                  type="text"
+                                  value={signedByName}
+                                  onChange={(e) => setSignedByName(e.target.value)}
+                                  placeholder="First Last"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                                  style={{ fontSize: '16px' }}
+                                />
+                              </label>
+                            )}
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
-                                onClick={() => { setSigning(null); setSignedByName(''); }}
+                                onClick={() => { setSigning(null); setSignedByName(''); setAnswers({}); }}
                                 className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone"
                               >
                                 Cancel
                               </button>
                               <button
                                 type="button"
-                                disabled={!signedByName.trim() || savingSig}
+                                disabled={!canSubmit || savingSig}
                                 onClick={() => handleSign(player, form)}
                                 className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
                               >
-                                {savingSig ? 'Signing…' : 'Sign'}
+                                {savingSig ? 'Submitting…' : ctaLabel}
                               </button>
                             </div>
                           </div>
@@ -268,6 +360,120 @@ const FamilyForms: React.FC = () => {
       </div>
     </div>
   );
+};
+
+// ── Question input renderer ────────────────────────────────────────
+// Mirrors the inputs used in Register.tsx's CustomQuestion so a coach
+// who builds a form here and a coach who builds a registration form
+// get the same parent-facing experience.
+
+const QuestionInput: React.FC<{
+  question: RegistrationQuestion;
+  value: string | number | boolean | undefined;
+  onChange: (v: string | number | boolean) => void;
+}> = ({ question, value, onChange }) => {
+  const labelEl = (
+    <span className="block text-[11px] font-semibold uppercase tracking-wider text-bone/65 mb-1">
+      {question.label}
+      {question.required && <span className="text-rose-300 ml-0.5">*</span>}
+    </span>
+  );
+  const help = question.help ? (
+    <p className="text-[11px] text-bone/45 mt-1">{question.help}</p>
+  ) : null;
+
+  switch (question.type) {
+    case 'textarea':
+      return (
+        <label className="block">
+          {labelEl}
+          <textarea
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            rows={3}
+            required={!!question.required}
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+            style={{ fontSize: '16px' }}
+          />
+          {help}
+        </label>
+      );
+    case 'select':
+      return (
+        <label className="block">
+          {labelEl}
+          <select
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            required={!!question.required}
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+          >
+            <option value="">— Select —</option>
+            {(question.options || []).map(o => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+          {help}
+        </label>
+      );
+    case 'yes_no':
+      return (
+        <div>
+          {labelEl}
+          <div className="flex gap-2">
+            {['Yes', 'No'].map(opt => {
+              const selected = value === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onChange(opt)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold ring-1 transition ${
+                    selected
+                      ? 'bg-crimson-500 text-white ring-crimson-500'
+                      : 'bg-charcoal-900 text-bone/80 ring-white/10 hover:ring-crimson-400/40'
+                  }`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          {help}
+        </div>
+      );
+    case 'number':
+      return (
+        <label className="block">
+          {labelEl}
+          <input
+            type="number"
+            value={value == null ? '' : String(value)}
+            onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
+            required={!!question.required}
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+            style={{ fontSize: '16px' }}
+          />
+          {help}
+        </label>
+      );
+    case 'text':
+    default:
+      return (
+        <label className="block">
+          {labelEl}
+          <input
+            type="text"
+            value={(value as string) || ''}
+            onChange={(e) => onChange(e.target.value)}
+            required={!!question.required}
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+            style={{ fontSize: '16px' }}
+          />
+          {help}
+        </label>
+      );
+  }
 };
 
 export default FamilyForms;

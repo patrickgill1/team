@@ -338,7 +338,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   return (
     <div
       data-chat-composer
-      className="bg-white border-t border-gray-200 px-3 pt-1.5 pb-1.5"
+      className="bg-charcoal-900 border-t border-white/10 px-3 pt-1.5 pb-1.5"
       style={
         safeAreaInsetBottom
           ? { paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom))' }
@@ -346,13 +346,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       }
     >
       {replyingTo && (
-        <div className="mb-2 px-3 py-1.5 bg-crimson-50 ring-1 ring-crimson-200 rounded-xl flex items-center justify-between">
-          <span className="text-xs text-crimson-900 truncate">
+        <div className="mb-2 px-3 py-1.5 bg-crimson-500/10 ring-1 ring-crimson-400/30 rounded-xl flex items-center justify-between">
+          <span className="text-xs text-crimson-200 truncate">
             <span className="font-semibold">↪ Replying to {replyingTo.senderName}</span>
           </span>
           <button
             onClick={onCancelReply}
-            className="text-crimson-600 hover:text-crimson-900 ml-2 flex-shrink-0"
+            className="text-crimson-300 hover:text-bone ml-2 flex-shrink-0"
             aria-label="Cancel reply"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,13 +366,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           the input so the coach can see the next message will go out
           as an announcement. Toggle lives inside the + menu now. */}
       {markImportant && (
-        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-amber-100 text-amber-900 ring-1 ring-amber-300">
+        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/30">
           <span>Marked important</span>
           <button
             type="button"
             onClick={() => setMarkImportant(false)}
             aria-label="Clear important"
-            className="text-amber-700 hover:text-amber-900"
+            className="text-amber-300 hover:text-bone"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -380,13 +380,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {postToWall && (
-        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-crimson-100 text-crimson-900 ring-1 ring-crimson-300">
+        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-crimson-500/15 text-crimson-200 ring-1 ring-crimson-400/30">
           <span>Posting to wall</span>
           <button
             type="button"
             onClick={() => setPostToWall(false)}
             aria-label="Clear wall post"
-            className="text-crimson-700 hover:text-crimson-900"
+            className="text-crimson-300 hover:text-bone"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -400,11 +400,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
               <img
                 src={a.url}
                 alt={a.name}
-                className="w-16 h-16 object-cover rounded-xl ring-1 ring-gray-200"
+                className="w-16 h-16 object-cover rounded-xl ring-1 ring-white/10"
               />
               <button
                 onClick={() => removePending(i)}
-                className="absolute -top-1.5 -right-1.5 bg-gray-900 hover:bg-black text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow"
+                className="absolute -top-1.5 -right-1.5 bg-black hover:bg-charcoal-950 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow ring-1 ring-white/20"
                 aria-label="Remove"
               >
                 ×
@@ -415,7 +415,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {uploading && (
-        <div className="mb-1.5 text-[11px] text-gray-500">Uploading {uploadPct}%…</div>
+        <div className="mb-1.5 text-[11px] text-bone/55">Uploading {uploadPct}%…</div>
       )}
 
       {/* Single row, baseline-aligned. All controls share a 40px height
@@ -437,7 +437,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           type="button"
           onClick={() => setPlusOpen(true)}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-600 flex items-center justify-center transition"
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 text-bone/80 flex items-center justify-center transition"
           title="More"
           aria-label="More"
         >
@@ -465,11 +465,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             onPaste={onPaste}
             placeholder="Message"
             rows={1}
-            className="block w-full resize-none bg-gray-100 rounded-[20px] px-4 py-2 focus:outline-none focus:bg-white focus:ring-2 focus:ring-crimson-300 text-[15px] text-gray-900 placeholder-gray-400 leading-tight transition-colors"
+            className="block w-full resize-none bg-charcoal-950 rounded-[20px] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/50 text-[15px] text-bone placeholder-bone/40 leading-tight transition-colors ring-1 ring-white/10"
             style={{ fontSize: '16px', maxHeight: '140px', minHeight: '40px', lineHeight: '24px' }}
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
-            <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+            <div className="absolute z-30 bottom-full mb-1 left-0 right-0 max-h-48 overflow-y-auto bg-charcoal-900 ring-1 ring-white/10 rounded-lg shadow-2xl">
               {filteredMembers.map((m, i) => {
                 const isTeam = m.uid === '__team__';
                 return (
@@ -480,8 +480,8 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                       e.preventDefault();
                       insertMention(m);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 ${
-                      i === highlight ? 'bg-gray-100' : ''
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-white/5 flex items-center gap-2 ${
+                      i === highlight ? 'bg-white/5' : ''
                     }`}
                   >
                     {isTeam && (
@@ -489,11 +489,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                         @
                       </span>
                     )}
-                    <span className={`font-medium ${isTeam ? 'text-crimson-700' : 'text-gray-900'}`}>
+                    <span className={`font-medium ${isTeam ? 'text-crimson-300' : 'text-bone'}`}>
                       @{m.name}
                     </span>
                     {m.role && (
-                      <span className="ml-auto text-xs text-gray-500">{m.role}</span>
+                      <span className="ml-auto text-xs text-bone/50">{m.role}</span>
                     )}
                   </button>
                 );
@@ -505,7 +505,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           onClick={doSend}
           disabled={uploading || (!text.trim() && pending.length === 0)}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-600 hover:from-crimson-600 hover:to-crimson-700 active:scale-95 disabled:from-gray-300 disabled:to-gray-300 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-600 hover:from-crimson-600 hover:to-crimson-700 active:scale-95 disabled:from-white/10 disabled:to-white/10 disabled:text-bone/30 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
           aria-label="Send"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

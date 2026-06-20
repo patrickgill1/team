@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onEventCreate = exports.onChatMessageCreate = void 0;
+exports.onHelpdeskCommentCreate = exports.onEventCreate = exports.onChatMessageCreate = void 0;
 /**
  * Server-driven push fan-out.
  *
@@ -511,6 +511,193 @@ exports.onEventCreate = (0, firestore_1.onDocumentCreated)("events/{eventId}", a
     firebase_functions_1.logger.info("event push fan-out complete", {
         eventId,
         teamId,
+        sent: response.successCount,
+        failed: response.failureCount,
+    });
+});
+/**
+ * Fan-out helpdesk replies. Triggered when a user posts a real comment
+ * to a ticket (system comments skip via the `notify` flag). Recipients
+ * are the ticket creator + assignee + every club admin, minus the
+ * comment author. Filtered by pushPreferences.helpdesk.
+ *
+ * Replaces the client-side notifyReply() call in HelpdeskTicket.tsx.
+ * That path stays live as a safety net for the first week.
+ */
+exports.onHelpdeskCommentCreate = (0, firestore_1.onDocumentCreated)("helpdeskComments/{commentId}", async (event) => {
+    const snap = event.data;
+    if (!snap)
+        return;
+    const commentId = event.params.commentId;
+    const comment = snap.data();
+    if (!comment)
+        return;
+    if (!comment.notify) {
+        firebase_functions_1.logger.info("helpdesk comment skip — no notify flag", { commentId });
+        return;
+    }
+    if (!comment.ticketId || !comment.authorId)
+        return;
+    const db = (0, firestore_2.getFirestore)();
+    const ticketSnap = await db.collection("helpdeskTickets").doc(comment.ticketId).get();
+    if (!ticketSnap.exists) {
+        firebase_functions_1.logger.warn("helpdesk ticket not found", { ticketId: comment.ticketId });
+        return;
+    }
+    const ticket = ticketSnap.data();
+    // Gather recipients: creator + assignee + every club admin. We do
+    // the admin lookup with isClubAdmin == true, matching the client's
+    // existing query.
+    const recipientSet = new Set();
+    if (ticket.createdBy)
+        recipientSet.add(ticket.createdBy);
+    if (ticket.assignedTo)
+        recipientSet.add(ticket.assignedTo);
+    try {
+        const adminSnap = await db
+            .collection("users")
+            .where("isClubAdmin", "==", true)
+            .get();
+        adminSnap.forEach((d) => recipientSet.add(d.id));
+    }
+    catch (err) {
+        firebase_functions_1.logger.warn("admin lookup failed", { err });
+    }
+    recipientSet.delete(comment.authorId);
+    const recipients = Array.from(recipientSet);
+    if (recipients.length === 0) {
+        await db.collection("push_attempts").doc(commentId).set({
+            commentId,
+            ticketId: comment.ticketId,
+            senderId: comment.authorId,
+            kind: "helpdesk_comment",
+            sent: 0,
+            failed: 0,
+            recipientCount: 0,
+            recipientsWithoutTokens: 0,
+            recipientsWithPrefOff: 0,
+            createdAt: firestore_2.FieldValue.serverTimestamp(),
+        });
+        return;
+    }
+    let recipientsWithoutTokens = 0;
+    let recipientsWithPrefOff = 0;
+    const tokenToUid = new Map();
+    const tokens = [];
+    for (const uid of recipients) {
+        try {
+            const uSnap = await db.collection("users").doc(uid).get();
+            if (!uSnap.exists)
+                continue;
+            const u = uSnap.data();
+            if (u.isActive === false)
+                continue;
+            const on = u.pushPreferences?.helpdesk !== false; // default-on
+            if (!on) {
+                recipientsWithPrefOff++;
+                continue;
+            }
+            const arr = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
+            const live = arr.filter((t) => typeof t === "string" && t.length > 10);
+            if (live.length === 0) {
+                recipientsWithoutTokens++;
+                continue;
+            }
+            for (const t of live) {
+                if (!tokenToUid.has(t)) {
+                    tokenToUid.set(t, uid);
+                    tokens.push(t);
+                }
+            }
+        }
+        catch (err) {
+            firebase_functions_1.logger.warn("recipient read failed", { uid, err });
+        }
+    }
+    if (tokens.length === 0) {
+        await db.collection("push_attempts").doc(commentId).set({
+            commentId,
+            ticketId: comment.ticketId,
+            senderId: comment.authorId,
+            kind: "helpdesk_comment",
+            sent: 0,
+            failed: 0,
+            recipientCount: recipients.length,
+            recipientsWithoutTokens,
+            recipientsWithPrefOff,
+            createdAt: firestore_2.FieldValue.serverTimestamp(),
+        });
+        return;
+    }
+    const subject = ticket.subject || "Support";
+    const author = comment.authorName || "Someone";
+    const preview = (comment.content || "").length > 120
+        ? `${(comment.content || "").slice(0, 117)}…`
+        : (comment.content || "");
+    const deepLinkPath = `/helpdesk/${comment.ticketId}`;
+    const deepLink = `${APP_ORIGIN}${deepLinkPath}`;
+    const response = await (0, messaging_1.getMessaging)().sendEachForMulticast({
+        tokens,
+        notification: {
+            title: `Support: ${subject}`,
+            body: `${author}: ${preview}`,
+        },
+        data: { url: deepLink, path: deepLinkPath, ticketId: comment.ticketId, kind: "helpdesk_comment" },
+        webpush: { fcmOptions: { link: deepLink }, notification: { icon: "/images/logo.png" } },
+        apns: { payload: { aps: { sound: "default" } } },
+        android: { priority: "high", notification: { sound: "default", channelId: "default" } },
+    });
+    const deadTokens = [];
+    response.responses.forEach((r, i) => {
+        if (r.success)
+            return;
+        const code = r.error?.code || "";
+        if (code === "messaging/registration-token-not-registered" ||
+            code === "messaging/invalid-registration-token" ||
+            code === "messaging/invalid-argument") {
+            deadTokens.push(tokens[i]);
+        }
+    });
+    if (deadTokens.length > 0) {
+        const uidToDead = new Map();
+        for (const t of deadTokens) {
+            const uid = tokenToUid.get(t);
+            if (!uid)
+                continue;
+            if (!uidToDead.has(uid))
+                uidToDead.set(uid, []);
+            uidToDead.get(uid).push(t);
+        }
+        const batch = db.batch();
+        for (const [uid, deadForUser] of uidToDead) {
+            batch.update(db.collection("users").doc(uid), {
+                fcmTokens: firestore_2.FieldValue.arrayRemove(...deadForUser),
+            });
+        }
+        try {
+            await batch.commit();
+        }
+        catch (err) {
+            firebase_functions_1.logger.warn("dead-token prune failed", { err });
+        }
+    }
+    await db.collection("push_attempts").doc(commentId).set({
+        commentId,
+        ticketId: comment.ticketId,
+        senderId: comment.authorId,
+        kind: "helpdesk_comment",
+        sent: response.successCount,
+        failed: response.failureCount,
+        deadTokensRemoved: deadTokens.length,
+        recipientCount: recipients.length,
+        recipientsWithoutTokens,
+        recipientsWithPrefOff,
+        tokensTargeted: tokens.length,
+        createdAt: firestore_2.FieldValue.serverTimestamp(),
+    });
+    firebase_functions_1.logger.info("helpdesk push fan-out complete", {
+        commentId,
+        ticketId: comment.ticketId,
         sent: response.successCount,
         failed: response.failureCount,
     });

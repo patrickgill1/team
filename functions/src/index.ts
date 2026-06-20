@@ -602,3 +602,218 @@ export const onEventCreate = onDocumentCreated(
     });
   },
 );
+
+// ───────────────────────────────────────────────────────────────────
+// Helpdesk reply fan-out
+// ───────────────────────────────────────────────────────────────────
+
+interface HelpdeskCommentDoc {
+  ticketId?: string;
+  authorId?: string;
+  authorName?: string;
+  content?: string;
+  /** Only set on real user replies. System comments (status changes,
+   *  assignment audits) omit this so we don't fire a notification
+   *  for "Status changed: open → assigned." */
+  notify?: boolean;
+}
+
+interface HelpdeskTicketDoc {
+  subject?: string;
+  createdBy?: string;
+  assignedTo?: string;
+  clubId?: string;
+}
+
+/**
+ * Fan-out helpdesk replies. Triggered when a user posts a real comment
+ * to a ticket (system comments skip via the `notify` flag). Recipients
+ * are the ticket creator + assignee + every club admin, minus the
+ * comment author. Filtered by pushPreferences.helpdesk.
+ *
+ * Replaces the client-side notifyReply() call in HelpdeskTicket.tsx.
+ * That path stays live as a safety net for the first week.
+ */
+export const onHelpdeskCommentCreate = onDocumentCreated(
+  "helpdeskComments/{commentId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const commentId = event.params.commentId;
+    const comment = snap.data() as HelpdeskCommentDoc | undefined;
+    if (!comment) return;
+    if (!comment.notify) {
+      logger.info("helpdesk comment skip — no notify flag", {commentId});
+      return;
+    }
+    if (!comment.ticketId || !comment.authorId) return;
+
+    const db = getFirestore();
+    const ticketSnap = await db.collection("helpdeskTickets").doc(comment.ticketId).get();
+    if (!ticketSnap.exists) {
+      logger.warn("helpdesk ticket not found", {ticketId: comment.ticketId});
+      return;
+    }
+    const ticket = ticketSnap.data() as HelpdeskTicketDoc;
+
+    // Gather recipients: creator + assignee + every club admin. We do
+    // the admin lookup with isClubAdmin == true, matching the client's
+    // existing query.
+    const recipientSet = new Set<string>();
+    if (ticket.createdBy) recipientSet.add(ticket.createdBy);
+    if (ticket.assignedTo) recipientSet.add(ticket.assignedTo);
+    try {
+      const adminSnap = await db
+        .collection("users")
+        .where("isClubAdmin", "==", true)
+        .get();
+      adminSnap.forEach((d) => recipientSet.add(d.id));
+    } catch (err) {
+      logger.warn("admin lookup failed", {err});
+    }
+    recipientSet.delete(comment.authorId);
+    const recipients = Array.from(recipientSet);
+
+    if (recipients.length === 0) {
+      await db.collection("push_attempts").doc(commentId).set({
+        commentId,
+        ticketId: comment.ticketId,
+        senderId: comment.authorId,
+        kind: "helpdesk_comment",
+        sent: 0,
+        failed: 0,
+        recipientCount: 0,
+        recipientsWithoutTokens: 0,
+        recipientsWithPrefOff: 0,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    let recipientsWithoutTokens = 0;
+    let recipientsWithPrefOff = 0;
+    const tokenToUid = new Map<string, string>();
+    const tokens: string[] = [];
+
+    for (const uid of recipients) {
+      try {
+        const uSnap = await db.collection("users").doc(uid).get();
+        if (!uSnap.exists) continue;
+        const u = uSnap.data() as UserDoc;
+        if (u.isActive === false) continue;
+        const on = u.pushPreferences?.helpdesk !== false; // default-on
+        if (!on) {
+          recipientsWithPrefOff++;
+          continue;
+        }
+        const arr = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
+        const live = arr.filter(
+          (t): t is string => typeof t === "string" && t.length > 10,
+        );
+        if (live.length === 0) {
+          recipientsWithoutTokens++;
+          continue;
+        }
+        for (const t of live) {
+          if (!tokenToUid.has(t)) {
+            tokenToUid.set(t, uid);
+            tokens.push(t);
+          }
+        }
+      } catch (err) {
+        logger.warn("recipient read failed", {uid, err});
+      }
+    }
+
+    if (tokens.length === 0) {
+      await db.collection("push_attempts").doc(commentId).set({
+        commentId,
+        ticketId: comment.ticketId,
+        senderId: comment.authorId,
+        kind: "helpdesk_comment",
+        sent: 0,
+        failed: 0,
+        recipientCount: recipients.length,
+        recipientsWithoutTokens,
+        recipientsWithPrefOff,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    const subject = ticket.subject || "Support";
+    const author = comment.authorName || "Someone";
+    const preview = (comment.content || "").length > 120
+      ? `${(comment.content || "").slice(0, 117)}…`
+      : (comment.content || "");
+    const deepLinkPath = `/helpdesk/${comment.ticketId}`;
+    const deepLink = `${APP_ORIGIN}${deepLinkPath}`;
+
+    const response = await getMessaging().sendEachForMulticast({
+      tokens,
+      notification: {
+        title: `Support: ${subject}`,
+        body: `${author}: ${preview}`,
+      },
+      data: {url: deepLink, path: deepLinkPath, ticketId: comment.ticketId, kind: "helpdesk_comment"},
+      webpush: {fcmOptions: {link: deepLink}, notification: {icon: "/images/logo.png"}},
+      apns: {payload: {aps: {sound: "default"}}},
+      android: {priority: "high", notification: {sound: "default", channelId: "default"}},
+    });
+
+    const deadTokens: string[] = [];
+    response.responses.forEach((r, i) => {
+      if (r.success) return;
+      const code = r.error?.code || "";
+      if (
+        code === "messaging/registration-token-not-registered" ||
+        code === "messaging/invalid-registration-token" ||
+        code === "messaging/invalid-argument"
+      ) {
+        deadTokens.push(tokens[i]);
+      }
+    });
+    if (deadTokens.length > 0) {
+      const uidToDead = new Map<string, string[]>();
+      for (const t of deadTokens) {
+        const uid = tokenToUid.get(t);
+        if (!uid) continue;
+        if (!uidToDead.has(uid)) uidToDead.set(uid, []);
+        uidToDead.get(uid)!.push(t);
+      }
+      const batch = db.batch();
+      for (const [uid, deadForUser] of uidToDead) {
+        batch.update(db.collection("users").doc(uid), {
+          fcmTokens: FieldValue.arrayRemove(...deadForUser),
+        });
+      }
+      try {
+        await batch.commit();
+      } catch (err) {
+        logger.warn("dead-token prune failed", {err});
+      }
+    }
+
+    await db.collection("push_attempts").doc(commentId).set({
+      commentId,
+      ticketId: comment.ticketId,
+      senderId: comment.authorId,
+      kind: "helpdesk_comment",
+      sent: response.successCount,
+      failed: response.failureCount,
+      deadTokensRemoved: deadTokens.length,
+      recipientCount: recipients.length,
+      recipientsWithoutTokens,
+      recipientsWithPrefOff,
+      tokensTargeted: tokens.length,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    logger.info("helpdesk push fan-out complete", {
+      commentId,
+      ticketId: comment.ticketId,
+      sent: response.successCount,
+      failed: response.failureCount,
+    });
+  },
+);

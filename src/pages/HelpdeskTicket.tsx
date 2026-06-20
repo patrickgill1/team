@@ -138,11 +138,16 @@ const HelpdeskTicketPage: React.FC = () => {
         authorName: userData.name || 'Member',
         authorRole: isAdmin ? 'admin' : userData.role,
         content,
+        // Flag the onHelpdeskCommentCreate trigger to fan push. System
+        // comments (status changes, assignment audits) omit this so we
+        // don't fire a notification for "Status changed: open → assigned."
+        notify: true,
         createdAt: serverTimestamp(),
       });
       setDraft('');
-      // Fan out a push to everyone tracking this ticket: creator,
-      // assignee, and every club admin — minus whoever just typed.
+      // Client-side fan-out kept as a one-week safety net while we
+      // confirm the trigger is delivering through push_attempts. Once
+      // proven we delete this call.
       void notifyReply(ticket, ticketId, userData.uid, userData.name || 'Member', content);
     } catch (err) {
       console.error('comment post failed', err);

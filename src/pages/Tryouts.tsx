@@ -249,28 +249,30 @@ const Tryouts: React.FC = () => {
         {/* Activity feed strip */}
         <ActivityStrip activities={activities} />
 
-        {/* Filters */}
+        {/* Filters — all controls dark-mode by default. Selects + input
+            were inheriting system white/black via no explicit bg/text,
+            producing the light-mode pill row Patrick called out. */}
         <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 p-3 flex flex-wrap items-center gap-2">
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
             <option value="all">All ages</option>
             {ageGroups.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
             <option value="all">All genders</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
           {positions.length > 0 && (
-            <select value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+            <select value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
               <option value="all">All positions</option>
               {positions.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           )}
-          <select value={filterReturning} onChange={(e) => setFilterReturning(e.target.value as any)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+          <select value={filterReturning} onChange={(e) => setFilterReturning(e.target.value as any)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
             <option value="all">New + returning</option>
             <option value="returning">Returning only</option>
             <option value="new">New only</option>
@@ -280,8 +282,8 @@ const Tryouts: React.FC = () => {
             onClick={() => setShowFavoritesOnly(v => !v)}
             className={`text-sm font-bold rounded-lg px-3 py-2 ring-1 ${
               showFavoritesOnly
-                ? 'bg-rose-500/150 text-white ring-rose-500'
-                : 'bg-charcoal-900 text-bone/85 ring-white/10 hover:ring-rose-400'
+                ? 'bg-rose-500 text-white ring-rose-400'
+                : 'bg-charcoal-950 text-bone/85 ring-white/15 hover:ring-rose-400'
             }`}
             title="Show only candidates you've favorited"
           >
@@ -292,8 +294,8 @@ const Tryouts: React.FC = () => {
             onClick={() => setShowNeedsAttention(v => !v)}
             className={`text-sm font-bold rounded-lg px-3 py-2 ring-1 ${
               showNeedsAttention
-                ? 'bg-amber-500/150 text-white ring-amber-500'
-                : 'bg-charcoal-900 text-bone/85 ring-white/10 hover:ring-amber-400'
+                ? 'bg-amber-500 text-charcoal-950 ring-amber-400'
+                : 'bg-charcoal-950 text-bone/85 ring-white/15 hover:ring-amber-400'
             }`}
             title="Candidates 3+ days in the pool with NO favorites, NO hold, and NO offer — gameplanning surface for admins"
           >
@@ -304,7 +306,7 @@ const Tryouts: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by player or parent…"
-            className="flex-1 min-w-[180px] text-sm border border-white/15 rounded-lg px-3 py-2"
+            className="flex-1 min-w-[180px] text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
           />
           <span className="ml-auto text-xs text-bone/50">{visible.length} of {registrations.length}</span>
         </div>

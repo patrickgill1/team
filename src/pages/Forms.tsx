@@ -56,17 +56,29 @@ const Forms: React.FC = () => {
   return (
     <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
-            <h1 className="text-2xl font-black text-bone mt-1">Forms</h1>
-            <p className="text-sm text-bone/65">
-              Waivers, releases, consents, order forms. Each shows up on every player's checklist; admins mark signed as they come in.
-            </p>
+        {/* Header — title block sits above the action button on mobile
+            so neither competes for horizontal room. On desktop the
+            button sits aligned to the title's top-right. Previously
+            the button forced "+ New form" to wrap onto 3 lines and
+            squeezed the description text into a thin column. */}
+        <div>
+          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
+          <div className="mt-1 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black text-bone">Forms</h1>
+              <p className="text-sm text-bone/65 mt-1 max-w-prose">
+                Waivers, releases, consents, order forms. Each shows up on every player's checklist; admins mark signed as they come in.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 self-start px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold whitespace-nowrap"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New form
+            </button>
           </div>
-          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold">
-            + New form
-          </button>
         </div>
 
         {loading ? (

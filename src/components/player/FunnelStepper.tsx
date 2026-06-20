@@ -38,8 +38,11 @@ const STAGES: Stage[] = [
   { key: 'register',        short: 'Register',  label: 'Register',          hint: 'Tryout registration submitted by family.',          autoNote: 'Auto-completes when the family submits the registration form.' },
   { key: 'tryouts',         short: 'Tryouts',   label: 'Tryouts',           hint: 'Attended the evaluation session.',                  autoNote: 'Mark from /club/tryouts when the kid checks in.' },
   { key: 'offer_sent',      short: 'Offer',     label: 'Get offer',         hint: 'Roster spot offered to the family.',                autoNote: 'Auto-completes when you send an offer from Offer templates.' },
-  { key: 'offer_accept',    short: 'Accepted',  label: 'Accept offer',      hint: 'Family accepted the roster spot.',                  autoNote: 'Auto-completes when the parent taps Accept on their offer.' },
-  { key: 'external_league', short: 'League',    label: 'League registration', hint: 'Registered with the external league (Sports Affinity / USYS).' },
+  { key: 'offer_accept',    short: 'Accept',    label: 'Accept offer',      hint: 'Family accepted the roster spot.',                  autoNote: 'Auto-completes when the parent taps Accept on their offer.' },
+  // Manual-only by design: Sports Affinity / USYS has no public API and
+  // our club uploads players to the league portal by hand. If/when the
+  // league opens an API we'd swap the autoNote in and remove this one.
+  { key: 'external_league', short: 'League',    label: 'League registration', hint: 'Registered with the external league (Sports Affinity / USYS).', autoNote: 'Manual-only — flip when you finish the upload in the league portal.' },
   { key: 'club_dues',       short: 'Dues',      label: 'Pay club dues',     hint: 'Season fee paid.',                                  autoNote: 'Auto-completes when Stripe confirms the dues payment.' },
 ];
 
@@ -112,7 +115,7 @@ const FunnelStepper: React.FC<Props> = ({ playerId, progress, canEdit = false, a
   };
 
   return (
-    <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-4 sm:p-5">
+    <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-3 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50">
@@ -131,58 +134,58 @@ const FunnelStepper: React.FC<Props> = ({ playerId, progress, canEdit = false, a
         </div>
       </div>
 
-      <div className="relative -mx-1 sm:mx-0">
-        <div className="flex items-start gap-0 overflow-x-auto px-1 sm:px-0 pb-1">
-          {STAGES.map((stage, i) => {
-            const done = isDone(stage.key);
-            const isNext = stage.key === nextPendingKey;
-            const isLast = i === STAGES.length - 1;
-            const completedAt = toDate(progress?.[stage.key]?.completedAt);
-            return (
-              <div key={stage.key} className="flex-1 min-w-[88px] sm:min-w-0 relative">
-                {/* Connecting line to the next node — drawn from this node's
-                    center to the next. Skipped on the last node. */}
-                {!isLast && (
-                  <div
-                    aria-hidden
-                    className={`absolute top-4 left-1/2 right-[-50%] h-0.5 ${
-                      done ? 'bg-crimson-500' : 'bg-white/10'
-                    }`}
-                  />
-                )}
-                <button
-                  type="button"
-                  disabled={!canEdit}
-                  onClick={() => canEdit && setOpenStage(openStage === stage.key ? null : stage.key)}
-                  className="relative w-full flex flex-col items-center gap-1.5 group disabled:cursor-default"
+      {/* Stepper row. On mobile we want all six circles visible at once
+          (no horizontal scroll), so labels drop to text-[8px], padding
+          shrinks, and the connecting line is recalc'd from the actual
+          circle width (28px) so it joins cleanly. Desktop relaxes to
+          larger circles + standard tracking. */}
+      <div className="flex items-start gap-0">
+        {STAGES.map((stage, i) => {
+          const done = isDone(stage.key);
+          const isNext = stage.key === nextPendingKey;
+          const isLast = i === STAGES.length - 1;
+          return (
+            <div key={stage.key} className="flex-1 relative min-w-0">
+              {!isLast && (
+                <div
+                  aria-hidden
+                  className={`absolute top-3 sm:top-4 left-1/2 right-[-50%] h-0.5 ${
+                    done ? 'bg-crimson-500' : 'bg-white/10'
+                  }`}
+                />
+              )}
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => canEdit && setOpenStage(openStage === stage.key ? null : stage.key)}
+                className="relative w-full flex flex-col items-center gap-1 sm:gap-1.5 group disabled:cursor-default px-0.5"
+              >
+                <span
+                  className={`relative z-10 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ring-2 transition ${
+                    done
+                      ? 'bg-crimson-600 ring-crimson-500 text-white'
+                      : isNext
+                        ? 'bg-charcoal-950 ring-crimson-400 text-crimson-300'
+                        : 'bg-charcoal-950 ring-white/15 text-bone/40'
+                  } ${canEdit ? 'group-hover:ring-bone/60' : ''}`}
                 >
-                  <span
-                    className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center ring-2 transition ${
-                      done
-                        ? 'bg-crimson-600 ring-crimson-500 text-white'
-                        : isNext
-                          ? 'bg-charcoal-950 ring-crimson-400 text-crimson-300'
-                          : 'bg-charcoal-950 ring-white/15 text-bone/40'
-                    } ${canEdit ? 'group-hover:ring-bone/60' : ''}`}
-                  >
-                    {done ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <span className="text-[11px] font-extrabold">{i + 1}</span>
-                    )}
-                  </span>
-                  <span className={`text-[10px] font-extrabold tracking-widest uppercase text-center leading-tight ${
-                    done ? 'text-bone/85' : isNext ? 'text-crimson-300' : 'text-bone/50'
-                  }`}>
-                    {stage.short}
-                  </span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                  {done ? (
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span className="text-[10px] sm:text-[11px] font-extrabold">{i + 1}</span>
+                  )}
+                </span>
+                <span className={`text-[8px] sm:text-[10px] font-extrabold tracking-wider sm:tracking-widest uppercase text-center leading-tight px-0.5 ${
+                  done ? 'text-bone/85' : isNext ? 'text-crimson-300' : 'text-bone/50'
+                }`}>
+                  {stage.short}
+                </span>
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Manage popover — only renders when a coach opens a stage. We

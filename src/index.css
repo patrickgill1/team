@@ -115,15 +115,22 @@ code {
    Border replaced with a calmer slate ring; the original soft hover
    lift is gone (felt dated). Single global tweak benefits every page
    that uses .card-modern. */
+/* Dark theme — was background: white + slate border, which silently
+   white-flashed across every page that still uses .card-modern (POTM,
+   surveys, gallery, volunteers, attendance, player cards/lists).
+   Patrick caught it in the POTM voting page screenshot — fixing the
+   class once dark-modes every consumer. */
 .card-modern {
-  background: white;
+  background: #15161a; /* charcoal-900 */
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #f5f3ee; /* bone */
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .card-modern:hover {
-  box-shadow: 0 4px 12px -2px rgba(15,23,42,0.08);
+  box-shadow: 0 4px 12px -2px rgba(0,0,0,0.6);
+  border-color: rgba(255,255,255,0.15);
 }
 .card-interactive {
   cursor: pointer;

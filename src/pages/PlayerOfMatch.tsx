@@ -899,14 +899,14 @@ const PlayerOfMatch: React.FC = () => {
             now, with a Clear button so a coach can retire the badge
             mid-season without finalizing a new vote. */}
         {players.some(p => (p as any).isCurrentPotm) && (
-          <div className="card-modern bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-amber-300 mb-6">
+          <div className="rounded-2xl bg-gradient-to-br from-amber-500/15 to-amber-700/10 ring-1 ring-amber-400/30 mb-6">
             <div className="px-5 py-3 flex items-center gap-3">
-              <span className="flex-shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-400 text-amber-950">
+              <span className="flex-shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-400 text-charcoal-950 ring-1 ring-amber-300/60">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.39 4.84L19.8 7.6l-3.9 3.8.92 5.36L12 14.27 7.18 16.76 8.1 11.4 4.2 7.6l5.41-.76L12 2z"/></svg>
               </span>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Current Player of the Match</div>
-                <div className="text-sm font-bold text-amber-950 truncate">
+                <div className="text-sm font-bold text-bone truncate">
                   {players.filter(p => (p as any).isCurrentPotm).map(p => p.name).join(' · ')}
                 </div>
               </div>
@@ -929,7 +929,7 @@ const PlayerOfMatch: React.FC = () => {
                     alert('Clear failed — try again.');
                   }
                 }}
-                className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-900/10 hover:bg-amber-900/20 text-amber-900 text-[11px] font-bold tracking-widest uppercase"
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 text-bone/80 text-[11px] font-bold tracking-widest uppercase"
               >
                 Clear
               </button>

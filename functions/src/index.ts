@@ -370,3 +370,235 @@ export const onChatMessageCreate = onDocumentCreated(
     });
   },
 );
+
+// ───────────────────────────────────────────────────────────────────
+// Events fan-out
+// ───────────────────────────────────────────────────────────────────
+
+interface EventDoc {
+  id?: string;
+  teamId?: string;
+  title?: string;
+  type?: "game" | "practice" | "event" | string;
+  date?: FirebaseFirestore.Timestamp | Date;
+  location?: string;
+  createdBy?: string;
+  /** Coach opt-in: when true, the trigger fans push to the team. When
+   *  false/undefined the trigger no-ops. EventForm sets this based on
+   *  the "Notify team" checkbox. */
+  notifyOnCreate?: boolean;
+}
+
+/**
+ * Fan-out push notifications for newly created events. Replaces the
+ * client-side sendPushToTeam call in EventForm.tsx — that path stays
+ * live as a safety net for the first week so we can compare against
+ * push_attempts before deleting it.
+ *
+ * Same shape as onChatMessageCreate: resolve team roster fresh from
+ * users (NOT a stale participants array), filter by pushPreferences.events,
+ * collect tokens, sendEachForMulticast, prune dead tokens, write
+ * /push_attempts/{eventId} with the delivery counts.
+ */
+export const onEventCreate = onDocumentCreated(
+  "events/{eventId}",
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const eventId = event.params.eventId;
+    const eventDoc = snap.data() as EventDoc | undefined;
+    if (!eventDoc) return;
+    if (!eventDoc.notifyOnCreate) {
+      logger.info("event push skipped — notifyOnCreate not set", {eventId});
+      return;
+    }
+    if (!eventDoc.teamId) {
+      logger.warn("event push skipped — no teamId", {eventId});
+      return;
+    }
+
+    const db = getFirestore();
+    const teamId = eventDoc.teamId;
+
+    // Resolve team roster — same two-path lookup as the chat trigger.
+    const candidateUids = new Set<string>();
+    try {
+      const s1 = await db.collection("users").where("teamId", "==", teamId).get();
+      s1.forEach((d) => {
+        const u = d.data() as UserDoc;
+        const id = u.uid || d.id;
+        if (id) candidateUids.add(id);
+      });
+      const s2 = await db
+        .collection("users")
+        .where("teamIds", "array-contains", teamId)
+        .get();
+      s2.forEach((d) => {
+        const u = d.data() as UserDoc;
+        const id = u.uid || d.id;
+        if (id) candidateUids.add(id);
+      });
+    } catch (err) {
+      logger.warn("team lookup failed", {teamId, err});
+    }
+
+    const senderUid = eventDoc.createdBy;
+    const recipients = Array.from(candidateUids).filter(
+      (uid) => uid && uid !== senderUid,
+    );
+
+    if (recipients.length === 0) {
+      await db.collection("push_attempts").doc(eventId).set({
+        eventId,
+        teamId,
+        senderId: senderUid || null,
+        kind: "event",
+        sent: 0,
+        failed: 0,
+        recipientCount: 0,
+        recipientsWithoutTokens: 0,
+        recipientsWithPrefOff: 0,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    let recipientsWithoutTokens = 0;
+    let recipientsWithPrefOff = 0;
+    const tokenToUid = new Map<string, string>();
+    const tokens: string[] = [];
+
+    for (const uid of recipients) {
+      try {
+        const uSnap = await db.collection("users").doc(uid).get();
+        if (!uSnap.exists) continue;
+        const u = uSnap.data() as UserDoc;
+        if (u.isActive === false) continue;
+        const eventsOn = u.pushPreferences?.events !== false; // default-on
+        if (!eventsOn) {
+          recipientsWithPrefOff++;
+          continue;
+        }
+        const arr = Array.isArray(u.fcmTokens) ? u.fcmTokens : [];
+        const live = arr.filter(
+          (t): t is string => typeof t === "string" && t.length > 10,
+        );
+        if (live.length === 0) {
+          recipientsWithoutTokens++;
+          continue;
+        }
+        for (const t of live) {
+          if (!tokenToUid.has(t)) {
+            tokenToUid.set(t, uid);
+            tokens.push(t);
+          }
+        }
+      } catch (err) {
+        logger.warn("recipient read failed", {uid, err});
+      }
+    }
+
+    if (tokens.length === 0) {
+      await db.collection("push_attempts").doc(eventId).set({
+        eventId,
+        teamId,
+        senderId: senderUid || null,
+        kind: "event",
+        sent: 0,
+        failed: 0,
+        recipientCount: recipients.length,
+        recipientsWithoutTokens,
+        recipientsWithPrefOff,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    const type = eventDoc.type || "event";
+    const typeLabel = type === "game" ? "New game" : type === "practice" ? "New practice" : "New event";
+    const title = `${typeLabel}: ${eventDoc.title || "(untitled)"}`;
+    let whenStr = "";
+    const ts = eventDoc.date;
+    const when = ts instanceof Date ? ts : (ts && typeof (ts as any).toDate === "function" ? (ts as any).toDate() : null);
+    if (when) {
+      whenStr = when.toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    }
+    const body = [whenStr, eventDoc.location].filter(Boolean).join(" · ") || "Tap for details";
+    const deepLinkPath = `/events/${eventId}`;
+    const deepLink = `${APP_ORIGIN}${deepLinkPath}`;
+
+    const response = await getMessaging().sendEachForMulticast({
+      tokens,
+      notification: {title, body},
+      data: {url: deepLink, path: deepLinkPath, eventId, kind: "event"},
+      webpush: {
+        fcmOptions: {link: deepLink},
+        notification: {icon: "/images/logo.png"},
+      },
+      apns: {payload: {aps: {sound: "default"}}},
+      android: {priority: "high", notification: {sound: "default", channelId: "default"}},
+    });
+
+    // Prune dead tokens — identical pattern to chat.
+    const deadTokens: string[] = [];
+    response.responses.forEach((r, i) => {
+      if (r.success) return;
+      const code = r.error?.code || "";
+      if (
+        code === "messaging/registration-token-not-registered" ||
+        code === "messaging/invalid-registration-token" ||
+        code === "messaging/invalid-argument"
+      ) {
+        deadTokens.push(tokens[i]);
+      }
+    });
+    if (deadTokens.length > 0) {
+      const uidToDead = new Map<string, string[]>();
+      for (const t of deadTokens) {
+        const uid = tokenToUid.get(t);
+        if (!uid) continue;
+        if (!uidToDead.has(uid)) uidToDead.set(uid, []);
+        uidToDead.get(uid)!.push(t);
+      }
+      const batch = db.batch();
+      for (const [uid, deadForUser] of uidToDead) {
+        batch.update(db.collection("users").doc(uid), {
+          fcmTokens: FieldValue.arrayRemove(...deadForUser),
+        });
+      }
+      try {
+        await batch.commit();
+      } catch (err) {
+        logger.warn("dead-token prune failed", {err});
+      }
+    }
+
+    await db.collection("push_attempts").doc(eventId).set({
+      eventId,
+      teamId,
+      senderId: senderUid || null,
+      kind: "event",
+      sent: response.successCount,
+      failed: response.failureCount,
+      deadTokensRemoved: deadTokens.length,
+      recipientCount: recipients.length,
+      recipientsWithoutTokens,
+      recipientsWithPrefOff,
+      tokensTargeted: tokens.length,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    logger.info("event push fan-out complete", {
+      eventId,
+      teamId,
+      sent: response.successCount,
+      failed: response.failureCount,
+    });
+  },
+);

@@ -491,6 +491,12 @@ const EventForm: React.FC<EventFormProps> = ({
         createdBy: userData.uid,
         createdByName: userData.name,
         arriveOffsetMinutes: formData.arriveOffsetMinutes > 0 ? formData.arriveOffsetMinutes : null,
+        // Signal to the onEventCreate Cloud Function whether to fan
+        // out push notifications. Set ONLY on create — edits do not
+        // re-notify. The client-side sendPushToTeam call below still
+        // fires as a safety net for the first week while we compare
+        // /push_attempts to ensure parity.
+        notifyOnCreate: !editingEvent ? !!formData.notifyTeam : undefined,
         createdAt: new Date()
       };
 

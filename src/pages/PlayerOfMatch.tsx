@@ -1229,12 +1229,12 @@ const PlayerOfMatch: React.FC = () => {
                   one line + a calendar link. The 5-step instructions
                   were overkill for a coach. */}
               {availableGames.length === 0 && calendarEvents.filter(e => e.type === 'game').length === 0 && (
-                <div className="rounded-xl bg-crimson-500/15 ring-1 ring-crimson-100 px-3 py-2.5 text-[12.5px] text-crimson-900">
-                  <span className="font-semibold">No games scheduled yet.</span>{' '}
-                  <Link to="/calendar" onClick={() => setShowCreateModal(false)} className="text-crimson-300 font-bold hover:text-crimson-900 underline underline-offset-2">
+                <div className="rounded-xl bg-crimson-500/10 ring-1 ring-crimson-400/30 px-3 py-2.5 text-[12.5px] leading-relaxed text-bone/90 not-italic">
+                  <span className="font-semibold text-bone">No games scheduled yet.</span>{' '}
+                  <Link to="/calendar" onClick={() => setShowCreateModal(false)} className="text-crimson-300 font-bold hover:text-crimson-200 underline underline-offset-2 decoration-crimson-300/60">
                     Add a game on the calendar
                   </Link>{' '}
-                  to link voting to it — or fill out a custom vote below.
+                  to link voting to it, or fill out a custom vote below.
                 </div>
               )}
 

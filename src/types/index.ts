@@ -1019,6 +1019,8 @@ export interface Activity {
     | 'coach_noted'
     | 'coach_held'
     | 'coach_released'
+    | 'coach_attended'
+    | 'coach_unattended'
     | 'form_signed'
     | 'form_unsigned'
     | 'task_created'

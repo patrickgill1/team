@@ -222,6 +222,48 @@ const Tryouts: React.FC = () => {
     });
   };
 
+  // Funnel stage 2 — mark a candidate as "attended tryouts." Writes
+  // funnelProgress.tryouts on the linked player doc so the timeline
+  // circle fills, AND flags the registration doc so the tryout pool
+  // can render an Attended badge / filter on attendance. Idempotent
+  // toggle: tap again to undo.
+  const handleToggleAttended = async (r: Registration) => {
+    if (!myUid) return;
+    const linkedPlayerId = (r as any).playerId || (r as any).promotedToPlayerId;
+    const wasAttended = !!(r as any).tryoutAttended;
+    setRegistrations(prev => prev.map(rr => rr.id === r.id ? ({
+      ...rr,
+      tryoutAttended: !wasAttended,
+    } as any) : rr));
+    try {
+      await updateDoc(doc(db, 'registrations', r.id), {
+        tryoutAttended: !wasAttended,
+        tryoutAttendedAt: !wasAttended ? serverTimestamp() : null,
+        tryoutAttendedBy: !wasAttended ? myUid : null,
+        updatedAt: serverTimestamp(),
+      } as any);
+      if (linkedPlayerId) {
+        const { deleteField } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'players', linkedPlayerId), {
+          'funnelProgress.tryouts': wasAttended
+            ? deleteField()
+            : { completedAt: serverTimestamp(), by: myUid, meta: { registrationId: r.id } },
+        } as any);
+      }
+    } catch (err) {
+      console.warn('attendance toggle failed', err);
+    }
+    void logActivity({
+      clubId: r.clubId,
+      kind: wasAttended ? 'coach_unattended' : 'coach_attended',
+      registrationId: r.id,
+      seasonId: r.seasonId,
+      actorUid: myUid,
+      actorName: myName,
+      payload: { playerName: `${r.player?.firstName} ${r.player?.lastName}` },
+    });
+  };
+
   if (!allowed) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">
@@ -334,6 +376,7 @@ const Tryouts: React.FC = () => {
                   onSaveNote={(n) => handleSaveNote(r, n)}
                   onToggleHold={() => handleToggleHold(r)}
                   onOffer={() => setOfferFor(r)}
+                  onToggleAttended={() => handleToggleAttended(r)}
                 />
               ))}
             </ul>
@@ -369,9 +412,10 @@ interface RowProps {
   onSaveNote: (n: string) => void;
   onToggleHold: () => void;
   onOffer: () => void;
+  onToggleAttended: () => void;
 }
 
-const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onToggleOpen, onToggleFavorite, onRate, onSaveNote, onToggleHold, onOffer }) => {
+const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onToggleOpen, onToggleFavorite, onRate, onSaveNote, onToggleHold, onOffer, onToggleAttended }) => {
   const my = myUid ? r.coachStates?.[myUid] : undefined;
   const allCoachStates = Object.values(r.coachStates || {});
   const otherFavorites = allCoachStates.filter(s => s.uid !== myUid && s.favorite);
@@ -476,6 +520,24 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           className="text-[11px] font-bold text-crimson-300 hover:text-crimson-100"
         >
           {isOpen ? 'Close notes' : my?.note ? 'Edit note' : '+ Add note'}
+        </button>
+        {/* Mark Attended — funnel stage 2 trigger. Tap once to mark
+            the kid attended tryouts (fills the funnel circle on their
+            player doc); tap again to undo if it was a mistap. */}
+        <button
+          type="button"
+          onClick={onToggleAttended}
+          className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 inline-flex items-center gap-1 ${
+            (r as any).tryoutAttended
+              ? 'bg-emerald-500 text-white ring-emerald-400'
+              : 'bg-charcoal-900 text-emerald-300 ring-emerald-300/60 hover:bg-emerald-500/15'
+          }`}
+          title={(r as any).tryoutAttended ? 'Mark NOT attended' : 'Mark attended tryouts — fills funnel stage 2'}
+        >
+          {(r as any).tryoutAttended && (
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          )}
+          {(r as any).tryoutAttended ? 'Attended' : 'Mark attended'}
         </button>
         <button
           type="button"

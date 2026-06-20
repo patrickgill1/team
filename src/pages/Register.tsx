@@ -436,6 +436,29 @@ const RegisterForm: React.FC = () => {
         createdAt: serverTimestamp(),
       };
       const ref = await addDoc(collection(db, 'registrations'), payload);
+
+      // Funnel stage 1 — auto-write the 'register' checkpoint on the
+      // player doc so the FunnelStepper visualizes the kid as past the
+      // first hurdle the moment the family submits. Returning families
+      // are treated the same (re-stamping is idempotent and lets coaches
+      // see when the latest season's registration came in).
+      if (playerId) {
+        try {
+          const { updateDoc: updateDocFn } = await import('firebase/firestore');
+          await updateDocFn(doc(db, 'players', playerId), {
+            'funnelProgress.register': {
+              completedAt: serverTimestamp(),
+              by: 'system',
+              meta: { registrationId: ref.id, seasonId: season.id },
+            },
+          } as any);
+        } catch (err) {
+          // Non-fatal — the registration itself succeeded. Coach can
+          // mark the stage manually from PersonAdmin if this hiccups.
+          console.warn('funnel.register write failed', err);
+        }
+      }
+
       // Log the activity for the admin timeline.
       void logActivity({
         clubId,

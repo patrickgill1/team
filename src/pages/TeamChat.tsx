@@ -464,10 +464,15 @@ const TeamChat: React.FC = () => {
     setNewMessage(draftsByThread[thread.id] || '');
     setCurrentView('chat');
     setChatSlideDir('in');
+    // Matches the .animate-slide-in-right duration (0.35s) with a
+    // little headroom so the class is still attached when the keyframe
+    // finishes. Previously 240ms — too short, animation got yanked
+    // partway through, which was half the reason transitions felt
+    // 'flashy' rather than 'sliding.'
     slideTimeoutRef.current = window.setTimeout(() => {
       setChatSlideDir(null);
       slideTimeoutRef.current = null;
-    }, 240);
+    }, 380);
     markThreadVisited(thread.id);
   };
 

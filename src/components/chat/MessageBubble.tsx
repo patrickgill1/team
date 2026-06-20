@@ -663,6 +663,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             <div
               className="px-3.5 py-[7px] leading-[1.35] text-[15.5px]"
+              // whiteSpace: pre-wrap preserves the line breaks parents
+              // type into the composer when they hit Enter for a new
+              // paragraph. Before this, \n was stripped at render time
+              // and a multi-paragraph message collapsed into one wall
+              // of text. Patrick: 'it is letting me space my paragraphs,
+              // but when I send it, it is all one chunk.'
+              style={{ whiteSpace: 'pre-wrap' }}
               dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, isOwn) }}
             />
             {/* Image attachments tucked at the BOTTOM of the same
@@ -719,7 +726,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
             <div
               className="text-amber-950 text-[15px] leading-relaxed break-words"
-              style={{ wordBreak: 'break-word' }}
+              style={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}
               dangerouslySetInnerHTML={{ __html: renderRichContent(message.content, false) }}
             />
             {/* Recipient: button to acknowledge; or confirmation if done. */}

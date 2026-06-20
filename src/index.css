@@ -302,8 +302,14 @@ code {
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-pop-in { animation: popIn 0.18s cubic-bezier(0.32, 0.72, 0, 1); }
-.animate-slide-in-right { animation: slideInRight 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
-.animate-slide-out-right { animation: slideOutRight 0.18s cubic-bezier(0.4, 0, 1, 1); }
+/* Slide durations bumped from 0.22s/0.18s to 0.35s/0.30s. The old
+   timings were faster than Apple's native UINavigationController push
+   (350ms) — quick enough that the eye registered "something flickered"
+   instead of "the page slid in." Patrick caught it: 'the slide in was
+   working beautifully [in Fire FC], and now it mostly flashes and you
+   miss the transition.' The curve stays iOS-y (0.32, 0.72, 0, 1). */
+.animate-slide-in-right { animation: slideInRight 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-slide-out-right { animation: slideOutRight 0.30s cubic-bezier(0.4, 0, 1, 1); }
 .animate-bubble-in { animation: bubbleIn 0.18s cubic-bezier(0.32, 0.72, 0, 1); }
 @keyframes bubbleIn {
   from { opacity: 0; transform: translateY(8px) scale(0.96); }

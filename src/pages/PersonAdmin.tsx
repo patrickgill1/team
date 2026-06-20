@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTeam } from '../contexts/TeamContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import { computeEligibility, eligibilityTone, type EligibilityResult } from '../utils/eligibility';
@@ -59,6 +60,14 @@ const PersonAdmin: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
   const { userData } = useAuth();
+  // TeamContext gives us the full list of teams the current user has
+  // access to via the team picker (club-admin: every team in the
+  // database; regular user: their teamIds[]). We union those into the
+  // Move modal's team list because the clubId-based Firestore query
+  // below misses teams that don't have a clubId set OR that belong to
+  // a sibling club the user can still see. Patrick: 'still can't
+  // assign this player to the other team in addition to primary team.'
+  const { teams: contextTeams } = useTeam();
   const allowed = isClubAdmin(userData) || (userData?.role ? isCoach(userData.role) : false);
 
   const [tab, setTab] = useState<TabKey>('overview');
@@ -491,7 +500,22 @@ const PersonAdmin: React.FC = () => {
           isOpen
           onClose={() => setTransferOpen(false)}
           player={{ id: player.id, name: player.name, teamId: player.teamId, teamIds: player.teamIds }}
-          teams={teams.map(t => ({ id: t.id, name: t.name, ageGroup: t.ageGroup }))}
+          teams={(() => {
+            // Union the player-club-scoped teams (PersonAdmin's own
+            // load, gated by clubId match) with the teams the current
+            // user already has access to (TeamContext, which surfaces
+            // them via the team picker). The clubId query misses
+            // legacy teams that have no clubId set OR sibling clubs;
+            // TeamContext covers both gaps.
+            const byId = new Map<string, any>();
+            for (const t of teams) if (t?.id) byId.set(t.id, t);
+            for (const t of contextTeams || []) {
+              if (t?.id && t.isActive !== false && !byId.has(t.id)) byId.set(t.id, t);
+            }
+            return Array.from(byId.values())
+              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+              .map(t => ({ id: t.id, name: t.name, ageGroup: t.ageGroup }));
+          })()}
           onTransferred={() => { setTransferOpen(false); void reload(); }}
         />
       )}

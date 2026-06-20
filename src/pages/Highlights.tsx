@@ -221,27 +221,24 @@ const Highlights: React.FC = () => {
             <section
               key={clip.id}
               ref={el => { slotRefs.current[i] = el; }}
-              className="h-[100dvh] w-full snap-start relative flex items-center justify-center bg-black"
+              className="h-[100dvh] w-full snap-start relative flex flex-col bg-black"
             >
-              {/* Poster (always rendered — instant visual on scroll) */}
-              {poster && (
-                <img
-                  src={poster}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-contain opacity-90"
-                  loading={isNeighbor ? 'eager' : 'lazy'}
-                />
-              )}
-
-              {/* Player — only the active clip gets a real iframe to keep
-                  bandwidth + CPU sane. Stream's iframe auto-plays once mounted. */}
-              {isActive && clip.streamUid && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-full max-h-[100dvh] aspect-video">
+              {/* Top stage — the actual clip in its native aspect. 60%
+                  of the viewport so landscape (16:9, most coach videos)
+                  has real room, and so the text/meta block below isn't
+                  fighting the video for attention. */}
+              <div className="relative flex-[3] min-h-0 bg-black flex items-center justify-center overflow-hidden">
+                {poster && (
+                  <img
+                    src={poster}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-contain opacity-90"
+                    loading={isNeighbor ? 'eager' : 'lazy'}
+                  />
+                )}
+                {isActive && clip.streamUid && (
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <StreamPlayer
-                      // `muted` is reactive — flipping the toggle re-keys the
-                      // iframe via the query string, so the player picks up
-                      // the new state. Always autoplay when active.
                       key={`${clip.id}-${muted ? 'm' : 'u'}`}
                       uid={clip.streamUid}
                       autoplay
@@ -251,67 +248,96 @@ const Highlights: React.FC = () => {
                       onEnded={goNext}
                     />
                   </div>
-                </div>
-              )}
-              {isActive && !clip.streamUid && clip.url && (
-                <video
-                  src={clip.url}
-                  poster={clip.thumbnailUrl}
-                  className="absolute inset-0 w-full h-full object-contain bg-black"
-                  autoPlay
-                  playsInline
-                  muted={muted}
-                  onEnded={goNext}
-                />
-              )}
-
-              {/* Bottom overlay — player name, caption, tags */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 bg-gradient-to-t from-black/95 via-black/70 to-transparent pointer-events-none">
-                <div className="flex items-end justify-between gap-3 max-w-xl mx-auto">
-                  <div className="min-w-0">
-                    <div className="text-lg font-bold truncate">{clip.playerName}</div>
-                    {clip.caption && (
-                      <div className="text-sm text-white/90 line-clamp-2 mt-0.5">{clip.caption}</div>
-                    )}
-                    <div className="flex items-center gap-2 mt-1.5 text-[11px] text-white/60">
-                      <span>{i + 1} / {filtered.length}</span>
-                      {clip.createdAt && <span>· {formatDate(clip.createdAt)}</span>}
-                    </div>
-                    {clip.tags && clip.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {clip.tags.slice(0, 4).map(t => (
-                          <span key={t} className="px-2 py-0.5 bg-white/15 backdrop-blur rounded-full text-[11px] font-medium">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2 shrink-0 pointer-events-auto">
-                    <button
-                      onClick={() => setMuted(m => !m)}
-                      className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur flex items-center justify-center"
-                      aria-label={muted ? 'Unmute' : 'Mute'}
-                    >
-                      {muted ? '🔇' : '🔊'}
-                    </button>
-                    <button
-                      onClick={() => share(clip)}
-                      className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur flex items-center justify-center"
-                      aria-label="Share"
-                    >
-                      📤
-                    </button>
-                  </div>
-                </div>
-
-                {/* Hint on the first clip */}
-                {i === 0 && (
-                  <div className="text-center text-[11px] text-white/50 mt-3 animate-pulse">
-                    Swipe up for the next clip
-                  </div>
                 )}
+                {isActive && !clip.streamUid && clip.url && (
+                  <video
+                    src={clip.url}
+                    poster={clip.thumbnailUrl}
+                    className="absolute inset-0 w-full h-full object-contain bg-black"
+                    autoPlay
+                    playsInline
+                    muted={muted}
+                    onEnded={goNext}
+                  />
+                )}
+
+                {/* Floating action stack — sits on top-right of the
+                    video so it's reachable without covering the
+                    important pixels in the middle of the frame. */}
+                <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+                  <button
+                    onClick={() => setMuted(m => !m)}
+                    className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-white/20 backdrop-blur flex items-center justify-center"
+                    aria-label={muted ? 'Unmute' : 'Mute'}
+                  >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      {muted ? (
+                        <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>
+                      ) : (
+                        <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></>
+                      )}
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => share(clip)}
+                    className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-white/20 backdrop-blur flex items-center justify-center"
+                    aria-label="Share"
+                  >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  </button>
+                </div>
               </div>
+
+              {/* Bottom info panel — NOT an overlay. Solid black band
+                  with clear typography. Player name, caption, tags,
+                  position, and a visible "Next clip" CTA so families
+                  who've never seen a TikTok-style reel know the
+                  vertical scroll is the navigation. */}
+              <div className="flex-[2] min-h-0 bg-charcoal-950 border-t border-white/10 overflow-y-auto">
+                <div className="max-w-xl mx-auto px-5 py-4">
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 mb-1">
+                    Clip {i + 1} of {filtered.length}
+                    {clip.createdAt && <span className="text-bone/50 font-bold ml-1">· {formatDate(clip.createdAt)}</span>}
+                  </div>
+                  <h2 className="text-xl font-black text-bone leading-tight">{clip.playerName}</h2>
+                  {clip.caption && (
+                    <p className="text-sm text-bone/85 leading-snug mt-2">{clip.caption}</p>
+                  )}
+                  {clip.tags && clip.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {clip.tags.slice(0, 6).map(t => (
+                        <span key={t} className="px-2 py-0.5 bg-white/10 ring-1 ring-white/15 rounded-full text-[11px] font-bold text-bone/85">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {i < filtered.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={goNext}
+                      className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase text-bone/65 hover:text-bone"
+                    >
+                      Next clip
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Scroll affordance — visible chevron between clips so
+                  users who never figured out "swipe up" on the first
+                  clip see the gesture explicitly. Only renders when
+                  there's a clip below this one. */}
+              {i < filtered.length - 1 && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                  <div className="px-3 py-1.5 rounded-full bg-black/60 ring-1 ring-white/15 backdrop-blur text-white text-[10px] font-extrabold tracking-widest uppercase flex items-center gap-1.5 animate-bounce">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                    Swipe up
+                  </div>
+                </div>
+              )}
             </section>
           );
         })}

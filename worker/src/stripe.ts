@@ -583,6 +583,48 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
           }, sa);
         }
 
+        // Funnel stage 6 — auto-stamp club_dues on the linked player
+        // doc the moment the registration is fully paid (either path).
+        // Only fires when status flipped to 'paid' on this webhook —
+        // partial installment payments leave the circle empty until
+        // the last one clears.
+        //
+        // patchDocument doesn't natively support dotted-path updates
+        // (the REST API needs nested map structure in the body, and
+        // our encoder doesn't split keys on '.'), so we read-merge-
+        // write the whole funnelProgress map. Race window with other
+        // stages is microscopic — club_dues only fires from this one
+        // webhook and never sooner than offer_accept, which writes
+        // from the parent's browser.
+        try {
+          const reg = await getDocument(projectId, `registrations/${registrationId}`, sa);
+          const linkedPlayerId = reg?.data?.promotedToPlayerId || reg?.data?.playerId;
+          const fullyPaid = reg?.data?.status === 'paid';
+          if (linkedPlayerId && fullyPaid) {
+            const playerDoc = await getDocument(projectId, `players/${linkedPlayerId}`, sa);
+            const currentFunnel = (playerDoc?.data?.funnelProgress || {}) as Record<string, any>;
+            const nextFunnel = {
+              ...currentFunnel,
+              club_dues: {
+                completedAt: new Date(),
+                by: 'system',
+                meta: {
+                  registrationId,
+                  stripeSessionId: session.id,
+                  amountTotalCents: session.amount_total,
+                },
+              },
+            };
+            await patchDocument(projectId, `players/${linkedPlayerId}`, {
+              funnelProgress: nextFunnel,
+            }, sa);
+          }
+        } catch (err) {
+          // Non-fatal — payment is already recorded. Coach can mark the
+          // dues stage manually from PersonAdmin if this misfires.
+          console.warn('funnel.club_dues write failed', err);
+        }
+
         // Coupon counter bump. The intent + max-uses ceiling were
         // validated at submit time; this is just bookkeeping so the
         // next redemption sees the right usesCount. Reading + writing

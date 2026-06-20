@@ -42,11 +42,34 @@ const PlayerProfile: React.FC = () => {
   const [media, setMedia] = useState<PlayerMedia[]>([]);
   const [plans, setPlans] = useState<DevelopmentPlan[]>([]);
   const [votingWins, setVotingWins] = useState<MatchVoting[]>([]);
+  // Parent Whispers — coach-to-parent private notes about this player.
+  // Email is the delivery channel; this list is the in-app history so
+  // parents can re-read past notes without scrolling through Gmail.
+  const [whispers, setWhispers] = useState<Array<{
+    id: string;
+    message: string;
+    coachName: string;
+    coachAvatarUrl?: string | null;
+    devPlanTitle?: string | null;
+    clipUrl?: string | null;
+    clipCaption?: string | null;
+    createdAt: Date;
+  }>>([]);
   const [allPlayerVotings, setAllPlayerVotings] = useState<{ voting: MatchVoting; playerVotes: { voterName: string; reason?: string }[] }[]>([]);
   const [votingNominations, setVotingNominations] = useState<number>(0);
   const [attendance, setAttendance] = useState<{ percent: number | null; totalEvents: number; attendedEvents: number }>({ percent: null, totalEvents: 0, attendedEvents: 0 });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'media' | 'development' | 'awards' | 'whispers'>(
+    () => {
+      // Push deep-link: /player/:id?tab=whispers lands on the whispers
+      // tab directly (the new parent-whisper push uses this).
+      try {
+        const t = new URLSearchParams(window.location.search).get('tab');
+        if (t === 'whispers' || t === 'media' || t === 'development' || t === 'awards') return t as any;
+      } catch { /* SSR-safe noop */ }
+      return 'overview';
+    }
+  );
   // Juggle log state — anyone who can see the profile (coach OR the
   // player's parents) can record an attempt.
   const [juggleOpen, setJuggleOpen] = useState(false);
@@ -213,6 +236,57 @@ const PlayerProfile: React.FC = () => {
         v.winners?.some(w => w.playerId === playerId) || v.winner?.playerId === playerId
       );
       setVotingWins(wins);
+
+      // Whispers for this player — coach private notes archived in
+      // /parent_whispers. One-shot read on load; if Patrick later wants
+      // live updates we'd swap for onSnapshot.
+      try {
+        const { collection, getDocs, query, where, orderBy } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const wSnap = await getDocs(query(
+          collection(db, 'parent_whispers'),
+          where('playerId', '==', playerId),
+          orderBy('createdAt', 'desc'),
+        ));
+        setWhispers(wSnap.docs.map(d => {
+          const data: any = d.data();
+          return {
+            id: d.id,
+            message: data.message || '',
+            coachName: data.coachName || 'Coach',
+            coachAvatarUrl: data.coachAvatarUrl || null,
+            devPlanTitle: data.devPlanTitle || null,
+            clipUrl: data.clipUrl || null,
+            clipCaption: data.clipCaption || null,
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+          };
+        }));
+      } catch (err) {
+        // Index might not exist yet — fall back to unordered query.
+        try {
+          const { collection, getDocs, query, where } = await import('firebase/firestore');
+          const { db } = await import('../utils/firebase');
+          const wSnap = await getDocs(query(
+            collection(db, 'parent_whispers'),
+            where('playerId', '==', playerId),
+          ));
+          const list = wSnap.docs.map(d => {
+            const data: any = d.data();
+            return {
+              id: d.id,
+              message: data.message || '',
+              coachName: data.coachName || 'Coach',
+              coachAvatarUrl: data.coachAvatarUrl || null,
+              devPlanTitle: data.devPlanTitle || null,
+              clipUrl: data.clipUrl || null,
+              clipCaption: data.clipCaption || null,
+              createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || Date.now()),
+            };
+          });
+          list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          setWhispers(list);
+        } catch { /* whispers absent on this profile is fine */ }
+      }
 
       // Collect all votings where this player received votes (with reasons)
       const playerVotings = teamVotings
@@ -561,15 +635,17 @@ const PlayerProfile: React.FC = () => {
       <div className="bg-charcoal-900 border-b border-white/5 sticky top-0 z-20 shadow-sm">
         <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
-            {(['overview', 'media', 'development', 'awards'] as const).map(tab => {
+            {(['overview', 'media', 'development', 'awards', 'whispers'] as const).map(tab => {
               const count =
                 tab === 'media' ? media.length :
                 tab === 'development' ? activePlans.length :
-                tab === 'awards' ? votingWins.length : null;
+                tab === 'awards' ? votingWins.length :
+                tab === 'whispers' ? whispers.length : null;
               const label =
                 tab === 'overview' ? 'Overview' :
                 tab === 'media' ? 'Media' :
-                tab === 'development' ? 'Development' : 'Awards';
+                tab === 'development' ? 'Development' :
+                tab === 'awards' ? 'Awards' : 'Whispers';
               const isActive = activeTab === tab;
               return (
                 <button
@@ -1157,6 +1233,67 @@ const PlayerProfile: React.FC = () => {
                 title="No awards yet"
                 description="Player of the Match wins will land here."
               />
+            )}
+          </div>
+        )}
+
+        {/* ─── WHISPERS TAB ──────────────────────────────────────────
+            In-app history of every Parent Whisper a coach has sent
+            about this player. The email remains the primary delivery
+            channel; this is the receipts surface so parents can
+            re-read past notes without scrolling through Gmail. */}
+        {activeTab === 'whispers' && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-black text-bone">Coach whispers</h2>
+              <p className="text-[12.5px] text-bone/60 mt-1">
+                Private notes Coach has sent about {player.name?.split(' ')[0] || 'this player'}. The full note is in your email too.
+              </p>
+            </div>
+
+            {whispers.length === 0 ? (
+              <EmptyState
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>}
+                title="No whispers yet"
+                description="When Coach sends a private note about your player, it shows up here AND in your email."
+              />
+            ) : (
+              <ul className="space-y-3">
+                {whispers.map(w => (
+                  <li key={w.id} className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-4 sm:p-5">
+                    <header className="flex items-center gap-3 mb-3">
+                      {w.coachAvatarUrl ? (
+                        <img src={w.coachAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-white/10" />
+                      ) : (
+                        <span className="w-9 h-9 rounded-full bg-crimson-500/20 text-crimson-200 ring-1 ring-crimson-400/30 flex items-center justify-center text-sm font-black">
+                          {(w.coachName || 'C').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-bone leading-tight truncate">{w.coachName}</div>
+                        <div className="text-[11px] text-bone/55">{w.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {w.createdAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</div>
+                      </div>
+                    </header>
+                    <p className="text-[15px] text-bone/90 leading-relaxed whitespace-pre-wrap break-words">{w.message}</p>
+                    {(w.devPlanTitle || w.clipUrl) && (
+                      <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap gap-2 text-[11px]">
+                        {w.devPlanTitle && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-crimson-500/10 ring-1 ring-crimson-400/30 text-crimson-200 font-bold">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                            {w.devPlanTitle}
+                          </span>
+                        )}
+                        {w.clipUrl && (
+                          <a href={w.clipUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/5 ring-1 ring-white/10 text-bone/85 font-bold hover:bg-white/10">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                            Watch clip{w.clipCaption ? `: ${w.clipCaption.slice(0, 30)}` : ''}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}

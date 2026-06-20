@@ -64,11 +64,49 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
       });
       const messages = parents.map(p => ({ to: p.email, subject, html }));
       const ok = await sendEmailBatch(messages);
-      // Push too — kids will see it on their own device.
+
+      // Persist the whisper so parents can re-read it from the in-app
+      // history later. Patrick: 'when you send one, they get a push
+      // notification but it shows part of the message, and it is
+      // confusing to the parents as they think they should be receiving
+      // a message in the app, but it is an actual email.' The push now
+      // says check-your-email, and the in-app inbox lives on
+      // /player/{id} → Whispers tab.
+      try {
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        const { db } = await import('../../utils/firebase');
+        await addDoc(collection(db, 'parent_whispers'), {
+          playerId: player.id,
+          playerName: player.name,
+          clubId: (player as any).clubId || null,
+          teamId: (player as any).teamId || null,
+          coachUid: userData.uid,
+          coachName: userData.name || 'Coach',
+          coachAvatarUrl: (userData as any).photoURL || (userData as any).profilePhotoUrl || null,
+          message: message.trim(),
+          clipId: clip?.id || null,
+          clipUrl: clip?.url || null,
+          clipCaption: clip?.caption || null,
+          devPlanTitle: includePlan && newestPlan ? newestPlan.title : null,
+          recipientEmails: parents.map(p => p.email),
+          recipientCount: parents.length,
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        // Non-fatal: email already went out. Coach can re-send if they
+        // really need an in-app record.
+        console.warn('whisper persist failed', err);
+      }
+
+      // Push: deliberately generic — parent sees 'New whisper, check
+      // your email' instead of a 140-char preview that made them hunt
+      // in the app for content that wasn't there. Tap lands on the
+      // player profile (where the Whispers tab now lives), not on
+      // anything that would imply 'open a message in the app.'
       sendPushToPlayerParents(player.id, {
-        title: `Coach ${userData.name?.split(' ')[0] || 'note'} → ${player.name}`,
-        body: message.trim().slice(0, 140),
-        path: `/player/${player.id}`,
+        title: `New whisper from Coach ${userData.name?.split(' ')[0] || ''}`.trim(),
+        body: `About ${player.name?.split(' ')[0] || 'your player'}. Full note in your email — and saved in their profile.`,
+        path: `/player/${player.id}?tab=whispers`,
       }, 'devPlan');
       setResult({ ok, count: parents.length, reason: ok ? undefined : 'Send failed — check email settings.' });
       if (ok) {

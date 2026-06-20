@@ -312,6 +312,14 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Parent Whispers — coach-private notes about a player, persisted
+    // so parents can re-read in /player/:id Whispers tab (email is
+    // still the primary delivery channel). Same auth gate as other
+    // player-scoped collections.
+    match /parent_whispers/{whisperId} {
+      allow read, write: if request.auth != null;
+    }
+
     // Tasks — admin/coach todos. Authed read + write; further role
     // gating happens client-side via the Tasks page.
     match /tasks/{taskId} {

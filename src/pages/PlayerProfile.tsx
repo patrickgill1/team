@@ -47,6 +47,7 @@ const PlayerProfile: React.FC = () => {
   // parents can re-read past notes without scrolling through Gmail.
   const [whispers, setWhispers] = useState<Array<{
     id: string;
+    coachUid: string;
     message: string;
     coachName: string;
     coachAvatarUrl?: string | null;
@@ -252,6 +253,7 @@ const PlayerProfile: React.FC = () => {
           const data: any = d.data();
           return {
             id: d.id,
+            coachUid: data.coachUid || '',
             message: data.message || '',
             coachName: data.coachName || 'Coach',
             coachAvatarUrl: data.coachAvatarUrl || null,
@@ -274,6 +276,7 @@ const PlayerProfile: React.FC = () => {
             const data: any = d.data();
             return {
               id: d.id,
+              coachUid: data.coachUid || '',
               message: data.message || '',
               coachName: data.coachName || 'Coach',
               coachAvatarUrl: data.coachAvatarUrl || null,
@@ -1259,7 +1262,17 @@ const PlayerProfile: React.FC = () => {
               />
             ) : (
               <ul className="space-y-3">
-                {whispers.map(w => (
+                {whispers.map(w => {
+                  // Delete is gated to the coach who sent it OR club
+                  // admins. Parents can't delete — they're consumers,
+                  // not authors. The 'Test' delete-after-send pattern
+                  // Patrick asked about is covered by 'sender can
+                  // delete their own.'
+                  const canDelete = !!userData && (
+                    userData.uid === w.coachUid
+                    || (userData as any).isClubAdmin === true
+                  );
+                  return (
                   <li key={w.id} className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-4 sm:p-5">
                     <header className="flex items-center gap-3 mb-3">
                       {w.coachAvatarUrl ? (
@@ -1273,6 +1286,28 @@ const PlayerProfile: React.FC = () => {
                         <div className="text-sm font-bold text-bone leading-tight truncate">{w.coachName}</div>
                         <div className="text-[11px] text-bone/55">{w.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {w.createdAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</div>
                       </div>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          aria-label="Delete whisper"
+                          title="Delete this whisper"
+                          onClick={async () => {
+                            if (!window.confirm('Delete this whisper? The email already went out — this only removes it from the in-app history.')) return;
+                            try {
+                              const { deleteDoc, doc } = await import('firebase/firestore');
+                              const { db } = await import('../utils/firebase');
+                              await deleteDoc(doc(db, 'parent_whispers', w.id));
+                              setWhispers(prev => prev.filter(x => x.id !== w.id));
+                            } catch (err) {
+                              console.warn('whisper delete failed', err);
+                              alert('Delete failed — try again.');
+                            }
+                          }}
+                          className="shrink-0 p-1.5 rounded-md text-bone/40 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
+                        </button>
+                      )}
                     </header>
                     <p className="text-[15px] text-bone/90 leading-relaxed whitespace-pre-wrap break-words">{w.message}</p>
                     {(w.devPlanTitle || w.clipUrl) && (
@@ -1292,7 +1327,8 @@ const PlayerProfile: React.FC = () => {
                       </div>
                     )}
                   </li>
-                ))}
+                );
+                })}
               </ul>
             )}
           </div>

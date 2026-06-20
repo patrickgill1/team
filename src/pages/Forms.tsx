@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, doc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isClubAdmin } from '../utils/helpers';
@@ -23,6 +23,10 @@ const Forms: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<FormDefinition | null>(null);
   const [creating, setCreating] = useState(false);
+  // Send-reminder modal — pinned to a single form at a time. Fan-out
+  // pushes parents of every kid in the picked scope (whole club or
+  // a single team) who hasn't signed yet, deep-linking to /family/forms.
+  const [sendingFor, setSendingFor] = useState<FormDefinition | null>(null);
 
   const reload = async () => {
     if (!allowed || !clubId) return;
@@ -93,8 +97,8 @@ const Forms: React.FC = () => {
         ) : (
           <ul className="space-y-2">
             {forms.map(f => (
-              <li key={f.id}>
-                <button type="button" onClick={() => setEditing(f)} className="w-full text-left bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-crimson-400 p-4 transition">
+              <li key={f.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-crimson-400/40 p-4 transition">
+                <button type="button" onClick={() => setEditing(f)} className="w-full text-left">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-bold text-bone">{f.name}</div>
@@ -108,6 +112,22 @@ const Forms: React.FC = () => {
                     </div>
                   </div>
                 </button>
+                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSendingFor(f)}
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-crimson-400/40 hover:text-bone"
+                  >
+                    Send reminder
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(f)}
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-crimson-400/40 hover:text-bone"
+                  >
+                    Edit
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -122,6 +142,14 @@ const Forms: React.FC = () => {
           userData={userData}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); void reload(); }}
+        />
+      )}
+
+      {sendingFor && clubId && (
+        <SendReminderModal
+          form={sendingFor}
+          clubId={clubId}
+          onClose={() => setSendingFor(null)}
         />
       )}
     </div>
@@ -256,6 +284,223 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
             {saving ? 'Saving…' : isNew ? 'Create form' : 'Save changes'}
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Send-reminder modal ───────────────────────────────────────────
+
+interface SendReminderProps {
+  form: FormDefinition;
+  clubId: string;
+  onClose: () => void;
+}
+
+const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose }) => {
+  const [scope, setScope] = useState<'club' | 'team'>('club');
+  const [teamId, setTeamId] = useState<string>('');
+  const [teams, setTeams] = useState<Array<{ id: string; name: string }>>([]);
+  const [unsignedCount, setUnsignedCount] = useState<number | null>(null);
+  const [computing, setComputing] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState<{ recipients: number; pushOk: boolean } | null>(null);
+
+  // Load every team in the club so the picker has options.
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'teams'), where('clubId', '==', clubId)));
+        setTeams(snap.docs.map(d => ({ id: d.id, name: (d.data() as any).name || d.id })));
+      } catch (err) {
+        console.warn('team load failed', err);
+      }
+    })();
+  }, [clubId]);
+
+  // Recompute the unsigned count whenever the scope or team changes.
+  // We resolve players in scope, then check form_signatures/${pid}_${fid}
+  // for each — anything missing is a "to remind" target.
+  useEffect(() => {
+    let cancelled = false;
+    setUnsignedCount(null);
+    if (scope === 'team' && !teamId) return;
+    (async () => {
+      setComputing(true);
+      try {
+        let players: Array<{ id: string; parentEmails?: string[] }> = [];
+        if (scope === 'club') {
+          const snap = await getDocs(query(collection(db, 'players'), where('clubId', '==', clubId)));
+          players = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        } else {
+          const [s1, s2] = await Promise.all([
+            getDocs(query(collection(db, 'players'), where('teamId', '==', teamId))),
+            getDocs(query(collection(db, 'players'), where('teamIds', 'array-contains', teamId))),
+          ]);
+          const m = new Map<string, any>();
+          for (const d of s1.docs) m.set(d.id, { id: d.id, ...(d.data() as any) });
+          for (const d of s2.docs) if (!m.has(d.id)) m.set(d.id, { id: d.id, ...(d.data() as any) });
+          players = Array.from(m.values());
+        }
+        players = players.filter((p: any) => p.isActive !== false);
+        let unsigned = 0;
+        await Promise.all(players.map(async (p) => {
+          try {
+            const sig = await getDoc(doc(db, 'form_signatures', `${p.id}_${form.id}`));
+            if (!sig.exists()) unsigned++;
+          } catch { /* treat as unsigned */ }
+        }));
+        if (!cancelled) setUnsignedCount(unsigned);
+      } finally {
+        if (!cancelled) setComputing(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [scope, teamId, clubId, form.id]);
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      // Resolve players + their unsigned parents in scope.
+      let players: Array<{ id: string; parentEmails?: string[] }> = [];
+      if (scope === 'club') {
+        const snap = await getDocs(query(collection(db, 'players'), where('clubId', '==', clubId)));
+        players = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      } else {
+        const [s1, s2] = await Promise.all([
+          getDocs(query(collection(db, 'players'), where('teamId', '==', teamId))),
+          getDocs(query(collection(db, 'players'), where('teamIds', 'array-contains', teamId))),
+        ]);
+        const m = new Map<string, any>();
+        for (const d of s1.docs) m.set(d.id, { id: d.id, ...(d.data() as any) });
+        for (const d of s2.docs) if (!m.has(d.id)) m.set(d.id, { id: d.id, ...(d.data() as any) });
+        players = Array.from(m.values());
+      }
+      players = players.filter((p: any) => p.isActive !== false);
+
+      const unsignedParents: string[] = [];
+      await Promise.all(players.map(async (p) => {
+        try {
+          const sig = await getDoc(doc(db, 'form_signatures', `${p.id}_${form.id}`));
+          if (sig.exists()) return;
+          for (const e of (p.parentEmails || [])) {
+            if (typeof e === 'string' && e) unsignedParents.push(e.toLowerCase().trim());
+          }
+        } catch { /* treat as unsigned */ }
+      }));
+      const uniqueEmails = Array.from(new Set(unsignedParents));
+
+      // Fan-out push via the existing worker endpoint. sendPushToParentEmails
+      // looks up FCM tokens per parent uid and skips families without
+      // a registered device — the email itself isn't a fallback here.
+      const { sendPushToParentEmails } = await import('../utils/notify');
+      const pushOk = uniqueEmails.length > 0
+        ? await sendPushToParentEmails(uniqueEmails, {
+            title: 'Action needed — sign release',
+            body: `${form.name}: tap to sign for your player.`,
+            url: '/family/forms',
+          })
+        : true;
+      setSent({ recipients: uniqueEmails.length, pushOk });
+    } catch (err: any) {
+      console.warn('send reminder failed', err);
+      alert(err?.message || 'Send failed.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 ring-1 ring-white/10 w-full sm:max-w-md sm:rounded-2xl overflow-hidden flex flex-col">
+        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <h3 className="text-base font-black text-bone">Send signing reminder</h3>
+          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
+        </div>
+
+        {sent ? (
+          <div className="p-5 space-y-3 text-center">
+            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/30 text-emerald-300 flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <p className="text-sm font-bold text-bone">Reminder sent.</p>
+            <p className="text-[12px] text-bone/60">
+              {sent.recipients === 0
+                ? 'No unsigned families in this scope.'
+                : `Pushed to ${sent.recipients} parent${sent.recipients === 1 ? '' : 's'} who still needs to sign.`}
+            </p>
+            <button type="button" onClick={onClose} className="mt-2 w-full py-2.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
+              Done
+            </button>
+          </div>
+        ) : (
+          <div className="p-5 space-y-4">
+            <div>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Form</span>
+              <div className="text-sm font-bold text-bone">{form.name}</div>
+            </div>
+
+            <div>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Send to</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setScope('club')}
+                  className={`px-3 py-2 rounded-lg ring-1 text-sm font-semibold ${
+                    scope === 'club'
+                      ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-100'
+                      : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                  }`}
+                >
+                  Whole club
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScope('team')}
+                  className={`px-3 py-2 rounded-lg ring-1 text-sm font-semibold ${
+                    scope === 'team'
+                      ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-100'
+                      : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                  }`}
+                >
+                  One team
+                </button>
+              </div>
+              {scope === 'team' && (
+                <select
+                  value={teamId}
+                  onChange={(e) => setTeamId(e.target.value)}
+                  className="mt-2 w-full px-3 py-2 text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                >
+                  <option value="">— Pick a team —</option>
+                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              )}
+            </div>
+
+            <div className="rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2.5 text-[12px] text-bone/75">
+              {computing
+                ? 'Counting unsigned families…'
+                : unsignedCount === null
+                  ? 'Pick a scope to see how many families still need to sign.'
+                  : unsignedCount === 0
+                    ? 'Everyone in this scope has already signed.'
+                    : `${unsignedCount} unsigned families in scope — tap Send to push them a reminder linking to the signing page.`}
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
+              <button
+                type="button"
+                disabled={sending || (scope === 'team' && !teamId) || unsignedCount === 0}
+                onClick={handleSend}
+                className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
+              >
+                {sending ? 'Sending…' : 'Send'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

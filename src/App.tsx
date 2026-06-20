@@ -44,6 +44,7 @@ const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFor
 const Tryouts = React.lazy(() => import('./pages/Tryouts'));
 const Offer = React.lazy(() => import('./pages/Offer'));
 const FamilyTimeline = React.lazy(() => import('./pages/FamilyTimeline'));
+const FamilyForms = React.lazy(() => import('./pages/FamilyForms'));
 const OfferTemplates = React.lazy(() => import('./pages/OfferTemplates'));
 const Seasons = React.lazy(() => import('./pages/Seasons'));
 const Reports = React.lazy(() => import('./pages/Reports'));
@@ -518,6 +519,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Tryouts />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/family/forms" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <FamilyForms />
                 </AppLayout>
               </ProtectedRoute>
             } />

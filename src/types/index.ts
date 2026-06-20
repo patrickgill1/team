@@ -429,7 +429,34 @@ export interface Player {
    *  history yet — uncommon ask, can add an `equipmentHistory` array
    *  if it ever comes up. */
   equipment?: PlayerEquipment;
+  /** Recruitment-funnel progress — one entry per stage from registration
+   *  through ready-to-play. Anything not yet complete is simply absent
+   *  from the map. Stages auto-complete when the underlying event fires
+   *  (Phase 1+ wires the writes); admins can also mark any stage done
+   *  manually from PersonAdmin for the external-league row + edge cases.
+   *  See FunnelStepper.tsx for the canonical stage list + rendering. */
+  funnelProgress?: FunnelProgress;
 }
+
+/** One stage of the recruitment funnel. Persists when it was completed
+ *  + who (or 'system' for auto-writes) + any stage-specific meta the
+ *  upstream phase wants to attach (registration id, offer id, stripe
+ *  payment id, etc). Missing key === stage not yet done. */
+export interface FunnelStageEntry {
+  completedAt: Date;
+  by?: string;
+  meta?: Record<string, unknown>;
+}
+
+export type FunnelStageKey =
+  | 'register'
+  | 'tryouts'
+  | 'offer_sent'
+  | 'offer_accept'
+  | 'external_league'
+  | 'club_dues';
+
+export type FunnelProgress = Partial<Record<FunnelStageKey, FunnelStageEntry>>;
 
 export interface PlayerEquipment {
   jerseyHomeSize?: string;

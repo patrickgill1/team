@@ -19,6 +19,7 @@ import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
 import { computeEligibility, eligibilityTone, type EligibilityResult } from '../utils/eligibility';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
+import FunnelStepper from '../components/player/FunnelStepper';
 import CreateTaskModal from '../components/club/CreateTaskModal';
 import InvitePersonModal from '../components/people/InvitePersonModal';
 import RefundModal from '../components/club/RefundModal';
@@ -470,6 +471,7 @@ const PersonAdmin: React.FC = () => {
             eligibility={eligibility}
             onOpenMedical={() => setMedicalOpen(true)}
             medicalAlerts={medicalAlerts}
+            actorUid={userData?.uid}
           />
         )}
 
@@ -633,12 +635,23 @@ interface OverviewProps {
   eligibility: EligibilityResult;
   onOpenMedical: () => void;
   medicalAlerts: MedicalAlert[];
+  actorUid?: string;
 }
 
-const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms, onGeneratePaymentLink, paymentLinkLoading, eligibility, onOpenMedical, medicalAlerts }) => {
+const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, registration, payments, attendance, forms, formSigs, onAssignTeam, onAddGuardian, onMessage, onAddNote, onCreateTask, onSignForm, onManageForms, onGeneratePaymentLink, paymentLinkLoading, eligibility, onOpenMedical, medicalAlerts, actorUid }) => {
   const primaryTeamId = player.teamId || teams[0]?.id;
   return (
     <div className="space-y-4">
+      {/* Recruitment funnel — the at-a-glance "where is this kid in
+          the pipeline." Sits ABOVE eligibility because most kids in
+          PersonAdmin are mid-funnel; ready-to-play is the back half. */}
+      <FunnelStepper
+        playerId={player.id}
+        progress={player.funnelProgress}
+        canEdit
+        actorUid={actorUid}
+      />
+
       {/* Eligibility — the one thing a coach scans before the next practice. */}
       <EligibilityCard result={eligibility} />
 

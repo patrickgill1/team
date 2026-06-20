@@ -28,18 +28,36 @@ const Forms: React.FC = () => {
   // a single team) who hasn't signed yet, deep-linking to /family/forms.
   const [sendingFor, setSendingFor] = useState<FormDefinition | null>(null);
 
+  // Upcoming events in the club — surfaced as the "allocate to event"
+  // dropdown in the form editor so a coach can wire a tournament/camp
+  // signup form to the event it gates. Loaded once with the rest of
+  // the page state.
+  const [upcomingEvents, setUpcomingEvents] = useState<Array<{ id: string; title: string; date: Date | null; teamId?: string }>>([]);
+
   const reload = async () => {
     if (!allowed || !clubId) return;
     try {
       setLoading(true);
-      const [fSnap, sSnap] = await Promise.all([
+      const [fSnap, sSnap, eSnap] = await Promise.all([
         getDocs(query(collection(db, 'form_definitions'), where('clubId', '==', clubId), orderBy('order', 'asc'))),
         getDocs(query(collection(db, 'seasons'), orderBy('createdAt', 'desc'))),
+        // Events don't carry a clubId today — fall back to a recent
+        // window. Filtered to upcoming on the client. Index-free.
+        getDocs(query(collection(db, 'events'))),
       ]);
       setForms(fSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as FormDefinition));
       setSeasons(sSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) })));
+      const now = Date.now();
+      const events = eSnap.docs
+        .map(d => {
+          const data: any = d.data();
+          const dt = data.date?.toDate?.() || (data.date ? new Date(data.date) : null);
+          return { id: d.id, title: data.title || 'Untitled', date: dt, teamId: data.teamId };
+        })
+        .filter(e => e.date && e.date.getTime() > now - 24 * 60 * 60 * 1000)
+        .sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
+      setUpcomingEvents(events);
     } catch (err) {
-      // Order index may not exist yet — fall back to unordered read.
       try {
         const fSnap = await getDocs(query(collection(db, 'form_definitions'), where('clubId', '==', clubId)));
         const list = fSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as FormDefinition);
@@ -138,6 +156,7 @@ const Forms: React.FC = () => {
         <Editor
           form={editing}
           seasons={seasons}
+          upcomingEvents={upcomingEvents}
           clubId={clubId!}
           userData={userData}
           onClose={() => { setCreating(false); setEditing(null); }}
@@ -159,13 +178,14 @@ const Forms: React.FC = () => {
 interface EditorProps {
   form: FormDefinition | null;
   seasons: any[];
+  upcomingEvents: Array<{ id: string; title: string; date: Date | null; teamId?: string }>;
   clubId: string;
   userData: any;
   onClose: () => void;
   onSaved: () => void;
 }
 
-const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClose, onSaved }) => {
+const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, userData, onClose, onSaved }) => {
   const isNew = !form;
   const [name, setName] = useState(form?.name || '');
   const [description, setDescription] = useState(form?.description || '');
@@ -176,6 +196,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
   const [ageGroups, setAgeGroups] = useState<string[]>(form?.ageGroups || []);
   const [order, setOrder] = useState<number>(form?.order ?? 0);
   const [questions, setQuestions] = useState<RegistrationQuestion[]>(form?.questions || []);
+  const [allocateToEventId, setAllocateToEventId] = useState<string>(form?.allocateToEventId || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -224,6 +245,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
         questions: questions.length > 0
           ? questions.map((q, i) => ({ ...q, order: i, label: q.label.trim() || 'Untitled' }))
           : undefined,
+        allocateToEventId: allocateToEventId || undefined,
         updatedAt: serverTimestamp(),
       };
       if (isNew) {
@@ -303,6 +325,34 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, clubId, userData, onClos
               Active
             </label>
           </div>
+
+          {/* Roster allocation — when set, every submission to this
+              form gets stamped with linkedEventId so the event's
+              detail page can list its signups in a single indexed
+              query. Empty = the form just collects answers without
+              joining a roster. */}
+          {questions.length > 0 && (
+            <div>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">
+                Allocate to event <span className="text-bone/40 font-normal normal-case tracking-normal">(optional — tournament / camp signups)</span>
+              </span>
+              <select
+                value={allocateToEventId}
+                onChange={(e) => setAllocateToEventId(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-charcoal-950 text-bone ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+              >
+                <option value="">— None (just collect answers) —</option>
+                {upcomingEvents.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.title}{ev.date ? ` — ${ev.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                  </option>
+                ))}
+              </select>
+              {upcomingEvents.length === 0 && (
+                <p className="text-[11px] text-bone/45 mt-1">No upcoming events on the calendar — create one first, then come back to attach.</p>
+              )}
+            </div>
+          )}
 
           {/* Questionnaire builder — when this list is empty, the form
               is a pure signature waiver (parent reads the body + types

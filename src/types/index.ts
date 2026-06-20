@@ -711,6 +711,12 @@ export interface FormDefinition {
    *  shape as RegistrationQuestion so the existing input renderer +
    *  validation reuses without translation. */
   questions?: RegistrationQuestion[];
+  /** When set, every form_submissions doc for this form gets stamped
+   *  with linkedEventId so the event detail page can list its signups
+   *  in one indexed query. Use case: "Spring Tournament 2026" form
+   *  allocates every submitter to the matching event roster. Empty =
+   *  the form just collects answers without joining a roster. */
+  allocateToEventId?: string;
   createdBy: string;
   createdByName?: string;
   createdAt: Date;
@@ -741,6 +747,12 @@ export interface FormSubmission {
    *  inbox path; 'event_signup' is reserved for the tournament/camp
    *  variant. */
   source?: 'family_forms' | 'event_signup';
+  /** Snapshot of the FormDefinition.allocateToEventId at submit time.
+   *  Stored on the submission (not derived) so a later edit to the
+   *  form's allocation target doesn't retroactively move past
+   *  submitters off / onto a different event. Event-detail signup
+   *  lists query by this field. */
+  linkedEventId?: string;
 }
 
 /** Per-player signed state for one FormDefinition. Doc id is composed

@@ -143,6 +143,53 @@ const EventDetail: React.FC = () => {
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
+  // Form signups — when a coach attaches a questionnaire-style form
+  // to this event via FormDefinition.allocateToEventId, each submitter
+  // gets stamped on form_submissions with linkedEventId. We query
+  // those once on load and surface them in a coach-visible section
+  // beneath the RSVP / attendance area.
+  const [signups, setSignups] = useState<Array<{
+    id: string;
+    playerId: string;
+    formName: string;
+    submittedAt: Date | null;
+    submittedByName?: string;
+    answers: Record<string, any>;
+    answerLabels: Record<string, string>;
+  }>>([]);
+  useEffect(() => {
+    if (!eventId || !isUserCoach) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs, query, where } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDocs(query(
+          collection(db, 'form_submissions'),
+          where('linkedEventId', '==', eventId),
+        ));
+        if (cancelled) return;
+        const rows = snap.docs.map(d => {
+          const data: any = d.data();
+          return {
+            id: d.id,
+            playerId: data.playerId || '',
+            formName: data.formName || 'Form',
+            submittedAt: data.submittedAt?.toDate?.() || null,
+            submittedByName: data.submittedByName,
+            answers: data.answers || {},
+            answerLabels: data.answerLabels || {},
+          };
+        });
+        rows.sort((a, b) => (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0));
+        setSignups(rows);
+      } catch (err) {
+        console.warn('signups load failed', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [eventId, isUserCoach]);
+
   // Re-tick the countdown each minute.
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -1192,6 +1239,50 @@ const EventDetail: React.FC = () => {
       {/* SNACKS — coach assigns one family per event, family sees they're
           up. Only renders when there's an assignment OR the viewer is a
           coach who can create one. Push goes to assignee's parents. */}
+      {/* Form signups — coach-only block listing every parent who
+          submitted a questionnaire form pointing at this event. Each
+          row expands to show the answers. Only renders when at least
+          one signup exists (no zero-state visual clutter). */}
+      {isUserCoach && signups.length > 0 && (
+        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 px-4 sm:px-5 py-4 mb-4 mx-3 sm:mx-0">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Form signups</div>
+              <h2 className="text-base font-black text-bone leading-tight">
+                {signups.length} {signups.length === 1 ? 'submission' : 'submissions'}
+              </h2>
+            </div>
+          </div>
+          <ul className="divide-y divide-white/5">
+            {signups.map(s => (
+              <li key={s.id} className="py-2.5">
+                <details>
+                  <summary className="flex items-center justify-between gap-3 cursor-pointer list-none">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-bone truncate">
+                        {s.submittedByName || 'Parent'} · {s.formName}
+                      </div>
+                      <div className="text-[11px] text-bone/50">
+                        {s.submittedAt ? s.submittedAt.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                      </div>
+                    </div>
+                    <svg className="w-4 h-4 text-bone/50 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                  </summary>
+                  <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
+                    {Object.keys(s.answers).map(qid => (
+                      <div key={qid} className="min-w-0">
+                        <dt className="text-bone/50 truncate">{s.answerLabels[qid] || qid}</dt>
+                        <dd className="text-bone font-semibold truncate">{String(s.answers[qid] ?? '—')}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {(isUserCoach || (event as any).snackAssignment) && (
         <SnackAssignment
           eventId={event.id}

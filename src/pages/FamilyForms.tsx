@@ -167,6 +167,10 @@ const FamilyForms: React.FC = () => {
           submittedByName: signedByName.trim() || undefined,
           submittedAt: serverTimestamp(),
           source: 'family_forms',
+          // Snapshot the allocation target so a later edit to the
+          // form doesn't retroactively move this submission off / onto
+          // a different event roster.
+          linkedEventId: (form as any).allocateToEventId || null,
         } as any);
       }
 

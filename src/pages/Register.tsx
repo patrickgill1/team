@@ -112,6 +112,15 @@ const RegisterForm: React.FC = () => {
   const [submittedRegId, setSubmittedRegId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // 3-step wizard: 1 = branded splash, 2 = form, 3 = cart + pay.
+  // Matches the 360Player flow Patrick showed — splash sets expectation,
+  // form does the data work, cart is the explicit payment moment.
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Branded club shell — pulled once the clubId resolves. Used for the
+  // splash card. Missing clubLogo is fine; we fall back to the GoalKickr
+  // mark.
+  const [clubShell, setClubShell] = useState<{ name?: string; logoUrl?: string } | null>(null);
+
   // Load the open season + pre-fill from returning player if applicable.
   useEffect(() => {
     let cancelled = false;
@@ -276,6 +285,25 @@ const RegisterForm: React.FC = () => {
   const baseFee = quote.baseCents;
   const effectiveFee = quote.totalCents;
 
+  // Load the club shell (name + logo) for the branded splash card.
+  // Falls back gracefully if missing — splash uses generic copy.
+  useEffect(() => {
+    let cancelled = false;
+    if (!clubId) return;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'clubs', clubId));
+        if (!cancelled && snap.exists()) {
+          const c: any = snap.data();
+          setClubShell({ name: c.name, logoUrl: c.logoUrl });
+        }
+      } catch {
+        /* silent — splash shell stays generic */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clubId]);
+
   // Surface coupon resolution status so parents know if a typo'd code
   // was silently ignored.
   useEffect(() => {
@@ -304,13 +332,21 @@ const RegisterForm: React.FC = () => {
     return true;
   });
 
-  const canSubmit = !!(
-    firstName.trim() && lastName.trim() && dob && ageGroup
-    && parents[0]?.firstName?.trim()
+  // Step 2 ("Form") needs everything except the cart. Step 3 ("Cart")
+  // is the only place where canSubmit kicks in — at submit time we
+  // re-validate the full set so a fast-tapper can't skip a field by
+  // hitting Submit while disabled props update.
+  const playerValid = !!(firstName.trim() && lastName.trim() && dob && ageGroup);
+  const guardianValid = !!(
+    parents[0]?.firstName?.trim()
     && parents[0]?.email?.trim()
     && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parents[0]?.email || '')
+  );
+  const canAdvanceForm = playerValid && guardianValid && customAnswersValid;
+
+  const canSubmit = !!(
+    canAdvanceForm
     && season && clubId
-    && customAnswersValid
     && !submitting
   );
 
@@ -508,174 +544,362 @@ const RegisterForm: React.FC = () => {
     );
   }
 
+  const clubName = clubShell?.name || 'the club';
+  const questionCount = visibleQuestions.length;
+  const familyFirst = userData?.name?.split(' ')[0] || 'family';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-8 sm:py-14">
+    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-6 sm:py-10">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-6">
-          <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
-            <Logo size="lg" variant="full" />
+        {/* Progress dots — always visible so parents know where they
+            are. On step 1 (splash) we hide them to keep the entry card
+            clean; they appear once the parent commits to the flow. */}
+        {step > 1 && (
+          <div className="flex items-center justify-center gap-2 mb-5">
+            {[1, 2, 3].map((s) => (
+              <span
+                key={s}
+                aria-current={step === s ? 'step' : undefined}
+                className={`h-1.5 rounded-full transition-all ${
+                  step === s ? 'bg-crimson-500 w-10' :
+                  step > s   ? 'bg-crimson-500/40 w-6' :
+                               'bg-white/10 w-6'
+                }`}
+              />
+            ))}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white">
-            {returnPlayerId ? `Welcome back, ${userData?.name?.split(' ')[0] || 'family'}!` : `Welcome, ${userData?.name?.split(' ')[0] || 'family'}!`}
-          </h1>
-          <p className="text-slate-300 mt-2 text-sm leading-relaxed max-w-md mx-auto">
-            {returnPlayerId
-              ? `Let's get your player signed up for ${season.name}.`
-              : `One last step and you're in. Tell us about your player and you'll join the ${season.name} pool.`}
-          </p>
-          {(baseFee > 0 || effectiveFee > 0) && (
-            <div className="mt-4 inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-crimson-500/10 ring-1 ring-crimson-500/30 text-bone text-sm">
-              <span className="font-bold">${(effectiveFee / 100).toFixed(2)}</span>
-              {quote.tier?.label && (
-                <span className="text-[11px] uppercase tracking-widest font-extrabold bg-white/10 text-crimson-100 ring-1 ring-white/15 px-2 py-0.5 rounded">
-                  {quote.tier.label}
-                </span>
-              )}
-              {quote.discountCents > 0 && (
-                <span className="text-[11px] uppercase tracking-widest font-extrabold bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40 px-2 py-0.5 rounded">
-                  Save ${(quote.discountCents / 100).toFixed(2)}
-                </span>
-              )}
-              {quote.surchargeCents > 0 && (
-                <span className="text-[11px] text-slate-300/80">
-                  incl. ${(quote.surchargeCents / 100).toFixed(2)} processing
-                </span>
-              )}
+        )}
+
+        {/* ─── STEP 1: SPLASH ─────────────────────────────────────── */}
+        {step === 1 && (
+          <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl overflow-hidden">
+            {/* Hero band — club logo lives here. Falls back to the
+                GoalKickr mark when the club has no logoUrl. */}
+            <div className="relative bg-gradient-to-br from-crimson-700/30 via-crimson-900/20 to-charcoal-950 px-6 pt-8 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl bg-charcoal-950 ring-1 ring-white/15 overflow-hidden flex items-center justify-center shrink-0">
+                  {clubShell?.logoUrl ? (
+                    <img src={clubShell.logoUrl} alt={clubName} className="w-full h-full object-cover" />
+                  ) : (
+                    <Logo size="md" variant="icon" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300/85">Registration</div>
+                  <h1 className="text-xl sm:text-2xl font-black text-bone leading-tight truncate">{season.name}</h1>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-5 sm:p-8 space-y-6">
-          {/* Player section */}
-          <Section title="Player">
-            <Row>
-              <Input label="First name" value={firstName} onChange={setFirstName} required />
-              <Input label="Last name" value={lastName} onChange={setLastName} required />
-            </Row>
-            <Row>
-              <Input label="Date of birth" type="date" value={dob} onChange={setDob} required />
-              <Select label="Age group" value={ageGroup} onChange={setAgeGroup} options={AGE_GROUPS.map(a => ({ value: a, label: a }))} required />
-            </Row>
-            <Row>
-              <Select label="Gender" value={gender} onChange={(v) => setGender(v as any)} options={[
-                { value: 'male', label: 'Male' },
-                { value: 'female', label: 'Female' },
-                { value: 'other', label: 'Other / Prefer not to say' },
-              ]} required />
-              <Input label="Preferred position (optional)" value={preferredPosition} onChange={setPreferredPosition} placeholder="e.g. Forward" />
-            </Row>
-            <Row>
-              <Input label="Jersey size (optional)" value={jerseySize} onChange={setJerseySize} placeholder="YM, AS, etc." />
-              <Checkbox label="Has played with Fire FC before" checked={playedBefore} onChange={setPlayedBefore} />
-            </Row>
-            <TextArea label="Medical notes (optional)" value={medicalNotes} onChange={setMedicalNotes} placeholder="Allergies, conditions, anything coaches should know." />
-          </Section>
+            <div className="px-6 py-5 space-y-5">
+              <div>
+                <p className="text-[13px] text-bone/70 leading-relaxed">
+                  Welcome{userData?.name ? `, ${familyFirst}` : ''}. Signing up for {season.name} with {clubName} takes about 3 minutes — answer a few questions, then check out.
+                </p>
+              </div>
 
-          {/* Parents section */}
-          <Section title={parents.length > 1 ? 'Parents / guardians' : 'Parent / guardian'}>
-            {parents.map((p, i) => (
-              <div key={i} className={i > 0 ? 'pt-4 border-t border-white/10' : ''}>
-                <Row>
-                  <Input label="First name" value={p.firstName} onChange={(v) => updateParent(i, { firstName: v })} required={i === 0} />
-                  <Input label="Last name" value={p.lastName} onChange={(v) => updateParent(i, { lastName: v })} required={i === 0} />
-                </Row>
-                <Row>
-                  <Input label="Email" type="email" value={p.email} onChange={(v) => updateParent(i, { email: v })} required={i === 0} />
-                  <Input label="Phone (optional)" type="tel" value={p.phone} onChange={(v) => updateParent(i, { phone: v })} />
-                </Row>
-                <Select
-                  label="Relationship"
-                  value={p.relationship}
-                  onChange={(v) => updateParent(i, { relationship: v as any })}
-                  options={[
-                    { value: 'mother', label: 'Mother' },
-                    { value: 'father', label: 'Father' },
-                    { value: 'guardian', label: 'Guardian' },
-                    { value: 'other', label: 'Other' },
-                  ]}
-                />
-                {i > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setParents(parents.filter((_, idx) => idx !== i))}
-                    className="mt-2 text-xs font-bold uppercase tracking-widest text-rose-300 hover:text-rose-200"
-                  >
-                    Remove parent
-                  </button>
+              {/* Status chips — open + question count + fee preview */}
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/30 text-emerald-200 text-[11px] font-extrabold tracking-widest uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Open
+                </span>
+                {questionCount > 0 && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 ring-1 ring-white/15 text-bone/80 text-[11px] font-extrabold tracking-widest uppercase">
+                    {questionCount} question{questionCount === 1 ? '' : 's'}
+                  </span>
+                )}
+                {effectiveFee > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-200 text-[11px] font-extrabold tracking-widest uppercase">
+                    ${(effectiveFee / 100).toFixed(2)} fee
+                  </span>
                 )}
               </div>
-            ))}
-            {parents.length < 2 && (
+
+              {returnPlayerId && (
+                <div className="rounded-lg bg-emerald-500/10 ring-1 ring-emerald-400/30 px-3 py-2.5 text-[12px] text-emerald-200">
+                  Returning family — most of {firstName || 'your player'}'s info is already on file. You'll just confirm and check out.
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={() => setParents([...parents, { firstName: '', lastName: '', email: '', phone: '', relationship: 'father' }])}
-                className="text-sm font-bold text-crimson-400 hover:text-bone"
+                onClick={() => setStep(2)}
+                className="w-full py-3.5 rounded-xl font-bold text-base text-white bg-crimson-600 hover:bg-crimson-500 shadow-lg shadow-crimson-900/40 transition-all"
               >
-                + Add another parent / guardian
+                Register
               </button>
-            )}
-          </Section>
+              <p className="text-center text-[11px] text-slate-500">
+                By continuing you agree to our{' '}
+                <Link to="/privacy" className="underline hover:text-slate-300">Privacy Policy</Link>.
+              </p>
+            </div>
+          </div>
+        )}
 
-          {visibleQuestions.length > 0 && (
-            <Section title={(formConfig as any)?.title || 'A few more questions'}>
-              {visibleQuestions.map(q => (
-                <CustomQuestion
-                  key={q.id}
-                  question={q}
-                  value={customAnswers[q.id]}
-                  onChange={(v) => setCustomAnswers(prev => ({ ...prev, [q.id]: v }))}
-                />
-              ))}
+        {/* ─── STEP 2: FORM ───────────────────────────────────────── */}
+        {step === 2 && (
+          <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-5 sm:p-8 space-y-6">
+            <header>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400/85 mb-1">Step 2 of 3</div>
+              <h2 className="text-2xl font-black text-bone">Tell us about your player</h2>
+              <p className="text-[13px] text-bone/65 mt-1">Required fields are marked with an asterisk.</p>
+            </header>
+
+            <Section title="Player">
+              <Row>
+                <Input label="First name" value={firstName} onChange={setFirstName} required />
+                <Input label="Last name" value={lastName} onChange={setLastName} required />
+              </Row>
+              <Row>
+                <Input label="Date of birth" type="date" value={dob} onChange={setDob} required />
+                <Select label="Age group" value={ageGroup} onChange={setAgeGroup} options={AGE_GROUPS.map(a => ({ value: a, label: a }))} required />
+              </Row>
+              <Row>
+                <Select label="Gender" value={gender} onChange={(v) => setGender(v as any)} options={[
+                  { value: 'male', label: 'Male' },
+                  { value: 'female', label: 'Female' },
+                  { value: 'other', label: 'Other / Prefer not to say' },
+                ]} required />
+                <Input label="Preferred position (optional)" value={preferredPosition} onChange={setPreferredPosition} placeholder="e.g. Forward" />
+              </Row>
+              <Row>
+                <Input label="Jersey size (optional)" value={jerseySize} onChange={setJerseySize} placeholder="YM, AS, etc." />
+                <Checkbox label={`Has played with ${clubName} before`} checked={playedBefore} onChange={setPlayedBefore} />
+              </Row>
+              <TextArea label="Medical notes (optional)" value={medicalNotes} onChange={setMedicalNotes} placeholder="Allergies, conditions, anything coaches should know." />
             </Section>
-          )}
 
-          {activeProduct && (activeProduct.coupons || []).length > 0 && (
-            <Section title="Promo code (optional)">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="EARLYBIRD"
-                  className="flex-1 px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm uppercase tracking-wider"
-                  style={{ fontSize: '16px' }}
-                />
-                {quote.couponCode && (
-                  <div className="px-3 py-2 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-200 text-xs font-bold flex items-center">
-                    -${(quote.discountCents / 100).toFixed(2)}
+            <Section title={parents.length > 1 ? 'Parents / guardians' : 'Parent / guardian'}>
+              {parents.map((p, i) => (
+                <div key={i} className={i > 0 ? 'pt-4 border-t border-white/10' : ''}>
+                  <Row>
+                    <Input label="First name" value={p.firstName} onChange={(v) => updateParent(i, { firstName: v })} required={i === 0} />
+                    <Input label="Last name" value={p.lastName} onChange={(v) => updateParent(i, { lastName: v })} required={i === 0} />
+                  </Row>
+                  <Row>
+                    <Input label="Email" type="email" value={p.email} onChange={(v) => updateParent(i, { email: v })} required={i === 0} />
+                    <Input label="Phone (optional)" type="tel" value={p.phone} onChange={(v) => updateParent(i, { phone: v })} />
+                  </Row>
+                  <Select
+                    label="Relationship"
+                    value={p.relationship}
+                    onChange={(v) => updateParent(i, { relationship: v as any })}
+                    options={[
+                      { value: 'mother', label: 'Mother' },
+                      { value: 'father', label: 'Father' },
+                      { value: 'guardian', label: 'Guardian' },
+                      { value: 'other', label: 'Other' },
+                    ]}
+                  />
+                  {i > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setParents(parents.filter((_, idx) => idx !== i))}
+                      className="mt-2 text-xs font-bold uppercase tracking-widest text-rose-300 hover:text-rose-200"
+                    >
+                      Remove parent
+                    </button>
+                  )}
+                </div>
+              ))}
+              {parents.length < 2 && (
+                <button
+                  type="button"
+                  onClick={() => setParents([...parents, { firstName: '', lastName: '', email: '', phone: '', relationship: 'father' }])}
+                  className="text-sm font-bold text-crimson-400 hover:text-bone"
+                >
+                  + Add another parent / guardian
+                </button>
+              )}
+            </Section>
+
+            {visibleQuestions.length > 0 && (
+              <Section title={(formConfig as any)?.title || 'A few more questions'}>
+                {visibleQuestions.map(q => (
+                  <CustomQuestion
+                    key={q.id}
+                    question={q}
+                    value={customAnswers[q.id]}
+                    onChange={(v) => setCustomAnswers(prev => ({ ...prev, [q.id]: v }))}
+                  />
+                ))}
+              </Section>
+            )}
+
+            <NavRow>
+              <BackButton onClick={() => setStep(1)} />
+              <NextButton
+                disabled={!canAdvanceForm}
+                onClick={() => setStep(3)}
+                label="Next"
+              />
+            </NavRow>
+            {!canAdvanceForm && (
+              <p className="text-[11px] text-amber-300/85 -mt-3 text-right">Fill the required fields to continue.</p>
+            )}
+          </div>
+        )}
+
+        {/* ─── STEP 3: CART ───────────────────────────────────────── */}
+        {step === 3 && (
+          <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-5 sm:p-8 space-y-5">
+            <header>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400/85 mb-1">Step 3 of 3</div>
+              <h2 className="text-2xl font-black text-bone">Your cart</h2>
+              <p className="text-[13px] text-bone/65 mt-1">{firstName || 'Your player'} — {season.name}</p>
+            </header>
+
+            {/* Line item */}
+            <div className="rounded-2xl bg-charcoal-950 ring-1 ring-white/10 p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-black text-bone truncate">
+                    {activeProduct?.name || 'Registration'}
+                  </div>
+                  <div className="text-[12px] text-bone/60 mt-0.5">
+                    {ageGroup} · {gender}
+                  </div>
+                </div>
+                <div className="text-sm font-black text-bone shrink-0">
+                  ${(baseFee / 100).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Payment method — single option for now, mirror the 360Player
+                visual so parents recognize the pattern. */}
+            <div>
+              <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">How would you like to pay?</h3>
+              <div className="rounded-2xl ring-2 ring-crimson-400/60 bg-crimson-500/10 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-crimson-500 text-white flex items-center justify-center">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                  <span className="text-sm font-bold text-bone">One time</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-black text-bone">Total ${(effectiveFee / 100).toFixed(2)}</div>
+                  <div className="text-[11px] text-bone/55">Due today ${(effectiveFee / 100).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Discount code */}
+            {activeProduct && (activeProduct.coupons || []).length > 0 && (
+              <div>
+                <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">Discount code</h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="EARLYBIRD"
+                    className="flex-1 px-3 py-2.5 rounded-lg bg-charcoal-950 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm uppercase tracking-wider"
+                    style={{ fontSize: '16px' }}
+                  />
+                  {quote.couponCode && (
+                    <div className="px-3 py-2 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-200 text-xs font-bold flex items-center">
+                      -${(quote.discountCents / 100).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+                {couponError && (
+                  <p className="text-[11px] text-amber-300 mt-1">{couponError}</p>
+                )}
+              </div>
+            )}
+
+            {/* Order summary */}
+            <div className="rounded-2xl bg-charcoal-950 ring-1 ring-white/10 p-4">
+              <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-3">Order summary</h3>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-bone/75">1x {activeProduct?.name || 'Registration'}</span>
+                  <span className="text-bone font-semibold">${(baseFee / 100).toFixed(2)}</span>
+                </div>
+                {quote.discountCents > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-emerald-300/85">Discount {quote.couponCode ? `(${quote.couponCode})` : ''}</span>
+                    <span className="text-emerald-300 font-semibold">-${(quote.discountCents / 100).toFixed(2)}</span>
+                  </div>
+                )}
+                {quote.surchargeCents > 0 && (
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-bone/55">Processing</span>
+                    <span className="text-bone/65">${(quote.surchargeCents / 100).toFixed(2)}</span>
                   </div>
                 )}
               </div>
-              {couponError && (
-                <p className="text-[11px] text-amber-300 mt-1">{couponError}</p>
+              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                <span className="text-sm font-bold text-bone">Due today</span>
+                <span className="text-base font-black text-bone">${(effectiveFee / 100).toFixed(2)}</span>
+              </div>
+              {quote.surchargeCents > 0 && (
+                <p className="text-[10px] text-bone/45 mt-1 text-right">incl. service fee</p>
               )}
-            </Section>
-          )}
-
-          {error && (
-            <div className="rounded-xl px-4 py-3 bg-rose-500/10 ring-1 ring-rose-500/40 text-rose-200 text-sm">
-              {error}
             </div>
-          )}
 
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="w-full py-4 rounded-xl font-bold text-base text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
-          >
-            {submitting ? 'Submitting…' : effectiveFee > 0 ? `Submit & pay $${(effectiveFee / 100).toFixed(2)}` : 'Submit registration'}
-          </button>
+            {error && (
+              <div className="rounded-xl px-4 py-3 bg-rose-500/10 ring-1 ring-rose-500/40 text-rose-200 text-sm">
+                {error}
+              </div>
+            )}
 
-          <p className="text-center text-[11px] text-slate-500">
-            By registering you agree to our{' '}
-            <Link to="/privacy" className="underline hover:text-slate-300">Privacy Policy</Link>.
-          </p>
-        </div>
+            <NavRow>
+              <BackButton onClick={() => setStep(2)} disabled={submitting} />
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className="flex-1 py-3.5 rounded-xl font-bold text-base text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
+              >
+                {submitting ? 'Submitting…' : effectiveFee > 0 ? 'Submit & pay' : 'Submit registration'}
+              </button>
+            </NavRow>
+            <p className="text-center text-[11px] text-slate-500">
+              By submitting you agree to our{' '}
+              <Link to="/privacy" className="underline hover:text-slate-300">Privacy Policy</Link>.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+// ── Wizard nav helpers ───────────────────────────────────────────
+
+const NavRow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="flex items-center gap-3">{children}</div>
+);
+
+const BackButton: React.FC<{ onClick: () => void; disabled?: boolean }> = ({ onClick, disabled }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="inline-flex items-center gap-1.5 px-4 py-3.5 rounded-xl bg-white/5 ring-1 ring-white/10 text-bone/85 hover:bg-white/10 disabled:opacity-50 text-sm font-bold"
+  >
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </button>
+);
+
+const NextButton: React.FC<{ onClick: () => void; disabled?: boolean; label: string }> = ({ onClick, disabled, label }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="flex-1 inline-flex items-center justify-center gap-1.5 py-3.5 rounded-xl font-bold text-base text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all"
+  >
+    {label}
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+);
 
 // ── Small input components inline to keep this file self-contained ──
 

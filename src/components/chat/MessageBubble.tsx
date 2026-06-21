@@ -116,6 +116,24 @@ const ChatAttachmentImage: React.FC<{
   // Multi-image (grid): absolute-fill the cell — grid-cols-2 gives
   // the parent explicit tracks, so w-full + aspect-square has
   // something concrete to anchor to.
+  // Click handler hardened against the parent bubble's touch
+  // gestures (long-press + swipe-to-reply). The synthetic click that
+  // iOS Safari fires after touchend was getting eaten when the user
+  // happened to drift a pixel or two during the tap, leaving images
+  // unopenable. Three defenses, in order:
+  //   1. stopPropagation so parent gesture handlers don't think the
+  //      tap was meant for them
+  //   2. onPointerUp as a primary trigger (fires reliably across
+  //      touch / mouse / pen — no synthetic-click delay)
+  //   3. fall-through onClick for cases where pointer events aren't
+  //      supported (older Android WebViews)
+  // Patrick 2026-06-21: 'lost the ability to click on a photo in
+  // chat to open it up. it does nothing.'
+  const handleActivate = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    onClick?.();
+  };
+
   if (solo) {
     return (
       <img
@@ -126,17 +144,20 @@ const ChatAttachmentImage: React.FC<{
         draggable={false}
         onLoad={() => onLoad?.()}
         onError={() => console.warn('[chat] attachment image failed to load', src)}
-        onClick={onClick}
+        onPointerUp={(e) => { if (e.pointerType !== 'mouse') handleActivate(e); }}
+        onClick={handleActivate}
         className={`block max-h-72 w-auto max-w-full cursor-pointer ${skinClasses}`}
-        style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
+        style={{ WebkitTouchCallout: 'none', touchAction: 'manipulation' } as React.CSSProperties}
       />
     );
   }
 
   return (
     <div
-      onClick={onClick}
+      onPointerUp={(e) => { if (e.pointerType !== 'mouse') handleActivate(e); }}
+      onClick={handleActivate}
       className={`relative overflow-hidden cursor-pointer w-full aspect-square ${skinClasses}`}
+      style={{ touchAction: 'manipulation' } as React.CSSProperties}
     >
       <img
         src={src}
@@ -146,7 +167,7 @@ const ChatAttachmentImage: React.FC<{
         draggable={false}
         onLoad={() => onLoad?.()}
         onError={() => console.warn('[chat] attachment image failed to load', src)}
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
       />
     </div>

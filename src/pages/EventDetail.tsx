@@ -12,6 +12,7 @@ import CarpoolBoard, { CarpoolPost } from '../components/calendar/CarpoolBoard';
 import EventDiscussion from '../components/calendar/EventDiscussion';
 import SnackAssignment from '../components/calendar/SnackAssignment';
 import { mapsUrl, osmEmbedUrl } from '../utils/maps';
+import RosterAvatar from '../components/common/RosterAvatar';
 
 // Authenticated event detail page — the "command center" for a single
 // event. Replaces the old inline-expanded Calendar row and the public
@@ -935,13 +936,7 @@ const EventDetail: React.FC = () => {
                   );
                   return (
                     <li key={p.id} className="flex items-center gap-2 py-1.5">
-                      {p.photoURL ? (
-                        <img src={p.photoURL} alt="" className="w-7 h-7 rounded-full object-cover ring-1 ring-white/10 shrink-0" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-charcoal-950 flex items-center justify-center text-[11px] font-bold text-charcoal-400 shrink-0">
-                          {(p.name || '?').charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <RosterAvatar name={p.name} photoUrl={p.photoURL} size={28} className="ring-1 ring-white/10" />
                       <div className="flex-1 min-w-0 text-sm font-semibold text-bone truncate" title={p.name}>{p.name}</div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {btn('going', 'Present', 'bg-emerald-600')}
@@ -1121,18 +1116,7 @@ const EventDetail: React.FC = () => {
               return (
               <li key={`go-${i}`} className="py-1.5">
                 <div className="flex items-center gap-2.5">
-                  {photo ? (
-                    <img
-                      src={photo}
-                      alt=""
-                      className="w-7 h-7 rounded-full object-cover ring-1 ring-white/10 flex-shrink-0"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  ) : (
-                    <span className={`w-7 h-7 rounded-full text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${rsvpAvatarColor(p.name)}`}>
-                      {(p.name || '?').charAt(0).toUpperCase()}
-                    </span>
-                  )}
+                  <RosterAvatar name={p.name} photoUrl={photo} size={28} className="ring-1 ring-white/10" />
                   <span className="text-sm font-semibold text-bone flex-1 truncate">{p.name}</span>
                   {p.isGuest && isUserCoach && roster.length > 0 && (
                     <button

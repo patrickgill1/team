@@ -51,6 +51,13 @@ const Dashboard: React.FC = () => {
   // Tonight's session — the next unfinished dev plan goal for my
   // linked player (parent OR coach-with-kid). One-tap into the drill
   // detail so a family with 15 minutes can just start.
+  // ATOMIC RENDER: track whether the goal-fetch effect has resolved
+  // (success OR explicit-null) so we can reserve placeholder space
+  // during the in-flight window and avoid a layout shift when the
+  // card finally pops in. Pattern source: feedback memory
+  // 'atomic-render-over-skeletons.md'. Set true at the end of the
+  // useEffect that calls setTonightGoal.
+  const [goalLoaded, setGoalLoaded] = useState(false);
   const [tonightGoal, setTonightGoal] = useState<{
     planId: string;
     goalId: string;
@@ -330,7 +337,8 @@ const Dashboard: React.FC = () => {
   // denormalized field PlayerCard uses too) — no need to compute it
   // here a second time.
   useEffect(() => {
-    if (!myPlayer) { setTonightGoal(null); return; }
+    if (!myPlayer) { setTonightGoal(null); setGoalLoaded(false); return; }
+    setGoalLoaded(false);
     let cancelled = false;
     (async () => {
       try {
@@ -452,6 +460,8 @@ const Dashboard: React.FC = () => {
         setTonightGoal(null);
       } catch (err) {
         console.warn('tonight goal load failed', err);
+      } finally {
+        if (!cancelled) setGoalLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -831,8 +841,25 @@ const Dashboard: React.FC = () => {
             ribbon: tonight's focus on the left, streak count on the
             right, 7 dots underneath showing the last seven days.
             Sunday rendered with a dash so it reads as "rest day" not
-            "missed" (the streak algo skips Sundays). */}
-        {myPlayer && tonightGoal && (() => {
+            "missed" (the streak algo skips Sundays).
+
+            ATOMIC RENDER: while goalLoaded=false (the fetch is in
+            flight), reserve a placeholder slot of approximately the
+            card's height so the layout doesn't shift when the card
+            arrives. Once the fetch resolves, smoothly transition the
+            slot's max-height to either the real card (if a tonightGoal
+            exists) or 0 (if the kid has no active plan). Avoids
+            Patrick's 'development card pops in later' complaint
+            without showing a skeleton. */}
+        {myPlayer && (
+          <div
+            className="transition-all duration-500 ease-out overflow-hidden"
+            style={{
+              maxHeight: !goalLoaded ? '94px' : (tonightGoal ? '240px' : '0px'),
+              opacity: !goalLoaded ? 0 : (tonightGoal ? 1 : 0),
+            }}
+          >
+        {tonightGoal && (() => {
           // Streak source of truth = the value computed in
           // tonightGoal's effect from the freshly-fetched plans. The
           // cached myPlayer.currentStreakDays can lag if a prior
@@ -900,6 +927,8 @@ const Dashboard: React.FC = () => {
             </Link>
           );
         })()}
+          </div>
+        )}
         {myPlayer && (
           <MyPlayerCard
             player={myPlayer}

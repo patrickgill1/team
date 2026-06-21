@@ -214,85 +214,88 @@ const CoachAccordionBar: React.FC = () => {
     return 'cyan';
   }, [items]);
 
-  // DIAGNOSTIC MODE (added 2026-06-21 because Patrick reported
-  // 'still not seeing anything' even with real data that should have
-  // triggered RSVPs missing). Three early-return conditions —
-  // emphasizing visibility while we debug which one is firing:
-  //
-  //   - !isUserCoach: component returns null entirely. If Patrick
-  //     doesn't see ANYTHING at all, his role isn't 'coach' (might
-  //     be 'team_manager' or something else); we'd need to widen the
-  //     gating. Console.log captures it for inspection.
-  //   - !loaded: still loading the team + events. Brief; should
-  //     not be the persistent reason for invisibility.
-  //   - items.length === 0: queries returned but nothing was
-  //     actionable. Render a small green 'All clear' chip so Patrick
-  //     can SEE the bar mounted and worked — confirming the data
-  //     query returned empty (vs. the render path being broken).
-  if (typeof console !== 'undefined') {
-    console.debug('[coach-bar]', { isUserCoach, role: (userData as any)?.role, selectedTeamId, loaded, itemsCount: items.length });
-  }
   if (!isUserCoach) return null;
   if (!loaded) return null;
-  if (items.length === 0) {
-    return (
-      <div className="w-full flex items-center gap-2 px-4 py-1.5 bg-emerald-500/15 text-emerald-300 font-bold text-[11px] border-y border-emerald-400/20">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden />
-        <span className="flex-1 text-left">All clear</span>
-        <span className="text-emerald-400/70 text-[10px]">coach status bar</span>
-      </div>
-    );
-  }
 
+  // Bar lives ALWAYS once a coach is signed in. Patrick 2026-06-21:
+  // 'i would love for it to bend with the hero photo and be more
+  // transparent. i honestly think it should just live there always,
+  // but also change color when there is a real need.'
+  //
+  // Two visual states:
+  //
+  //   QUIET (no items)   — glassy charcoal at low opacity, blends
+  //                        into the hero photo it tucks under. Subtle
+  //                        'Coach quick actions' label + chevron so
+  //                        the affordance is discoverable but doesn't
+  //                        compete with the hero. Always tappable.
+  //
+  //   ACTIVE (items > 0) — solid priority color (crimson / amber /
+  //                        cyan), opaque so it pops against the hero
+  //                        and signals 'something needs you.'
+  //                        Headline mirrors the top-priority item.
   const colorFor = (p: Priority) => {
     if (p === 'crimson') return { bar: 'bg-crimson-500', textOnBar: 'text-white', chip: 'bg-crimson-500/15 text-crimson-200 ring-crimson-400/40' };
     if (p === 'amber')   return { bar: 'bg-amber-500',   textOnBar: 'text-amber-950', chip: 'bg-amber-500/15 text-amber-200 ring-amber-400/40' };
     return                      { bar: 'bg-sky-500',     textOnBar: 'text-white', chip: 'bg-sky-500/15 text-sky-200 ring-sky-400/40' };
   };
 
-  const top = colorFor(topPriority!);
-  const headline = items.find((i) => i.priority === topPriority!)?.label || `${items.length} item${items.length === 1 ? '' : 's'}`;
+  const hasItems = items.length > 0;
+  const top = hasItems ? colorFor(topPriority!) : null;
+  const headline = hasItems
+    ? items.find((i) => i.priority === topPriority!)?.label || `${items.length} item${items.length === 1 ? '' : 's'}`
+    : 'Coach quick actions';
+
+  const collapsedClass = hasItems
+    ? `${top!.bar} ${top!.textOnBar}`
+    : 'bg-charcoal-950/40 text-bone/75 backdrop-blur-md border-t border-white/5';
 
   return (
-    <div className="relative animate-fade-in">
-      {/* Collapsed bar — slim, color-coded, one-line summary. Tap to
-          expand. Stays underneath the hero so the photo above is
-          untouched. */}
+    // Wrapper tucks the bar UNDER the hero so it visually extends the
+    // hero card. Negative top margin + matching rounded-b-2xl corners
+    // make it read as one continuous shape. Same horizontal max-width
+    // as the hero parent so edges line up.
+    <div className="relative -mt-2 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 z-10 animate-fade-in">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className={`w-full flex items-center gap-2 px-4 py-2 ${top.bar} ${top.textOnBar} font-bold text-[13px] transition-colors`}
+        className={`w-full flex items-center gap-2 px-4 py-2 rounded-b-2xl ${collapsedClass} font-bold text-[12.5px] transition-colors duration-300`}
         aria-expanded={expanded}
         aria-label={`Coach status — ${headline}`}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse" aria-hidden />
-        <span className="flex-1 text-left truncate">{headline}{items.length > 1 ? ` · +${items.length - 1} more` : ''}</span>
+        <span className={`w-1.5 h-1.5 rounded-full ${hasItems ? 'bg-white/90 animate-pulse' : 'bg-bone/40'}`} aria-hidden />
+        <span className="flex-1 text-left truncate">{headline}{hasItems && items.length > 1 ? ` · +${items.length - 1} more` : ''}</span>
         <svg className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
 
-      {/* Expanded panel — status chips + quick actions */}
+      {/* Expanded panel — status chips (only when items present)
+          plus quick actions (always). Uses the same width as the
+          bar so it lines up under it. Glassy charcoal background
+          so it reads as an extension of the bar, not a separate
+          surface. */}
       {expanded && (
-        <div className="bg-charcoal-900 border-b border-white/10 animate-fade-in">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 space-y-3">
-            {/* Status chips */}
-            <ul className="flex flex-wrap gap-1.5">
-              {items.map((i) => {
-                const c = colorFor(i.priority);
-                return (
-                  <li key={i.key}>
-                    <Link
-                      to={i.href}
-                      onClick={() => setExpanded(false)}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ring-1 ${c.chip} text-[11px] font-semibold hover:brightness-110 transition`}
-                    >
-                      <span className="font-extrabold">{i.label}</span>
-                      <span className="opacity-70">·</span>
-                      <span className="opacity-90">{i.detail}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+        <div className="bg-charcoal-900/95 backdrop-blur-md ring-1 ring-white/10 rounded-b-2xl -mt-px animate-fade-in">
+          <div className="px-4 sm:px-6 py-3 space-y-3">
+            {hasItems && (
+              <ul className="flex flex-wrap gap-1.5">
+                {items.map((i) => {
+                  const c = colorFor(i.priority);
+                  return (
+                    <li key={i.key}>
+                      <Link
+                        to={i.href}
+                        onClick={() => setExpanded(false)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ring-1 ${c.chip} text-[11px] font-semibold hover:brightness-110 transition`}
+                      >
+                        <span className="font-extrabold">{i.label}</span>
+                        <span className="opacity-70">·</span>
+                        <span className="opacity-90">{i.detail}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
 
             {/* Quick action 2x4 — what coaches do daily */}
             <div className="grid grid-cols-4 gap-1.5">

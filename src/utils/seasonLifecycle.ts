@@ -9,8 +9,17 @@ import type { SeasonLifecycle } from '../types';
 // light. Beyond that, everything moves forward — easier to reason
 // about + matches how clubs actually run.
 
+// New states added 2026-06-21 alongside the Season Wizard: 'coach_commit'
+// is the first stop after draft (coaches are invited to commit before
+// anything else happens), and 'tryout_prep' covers the wizard steps for
+// scheduling tryouts, attaching forms, and queuing marketing — all of
+// which happen BEFORE registration opens. Once the wizard's marketing
+// step ships, advancing from tryout_prep → registration_open is the
+// 'go live to families' transition.
 const TRANSITIONS: Record<SeasonLifecycle, SeasonLifecycle[]> = {
-  draft: ['registration_open', 'archived'],
+  draft: ['coach_commit', 'archived'],
+  coach_commit: ['tryout_prep', 'archived'],
+  tryout_prep: ['registration_open', 'archived'],
   registration_open: ['tryouts', 'roster_locked', 'archived'],
   tryouts: ['registration_open', 'roster_locked', 'archived'],
   roster_locked: ['in_season', 'archived'],
@@ -30,6 +39,8 @@ export function canTransitionSeason(from: SeasonLifecycle, to: SeasonLifecycle):
 export function seasonLifecycleLabel(s: SeasonLifecycle): string {
   switch (s) {
     case 'draft': return 'Draft';
+    case 'coach_commit': return 'Coaches committing';
+    case 'tryout_prep': return 'Prep';
     case 'registration_open': return 'Registration open';
     case 'tryouts': return 'Tryouts';
     case 'roster_locked': return 'Roster locked';
@@ -42,6 +53,8 @@ export function seasonLifecycleLabel(s: SeasonLifecycle): string {
 export function seasonLifecycleTone(s: SeasonLifecycle): { bg: string; text: string; ring: string } {
   switch (s) {
     case 'draft': return { bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-300' };
+    case 'coach_commit': return { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300' };
+    case 'tryout_prep': return { bg: 'bg-sky-100', text: 'text-sky-800', ring: 'ring-sky-300' };
     case 'registration_open': return { bg: 'bg-crimson-100', text: 'text-crimson-800', ring: 'ring-crimson-300' };
     case 'tryouts': return { bg: 'bg-violet-100', text: 'text-violet-800', ring: 'ring-violet-300' };
     case 'roster_locked': return { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300' };

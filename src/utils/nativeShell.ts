@@ -20,10 +20,12 @@ export async function initNativeShell(): Promise<void> {
     // ENTIRE screen including the safe-area-inset-top region (notch
     // / Dynamic Island). Without this, Capacitor on iOS creates a
     // separate strip above the WebView whose color it can't actually
-    // control on iOS 14+ — Patrick saw it persist as navy regardless
-    // of setBackgroundColor calls. With overlay=true the navigation
+    // control on iOS 14+ — Patrick saw it persist regardless of
+    // setBackgroundColor calls. With overlay=true the navigation
     // header (which has bg-charcoal-950 + safe-top padding) paints
-    // the strip cleanly in brand color.
+    // the strip cleanly in brand color. (Android uses a separate
+    // mechanism — styles.xml + MainActivity.java's GK_CHARCOAL
+    // setBackgroundColor calls on root + decor + webview.)
     await StatusBar.setOverlaysWebView({ overlay: true });
   } catch (err) {
     console.warn('StatusBar init failed', err);

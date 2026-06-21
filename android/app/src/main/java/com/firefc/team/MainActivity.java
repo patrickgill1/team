@@ -11,10 +11,17 @@ import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
-    // App's primary navy. Mirrors #0f172a used in src/utils/nativeShell.ts
-    // and the styles.xml theme attributes. Set on every paintable
-    // surface defensively because Samsung One UI ignores half of them.
-    private static final int FIREFC_NAVY = 0xFF0F172A;
+    // GoalKickr brand dark (charcoal-950 = #0d0d10). Mirrors the
+    // runtime StatusBar.setBackgroundColor call in nativeShell.ts and
+    // the statusBarColor / navigationBarColor / windowBackground attrs
+    // in styles.xml. Painted on EVERY paintable surface defensively
+    // because (a) Samsung One UI ignores theme attributes, (b) Android
+    // 15 deprecated statusBarColor and Pixel 10 XL specifically falls
+    // back to its system default when the deprecated attribute is the
+    // only color source. Was 0xFF0F172A (Fire FC navy) before the
+    // rebrand — Patrick caught the leftover navy strip on Pixel 10
+    // XL login 2026-06-21.
+    private static final int GK_CHARCOAL = 0xFF0D0D10;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +42,7 @@ public class MainActivity extends BridgeActivity {
             // for windowBackground / statusBarColor are unreliable on
             // Samsung One UI, but the root view's drawing background
             // is honored everywhere.
-            root.setBackgroundColor(FIREFC_NAVY);
+            root.setBackgroundColor(GK_CHARCOAL);
 
             ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
                 Insets sys = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -47,13 +54,13 @@ public class MainActivity extends BridgeActivity {
         // Window decor background — covers any flicker before the
         // WebView attaches (e.g. between splash dismiss and first
         // paint). Also navy.
-        getWindow().getDecorView().setBackgroundColor(FIREFC_NAVY);
+        getWindow().getDecorView().setBackgroundColor(GK_CHARCOAL);
 
         // WebView itself starts navy so the brief moment before
         // React mounts isn't white either.
         WebView webView = getBridge() != null ? getBridge().getWebView() : null;
         if (webView != null) {
-            webView.setBackgroundColor(FIREFC_NAVY);
+            webView.setBackgroundColor(GK_CHARCOAL);
         }
     }
 }

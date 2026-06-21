@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -48,6 +48,20 @@ const ClubOverview: React.FC = () => {
   const [search, setSearch] = useState('');
   const [transferPlayer, setTransferPlayer] = useState<any | null>(null);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  // Auto-open the BroadcastModal when arriving via ?broadcast=open
+  // (deep-link from the AdminCockpit's Broadcast quick-action tile
+  // on the dashboard). Consumes the param so a refresh doesn't
+  // re-open the modal.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('broadcast') === 'open') {
+      setBroadcastOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('broadcast');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const reload = async () => {
     setLoading(true);

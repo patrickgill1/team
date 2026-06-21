@@ -40,6 +40,7 @@ const RegisterSuccess = React.lazy(() => import('./pages/RegisterStripeReturn').
 const RegisterCancel = React.lazy(() => import('./pages/RegisterStripeReturn').then(m => ({ default: m.RegisterCancel })));
 const Registrations = React.lazy(() => import('./pages/Registrations'));
 const AdminTeams = React.lazy(() => import('./pages/AdminTeams'));
+const SeasonWizard = React.lazy(() => import('./pages/SeasonWizard'));
 const Products = React.lazy(() => import('./pages/Products'));
 const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFormBuilder'));
 const Tryouts = React.lazy(() => import('./pages/Tryouts'));
@@ -504,6 +505,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <AdminTeams />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/seasons/:id" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <SeasonWizard />
                 </AppLayout>
               </ProtectedRoute>
             } />

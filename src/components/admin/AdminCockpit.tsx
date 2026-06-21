@@ -105,7 +105,8 @@ const AdminCockpit: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const chips: Array<{ count: number; label: string; href: string; emphasize?: boolean }> = [
+  const chips: Array<{ count?: number; label: string; href: string; emphasize?: boolean; cta?: boolean }> = [
+    { label: 'Start a season',            href: '/admin/seasons/new', cta: true },
     { count: counts.pendingRegistrations, label: 'Pending registrations',  href: '/club/registrations' },
     { count: counts.outstandingPayments,  label: 'Outstanding payments',   href: '/club/registrations?filter=unpaid', emphasize: counts.outstandingPayments > 0 },
     { count: counts.teamsToActivate,      label: 'Teams to activate',      href: '/admin/teams', emphasize: counts.teamsToActivate > 0 },
@@ -130,22 +131,29 @@ const AdminCockpit: React.FC = () => {
             <span className="text-[10px] font-bold tracking-wide text-bone/50">what needs your attention</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {chips.map((chip) => (
-              <Link
-                key={chip.label}
-                to={chip.href}
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 ring-1 transition-colors text-[12px] ${
-                  chip.emphasize
-                    ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-200 hover:bg-crimson-500/25'
-                    : 'bg-charcoal-950 ring-white/10 text-bone/85 hover:bg-white/5'
-                }`}
-              >
-                <span className={`tabular-nums font-extrabold ${chip.emphasize ? 'text-crimson-200' : 'text-bone'}`}>
-                  {chip.count}
-                </span>
-                <span className="font-semibold">{chip.label}</span>
-              </Link>
-            ))}
+            {chips.map((chip) => {
+              const cls = chip.cta
+                ? 'bg-crimson-600 ring-crimson-400/40 text-white hover:bg-crimson-500 font-bold'
+                : chip.emphasize
+                  ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-200 hover:bg-crimson-500/25'
+                  : 'bg-charcoal-950 ring-white/10 text-bone/85 hover:bg-white/5';
+              return (
+                <Link
+                  key={chip.label}
+                  to={chip.href}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 ring-1 transition-colors text-[12px] ${cls}`}
+                >
+                  {chip.cta ? (
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  ) : chip.count !== undefined ? (
+                    <span className={`tabular-nums font-extrabold ${chip.emphasize ? 'text-crimson-200' : 'text-bone'}`}>
+                      {chip.count}
+                    </span>
+                  ) : null}
+                  <span className="font-semibold">{chip.label}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -539,6 +539,8 @@ export interface PlayerEquipment {
  *  lifecycle === 'registration_open' — so old read paths don't break. */
 export type SeasonLifecycle =
   | 'draft'
+  | 'coach_commit'      // wizard step 2: coaches assigned + commitment cycle
+  | 'tryout_prep'       // wizard step 3-5: tryouts scheduled, forms attached, marketing queued
   | 'registration_open'
   | 'tryouts'
   | 'roster_locked'
@@ -582,6 +584,105 @@ export interface Season {
   /** Optional early-bird discount that applies through this date. */
   earlyBirdDeadline?: Date;
   earlyBirdDiscountCents?: number;
+
+  /* ───────────────────────── SEASON WIZARD STATE ─────────────────────
+   * Added 2026-06-21 alongside the Season Wizard build. Patrick:
+   * 'should all work in a step by step process... like a timeline.'
+   * Each field below corresponds to one wizard step's output. The
+   * wizard is just a guided editor over this object; downstream
+   * pages (Tryouts, Registrations, etc.) read these fields to know
+   * what the admin set up for this season.
+   * ─────────────────────────────────────────────────────────────── */
+
+  /** Age groups this season is running (e.g. ['U8', 'U10', 'U12']).
+   *  Drives the per-age-group breakdown for coach assignments,
+   *  tryout dates, and downstream team creation. Wizard step 1. */
+  ageGroups?: string[];
+
+  /** Per-age-group tryout schedule. Wizard step 3. */
+  tryoutDates?: SeasonTryoutDate[];
+
+  /** Forms / waivers required for this season. IDs reference the
+   *  `forms` collection. Attached at wizard step 4. */
+  formsRequiredIds?: string[];
+
+  /** Broadcasts already sent for this season (tryout email to
+   *  current families, social posts, Mailchimp campaign, etc.).
+   *  Append-only log so the wizard knows which marketing steps
+   *  have been completed. Step 5. */
+  broadcastsSent?: SeasonBroadcastRecord[];
+}
+
+/** One tryout date entry. A season can have multiple tryouts per
+ *  age group (e.g., evaluations on Saturday + a callback on Sunday). */
+export interface SeasonTryoutDate {
+  id: string;
+  ageGroup: string;
+  date: Date;
+  durationMinutes?: number;
+  location?: string;
+  notes?: string;
+}
+
+/** Audit record of a marketing broadcast — email, social post,
+ *  Mailchimp campaign, etc. — sent for a season. */
+export interface SeasonBroadcastRecord {
+  id: string;
+  kind: 'family_email' | 'social_post' | 'mailchimp' | 'other';
+  sentAt: Date;
+  sentBy: string;
+  /** Optional reference to the underlying artifact — e.g., the
+   *  campaign ID in Mailchimp, the social post URL, the email
+   *  template id. Lets us link out to the source of truth. */
+  externalRef?: string;
+  /** Recipient count if known. */
+  recipientCount?: number;
+  /** Short admin-readable summary, e.g. "Tryout dates email · 142 families". */
+  summary?: string;
+}
+
+/* ───────────────────────── COACH COMMITMENT CYCLE ──────────────────────
+ * One doc per coach × season. The admin sends a commitment request
+ * (typically before tryouts open); the coach taps Yes / No / Let's
+ * talk in the app and the doc updates. The 'lets_talk' status opens a
+ * coach-to-admin chat thread automatically. Patrick 2026-06-21:
+ * 'current club was a mess to understand which coaches were staying,
+ * which were leaving... what makes coaches leave is how they perceive
+ * how the club is run.'
+ * ───────────────────────────────────────────────────────────────── */
+export type CoachCommitmentStatus =
+  | 'invited'      // admin sent the ask; coach hasn't responded
+  | 'committed'    // coach said yes
+  | 'declined'     // coach said no
+  | 'lets_talk'    // coach wants to discuss before committing
+  | 'cancelled';   // admin rescinded the invitation
+
+export interface CoachCommitment {
+  id: string;
+  seasonId: string;
+  /** uid of the coach being asked. */
+  coachUid: string;
+  coachName: string;
+  /** Age group the admin proposed they coach. Coach can counter with
+   *  notes if they want a different group. */
+  proposedAgeGroup?: string;
+  /** Optional: the team id if a specific team has been pre-assigned.
+   *  When undefined, only the age group is committed and team gets
+   *  assigned later. */
+  proposedTeamId?: string;
+  status: CoachCommitmentStatus;
+  /** When the invitation was sent. */
+  invitedAt: Date;
+  /** Who sent it (admin uid). */
+  invitedBy: string;
+  /** When the coach responded. */
+  respondedAt?: Date;
+  /** Free-text note from the coach when responding (especially for
+   *  'lets_talk' and 'declined'). */
+  coachNote?: string;
+  /** If 'lets_talk' triggered a chat thread, the threadId is stamped
+   *  here so the admin can return to it from the season wizard. */
+  conversationThreadId?: string;
 }
 
 /** Public registration submission — a parent fills out the /register form

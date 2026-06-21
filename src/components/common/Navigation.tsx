@@ -199,6 +199,11 @@ const Navigation: React.FC = () => {
     // same page from inside /club, so we hide this entry for them to
     // avoid two ways into the same flow.
     ...(isUserCoach && !isUserClubAdmin ? [{ name: 'Teams', path: '/teams', icon: 'wrench' as const, group: 'apps' as const }] : []),
+    // Coach cockpit — scaffold landing for coaches, mirror of /club
+    // for admins. Patrick 2026-06-21: 'as a coach, I would love
+    // options to manage my team from one page.' Visible to anyone
+    // with the coach role (including coach+admin multi-role users).
+    ...(isUserCoach ? [{ name: 'Coach', path: '/coach', icon: 'wrench' as const, group: 'apps' as const }] : []),
     // Club admin's single entry point for everything cross-team.
     ...(isUserClubAdmin ? [{ name: 'Club', path: '/club', icon: 'club' as const, group: 'apps' as const }] : []),
     { name: 'Club Support', path: '/helpdesk', icon: 'survey', group: 'account' },

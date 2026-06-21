@@ -41,6 +41,7 @@ const RegisterCancel = React.lazy(() => import('./pages/RegisterStripeReturn').t
 const Registrations = React.lazy(() => import('./pages/Registrations'));
 const AdminTeams = React.lazy(() => import('./pages/AdminTeams'));
 const SeasonWizard = React.lazy(() => import('./pages/SeasonWizard'));
+const CoachCockpit = React.lazy(() => import('./pages/CoachCockpit'));
 const Products = React.lazy(() => import('./pages/Products'));
 const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFormBuilder'));
 const Tryouts = React.lazy(() => import('./pages/Tryouts'));
@@ -513,6 +514,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <SeasonWizard />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/coach" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CoachCockpit />
                 </AppLayout>
               </ProtectedRoute>
             } />

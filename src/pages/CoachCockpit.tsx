@@ -9,6 +9,7 @@ import { isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import type { CalendarEvent } from '../types';
 import { REQUIRED_COACH_CERT_KINDS } from '../types';
+import CoachRecentMediaCard from '../components/coach/CoachRecentMediaCard';
 
 /**
  * Coach cockpit — one-page landing for coaches. Mirror of /club for
@@ -197,6 +198,12 @@ const CoachCockpit: React.FC = () => {
               <p className="text-[11px] text-bone/55 leading-snug">Set goals + log practice for each kid.</p>
             </Link>
           </div>
+
+          {/* Recent media uploaded by the team — surfaces parents'
+              fresh photos/videos so the coach actually sees them.
+              Patrick 2026-06-21 dialogue idea #4. Hidden when no
+              media in window. */}
+          <CoachRecentMediaCard />
 
           {/* Coach cert checklist — your own status. */}
           <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-4 mt-3">

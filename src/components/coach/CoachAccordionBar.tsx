@@ -234,14 +234,19 @@ const CoachAccordionBar: React.FC = () => {
   //                        cyan), opaque so it pops against the hero
   //                        and signals 'something needs you.'
   //                        Headline mirrors the top-priority item.
-  // Active states use semi-transparent fill + backdrop-blur so the
-  // hero photo bleeds through the color tint — keeps the bar visually
-  // bonded to the hero rather than feeling like a separate solid band.
-  // Patrick 2026-06-21: 'also needs transparency.'
+  // Bar stays consistently glassy — the pulsating DOT carries the
+  // color signal, not the bar background. Patrick 2026-06-21:
+  // 'maybe we make the thing very transparent, and then that little
+  // pulsating dot is what shows the color of the notification.'
+  //
+  // Less aggressive, more elegant. Bar reads as consistent ambient
+  // chrome; the dot is the attention beacon. Text tint matches the
+  // priority color too so the SIGNAL stays glanceable without the
+  // bar flipping its whole background.
   const colorFor = (p: Priority) => {
-    if (p === 'crimson') return { bar: 'bg-crimson-500/75 backdrop-blur-md', textOnBar: 'text-white', chip: 'bg-crimson-500/15 text-crimson-200 ring-crimson-400/40' };
-    if (p === 'amber')   return { bar: 'bg-amber-500/70 backdrop-blur-md',   textOnBar: 'text-amber-950', chip: 'bg-amber-500/15 text-amber-200 ring-amber-400/40' };
-    return                      { bar: 'bg-sky-500/75 backdrop-blur-md',     textOnBar: 'text-white', chip: 'bg-sky-500/15 text-sky-200 ring-sky-400/40' };
+    if (p === 'crimson') return { dot: 'bg-crimson-400', text: 'text-crimson-200', chip: 'bg-crimson-500/15 text-crimson-200 ring-crimson-400/40' };
+    if (p === 'amber')   return { dot: 'bg-amber-400',   text: 'text-amber-200',   chip: 'bg-amber-500/15 text-amber-200 ring-amber-400/40' };
+    return                      { dot: 'bg-sky-400',     text: 'text-sky-200',     chip: 'bg-sky-500/15 text-sky-200 ring-sky-400/40' };
   };
 
   const hasItems = items.length > 0;
@@ -250,9 +255,15 @@ const CoachAccordionBar: React.FC = () => {
     ? items.find((i) => i.priority === topPriority!)?.label || `${items.length} item${items.length === 1 ? '' : 's'}`
     : 'Coach quick actions';
 
-  const collapsedClass = hasItems
-    ? `${top!.bar} ${top!.textOnBar}`
-    : 'bg-charcoal-950/40 text-bone/75 backdrop-blur-md';
+  // Bar styling is ALWAYS the same charcoal glass — only the dot and
+  // text color change between states. Keeps the visual chrome
+  // consistent so the eye only learns one shape, then watches the dot
+  // for attention cues.
+  const collapsedBarClass = 'bg-charcoal-950/35 backdrop-blur-md';
+  const dotClass = hasItems
+    ? `${top!.dot} animate-pulse`
+    : 'bg-bone/30';
+  const textClass = hasItems ? top!.text : 'text-bone/70';
 
   return (
     // Wrapper mirrors NextEventPoster's outer section (px-3 sm:px-4,
@@ -266,13 +277,13 @@ const CoachAccordionBar: React.FC = () => {
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className={`w-full flex items-center gap-2 px-4 py-2 rounded-b-2xl ${collapsedClass} font-bold text-[12.5px] transition-colors duration-300`}
+        className={`w-full flex items-center gap-2 px-4 py-2 ${expanded ? 'rounded-b-none' : 'rounded-b-2xl'} ${collapsedBarClass} ${textClass} font-bold text-[12.5px] transition-colors duration-300`}
         aria-expanded={expanded}
         aria-label={`Coach status — ${headline}`}
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${hasItems ? 'bg-white/90 animate-pulse' : 'bg-bone/40'}`} aria-hidden />
+        <span className={`w-2 h-2 rounded-full ${dotClass}`} aria-hidden />
         <span className="flex-1 text-left truncate">{headline}{hasItems && items.length > 1 ? ` · +${items.length - 1} more` : ''}</span>
-        <svg className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+        <svg className={`w-3.5 h-3.5 transition-transform opacity-60 ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
 
       {/* Expanded panel — status chips (only when items present)
@@ -281,8 +292,13 @@ const CoachAccordionBar: React.FC = () => {
           so it reads as an extension of the bar, not a separate
           surface. */}
       {expanded && (
-        <div className="bg-charcoal-900/95 backdrop-blur-md ring-1 ring-white/10 rounded-b-2xl -mt-px animate-fade-in">
-          <div className="px-4 sm:px-6 py-3 space-y-3">
+        // Same width as the button above — no ring (which was adding
+        // 1-2px and made the dropdown look wider than the bar). Sits
+        // flush against the button with rounded-b-2xl matching the
+        // bar's bottom-corner radius. Glassy charcoal so the photo
+        // tints through, consistent with the bar.
+        <div className="bg-charcoal-950/55 backdrop-blur-md rounded-b-2xl animate-fade-in">
+          <div className="px-4 py-3 space-y-3">
             {hasItems && (
               <ul className="flex flex-wrap gap-1.5">
                 {items.map((i) => {

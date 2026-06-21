@@ -15,6 +15,7 @@ import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
 import CoachAccordionBar from '../components/coach/CoachAccordionBar';
+import CoachTonightCard from '../components/coach/CoachTonightCard';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
@@ -847,6 +848,14 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
         )}
+        {/* Smart 'tonight' card — coach-only, renders only when the
+            next event is within 36h. Sits between birthday strip and
+            the practice-streak ribbon so it lands in the coach's
+            scan path without crowding parent context. Patrick
+            2026-06-21 dialogue idea #2: 'a "what i'm doing tonight"
+            smart card... shifts based on what's actually happening.' */}
+        <CoachTonightCard />
+
         {/* The no-event empty state lives in DashboardHero now — no
             second card needed here. */}
 

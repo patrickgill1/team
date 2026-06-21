@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
@@ -74,12 +74,15 @@ const CoachAccordionBar: React.FC = () => {
         const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
         const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-        // Pull upcoming events for the team + the team doc in parallel.
-        // Need the team's playerIds.length as the canonical roster size
-        // for the 'RSVPs missing' calculation (the previous version
-        // used a non-existent event.rosterCount field which silently
-        // defaulted to 0 missing — the bug Patrick caught 2026-06-21
-        // with 'practice tomorrow with 3 pending players, not seeing it').
+        // Pull upcoming events for the team + active player count in
+        // parallel. The 'RSVPs missing' calc mirrors the Dashboard hero's
+        // own math (rsvpCounts at Dashboard.tsx line 741): reads
+        // event.playerRsvps (NOT event.rsvps — that's a legacy field)
+        // and compares against the active players collection for the
+        // team (NOT team.playerIds — that field is stale on
+        // multi-team rosters). Both 'wrong field' mistakes were in
+        // earlier versions; this finally matches the source of truth
+        // the Dashboard already trusts.
         const eventsQ = query(
           collection(db, 'events'),
           where('teamId', '==', selectedTeamId),
@@ -88,12 +91,25 @@ const CoachAccordionBar: React.FC = () => {
           orderBy('date', 'asc'),
           limit(5)
         );
-        const [eventsSnap, teamSnap] = await Promise.all([
+        const playersQ = query(
+          collection(db, 'players'),
+          where('isActive', '==', true)
+        );
+        const [eventsSnap, playersSnap] = await Promise.all([
           getDocs(eventsQ),
-          getDoc(doc(db, 'teams', selectedTeamId)),
+          getDocs(playersQ),
         ]);
         if (cancelled) return;
-        const rosterSize = ((teamSnap.data() as any)?.playerIds || []).length;
+        // Filter client-side to the active team (same pattern
+        // useFirestore.getPlayersByTeam uses — avoids a composite
+        // index requirement). Counts both legacy teamId field and
+        // newer teamIds[] array memberships.
+        const rosterSize = playersSnap.docs.filter((d) => {
+          const p: any = d.data();
+          if (Array.isArray(p.teamIds) && p.teamIds.includes(selectedTeamId)) return true;
+          if (p.teamId === selectedTeamId) return true;
+          return false;
+        }).length;
 
         const next: StatusItem[] = [];
 
@@ -126,8 +142,12 @@ const CoachAccordionBar: React.FC = () => {
         if (nextEv && rosterSize > 0) {
           const data: any = nextEv.data();
           const dt = data.date?.toDate?.() || new Date(data.date);
-          const rsvps = data.rsvps || {};
-          const responded = Object.keys(rsvps).length;
+          // playerRsvps is keyed by playerId — same field the Dashboard
+          // hero footer ('4 going · 3 pending') reads. publicRsvps
+          // (separate field) covers guests/non-roster respondents and
+          // doesn't reduce the 'how many roster kids are pending' count.
+          const playerRsvps = data.playerRsvps || {};
+          const responded = Object.keys(playerRsvps).length;
           const missing = Math.max(0, rosterSize - responded);
           if (missing > 0) {
             const hoursUntil = (dt.getTime() - now.getTime()) / (1000 * 60 * 60);

@@ -726,7 +726,13 @@ const TeamChat: React.FC = () => {
     // unusual but possible).
     const byId = new Map<string, ChatThread>();
     for (const t of merged) byId.set(t.id, t);
-    const all = Array.from(byId.values());
+    // Filter out threads soft-deleted by the merge-duplicate-dms
+    // migration (isActive === false). Those threads still exist in
+    // Firestore (PITR isn't enabled, so we soft-delete per memory)
+    // but their messages have been rewired to the canonical thread.
+    // Without this filter, parents on multi-team accounts would
+    // still see the merged-away DM rows next to the canonical one.
+    const all = Array.from(byId.values()).filter(t => (t as any).isActive !== false);
     return all
       .filter((thread: any) => {
         const scope = thread.scope || 'team';

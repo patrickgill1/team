@@ -650,9 +650,21 @@ const getUserData = useCallback(async (uid: string) => {
 
     // DMs are PEOPLE-to-PEOPLE, not team-scoped. Drop teamId from the
     // lookup so the same pair always lands on the same thread no
-    // matter which team the user is currently viewing. (Previous bug:
-    // switching teams would spin up a duplicate DM thread for the
-    // exact same two participants.)
+    // matter which team the user is currently viewing.
+    //
+    // CRITICAL: distinguish 'lookup succeeded, found nothing' from
+    // 'lookup errored.' The previous version's try/catch fell through
+    // to CREATE on any error (network blip, transient rules denial
+    // during auth-token refresh, missing index). That produced
+    // duplicate DM threads for the same participant pair — same two
+    // people end up with one DM tagged with team A and another tagged
+    // with team B, each holding only half the message history.
+    // Patrick caught it 2026-06-21 ('on the android simulator, it
+    // will show all the messages on one team, but if I go to that dm
+    // from another team, there are no messages'). New behavior:
+    // create ONLY when the lookup demonstrably returned no match;
+    // throw on lookup error so the caller can retry the open instead
+    // of silently spawning a duplicate.
     try {
       const q = query(
         collection(db, 'chat_threads'),
@@ -666,9 +678,10 @@ const getUserData = useCallback(async (uid: string) => {
           && t.participants.length === 2
           && t.participants.includes(other.uid));
       if (existing) return existing.id as string;
+      // Lookup succeeded and found no match — safe to create below.
     } catch (e) {
-      // Index may be missing or rules blocked the lookup; fall through to create.
-      console.warn('[chat] DM lookup failed, will create new thread', e);
+      console.warn('[chat] DM lookup failed; refusing to create duplicate. Retry after reload.', e);
+      throw new Error('DM_LOOKUP_FAILED');
     }
 
     const threadToAdd: any = {

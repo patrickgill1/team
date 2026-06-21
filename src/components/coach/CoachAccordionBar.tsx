@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
@@ -74,8 +74,12 @@ const CoachAccordionBar: React.FC = () => {
         const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
         const inOneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-        // Pull upcoming events for the team — small set, capped at 5.
-        // Used for both 'game today' and 'RSVPs missing for next event'.
+        // Pull upcoming events for the team + the team doc in parallel.
+        // Need the team's playerIds.length as the canonical roster size
+        // for the 'RSVPs missing' calculation (the previous version
+        // used a non-existent event.rosterCount field which silently
+        // defaulted to 0 missing — the bug Patrick caught 2026-06-21
+        // with 'practice tomorrow with 3 pending players, not seeing it').
         const eventsQ = query(
           collection(db, 'events'),
           where('teamId', '==', selectedTeamId),
@@ -84,8 +88,12 @@ const CoachAccordionBar: React.FC = () => {
           orderBy('date', 'asc'),
           limit(5)
         );
-        const eventsSnap = await getDocs(eventsQ);
+        const [eventsSnap, teamSnap] = await Promise.all([
+          getDocs(eventsQ),
+          getDoc(doc(db, 'teams', selectedTeamId)),
+        ]);
         if (cancelled) return;
+        const rosterSize = ((teamSnap.data() as any)?.playerIds || []).length;
 
         const next: StatusItem[] = [];
 
@@ -108,19 +116,19 @@ const CoachAccordionBar: React.FC = () => {
         }
 
         // RSVPs missing for the next upcoming event — escalate to
-        // crimson if that event is within 24h. We count pending RSVPs
-        // by comparing the team's roster size to the rsvps map. Best-
-        // effort; if either field is missing we skip silently.
+        // crimson if that event is within 24h. Pending count =
+        // team.playerIds.length minus the count of rsvps entries.
+        // This is approximate (rsvps map may key on parent uid with
+        // forPlayerName for multi-kid families, not on playerId
+        // directly) but matches the order-of-magnitude users expect
+        // when they think 'X kids haven't responded.'
         const nextEv = eventsSnap.docs[0];
-        if (nextEv) {
+        if (nextEv && rosterSize > 0) {
           const data: any = nextEv.data();
           const dt = data.date?.toDate?.() || new Date(data.date);
           const rsvps = data.rsvps || {};
           const responded = Object.keys(rsvps).length;
-          // Use the rosterCount field if present; fall back to a small
-          // assumed count so the calc doesn't break on incomplete data.
-          const rosterCount = data.rosterCount || data.expectedAttendees || responded;
-          const missing = Math.max(0, rosterCount - responded);
+          const missing = Math.max(0, rosterSize - responded);
           if (missing > 0) {
             const hoursUntil = (dt.getTime() - now.getTime()) / (1000 * 60 * 60);
             const urgent = hoursUntil < 24;

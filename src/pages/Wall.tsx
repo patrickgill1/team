@@ -11,7 +11,6 @@ import EmptyState from '../components/common/EmptyState';
 import EmojiPicker from '../components/chat/EmojiPicker';
 import WallPollCard from '../components/wall/WallPollCard';
 import WallEditor from '../components/wall/WallEditor';
-import { SkeletonCard } from '../components/common/Skeleton';
 import { marked } from 'marked';
 import type { WallPost, WallComment } from '../types';
 
@@ -98,6 +97,23 @@ const Wall: React.FC = () => {
   const { selectedTeamId, selectedTeam } = useTeam();
   const [posts, setPosts] = useState<WallPost[]>([]);
   const [loading, setLoading] = useState(true);
+  // ATOMIC RENDER: empty silence → 400ms progress hint → atomic
+  // fade-in. Same pattern as chat thread list (commit 4b379fb) and
+  // dashboard streak card (commit 0e540ff). Pattern: feedback memory
+  // 'atomic-render-over-skeletons.md'. Replaces the SkeletonCard
+  // pattern that was here before.
+  const [showProgress, setShowProgress] = useState(false);
+  const [hardTimeoutFired, setHardTimeoutFired] = useState(false);
+  const ready = hardTimeoutFired || !loading;
+  React.useEffect(() => {
+    const t = window.setTimeout(() => setHardTimeoutFired(true), 2000);
+    return () => window.clearTimeout(t);
+  }, []);
+  React.useEffect(() => {
+    if (ready) { setShowProgress(false); return; }
+    const t = window.setTimeout(() => setShowProgress(true), 400);
+    return () => window.clearTimeout(t);
+  }, [ready]);
   const canManage = userData ? (isCoach(userData.role) || (userData as any).isClubAdmin) : false;
   // Coaches + club admins author wall posts. The wall is its own
   // collection now (wall_posts) — completely independent from chat.
@@ -1149,11 +1165,18 @@ const Wall: React.FC = () => {
             in other ways". Sticky pill is always visible without
             overlaying any post content.) */}
 
-        {loading ? (
-          <div className="space-y-3">
-            <SkeletonCard rows={2} />
-            <SkeletonCard rows={3} />
-          </div>
+        {!ready ? (
+          // Atomic render: empty silence while we wait. Slim crimson
+          // hint appears only if loading crosses 400ms (so fast loads
+          // never flash a spinner). When ready, the whole list fades
+          // in via the wrapper below.
+          showProgress ? (
+            <div className="px-4">
+              <div className="h-0.5 bg-crimson-500/15 overflow-hidden rounded-full">
+                <div className="h-full w-1/3 bg-crimson-500 animate-progress-slide" />
+              </div>
+            </div>
+          ) : null
         ) : filteredPosts.length === 0 ? (
           <div className="px-4">
             <EmptyState
@@ -1167,7 +1190,9 @@ const Wall: React.FC = () => {
             />
           </div>
         ) : (
-          <ul className="space-y-3">
+          // animate-fade-in is the atomic-render reveal — whole list
+          // appears as one 180ms fade, not item-by-item.
+          <ul className="space-y-3 animate-fade-in">
             {filteredPosts.map(p => {
               const myUid = userData?.uid;
               const allReactions = p.reactions || [];

@@ -14,6 +14,7 @@ import NotificationsBanner from '../components/common/NotificationsBanner';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
+import CoachAccordionBar from '../components/coach/CoachAccordionBar';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
@@ -808,6 +809,13 @@ const Dashboard: React.FC = () => {
         noLabel={posterNoLabel}
         onRsvp={quickRsvp}
       />
+      {/* Coach accordion bar — slim color-coded status indicator that
+          surfaces only when there's actionable coach work (RSVPs
+          missing, game today, recent messages). Sits BELOW the hero
+          photo and ABOVE the page content per the agreed shape: no
+          chrome competing with the photo above. Hidden entirely when
+          there's nothing to show. Patrick 2026-06-21 dialogue. */}
+      <CoachAccordionBar />
       <div className="relative">
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">

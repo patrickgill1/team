@@ -1,5 +1,7 @@
 // @ts-nocheck
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { isCoach } from '../utils/helpers';
 
@@ -56,9 +58,44 @@ function defaultModeFor(modes: ViewMode[]): ViewMode {
 export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userData } = useAuth();
 
+  // `User.children` exists in the schema but isn't reliably
+  // populated (Patrick caught this 2026-06-21 — his account is a
+  // parent of Hunter Gill but the children array is empty; the
+  // canonical kid-linkage is on Player.parentIds[] instead).
+  // Query once per session for the SOURCE OF TRUTH: any player
+  // with this user's uid in their parentIds array. If found,
+  // parent mode is available.
+  const [hasKidsByQuery, setHasKidsByQuery] = useState<boolean | null>(null);
+  useEffect(() => {
+    const uid = (userData as any)?.uid;
+    if (!uid) { setHasKidsByQuery(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const q = query(
+          collection(db, 'players'),
+          where('parentIds', 'array-contains', uid),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (cancelled) return;
+        setHasKidsByQuery(snap.size > 0);
+      } catch (err) {
+        console.warn('[view-mode] parent-detection query failed', err);
+        // On failure, fall back to the User.children field as a
+        // best-effort signal.
+        if (!cancelled) setHasKidsByQuery(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [(userData as any)?.uid]);
+
   const availableModes = useMemo<ViewMode[]>(() => {
     const modes: ViewMode[] = [];
-    const hasKids = Array.isArray((userData as any)?.children) && (userData as any).children.length > 0;
+    // Trust the live query first; fall back to the static
+    // children field if the query is still pending or errored.
+    const hasKids = hasKidsByQuery === true
+      || (hasKidsByQuery === null && Array.isArray((userData as any)?.children) && (userData as any).children.length > 0);
     if (hasKids) modes.push('parent');
     if (userData && isCoach((userData as any).role)) modes.push('coach');
     // Always at least one — parents who are also coaches but
@@ -66,7 +103,7 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // signals falls back to 'parent' as a safe default.
     if (modes.length === 0) modes.push('parent');
     return modes;
-  }, [userData]);
+  }, [userData, hasKidsByQuery]);
 
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
     return defaultModeFor(availableModes);

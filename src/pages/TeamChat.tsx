@@ -256,6 +256,32 @@ const TeamChat: React.FC = () => {
     return lastTs > seenTs;
   };
   const [loading, setLoading] = useState(true);
+  // ATOMIC RENDER: track both thread subscriptions independently so we
+  // can wait until both have fired at least once before showing
+  // anything — eliminates the staggered 'chats pop in one at a time'
+  // cascade Patrick called out 2026-06-21. Pilot for the 'cleanest
+  // possible' loading pattern: empty silence, then a single fade-in
+  // when ready. No skeletons, no shimmer.
+  const [clubLoaded, setClubLoaded] = useState(false);
+  const [hardTimeoutFired, setHardTimeoutFired] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const threadsReady = hardTimeoutFired || (!loading && clubLoaded);
+  // Hard timeout: if a subscription stalls (offline, rules denial,
+  // network issue), surface what we have after 2 seconds instead of
+  // sitting in silence forever.
+  useEffect(() => {
+    const t = window.setTimeout(() => setHardTimeoutFired(true), 2000);
+    return () => window.clearTimeout(t);
+  }, []);
+  // Progress hint: thin crimson bar at the top of the list, only if
+  // load takes longer than the eye reads as 'instant' (~400ms). If
+  // ready arrives faster, the bar never shows — cleaner than a
+  // spinner that flashes for one frame.
+  useEffect(() => {
+    if (threadsReady) { setShowProgress(false); return; }
+    const t = window.setTimeout(() => setShowProgress(true), 400);
+    return () => window.clearTimeout(t);
+  }, [threadsReady]);
   const [teamMembers, setTeamMembers] = useState<{ uid: string; name: string; role?: string; email?: string; photoURL?: string; childNames?: string[] }[]>([]);
   // Cross-team user cache. Populated on demand by resolveUnknownUids
   // when MessageBubble's Seen-by sheet sees a UID the active-team
@@ -684,6 +710,9 @@ const TeamChat: React.FC = () => {
         for (const t of processed) byId.set(t.id, t);
         return Array.from(byId.values());
       });
+      // Mark this subscription as having fired at least once — paired
+      // with `loading` (team subscription) to gate the atomic render.
+      setClubLoaded(true);
     });
     return () => { unsub && unsub(); };
   }, [subscribeToClubChatThreads, authChurn]);
@@ -2325,11 +2354,25 @@ const TeamChat: React.FC = () => {
 
             {/* Threads List — iMessage / Messages-style rows. Bottom
                 padding clears the fixed app tab bar so the last section
-                (often Club Channels) isn't trapped under it. */}
+                (often Club Channels) isn't trapped under it.
+
+                ATOMIC RENDER: list content is wrapped in an opacity
+                transition keyed to `threadsReady`. Before both Firestore
+                subscriptions have fired, the area sits empty + silent
+                (no skeleton). When ready, the whole list fades in as a
+                single unit — no per-thread cascade. If readiness takes
+                longer than 400ms, a thin crimson progress bar appears
+                at the top of the area as a quiet load hint. */}
             <div
-              className="flex-1 min-h-0 overflow-y-auto"
+              className="flex-1 min-h-0 overflow-y-auto relative"
               style={{ overscrollBehavior: 'contain', paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
             >
+              {showProgress && !threadsReady && (
+                <div className="sticky top-0 z-20 h-0.5 bg-crimson-500/15 overflow-hidden" aria-hidden>
+                  <div className="absolute inset-y-0 w-1/3 bg-crimson-500 animate-progress-slide" />
+                </div>
+              )}
+              <div className={`transition-opacity duration-300 ease-out ${threadsReady ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               {(() => {
                 // Row renderer — shared between sectioned and flat layouts.
                 const renderRow = (thread: ChatThread) => {
@@ -2550,6 +2593,7 @@ const TeamChat: React.FC = () => {
                   </div>
                 </div>
               )}
+              </div>{/* /atomic-render fade-in wrapper */}
             </div>
           </div>
         ) : (

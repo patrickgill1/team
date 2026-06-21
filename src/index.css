@@ -82,9 +82,23 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/* Safe area padding for mobile notches / home indicators */
+/* Safe area padding for mobile notches / home indicators.
+
+   iOS needs both because StatusBar.setOverlaysWebView(true) is on,
+   so the WebView extends under the notch + home indicator and CSS
+   has to inset its own chrome.
+
+   Android does NOT need top inset because MainActivity sets
+   windowOptOutEdgeToEdgeEnforcement=true and pads the activity
+   root by system-bar insets — the WebView is already below the
+   status bar. Pixel 10 XL still reports a non-zero
+   env(safe-area-inset-top) inside the WebView though, which
+   double-padded the mobile header by ~50px (visible as an empty
+   lighter strip above the logo). Zeroing it on Android via the
+   body.platform-android branch keeps iOS untouched. */
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+body.platform-android .safe-top { padding-top: 0; }
 
 /* Hide scrollbars on horizontally-scrolling pill rows etc. */
 .scrollbar-hide::-webkit-scrollbar { display: none; }

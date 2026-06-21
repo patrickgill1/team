@@ -5,6 +5,18 @@
 import { Capacitor } from '@capacitor/core';
 
 export async function initNativeShell(): Promise<void> {
+  // Stamp the platform onto <body> for CSS-side branching even on
+  // web builds (web → 'web', native iOS → 'ios', native Android →
+  // 'android'). Used by .safe-top in index.css to skip padding on
+  // Android, where MainActivity already insets the WebView below
+  // the status bar and `env(safe-area-inset-top)` adding more on
+  // top double-padded the mobile header (Patrick caught the ~50px
+  // empty strip above the GOALKICKR logo on Pixel 10 XL, 2026-06-21).
+  try {
+    const platform = Capacitor.getPlatform();
+    document.body.classList.add(`platform-${platform}`);
+  } catch { /* SSR / non-Capacitor env: skip */ }
+
   if (!Capacitor.isNativePlatform()) return;
 
   try {

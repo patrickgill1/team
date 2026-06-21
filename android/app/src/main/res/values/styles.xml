@@ -13,6 +13,20 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- POST-SPLASH theme. Without these, Android falls back to
+             its parent's defaults (DayNight in dark mode = a system
+             navy/charcoal that doesn't match the brand). Result:
+             splash showed correct charcoal bars, then once the React
+             tree mounted and SplashScreen handed off to NoActionBar,
+             the bottom gesture bar flipped to navy. Patrick caught
+             it 2026-06-21: 'still has navy blue band at bottom.'
+             Mirror the launch theme's color setup so both phases
+             use the brand charcoal. -->
+        <item name="android:statusBarColor">#0d0d10</item>
+        <item name="android:navigationBarColor">#0d0d10</item>
+        <item name="android:windowBackground">#0d0d10</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 
 

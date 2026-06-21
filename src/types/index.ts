@@ -44,8 +44,10 @@ export interface CoachCertification {
   name: string;
   /** Coaching license letter, if applicable. Referee credentials leave this null. */
   level?: 'E' | 'D' | 'C' | 'B' | 'A' | 'Pro';
-  /** USSF Grassroots referee modules separate from coaching licenses. */
-  kind: 'coach' | 'referee' | 'goalkeeper';
+  /** Cert TYPE. Extended in 2026-06-21 to cover the non-license items
+   *  the team-activation funnel requires: background_check / concussion /
+   *  safesport. Each becomes its own cert row with appropriate dates. */
+  kind: CoachCertKind;
   issuedAt?: Date;
   expiresAt?: Date;
   /** 'manual' = coach entered it themself; 'ussf' = synced from the
@@ -457,6 +459,59 @@ export type FunnelStageKey =
   | 'club_dues';
 
 export type FunnelProgress = Partial<Record<FunnelStageKey, FunnelStageEntry>>;
+
+/* ───────────────────────── TEAM ACTIVATION FUNNEL ─────────────────────────
+ * Mirrors the player funnel but at the team level. Tracks the sequence
+ * that has to be complete before a team is fully activated for a season.
+ * Patrick's wedge claim: most team apps don't surface this as a workflow.
+ * Sports Affinity does on the club side; nothing puts it in the coach's /
+ * admin's hand. Stages:
+ *
+ *   tryouts            — held + concluded
+ *   team_selected      — roster locked, head coach assigned
+ *   all_registered     — every player has registration + waivers signed
+ *   coaches_certified  — head + assistants have current US Soccer certs on
+ *                        file (Grassroots license, background check,
+ *                        concussion training, SafeSport). Auto-fill once
+ *                        Sports Affinity API is wired; manual stamp for now.
+ *   activated          — final go-live gate. Admin stamps after reviewing
+ *                        the other four. Team becomes 'live' for the season.
+ * ────────────────────────────────────────────────────────────────────── */
+export type TeamFunnelStageKey =
+  | 'tryouts'
+  | 'team_selected'
+  | 'all_registered'
+  | 'coaches_certified'
+  | 'activated';
+
+export type TeamFunnelProgress = Partial<Record<TeamFunnelStageKey, FunnelStageEntry>>;
+
+/* ───────────────────────── COACH CERTIFICATION HELPERS ────────────────
+ * User.coachCertifications[] already exists for tracking US Soccer
+ * licenses (Grassroots E/D/C/B/A/Pro). The team funnel's
+ * `coaches_certified` stage requires FOUR distinct things — only one of
+ * which is a license — so we need to extend the model to cover the
+ * non-license items as well.
+ *
+ * Required items per US Soccer / SafeSport for any youth coach in good
+ * standing:
+ *   - Grassroots license   (kind: 'coach', level: 'E' minimum)
+ *   - Annual background check
+ *   - Concussion training (CDC HEADS UP, via learning.ussoccer.com)
+ *   - SafeSport training (via learning.ussoccer.com)
+ *
+ * Once the Sports Affinity API is wired (per reference_sports_affinity
+ * memory), all four come in as 'ussf'-sourced stamps. Until then admins
+ * stamp manually in the team funnel UI after checking the coach's
+ * learning.ussoccer.com transcript.
+ * ────────────────────────────────────────────────────────────────────── */
+export const REQUIRED_COACH_CERT_KINDS = [
+  'coach',             // Grassroots+ license
+  'background_check',
+  'concussion',
+  'safesport',
+] as const;
+export type CoachCertKind = typeof REQUIRED_COACH_CERT_KINDS[number] | 'referee' | 'goalkeeper';
 
 export interface PlayerEquipment {
   jerseyHomeSize?: string;
@@ -1319,6 +1374,15 @@ export interface Team {
    *  remains queryable for parents/players to view past content. */
   isActive?: boolean;
   archivedAt?: Date;
+  /** Team-activation funnel — five stages tracking the path from
+   *  tryouts to season-ready. Same shape as Player.funnelProgress, with
+   *  Team-specific stage keys. Some stages auto-fill from existing data
+   *  (team_selected once headCoachId + playerIds, all_registered when
+   *  every player has registration + waivers, coaches_certified once
+   *  each coach has all four required cert kinds). The bookend stages
+   *  (tryouts and activated) are manual admin stamps. See
+   *  TeamFunnelStepper.tsx for the canonical stage list + UI. */
+  funnelProgress?: TeamFunnelProgress;
   /** Parent UIDs the coach has granted media-upload access to. Staff
    *  (coach / team manager) can always upload; this opens the door for
    *  specific parents (e.g. tracking-cam operators) without making

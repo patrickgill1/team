@@ -17,6 +17,7 @@ import { ChatThread } from '../types';
 import CoachAccordionBar from '../components/coach/CoachAccordionBar';
 import CoachTonightCard from '../components/coach/CoachTonightCard';
 import CoachTeamHealthCard from '../components/coach/CoachTeamHealthCard';
+import { useViewMode } from '../contexts/ViewModeContext';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
@@ -36,6 +37,13 @@ function clipThumb(clip: any): string | undefined {
 const Dashboard: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
+  // Coach-mode view collapses the dashboard to team/coach context
+  // and hides kid-specific cards (practice-week strip + MyPlayerCard).
+  // Parent mode keeps the kid cards and skips the coach cards. Patrick
+  // 2026-06-21: 'in coach mode it still show my son and his development
+  // tracking bar.'
+  const { viewMode } = useViewMode();
+  const isCoachMode = viewMode === 'coach';
   const {
     getPlayersByTeam,
     getEventsByTeam,
@@ -875,7 +883,7 @@ const Dashboard: React.FC = () => {
             exists) or 0 (if the kid has no active plan). Avoids
             Patrick's 'development card pops in later' complaint
             without showing a skeleton. */}
-        {myPlayer && (
+        {!isCoachMode && myPlayer && (
           <div
             className="transition-all duration-500 ease-out overflow-hidden"
             style={{
@@ -959,7 +967,7 @@ const Dashboard: React.FC = () => {
             practice-streak ribbon since they're related surfaces.
             Patrick 2026-06-21 dialogue idea #3. */}
         <CoachTeamHealthCard />
-        {myPlayer && (
+        {!isCoachMode && myPlayer && (
           <MyPlayerCard
             player={myPlayer}
             latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}

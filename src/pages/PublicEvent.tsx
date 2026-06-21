@@ -240,15 +240,49 @@ const PublicEvent: React.FC = () => {
     return v?.playerName || v?.name || 'Member';
   };
 
-  const goingPeople = useMemo(() => {
+  // Per-entry type for the headcount list. 'roster' = a kid on the
+  // team is going. 'staff' = a coach/staff is going (separate from
+  // any kid attendance they may also have stamped). 'guest' = an
+  // unknown public RSVP or signed-in user with no roster match and
+  // no coach role.
+  type HeadcountEntry = { name: string; kind: 'roster' | 'staff' | 'guest' };
+
+  const goingPeople = useMemo<HeadcountEntry[]>(() => {
     const r = (event?.rsvps || {}) as Record<string, any>;
     const pub = (event?.publicRsvps || {}) as Record<string, any>;
     const playerR = ((event as any)?.playerRsvps || {}) as Record<string, any>;
-    return [
-      ...Object.values(playerR).filter((v: any) => v.status === 'going').map((v: any) => ({ name: v.playerName, isGuest: false })),
-      ...Object.values(r).filter((v: any) => v.status === 'going').map((v: any) => ({ name: displayNameFor(v), isGuest: !v.matchedPlayerId })),
-      ...Object.values(pub).filter((v: any) => v.status === 'going').map((v: any) => ({ name: displayNameFor(v), isGuest: !v.matchedPlayerId })),
-    ];
+    const list: HeadcountEntry[] = [];
+    // 1) Roster kids — playerRsvps is the canonical source per the
+    //    2026-06-21 attribution rework.
+    for (const v of Object.values(playerR) as any[]) {
+      if (v.status !== 'going') continue;
+      list.push({ name: v.playerName || 'Player', kind: 'roster' });
+    }
+    // 2) Coach / staff attendance — adults who tagged role=coach
+    //    when RSVPing as themselves (Patrick going AS coach, distinct
+    //    from his kid's RSVP above).
+    for (const v of Object.values(r) as any[]) {
+      if (v.status !== 'going') continue;
+      const kind: HeadcountEntry['kind'] =
+        v.role === 'coach' || v.role === 'staff' ? 'staff'
+        : v.matchedPlayerId ? 'roster'
+        : 'guest';
+      const name = v.matchedPlayerId && rosterById.has(v.matchedPlayerId)
+        ? rosterById.get(v.matchedPlayerId)!
+        : (v.name || 'Member');
+      list.push({ name, kind });
+    }
+    // 3) Public / share-link RSVPs — if matched to a roster kid,
+    //    show as roster; otherwise guest.
+    for (const v of Object.values(pub) as any[]) {
+      if (v.status !== 'going') continue;
+      const kind: HeadcountEntry['kind'] = v.matchedPlayerId ? 'roster' : (v.isCoach ? 'staff' : 'guest');
+      const name = v.matchedPlayerId && rosterById.has(v.matchedPlayerId)
+        ? rosterById.get(v.matchedPlayerId)!
+        : (v.name || 'Guest');
+      list.push({ name, kind });
+    }
+    return list;
   }, [event?.rsvps, event?.publicRsvps, (event as any)?.playerRsvps, rosterById]);
 
   const handleRsvp = async (status: RsvpStatus) => {
@@ -474,19 +508,22 @@ const PublicEvent: React.FC = () => {
           </div>
           {goingPeople.length > 0 && (
             <ul className="mt-3 divide-y divide-white/5">
-              {goingPeople.slice(0, 12).map((p, i) => (
-                <li key={i} className="py-1.5 flex items-center gap-2.5">
-                  <span className="w-6 h-6 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-bone flex-1 truncate">{p.name}</span>
-                  <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${
-                    p.isGuest
-                      ? 'bg-charcoal-950 text-bone/50 border-white/15'
-                      : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
-                  }`}>
-                    {p.isGuest ? 'GUEST' : 'ROSTER'}
-                  </span>
-                </li>
-              ))}
+              {goingPeople.slice(0, 12).map((p, i) => {
+                const badge = p.kind === 'roster'
+                  ? { label: 'ROSTER', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30' }
+                  : p.kind === 'staff'
+                    ? { label: 'STAFF',  cls: 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30' }
+                    : { label: 'GUEST',  cls: 'bg-charcoal-950 text-bone/50 border-white/15' };
+                return (
+                  <li key={i} className="py-1.5 flex items-center gap-2.5">
+                    <span className="w-6 h-6 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 flex-shrink-0" />
+                    <span className="text-sm font-semibold text-bone flex-1 truncate">{p.name}</span>
+                    <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded border ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

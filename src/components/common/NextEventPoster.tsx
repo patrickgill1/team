@@ -36,6 +36,14 @@ interface Props {
   /** Same for Can't. ("Can't go" / "None going") */
   noLabel: string;
   onRsvp: (status: RsvpStatus) => void | Promise<void>;
+  /** Coach attendance (separate from the kid RSVP). Only passed
+   *  when the user is a coach AND has linked kids — in that case
+   *  the primary RSVP buttons stamp the KID's attendance and this
+   *  toggle adds the coach's own attendance independently.
+   *  Patrick 2026-06-21: 'i am going to need to also be able to
+   *  rsvp and show coach is going separate from my son.' */
+  coachStatus?: RsvpStatus | null;
+  onCoachRsvp?: (status: RsvpStatus | null) => void | Promise<void>;
   hourOverride?: number;
 }
 
@@ -67,6 +75,8 @@ const NextEventPoster: React.FC<Props> = ({
   goingLabel,
   noLabel,
   onRsvp,
+  coachStatus,
+  onCoachRsvp,
   hourOverride,
 }) => {
   const [now, setNow] = useState(() => new Date());
@@ -209,6 +219,37 @@ const NextEventPoster: React.FC<Props> = ({
               onClick={() => onRsvp('no')}
             />
           </div>
+
+          {/* Coach attendance toggle — only rendered when the
+              user is a coach AND has linked kids. The primary
+              buttons above RSVP the kid (e.g., Hunter going); this
+              row tracks the COACH's own attendance independently
+              (Patrick going as coach). Three small chips since
+              coach attendance is usually 'Going / Can't' with a
+              short tap path. */}
+          {onCoachRsvp && (
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mr-1">Coach attendance</span>
+              {(['going', 'maybe', 'no'] as RsvpStatus[]).map((s) => {
+                const active = coachStatus === s;
+                const label = s === 'going' ? 'Going' : s === 'maybe' ? 'Maybe' : "Can't";
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => onCoachRsvp(active ? null : s)}
+                    className={`text-[11px] font-extrabold tracking-wide uppercase px-2.5 py-1 rounded-full ring-1 transition-colors ${
+                      active
+                        ? 'bg-crimson-500/85 ring-crimson-400 text-white'
+                        : 'bg-charcoal-950/40 ring-white/15 text-bone/70 hover:bg-white/10'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Going / pending tally line. Quiet, just-the-facts. */}
           <p className="mt-3 text-center text-[12px] text-bone/65">

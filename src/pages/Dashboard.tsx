@@ -620,7 +620,11 @@ const Dashboard: React.FC = () => {
       ...(nextEvent.rsvps || {}),
       [userData.uid]: {
         status,
-        name: userData.name || 'Player',
+        name: userData.name || (isUserCoach ? 'Coach' : 'Member'),
+        // Tag the role so the display layer can show this as a
+        // STAFF / COACH entry rather than a generic guest. Patrick
+        // 2026-06-21 attribution rework.
+        role: isUserCoach ? 'coach' : undefined,
         respondedAt: new Date(),
       },
     };
@@ -666,11 +670,26 @@ const Dashboard: React.FC = () => {
     return () => { cancelled = true; };
   }, [userData?.uid, nextEvent?.teamId]);
 
-  // Dashboard RSVP — when the user is a parent with linked kids,
-  // tapping Going/Maybe/Can't RSVPs the KID(S), matching the
-  // EventDetail "Quick Actions" behavior. Coaches and parents-
-  // without-linked-kids RSVP themselves.
-  const useKidQuickRsvp = !isUserCoach && myLinkedPlayers.length > 0;
+  // Dashboard RSVP — Patrick 2026-06-21: 'i am going to need to also
+  // be able to rsvp and show coach is going separate from my son.'
+  //
+  // New attribution rules:
+  //   - Anyone with linked kids on this team → primary RSVP writes
+  //     PLAYER RSVPs for those kids (writes to playerRsvps[playerId]).
+  //     This includes coaches who are also parents. The previous
+  //     `!isUserCoach` gate meant Patrick-the-coach got stamped in
+  //     `event.rsvps` with his own name instead of writing Hunter's
+  //     kid RSVP. Now removed — having a kid on the roster always
+  //     writes a kid RSVP for them when the parent taps Going.
+  //   - Users with NO linked kids → primary RSVP writes to
+  //     event.rsvps[uid] (existing behavior; their attendance as
+  //     themselves). Role tagged 'coach' if isUserCoach.
+  //   - Coaches who are ALSO parents → can OPTIONALLY also stamp
+  //     their own coach attendance via a separate toggle (see
+  //     coachQuickRsvp below). Two RSVPs, two records:
+  //       playerRsvps[hunterId] → Hunter going (kid attendance)
+  //       rsvps[patrickUid]     → Patrick going (coach attendance)
+  const useKidQuickRsvp = myLinkedPlayers.length > 0;
   const quickRsvp = async (status: 'going' | 'maybe' | 'no') => {
     if (!nextEvent) return;
     if (useKidQuickRsvp && userData?.uid) {
@@ -694,7 +713,42 @@ const Dashboard: React.FC = () => {
       }
       return;
     }
+    // No kids on the roster — RSVP as self (existing path), tagged
+    // with coach role when applicable.
     await setMyRsvp(status);
+  };
+
+  // Coach attendance RSVP — only relevant when the user is a coach
+  // AND has linked kids (otherwise the primary quickRsvp already
+  // covers their own attendance). Writes to event.rsvps[uid] with
+  // role: 'coach' so the headcount display can show it as a
+  // staff/coach row distinct from the kid roster row.
+  const coachStatus: 'going' | 'maybe' | 'no' | null = (() => {
+    if (!isUserCoach || !nextEvent || !userData?.uid) return null;
+    const r = (nextEvent.rsvps || {})[userData.uid];
+    return (r?.status as any) || null;
+  })();
+  const coachQuickRsvp = async (status: 'going' | 'maybe' | 'no' | null) => {
+    if (!nextEvent || !userData?.uid || !isUserCoach) return;
+    const next: Record<string, any> = { ...(nextEvent.rsvps || {}) };
+    if (status === null) {
+      delete next[userData.uid];
+    } else {
+      next[userData.uid] = {
+        status,
+        name: userData.name || 'Coach',
+        role: 'coach',
+        respondedAt: new Date(),
+      };
+    }
+    setUpcomingEvents((prev) =>
+      prev.map((e) => (e.id === nextEvent.id ? ({ ...e, rsvps: next } as CalendarEvent) : e))
+    );
+    try {
+      await updateDocument('events', nextEvent.id, { rsvps: next });
+    } catch (err) {
+      console.error('[dashboard] coach rsvp failed', err);
+    }
   };
 
   // Current RSVP status to show as "active" on the poster buttons.
@@ -825,6 +879,11 @@ const Dashboard: React.FC = () => {
         goingLabel={posterGoingLabel}
         noLabel={posterNoLabel}
         onRsvp={quickRsvp}
+        // Coach attendance toggle — only passed when the user is a
+        // coach AND has linked kids (so the primary buttons RSVP
+        // the kid, this toggles the coach's separate attendance).
+        coachStatus={useKidQuickRsvp && isUserCoach ? coachStatus : undefined}
+        onCoachRsvp={useKidQuickRsvp && isUserCoach ? coachQuickRsvp : undefined}
       />
       {/* Coach accordion bar — slim color-coded status indicator that
           surfaces only when there's actionable coach work (RSVPs

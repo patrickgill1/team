@@ -327,13 +327,17 @@ const EventDetail: React.FC = () => {
     return computeCountdown(eventDate, eventEnd);
   }, [eventDate?.getTime(), eventEnd?.getTime(), now]);
 
-  // RSVP aggregation. ROSTER = playerRsvps + authenticated parent rsvps.
-  // GUEST = publicRsvps (share-link).
+  // RSVP aggregation. Patrick 2026-06-21 attribution rework:
+  //   ROSTER = playerRsvps (kid attendance, source of truth)
+  //   STAFF  = adult rsvps with role 'coach' or 'staff' (Patrick
+  //            attending AS coach, distinct from his kid's RSVP)
+  //   GUEST  = publicRsvps (share-link RSVPs without a roster match)
   const buckets = useMemo(() => {
     if (!event) return { going: [], maybe: [], cant: [], pending: 0 };
-    const going: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
-    const maybe: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
-    const cant: { name: string; uid?: string; playerId?: string; isGuest: boolean }[] = [];
+    type Entry = { name: string; uid?: string; playerId?: string; kind: 'roster' | 'staff' | 'guest'; matchedPlayerId?: string; guestToken?: string };
+    const going: Entry[] = [];
+    const maybe: Entry[] = [];
+    const cant: Entry[] = [];
     const seen = new Set<string>();
     const playerR = (event as any).playerRsvps || {};
     for (const pid of Object.keys(playerR)) {
@@ -341,23 +345,44 @@ const EventDetail: React.FC = () => {
       const key = `player:${pid}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      if (r.status === 'going') going.push({ name: r.playerName, playerId: pid, isGuest: false });
-      else if (r.status === 'maybe') maybe.push({ name: r.playerName, playerId: pid, isGuest: false });
-      else if (r.status === 'no') cant.push({ name: r.playerName, playerId: pid, isGuest: false });
+      if (r.status === 'going') going.push({ name: r.playerName, playerId: pid, kind: 'roster' });
+      else if (r.status === 'maybe') maybe.push({ name: r.playerName, playerId: pid, kind: 'roster' });
+      else if (r.status === 'no') cant.push({ name: r.playerName, playerId: pid, kind: 'roster' });
     }
-    // Adult RSVPs (event.rsvps) intentionally NOT included. The going
-    // list is the player roster — coaches are obviously there, parents
-    // follow their kids. Tracking adult attendance just clutters the
-    // list. setMyRsvp still writes to event.rsvps for back-compat with
-    // anything that reads it, but the UI surfaces only players + guests.
+    // Adult RSVPs tagged with role 'coach' or 'staff' — surface as
+    // their own STAFF row in the headcount, distinct from any kid
+    // attendance they may have stamped above. Untagged adult RSVPs
+    // (legacy entries with no role) are intentionally dropped from
+    // the list to avoid the historical 'Chantel showing as roster'
+    // confusion. Once a parent re-RSVPs through the new flow their
+    // entry routes to playerRsvps and they stop showing as adult.
+    const adultR = (event as any).rsvps || {};
+    for (const uid of Object.keys(adultR)) {
+      const r = adultR[uid];
+      if (r.role !== 'coach' && r.role !== 'staff') continue;
+      const entry: Entry = { name: r.name || 'Coach', uid, kind: 'staff' };
+      if (r.status === 'going') going.push(entry);
+      else if (r.status === 'maybe') maybe.push(entry);
+      else if (r.status === 'no') cant.push(entry);
+    }
     const publicR = (event as any).publicRsvps || {};
     for (const tok of Object.keys(publicR)) {
       const r = publicR[tok];
-      const entry: any = { name: r.name, isGuest: true, guestToken: tok };
-      // If the guest used the share-form autocomplete to pre-match a
-      // roster player, surface that so the coach gets a "MATCHED"
-      // pill (and the merge picker pre-suggests that player).
-      if (r.matchedPlayerId) entry.matchedPlayerId = r.matchedPlayerId;
+      const entry: Entry = {
+        name: r.name,
+        guestToken: tok,
+        // If the guest used the share-form autocomplete to pre-match
+        // a roster player, the entry counts as a roster RSVP for that
+        // kid (use the player's name from roster if available); else
+        // it's a guest. If they self-tagged as coach via the public
+        // form's checkbox, treat as staff.
+        kind: r.matchedPlayerId ? 'roster' : (r.isCoach ? 'staff' : 'guest'),
+      };
+      if (r.matchedPlayerId) {
+        entry.matchedPlayerId = r.matchedPlayerId;
+        const matched = roster.find(p => p.id === r.matchedPlayerId);
+        if (matched) entry.name = matched.name;
+      }
       if (r.status === 'going') going.push(entry);
       else if (r.status === 'maybe') maybe.push(entry);
       else if (r.status === 'no') cant.push(entry);
@@ -1118,7 +1143,7 @@ const EventDetail: React.FC = () => {
                 <div className="flex items-center gap-2.5">
                   <RosterAvatar name={p.name} photoUrl={photo} size={28} className="ring-1 ring-white/10" />
                   <span className="text-sm font-semibold text-bone flex-1 truncate">{p.name}</span>
-                  {p.isGuest && isUserCoach && roster.length > 0 && (
+                  {p.kind === 'guest' && isUserCoach && roster.length > 0 && (
                     <button
                       onClick={() => setMergingToken(mergingToken === p.guestToken ? null : p.guestToken)}
                       className={`text-[9px] font-extrabold tracking-widest px-2 py-0.5 rounded border ${
@@ -1130,15 +1155,20 @@ const EventDetail: React.FC = () => {
                       {p.matchedPlayerId ? 'ACCEPT MATCH' : 'MERGE'}
                     </button>
                   )}
-                  <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded ring-1 ${
-                    p.isGuest
-                      ? 'bg-charcoal-800 text-charcoal-300 ring-white/10'
-                      : 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/40'
-                  }`}>
-                    {p.isGuest ? 'GUEST' : 'ROSTER'}
-                  </span>
+                  {(() => {
+                    const badge = p.kind === 'roster'
+                      ? { label: 'ROSTER', cls: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/40' }
+                      : p.kind === 'staff'
+                        ? { label: 'STAFF',  cls: 'bg-crimson-500/15 text-crimson-300 ring-crimson-400/40' }
+                        : { label: 'GUEST',  cls: 'bg-charcoal-800 text-charcoal-300 ring-white/10' };
+                    return (
+                      <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded ring-1 ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    );
+                  })()}
                 </div>
-                {p.isGuest && mergingToken === p.guestToken && (
+                {p.kind === 'guest' && mergingToken === p.guestToken && (
                   <div className="mt-2 ml-9 rounded-lg border border-crimson-400/30 bg-crimson-500/15/60 p-2">
                     <div className="text-[11px] text-charcoal-200 mb-1.5">
                       Merge <span className="font-bold">"{p.name}"</span> into roster player:

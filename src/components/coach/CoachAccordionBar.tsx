@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
@@ -72,6 +72,31 @@ const CoachAccordionBar: React.FC = () => {
   const [inboxPreviews, setInboxPreviews] = useState<MessagePreview[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  // Tap-outside-to-close + Escape-to-close. Patrick 2026-06-21
+  // reported feeling 'trapped' in the expanded panel — the only
+  // close path was tapping the bar's chevron again. Now tapping
+  // anywhere off the bar OR hitting Escape collapses it. Standard
+  // inline-accordion behavior on web; matches what the More menu
+  // does on the bottom sheet.
+  useEffect(() => {
+    if (!expanded) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!wrapperRef.current) return;
+      if (wrapperRef.current.contains(e.target as Node)) return;
+      setExpanded(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpanded(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [expanded]);
 
   const { viewMode } = useViewMode();
   // Bar shows only when the user is BOTH a coach AND has selected
@@ -319,7 +344,7 @@ const CoachAccordionBar: React.FC = () => {
     // attached, not floating. Patrick 2026-06-21: 'doesnt align
     // properly' — was using max-w-7xl + different padding which
     // produced a wider bar than the hero card.
-    <div className="relative -mt-3 px-3 sm:px-4 z-10 animate-fade-in">
+    <div ref={wrapperRef} className="relative -mt-3 px-3 sm:px-4 z-10 animate-fade-in">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}

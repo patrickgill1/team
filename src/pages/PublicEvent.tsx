@@ -219,16 +219,37 @@ const PublicEvent: React.FC = () => {
     return tally([...Object.values(r), ...Object.values(pub), ...Object.values(playerR)]);
   }, [event?.rsvps, event?.publicRsvps, (event as any)?.playerRsvps]);
 
+  // Build a roster lookup by id so RSVPs that have a matchedPlayerId
+  // (parent RSVP'd via /event link, system matched them to a roster
+  // kid) can DISPLAY the player's name instead of the parent's typed
+  // name. Patrick 2026-06-21: 'I have a chantel flake who has a son
+  // by the name of ruston. her name is coming up when she rsvps and
+  // not her son's.' Display fix only — the underlying RSVP doc still
+  // stores the typed name (for chase-down accountability). For roster
+  // matches, the visible name flips to the player.
+  const rosterById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of roster) map.set(p.id, p.name);
+    return map;
+  }, [roster]);
+
+  const displayNameFor = (v: any): string => {
+    if (v?.matchedPlayerId && rosterById.has(v.matchedPlayerId)) {
+      return rosterById.get(v.matchedPlayerId)!;
+    }
+    return v?.playerName || v?.name || 'Member';
+  };
+
   const goingPeople = useMemo(() => {
     const r = (event?.rsvps || {}) as Record<string, any>;
     const pub = (event?.publicRsvps || {}) as Record<string, any>;
     const playerR = ((event as any)?.playerRsvps || {}) as Record<string, any>;
     return [
       ...Object.values(playerR).filter((v: any) => v.status === 'going').map((v: any) => ({ name: v.playerName, isGuest: false })),
-      ...Object.values(r).filter((v: any) => v.status === 'going').map((v: any) => ({ name: v.name, isGuest: false })),
-      ...Object.values(pub).filter((v: any) => v.status === 'going').map((v: any) => ({ name: v.name, isGuest: true })),
+      ...Object.values(r).filter((v: any) => v.status === 'going').map((v: any) => ({ name: displayNameFor(v), isGuest: !v.matchedPlayerId })),
+      ...Object.values(pub).filter((v: any) => v.status === 'going').map((v: any) => ({ name: displayNameFor(v), isGuest: !v.matchedPlayerId })),
     ];
-  }, [event?.rsvps, event?.publicRsvps, (event as any)?.playerRsvps]);
+  }, [event?.rsvps, event?.publicRsvps, (event as any)?.playerRsvps, rosterById]);
 
   const handleRsvp = async (status: RsvpStatus) => {
     if (!event || !eventId) return;
@@ -371,12 +392,18 @@ const PublicEvent: React.FC = () => {
             Your RSVP
           </div>
 
-          {/* Name + roster autocomplete */}
+          {/* Name + roster autocomplete. Placeholder + helper text
+              clarify whose name belongs in the field — parents
+              previously typed their own name and showed up as
+              roster RSVPs (Patrick 2026-06-21 caught: 'her name is
+              coming up when she rsvps and not her son's'). Now the
+              prompt is explicit: type the PLAYER's name; coaches
+              check the box below. */}
           <div className="relative">
             <input
               value={name}
               onChange={(e) => { setName(e.target.value); setMatchedPlayerId(null); }}
-              placeholder="Your name (or your kid's)"
+              placeholder="Player name (the kid attending)"
               className="w-full px-3 py-2.5 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
             />
             {matchedPlayerId && (

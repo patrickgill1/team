@@ -77,7 +77,14 @@ const SeasonWizard: React.FC = () => {
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [ageGroupsInput, setAgeGroupsInput] = useState('');
+  const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([]);
+
+  // Standard US youth soccer age-group ladder. U6 → U18 is wide
+  // enough to cover micro / academy programs at the bottom and high-
+  // school-age club at the top. Some clubs add U4 (toddler clinics) or
+  // U19/U20 (transition programs); keep the visible set tight and the
+  // FREE-text override below for the edges.
+  const AGE_GROUP_OPTIONS = ['U6','U7','U8','U9','U10','U11','U12','U13','U14','U15','U16','U17','U18'];
 
   // Atomic-render gate — same pattern as the rest of the app.
   useEffect(() => {
@@ -107,7 +114,7 @@ const SeasonWizard: React.FC = () => {
           setName(s.name || '');
           setStartDate(toISODate(s.startDate));
           setEndDate(toISODate(s.endDate));
-          setAgeGroupsInput(((s as any).ageGroups || []).join(', '));
+          setSelectedAgeGroups(((s as any).ageGroups || []) as string[]);
           // Auto-advance to the next un-completed step so admin lands
           // where the work is.
           setActiveStep(deriveActiveStep(s));
@@ -140,18 +147,17 @@ const SeasonWizard: React.FC = () => {
       alert('Name, start date, and end date are required.');
       return;
     }
+    if (selectedAgeGroups.length === 0) {
+      alert('Pick at least one age group.');
+      return;
+    }
     setSaving(true);
     try {
-      const ageGroups = ageGroupsInput
-        .split(/[,\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-
       const planPatch: any = {
         name: name.trim(),
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        ageGroups,
+        ageGroups: selectedAgeGroups,
         lifecycle: season?.lifecycle && season.lifecycle !== 'draft' ? season.lifecycle : 'coach_commit',
         isActive: true,
       };
@@ -274,36 +280,74 @@ const SeasonWizard: React.FC = () => {
                         className="w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone placeholder:text-bone/35 focus:outline-none focus:ring-crimson-400/50"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
+                    {/* Date inputs constrained to a max width so the native
+                        Safari/WebKit date picker UI doesn't blow past the
+                        wizard card boundary on mobile. Patrick caught the
+                        overflow 2026-06-21: 'the date box for the new
+                        season goes past the red box.' min-w-0 on the
+                        flex children + max-w on the inputs themselves
+                        prevents the picker chrome from forcing its
+                        intrinsic width. */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="min-w-0">
                         <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Start date</label>
                         <input
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-crimson-400/50"
+                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-crimson-400/50"
                         />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">End date</label>
                         <input
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-crimson-400/50"
+                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-crimson-400/50"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Age groups</label>
-                      <input
-                        type="text"
-                        value={ageGroupsInput}
-                        onChange={(e) => setAgeGroupsInput(e.target.value)}
-                        placeholder="U8, U10, U12, U14"
-                        className="w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone placeholder:text-bone/35 focus:outline-none focus:ring-crimson-400/50"
-                      />
-                      <p className="text-[11px] text-bone/45 mt-1">Comma-separated. Each age group gets its own coach assignment + tryout date downstream.</p>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55">Age groups</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allSelected = selectedAgeGroups.length === AGE_GROUP_OPTIONS.length;
+                            setSelectedAgeGroups(allSelected ? [] : [...AGE_GROUP_OPTIONS]);
+                          }}
+                          className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 hover:text-crimson-200"
+                        >
+                          {selectedAgeGroups.length === AGE_GROUP_OPTIONS.length ? 'Clear all' : 'Select all'}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {AGE_GROUP_OPTIONS.map((ag) => {
+                          const on = selectedAgeGroups.includes(ag);
+                          return (
+                            <button
+                              key={ag}
+                              type="button"
+                              onClick={() => setSelectedAgeGroups((prev) =>
+                                prev.includes(ag) ? prev.filter((x) => x !== ag) : [...prev, ag]
+                              )}
+                              className={`text-[12px] font-extrabold tracking-wide px-2.5 py-1 rounded-full transition-colors ring-1 ${
+                                on
+                                  ? 'bg-crimson-600 ring-crimson-400 text-white'
+                                  : 'bg-charcoal-950 ring-white/10 text-bone/65 hover:bg-white/5 hover:text-bone'
+                              }`}
+                            >
+                              {ag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] text-bone/45 mt-2">
+                        {selectedAgeGroups.length === 0
+                          ? 'Tap to select. Each age group gets its own coach assignment + tryout date downstream.'
+                          : `${selectedAgeGroups.length} selected. Each will get its own coach assignment + tryout date downstream.`}
+                      </p>
                     </div>
                     <div className="flex gap-2 pt-1">
                       <button

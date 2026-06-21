@@ -14,7 +14,6 @@ import NotificationsBanner from '../components/common/NotificationsBanner';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
-import AdminCockpit from '../components/admin/AdminCockpit';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
@@ -816,15 +815,11 @@ const Dashboard: React.FC = () => {
             FCM tokens. Self-hides when not needed. */}
         <NotificationsBanner />
 
-        {/* Admin cockpit — visible only when the user is a club admin.
-            Stacks ABOVE the coach/parent context for multi-role users
-            (Patrick himself: admin + coach + parent) so admins who also
-            coach see both contexts. Pure ops admins (no kids / no
-            teams) get this as their primary cockpit. Patrick 2026-06-21:
-            'people like me who is a coach, has a kid, will see that
-            info' — meaning don't hide the rest, just add the admin
-            chips on top. */}
-        {(userData as any)?.isClubAdmin === true && <AdminCockpit />}
+        {/* AdminCockpit moved to /club (ClubOverview) per Patrick:
+            'this option exists as part of the main dashboard, but only
+            happens once a year. it needs to be in the club section
+            only.' Dashboard stays purely the coach/parent surface.
+            Admins reach club ops via the 'Club' tab in the bottom nav. */}
 
         {/* Ambient cues right under the greeting — birthday pill only.
             Season countdown ("20 weeks left in Fall 2026") was removed

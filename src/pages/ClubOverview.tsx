@@ -9,6 +9,7 @@ import { isClubAdmin, getPlayerPositionsLabel, formatDateTime } from '../utils/h
 import Header from '../components/common/Header';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
 import BroadcastModal from '../components/club/BroadcastModal';
+import AdminCockpit from '../components/admin/AdminCockpit';
 
 /**
  * Club-wide admin area. Gated by user.isClubAdmin. Day-to-day, the
@@ -169,6 +170,15 @@ const ClubOverview: React.FC = () => {
         subtitle={`${teams.length} team${teams.length === 1 ? '' : 's'} · ${players.length} player${players.length === 1 ? '' : 's'} · ${users.length} member${users.length === 1 ? '' : 's'}`}
       />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        {/* Admin cockpit — moved here from Dashboard 2026-06-21. Patrick:
+            'this option exists as part of the main dashboard, but only
+            happens once a year. it needs to be in the club section
+            only.' This is the canonical 'what needs attention today'
+            surface for admins; lives at the top of /club so anyone who
+            taps the Club tab in the bottom nav sees their pending work
+            first. */}
+        <AdminCockpit />
+
         {/* Primary actions — three big tiles into the management surfaces */}
         <div className="grid grid-cols-3 gap-2">
           <button

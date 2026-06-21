@@ -19,6 +19,7 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import WallHeaderButton from './WallHeaderButton';
+import ProfileMenuSheet from './ProfileMenuSheet';
 import ChatHeaderButton from './ChatHeaderButton';
 import { useTeam } from '../../contexts/TeamContext';
 import { isCoach, isClubAdmin } from '../../utils/helpers';
@@ -31,6 +32,7 @@ const Navigation: React.FC = () => {
   const location = useLocation();
   // isInviteOpen state removed with the legacy modal.
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isProfileSheetOpen, setIsProfileSheetOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
@@ -476,17 +478,18 @@ const Navigation: React.FC = () => {
           <div className="ml-auto shrink-0 flex items-center gap-2">
             <WallHeaderButton />
             <ChatHeaderButton />
-            <Link
-              to="/settings"
-              aria-label="Settings"
-              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-crimson-400 to-crimson-400 ring-1 ring-white/20"
+            <button
+              type="button"
+              onClick={() => setIsProfileSheetOpen(true)}
+              aria-label="Profile menu"
+              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-crimson-400 to-crimson-400 ring-1 ring-white/20 hover:ring-white/40 transition"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
               ) : (
                 userData?.name?.charAt(0).toUpperCase()
               )}
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -820,6 +823,10 @@ const Navigation: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Profile + view-mode bottom-sheet — opened from the top-
+          right avatar. Renders via portal so it overlays the entire
+          app, not just the nav. */}
+      <ProfileMenuSheet open={isProfileSheetOpen} onClose={() => setIsProfileSheetOpen(false)} />
     </>
   );
 };

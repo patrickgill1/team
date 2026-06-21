@@ -5,6 +5,7 @@ import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'fi
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
+import { useViewMode } from '../../contexts/ViewModeContext';
 import { isCoach } from '../../utils/helpers';
 import type { CalendarEvent } from '../../types';
 
@@ -39,7 +40,8 @@ const CoachTonightCard: React.FC = () => {
   // the Firestore query.
   const [now, setNow] = useState(() => new Date());
 
-  const isUserCoach = isCoach((userData as any)?.role);
+  const { viewMode } = useViewMode();
+  const isUserCoach = isCoach((userData as any)?.role) && viewMode === 'coach';
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) { setLoaded(true); return; }

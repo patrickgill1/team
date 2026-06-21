@@ -4,6 +4,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './utils/firebase';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
+import { ViewModeProvider } from './contexts/ViewModeContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
@@ -395,6 +396,7 @@ function App() {
   return (
     <AuthProvider>
       <TeamProvider>
+        <ViewModeProvider>
         <Router>
           <Suspense fallback={<PageSpinner />}>
           <div className="App">
@@ -812,6 +814,7 @@ function App() {
         </div>
           </Suspense>
       </Router>
+        </ViewModeProvider>
       </TeamProvider>
       {splashPlaying && (
         justUpdatedFrom

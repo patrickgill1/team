@@ -5,6 +5,7 @@ import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'fi
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
+import { useViewMode } from '../../contexts/ViewModeContext';
 import { isCoach } from '../../utils/helpers';
 
 /**
@@ -72,7 +73,12 @@ const CoachAccordionBar: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const isUserCoach = isCoach((userData as any)?.role);
+  const { viewMode } = useViewMode();
+  // Bar shows only when the user is BOTH a coach AND has selected
+  // coach view mode in the profile sheet. Multi-role users (admin+
+  // coach+parent — Patrick himself) flip to parent view to clear
+  // the dashboard of coach chrome when they're in family-context.
+  const isUserCoach = isCoach((userData as any)?.role) && viewMode === 'coach';
 
   useEffect(() => {
     if (!isUserCoach || !selectedTeamId) {

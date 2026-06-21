@@ -117,6 +117,20 @@ const TeamChat: React.FC = () => {
     return () => unsub();
   }, []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // ATOMIC RENDER for the messages area inside a chat. Flips false
+  // when a new thread is selected, true on the first subscription
+  // snapshot. Until true, the chat view shows empty silence (and a
+  // 400ms progress hint if the wait stretches), not the 'No messages
+  // yet' empty state — which previously appeared during cold-load
+  // and made users think the DM was broken. Same pattern as the
+  // thread list pilot (4b379fb) and dashboard/wall rollouts.
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [messagesShowProgress, setMessagesShowProgress] = useState(false);
+  useEffect(() => {
+    if (messagesLoaded) { setMessagesShowProgress(false); return; }
+    const t = window.setTimeout(() => setMessagesShowProgress(true), 400);
+    return () => window.clearTimeout(t);
+  }, [messagesLoaded, selectedThread?.id]);
   // In-thread search — client-side filter over already-loaded messages.
   // No server query yet; sufficient for the typical loaded window
   // (last ~200 msgs). Server-side full-text search is a later batch.
@@ -928,6 +942,15 @@ const TeamChat: React.FC = () => {
       // briefly render the old thread's data (which would trip the
       // scroll-anchor effect and leave the user mid-thread).
       setMessages([]);
+      // Reset the messages-loaded flag — the next snapshot fire
+      // flips it back to true. Until then the chat view renders
+      // empty silence (atomic-render pattern) instead of the
+      // 'No messages yet' empty state, which previously appeared
+      // for the 1-2s a cold subscription took to resolve on
+      // Android. Patrick 2026-06-21: 'doesn't show anything if i
+      // open the chat... i was sitting there trying to look for
+      // the console, and all the chats loaded.'
+      setMessagesLoaded(false);
       // Reset pagination state for the new thread.
       setOlderMessages([]);
       setHasMoreOlder(true);
@@ -942,6 +965,10 @@ const TeamChat: React.FC = () => {
           createdAt: message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt || Date.now())
         }));
         setMessages(processedMessages);
+        // First snapshot arrived — chat view can stop hiding the
+        // empty-state and either show the messages or the real
+        // empty-state. Subsequent snapshots are no-ops on this flag.
+        setMessagesLoaded(true);
         // Strip any optimistic rows whose real counterpart just landed.
         // Match by senderId + content + close-enough timestamp window —
         // good enough since we only insert pendings within the last few
@@ -2794,8 +2821,24 @@ const TeamChat: React.FC = () => {
                     <div className="w-5 h-5 rounded-full border-2 border-white/10 border-t-cyan-500 animate-spin" />
                   </div>
                 )}
-                {!threadSearchQuery.trim() && visibleMessages.length === 0 && (
-                  <div className="text-center py-12">
+                {/* Loading silence: render NOTHING while the first
+                    subscription snapshot is in flight. After 400ms a
+                    slim crimson hint appears at the top of the
+                    column. Patrick caught the broken state on
+                    Android (cold subscriptions ~1-2s) where the
+                    empty-state used to fire and read as 'no
+                    messages' before content even tried to load. */}
+                {!threadSearchQuery.trim() && !messagesLoaded && messagesShowProgress && (
+                  <div className="px-4 pt-2">
+                    <div className="h-0.5 bg-crimson-500/15 overflow-hidden rounded-full">
+                      <div className="h-full w-1/3 bg-crimson-500 animate-progress-slide" />
+                    </div>
+                  </div>
+                )}
+                {/* Genuine empty state — only render once we KNOW
+                    the subscription returned zero messages. */}
+                {!threadSearchQuery.trim() && messagesLoaded && visibleMessages.length === 0 && (
+                  <div className="text-center py-12 animate-fade-in">
                     <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600 mb-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     </div>

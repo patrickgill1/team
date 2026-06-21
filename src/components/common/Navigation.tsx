@@ -252,8 +252,14 @@ const Navigation: React.FC = () => {
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {
-      label: 'Coach tools',
-      items: ['Game Day', 'Practice Plan', 'Drills', 'Equipment']
+      // Renamed 'Coach tools' → 'Coach' so the new cockpit landing
+      // entry can sit at the top of the section alongside the granular
+      // tools beneath it. Patrick 2026-06-21 reported 'not seeing the
+      // coach option' — the mobile More drawer renders moreSections
+      // (hand-curated), not appItems, so adding to appItems alone was
+      // insufficient. Including 'Coach' here surfaces it in the drawer.
+      label: 'Coach',
+      items: ['Coach', 'Game Day', 'Practice Plan', 'Drills', 'Equipment']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {

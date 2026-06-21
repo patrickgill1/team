@@ -124,19 +124,27 @@ const TeamChat: React.FC = () => {
   // yet' empty state — which previously appeared during cold-load
   // and made users think the DM was broken. Same pattern as the
   // thread list pilot (4b379fb) and dashboard/wall rollouts.
+  // The companion useEffect that gates the progress hint lives
+  // below `selectedThread` is declared so the dep array can read
+  // its `?.id`.
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [messagesShowProgress, setMessagesShowProgress] = useState(false);
-  useEffect(() => {
-    if (messagesLoaded) { setMessagesShowProgress(false); return; }
-    const t = window.setTimeout(() => setMessagesShowProgress(true), 400);
-    return () => window.clearTimeout(t);
-  }, [messagesLoaded, selectedThread?.id]);
   // In-thread search — client-side filter over already-loaded messages.
   // No server query yet; sufficient for the typical loaded window
   // (last ~200 msgs). Server-side full-text search is a later batch.
   const [threadSearchOpen, setThreadSearchOpen] = useState(false);
   const [threadSearchQuery, setThreadSearchQuery] = useState('');
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
+  // Companion effect to messagesLoaded/messagesShowProgress declared
+  // above — placed here so it can read selectedThread.id in its dep
+  // array. Schedules the slim crimson hint at the top of the chat
+  // column 400ms after a new thread is opened, only if the
+  // subscription hasn't fired yet by then.
+  useEffect(() => {
+    if (messagesLoaded) { setMessagesShowProgress(false); return; }
+    const t = window.setTimeout(() => setMessagesShowProgress(true), 400);
+    return () => window.clearTimeout(t);
+  }, [messagesLoaded, selectedThread?.id]);
   const [isCreatingThread, setIsCreatingThread] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);

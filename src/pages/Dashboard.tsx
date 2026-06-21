@@ -16,6 +16,7 @@ import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
 import CoachAccordionBar from '../components/coach/CoachAccordionBar';
 import CoachTonightCard from '../components/coach/CoachTonightCard';
+import CoachTeamHealthCard from '../components/coach/CoachTeamHealthCard';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
@@ -952,6 +953,12 @@ const Dashboard: React.FC = () => {
         })()}
           </div>
         )}
+        {/* Coach team-health roll-up — visible to coaches only,
+            renders only when the team has at least one player who
+            hasn't logged practice this week. Lives below the
+            practice-streak ribbon since they're related surfaces.
+            Patrick 2026-06-21 dialogue idea #3. */}
+        <CoachTeamHealthCard />
         {myPlayer && (
           <MyPlayerCard
             player={myPlayer}

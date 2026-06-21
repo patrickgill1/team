@@ -234,10 +234,14 @@ const CoachAccordionBar: React.FC = () => {
   //                        cyan), opaque so it pops against the hero
   //                        and signals 'something needs you.'
   //                        Headline mirrors the top-priority item.
+  // Active states use semi-transparent fill + backdrop-blur so the
+  // hero photo bleeds through the color tint — keeps the bar visually
+  // bonded to the hero rather than feeling like a separate solid band.
+  // Patrick 2026-06-21: 'also needs transparency.'
   const colorFor = (p: Priority) => {
-    if (p === 'crimson') return { bar: 'bg-crimson-500', textOnBar: 'text-white', chip: 'bg-crimson-500/15 text-crimson-200 ring-crimson-400/40' };
-    if (p === 'amber')   return { bar: 'bg-amber-500',   textOnBar: 'text-amber-950', chip: 'bg-amber-500/15 text-amber-200 ring-amber-400/40' };
-    return                      { bar: 'bg-sky-500',     textOnBar: 'text-white', chip: 'bg-sky-500/15 text-sky-200 ring-sky-400/40' };
+    if (p === 'crimson') return { bar: 'bg-crimson-500/75 backdrop-blur-md', textOnBar: 'text-white', chip: 'bg-crimson-500/15 text-crimson-200 ring-crimson-400/40' };
+    if (p === 'amber')   return { bar: 'bg-amber-500/70 backdrop-blur-md',   textOnBar: 'text-amber-950', chip: 'bg-amber-500/15 text-amber-200 ring-amber-400/40' };
+    return                      { bar: 'bg-sky-500/75 backdrop-blur-md',     textOnBar: 'text-white', chip: 'bg-sky-500/15 text-sky-200 ring-sky-400/40' };
   };
 
   const hasItems = items.length > 0;
@@ -248,14 +252,17 @@ const CoachAccordionBar: React.FC = () => {
 
   const collapsedClass = hasItems
     ? `${top!.bar} ${top!.textOnBar}`
-    : 'bg-charcoal-950/40 text-bone/75 backdrop-blur-md border-t border-white/5';
+    : 'bg-charcoal-950/40 text-bone/75 backdrop-blur-md';
 
   return (
-    // Wrapper tucks the bar UNDER the hero so it visually extends the
-    // hero card. Negative top margin + matching rounded-b-2xl corners
-    // make it read as one continuous shape. Same horizontal max-width
-    // as the hero parent so edges line up.
-    <div className="relative -mt-2 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 z-10 animate-fade-in">
+    // Wrapper mirrors NextEventPoster's outer section (px-3 sm:px-4,
+    // no max-width constraint) so the bar's left/right edges align
+    // exactly with the hero article above it. Negative top margin
+    // overlaps the hero's bottom edge slightly so the bar feels
+    // attached, not floating. Patrick 2026-06-21: 'doesnt align
+    // properly' — was using max-w-7xl + different padding which
+    // produced a wider bar than the hero card.
+    <div className="relative -mt-3 px-3 sm:px-4 z-10 animate-fade-in">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}

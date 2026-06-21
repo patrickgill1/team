@@ -28,6 +28,18 @@
   "redirects": [
     {
       "source": "/:path*",
+      "has": [{ "type": "host", "value": "goalkickr.app" }],
+      "destination": "https://app.goalkickr.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.goalkickr.app" }],
+      "destination": "https://app.goalkickr.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
       "has": [{ "type": "host", "value": "firefc.app" }],
       "destination": "https://goalkickr.com/:path*",
       "permanent": true

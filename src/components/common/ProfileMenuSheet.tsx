@@ -42,7 +42,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
 
   const isAdmin = isClubAdminFn(userData);
 
-  const handlePick = (mode: 'parent' | 'coach') => {
+  const handlePick = (mode: 'parent' | 'coach' | 'admin') => {
     setViewMode(mode);
     onClose();
   };
@@ -96,10 +96,12 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
             <ul>
               {availableModes.map((mode) => {
                 const selected = mode === viewMode;
-                const label = mode === 'parent' ? 'Parent' : 'Coach';
+                const label = mode === 'parent' ? 'Parent' : mode === 'coach' ? 'Coach' : 'Club admin';
                 const blurb = mode === 'parent'
                   ? 'Your kid + family content'
-                  : 'Team management + coach cards';
+                  : mode === 'coach'
+                    ? 'Team management + coach cards'
+                    : 'Pending registrations, payments, team activation';
                 return (
                   <li key={mode}>
                     <button

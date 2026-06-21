@@ -18,6 +18,7 @@ import CoachAccordionBar from '../components/coach/CoachAccordionBar';
 import CoachTonightCard from '../components/coach/CoachTonightCard';
 import CoachTeamHealthCard from '../components/coach/CoachTeamHealthCard';
 import { useViewMode } from '../contexts/ViewModeContext';
+import AdminCockpit from '../components/admin/AdminCockpit';
 import { getWeatherForEvent, WeatherSummary } from '../utils/weather';
 
 // Pick the best thumbnail image for a clip. Stream videos → Cloudflare's
@@ -44,6 +45,12 @@ const Dashboard: React.FC = () => {
   // tracking bar.'
   const { viewMode } = useViewMode();
   const isCoachMode = viewMode === 'coach';
+  const isAdminMode = viewMode === 'admin';
+  // Convenience: cards that are 'kid-specific' (practice-week strip,
+  // MyPlayerCard) render only in parent mode. Coach cards render only
+  // in coach mode. Admin cockpit renders only in admin mode. Universal
+  // cards (hero, wall, announcements) render always.
+  const isParentMode = viewMode === 'parent';
   const {
     getPlayersByTeam,
     getEventsByTeam,
@@ -833,11 +840,16 @@ const Dashboard: React.FC = () => {
             FCM tokens. Self-hides when not needed. */}
         <NotificationsBanner />
 
-        {/* AdminCockpit moved to /club (ClubOverview) per Patrick:
-            'this option exists as part of the main dashboard, but only
-            happens once a year. it needs to be in the club section
-            only.' Dashboard stays purely the coach/parent surface.
-            Admins reach club ops via the 'Club' tab in the bottom nav. */}
+        {/* Admin cockpit returns to the dashboard when the user is
+            in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin
+            be the same option? when they login... it has to be club
+            related things'). It still lives on /club as well; this is
+            the dashboard-surface mirror that activates when admin is
+            the user's selected view. Parent + coach modes hide it.
+            Pure admins land here by default (their only available
+            mode), so the dashboard immediately shows their pending
+            registrations, payments, and team activation count. */}
+        {isAdminMode && <AdminCockpit />}
 
         {/* Ambient cues right under the greeting — birthday pill only.
             Season countdown ("20 weeks left in Fall 2026") was removed
@@ -883,7 +895,7 @@ const Dashboard: React.FC = () => {
             exists) or 0 (if the kid has no active plan). Avoids
             Patrick's 'development card pops in later' complaint
             without showing a skeleton. */}
-        {!isCoachMode && myPlayer && (
+        {isParentMode && myPlayer && (
           <div
             className="transition-all duration-500 ease-out overflow-hidden"
             style={{
@@ -967,7 +979,7 @@ const Dashboard: React.FC = () => {
             practice-streak ribbon since they're related surfaces.
             Patrick 2026-06-21 dialogue idea #3. */}
         <CoachTeamHealthCard />
-        {!isCoachMode && myPlayer && (
+        {isParentMode && myPlayer && (
           <MyPlayerCard
             player={myPlayer}
             latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
-import { isCoach } from '../utils/helpers';
+import { isCoach, isClubAdmin as isClubAdminFn } from '../utils/helpers';
 
 /**
  * ViewModeContext — Patrick 2026-06-21: 'my dashboard is coach, my
@@ -32,7 +32,7 @@ import { isCoach } from '../utils/helpers';
  * last picked view on next session.
  */
 
-export type ViewMode = 'parent' | 'coach';
+export type ViewMode = 'parent' | 'coach' | 'admin';
 
 interface ViewModeContextValue {
   viewMode: ViewMode;
@@ -48,10 +48,13 @@ function storageKey(uid?: string): string {
 }
 
 function defaultModeFor(modes: ViewMode[]): ViewMode {
-  // Parents are the larger population; if user has kids, default
-  // to parent. Only coaches without kids default to coach.
+  // Default precedence: parent → coach → admin. Parents are the
+  // largest population; coaches who are also admins will land on
+  // coach view (their daily context); pure admins land on admin
+  // since that's the only mode available to them.
   if (modes.includes('parent')) return 'parent';
   if (modes.includes('coach')) return 'coach';
+  if (modes.includes('admin')) return 'admin';
   return 'parent';
 }
 
@@ -98,9 +101,9 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       || (hasKidsByQuery === null && Array.isArray((userData as any)?.children) && (userData as any).children.length > 0);
     if (hasKids) modes.push('parent');
     if (userData && isCoach((userData as any).role)) modes.push('coach');
-    // Always at least one — parents who are also coaches but
-    // have no kids would still be 'coach'; anything with no
-    // signals falls back to 'parent' as a safe default.
+    if (userData && isClubAdminFn(userData)) modes.push('admin');
+    // Always at least one — anything with no signals falls back
+    // to 'parent' as a safe default.
     if (modes.length === 0) modes.push('parent');
     return modes;
   }, [userData, hasKidsByQuery]);
@@ -114,7 +117,7 @@ export const ViewModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!(userData as any)?.uid) return;
     try {
       const raw = localStorage.getItem(storageKey((userData as any).uid));
-      if (raw && (raw === 'parent' || raw === 'coach') && availableModes.includes(raw as ViewMode)) {
+      if (raw && (raw === 'parent' || raw === 'coach' || raw === 'admin') && availableModes.includes(raw as ViewMode)) {
         setViewModeState(raw as ViewMode);
       } else {
         setViewModeState(defaultModeFor(availableModes));

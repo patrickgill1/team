@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useTeam } from '../../contexts/TeamContext';
-import { RichContent } from '../../pages/Wall';
 import type { WallPost } from '../../types';
 
 // Always-visible Wall affordance in the top header. Tapping it slides
@@ -125,12 +124,13 @@ const WallHeaderButton: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            // Safe-area paddings moved OFF the wrapper and INTO each
-            // dark strip below — Patrick: "can the top blue bar go
-            // all the way up and the bottom blue bar go all the way
-            // down?" The strips now paint behind the notch + home
-            // indicator instead of stopping at the safe-area edges.
-            className="absolute top-0 bottom-0 overflow-y-auto bg-white animate-sheet-up overscroll-contain flex flex-col"
+            // Safe-area paddings live inside the strips below so they
+            // paint behind notch + home indicator. Body is charcoal-950
+            // to match the rest of the app's dark theme — was bg-white
+            // pre-rebrand and read as a 'separate light page' to
+            // parents (Patrick 2026-06-21: 'still has a white page,
+            // also it is busy').
+            className="absolute top-0 bottom-0 overflow-y-auto bg-charcoal-950 animate-sheet-up overscroll-contain flex flex-col"
             style={{ left: 0, right: 0, width: '100vw' }}
           >
             <div
@@ -170,17 +170,23 @@ const WallHeaderButton: React.FC = () => {
             <div className="flex-1">
               {posts.length === 0 ? (
                 <div className="px-6 py-10 text-center">
-                  <div className="mx-auto w-12 h-12 rounded-full bg-crimson-50 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600 mb-3">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-500/25 flex items-center justify-center text-crimson-300 mb-3">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
-                  <p className="text-sm font-semibold text-slate-700">Nothing posted yet</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Coach announcements will land here.</p>
+                  <p className="text-sm font-semibold text-bone/85">Nothing posted yet</p>
+                  <p className="text-xs text-bone/55 mt-0.5">Coach announcements will land here.</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-slate-100">
+                // Dashboard-density rule: single-line previews, tap to
+                // navigate to the actual wall. We were rendering the
+                // entire post with attachments + reactions + collapse
+                // expander, which read as 'reading the wall inside a
+                // drawer' to parents. Now: sender, one-line snippet,
+                // chevron. Wall is the source of truth.
+                <ul className="divide-y divide-white/5">
                   {posts.map(p => (
                     <li key={p.id}>
-                      <WallDrawerPost post={p} onNavigate={() => setOpen(false)} />
+                      <WallDrawerRow post={p} onNavigate={() => setOpen(false)} />
                     </li>
                   ))}
                 </ul>
@@ -216,81 +222,51 @@ const WallHeaderButton: React.FC = () => {
   );
 };
 
-// Renders a single post in the wall drawer with collapse/expand for
-// long content. Without this a single big pinned post can hide every
-// other post in the drawer behind it.
-const COLLAPSED_MAX_PX = 240;
-
-const WallDrawerPost: React.FC<{ post: WallPost; onNavigate: () => void }> = ({ post: p, onNavigate }) => {
-  const bodyRef = React.useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [needsCollapse, setNeedsCollapse] = useState(false);
-
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (!el) return;
-    setNeedsCollapse(el.scrollHeight > COLLAPSED_MAX_PX + 24);
+// Single-line preview row. Per the dashboard density memory
+// (~36-line row, strip markdown, sender + snippet + chevron),
+// the drawer is a discovery surface for the wall, not a place
+// to read full posts. Tap navigates to /wall where the actual
+// reading happens.
+const WallDrawerRow: React.FC<{ post: WallPost; onNavigate: () => void }> = ({ post: p, onNavigate }) => {
+  // Strip markdown / image refs / links so the snippet is just
+  // the prose. Otherwise a post that starts with an image markup
+  // shows '![](https://...)' as the preview.
+  const snippet = React.useMemo(() => {
+    const raw = (p.content || '').trim();
+    return raw
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')   // ![alt](url) images
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // [text](url) links → text
+      .replace(/[#*_`>~]+/g, '')               // md punctuation
+      .replace(/\s+/g, ' ')                    // collapse whitespace
+      .trim();
   }, [p.content]);
 
+  const stamp = p.timestamp.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+
   return (
-    <article className="block px-4 sm:px-5 py-4 hover:bg-slate-50/60 transition-colors">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-sm font-bold text-slate-900">{p.senderName}</span>
-        {p.senderRole === 'coach' && (
-          <span className="text-[9px] font-bold uppercase tracking-wider text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">Coach</span>
-        )}
-        <span className="text-[11px] text-slate-400 ml-auto">
-          {p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-        </span>
-      </div>
-      <div className="relative">
-        <div
-          ref={bodyRef}
-          className="text-[15px] text-slate-800 break-words"
-          style={!expanded && needsCollapse ? { maxHeight: COLLAPSED_MAX_PX, overflow: 'hidden' } : undefined}
-        >
-          <RichContent text={p.content} />
+    <Link
+      to="/wall"
+      onClick={onNavigate}
+      className="block px-4 py-3 hover:bg-white/[0.04] active:bg-white/[0.08] transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-bold text-bone truncate">{p.senderName}</span>
+            <span className="text-[11px] text-bone/45 shrink-0">{stamp}</span>
+          </div>
+          <p className="text-[13px] text-bone/70 truncate">
+            {snippet || '(no text)'}
+          </p>
         </div>
-        {!expanded && needsCollapse && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent"
-          />
-        )}
+        <svg className="w-4 h-4 text-bone/40 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </div>
-      {needsCollapse && (
-        <button
-          type="button"
-          onClick={() => setExpanded(v => !v)}
-          className="mt-2 text-[11px] font-bold uppercase tracking-widest text-crimson-700 hover:text-crimson-900"
-        >
-          {expanded ? 'Show less' : 'Read more'}
-        </button>
-      )}
-      {p.attachments && p.attachments.length > 0 && (
-        <div className={`mt-3 grid gap-1.5 ${p.attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-          {p.attachments.slice(0, 4).map((a, i) => (
-            <img
-              key={i}
-              src={a.url}
-              alt={a.name || ''}
-              loading="lazy"
-              className={`rounded-lg object-cover w-full ring-1 ring-slate-200 ${p.attachments!.length === 1 ? 'max-h-72' : 'h-32'}`}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-            />
-          ))}
-        </div>
-      )}
-      <div className="mt-3">
-        <Link
-          to="/wall"
-          onClick={onNavigate}
-          className="inline-flex items-center gap-1 text-xs font-bold tracking-widest uppercase text-crimson-700 hover:text-crimson-900"
-        >
-          Open on the wall →
-        </Link>
-      </div>
-    </article>
+    </Link>
   );
 };
 

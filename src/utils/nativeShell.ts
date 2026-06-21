@@ -11,7 +11,11 @@ export async function initNativeShell(): Promise<void> {
     // Status bar: dark hero gradient looks best with light status bar text.
     const { StatusBar, Style } = await import('@capacitor/status-bar');
     await StatusBar.setStyle({ style: Style.Light });
-    await StatusBar.setBackgroundColor({ color: '#000000' });
+    // charcoal-950 (#0d0d10) — matches Android styles.xml and the
+    // app's brand dark. Previously #000000 which read fine on iOS
+    // but printed pure-black against the charcoal brand color on
+    // Android (post-rebrand fix, 2026-06-21).
+    await StatusBar.setBackgroundColor({ color: '#0d0d10' });
     // setOverlaysWebView({overlay:true}) lets the WebView paint the
     // ENTIRE screen including the safe-area-inset-top region (notch
     // / Dynamic Island). Without this, Capacitor on iOS creates a

@@ -26,13 +26,16 @@
              already insetted by default. -->
         <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
         <!-- Paint the status / nav bars and the activity window
-             background with the app's navy so the insetted strip
-             above the WebView blends into the system bar instead of
-             flashing white. Matches the runtime StatusBar plugin
-             color (#0f172a) set in src/utils/nativeShell.ts. -->
-        <item name="android:statusBarColor">#0f172a</item>
-        <item name="android:navigationBarColor">#0f172a</item>
-        <item name="android:windowBackground">#0f172a</item>
+             background with charcoal-950 (the GoalKickr brand dark)
+             so the insetted strips blend into the system bars
+             instead of showing the leftover Fire FC navy. Matches
+             Tailwind's `charcoal.950` token = #0d0d10 and the
+             runtime StatusBar.setBackgroundColor call in
+             src/utils/nativeShell.ts. Patrick caught the leftover
+             navy at top + bottom of a Pixel 9a on 2026-06-21. -->
+        <item name="android:statusBarColor">#0d0d10</item>
+        <item name="android:navigationBarColor">#0d0d10</item>
+        <item name="android:windowBackground">#0d0d10</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>

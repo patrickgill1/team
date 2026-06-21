@@ -194,11 +194,35 @@ const CoachAccordionBar: React.FC = () => {
     return 'cyan';
   }, [items]);
 
-  // Hidden entirely when nothing's actionable — don't add visual
-  // chrome to a quiet day.
+  // DIAGNOSTIC MODE (added 2026-06-21 because Patrick reported
+  // 'still not seeing anything' even with real data that should have
+  // triggered RSVPs missing). Three early-return conditions —
+  // emphasizing visibility while we debug which one is firing:
+  //
+  //   - !isUserCoach: component returns null entirely. If Patrick
+  //     doesn't see ANYTHING at all, his role isn't 'coach' (might
+  //     be 'team_manager' or something else); we'd need to widen the
+  //     gating. Console.log captures it for inspection.
+  //   - !loaded: still loading the team + events. Brief; should
+  //     not be the persistent reason for invisibility.
+  //   - items.length === 0: queries returned but nothing was
+  //     actionable. Render a small green 'All clear' chip so Patrick
+  //     can SEE the bar mounted and worked — confirming the data
+  //     query returned empty (vs. the render path being broken).
+  if (typeof console !== 'undefined') {
+    console.debug('[coach-bar]', { isUserCoach, role: (userData as any)?.role, selectedTeamId, loaded, itemsCount: items.length });
+  }
   if (!isUserCoach) return null;
   if (!loaded) return null;
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return (
+      <div className="w-full flex items-center gap-2 px-4 py-1.5 bg-emerald-500/15 text-emerald-300 font-bold text-[11px] border-y border-emerald-400/20">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-hidden />
+        <span className="flex-1 text-left">All clear</span>
+        <span className="text-emerald-400/70 text-[10px]">coach status bar</span>
+      </div>
+    );
+  }
 
   const colorFor = (p: Priority) => {
     if (p === 'crimson') return { bar: 'bg-crimson-500', textOnBar: 'text-white', chip: 'bg-crimson-500/15 text-crimson-200 ring-crimson-400/40' };

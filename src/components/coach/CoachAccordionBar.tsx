@@ -51,10 +51,24 @@ interface StatusItem {
   href: string;
 }
 
+interface MessagePreview {
+  threadId: string;
+  senderName: string;
+  snippet: string;
+  timestamp: Date;
+}
+
 const CoachAccordionBar: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId } = useTeam();
   const [items, setItems] = useState<StatusItem[]>([]);
+  // Inbox preview: latest message per thread from senders other
+  // than this coach, last 24h. Surfaced inline in the expanded
+  // panel so a coach taps the bar → sees who pinged them → taps a
+  // row → straight into that thread. 2-click path to a reply.
+  // Patrick 2026-06-21 dialogue idea #5 (quick reply inbox), wired
+  // into the accordion expansion rather than a new dashboard card.
+  const [inboxPreviews, setInboxPreviews] = useState<MessagePreview[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -191,6 +205,32 @@ const CoachAccordionBar: React.FC = () => {
               detail: 'In team chat',
               href: '/chat',
             });
+
+            // Build the inbox preview list — latest message per
+            // unique thread, capped at 3. Lets the expanded panel
+            // show a tap-to-open inbox without a separate query.
+            const byThread = new Map<string, MessagePreview>();
+            for (const d of recent) {
+              const data: any = d.data();
+              if (byThread.has(data.threadId)) continue;  // first = newest because we ordered desc
+              const ts = data.timestamp?.toDate?.() || new Date(data.timestamp || 0);
+              const snippet = (data.content || '')
+                .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+                .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+                .replace(/[#*_`>~]+/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+              byThread.set(data.threadId, {
+                threadId: data.threadId,
+                senderName: data.senderName || 'Member',
+                snippet: snippet || '(no text)',
+                timestamp: ts,
+              });
+              if (byThread.size >= 3) break;
+            }
+            setInboxPreviews(Array.from(byThread.values()));
+          } else {
+            setInboxPreviews([]);
           }
         } catch (err) {
           // Chat query may fail (rules, missing index); silent skip.
@@ -313,6 +353,44 @@ const CoachAccordionBar: React.FC = () => {
                         <span className="font-extrabold">{i.label}</span>
                         <span className="opacity-70">·</span>
                         <span className="opacity-90">{i.detail}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {/* Inline inbox preview — when there are recent team-chat
+                messages, show the latest from each thread so the coach
+                can read + tap directly to reply. 2-click path:
+                tap bar → tap preview → in the thread. No separate
+                inbox card / extra navigation. */}
+            {inboxPreviews.length > 0 && (
+              <ul className="space-y-1 -mx-1">
+                {inboxPreviews.map((p) => {
+                  const ago = (() => {
+                    const ms = Date.now() - p.timestamp.getTime();
+                    const mins = Math.floor(ms / 60_000);
+                    if (mins < 60) return `${mins}m`;
+                    const hrs = Math.floor(mins / 60);
+                    if (hrs < 24) return `${hrs}h`;
+                    return `${Math.floor(hrs / 24)}d`;
+                  })();
+                  return (
+                    <li key={p.threadId}>
+                      <Link
+                        to="/chat"
+                        onClick={() => setExpanded(false)}
+                        className="flex items-center gap-2.5 px-1 py-1.5 rounded-md hover:bg-white/[0.04] transition"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-[12.5px] font-bold text-bone truncate">{p.senderName}</span>
+                            <span className="text-[10px] text-bone/40 shrink-0">{ago}</span>
+                          </div>
+                          <p className="text-[11.5px] text-bone/65 truncate">{p.snippet}</p>
+                        </div>
+                        <svg className="w-3 h-3 text-bone/35 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
                       </Link>
                     </li>
                   );

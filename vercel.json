@@ -41,13 +41,13 @@
     {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "firefc.app" }],
-      "destination": "https://goalkickr.com/:path*",
+      "destination": "https://app.goalkickr.com/:path*",
       "permanent": true
     },
     {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "www.firefc.app" }],
-      "destination": "https://goalkickr.com/:path*",
+      "destination": "https://app.goalkickr.com/:path*",
       "permanent": true
     }
   ]

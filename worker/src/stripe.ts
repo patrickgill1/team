@@ -19,7 +19,7 @@
  */
 
 import { ServiceAccount, parseServiceAccount } from './fcm';
-import { getDocument, patchDocument, createDocument } from './firestore';
+import { getDocument, patchDocument, createDocument, runQuery } from './firestore';
 
 export interface StripeEnv {
   STRIPE_SECRET_KEY?: string;
@@ -28,6 +28,19 @@ export interface StripeEnv {
   APP_ORIGIN: string;
   FCM_SERVICE_ACCOUNT?: string;
   FIREBASE_PROJECT_ID?: string;
+  // ── Coach subscription pricing ────────────────────────────────
+  // Stripe price IDs for the GoalKickr Coach plans. Set per
+  // environment in Cloudflare. Worker validates an inbound priceId
+  // against this allowlist so a tampered client can't checkout a
+  // random price. Tier is derived from the matched env var so the
+  // Firestore subscription doc carries the canonical tier string.
+  STRIPE_PRICE_COACH_ANNUAL?: string;
+  STRIPE_PRICE_COACH_MONTHLY?: string;
+  STRIPE_PRICE_FOUNDER?: string;
+  // Number of Founder seats available before the tier closes.
+  // String because Cloudflare env vars are always strings.
+  // Defaults to 50.
+  FOUNDER_CAPACITY?: string;
 }
 
 function projectIdFromEnv(env: StripeEnv): string | null {
@@ -431,6 +444,179 @@ export async function handleRegistrationRefund(payload: any, env: StripeEnv): Pr
   }
 }
 
+// ── Endpoint: POST /stripe/subscription-checkout ─────────────────
+//
+// Creates a Stripe Checkout Session in subscription mode for the
+// GoalKickr Coach plans (Annual / Monthly / Founder $5). UNLIKE
+// /stripe/registration-checkout this is a PLATFORM-level charge —
+// no Stripe-Account header, no application fee. The money lands in
+// GoalKickr's own Stripe balance.
+//
+// Auth: anonymous-by-design. Two callers:
+//   1. Marketing site /signup (goalkickr.com) — user may not yet
+//      have a Firebase account at signup time.
+//   2. In-app upgrade flow (Settings → Choose plan) — user is
+//      signed in. App passes uid so the webhook can stamp the doc
+//      keyed by uid instead of customer email.
+//
+// Anti-abuse:
+//   - priceId MUST match one of the env-allowlisted plans
+//     (STRIPE_PRICE_COACH_ANNUAL / _MONTHLY / FOUNDER). Random
+//     priceIds (e.g. someone else's) are rejected.
+//   - Founder is gated on FOUNDER_CAPACITY count from Firestore;
+//     returns 409 'founder-sold-out' when full.
+//
+// Body: { priceId, uid?, customerEmail?, successUrl, cancelUrl,
+//         referralSource?, trialDays? }
+export async function handleSubscriptionCheckout(payload: any, env: StripeEnv): Promise<Response> {
+  const priceId = String(payload?.priceId || '').trim();
+  if (!priceId) return json({ ok: false, error: 'missing-priceId' }, 400);
+  const tier = tierForPriceId(priceId, env);
+  if (!tier) return json({ ok: false, error: 'invalid-priceId' }, 400);
+
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/signup/success?session_id={CHECKOUT_SESSION_ID}`);
+  const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/signup`);
+  const uid = payload?.uid ? String(payload.uid) : undefined;
+  const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
+  const referralSource = payload?.referralSource ? String(payload.referralSource).slice(0, 64) : undefined;
+  const trialDays = Number.isFinite(payload?.trialDays) ? Number(payload.trialDays) : undefined;
+
+  // Founder cap check — done BEFORE creating the session so we don't
+  // hand out an unredeemable URL when the 50th seat just got taken.
+  if (tier === 'founder') {
+    const projectId = projectIdFromEnv(env);
+    const sa = getServiceAccount(env);
+    if (projectId && sa) {
+      try {
+        const { taken, capacity } = await countFounderActive(projectId, sa, env);
+        if (taken >= capacity) return json({ ok: false, error: 'founder-sold-out', taken, capacity }, 409);
+      } catch (err) {
+        // Don't hard-fail on the count — log and let the checkout
+        // through. Worst case we go a seat or two over capacity.
+        console.warn('founder count check failed', err);
+      }
+    }
+  }
+
+  try {
+    const sessionParams: Record<string, any> = {
+      mode: 'subscription',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      'line_items[0][price]': priceId,
+      'line_items[0][quantity]': 1,
+      // Allow promotion codes on the hosted page — handy for the
+      // launch period when Patrick is dropping codes in DMs.
+      allow_promotion_codes: true,
+      'metadata[tier]': tier,
+      'metadata[priceId]': priceId,
+    };
+    if (customerEmail) sessionParams['customer_email'] = customerEmail;
+    if (uid) {
+      sessionParams['metadata[uid]'] = uid;
+      // Mirror into subscription_data so the metadata persists on
+      // the Subscription object itself (not just the Checkout
+      // session). Webhook handlers for customer.subscription.*
+      // events read from subscription.metadata.
+      sessionParams['subscription_data[metadata][uid]'] = uid;
+      sessionParams['subscription_data[metadata][tier]'] = tier;
+    }
+    if (referralSource) {
+      sessionParams['metadata[referralSource]'] = referralSource;
+      sessionParams['subscription_data[metadata][referralSource]'] = referralSource;
+    }
+    if (trialDays && trialDays > 0 && trialDays <= 90) {
+      sessionParams['subscription_data[trial_period_days]'] = trialDays;
+    }
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams);
+    return json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
+// Map a Stripe priceId to a canonical tier string, or null if the
+// price isn't one of our allowlisted plans.
+function tierForPriceId(priceId: string, env: StripeEnv): 'annual' | 'monthly' | 'founder' | null {
+  if (env.STRIPE_PRICE_COACH_ANNUAL && priceId === env.STRIPE_PRICE_COACH_ANNUAL) return 'annual';
+  if (env.STRIPE_PRICE_COACH_MONTHLY && priceId === env.STRIPE_PRICE_COACH_MONTHLY) return 'monthly';
+  if (env.STRIPE_PRICE_FOUNDER && priceId === env.STRIPE_PRICE_FOUNDER) return 'founder';
+  return null;
+}
+
+function founderCapacity(env: StripeEnv): number {
+  const raw = Number(env.FOUNDER_CAPACITY);
+  return Number.isFinite(raw) && raw > 0 ? raw : 50;
+}
+
+// Count active Founder subscriptions in Firestore. Used both by the
+// pre-checkout gate (so we don't sell a 51st seat) and by the public
+// /stripe/founder/count endpoint (drives the live "X of 50 left"
+// counter on the marketing site).
+//
+// Statuses considered to "occupy a seat": active, trialing, past_due.
+// runQuery() doesn't expose Firestore's IN operator, so we issue three
+// EQUAL queries in parallel and count the union by document id.
+async function countFounderActive(projectId: string, sa: ServiceAccount, env: StripeEnv): Promise<{ taken: number; capacity: number }> {
+  const capacity = founderCapacity(env);
+  const statuses = ['active', 'trialing', 'past_due'];
+  const results = await Promise.all(statuses.map(s => runQuery(
+    projectId,
+    'subscriptions',
+    [
+      { field: 'tier', op: 'EQUAL', value: 'founder' },
+      { field: 'status', op: 'EQUAL', value: s },
+    ],
+    sa,
+    200,
+  ).catch(() => [])));
+  const ids = new Set<string>();
+  for (const list of results) for (const doc of list) ids.add(doc.id);
+  return { taken: ids.size, capacity };
+}
+
+// ── Endpoint: GET /stripe/founder/count ──────────────────────────
+//
+// Public, anonymous endpoint that powers the live "X of 50 spots
+// left" counter on the marketing site /signup page. Cheap — single
+// Firestore structured query, no Stripe roundtrip.
+export async function handleFounderCount(env: StripeEnv): Promise<Response> {
+  const projectId = projectIdFromEnv(env);
+  const sa = getServiceAccount(env);
+  const capacity = founderCapacity(env);
+  if (!projectId || !sa) {
+    // Degrade gracefully — surface capacity so the UI can render
+    // "50 spots" without crashing if Firestore isn't configured.
+    return json({ ok: true, taken: 0, capacity, configured: false });
+  }
+  try {
+    const { taken } = await countFounderActive(projectId, sa, env);
+    return json({ ok: true, taken, capacity, configured: true, remaining: Math.max(0, capacity - taken) });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err), capacity }, 502);
+  }
+}
+
+// ── Endpoint: POST /stripe/customer-portal ──────────────────────
+//
+// Creates a Stripe Billing Customer Portal session so a subscribed
+// user can self-serve update card / cancel / view invoices. Caller
+// passes their stripeCustomerId (read from subscriptions/{uid}).
+export async function handleCustomerPortal(payload: any, env: StripeEnv): Promise<Response> {
+  const customerId = String(payload?.customerId || '').trim();
+  if (!customerId) return json({ ok: false, error: 'missing-customerId' }, 400);
+  const returnUrl = String(payload?.returnUrl || `${env.APP_ORIGIN}/settings`);
+  try {
+    const session = await stripeRequest(env, '/billing_portal/sessions', {
+      customer: customerId,
+      return_url: returnUrl,
+    });
+    return json({ ok: true, url: session.url });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
 // ── Endpoint: POST /stripe/webhook ───────────────────────────────
 
 async function verifyStripeSignature(rawBody: string, sigHeader: string, secret: string): Promise<boolean> {
@@ -507,11 +693,66 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
     }
   }
 
+  // ── Subscription lifecycle ─────────────────────────────────────
+  // Stamps subscriptions/{uid} (or subscriptions/cus_{customerId} if
+  // no uid was passed) with the current tier + status + period end
+  // every time Stripe sends us a state change. The webhook is the
+  // single source of truth — the app reads from Firestore, never
+  // from Stripe directly.
+  if (
+    event.type === 'customer.subscription.created' ||
+    event.type === 'customer.subscription.updated' ||
+    event.type === 'customer.subscription.deleted'
+  ) {
+    try {
+      const sub = event.data.object;
+      await upsertSubscriptionDoc(projectId, sa, sub, env);
+    } catch (err) {
+      console.warn('subscription webhook failed', err);
+      // Stripe retries on non-2xx for 72h. We log and return 200 so
+      // a Firestore blip doesn't trigger an indefinite retry loop —
+      // the next subscription event will heal the doc anyway.
+    }
+  }
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const registrationId = session?.metadata?.registrationId;
     const clubId = session?.metadata?.clubId;
     const installmentId = session?.metadata?.installmentId;
+
+    // Subscription Checkout completed — fast-path the doc creation
+    // so the marketing-site /signup/success page can read the
+    // subscriptions doc immediately. Without this we'd wait on the
+    // separate customer.subscription.created event, which sometimes
+    // arrives out-of-order behind checkout.session.completed.
+    if (session?.mode === 'subscription' && session?.subscription) {
+      try {
+        const subId = String(session.subscription);
+        // Expand the subscription so we can capture period dates +
+        // price details in one webhook handler.
+        const sub = await stripeRequest(env, `/subscriptions/${subId}?expand[]=items.data.price`, {} as any).catch(() => null);
+        if (sub) {
+          // Carry checkout session metadata onto the subscription so
+          // upsertSubscriptionDoc has the uid/tier even when the
+          // Subscription itself wasn't tagged (rare, but happens when
+          // the upstream Checkout was created from Stripe Dashboard
+          // not our worker).
+          sub.metadata = {
+            ...(sub.metadata || {}),
+            uid: sub.metadata?.uid || session?.metadata?.uid,
+            tier: sub.metadata?.tier || session?.metadata?.tier,
+            referralSource: sub.metadata?.referralSource || session?.metadata?.referralSource,
+            checkoutSessionId: session.id,
+            customerEmail: session?.customer_details?.email || session?.customer_email || null,
+          };
+          await upsertSubscriptionDoc(projectId, sa, sub, env);
+        }
+      } catch (err) {
+        console.warn('subscription checkout.session.completed handler failed', err);
+      }
+    }
+
     if (registrationId && clubId) {
       try {
         if (installmentId) {
@@ -668,4 +909,75 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { 'content-type': 'application/json; charset=utf-8' },
   });
+}
+
+// ── Subscription doc upsert ────────────────────────────────────
+//
+// Single source-of-truth writer for subscriptions/{uid}. Called from
+// the webhook on customer.subscription.* AND from the post-Checkout
+// fast path. Keyed by metadata.uid when present, otherwise by
+// `cus_<customerId>` so users who signed up via marketing site before
+// account creation still get a doc we can later relink.
+async function upsertSubscriptionDoc(
+  projectId: string | null,
+  sa: ServiceAccount | null,
+  sub: any,
+  env: StripeEnv,
+): Promise<void> {
+  if (!projectId || !sa) return;
+  if (!sub) return;
+  const subscriptionId = String(sub.id || '');
+  if (!subscriptionId) return;
+
+  // Stripe sometimes returns the price on the subscription items
+  // already and sometimes not, depending on which event fired. Walk
+  // both shapes defensively.
+  const item = sub.items?.data?.[0] || sub.items?.[0];
+  const priceObj = item?.price || sub.plan; // legacy `plan` for old events
+  const priceId = String(priceObj?.id || sub.metadata?.priceId || '');
+  const customerId = String(sub.customer || '');
+  const uid = (sub.metadata?.uid || '').toString().trim();
+  const docId = uid || (customerId ? `cus_${customerId}` : '');
+  if (!docId) return;
+
+  const tier = (sub.metadata?.tier && tierLooksValid(sub.metadata.tier))
+    ? sub.metadata.tier
+    : (tierForPriceId(priceId, env) || 'unknown');
+
+  const periodEndSec = Number(sub.current_period_end || item?.current_period_end || 0);
+  const startedAtSec = Number(sub.start_date || 0);
+  const canceledAtSec = Number(sub.canceled_at || 0);
+  const trialEndSec = Number(sub.trial_end || 0);
+
+  const data: Record<string, any> = {
+    userId: uid || null,
+    customerId: customerId || null,
+    customerEmail: sub.metadata?.customerEmail || null,
+    subscriptionId,
+    checkoutSessionId: sub.metadata?.checkoutSessionId || null,
+    priceId: priceId || null,
+    productId: priceObj?.product ? String(priceObj.product) : null,
+    tier,
+    status: String(sub.status || 'incomplete'),
+    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    currentPeriodEnd: periodEndSec ? new Date(periodEndSec * 1000) : null,
+    startedAt: startedAtSec ? new Date(startedAtSec * 1000) : null,
+    canceledAt: canceledAtSec ? new Date(canceledAtSec * 1000) : null,
+    trialEnd: trialEndSec ? new Date(trialEndSec * 1000) : null,
+    referralSource: sub.metadata?.referralSource || null,
+    updatedAt: new Date(),
+  };
+
+  // Existence check — patch if it exists, create if not. Worker has
+  // no native upsert; this two-step is the cheap workaround.
+  const existing = await getDocument(projectId, `subscriptions/${docId}`, sa).catch(() => null);
+  if (existing) {
+    await patchDocument(projectId, `subscriptions/${docId}`, data, sa);
+  } else {
+    await createDocument(projectId, 'subscriptions', { ...data, createdAt: new Date() }, sa, docId);
+  }
+}
+
+function tierLooksValid(t: any): boolean {
+  return t === 'annual' || t === 'monthly' || t === 'founder';
 }

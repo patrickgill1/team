@@ -21,6 +21,9 @@ import {
   handleConnectDisconnect,
   handleRegistrationCheckout,
   handleRegistrationRefund,
+  handleSubscriptionCheckout,
+  handleFounderCount,
+  handleCustomerPortal,
   handleWebhook,
 } from './stripe';
 
@@ -146,6 +149,30 @@ export default {
     // immediately redirects, so requiring a bearer would be awkward.
     if (url.pathname === '/stripe/connect/start' && req.method === 'GET') {
       const res = handleConnectStart(url, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // GET /stripe/founder/count is anonymous — drives the live
+    // "X of 50 spots left" counter on goalkickr.com/signup. No PII
+    // exposed (just two integers), so safe to leave open.
+    if (url.pathname === '/stripe/founder/count' && req.method === 'GET') {
+      const res = await handleFounderCount(env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // POST /stripe/subscription-checkout is anonymous — called from
+    // BOTH the marketing site signup (user has no app account yet)
+    // AND the in-app upgrade flow. priceId is validated against an
+    // env allowlist inside the handler so a tampered client can't
+    // checkout a random price.
+    if (url.pathname === '/stripe/subscription-checkout' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleSubscriptionCheckout(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });
@@ -284,6 +311,17 @@ export default {
 
     if (url.pathname === '/stripe/registration-refund') {
       const res = await handleRegistrationRefund(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // Stripe Billing Customer Portal session — gated behind the
+    // bearer because callers send their stripeCustomerId in the
+    // clear and we don't want a random someone minting portal links
+    // for someone else's customer id.
+    if (url.pathname === '/stripe/customer-portal') {
+      const res = await handleCustomerPortal(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

@@ -12,6 +12,7 @@ import { getShareOrigin } from '../utils/origin';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
 import { isCoach } from '../utils/helpers';
 import NotificationPreferences from '../components/common/NotificationPreferences';
+import SubscriptionCard from '../components/settings/SubscriptionCard';
 
 interface LinkedPlayer {
   id: string;
@@ -405,6 +406,12 @@ const Settings: React.FC = () => {
               </div>
             )}
           </div>
+        </section>
+
+        {/* ── SUBSCRIPTION ──────────────────────────────────────── */}
+        <section>
+          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Subscription</h2>
+          <SubscriptionCard />
         </section>
 
         {/* ── MANAGE ACCOUNT ────────────────────────────────────── */}

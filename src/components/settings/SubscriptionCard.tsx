@@ -1,0 +1,170 @@
+// @ts-nocheck
+import React, { useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { useSubscription } from '../../hooks/useSubscription';
+import { openCustomerPortal, openWebSignup, isAppleDevice } from '../../utils/subscriptionApi';
+
+// Settings-page tile for the coach's GoalKickr subscription. Reads
+// from subscriptions/{uid} in real-time (worker stamps the doc from
+// Stripe webhooks).
+//
+// Three render states:
+//   1. Active   — "Founding Coach · renews Jul 22, 2026 · Manage"
+//   2. Past due — amber banner: "Payment failed. Update card."
+//   3. None     — "Coach for free until you're ready. Pick a plan →"
+//
+// Apple compliance:
+//   - In-app upgrade flow opens goalkickr.com/signup in the system
+//     browser. Stripe Checkout never renders inside the WebView.
+//   - Manage flow opens the Stripe Customer Portal in the system
+//     browser, which is allowed for account servicing under the
+//     Reader/Service-app rules.
+
+const TIER_LABEL: Record<string, string> = {
+  founder: 'Founding Coach',
+  annual: 'Team — Annual',
+  monthly: 'Team — Monthly',
+  unknown: 'GoalKickr Team',
+};
+
+const TIER_PRICE: Record<string, string> = {
+  founder: '$4.99/mo',
+  annual: '$79.99/yr',
+  monthly: '$9.99/mo',
+};
+
+function fmtDate(d: Date | null): string {
+  if (!d) return '';
+  try {
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return '';
+  }
+}
+
+const SubscriptionCard: React.FC = () => {
+  const { currentUser, userData } = useAuth();
+  const { loading, subscription, isActive, isTrialing, isPastDue, willCancelAtPeriodEnd, tier, currentPeriodEndDate } = useSubscription();
+  const [opening, setOpening] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
+
+  const handleManage = async () => {
+    if (!subscription?.customerId) return;
+    setOpening(true);
+    setPortalError(null);
+    const err = await openCustomerPortal({ customerId: subscription.customerId });
+    setOpening(false);
+    if (err) setPortalError('Could not open the billing portal. Try again in a moment.');
+  };
+
+  const handleSubscribe = () => {
+    openWebSignup({
+      email: currentUser?.email || userData?.email || undefined,
+      uid: currentUser?.uid,
+      intent: 'subscribe',
+    });
+  };
+
+  const handleUpgrade = () => {
+    openWebSignup({
+      email: currentUser?.email || userData?.email || undefined,
+      uid: currentUser?.uid,
+      intent: 'upgrade',
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
+        <p className="text-charcoal-400 text-sm">Loading subscription…</p>
+      </div>
+    );
+  }
+
+  // No subscription on file. Two reasons to land here:
+  //   - User has only ever used GoalKickr for free (parent, or trial coach)
+  //   - Marketing-site signup wrote subscriptions/cus_xxx but Firebase
+  //     uid hasn't been linked yet; the doc isn't reachable from this uid
+  if (!subscription || !isActive && subscription?.status !== 'past_due') {
+    return (
+      <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4 space-y-3">
+        <div>
+          <p className="text-bone font-bold">Coach with GoalKickr</p>
+          <p className="text-charcoal-300 text-sm mt-1">
+            You&apos;re using GoalKickr for free. Coaches unlock the full toolkit (chat, RSVPs, gameday, dev plans) with a Team plan starting at $9.99/mo.
+            {!isAppleDevice() && ' Founding Coach pricing locks in $4.99/mo forever.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSubscribe}
+          className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-crimson-600 hover:bg-crimson-500 text-white transition-all"
+        >
+          Pick a plan
+        </button>
+      </div>
+    );
+  }
+
+  const tierLabel = TIER_LABEL[tier || 'unknown'] || TIER_LABEL.unknown;
+  const tierPrice = TIER_PRICE[tier || 'unknown'] || '';
+  const renewsAt = fmtDate(currentPeriodEndDate);
+
+  return (
+    <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-bone font-bold">{tierLabel}</p>
+          <p className="text-charcoal-300 text-sm mt-1">
+            {tierPrice}
+            {willCancelAtPeriodEnd && renewsAt && ` · ends ${renewsAt}`}
+            {!willCancelAtPeriodEnd && renewsAt && ` · renews ${renewsAt}`}
+            {isTrialing && ' · in trial'}
+          </p>
+        </div>
+        <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest ${
+          isPastDue ? 'bg-amber-900/40 text-amber-300 ring-1 ring-amber-700/40'
+          : willCancelAtPeriodEnd ? 'bg-charcoal-800 text-charcoal-300 ring-1 ring-white/10'
+          : 'bg-emerald-900/40 text-emerald-300 ring-1 ring-emerald-700/40'
+        }`}>
+          {isPastDue ? 'Past due' : willCancelAtPeriodEnd ? 'Canceling' : isTrialing ? 'Trial' : 'Active'}
+        </span>
+      </div>
+
+      {isPastDue && (
+        <div className="rounded-md bg-amber-950/40 ring-1 ring-amber-700/40 px-3 py-2 text-amber-100 text-xs">
+          Your last payment failed. Update your card in the billing portal to keep your subscription active.
+        </div>
+      )}
+
+      {portalError && (
+        <div className="rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-xs">
+          {portalError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <button
+          type="button"
+          onClick={handleManage}
+          disabled={opening || !subscription?.customerId}
+          className="inline-flex items-center justify-center px-3 py-2 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all disabled:opacity-50"
+        >
+          {opening ? 'Opening…' : 'Manage'}
+        </button>
+        <button
+          type="button"
+          onClick={handleUpgrade}
+          className="inline-flex items-center justify-center px-3 py-2 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all"
+        >
+          Change plan
+        </button>
+      </div>
+      <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
+        Billing happens on our website. Tapping Manage or Change plan opens your browser.
+      </p>
+    </div>
+  );
+};
+
+export default SubscriptionCard;

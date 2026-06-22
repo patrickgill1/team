@@ -3179,6 +3179,20 @@ const TeamChat: React.FC = () => {
         {dmPickerModal}
       </div>
       {lightbox}
+      {/* Mobile path was missing the new chatLightbox component
+          (Patrick 2026-06-22) — the activation chain fired and
+          state updated but the lightbox JSX only existed in the
+          desktop return path. Mobile users have never been able
+          to open photos. Adding here so it portal-renders into
+          body regardless of which return path the component
+          takes. */}
+      {chatLightbox && (
+        <ChatImageLightbox
+          images={chatLightbox.images}
+          startIndex={chatLightbox.startIndex}
+          onClose={() => setChatLightbox(null)}
+        />
+      )}
       </>
     );
   }

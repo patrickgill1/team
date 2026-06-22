@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Used by Android 12+'s SplashScreen API as the background
+         color while the OS shows the app's launcher icon during
+         cold-start. Was #FFFFFF — produced the white flash Patrick
+         caught 2026-06-22 ('starts with a white startup screen
+         with a circular goalkickr logo'). Now matches the rest of
+         the brand chrome (charcoal-950) so launch reads as a
+         continuous dark surface from splash through app load.
+
+         Also used as the launcher icon's adaptive-icon background
+         layer (the bottom layer behind the foreground GoalKickr
+         logo) on Android 8+. Charcoal background lets the logo
+         glow against home-screen wallpapers instead of clashing
+         with the previous white. -->
+    <color name="ic_launcher_background">#0D0D10</color>
 </resources>

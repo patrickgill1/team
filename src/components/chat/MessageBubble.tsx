@@ -116,36 +116,56 @@ const ChatAttachmentImage: React.FC<{
   // Multi-image (grid): absolute-fill the cell — grid-cols-2 gives
   // the parent explicit tracks, so w-full + aspect-square has
   // something concrete to anchor to.
-  // Click handler hardened against the parent bubble's touch
-  // gestures (long-press + swipe-to-reply). The synthetic click that
-  // iOS Safari fires after touchend was getting eaten when the user
-  // happened to drift a pixel or two during the tap, leaving images
-  // unopenable. Three defenses, in order:
-  //   1. stopPropagation so parent gesture handlers don't think the
-  //      tap was meant for them
-  //   2. onPointerUp as a primary trigger (fires reliably across
-  //      touch / mouse / pen — no synthetic-click delay)
-  //   3. fall-through onClick for cases where pointer events aren't
-  //      supported (older Android WebViews)
-  // Patrick 2026-06-21: 'lost the ability to click on a photo in
-  // chat to open it up. it does nothing.'
-  const handleActivate = (e: React.SyntheticEvent) => {
-    e.stopPropagation();
-    onClick?.();
-  };
+  // AGGRESSIVE FIX + DIAGNOSTIC. Patrick 2026-06-22: 'sent a photo,
+  // and can't click and open it for full view.' Previous attempts
+  // (stopPropagation + onPointerUp + touchAction:manipulation) didn't
+  // fix it on real devices. Going deeper:
+  //   - Native DOM listeners attached via useRef. Bypasses React's
+  //     synthetic event chain entirely so we know the native event
+  //     IS firing.
+  //   - 'touchend' AND 'click' both bound. Whichever fires first wins
+  //     (debounced with a 300ms shared lock to avoid double-open).
+  //   - console.debug at every step so the next test session shows
+  //     us what actually happens when the photo is tapped. Capture
+  //     via Safari Web Inspector (Mac → Safari → Develop → Device)
+  //     or Capacitor's chrome://inspect for Android.
+  const rootRef = React.useRef<HTMLImageElement | HTMLDivElement | null>(null);
+  const lastActivateRef = React.useRef<number>(0);
+  React.useEffect(() => {
+    const el = rootRef.current;
+    if (!el || !onClick) return;
+    const fire = (kind: string, e: Event) => {
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastActivateRef.current < 300) {
+        console.debug('[chat-photo] suppressed duplicate', kind);
+        return;
+      }
+      lastActivateRef.current = now;
+      console.debug('[chat-photo] activate via', kind, src);
+      try { onClick(); } catch (err) { console.warn('[chat-photo] onClick threw', err); }
+    };
+    const onClickNative = (e: Event) => fire('click', e);
+    const onTouchEnd = (e: Event) => fire('touchend', e);
+    el.addEventListener('click', onClickNative);
+    el.addEventListener('touchend', onTouchEnd);
+    return () => {
+      el.removeEventListener('click', onClickNative);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [onClick, src]);
 
   if (solo) {
     return (
       <img
+        ref={rootRef as React.RefObject<HTMLImageElement>}
         src={src}
         alt={alt}
         loading="lazy"
         decoding="async"
         draggable={false}
         onLoad={() => onLoad?.()}
-        onError={() => console.warn('[chat] attachment image failed to load', src)}
-        onPointerUp={(e) => { if (e.pointerType !== 'mouse') handleActivate(e); }}
-        onClick={handleActivate}
+        onError={() => console.warn('[chat-photo] image failed to load', src)}
         className={`block max-h-72 w-auto max-w-full cursor-pointer ${skinClasses}`}
         style={{ WebkitTouchCallout: 'none', touchAction: 'manipulation' } as React.CSSProperties}
       />
@@ -154,8 +174,7 @@ const ChatAttachmentImage: React.FC<{
 
   return (
     <div
-      onPointerUp={(e) => { if (e.pointerType !== 'mouse') handleActivate(e); }}
-      onClick={handleActivate}
+      ref={rootRef as React.RefObject<HTMLDivElement>}
       className={`relative overflow-hidden cursor-pointer w-full aspect-square ${skinClasses}`}
       style={{ touchAction: 'manipulation' } as React.CSSProperties}
     >
@@ -166,7 +185,7 @@ const ChatAttachmentImage: React.FC<{
         decoding="async"
         draggable={false}
         onLoad={() => onLoad?.()}
-        onError={() => console.warn('[chat] attachment image failed to load', src)}
+        onError={() => console.warn('[chat-photo] image failed to load', src)}
         className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
       />

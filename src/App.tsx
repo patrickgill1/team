@@ -58,6 +58,7 @@ const Tasks = React.lazy(() => import('./pages/Tasks'));
 const PlatformClubs = React.lazy(() => import('./pages/PlatformClubs'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
+const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
 const PlayerDevelopment = React.lazy(() => import('./pages/PlayerDevelopment'));
 const PlayerMediaPage = React.lazy(() => import('./pages/PlayerMediaPage'));
@@ -737,6 +738,18 @@ function App() {
                 <AppLayout>
                   <TeamManagement />
                 </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Onboarding wizard — first-run flow for a coach who
+                signed up via the marketing site (or any other path
+                that leaves teamIds empty). ProtectedRoute funnels
+                empty-team coaches here automatically; this route
+                renders without AppLayout so the bottom nav doesn't
+                show during onboarding. */}
+            <Route path="/onboarding" element={
+              <ProtectedRoute allowEmpty>
+                <Onboarding />
               </ProtectedRoute>
             } />
 

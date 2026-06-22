@@ -5,11 +5,17 @@ import { useAuth } from '../../hooks/useAuth';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   fallbackPath?: string;
+  /** When true, do NOT redirect coaches with empty teamIds to
+   *  /onboarding. The /onboarding route itself sets this so we don't
+   *  redirect-loop. Settings + a few other "always accessible" pages
+   *  may also opt in if we expand the gate later. */
+  allowEmpty?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  fallbackPath = '/auth'
+  fallbackPath = '/auth',
+  allowEmpty = false,
 }) => {
   const { currentUser, userData, loading } = useAuth();
   const location = useLocation();
@@ -48,6 +54,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (!userData) {
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+  }
+
+  // First-run gate. A signed-in coach with no teams belongs in the
+  // onboarding wizard. Parents are excluded — they're handled by
+  // InThePoolHero on the dashboard (unrostered = "in the pool" status
+  // page). Routes that should bypass this (the wizard itself,
+  // anything we add to an allowlist) set allowEmpty.
+  if (!allowEmpty) {
+    const teamIds: any[] = Array.isArray((userData as any).teamIds)
+      ? (userData as any).teamIds
+      : [];
+    const hasAnyTeam = teamIds.length > 0 || !!(userData as any).teamId;
+    const role = (userData as any).role;
+    const needsOnboarding = !hasAnyTeam && role !== 'parent';
+    if (needsOnboarding && location.pathname !== '/onboarding') {
+      return <Navigate to="/onboarding" replace />;
+    }
   }
 
   return <>{children}</>;

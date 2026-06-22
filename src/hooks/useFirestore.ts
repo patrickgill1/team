@@ -839,6 +839,30 @@ const getUserData = useCallback(async (uid: string) => {
     return addDocument('teams', teamToAdd);
   }, []);
 
+  // Provisioning a new club from the onboarding wizard. Solo coaches
+  // get a club auto-created behind the scenes (named after their
+  // team), per the data-model intent in types/index.ts:125. The club
+  // is the multi-team container even when there's only one team; this
+  // way "becoming a club" later is a no-op.
+  const createClub = useCallback(async (clubData: {
+    name: string;
+    ownerUid: string;
+    logoUrl?: string;
+    initialTeamId?: string;
+  }) => {
+    const clubToAdd: any = {
+      name: clubData.name,
+      ownerUid: clubData.ownerUid,
+      adminUids: [clubData.ownerUid],
+      teamIds: clubData.initialTeamId ? [clubData.initialTeamId] : [],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    if (clubData.logoUrl) clubToAdd.logoUrl = clubData.logoUrl;
+    return addDocument('clubs', clubToAdd);
+  }, []);
+
   const updateTeam = useCallback(async (teamId: string, teamData: Partial<Team>) => {
     const updateData = {
       ...teamData,
@@ -940,6 +964,7 @@ const getUserData = useCallback(async (uid: string) => {
     getPlayerMediaByTeam,
     // Team management functions
     createTeam,
+    createClub,
     updateTeam,
     // Coach invite functions
     addCoachInvite,

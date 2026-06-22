@@ -21,16 +21,20 @@ import { openCustomerPortal, openWebSignup, isAppleDevice } from '../../utils/su
 //     Reader/Service-app rules.
 
 const TIER_LABEL: Record<string, string> = {
-  founder: 'Founding Coach',
-  annual: 'Team — Annual',
-  monthly: 'Team — Monthly',
-  unknown: 'GoalKickr Team',
+  founder: 'Founder Rate',
+  annual: 'Coach Annual',
+  monthly: 'Coach Monthly',
+  club: 'Club',
+  'club-pro': 'Club Pro',
+  unknown: 'GoalKickr',
 };
 
 const TIER_PRICE: Record<string, string> = {
-  founder: '$4.99/mo',
-  annual: '$79.99/yr',
-  monthly: '$9.99/mo',
+  founder: '$5/mo',
+  annual: '$99/yr',
+  monthly: '$10/mo',
+  club: '$299/yr',
+  'club-pro': '$499/yr',
 };
 
 function fmtDate(d: Date | null): string {

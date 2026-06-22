@@ -23,7 +23,7 @@ export interface SubscriptionDoc {
   subscriptionId?: string | null;
   priceId?: string | null;
   productId?: string | null;
-  tier?: 'annual' | 'monthly' | 'founder' | 'unknown' | null;
+  tier?: 'annual' | 'monthly' | 'founder' | 'club' | 'club-pro' | 'unknown' | null;
   status?: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete' | 'unpaid' | string;
   cancelAtPeriodEnd?: boolean;
   currentPeriodEnd?: any;  // Firestore Timestamp

@@ -80,7 +80,7 @@ export async function openCustomerPortal(opts: {
 export function openWebSignup(opts: {
   email?: string;
   uid?: string;
-  tier?: 'founder' | 'monthly' | 'annual';
+  tier?: 'founder' | 'monthly' | 'annual' | 'club' | 'club-pro';
   intent?: 'subscribe' | 'upgrade';
 }): void {
   const params = new URLSearchParams();

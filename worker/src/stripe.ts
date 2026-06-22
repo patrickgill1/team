@@ -37,6 +37,12 @@ export interface StripeEnv {
   STRIPE_PRICE_COACH_ANNUAL?: string;
   STRIPE_PRICE_COACH_MONTHLY?: string;
   STRIPE_PRICE_FOUNDER?: string;
+  // Club $299/yr — waived for clubs processing >= $15K/yr through
+  // GoalKickr. The waiver is reconciled at renewal (manual today),
+  // so the upfront charge stays in place as the guardrail.
+  STRIPE_PRICE_CLUB_ANNUAL?: string;
+  // Club Pro $499/yr — integrations + advanced reporting.
+  STRIPE_PRICE_CLUB_PRO_ANNUAL?: string;
   // Number of Founder seats available before the tier closes.
   // String because Cloudflare env vars are always strings.
   // Defaults to 50.
@@ -537,10 +543,12 @@ export async function handleSubscriptionCheckout(payload: any, env: StripeEnv): 
 
 // Map a Stripe priceId to a canonical tier string, or null if the
 // price isn't one of our allowlisted plans.
-function tierForPriceId(priceId: string, env: StripeEnv): 'annual' | 'monthly' | 'founder' | null {
+function tierForPriceId(priceId: string, env: StripeEnv): 'annual' | 'monthly' | 'founder' | 'club' | 'club-pro' | null {
   if (env.STRIPE_PRICE_COACH_ANNUAL && priceId === env.STRIPE_PRICE_COACH_ANNUAL) return 'annual';
   if (env.STRIPE_PRICE_COACH_MONTHLY && priceId === env.STRIPE_PRICE_COACH_MONTHLY) return 'monthly';
   if (env.STRIPE_PRICE_FOUNDER && priceId === env.STRIPE_PRICE_FOUNDER) return 'founder';
+  if (env.STRIPE_PRICE_CLUB_ANNUAL && priceId === env.STRIPE_PRICE_CLUB_ANNUAL) return 'club';
+  if (env.STRIPE_PRICE_CLUB_PRO_ANNUAL && priceId === env.STRIPE_PRICE_CLUB_PRO_ANNUAL) return 'club-pro';
   return null;
 }
 
@@ -979,5 +987,5 @@ async function upsertSubscriptionDoc(
 }
 
 function tierLooksValid(t: any): boolean {
-  return t === 'annual' || t === 'monthly' || t === 'founder';
+  return t === 'annual' || t === 'monthly' || t === 'founder' || t === 'club' || t === 'club-pro';
 }

@@ -718,38 +718,10 @@ const Dashboard: React.FC = () => {
     await setMyRsvp(status);
   };
 
-  // Coach attendance RSVP — only relevant when the user is a coach
-  // AND has linked kids (otherwise the primary quickRsvp already
-  // covers their own attendance). Writes to event.rsvps[uid] with
-  // role: 'coach' so the headcount display can show it as a
-  // staff/coach row distinct from the kid roster row.
-  const coachStatus: 'going' | 'maybe' | 'no' | null = (() => {
-    if (!isUserCoach || !nextEvent || !userData?.uid) return null;
-    const r = (nextEvent.rsvps || {})[userData.uid];
-    return (r?.status as any) || null;
-  })();
-  const coachQuickRsvp = async (status: 'going' | 'maybe' | 'no' | null) => {
-    if (!nextEvent || !userData?.uid || !isUserCoach) return;
-    const next: Record<string, any> = { ...(nextEvent.rsvps || {}) };
-    if (status === null) {
-      delete next[userData.uid];
-    } else {
-      next[userData.uid] = {
-        status,
-        name: userData.name || 'Coach',
-        role: 'coach',
-        respondedAt: new Date(),
-      };
-    }
-    setUpcomingEvents((prev) =>
-      prev.map((e) => (e.id === nextEvent.id ? ({ ...e, rsvps: next } as CalendarEvent) : e))
-    );
-    try {
-      await updateDocument('events', nextEvent.id, { rsvps: next });
-    } catch (err) {
-      console.error('[dashboard] coach rsvp failed', err);
-    }
-  };
+  // Coach attendance toggle moved off the dashboard hero per Patrick
+  // 2026-06-21 ('i want to clean up the header'). The toggle now
+  // lives on the EventDetail page (visible to coaches with linked
+  // kids). Dashboard-level coachStatus/coachQuickRsvp removed.
 
   // Current RSVP status to show as "active" on the poster buttons.
   // Kid mode: only highlight when all linked kids share the same
@@ -879,11 +851,6 @@ const Dashboard: React.FC = () => {
         goingLabel={posterGoingLabel}
         noLabel={posterNoLabel}
         onRsvp={quickRsvp}
-        // Coach attendance toggle — only passed when the user is a
-        // coach AND has linked kids (so the primary buttons RSVP
-        // the kid, this toggles the coach's separate attendance).
-        coachStatus={useKidQuickRsvp && isUserCoach ? coachStatus : undefined}
-        onCoachRsvp={useKidQuickRsvp && isUserCoach ? coachQuickRsvp : undefined}
       />
       {/* Coach accordion bar — slim color-coded status indicator that
           surfaces only when there's actionable coach work (RSVPs

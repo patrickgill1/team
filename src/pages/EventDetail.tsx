@@ -410,7 +410,12 @@ const EventDetail: React.FC = () => {
   // their own attendance, AND they have per-kid rows below). For
   // parents with zero linked players, fall back to personal RSVP so
   // they still have a way to respond.
-  const useKidQuickActions = !isUserCoach && myLinkedPlayers.length > 0;
+  // Use kid quick actions whenever the user has linked kids on this
+  // team — regardless of coach role. Coaches who are also parents get
+  // a SEPARATE 'Coach attendance' card below (Patrick 2026-06-21:
+  // 'i am going to need to also be able to rsvp and show coach is
+  // going separate from my son').
+  const useKidQuickActions = myLinkedPlayers.length > 0;
 
   // For the button's active state when in kid-mode: only highlight
   // when ALL linked kids share the same status, otherwise leave it
@@ -486,6 +491,36 @@ const EventDetail: React.FC = () => {
       await updateDocument('events', event.id, { rsvps: next });
     } catch (err) {
       console.error('rsvp failed', err);
+    }
+  };
+
+  // Coach attendance — only for coaches with linked kids. Writes to
+  // event.rsvps[uid] with role: 'coach' so the headcount shows the
+  // entry as STAFF, separate from the kid's roster RSVP above.
+  const coachStatus: RsvpStatus | null = useMemo(() => {
+    if (!isUserCoach || !event || !userData?.uid) return null;
+    const r = ((event.rsvps || {}) as any)[userData.uid];
+    return r?.role === 'coach' ? (r.status as RsvpStatus) : null;
+  }, [isUserCoach, event, userData?.uid]);
+
+  const setCoachRsvp = async (status: RsvpStatus | null) => {
+    if (!event || !userData?.uid || !isUserCoach) return;
+    const next: Record<string, any> = { ...(event.rsvps || {}) };
+    if (status === null) {
+      delete next[userData.uid];
+    } else {
+      next[userData.uid] = {
+        status,
+        name: (userData as any).name || 'Coach',
+        role: 'coach',
+        respondedAt: new Date(),
+      };
+    }
+    setEvent({ ...event, rsvps: next } as CalendarEvent);
+    try {
+      await updateDocument('events', event.id, { rsvps: next });
+    } catch (err) {
+      console.error('coach rsvp failed', err);
     }
   };
 
@@ -1008,6 +1043,49 @@ const EventDetail: React.FC = () => {
                     {btn('no', "Can't", 'bg-rose-600')}
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* COACH ATTENDANCE — separate from kid RSVP, only visible to
+          coaches with linked kids on this team. The kid RSVP above
+          tracks Hunter going; this row tracks Patrick-the-coach
+          going. Two RSVPs, two records, distinct STAFF row in the
+          headcount. Patrick 2026-06-21: 'i want to clean up the
+          header' (moved off the dashboard hero into here). */}
+      {isUserCoach && myLinkedPlayers.length > 0 && (
+        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-2 flex items-center gap-1.5">
+            <Icon name="check" className="w-3 h-3 text-crimson-500" />
+            Coach attendance
+          </div>
+          <p className="text-[12px] text-bone/60 leading-snug mb-3">
+            Separate from your kid&apos;s RSVP above — mark whether you&apos;ll be there as coach.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {(['going', 'maybe', 'no'] as RsvpStatus[]).map((s) => {
+              const active = coachStatus === s;
+              const label = s === 'going' ? 'Going' : s === 'maybe' ? 'Maybe' : "Can't go";
+              const toneActive = s === 'going'
+                ? 'bg-emerald-500 text-charcoal-950 ring-emerald-400'
+                : s === 'maybe'
+                  ? 'bg-amber-500 text-amber-950 ring-amber-400'
+                  : 'bg-rose-500 text-white ring-rose-400';
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setCoachRsvp(active ? null : s)}
+                  className={`text-[12px] font-extrabold tracking-wider uppercase px-3 py-2.5 rounded-lg ring-1 transition-colors ${
+                    active
+                      ? toneActive
+                      : 'bg-charcoal-800 ring-white/10 text-bone/75 hover:bg-charcoal-700'
+                  }`}
+                >
+                  {label}
+                </button>
               );
             })}
           </div>

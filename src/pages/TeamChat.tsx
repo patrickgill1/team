@@ -55,7 +55,21 @@ const TeamChat: React.FC = () => {
   // the loaded thread window so the user can swipe between them.
   const [chatLightbox, setChatLightbox] = useState<{ images: LightboxImage[]; startIndex: number } | null>(null);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  // Diagnostic effect — logs when chatLightbox state changes so
+  // Patrick's next test session shows whether setChatLightbox is
+  // firing AND what payload it's getting. Confirmed (2026-06-22)
+  // that the activation chain works but the lightbox didn't appear;
+  // this lets us verify the state transition.
+  useEffect(() => {
+    if (typeof console === 'undefined') return;
+    console.debug('[chat-lightbox-state]', chatLightbox
+      ? { images: chatLightbox.images.length, startIndex: chatLightbox.startIndex }
+      : 'null');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatLightbox]);
+
   const openImage = (url: string) => {
+    console.debug('[chat-openImage] called with', url, 'visibleMessages count:', visibleMessages.length);
     // Collect every image in the visible thread, in chronological order.
     const all: LightboxImage[] = [];
     for (const m of visibleMessages) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // Full-screen image lightbox for chat. Telegram-style:
 // - Tap any image in a thread → opens here with all thread images
@@ -76,9 +77,19 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
     ? { transform: `translate(${drag.x}px, ${drag.y}px)`, opacity: 1 - Math.min(Math.abs(drag.y) / 500, 0.5) }
     : {};
 
-  return (
+  // Portal to document.body so the lightbox escapes ANY stacking
+  // context the chat thread might be trapped inside. Patrick
+  // 2026-06-22 logs showed the activation chain firing + state
+  // updating, but the lightbox never appeared visually. Suspect:
+  // the chat conversation's slide-in transform creates a stacking
+  // context that traps z-[60] beneath the bottom nav (z-50). Portal
+  // pulls the lightbox to the root of <body> where nothing can trap
+  // it.
+  if (typeof document === 'undefined') return null;
+  console.debug('[chat-lightbox] rendering', { images: images.length, index });
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] bg-black/95 flex flex-col animate-fade-in"
+      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col animate-fade-in"
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -139,7 +150,8 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -137,12 +137,11 @@ const ChatAttachmentImage: React.FC<{
     const fire = (kind: string, e: Event) => {
       e.stopPropagation();
       const now = Date.now();
-      if (now - lastActivateRef.current < 300) {
-        console.debug('[chat-photo] suppressed duplicate', kind);
-        return;
-      }
+      // 300ms debounce — touchend + click both fire on a single
+      // tap in some WebViews; first one wins. (kind arg kept for
+      // future debugging; not logged.)
+      if (now - lastActivateRef.current < 300) return;
       lastActivateRef.current = now;
-      console.debug('[chat-photo] activate via', kind, src);
       try { onClick(); } catch (err) { console.warn('[chat-photo] onClick threw', err); }
     };
     const onClickNative = (e: Event) => fire('click', e);

@@ -86,7 +86,6 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
   // pulls the lightbox to the root of <body> where nothing can trap
   // it.
   if (typeof document === 'undefined') return null;
-  console.debug('[chat-lightbox] rendering', { images: images.length, index });
   return createPortal(
     <div
       className="fixed inset-0 z-[9999] bg-black/95 flex flex-col animate-fade-in"

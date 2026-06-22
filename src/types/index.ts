@@ -137,6 +137,12 @@ export interface Club {
   /** Logo for the club shell (separate from a team's logo — Fire FC the
    *  club vs. Fire FC PG the team). */
   logoUrl?: string;
+  /** Club brand color as a hex string ("#DC2626"). Used by public
+   *  invite landing pages and any other club-public surfaces. We
+   *  intentionally don't theme the whole app per-club — that's a
+   *  Tailwind config rabbit hole — only the surfaces a new family
+   *  sees during onboarding. */
+  brandColor?: string;
   ownerUid: string;
   /** Users with full club-admin rights. Always includes ownerUid. */
   adminUids: string[];

@@ -263,6 +263,7 @@ const ClubOverview: React.FC = () => {
         <div className="-mx-4 sm:-mx-6 px-4 sm:px-6 overflow-x-auto pb-1">
           <div className="flex items-center gap-2 min-w-max">
             {[
+              { to: '/club/branding',         label: 'Branding',          accent: 'hover:border-amber-400' },
               { to: '/club/tryouts',          label: 'Tryouts',           accent: 'hover:border-rose-400' },
               { to: '/club/seasons',          label: 'Seasons',           accent: 'hover:border-amber-400' },
               { to: '/club/offer-templates',  label: 'Offer templates',   accent: 'hover:border-violet-400' },

@@ -60,6 +60,7 @@ const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
+const ClubBranding = React.lazy(() => import('./pages/ClubBranding'));
 const PlayerDevelopment = React.lazy(() => import('./pages/PlayerDevelopment'));
 const PlayerMediaPage = React.lazy(() => import('./pages/PlayerMediaPage'));
 const Highlights = React.lazy(() => import('./pages/Highlights'));
@@ -757,6 +758,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <ClubOverview />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/club/branding" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ClubBranding />
                 </AppLayout>
               </ProtectedRoute>
             } />

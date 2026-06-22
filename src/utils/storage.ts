@@ -142,6 +142,32 @@ export const uploadProfilePhoto = async (
  * @param teamId - The team ID
  * @returns Promise<string> - The download URL of the uploaded logo
  */
+/**
+ * Upload a CLUB logo. Lives under clubs/{clubId}/logo/ to keep
+ * club-level branding separate from per-team logos. Same 2MB cap +
+ * image-only validation as the team-logo helper.
+ */
+export const uploadClubLogo = async (file: File, clubId: string): Promise<string> => {
+  try {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Only image files are allowed for club logos');
+    }
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error('Club logo must be less than 2MB');
+    }
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `logo.${fileExtension}`;
+    const storageRef = ref(storage, `clubs/${clubId}/logo/${fileName}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading club logo:', error);
+    throw error;
+  }
+};
+
 export const uploadTeamLogo = async (file: File, teamId: string): Promise<string> => {
   try {
     // Validate file type

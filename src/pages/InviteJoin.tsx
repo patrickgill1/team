@@ -48,6 +48,11 @@ const InviteJoin: React.FC = () => {
   const [invite, setInvite] = useState<FetchedInvite | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const [teamName, setTeamName] = useState<string>('the team');
+  // Club brand surfaces here so a parent sees who they're joining
+  // (Fire FC the club, not just "GoalKickr"). Falls back to the
+  // default GoalKickr crimson when the team's club has no branding
+  // set — same look as before.
+  const [clubBrand, setClubBrand] = useState<{ name: string; logoUrl?: string; brandColor?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<FbUser | null>(null);
@@ -96,7 +101,27 @@ const InviteJoin: React.FC = () => {
         }
         try {
           const t = await getDoc(doc(db, 'teams', inv.teamId));
-          if (t.exists() && !cancelled) setTeamName((t.data() as any).name || 'the team');
+          if (t.exists() && !cancelled) {
+            const tData = t.data() as any;
+            setTeamName(tData.name || 'the team');
+            // Fetch the team's club for branding. Public-read on the
+            // club doc is allowed via the catch-all auth rule. If the
+            // team has no clubId (rare; pre-onboarding-wizard teams),
+            // the strip just hides.
+            if (tData.clubId) {
+              try {
+                const c = await getDoc(doc(db, 'clubs', tData.clubId));
+                if (c.exists() && !cancelled) {
+                  const cData = c.data() as any;
+                  setClubBrand({
+                    name: cData.name || '',
+                    logoUrl: cData.logoUrl,
+                    brandColor: cData.brandColor,
+                  });
+                }
+              } catch { /* ignore */ }
+            }
+          }
         } catch { /* ignore */ }
       } catch (err: any) {
         if (!cancelled) setError(err?.message || 'Could not load this invite.');
@@ -308,9 +333,47 @@ const InviteJoin: React.FC = () => {
 
   return (
     <Page>
+      {/* Club brand strip — only renders if the team's club has a
+          logo or color set. Gives a new family the "I'm joining Fire
+          FC" signal before they see the team-specific hero. */}
+      {clubBrand && (clubBrand.logoUrl || clubBrand.brandColor) && (
+        <div
+          className="flex items-center gap-3 px-5 py-3 border-b border-white/10"
+          style={{
+            backgroundColor: '#0d0d10',
+            boxShadow: clubBrand.brandColor ? `inset 0 -2px 0 ${clubBrand.brandColor}` : undefined,
+          }}
+        >
+          {clubBrand.logoUrl ? (
+            <img
+              src={clubBrand.logoUrl}
+              alt={clubBrand.name}
+              className="w-9 h-9 rounded-md object-contain bg-white/5 ring-1 ring-white/10"
+            />
+          ) : (
+            <div
+              className="w-9 h-9 rounded-md flex items-center justify-center text-white font-black text-sm"
+              style={{ backgroundColor: clubBrand.brandColor || '#DC2626' }}
+            >
+              {(clubBrand.name || 'C').slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/55">Invited by</p>
+            <p className="text-bone font-bold text-sm leading-tight truncate">{clubBrand.name || 'your club'}</p>
+          </div>
+        </div>
+      )}
+
       {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black p-6 border-b border-crimson-500/10">
-        <div className="absolute -top-16 -right-16 w-56 h-56 bg-crimson-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div
+        className="relative overflow-hidden bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black p-6 border-b border-crimson-500/10"
+        style={clubBrand?.brandColor ? { borderBottomColor: `${clubBrand.brandColor}33` } : undefined}
+      >
+        <div
+          className="absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none"
+          style={{ backgroundColor: clubBrand?.brandColor ? `${clubBrand.brandColor}33` : 'rgba(220,38,38,0.20)' }}
+        />
         <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">{headerInner}</div>
       </div>

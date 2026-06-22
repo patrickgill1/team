@@ -1185,6 +1185,25 @@ const TeamChat: React.FC = () => {
     const attachments = attachmentsArg || [];
     if ((!content && attachments.length === 0) || !selectedThread || !userData) return;
 
+    // Text + photo split — Patrick 2026-06-22: 'will you make it so
+    // the pic sends after the text? separate is probably better and
+    // it is what ios does.' When the user composes BOTH text and
+    // attachments, fire two messages: text first, then photo a beat
+    // later. Each bubble gets its own tap target + real estate (the
+    // photo's lightbox tap no longer fights the text bubble's
+    // gesture handlers).
+    //
+    // opts (requireAck, pinOnSend) apply to the TEXT message only —
+    // it carries the announcement intent; the photo is the supporting
+    // visual. 50ms delay between writes guarantees the photo's
+    // timestamp is strictly later so it sorts below the text.
+    if (content && attachments.length > 0) {
+      await sendMessage(content, [], opts);
+      await new Promise(r => setTimeout(r, 50));
+      await sendMessage('', attachments);
+      return;
+    }
+
     const sendTimestamp = new Date();
     // Client-generated UUID — idempotent retries. If the queue retries
     // a send that secretly already succeeded, we just overwrite the

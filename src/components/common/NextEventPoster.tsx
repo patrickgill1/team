@@ -85,36 +85,76 @@ const NextEventPoster: React.FC<Props> = ({
   const eventDow   = eventDate ? DOWS_SHORT[eventDate.getDay()] : '';
   const location: string = (nextEvent as any)?.location || '';
 
-  // Empty state — no events on the calendar. Compact and quiet,
-  // no big photo (the photo belongs to the next event, not as
-  // wallpaper). Coaches get a CTA to schedule one.
+  // Empty state — no events on the calendar yet. Patrick: "can it
+  // still show the field picture at the top during the process? I
+  // think that really gives it from flare." A brand-new coach feels
+  // the app's presence most when the hero photo greets them; the
+  // small compact card we used to render here read as "nothing
+  // happening." Now we render the SAME time-of-day photo + same
+  // overlay treatment as the event card, just without the event-
+  // specific bits and with a "Schedule your first event" CTA.
   if (!nextEvent || !eventDate) {
     return (
       <section className="px-3 sm:px-4 pt-3">
-        <div className="rounded-2xl ring-1 ring-white/10 bg-charcoal-900 px-5 py-6">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/players"
-              aria-label={`${playerCount} players on roster`}
-              className="shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-charcoal-800 ring-1 ring-white/10"
-            >
-              <span className="text-2xl font-extrabold text-white leading-none">{playerCount}</span>
-              <span className="text-[9px] font-bold tracking-widest text-bone/60 mt-1">ROSTER</span>
-            </Link>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base font-bold text-bone">{greeting}, {firstName}.</h1>
-              <p className="text-sm text-bone/60 mt-0.5">All quiet for now. No upcoming events.</p>
+        <article
+          className="relative overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/40 min-h-[300px] sm:min-h-[340px] flex flex-col"
+        >
+          <img
+            src={scene.bgImage}
+            alt=""
+            aria-hidden
+            loading="eager"
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/45 to-black/85 pointer-events-none"
+          />
+
+          {/* Header row: kicker + greeting */}
+          <div className="relative px-5 pt-5 sm:pt-6">
+            <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-crimson-300">
+              {isCoach ? 'Welcome' : 'Hi'}
+            </p>
+            <p className="mt-1 text-sm text-bone/80">{greeting}, {firstName}</p>
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Body: copy + roster chip + CTA */}
+          <div className="relative px-5 pb-5 sm:pb-6 space-y-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-bone tracking-tight leading-tight">
+                {isCoach ? "Let's get your team going." : 'No upcoming events yet.'}
+              </h1>
+              <p className="mt-1 text-sm text-bone/75">
+                {isCoach
+                  ? 'Add players, schedule a practice, invite parents. Then your dashboard fills in.'
+                  : 'Check back soon for your next game or practice.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Link
+                to="/people"
+                aria-label={`${playerCount} ${playerCount === 1 ? 'player' : 'players'} on roster`}
+                className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-black/40 ring-1 ring-white/15 backdrop-blur-sm"
+              >
+                <span className="text-xl font-extrabold text-white leading-none tabular-nums">{playerCount}</span>
+                <span className="text-[9px] font-bold tracking-widest text-bone/70 mt-1">ROSTER</span>
+              </Link>
               {isCoach && (
                 <Link
                   to="/calendar"
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-extrabold tracking-widest uppercase text-crimson-400 hover:text-crimson-300"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20 transition"
                 >
-                  + Schedule an event
+                  Schedule your first event
                 </Link>
               )}
             </div>
           </div>
-        </div>
+        </article>
       </section>
     );
   }

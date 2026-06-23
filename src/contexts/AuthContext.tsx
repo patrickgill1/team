@@ -509,6 +509,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       setError(null);
+      // Tell the post-sign-out auth-state handler that this null
+      // emission is INTENTIONAL — not a Capgo-reload-lost-session
+      // event. Without this flag, tryBridgeNativeSession() would
+      // immediately re-sign-in the user from the Keychain-backed
+      // native session and the user would never actually log out.
+      // sessionStorage clears on a fresh app launch, so this only
+      // affects the current run.
+      try { sessionStorage.setItem('gk.intentionalSignout', '1'); } catch {}
       // Sign out of native providers too so the next launch is clean.
       try {
         const { Capacitor } = await import('@capacitor/core');
@@ -859,6 +867,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // safely via OTA, activates on next native binary release.
   const tryBridgeNativeSession = async (): Promise<boolean> => {
     try {
+      // Honor an intentional sign-out (logout() set this flag). Without
+      // this check, tapping Logout would clear the Web SDK session,
+      // onAuthStateChanged would fire null, this function would
+      // immediately re-sign-in the user from the Keychain-backed native
+      // session, and the logout would visibly fail (page refresh,
+      // still signed in). Clear the flag so future bridge calls work
+      // again (e.g. they re-sign-in and then experience a Capgo reload).
+      try {
+        if (sessionStorage.getItem('gk.intentionalSignout') === '1') {
+          sessionStorage.removeItem('gk.intentionalSignout');
+          return false;
+        }
+      } catch { /* sessionStorage unavailable — proceed normally */ }
       const { Capacitor } = await import('@capacitor/core');
       if (!Capacitor.isNativePlatform()) return false;
       const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');

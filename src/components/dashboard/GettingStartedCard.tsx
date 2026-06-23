@@ -73,17 +73,25 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   };
 
   // Order matters: each step gates the next as the obvious "do this now."
-  // Players + Invite both deep-link to /people/add (the focused bulk
-  // add-with-emails page), NOT /people (which is the directory of
-  // everyone the coach has ever met). The bulk form sends parent
-  // invites at the same moment players are created, so "Add players"
-  // and "Invite parents" are the same action.
+  //
+  // "Add players" and "invite parents" used to be separate steps,
+  // but they both routed to /people/add and the bulk form does both
+  // in one action — adding a player with a parent email sends the
+  // parent's invite immediately. Patrick: "add players and invite
+  // players can kinda be combined as it does the same thing, right?"
+  // Merged into one step. "Done" is when at least one player has a
+  // parent linked (parentIds) or a pending parent email.
+  const rosterReady = hasPlayers && hasInvitedParents;
   const steps = [
     {
-      key: 'players',
-      label: hasPlayers ? `${players.length} ${players.length === 1 ? 'player' : 'players'} on the roster` : 'Add your first players',
-      done: hasPlayers,
-      cta: 'Add players',
+      key: 'roster',
+      label: rosterReady
+        ? `${players.length} ${players.length === 1 ? 'player' : 'players'} on the roster, parents invited`
+        : hasPlayers
+          ? 'Send the rest of your parent invites'
+          : 'Add players and invite parents',
+      done: rosterReady,
+      cta: hasPlayers ? 'Invite more' : 'Add roster',
       onClick: () => navigate('/people/add'),
     },
     {
@@ -92,13 +100,6 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
       done: hasEvent,
       cta: 'Add event',
       onClick: () => navigate('/calendar'),
-    },
-    {
-      key: 'invite',
-      label: hasInvitedParents ? 'Parent invites sent' : 'Invite your parents',
-      done: hasInvitedParents,
-      cta: 'Invite parents',
-      onClick: () => navigate('/people/add'),
     },
     {
       key: 'trial',

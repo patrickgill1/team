@@ -135,49 +135,83 @@ const BulkAddPlayersForm: React.FC<Props> = ({
     }
   };
 
+  // Helper for the email status icon shown to the right of each
+  // row — a quick visual signal of "this row will email the parent"
+  // vs "this row will just create the player and you'll share a link
+  // yourself later."
+  const emailLooksValid = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim());
+
   return (
     <div>
+      {/* Explainer banner so the coach knows what each row will do.
+          Patrick: "why is the email optional? they need to be
+          invited, or will it share a link, or what?" */}
+      <div className="rounded-md bg-charcoal-950 ring-1 ring-white/10 px-3 py-2.5 mb-4 text-charcoal-300 text-xs leading-relaxed">
+        <span className="text-bone font-bold">With a parent email:</span> they get a branded GoalKickr invite immediately.
+        <br />
+        <span className="text-bone font-bold">Without:</span> we&apos;ll still add the player — you can grab a join link from the Team page and share it however you like.
+      </div>
+
       <div className="space-y-3">
-        {rows.map((row, i) => (
-          <div key={i} className="relative rounded-lg bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-2">
-            {rows.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeRow(i)}
-                aria-label="Remove row"
-                className="absolute top-2 right-2 w-6 h-6 rounded-full text-bone/40 hover:text-bone hover:bg-white/5 flex items-center justify-center transition"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            )}
-            <div className="grid grid-cols-2 gap-2">
+        {rows.map((row, i) => {
+          const hasEmail = emailLooksValid(row.parentEmail);
+          const hasName = !!(row.firstName.trim() || row.lastName.trim());
+          return (
+            <div key={i} className="relative rounded-lg bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-2">
+              {rows.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeRow(i)}
+                  aria-label="Remove row"
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full text-bone/40 hover:text-bone hover:bg-white/5 flex items-center justify-center transition"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={row.firstName}
+                  onChange={e => updateRow(i, { firstName: e.target.value })}
+                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                  placeholder="First name"
+                  autoComplete="off"
+                />
+                <input
+                  type="text"
+                  value={row.lastName}
+                  onChange={e => updateRow(i, { lastName: e.target.value })}
+                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                  placeholder="Last name"
+                  autoComplete="off"
+                />
+              </div>
               <input
-                type="text"
-                value={row.firstName}
-                onChange={e => updateRow(i, { firstName: e.target.value })}
+                type="email"
+                value={row.parentEmail}
+                onChange={e => updateRow(i, { parentEmail: e.target.value })}
                 className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
-                placeholder="First name"
+                placeholder="Parent email"
                 autoComplete="off"
               />
-              <input
-                type="text"
-                value={row.lastName}
-                onChange={e => updateRow(i, { lastName: e.target.value })}
-                className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
-                placeholder="Last name"
-                autoComplete="off"
-              />
+              {hasName && (
+                <p className={`text-[11px] font-bold flex items-center gap-1.5 ${hasEmail ? 'text-emerald-400' : 'text-amber-400/80'}`}>
+                  {hasEmail ? (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                      Parent will get an emailed invite
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                      Player created without an emailed invite
+                    </>
+                  )}
+                </p>
+              )}
             </div>
-            <input
-              type="email"
-              value={row.parentEmail}
-              onChange={e => updateRow(i, { parentEmail: e.target.value })}
-              className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
-              placeholder="Parent email (optional)"
-              autoComplete="off"
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <button

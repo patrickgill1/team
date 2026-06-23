@@ -12,6 +12,7 @@ import NextEventPoster from '../components/common/NextEventPoster';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
+import GettingStartedCard from '../components/dashboard/GettingStartedCard';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
@@ -888,6 +889,12 @@ const Dashboard: React.FC = () => {
         {/* Show the push-permission banner first when the user has no
             FCM tokens. Self-hides when not needed. */}
         <NotificationsBanner />
+
+        {/* Getting Started checklist — surfaces above everything
+            for new coaches. Hides when all items are done OR after
+            the 30-day dismiss cooldown. Includes the trial CTA as
+            the LAST step (earned, not dangled). */}
+        <GettingStartedCard players={players} events={events} />
 
         {/* Subscription nudge for coaches without an active sub.
             Self-hides for parents, subscribers, and the 7-day window

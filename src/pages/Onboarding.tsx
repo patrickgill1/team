@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useSubscription } from '../hooks/useSubscription';
 import { createPlayerInvite, inviteUrl } from '../utils/invites';
+import { sendEmail } from '../utils/notify';
 import { openWebSignup } from '../utils/subscriptionApi';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -37,14 +38,22 @@ const AGE_GROUPS = [
   'U6', 'U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Adult',
 ];
 
-type Step = 'welcome' | 'team' | 'club' | 'invite' | 'done';
+type Step = 'welcome' | 'team' | 'club' | 'roster' | 'event' | 'invite' | 'done';
 type Intent = 'team' | 'club';
+
+interface RosterRow {
+  firstName: string;
+  lastName: string;
+  parentEmail: string;
+}
+
+const BLANK_ROW: RosterRow = { firstName: '', lastName: '', parentEmail: '' };
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { currentUser, userData, refreshUserData } = useAuth();
-  const { createTeam, createClub, updateDocument } = useFirestore();
+  const { createTeam, createClub, updateDocument, addPlayer, addEvent } = useFirestore();
   const { subscription, tier } = useSubscription();
 
   // Intent = what the user declared on the welcome step ("I'm setting
@@ -92,6 +101,34 @@ const Onboarding: React.FC = () => {
   const [createdClubId, setCreatedClubId] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
+
+  // Bulk roster step: 6 rows by default, coach taps "Add another"
+  // for more. Empty rows are ignored on submit.
+  const [rosterRows, setRosterRows] = useState<RosterRow[]>(
+    Array.from({ length: 6 }, () => ({ ...BLANK_ROW }))
+  );
+  const [rosterResult, setRosterResult] = useState<{ created: number; invitesSent: number } | null>(null);
+
+  // First-event step: defaults to a Practice tomorrow at 6:30 PM,
+  // 90 minutes. Coach can edit anything or skip. Saves to events
+  // collection with their teamId.
+  const tomorrowAt630 = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(18, 30, 0, 0);
+    return d;
+  }, []);
+  const toLocalInput = (d: Date) => {
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tz).toISOString().slice(0, 16);
+  };
+  const [eventName, setEventName] = useState('Practice');
+  const [eventWhen, setEventWhen] = useState(toLocalInput(tomorrowAt630));
+  const [eventDurationMins, setEventDurationMins] = useState(90);
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventCreated, setEventCreated] = useState(false);
+  // Skip-with-friction modal on the done step.
+  const [showSkipModal, setShowSkipModal] = useState(false);
 
   // If a coach already has teamIds, they don't belong here — kick
   // them to dashboard. Handles back-navigation after they finished.
@@ -150,7 +187,9 @@ const Onboarding: React.FC = () => {
       }
 
       await refreshUserData?.();
-      setStep(isClubTier ? 'club' : 'invite');
+      // Coach track: team -> roster -> event -> invite -> done
+      // Club track:  team -> club -> roster -> event -> invite -> done
+      setStep(isClubTier ? 'club' : 'roster');
     } catch (err: any) {
       setError(String(err?.message || err));
     } finally {
@@ -179,6 +218,112 @@ const Onboarding: React.FC = () => {
         clubId: newClubId,
         updatedAt: new Date(),
       });
+      setStep('roster');
+    } catch (err: any) {
+      setError(String(err?.message || err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ─ Bulk roster + parent invite emails ─
+  // Coach types player names + parent emails in batch. For each
+  // valid row we create the Player doc, generate a player-specific
+  // invite, and (if email provided) email the parent the invite link
+  // so they can sign in / sign up against THAT player. Per-player
+  // invites are stronger than one general link because the parent
+  // gets auto-linked to their own kid on consume.
+  const handleRosterSubmit = async () => {
+    if (!userData || !createdTeamId) {
+      setError('No team yet — go back to the previous step.');
+      return;
+    }
+    setError(null);
+    const valid = rosterRows.filter(r => r.firstName.trim() || r.lastName.trim());
+    if (valid.length === 0) {
+      // Empty submit = same as skip.
+      setStep('event');
+      return;
+    }
+    setBusy(true);
+    let created = 0;
+    let invitesSent = 0;
+    try {
+      for (const row of valid) {
+        const name = `${row.firstName.trim()} ${row.lastName.trim()}`.trim();
+        if (!name) continue;
+        const playerId = await addPlayer({
+          name,
+          teamId: createdTeamId,
+          teamIds: [createdTeamId],
+          parentIds: [],
+          parentEmails: row.parentEmail.trim()
+            ? [row.parentEmail.trim().toLowerCase()]
+            : [],
+          isActive: true,
+        });
+        if (!playerId) continue;
+        created++;
+        const email = row.parentEmail.trim();
+        if (email && /^\S+@\S+\.\S+$/.test(email)) {
+          try {
+            const inv = await createPlayerInvite({
+              teamId: createdTeamId,
+              playerId,
+              createdBy: userData.uid,
+              ttlDays: 30,
+              note: `Onboarding bulk for ${name}`,
+            });
+            const link = inviteUrl(inv.id);
+            const coachName = (userData.name || 'Your coach').split(' ')[0];
+            const ok = await sendEmail({
+              to: email,
+              subject: `${coachName} invited you to ${teamName} on GoalKickr`,
+              html: `<p>Hi,</p><p>${userData.name || 'Your coach'} added <b>${name}</b> to <b>${teamName}</b> on GoalKickr (the team-management app the coach is using this season).</p><p>Tap the link below to set up your parent account so you can RSVP to events, get team announcements, and see your kid's schedule:</p><p><a href="${link}">Join ${teamName} on GoalKickr</a></p><p>This link is just for <b>${name}</b>'s family and works one time. If someone else needs access, ask your coach for a new link.</p>`,
+              text: `${userData.name || 'Your coach'} added ${name} to ${teamName} on GoalKickr. Tap to join: ${link}`,
+            });
+            if (ok) invitesSent++;
+          } catch (e) {
+            console.warn('roster invite failed for', email, e);
+          }
+        }
+      }
+      setRosterResult({ created, invitesSent });
+      setStep('event');
+    } catch (err: any) {
+      setError(String(err?.message || err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ─ First event ─
+  // Defaults to a Practice tomorrow at 6:30 PM, 90 minutes. A coach
+  // who skips here ends onboarding with an empty calendar; one who
+  // saves ends with the next practice on the schedule + parents (if
+  // bulk-added with emails) receiving an event invite when they
+  // accept their join link.
+  const handleEventSave = async () => {
+    if (!userData || !createdTeamId) {
+      setError('No team yet — go back to the previous step.');
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const start = new Date(eventWhen);
+      const end = new Date(start.getTime() + eventDurationMins * 60 * 1000);
+      await addEvent({
+        title: (eventName || 'Practice').trim(),
+        date: start,
+        endDate: end,
+        location: eventLocation.trim() || '',
+        type: eventName.toLowerCase().includes('game') ? 'game' : 'practice',
+        teamId: createdTeamId,
+        createdBy: userData.uid,
+        createdByName: userData.name || '',
+      });
+      setEventCreated(true);
       setStep('invite');
     } catch (err: any) {
       setError(String(err?.message || err));
@@ -186,6 +331,8 @@ const Onboarding: React.FC = () => {
       setBusy(false);
     }
   };
+
+  const handleEventSkip = () => setStep('invite');
 
   // ─ Invite link ─
   // Generate ONE invite the first time the invite step is entered.
@@ -356,6 +503,151 @@ const Onboarding: React.FC = () => {
           </Card>
         )}
 
+        {step === 'roster' && (
+          <Card>
+            <Kicker>Add your roster</Kicker>
+            <H>Who&apos;s on your team?</H>
+            <p className="mt-3 text-charcoal-300 text-sm">
+              Add players + parent emails and we&apos;ll send each parent a private join link.
+              You can leave rows blank or add more. Add the rest later from the Team page.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              {rosterRows.map((row, i) => (
+                <div key={i} className="rounded-lg bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={row.firstName}
+                      onChange={e => {
+                        const next = [...rosterRows];
+                        next[i] = { ...row, firstName: e.target.value };
+                        setRosterRows(next);
+                      }}
+                      className="form-input"
+                      placeholder="First name"
+                      autoComplete="off"
+                    />
+                    <input
+                      type="text"
+                      value={row.lastName}
+                      onChange={e => {
+                        const next = [...rosterRows];
+                        next[i] = { ...row, lastName: e.target.value };
+                        setRosterRows(next);
+                      }}
+                      className="form-input"
+                      placeholder="Last name"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <input
+                    type="email"
+                    value={row.parentEmail}
+                    onChange={e => {
+                      const next = [...rosterRows];
+                      next[i] = { ...row, parentEmail: e.target.value };
+                      setRosterRows(next);
+                    }}
+                    className="form-input"
+                    placeholder="Parent email (optional)"
+                    autoComplete="off"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setRosterRows(rs => [...rs, { ...BLANK_ROW }])}
+              className="mt-3 w-full px-4 py-2 rounded-md text-bone/75 text-sm font-bold ring-1 ring-white/10 hover:bg-white/5 transition"
+            >
+              + Add another player
+            </button>
+
+            {error && <ErrorBanner>{error}</ErrorBanner>}
+
+            <PrimaryButton onClick={handleRosterSubmit} disabled={busy} className="mt-6 w-full">
+              {busy ? 'Adding players…' : 'Add players + send parent invites'}
+            </PrimaryButton>
+
+            <button
+              type="button"
+              onClick={() => setStep('event')}
+              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+            >
+              Skip for now
+            </button>
+          </Card>
+        )}
+
+        {step === 'event' && (
+          <Card>
+            <Kicker>Add your first practice</Kicker>
+            <H>Get something on the calendar.</H>
+            <p className="mt-3 text-charcoal-300 text-sm">
+              We pre-filled tomorrow at 6:30 PM. Edit anything and save, or skip if you&apos;re not ready.
+              Parents you just invited will see it the moment they join.
+            </p>
+
+            <Field label="What is it?">
+              <input
+                type="text"
+                value={eventName}
+                onChange={e => setEventName(e.target.value)}
+                className="form-input"
+                placeholder="Practice, Game vs ..., etc."
+              />
+            </Field>
+            <Field label="When">
+              <input
+                type="datetime-local"
+                value={eventWhen}
+                onChange={e => setEventWhen(e.target.value)}
+                className="form-input"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Duration">
+                <select
+                  value={eventDurationMins}
+                  onChange={e => setEventDurationMins(Number(e.target.value))}
+                  className="form-input"
+                >
+                  <option value={60}>1 hour</option>
+                  <option value={75}>1 hr 15 min</option>
+                  <option value={90}>1 hr 30 min</option>
+                  <option value={105}>1 hr 45 min</option>
+                  <option value={120}>2 hours</option>
+                </select>
+              </Field>
+              <Field label="Location (optional)">
+                <input
+                  type="text"
+                  value={eventLocation}
+                  onChange={e => setEventLocation(e.target.value)}
+                  className="form-input"
+                  placeholder="Sullivan Park field 5"
+                />
+              </Field>
+            </div>
+
+            {error && <ErrorBanner>{error}</ErrorBanner>}
+
+            <PrimaryButton onClick={handleEventSave} disabled={busy || !eventName.trim()} className="mt-6 w-full">
+              {busy ? 'Saving…' : 'Add to schedule'}
+            </PrimaryButton>
+
+            <button
+              type="button"
+              onClick={handleEventSkip}
+              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+            >
+              Skip for now
+            </button>
+          </Card>
+        )}
+
         {step === 'invite' && (
           <Card>
             <Kicker>Step {isClubTier ? '3 of 3' : '2 of 2'}</Kicker>
@@ -475,7 +767,7 @@ const Onboarding: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => navigate('/dashboard', { replace: true })}
+              onClick={() => setShowSkipModal(true)}
               className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
             >
               Skip for now
@@ -487,6 +779,73 @@ const Onboarding: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Skip-with-friction modal on the done step. Loss-aversion
+          nudge before they bail on the trial. Two paths out: open
+          the marketing checkout, or go to dashboard without trial. */}
+      {showSkipModal && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowSkipModal(false)}
+        >
+          <div
+            className="bg-charcoal-900 ring-1 ring-white/10 rounded-2xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div>
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-amber-400 mb-1.5">
+                Wait
+              </p>
+              <h3 className="text-bone text-lg font-bold leading-tight">
+                {isClubTrack ? 'Skip the Club subscription?' : 'Skip your 7-day free trial?'}
+              </h3>
+              <p className="text-charcoal-300 text-sm mt-2">
+                You can still use the app for free, but you&apos;ll miss:
+              </p>
+              <ul className="mt-3 space-y-2 text-charcoal-200 text-sm">
+                {[
+                  'Unlimited parent invites and team chat',
+                  'Push notifications for events and messages',
+                  'Player development plans and Player of the Match',
+                  'Game day tracker with live subs and stats',
+                ].map(b => (
+                  <li key={b} className="flex items-start gap-2">
+                    <svg className="w-4 h-4 mt-0.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSkipModal(false);
+                  navigate('/dashboard', { replace: true });
+                }}
+                className="px-4 py-2.5 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+              >
+                Continue without
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSkipModal(false);
+                  openWebSignup({
+                    email: currentUser?.email || userData?.email || undefined,
+                    uid: currentUser?.uid,
+                    tier: isClubTrack ? 'club' : 'annual',
+                    intent: 'subscribe',
+                  });
+                }}
+                className="px-4 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white transition"
+              >
+                {isClubTrack ? 'Subscribe' : 'Try anyway'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .form-input {
@@ -566,11 +925,11 @@ const PrimaryButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = (
 );
 const StepIndicator: React.FC<{ currentStep: Step; isClubTier: boolean }> = ({ currentStep, isClubTier }) => {
   const order: Step[] = isClubTier
-    ? ['welcome', 'team', 'club', 'invite', 'done']
-    : ['welcome', 'team', 'invite', 'done'];
+    ? ['welcome', 'team', 'club', 'roster', 'event', 'invite', 'done']
+    : ['welcome', 'team', 'roster', 'event', 'invite', 'done'];
   const idx = order.indexOf(currentStep);
   return (
-    <div className="flex items-center gap-2 mb-7">
+    <div className="flex items-center gap-1.5 mb-7">
       {order.map((s, i) => (
         <div
           key={s}

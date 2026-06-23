@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useSubscription } from '../hooks/useSubscription';
 import { createPlayerInvite, inviteUrl } from '../utils/invites';
+import { openWebSignup } from '../utils/subscriptionApi';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 
@@ -368,15 +369,59 @@ const Onboarding: React.FC = () => {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <Kicker>You&apos;re ready</Kicker>
-            <H>Let&apos;s coach.</H>
+            <Kicker>Almost done</Kicker>
+            <H>Start your free trial.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              <span className="text-bone font-semibold">{teamName}</span> is set up.
-              Head to your dashboard to add events, plan practice, and start logging streaks.
+              <span className="text-bone font-semibold">{teamName}</span> is set up. Start your
+              7-day free trial to unlock everything for your team — chat, RSVPs, gameday,
+              development plans. No charge for 7 days, cancel anytime.
             </p>
-            <PrimaryButton onClick={() => navigate('/dashboard', { replace: true })} className="mt-6 w-full">
-              Open dashboard
+
+            {/* Pricing snapshot so they know what they're agreeing to
+                without leaving the wizard. Founder Rate is hidden on
+                iOS per Apple anti-steering (the marketing page itself
+                handles the full picker). */}
+            <div className="mt-5 rounded-lg bg-charcoal-950/80 ring-1 ring-white/10 px-4 py-3 space-y-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-bone font-bold text-sm">Coach Annual</span>
+                <span className="text-bone font-black tabular-nums">
+                  $99<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-bone/80 text-sm">Coach Monthly</span>
+                <span className="text-bone/80 tabular-nums">
+                  $10<span className="text-charcoal-400 text-xs ml-0.5">/mo</span>
+                </span>
+              </div>
+              <p className="text-charcoal-400 text-[11px] pt-1">
+                Both include a 7-day free trial. Cancel anytime from goalkickr.com.
+              </p>
+            </div>
+
+            <PrimaryButton
+              onClick={() => openWebSignup({
+                email: currentUser?.email || userData?.email || undefined,
+                uid: currentUser?.uid,
+                tier: 'annual',
+                intent: 'subscribe',
+              })}
+              className="mt-5 w-full"
+            >
+              Start 7-day free trial
             </PrimaryButton>
+
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard', { replace: true })}
+              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+            >
+              Skip for now
+            </button>
+
+            <p className="text-charcoal-500 text-[11px] text-center mt-3 leading-snug">
+              Tapping Start opens goalkickr.com in your browser to complete checkout.
+            </p>
           </Card>
         )}
       </div>

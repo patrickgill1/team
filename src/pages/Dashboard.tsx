@@ -11,6 +11,7 @@ import { RichContent } from './Wall';
 import NextEventPoster from '../components/common/NextEventPoster';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
+import SubscribeBanner from '../components/dashboard/SubscribeBanner';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
@@ -865,6 +866,11 @@ const Dashboard: React.FC = () => {
         {/* Show the push-permission banner first when the user has no
             FCM tokens. Self-hides when not needed. */}
         <NotificationsBanner />
+
+        {/* Subscription nudge for coaches without an active sub.
+            Self-hides for parents, subscribers, and the 7-day window
+            after dismiss. */}
+        <SubscribeBanner />
 
         {/* Admin cockpit returns to the dashboard when the user is
             in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin

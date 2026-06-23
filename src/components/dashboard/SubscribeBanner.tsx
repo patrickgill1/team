@@ -1,0 +1,96 @@
+// @ts-nocheck
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { useSubscription } from '../../hooks/useSubscription';
+import { openWebSignup } from '../../utils/subscriptionApi';
+import { isCoach } from '../../utils/helpers';
+
+// Persistent dashboard nudge for coaches without an active
+// subscription. Dismissable; auto-reappears after 7 days so a
+// distracted coach doesn't forget the offer forever. Hidden
+// entirely for parents (who use GoalKickr free anyway), for
+// subscribed coaches, and for the user who just dismissed it
+// within the cooldown window.
+//
+// Wording mirrors the Apple-safe pattern: explicit "Subscribe at
+// goalkickr.com" copy + system-browser handoff, never an in-app
+// payment trigger.
+
+const DISMISS_KEY = 'gk_dashboard_sub_dismissed_at';
+const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const SubscribeBanner: React.FC = () => {
+  const { currentUser, userData } = useAuth();
+  const { loading, isActive } = useSubscription();
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const at = Number(window.localStorage.getItem(DISMISS_KEY) || 0);
+      if (at && Date.now() - at < DISMISS_COOLDOWN_MS) setDismissed(true);
+    } catch { /* ignore */ }
+  }, []);
+
+  if (loading) return null;
+  if (!userData) return null;
+  if (!isCoach(userData.role)) return null;  // parents are free; never nudge
+  if (isActive) return null;                  // already paying
+  if (dismissed) return null;
+
+  const handleStart = () => {
+    openWebSignup({
+      email: currentUser?.email || userData?.email || undefined,
+      uid: currentUser?.uid,
+      tier: 'annual',
+      intent: 'subscribe',
+    });
+  };
+
+  const handleDismiss = () => {
+    try { window.localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* ignore */ }
+    setDismissed(true);
+  };
+
+  return (
+    <div className="relative rounded-2xl bg-gradient-to-br from-crimson-950/40 via-charcoal-900 to-charcoal-900 ring-1 ring-crimson-700/40 p-4 sm:p-5 overflow-hidden">
+      <button
+        type="button"
+        onClick={handleDismiss}
+        aria-label="Dismiss"
+        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full text-bone/50 hover:text-bone hover:bg-white/5 flex items-center justify-center transition"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+      </button>
+
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className="shrink-0 w-10 h-10 rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/40 flex items-center justify-center">
+          <svg className="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
+            Free version
+          </p>
+          <p className="text-bone font-bold leading-tight">
+            Start your 7-day free trial.
+          </p>
+          <p className="text-charcoal-300 text-sm mt-1.5 leading-snug">
+            Keep everything you&apos;ve built and unlock the full coach toolkit.
+            Cancel anytime. Trial billing happens on goalkickr.com.
+          </p>
+          <button
+            type="button"
+            onClick={handleStart}
+            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20 transition"
+          >
+            Start free trial at goalkickr.com
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SubscribeBanner;

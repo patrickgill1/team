@@ -454,7 +454,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
       // Native Apple sheet → idToken + nonce; we bridge into the web SDK so
       // onAuthStateChanged fires inside the WebView.
-      const result = await FirebaseAuthentication.signInWithApple();
+      //
+      // skipNativeAuth: true is REQUIRED for Apple specifically. Without it,
+      // the plugin signs in natively (consuming Apple's nonce), then the
+      // signInWithCredential call below tries to reuse the same nonce and
+      // fails with auth/missing-or-invalid-nonce — Apple's replay protection
+      // doesn't let the same nonce be used twice. Google doesn't single-use
+      // nonces the same way, which is why Google works without this flag.
+      const result = await FirebaseAuthentication.signInWithApple({ skipNativeAuth: true });
       const idToken = result.credential?.idToken;
       if (!idToken) throw new Error('native Apple sign-in returned no idToken');
       const provider = new OAuthProvider('apple.com');

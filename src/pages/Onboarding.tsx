@@ -38,6 +38,7 @@ const AGE_GROUPS = [
 ];
 
 type Step = 'welcome' | 'team' | 'club' | 'invite' | 'done';
+type Intent = 'team' | 'club';
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -46,7 +47,29 @@ const Onboarding: React.FC = () => {
   const { createTeam, createClub, updateDocument } = useFirestore();
   const { subscription, tier } = useSubscription();
 
-  const isClubTier = tier === 'club' || tier === 'club-pro';
+  // Intent = what the user declared on the welcome step ("I'm setting
+  // up a team" vs "I'm setting up a club"). Distinct from `tier`
+  // (which is what they're SUBSCRIBED to — they may not be subscribed
+  // yet). Persisted in the URL so a refresh mid-wizard doesn't lose
+  // the choice. Also honors ?intent= for deep-links that already know
+  // (e.g. a "Start your club" CTA elsewhere in the app).
+  const initialIntent = ((params.get('intent') || '') as Intent);
+  const subscriptionImpliesClub = tier === 'club' || tier === 'club-pro';
+  const intent: Intent = initialIntent === 'club' || initialIntent === 'team'
+    ? initialIntent
+    : (subscriptionImpliesClub ? 'club' : 'team');
+  const setIntent = (i: Intent) => {
+    const next = new URLSearchParams(params);
+    next.set('intent', i);
+    setParams(next, { replace: true });
+  };
+
+  const isClubTrack = intent === 'club';
+  // Kept for back-compat with the rest of the wizard (renders the
+  // Club step + tier-aware copy). Now driven by intent instead of
+  // subscription tier.
+  const isClubTier = isClubTrack;
+
   const step = ((params.get('step') || 'welcome') as Step);
   const setStep = (s: Step) => {
     const next = new URLSearchParams(params);
@@ -233,14 +256,31 @@ const Onboarding: React.FC = () => {
         {step === 'welcome' && (
           <Card>
             <Kicker>Welcome</Kicker>
-            <H>You&apos;re in.</H>
-            <p className="mt-4 text-charcoal-200 leading-relaxed">
-              We&apos;ll get you set up in about a minute. First we&apos;ll create your team,
-              {isClubTier && ' then your club,'} then generate a link your parents can use to join.
+            <H>What are you setting up?</H>
+            <p className="mt-3 text-charcoal-300 text-sm">
+              Pick whichever fits. You can convert from team to club later if it grows.
             </p>
+
+            <div className="mt-5 space-y-3">
+              <TrackOption
+                selected={intent === 'team'}
+                onClick={() => setIntent('team')}
+                label="A team"
+                blurb="One team I coach. Roster, RSVPs, chat, gameday, development plans."
+                pricing="Coach $99/yr or $10/mo · 7-day free trial"
+              />
+              <TrackOption
+                selected={intent === 'club'}
+                onClick={() => setIntent('club')}
+                label="A club"
+                blurb="Multiple teams under one organization. Registrations, dues, club admin, financial reporting."
+                pricing="Club $299/yr · waived for clubs running registrations through GoalKickr"
+              />
+            </div>
+
             {subscription && (
-              <p className="mt-3 text-charcoal-400 text-xs">
-                Subscription: <span className="text-bone font-semibold">{
+              <p className="mt-5 text-charcoal-400 text-xs">
+                Active subscription: <span className="text-bone font-semibold">{
                   tier === 'founder' ? 'Founder Rate ($5/mo lifetime)'
                   : tier === 'annual' ? 'Coach Annual ($99/yr)'
                   : tier === 'monthly' ? 'Coach Monthly ($10/mo)'
@@ -250,8 +290,9 @@ const Onboarding: React.FC = () => {
                 }</span>
               </p>
             )}
+
             <PrimaryButton onClick={() => setStep('team')} className="mt-7 w-full">
-              Let&apos;s go
+              Continue
             </PrimaryButton>
           </Card>
         )}
@@ -370,45 +411,66 @@ const Onboarding: React.FC = () => {
               </svg>
             </div>
             <Kicker>Almost done</Kicker>
-            <H>Start your free trial.</H>
+            <H>{isClubTrack ? 'Start your club subscription.' : 'Start your free trial.'}</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              <span className="text-bone font-semibold">{teamName}</span> is set up. Start your
-              7-day free trial to unlock everything for your team — chat, RSVPs, gameday,
-              development plans. No charge for 7 days, cancel anytime.
+              <span className="text-bone font-semibold">{teamName}</span> is set up.
+              {isClubTrack
+                ? ' Club includes unlimited teams, registrations, dues, and financial reporting. The fee is waived if your club processes $15K+/yr in registrations through GoalKickr.'
+                : ' Start your 7-day free trial to unlock everything — chat, RSVPs, gameday, development plans. No charge for 7 days, cancel anytime.'}
             </p>
 
-            {/* Pricing snapshot so they know what they're agreeing to
-                without leaving the wizard. Founder Rate is hidden on
-                iOS per Apple anti-steering (the marketing page itself
-                handles the full picker). */}
+            {/* Pricing snapshot. Tier shown depends on the track the
+                user picked on the welcome step. */}
             <div className="mt-5 rounded-lg bg-charcoal-950/80 ring-1 ring-white/10 px-4 py-3 space-y-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-bone font-bold text-sm">Coach Annual</span>
-                <span className="text-bone font-black tabular-nums">
-                  $99<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-bone/80 text-sm">Coach Monthly</span>
-                <span className="text-bone/80 tabular-nums">
-                  $10<span className="text-charcoal-400 text-xs ml-0.5">/mo</span>
-                </span>
-              </div>
-              <p className="text-charcoal-400 text-[11px] pt-1">
-                Both include a 7-day free trial. Cancel anytime from goalkickr.com.
-              </p>
+              {isClubTrack ? (
+                <>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-bone font-bold text-sm">Club</span>
+                    <span className="text-bone font-black tabular-nums">
+                      $299<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-bone/80 text-sm">Club Pro</span>
+                    <span className="text-bone/80 tabular-nums">
+                      $499<span className="text-charcoal-400 text-xs ml-0.5">/yr</span>
+                    </span>
+                  </div>
+                  <p className="text-charcoal-400 text-[11px] pt-1">
+                    Club fee waived when you process $15K+/yr in registrations through GoalKickr. Cancel anytime from goalkickr.com.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-bone font-bold text-sm">Coach Annual</span>
+                    <span className="text-bone font-black tabular-nums">
+                      $99<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-bone/80 text-sm">Coach Monthly</span>
+                    <span className="text-bone/80 tabular-nums">
+                      $10<span className="text-charcoal-400 text-xs ml-0.5">/mo</span>
+                    </span>
+                  </div>
+                  <p className="text-charcoal-400 text-[11px] pt-1">
+                    Both include a 7-day free trial. Cancel anytime from goalkickr.com.
+                  </p>
+                </>
+              )}
             </div>
 
             <PrimaryButton
               onClick={() => openWebSignup({
                 email: currentUser?.email || userData?.email || undefined,
                 uid: currentUser?.uid,
-                tier: 'annual',
+                tier: isClubTrack ? 'club' : 'annual',
                 intent: 'subscribe',
               })}
               className="mt-5 w-full"
             >
-              Start 7-day free trial
+              {isClubTrack ? 'Start Club subscription' : 'Start 7-day free trial'}
             </PrimaryButton>
 
             <button
@@ -464,6 +526,35 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
 const ErrorBanner: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="mt-4 rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-sm">{children}</div>
 );
+const TrackOption: React.FC<{
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+  blurb: string;
+  pricing: string;
+}> = ({ selected, onClick, label, blurb, pricing }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`w-full text-left rounded-lg p-4 transition-all ${
+      selected
+        ? 'bg-gradient-to-br from-crimson-950/40 to-charcoal-900 ring-2 ring-crimson-500 shadow-lg shadow-crimson-950/30'
+        : 'bg-charcoal-900/60 ring-1 ring-white/10 hover:ring-white/25'
+    }`}
+  >
+    <div className="flex items-start gap-3">
+      <span className={`shrink-0 mt-1 w-4 h-4 rounded-full ring-2 ${
+        selected ? 'bg-crimson-500 ring-crimson-300' : 'bg-transparent ring-white/30'
+      }`} aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-bone font-bold">{label}</p>
+        <p className="text-charcoal-300 text-xs mt-1 leading-snug">{blurb}</p>
+        <p className="text-charcoal-500 text-[11px] mt-2">{pricing}</p>
+      </div>
+    </div>
+  </button>
+);
+
 const PrimaryButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ className = '', children, ...rest }) => (
   <button
     type="button"

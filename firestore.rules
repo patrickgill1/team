@@ -2,6 +2,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ─────────────────────────────────────────────────────────────
+    // SaaS multi-tenant helpers (Phase 1 — 2026-06-23)
+    // ─────────────────────────────────────────────────────────────
+    //
+    // Patrick's incident: a brand-new account on the same device
+    // could read Fire FC team data because every team-scoped
+    // collection was readable by any authenticated user. These
+    // helpers gate reads to "is this user actually on the team?"
+    //
+    // Membership source of truth: users/{uid}.teamIds[]. Kept in
+    // sync by every team-creation, invite-consume, and onboarding
+    // path. One get() per rule evaluation — cheap on the low-
+    // traffic collections we're locking in Phase 1 (teams, stats,
+    // development_plans). Phase 2 will tackle hot-path collections
+    // (events, chat_messages, messages) more carefully.
+    //
+    // Patrick's platform-admin user (isClubAdmin == true on the
+    // user doc) keeps full read access via isPlatformAdmin().
+    // Rollback: revert this commit + redeploy with firebase deploy
+    // --only firestore:rules.
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAuthed() {
+      return request.auth != null;
+    }
+    function isPlatformAdmin() {
+      return isAuthed() && userDoc().isClubAdmin == true;
+    }
+    function onTeam(teamId) {
+      return isAuthed()
+        && teamId is string
+        && teamId in userDoc().teamIds;
+    }
+    function isSelf(uid) {
+      return isAuthed() && request.auth.uid == uid;
+    }
+
     // Public: anyone can read active votings (for the /vote page)
     match /match_votings/{votingId} {
       allow read: if true;
@@ -18,9 +57,18 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // All other collections require authentication
+    // Team docs. READ is restricted to actual team members so a
+    // brand-new (or cross-club) user can't enumerate other teams'
+    // data. Membership = the team's id is in the user's teamIds[]
+    // array. Platform admin (Patrick) bypasses.
+    //
+    // WRITE stays loose for now (any auth user) — too many code
+    // paths write to team docs (roster joins, invite consumption,
+    // settings updates). Phase 2 will tighten writes to coaches +
+    // the head coach + the joining user.
     match /teams/{teamId} {
-      allow read, write: if request.auth != null;
+      allow read: if isPlatformAdmin() || onTeam(teamId);
+      allow write: if isAuthed();
     }
 
     match /users/{userId} {
@@ -179,12 +227,21 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // Stats records (per-game player stats). Gated on the doc's
+    // teamId field — only team members can read. WRITE stays loose
+    // (every member can record stats during gameday). Phase 2 will
+    // tighten writes to coaches/team managers if needed.
     match /stats/{statId} {
-      allow read, write: if request.auth != null;
+      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow create: if isAuthed() && onTeam(request.resource.data.teamId);
+      allow update, delete: if isAuthed();
     }
 
+    // Player development plans. Gated on teamId. Same shape as stats.
     match /development_plans/{planId} {
-      allow read, write: if request.auth != null;
+      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow create: if isAuthed() && onTeam(request.resource.data.teamId);
+      allow update, delete: if isAuthed();
     }
 
     match /attendance/{attendanceId} {

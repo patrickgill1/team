@@ -7,7 +7,12 @@ const SimpleAuth: React.FC = () => {
   const { signIn, signUp, signInWithGoogle, signInWithApple, currentUser, userData, loading, error } = useAuth();
   const isNativePlatform = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  // Default to register. A cold download is almost always a new user
+  // setting up their first team — making them figure out "I need to
+  // switch from sign-in to sign-up" is friction. Returning users tap
+  // the prominent Sign In tab below; one tap, no thinking. (TeamSnap
+  // does the same split-button pattern at the splash.)
+  const [mode, setMode] = useState<'login' | 'register'>('register');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -285,17 +290,17 @@ const SimpleAuth: React.FC = () => {
             <span className="h-1.5 w-1.5 rounded-full bg-crimson-400 animate-pulse" />
             <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-crimson-400/90">
               {mode === 'login' && 'Member Access'}
-              {mode === 'register' && 'Team Invitation'}
+              {mode === 'register' && 'Get Started'}
             </span>
           </div>
 
           <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-crimson-200 to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
             {mode === 'login' && 'Welcome Back'}
-            {mode === 'register' && 'Join Your Team'}
+            {mode === 'register' && 'Start Your Team'}
           </h2>
           <p className="text-sm sm:text-base text-slate-400 px-2">
             {mode === 'login' && 'Sign in to access your team hub'}
-            {mode === 'register' && 'Create your account to join the squad'}
+            {mode === 'register' && 'Create an account to set up your team or join one'}
           </p>
         </div>
 
@@ -304,6 +309,36 @@ const SimpleAuth: React.FC = () => {
           <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-crimson-400/60 to-transparent" />
           {/* Form padding optimized for mobile */}
           <div className="p-6 sm:p-8">
+
+            {/* Sign Up / Sign In segmented control — the explicit
+                first decision so a brand-new user doesn't have to
+                figure out which mode they're in. Active pill is
+                crimson; inactive is muted. One tap to switch. */}
+            <div className="mb-6 grid grid-cols-2 gap-1 p-1 rounded-2xl bg-white/[0.04] ring-1 ring-white/10">
+              <button
+                type="button"
+                onClick={() => switchMode('register')}
+                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  mode === 'register'
+                    ? 'bg-crimson-600 text-white shadow-lg shadow-crimson-900/40'
+                    : 'text-white/65 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                Sign Up
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  mode === 'login'
+                    ? 'bg-crimson-600 text-white shadow-lg shadow-crimson-900/40'
+                    : 'text-white/65 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                Sign In
+              </button>
+            </div>
+
             {/* Sign in with Apple — native iOS only (Apple Store requirement when offering Google sign-in) */}
             {isNativePlatform && signInWithApple && (
               <div className="mb-3">

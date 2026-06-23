@@ -755,6 +755,14 @@ const TeamChat: React.FC = () => {
     // Without this filter, parents on multi-team accounts would
     // still see the merged-away DM rows next to the canonical one.
     const all = Array.from(byId.values()).filter(t => (t as any).isActive !== false);
+    // Pre-compute the user's team memberships once so the per-thread
+    // membership check is cheap. Treat legacy single-team users
+    // (teamId-only, no teamIds[]) the same as members of [teamId].
+    const myTeamIds = new Set<string>([
+      ...(Array.isArray((userData as any)?.teamIds) ? (userData as any).teamIds : []),
+      ...(((userData as any)?.teamId) ? [(userData as any).teamId] : []),
+    ]);
+
     return all
       .filter((thread: any) => {
         const scope = thread.scope || 'team';
@@ -762,6 +770,22 @@ const TeamChat: React.FC = () => {
         if (scope === 'team' && thread.isPrivate && !isCoach) return false;
         if (scope === 'admins' && !isUserClubAdmin) return false;
         if (scope === 'coaches' && !isCoach && !isUserClubAdmin) return false;
+
+        // Cross-team membership gate. Patrick's bug: a coaches-scope
+        // thread for one club was bleeding into another club's chat
+        // list because the only filter was "is the user a coach?"
+        // (role string), which is true regardless of which team.
+        // Now: any team- or coaches-scope thread that names a teamId
+        // is only visible to members of that team. Club admins
+        // bypass — they need cross-team visibility by design.
+        // Threads with no teamId (true club-wide threads) keep
+        // showing as before.
+        if (!isUserClubAdmin) {
+          if ((scope === 'team' || scope === 'coaches') && thread.teamId && !myTeamIds.has(thread.teamId)) {
+            return false;
+          }
+        }
+
         // 'club' is visible to everyone.
         return true;
       })

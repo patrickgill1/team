@@ -25,8 +25,14 @@ interface Props {
   events: any[];    // from Dashboard's event state
 }
 
-const DISMISS_KEY = 'gk_dashboard_getstarted_dismissed_at';
-const DISMISS_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;  // 30 days
+// Dismiss is keyed per team — dismissing on one team doesn't hide
+// the card on another team (Patrick: testing on a brand-new team
+// and the card was already hidden from a prior dismiss). Cooldown
+// is also short — 24h — so an accidental tap doesn't lock the
+// checklist away for a month. The card always self-hides when all
+// 3 steps are actually done.
+const DISMISS_KEY_PREFIX = 'gk_dashboard_getstarted_dismissed_at__';
+const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000;  // 24 hours
 
 const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const navigate = useNavigate();
@@ -35,12 +41,26 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const { isActive } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
 
+  // Per-team dismiss key + auto-clear on fresh teams. Patrick: "it
+  // let me click out of the guide, and now i can't get it back."
+  // Resetting when the team has zero players AND zero events means
+  // a brand-new team always re-surfaces the checklist regardless
+  // of what the coach dismissed on another team.
   useEffect(() => {
+    if (!selectedTeamId) { setDismissed(false); return; }
+    const key = DISMISS_KEY_PREFIX + selectedTeamId;
+    const isFreshTeam = (players?.length || 0) === 0 && (events?.length || 0) === 0;
     try {
-      const at = Number(window.localStorage.getItem(DISMISS_KEY) || 0);
+      if (isFreshTeam) {
+        window.localStorage.removeItem(key);
+        setDismissed(false);
+        return;
+      }
+      const at = Number(window.localStorage.getItem(key) || 0);
       if (at && Date.now() - at < DISMISS_COOLDOWN_MS) setDismissed(true);
+      else setDismissed(false);
     } catch { /* ignore */ }
-  }, []);
+  }, [selectedTeamId, players?.length, events?.length]);
 
   if (!userData) return null;
   if (!isCoach(userData.role)) return null;
@@ -68,7 +88,9 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   };
 
   const handleDismiss = () => {
-    try { window.localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* ignore */ }
+    if (!selectedTeamId) return;
+    const key = DISMISS_KEY_PREFIX + selectedTeamId;
+    try { window.localStorage.setItem(key, String(Date.now())); } catch { /* ignore */ }
     setDismissed(true);
   };
 

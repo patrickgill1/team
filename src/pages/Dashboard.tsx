@@ -894,7 +894,7 @@ const Dashboard: React.FC = () => {
             for new coaches. Hides when all items are done OR after
             the 30-day dismiss cooldown. Includes the trial CTA as
             the LAST step (earned, not dangled). */}
-        <GettingStartedCard players={players} events={events} />
+        <GettingStartedCard players={players} events={upcomingEvents} />
 
         {/* Subscription nudge for coaches without an active sub.
             Self-hides for parents, subscribers, and the 7-day window

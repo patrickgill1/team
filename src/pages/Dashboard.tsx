@@ -819,19 +819,21 @@ const Dashboard: React.FC = () => {
 
   const subtitle = `Here's what's happening with your team.`;
 
-  // "In the pool" detection — a parent who registered through the new
-  // auth-gated /register but hasn't been rostered on any team yet.
-  // Also covers a brand-new user who signed up but hasn't been added
-  // to any team — without this guard, a stale localStorage
-  // selectedTeamId from a prior session can leak team data to a
-  // non-member (Firestore rules currently allow any authed user to
-  // read teams/events/players; rules tightening is queued separately).
+  // "In the pool" is reserved for PARENTS who registered through the
+  // auth-gated /register flow but haven't been rostered yet — that's
+  // a real product state (the parent is waiting for the club to place
+  // their kid on a team). It is NOT the right empty state for a
+  // brand-new user who downloaded the app — they should be in the
+  // onboarding wizard creating their team, not staring at a "you're
+  // in the pool" screen.
+  //
+  // ProtectedRoute already redirects no-team coaches to /onboarding.
+  // This guard exists for the case where the redirect hasn't fired
+  // yet (transient null teamIds) or the user is explicitly role=parent
+  // without a team.
   const userTeamIds: string[] = Array.isArray((userData as any)?.teamIds) ? (userData as any).teamIds : [];
   const hasAnyTeam = userTeamIds.length > 0 || !!(userData as any)?.teamId;
-  // Hard guard: if the user isn't on any team at all, show the in-pool
-  // screen regardless of what TeamContext thinks selectedTeamId is.
-  // This is the leak-stopper for cross-user state in the WebView.
-  const isUnrosteredParent = !isUserCoach && !hasAnyTeam;
+  const isUnrosteredParent = (userData as any)?.role === 'parent' && !hasAnyTeam;
   // Belt-and-suspenders: if the user IS on teams but the currently
   // selected team isn't one of them (stale state), also fall back.
   const selectedTeamIsMine = selectedTeamId

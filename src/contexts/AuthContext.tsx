@@ -269,7 +269,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: user.uid,
           email: user.email || '',
           name: fullName,
-          role: 'parent', // Default to parent
+          // Default to coach for any direct app signup. Parents
+          // arrive via invite link (consumeInvite sets role=parent)
+          // or via /register (the registration flow sets it). A user
+          // who downloads and signs up cold is almost certainly a
+          // coach setting up a team; default coach -> ProtectedRoute
+          // routes them to /onboarding. The track picker there lets
+          // them say "I'm a club" if they're really a club director.
+          role: inviteTeamId ? 'parent' : 'coach',
           teamId: effectiveTeamId,
           teamIds: effectiveTeamId ? [effectiveTeamId] : [],
           isActive: true,
@@ -470,7 +477,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: user.uid,
           email: user.email || '',
           name: fullName,
-          role: 'parent',
+          // Default to coach for direct signups (see Google path comment).
+          role: inviteTeamId ? 'parent' : 'coach',
           teamId: effectiveTeamId,
           teamIds: effectiveTeamId ? [effectiveTeamId] : [],
           isActive: true,
@@ -823,7 +831,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: user.uid,
           email: user.email || '',
           name: fullName,
-          role: 'parent',
+          // Default to coach for direct signups (see Google path comment).
+          role: inviteTeamId ? 'parent' : 'coach',
           teamId: inviteTeamId,
           teamIds: inviteTeamId ? [inviteTeamId] : [],
           isActive: true,

@@ -13,7 +13,11 @@ const SimpleAuth: React.FC = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    role: 'parent' as 'coach' | 'parent',
+    // Default to coach for direct app signups. Parents arrive via
+    // invite link OR /register; cold signups are almost always coaches
+    // setting up a team. The picker UI is hidden — keep the field on
+    // formData so the existing signup payload shape doesn't change.
+    role: 'coach' as 'coach' | 'parent',
     inviteCode: ''
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -476,48 +480,17 @@ const SimpleAuth: React.FC = () => {
                 </div>
               )}
 
-              {/* Role (Register/Setup only) - Mobile optimized */}
-              {mode === 'register' && (
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-3">
-                    I am a...
-                  </label>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                    <label className={`flex flex-col items-center p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-200 ring-1 ${
-                      formData.role === 'parent' 
-                        ? 'ring-crimson-400/70 bg-crimson-400/10 shadow-lg shadow-crimson-500/20' 
-                        : 'ring-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
-                    }`}>
-                      <input
-                        type="radio"
-                        value="parent"
-                        checked={formData.role === 'parent'}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value as 'parent' | 'coach' })}
-                        disabled={isSubmitting}
-                        className="sr-only"
-                      />
-                      <span className="text-2xl sm:text-3xl mb-2">👨‍👩‍👧‍👦</span>
-                      <span className="font-semibold text-white text-sm sm:text-base">Parent</span>
-                    </label>
-                    <label className={`flex flex-col items-center p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-200 ring-1 ${
-                      formData.role === 'coach' 
-                        ? 'ring-violet-400/70 bg-violet-400/10 shadow-lg shadow-violet-500/20' 
-                        : 'ring-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
-                    }`}>
-                      <input
-                        type="radio"
-                        value="coach"
-                        checked={formData.role === 'coach'}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value as 'parent' | 'coach' })}
-                        disabled={isSubmitting}
-                        className="sr-only"
-                      />
-                      <span className="text-2xl sm:text-3xl mb-2">🏃‍♂️</span>
-                      <span className="font-semibold text-white text-sm sm:text-base">Coach</span>
-                    </label>
-                  </div>
-                </div>
-              )}
+              {/* Role picker removed 2026-06-23. Was friction for
+                  every new direct signup ("am I a parent or a coach?")
+                  and defaulted to parent — which dumped the user into
+                  the "in the pool" screen instead of the onboarding
+                  wizard. Now new direct signups default to coach
+                  (see formData.role default + AuthContext.signInWithGoogle
+                  /signInWithApple new-user-creation paths). Parents
+                  arrive via invite link (consumeInvite sets role=parent)
+                  or via /register (writes role=parent + registration
+                  record). The onboarding wizard's team-vs-club picker
+                  handles the real "what are you setting up?" question. */}
 
               {/* Invite Code (Register mode only) */}
               {mode === 'register' && formData.inviteCode && (

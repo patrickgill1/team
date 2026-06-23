@@ -124,7 +124,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
 
-      <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
             Getting started
@@ -137,13 +137,13 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                 : `${completedCount} of ${steps.length} done.`}
           </p>
         </div>
-        <div className="shrink-0 text-bone/70 text-sm font-bold tabular-nums">
-          {completedCount}/{steps.length}
+        <div className="shrink-0 text-bone/70 text-sm font-extrabold tabular-nums leading-none pt-1">
+          {completedCount}<span className="text-bone/40 mx-0.5">/</span>{steps.length}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-4">
+      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-5">
         <div
           className="h-full rounded-full bg-gradient-to-r from-crimson-500 to-amber-400 transition-all"
           style={{ width: `${(completedCount / steps.length) * 100}%` }}
@@ -153,10 +153,11 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
       <ul className="space-y-2">
         {steps.map((s, i) => {
           const isNext = i === firstUndoneIdx;
+          const isTrial = s.key === 'trial';
           return (
             <li
               key={s.key}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition ${
+              className={`rounded-lg px-3 py-2.5 transition ${
                 s.done
                   ? 'bg-emerald-500/5 ring-1 ring-emerald-500/15'
                   : isNext
@@ -164,32 +165,69 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                     : 'bg-charcoal-950/60 ring-1 ring-white/5'
               }`}
             >
-              <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ring-1 ${
-                s.done
-                  ? 'bg-emerald-500/20 ring-emerald-400/40 text-emerald-300'
-                  : 'bg-white/5 ring-white/15 text-bone/40'
-              }`}>
-                {s.done ? (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                ) : (
-                  <span className="text-[10px] font-extrabold">{i + 1}</span>
+              <div className="flex items-center gap-3">
+                <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ring-1 ${
+                  s.done
+                    ? 'bg-emerald-500/20 ring-emerald-400/40 text-emerald-300'
+                    : 'bg-white/5 ring-white/15 text-bone/40'
+                }`}>
+                  {s.done ? (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  ) : (
+                    <span className="text-[10px] font-extrabold">{i + 1}</span>
+                  )}
+                </span>
+                <span className={`flex-1 text-sm font-bold leading-tight ${s.done ? 'text-bone/55 line-through decoration-emerald-400/40' : isNext ? 'text-bone' : 'text-bone/70'}`}>
+                  {s.label}
+                </span>
+                {!s.done && (
+                  // Fixed-width CTA so all four step rows line up cleanly
+                  // regardless of how long the button label is. Patrick:
+                  // "can we make buttons all the same size regardless of font?"
+                  <button
+                    type="button"
+                    onClick={s.onClick}
+                    className={`shrink-0 w-[120px] px-3 py-1.5 rounded-md font-bold text-xs transition text-center ${
+                      isNext
+                        ? 'bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20'
+                        : 'bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 text-bone'
+                    }`}
+                  >
+                    {s.cta}
+                  </button>
                 )}
-              </span>
-              <span className={`flex-1 text-sm font-bold leading-tight ${s.done ? 'text-bone/55 line-through decoration-emerald-400/40' : isNext ? 'text-bone' : 'text-bone/70'}`}>
-                {s.label}
-              </span>
-              {!s.done && (
-                <button
-                  type="button"
-                  onClick={s.onClick}
-                  className={`shrink-0 px-3 py-1.5 rounded-md font-bold text-xs transition ${
-                    isNext
-                      ? 'bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20'
-                      : 'bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 text-bone'
-                  }`}
-                >
-                  {s.cta}
-                </button>
+              </div>
+
+              {/* Trial step — show pricing tiers inline so coaches
+                  know what they're about to start. Patrick: "we
+                  should list the prices and plans so people know
+                  what they are getting into. we can add the
+                  founder's too." All three tiers; Founder included
+                  because in-app display of prices is allowed under
+                  Apple rules — only the actual payment trigger has
+                  to be out-of-app (which it is — opens Safari). */}
+              {isTrial && !s.done && (
+                <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-3 gap-2">
+                  <PricingTier
+                    name="Founder"
+                    price="$5"
+                    period="/mo"
+                    note="First 50"
+                    highlight
+                  />
+                  <PricingTier
+                    name="Annual"
+                    price="$99"
+                    period="/yr"
+                    note="Save 17%"
+                  />
+                  <PricingTier
+                    name="Monthly"
+                    price="$10"
+                    period="/mo"
+                    note="Most flex"
+                  />
+                </div>
               )}
             </li>
           );
@@ -198,5 +236,29 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
     </div>
   );
 };
+
+const PricingTier: React.FC<{
+  name: string;
+  price: string;
+  period: string;
+  note?: string;
+  highlight?: boolean;
+}> = ({ name, price, period, note, highlight }) => (
+  <div className={`rounded-md px-2 py-2 text-center ring-1 ${
+    highlight ? 'bg-amber-500/5 ring-amber-500/20' : 'bg-charcoal-900 ring-white/5'
+  }`}>
+    <p className={`text-[9px] font-extrabold tracking-widest uppercase ${
+      highlight ? 'text-amber-300' : 'text-bone/60'
+    }`}>
+      {name}
+    </p>
+    <p className="text-bone font-black text-base leading-none mt-1 tabular-nums">
+      {price}<span className="text-bone/50 text-[10px] font-bold">{period}</span>
+    </p>
+    {note && (
+      <p className="text-bone/40 text-[9px] mt-0.5 font-bold">{note}</p>
+    )}
+  </div>
+);
 
 export default GettingStartedCard;

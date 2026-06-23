@@ -34,7 +34,11 @@ interface Props {
 }
 
 const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
-  const { userData, signOut } = useAuth() as any;
+  // useAuth exports `logout` (not `signOut`). The previous `as any` cast
+  // pulled `signOut`, which is undefined on the context, so `signOut?.()`
+  // silently no-op'd and the user appeared to stay logged in. Use the
+  // correct name and let TS check it.
+  const { userData, logout } = useAuth();
   const { viewMode, setViewMode, availableModes, isMultiRole } = useViewMode();
   const navigate = useNavigate();
 
@@ -55,9 +59,11 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
   const handleSignOut = async () => {
     onClose();
     try {
-      await signOut?.();
-    } catch { /* ignore */ }
-    navigate('/auth');
+      await logout();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+    navigate('/auth', { replace: true });
   };
 
   return createPortal(

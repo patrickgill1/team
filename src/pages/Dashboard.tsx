@@ -821,14 +821,34 @@ const Dashboard: React.FC = () => {
 
   // "In the pool" detection — a parent who registered through the new
   // auth-gated /register but hasn't been rostered on any team yet.
-  // Without this, they'd land on a mostly-empty team dashboard with
-  // no team selected and no obvious next step. Replaces the entire
-  // hero + roster surface with a status-focused view.
-  const isUnrosteredParent = !isUserCoach
-    && !selectedTeamId
-    && (!(userData as any)?.teamIds || (userData as any).teamIds.length === 0);
+  // Also covers a brand-new user who signed up but hasn't been added
+  // to any team — without this guard, a stale localStorage
+  // selectedTeamId from a prior session can leak team data to a
+  // non-member (Firestore rules currently allow any authed user to
+  // read teams/events/players; rules tightening is queued separately).
+  const userTeamIds: string[] = Array.isArray((userData as any)?.teamIds) ? (userData as any).teamIds : [];
+  const hasAnyTeam = userTeamIds.length > 0 || !!(userData as any)?.teamId;
+  // Hard guard: if the user isn't on any team at all, show the in-pool
+  // screen regardless of what TeamContext thinks selectedTeamId is.
+  // This is the leak-stopper for cross-user state in the WebView.
+  const isUnrosteredParent = !isUserCoach && !hasAnyTeam;
+  // Belt-and-suspenders: if the user IS on teams but the currently
+  // selected team isn't one of them (stale state), also fall back.
+  const selectedTeamIsMine = selectedTeamId
+    ? (userTeamIds.includes(selectedTeamId) || (userData as any)?.teamId === selectedTeamId)
+    : false;
   if (isUnrosteredParent) {
     return <InThePoolHero firstName={firstName} email={userData?.email} />;
+  }
+  if (hasAnyTeam && selectedTeamId && !selectedTeamIsMine) {
+    // User has teams but the wrong one is selected — show a neutral
+    // loading state while TeamContext catches up rather than rendering
+    // any other team's data.
+    return (
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center text-charcoal-400 text-sm">
+        Loading your team…
+      </div>
+    );
   }
 
   return (

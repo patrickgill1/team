@@ -521,6 +521,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try { sessionStorage.setItem('gk.intentionalSignout', '1'); } catch {}
       try { localStorage.removeItem('firefc.lastKnownUid'); } catch {}
       try { sessionStorage.removeItem('firefc.authRecoveryAttempted'); } catch {}
+      // Wipe ALL per-team localStorage so the next user on this
+      // device doesn't inherit team selection or any per-team UI
+      // state from the prior session. Without this, a brand-new
+      // signup could see the previous user's team data flicker
+      // through (TeamContext restores selectedTeamId from
+      // localStorage before it knows the new user has no teams).
+      try {
+        const keysToKill: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          if (k === 'selectedTeamId' || k.startsWith('wall.lastSeen.') || k.startsWith('gk_') || k.startsWith('firefc.')) {
+            keysToKill.push(k);
+          }
+        }
+        for (const k of keysToKill) localStorage.removeItem(k);
+      } catch { /* ignore */ }
 
       // Now safe to sign out — listeners see clean state.
       try {

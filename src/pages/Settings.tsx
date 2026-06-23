@@ -178,8 +178,16 @@ const Settings: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    try { await logout(); }
-    catch (err) { console.error('Sign out error:', err); }
+    try {
+      await logout();
+      // Belt-and-suspenders: navigate to /auth ourselves. The
+      // AuthContext clears state and ProtectedRoute will redirect
+      // here too, but explicit navigation prevents a flash of the
+      // dashboard if any auth listener stutters.
+      navigate('/auth', { replace: true });
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
   };
 
   const handleDelete = async () => {

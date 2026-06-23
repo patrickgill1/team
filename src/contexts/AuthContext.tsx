@@ -509,15 +509,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       setError(null);
-      // Tell the post-sign-out auth-state handler that this null
-      // emission is INTENTIONAL — not a Capgo-reload-lost-session
-      // event. Without this flag, tryBridgeNativeSession() would
-      // immediately re-sign-in the user from the Keychain-backed
-      // native session and the user would never actually log out.
-      // sessionStorage clears on a fresh app launch, so this only
-      // affects the current run.
+
+      // CRITICAL ORDERING: clear all the "I was signed in" hints
+      // BEFORE calling any signOut. The native plugin signOut() and
+      // the Web SDK signOut(auth) both fire onAuthStateChanged(null)
+      // — and the legacy recovery path in that handler triggers
+      // window.location.reload() if firefc.lastKnownUid is still set.
+      // Patrick's bug: native signOut fires the listener before we
+      // clear the localStorage hint -> reload -> Firebase Web SDK
+      // restores the session from IndexedDB cache -> still signed in.
       try { sessionStorage.setItem('gk.intentionalSignout', '1'); } catch {}
-      // Sign out of native providers too so the next launch is clean.
+      try { localStorage.removeItem('firefc.lastKnownUid'); } catch {}
+      try { sessionStorage.removeItem('firefc.authRecoveryAttempted'); } catch {}
+
+      // Now safe to sign out — listeners see clean state.
       try {
         const { Capacitor } = await import('@capacitor/core');
         if (Capacitor.isNativePlatform()) {
@@ -525,16 +530,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await FirebaseAuthentication.signOut().catch(() => {});
         }
       } catch { /* ignore */ }
-      // Clear the "we were signed in" hint so the post-reload
-      // recovery logic doesn't try to hold the spinner on the next
-      // launch.
-      try { localStorage.removeItem('firefc.lastKnownUid'); } catch {}
       await signOut(auth);
+
+      // Force the local component state to logged-out NOW, so
+      // ProtectedRoute redirects immediately even if a stray
+      // onAuthStateChanged emission happens later.
+      setCurrentUser(null);
       setUserData(null);
+      setLoading(false);
+
       if (userDocUnsubRef.current) {
         userDocUnsubRef.current();
         userDocUnsubRef.current = null;
       }
+
+      // Evict the Firebase Web SDK's IndexedDB so an aggressive
+      // restore-from-cache can't re-bridge a session we just killed.
+      // Best-effort: if IndexedDB isn't available (rare), the
+      // intentionalSignout sessionStorage flag is still our backstop.
+      try {
+        const dbs = ['firebaseLocalStorageDb', 'firebase-installations-database', 'firebase-messaging-database'];
+        for (const name of dbs) {
+          try { indexedDB.deleteDatabase(name); } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
     } catch (error) {
       console.error('Logout error:', error);
       throw error;

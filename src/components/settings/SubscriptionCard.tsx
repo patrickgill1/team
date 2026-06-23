@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useFirestore } from '../../hooks/useFirestore';
 import { useSubscription } from '../../hooks/useSubscription';
 import { openCustomerPortal, openWebSignup, isAppleDevice } from '../../utils/subscriptionApi';
 
@@ -54,9 +55,21 @@ function fmtDate(d: Date | null): string {
 
 const SubscriptionCard: React.FC = () => {
   const { currentUser, userData } = useAuth();
+  const { updateDocument } = useFirestore();
   const { loading, subscription, isActive, isTrialing, isPastDue, willCancelAtPeriodEnd, tier, currentPeriodEndDate } = useSubscription();
   const [opening, setOpening] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  // Email-confirm sheet — only shown when both Firebase Auth and the
+  // user doc are missing an email (Apple private-relay sign-in, etc).
+  // Without an email Stripe receipts have nowhere to land + the
+  // marketing-site signup form has to pop a second prompt, which is
+  // a clunky two-step. Catching it here saves the trip.
+  const [emailIntent, setEmailIntent] = useState<null | 'subscribe' | 'upgrade'>(null);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const knownEmail = (currentUser?.email || userData?.email || '').trim();
 
   const handleManage = async () => {
     if (!subscription?.customerId) return;
@@ -67,21 +80,112 @@ const SubscriptionCard: React.FC = () => {
     if (err) setPortalError('Could not open the billing portal. Try again in a moment.');
   };
 
-  const handleSubscribe = () => {
+  const openSignupWith = (intent: 'subscribe' | 'upgrade', email: string) => {
     openWebSignup({
-      email: currentUser?.email || userData?.email || undefined,
+      email,
       uid: currentUser?.uid,
-      intent: 'subscribe',
+      intent,
     });
   };
 
-  const handleUpgrade = () => {
-    openWebSignup({
-      email: currentUser?.email || userData?.email || undefined,
-      uid: currentUser?.uid,
-      intent: 'upgrade',
-    });
+  const requestSubscribe = (intent: 'subscribe' | 'upgrade') => {
+    if (knownEmail) {
+      openSignupWith(intent, knownEmail);
+      return;
+    }
+    setEmailError(null);
+    setEmailDraft('');
+    setEmailIntent(intent);
   };
+
+  const handleSubscribe = () => requestSubscribe('subscribe');
+  const handleUpgrade = () => requestSubscribe('upgrade');
+
+  const handleEmailConfirm = async () => {
+    const email = emailDraft.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setEmailError('That email doesn\'t look right.');
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      // Persist on the user doc so we don't ask again next time and
+      // so any other code path reading userData.email gets the value.
+      if (currentUser?.uid) {
+        await updateDocument('users', currentUser.uid, { email, updatedAt: new Date() });
+      }
+      const intent = emailIntent || 'subscribe';
+      setEmailIntent(null);
+      openSignupWith(intent, email);
+    } catch (err: any) {
+      setEmailError(String(err?.message || err));
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
+  // Modal: shared across all render branches via a fragment wrapper
+  // on each return. Renders only when emailIntent is set.
+  const emailModal = emailIntent && (
+    <div
+      className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fade-in"
+      onClick={() => !emailSaving && setEmailIntent(null)}
+    >
+      <div
+        className="bg-charcoal-900 ring-1 ring-white/10 rounded-2xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div>
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1.5">
+            One quick thing
+          </p>
+          <h3 className="text-bone text-lg font-bold leading-tight">
+            What email should we put on the receipt?
+          </h3>
+          <p className="text-charcoal-300 text-sm mt-2">
+            We don&apos;t have an email on file for your account. Add one and we&apos;ll
+            open goalkickr.com for checkout.
+          </p>
+        </div>
+        <label className="block">
+          <span className="text-charcoal-300 text-[11px] font-bold uppercase tracking-widest">Email</span>
+          <input
+            type="email"
+            autoComplete="email"
+            autoFocus
+            value={emailDraft}
+            onChange={e => setEmailDraft(e.target.value)}
+            placeholder="you@example.com"
+            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500"
+            onKeyDown={e => { if (e.key === 'Enter' && !emailSaving) handleEmailConfirm(); }}
+          />
+        </label>
+        {emailError && (
+          <div className="rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-xs">
+            {emailError}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setEmailIntent(null)}
+            disabled={emailSaving}
+            className="px-4 py-2.5 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleEmailConfirm}
+            disabled={emailSaving || !emailDraft.trim()}
+            className="px-4 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white transition disabled:opacity-60 disabled:cursor-wait"
+          >
+            {emailSaving ? 'Saving…' : 'Continue'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -97,22 +201,25 @@ const SubscriptionCard: React.FC = () => {
   //     uid hasn't been linked yet; the doc isn't reachable from this uid
   if (!subscription || !isActive && subscription?.status !== 'past_due') {
     return (
-      <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4 space-y-3">
-        <div>
-          <p className="text-bone font-bold">Coach with GoalKickr</p>
-          <p className="text-charcoal-300 text-sm mt-1">
-            You&apos;re using GoalKickr for free. Coaches unlock the full toolkit (chat, RSVPs, gameday, dev plans) with a Team plan starting at $9.99/mo.
-            {!isAppleDevice() && ' Founding Coach pricing locks in $4.99/mo forever.'}
-          </p>
+      <>
+        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4 space-y-3">
+          <div>
+            <p className="text-bone font-bold">Coach with GoalKickr</p>
+            <p className="text-charcoal-300 text-sm mt-1">
+              You&apos;re using GoalKickr for free. Coaches unlock the full toolkit (chat, RSVPs, gameday, dev plans) with a Team plan starting at $9.99/mo.
+              {!isAppleDevice() && ' Founding Coach pricing locks in $4.99/mo forever.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSubscribe}
+            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-crimson-600 hover:bg-crimson-500 text-white transition-all"
+          >
+            Subscribe at goalkickr.com
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleSubscribe}
-          className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-crimson-600 hover:bg-crimson-500 text-white transition-all"
-        >
-          Subscribe at goalkickr.com
-        </button>
-      </div>
+        {emailModal}
+      </>
     );
   }
 
@@ -173,6 +280,7 @@ const SubscriptionCard: React.FC = () => {
       <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
         Billing happens on goalkickr.com. Both buttons open your system browser.
       </p>
+      {emailModal}
     </div>
   );
 };

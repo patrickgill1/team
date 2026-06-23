@@ -73,13 +73,18 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   };
 
   // Order matters: each step gates the next as the obvious "do this now."
+  // Players + Invite both deep-link to /people/add (the focused bulk
+  // add-with-emails page), NOT /people (which is the directory of
+  // everyone the coach has ever met). The bulk form sends parent
+  // invites at the same moment players are created, so "Add players"
+  // and "Invite parents" are the same action.
   const steps = [
     {
       key: 'players',
       label: hasPlayers ? `${players.length} ${players.length === 1 ? 'player' : 'players'} on the roster` : 'Add your first players',
       done: hasPlayers,
       cta: 'Add players',
-      onClick: () => navigate('/people'),
+      onClick: () => navigate('/people/add'),
     },
     {
       key: 'event',
@@ -93,7 +98,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
       label: hasInvitedParents ? 'Parent invites sent' : 'Invite your parents',
       done: hasInvitedParents,
       cta: 'Invite parents',
-      onClick: () => navigate('/people'),
+      onClick: () => navigate('/people/add'),
     },
     {
       key: 'trial',

@@ -59,6 +59,7 @@ const PlatformClubs = React.lazy(() => import('./pages/PlatformClubs'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
+const AddRoster = React.lazy(() => import('./pages/AddRoster'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
 const ClubBranding = React.lazy(() => import('./pages/ClubBranding'));
 const PlayerDevelopment = React.lazy(() => import('./pages/PlayerDevelopment'));
@@ -751,6 +752,17 @@ function App() {
             <Route path="/onboarding" element={
               <ProtectedRoute allowEmpty>
                 <Onboarding />
+              </ProtectedRoute>
+            } />
+
+            {/* Standalone bulk add-players + invite-parents page.
+                Reachable from Dashboard's Getting Started card and
+                anywhere else that needs a focused add flow. */}
+            <Route path="/people/add" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <AddRoster />
+                </AppLayout>
               </ProtectedRoute>
             } />
 

@@ -5,8 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useSubscription } from '../hooks/useSubscription';
 import { createPlayerInvite, inviteUrl } from '../utils/invites';
-import { sendEmail } from '../utils/notify';
 import { openWebSignup } from '../utils/subscriptionApi';
+import BulkAddPlayersForm from '../components/people/BulkAddPlayersForm';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 
@@ -40,14 +40,6 @@ const AGE_GROUPS = [
 
 type Step = 'welcome' | 'team' | 'club' | 'roster' | 'event' | 'invite' | 'done';
 type Intent = 'team' | 'club';
-
-interface RosterRow {
-  firstName: string;
-  lastName: string;
-  parentEmail: string;
-}
-
-const BLANK_ROW: RosterRow = { firstName: '', lastName: '', parentEmail: '' };
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -102,11 +94,7 @@ const Onboarding: React.FC = () => {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
 
-  // Bulk roster step: 6 rows by default, coach taps "Add another"
-  // for more. Empty rows are ignored on submit.
-  const [rosterRows, setRosterRows] = useState<RosterRow[]>(
-    Array.from({ length: 6 }, () => ({ ...BLANK_ROW }))
-  );
+  // Roster bulk-add result (rendered for end-of-flow confirmation).
   const [rosterResult, setRosterResult] = useState<{ created: number; invitesSent: number } | null>(null);
 
   // First-event step: defaults to a Practice tomorrow at 6:30 PM,
@@ -226,76 +214,9 @@ const Onboarding: React.FC = () => {
     }
   };
 
-  // ─ Bulk roster + parent invite emails ─
-  // Coach types player names + parent emails in batch. For each
-  // valid row we create the Player doc, generate a player-specific
-  // invite, and (if email provided) email the parent the invite link
-  // so they can sign in / sign up against THAT player. Per-player
-  // invites are stronger than one general link because the parent
-  // gets auto-linked to their own kid on consume.
-  const handleRosterSubmit = async () => {
-    if (!userData || !createdTeamId) {
-      setError('No team yet — go back to the previous step.');
-      return;
-    }
-    setError(null);
-    const valid = rosterRows.filter(r => r.firstName.trim() || r.lastName.trim());
-    if (valid.length === 0) {
-      // Empty submit = same as skip.
-      setStep('event');
-      return;
-    }
-    setBusy(true);
-    let created = 0;
-    let invitesSent = 0;
-    try {
-      for (const row of valid) {
-        const name = `${row.firstName.trim()} ${row.lastName.trim()}`.trim();
-        if (!name) continue;
-        const playerId = await addPlayer({
-          name,
-          teamId: createdTeamId,
-          teamIds: [createdTeamId],
-          parentIds: [],
-          parentEmails: row.parentEmail.trim()
-            ? [row.parentEmail.trim().toLowerCase()]
-            : [],
-          isActive: true,
-        });
-        if (!playerId) continue;
-        created++;
-        const email = row.parentEmail.trim();
-        if (email && /^\S+@\S+\.\S+$/.test(email)) {
-          try {
-            const inv = await createPlayerInvite({
-              teamId: createdTeamId,
-              playerId,
-              createdBy: userData.uid,
-              ttlDays: 30,
-              note: `Onboarding bulk for ${name}`,
-            });
-            const link = inviteUrl(inv.id);
-            const coachName = (userData.name || 'Your coach').split(' ')[0];
-            const ok = await sendEmail({
-              to: email,
-              subject: `${coachName} invited you to ${teamName} on GoalKickr`,
-              html: `<p>Hi,</p><p>${userData.name || 'Your coach'} added <b>${name}</b> to <b>${teamName}</b> on GoalKickr (the team-management app the coach is using this season).</p><p>Tap the link below to set up your parent account so you can RSVP to events, get team announcements, and see your kid's schedule:</p><p><a href="${link}">Join ${teamName} on GoalKickr</a></p><p>This link is just for <b>${name}</b>'s family and works one time. If someone else needs access, ask your coach for a new link.</p>`,
-              text: `${userData.name || 'Your coach'} added ${name} to ${teamName} on GoalKickr. Tap to join: ${link}`,
-            });
-            if (ok) invitesSent++;
-          } catch (e) {
-            console.warn('roster invite failed for', email, e);
-          }
-        }
-      }
-      setRosterResult({ created, invitesSent });
-      setStep('event');
-    } catch (err: any) {
-      setError(String(err?.message || err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  // (Bulk roster handler removed — now lives in
+  // src/components/people/BulkAddPlayersForm.tsx so this page and
+  // /people/add use the same code path + branded email template.)
 
   // ─ First event ─
   // Defaults to a Practice tomorrow at 6:30 PM, 90 minutes. A coach
@@ -503,81 +424,27 @@ const Onboarding: React.FC = () => {
           </Card>
         )}
 
-        {step === 'roster' && (
+        {step === 'roster' && createdTeamId && (
           <Card>
             <Kicker>Add your roster</Kicker>
             <H>Who&apos;s on your team?</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              Add players + parent emails and we&apos;ll send each parent a private join link.
-              You can leave rows blank or add more. Add the rest later from the Team page.
+              Add players + parent emails and we&apos;ll send each parent a branded GoalKickr invite.
+              You can leave rows blank or add more. Add the rest later from /people/add.
             </p>
-
-            <div className="mt-5 space-y-3">
-              {rosterRows.map((row, i) => (
-                <div key={i} className="rounded-lg bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      value={row.firstName}
-                      onChange={e => {
-                        const next = [...rosterRows];
-                        next[i] = { ...row, firstName: e.target.value };
-                        setRosterRows(next);
-                      }}
-                      className="form-input"
-                      placeholder="First name"
-                      autoComplete="off"
-                    />
-                    <input
-                      type="text"
-                      value={row.lastName}
-                      onChange={e => {
-                        const next = [...rosterRows];
-                        next[i] = { ...row, lastName: e.target.value };
-                        setRosterRows(next);
-                      }}
-                      className="form-input"
-                      placeholder="Last name"
-                      autoComplete="off"
-                    />
-                  </div>
-                  <input
-                    type="email"
-                    value={row.parentEmail}
-                    onChange={e => {
-                      const next = [...rosterRows];
-                      next[i] = { ...row, parentEmail: e.target.value };
-                      setRosterRows(next);
-                    }}
-                    className="form-input"
-                    placeholder="Parent email (optional)"
-                    autoComplete="off"
-                  />
-                </div>
-              ))}
+            <div className="mt-5">
+              <BulkAddPlayersForm
+                teamId={createdTeamId}
+                teamName={teamName}
+                primaryLabel="Add players + send parent invites"
+                skipLabel="Skip for now"
+                onComplete={(r) => {
+                  setRosterResult(r);
+                  setStep('event');
+                }}
+                onSkip={() => setStep('event')}
+              />
             </div>
-
-            <button
-              type="button"
-              onClick={() => setRosterRows(rs => [...rs, { ...BLANK_ROW }])}
-              className="mt-3 w-full px-4 py-2 rounded-md text-bone/75 text-sm font-bold ring-1 ring-white/10 hover:bg-white/5 transition"
-            >
-              + Add another player
-            </button>
-
-            {error && <ErrorBanner>{error}</ErrorBanner>}
-
-            <PrimaryButton onClick={handleRosterSubmit} disabled={busy} className="mt-6 w-full">
-              {busy ? 'Adding players…' : 'Add players + send parent invites'}
-            </PrimaryButton>
-
-            <button
-              type="button"
-              onClick={() => setStep('event')}
-              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
-            >
-              Skip for now
-            </button>
           </Card>
         )}
 

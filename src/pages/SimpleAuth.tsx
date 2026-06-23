@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
+import { friendlyAuthError } from '../utils/authErrors';
 
 const SimpleAuth: React.FC = () => {
   const { signIn, signUp, signInWithGoogle, signInWithApple, currentUser, userData, loading, error } = useAuth();
@@ -140,48 +141,11 @@ const SimpleAuth: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      
-      let errorMessage = 'An error occurred. Please try again.';
-      
-      if (error?.code) {
-        switch (error.code) {
-          case 'auth/user-not-found':
-            errorMessage = 'No account found with this email. Try creating an account instead.';
-            setMode('register');
-            break;
-          case 'auth/wrong-password':
-            errorMessage = 'Incorrect password. Please try again.';
-            break;
-          case 'auth/email-already-in-use':
-            errorMessage = 'An account with this email already exists. Try signing in instead.';
-            setMode('login');
-            break;
-          case 'auth/weak-password':
-            errorMessage = 'Password is too weak. Please choose a stronger password.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Please enter a valid email address.';
-            break;
-          case 'auth/too-many-requests':
-            errorMessage = 'Too many failed attempts. Please wait a moment and try again.';
-            break;
-          case 'permission-denied':
-            errorMessage = 'There was a setup issue. Please contact support.';
-            break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your connection and try again.';
-            break;
-          case 'auth/invalid-credential':
-            errorMessage = 'Invalid email or password. Please check your credentials.';
-            break;
-          default:
-            errorMessage = error.message || 'Authentication failed. Please try again.';
-        }
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      setErrors({ submit: errorMessage });
+      // Auto-switch to the correct mode when the error tells us we
+      // were in the wrong one. friendlyAuthError handles the copy.
+      if (error?.code === 'auth/user-not-found') setMode('register');
+      else if (error?.code === 'auth/email-already-in-use') setMode('login');
+      setErrors({ submit: friendlyAuthError(error, 'email') });
     } finally {
       setIsSubmitting(false);
     }
@@ -209,29 +173,7 @@ const SimpleAuth: React.FC = () => {
       console.log('Google sign-in successful - waiting for auth state change');
     } catch (error: any) {
       console.error('Google sign-in error:', error);
-      
-      let errorMessage = 'Google sign-in failed. Please try again.';
-      
-      if (error?.code) {
-        switch (error.code) {
-          case 'auth/popup-closed-by-user':
-            errorMessage = 'Sign-in was cancelled. Please try again.';
-            break;
-          case 'auth/popup-blocked':
-            errorMessage = 'Pop-up was blocked. Please allow pop-ups and try again.';
-            break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your connection and try again.';
-            break;
-          case 'auth/too-many-requests':
-            errorMessage = 'Too many attempts. Please wait a moment and try again.';
-            break;
-          default:
-            errorMessage = error.message || 'Google sign-in failed. Please try again.';
-        }
-      }
-      
-      setErrors({ submit: errorMessage });
+      setErrors({ submit: friendlyAuthError(error, 'google') });
     } finally {
       setIsSubmitting(false);
     }
@@ -361,10 +303,7 @@ const SimpleAuth: React.FC = () => {
                       // rely on context.error — the panel below only
                       // reads errors.submit, so context errors never
                       // showed for the Apple path.
-                      const msg = err?.message?.includes('cancel') || err?.code === 'cancelled' || err?.code === 'cancel'
-                        ? 'Sign-in was cancelled'
-                        : (err?.message || 'Apple sign-in failed. Please try again.');
-                      setErrors({ submit: msg });
+                      setErrors({ submit: friendlyAuthError(err, 'apple') });
                     } finally {
                       setIsSubmitting(false);
                     }

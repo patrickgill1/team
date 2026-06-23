@@ -84,7 +84,15 @@ export function openWebSignup(opts: {
   intent?: 'subscribe' | 'upgrade';
 }): void {
   const params = new URLSearchParams();
-  if (opts.email) params.set('email', opts.email);
+  // Only forward an email that actually looks like one. Some legacy
+  // user docs ended up with placeholder strings ("....", "n/a")
+  // stamped in the email field, which would corrupt the marketing
+  // form's "Signed in as X" banner and lock the user out of typing
+  // a real one. Strip the param entirely in that case so the form
+  // shows its email-input fallback instead.
+  if (opts.email && /^\S+@\S+\.\S+$/.test(opts.email.trim())) {
+    params.set('email', opts.email.trim());
+  }
   if (opts.uid) params.set('uid', opts.uid);
   if (opts.tier) params.set('tier', opts.tier);
   if (opts.intent) params.set('intent', opts.intent);

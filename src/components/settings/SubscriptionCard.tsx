@@ -9,9 +9,15 @@ import { openCustomerPortal, openWebSignup, isAppleDevice } from '../../utils/su
 // Stripe webhooks).
 //
 // Three render states:
-//   1. Active   — "Founding Coach · renews Jul 22, 2026 · Manage"
-//   2. Past due — amber banner: "Payment failed. Update card."
-//   3. None     — "Coach for free until you're ready. Pick a plan →"
+//   1. Active   — "Founding Coach · renews Jul 22, 2026 · Manage at goalkickr.com"
+//   2. Past due — amber banner: "Payment failed. Update card at goalkickr.com"
+//   3. None     — "Coach for free until you're ready. Subscribe at goalkickr.com →"
+//
+// Wording note: every CTA explicitly names goalkickr.com. Apple App
+// Store reviewers grade these screens (and screenshots that include
+// them) for anti-steering compliance. "Subscribe at goalkickr.com"
+// reads as informational; "Subscribe" or "Upgrade" reads as an
+// in-app payment trigger that would push us into IAP territory.
 //
 // Apple compliance:
 //   - In-app upgrade flow opens goalkickr.com/signup in the system
@@ -104,7 +110,7 @@ const SubscriptionCard: React.FC = () => {
           onClick={handleSubscribe}
           className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-crimson-600 hover:bg-crimson-500 text-white transition-all"
         >
-          Pick a plan
+          Subscribe at goalkickr.com
         </button>
       </div>
     );
@@ -137,7 +143,7 @@ const SubscriptionCard: React.FC = () => {
 
       {isPastDue && (
         <div className="rounded-md bg-amber-950/40 ring-1 ring-amber-700/40 px-3 py-2 text-amber-100 text-xs">
-          Your last payment failed. Update your card in the billing portal to keep your subscription active.
+          Your last payment failed. Update your card at goalkickr.com to keep your subscription active.
         </div>
       )}
 
@@ -154,18 +160,18 @@ const SubscriptionCard: React.FC = () => {
           disabled={opening || !subscription?.customerId}
           className="inline-flex items-center justify-center px-3 py-2 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all disabled:opacity-50"
         >
-          {opening ? 'Opening…' : 'Manage'}
+          {opening ? 'Opening…' : 'Manage at goalkickr.com'}
         </button>
         <button
           type="button"
           onClick={handleUpgrade}
           className="inline-flex items-center justify-center px-3 py-2 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all"
         >
-          Change plan
+          Change plan on web
         </button>
       </div>
       <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
-        Billing happens on our website. Tapping Manage or Change plan opens your browser.
+        Billing happens on goalkickr.com. Both buttons open your system browser.
       </p>
     </div>
   );

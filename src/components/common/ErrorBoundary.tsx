@@ -1,4 +1,5 @@
 import React from 'react';
+import { logRenderCrash } from '../../utils/crashLog';
 
 interface State {
   error: Error | null;
@@ -23,6 +24,10 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, State
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Keep the stack visible in the iOS Safari Web Inspector + Vercel logs.
     console.error('[ErrorBoundary] render crashed:', error, info?.componentStack);
+    // And persist to crash_logs so we can read the actual error from
+    // Firestore Console after the user reports the bug — console
+    // history is gone by the time they explain what happened.
+    logRenderCrash(error, info, 'top-level');
 
     // Auto-recover from stale-chunk errors. When Vercel deploys a new
     // build, hashed chunk filenames change — any open tab still

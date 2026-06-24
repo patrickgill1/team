@@ -1,4 +1,5 @@
 import React from 'react';
+import { logRenderCrash } from '../../utils/crashLog';
 
 interface Props {
   /** Tag included in [silent-eb] console.error so the source is
@@ -38,6 +39,10 @@ class SilentErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error(`[silent-eb${this.props.label ? `:${this.props.label}` : ''}] caught:`, error, info?.componentStack);
+    // Best-effort write to crash_logs so we can read the actual
+    // stack from Firestore Console later — console history is gone
+    // by the time the user reports the bug.
+    logRenderCrash(error, info, `silent-eb:${this.props.label || 'unknown'}`);
     this.props.onError?.(error, info);
   }
 

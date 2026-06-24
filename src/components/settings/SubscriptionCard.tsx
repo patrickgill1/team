@@ -261,6 +261,7 @@ const SubscriptionCard: React.FC = () => {
   const renewsAt = fmtDate(currentPeriodEndDate);
 
   return (
+    <>
     <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -357,6 +358,15 @@ const SubscriptionCard: React.FC = () => {
       </p>
       {emailModal}
     </div>
+    <TierPickerSheet
+      open={!!pickerIntent}
+      onClose={() => setPickerIntent(null)}
+      email={knownEmail || undefined}
+      uid={currentUser?.uid}
+      intent={pickerIntent || 'upgrade'}
+      onPick={handleTierPicked}
+    />
+    </>
   );
 };
 

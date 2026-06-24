@@ -73,9 +73,33 @@ const ClubOverview: React.FC = () => {
       // team in my team selection and it was made from another
       // account." Now scoped to the admin's clubIds[]. Also drops
       // archived teams (isActive: false) from the list.
-      const clubIds: string[] = Array.isArray((userData as any)?.clubIds)
+      //
+      // Fallback (2026-06-25): for admin user docs that pre-date the
+      // multi-tenant work and have no clubIds field, derive the club
+      // scope from the user's own teamIds — load those teams, take
+      // the unique clubIds, then expand to every team in those clubs.
+      // Patrick: 'it shows i have no teams in my main club page.'
+      let clubIds: string[] = Array.isArray((userData as any)?.clubIds)
         ? (userData as any).clubIds
         : (userData as any)?.clubId ? [(userData as any).clubId] : [];
+
+      if (clubIds.length === 0 && (userData as any)?.teamIds?.length) {
+        try {
+          const ownIds: string[] = ((userData as any).teamIds as string[]).slice(0, 30);
+          const ownSnap = await getDocs(query(
+            collection(db, 'teams'),
+            where('__name__', 'in', ownIds),
+          ));
+          const derived = new Set<string>();
+          ownSnap.forEach((d) => {
+            const cid = (d.data() as any)?.clubId;
+            if (cid && typeof cid === 'string') derived.add(cid);
+          });
+          clubIds = Array.from(derived);
+        } catch (err) {
+          console.warn('[club] clubId fallback derive failed', err);
+        }
+      }
 
       // Teams: scope to clubIds, exclude archived.
       let teamDocs: any[] = [];

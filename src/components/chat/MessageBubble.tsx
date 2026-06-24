@@ -584,13 +584,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           transition: swipeDx === 0 ? 'transform 0.18s ease-out' : 'none',
         }}
       >
-        {/* Sender name + coach pill — only on first message in a run, for incoming */}
+        {/* Sender name + role/relationship pill — only on first message in a run, for incoming */}
         {!isOwn && isFirstInGroup && (
           <div className="ml-1 mb-0.5 flex items-center gap-1.5">
             <span className="text-xs font-semibold text-gray-700">{message.senderName}</span>
             {message.senderRole === 'coach' && (
               <span className="text-[10px] font-bold uppercase tracking-wider text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">
                 Coach
+              </span>
+            )}
+            {message.senderRole === 'parent' && (message as any).senderRelationship
+              && (message as any).senderRelationship !== 'parent' && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-1.5 py-0.5 rounded">
+                {(() => {
+                  const r = (message as any).senderRelationship;
+                  return r === 'aunt_uncle' ? 'Aunt / Uncle'
+                    : r === 'grandparent' ? 'Grandparent'
+                    : r === 'guardian' ? 'Guardian'
+                    : r === 'sibling' ? 'Sibling'
+                    : 'Family';
+                })()}
               </span>
             )}
           </div>

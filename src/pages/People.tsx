@@ -9,6 +9,7 @@ import AddPlayerModal from '../components/people/AddPlayerModal';
 import ActiveInvitesPanel from '../components/people/ActiveInvitesPanel';
 import TrialGateModal from '../components/common/TrialGateModal';
 import { useTrialGate } from '../hooks/useTrialGate';
+import { RELATIONSHIP_LABELS } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -33,6 +34,11 @@ interface Person {
   teamIds: string[];
   childNames?: string[];  // for parents
   isActive: boolean;
+  /** Family relationship for users with role==='parent'. Drives the
+   *  label ('Grandparent' / 'Aunt / Uncle' / etc) shown next to the
+   *  name. Missing/undefined falls back to 'Parent'. Coaches +
+   *  managers leave this unset. */
+  relationship?: 'parent' | 'grandparent' | 'aunt_uncle' | 'guardian' | 'sibling' | 'other';
 }
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -183,6 +189,7 @@ const People: React.FC = () => {
             role,
             teamIds: intersect,
             isActive: u.isActive !== false,
+            relationship: u.relationship,
           });
         }
 
@@ -414,7 +421,7 @@ const People: React.FC = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold text-bone truncate">{p.name}</span>
                       <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
-                        {ROLE_LABEL[p.role]}
+                        {p.role === 'parent' ? RELATIONSHIP_LABELS[p.relationship || 'parent'] : ROLE_LABEL[p.role]}
                       </span>
                       {!p.isActive && (
                         <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-charcoal-950 text-bone/40 border-white/10">

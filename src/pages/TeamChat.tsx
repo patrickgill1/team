@@ -671,47 +671,79 @@ const TeamChat: React.FC = () => {
   }, [userData?.teamIds, userData?.teamId, selectedTeamId, subscribeToChatThreads, authChurn]);
 
   // Auto-create the team chat. Every team gets exactly ONE team-scoped
-  // thread (named "<Team> Chat"). Created lazily on first chat-tab
-  // load by any signed-in team member. Guarded by a per-team ref so
-  // we don't race-create multiple while the subscription settles.
+  // thread (named "<Team> Chat").
+  //
+  // Patrick 2026-06-25: 'every once in a while, the app will create a
+  // new chat group for a team even though we already have one.'
+  //
+  // Old approach used addDoc with a random ID + a local `hasTeamChat`
+  // check against the subscription. The race: two sessions both load
+  // before either has populated teamThreads, both pass the check,
+  // both addDoc -> two threads. Fixed by using a deterministic
+  // document ID (`teamchat_<teamId>`) with setDoc — concurrent
+  // creates converge on the same doc, no duplicates possible. Legacy
+  // teams that already have a random-ID team thread get that thread
+  // promoted with `isOfficialTeamChat: true` instead of getting a
+  // fresh doc.
   const ensuredTeamChatRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!userData?.uid || !selectedTeamId || loading) return;
     if (ensuredTeamChatRef.current.has(selectedTeamId)) return;
-    const hasTeamChat = teamThreads.some(t => {
-      const scope = (t as any).scope || 'team';
-      const isDM = (t as any).isDM === true;
-      return !isDM && scope === 'team' && t.teamId === selectedTeamId;
-    });
-    if (hasTeamChat) {
-      ensuredTeamChatRef.current.add(selectedTeamId);
-      return;
-    }
     ensuredTeamChatRef.current.add(selectedTeamId);
+
     (async () => {
       try {
+        const { doc: fsDocFn, getDoc, setDoc: fsSetDoc, updateDoc: fsUpdateDoc, serverTimestamp } = await import('firebase/firestore');
+        const { db: fsDb } = await import('../utils/firebase');
+        const officialId = `teamchat_${selectedTeamId}`;
+        const officialRef = fsDocFn(fsDb, 'chat_threads', officialId);
+
+        // Fast path: canonical doc already exists.
+        const officialSnap = await getDoc(officialRef);
+        if (officialSnap.exists()) return;
+
+        // Legacy: a random-ID team thread already exists from before
+        // the deterministic-ID rollout. Stamp it as official rather
+        // than create a duplicate.
+        const existingLegacy = teamThreads.find((t) => {
+          const scope = (t as any).scope || 'team';
+          const isDM = (t as any).isDM === true;
+          return !isDM && scope === 'team' && t.teamId === selectedTeamId && t.id !== officialId;
+        });
+        if (existingLegacy) {
+          await fsUpdateDoc(fsDocFn(fsDb, 'chat_threads', existingLegacy.id), {
+            isOfficialTeamChat: true,
+          });
+          return;
+        }
+
+        // Create the canonical doc. setDoc on a deterministic id is
+        // idempotent under concurrent writers — they overwrite each
+        // other with the same data, never produce dupes.
         const teamName = selectedTeam?.name || 'Team';
-        await addChatThread({
+        await fsSetDoc(officialRef, {
+          id: officialId,
           title: `${teamName} Chat`,
           description: 'Team-wide conversation for parents and coaches.',
           teamId: selectedTeamId,
           scope: 'team',
+          isOfficialTeamChat: true,
           createdBy: userData.uid,
           createdByName: userData.name || 'Member',
-          lastActivity: new Date(),
+          createdAt: serverTimestamp(),
+          lastActivity: serverTimestamp(),
           isPinned: false,
           isPrivate: false,
           messageCount: 0,
           participants: [userData.uid],
           tags: ['team'],
-        } as any);
+        }, { merge: true });
       } catch (err) {
-        // Re-try next mount if it failed.
         ensuredTeamChatRef.current.delete(selectedTeamId);
         console.warn('[chat] auto-create team chat failed', err);
       }
     })();
-  }, [userData?.uid, userData?.name, selectedTeamId, selectedTeam?.name, teamThreads, loading, addChatThread]);
+  }, [userData?.uid, userData?.name, selectedTeamId, selectedTeam?.name, teamThreads, loading]);
 
   // Subscribe to club-scoped threads (visible regardless of selected
   // team). Mounted once per session; role-filtering happens in the
@@ -1250,6 +1282,7 @@ const TeamChat: React.FC = () => {
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
       senderRole: userData.role,
+      senderRelationship: (userData as any).relationship || undefined,
       timestamp: sendTimestamp,
       teamId: selectedTeamId || '',
       replyTo: replyingTo?.id || undefined,
@@ -1317,6 +1350,7 @@ const TeamChat: React.FC = () => {
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
       senderRole: userData.role,
+      senderRelationship: (userData as any).relationship || undefined,
       timestamp: sendTimestamp,
       teamId: selectedTeamId,
     };
@@ -1632,6 +1666,7 @@ const TeamChat: React.FC = () => {
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
       senderRole: userData.role,
+      senderRelationship: (userData as any).relationship || undefined,
       timestamp: new Date(),
       teamId: selectedTeamId,
       poll: { question: poll.question, options: opts, multi: !!poll.multi },

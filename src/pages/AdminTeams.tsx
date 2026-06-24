@@ -50,7 +50,23 @@ const AdminTeams: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDocs(query(collection(db, 'teams'), where('isActive', '==', true)));
+        // Multi-tenant lock (2026-06-23): only load teams in clubs
+        // this admin actually administers. Previously this fetched
+        // EVERY active team in the database. If the user has no
+        // clubIds on their doc, render nothing — better than leaking
+        // every club's teams into one admin's view.
+        const clubIds: string[] = Array.isArray((userData as any)?.clubIds)
+          ? (userData as any).clubIds
+          : (userData as any)?.clubId ? [(userData as any).clubId] : [];
+        if (clubIds.length === 0) {
+          if (!cancelled) setRows([]);
+          return;
+        }
+        const snap = await getDocs(query(
+          collection(db, 'teams'),
+          where('isActive', '==', true),
+          where('clubId', 'in', clubIds.slice(0, 30)),
+        ));
         if (cancelled) return;
         const list: Team[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
         // Sort: un-activated first (most actionable), then by name.

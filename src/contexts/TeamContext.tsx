@@ -40,16 +40,34 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Club admins get every team in the database loaded so they can
-      // tap any team in /club and have the selection stick. Regular
-      // users only load the teams in their own teamIds[].
       const teamDocs: Team[] = [];
       const userTeamIds = userData.teamIds?.length ? userData.teamIds : [userData.teamId];
 
-      if ((userData as any).isClubAdmin) {
+      // Multi-tenancy fix (2026-06-23): the previous isClubAdmin
+      // branch fetched EVERY team doc in the database with no
+      // clubId filter. Patrick: "I created a team under a different
+      // email for testing... that team is now in my dropdown list."
+      // For SaaS multi-tenant, a club admin should only see teams
+      // in clubs they're an admin of — never cross-club.
+      //
+      // If the user's doc has a clubIds[] array, fan out one query
+      // per club (where clubId == X) and union the results. With no
+      // clubIds set on the user, fall back to the user's own
+      // teamIds[] only (the non-admin path below).
+      const userClubIds: string[] = Array.isArray((userData as any).clubIds)
+        ? (userData as any).clubIds
+        : (userData as any).clubId ? [(userData as any).clubId] : [];
+      const isAdmin = !!(userData as any).isClubAdmin;
+
+      if (isAdmin && userClubIds.length > 0) {
         try {
-          const allSnap = await getDocs(collection(db, 'teams'));
-          allSnap.forEach((docSnap) => {
+          // Firestore in-query supports up to 30 values, plenty for
+          // any one user's club admin scope.
+          const clubSnaps = await getDocs(query(
+            collection(db, 'teams'),
+            where('clubId', 'in', userClubIds.slice(0, 30)),
+          ));
+          clubSnaps.forEach((docSnap) => {
             const data = docSnap.data();
             teamDocs.push({
               id: docSnap.id,
@@ -65,8 +83,6 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ageGroup: data.ageGroup || '',
               league: data.league,
               homeField: data.homeField,
-              // Read archive state so archived teams can be filtered out
-              // of the selector. isActive === false means archived.
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
               createdAt: data.createdAt?.toDate?.() || new Date(),
@@ -74,18 +90,11 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           });
         } catch (err) {
-          console.error('Error loading all teams for club admin:', err);
+          console.error('Error loading club teams for admin:', err);
         }
-        // Sort by name for a stable selector order.
         teamDocs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        // Hide archived teams from the selector — they stay in
-        // Firestore for historical queries (stats, past photos, etc.)
-        // but should never appear in the active team picker.
         const active = teamDocs.filter(t => t.isActive !== false);
         setTeams(active);
-        // Pick a sensible initial team: a previously-chosen one if it's
-        // still valid (and not archived), then one of the admin's own
-        // teams, then the first team in the club.
         const validIds = active.map((t) => t.id);
         if (!selectedTeamId || !validIds.includes(selectedTeamId)) {
           const stored = localStorage.getItem('selectedTeamId');
@@ -98,6 +107,9 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return;
       }
+      // If isClubAdmin but no clubIds on the user doc, fall through
+      // to the personal teamIds path below. Better to show too few
+      // teams than too many across clubs.
 
       // Non-admin: original behavior — fetch one team doc per teamId.
       for (const teamId of userTeamIds) {

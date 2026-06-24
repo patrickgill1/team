@@ -293,25 +293,67 @@ const SubscriptionCard: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      {/* Contextual upgrade nudge — shown when the user is on a tier
+          below their next logical step. Coach tiers see "running
+          multiple teams? Upgrade to Club"; Club sees "Add integrations
+          + onboarding? Upgrade to Club Pro". Club Pro sees nothing.
+          Apple-safe: copy names goalkickr.com explicitly and the
+          handler routes through TierPickerSheet → openWebSignup,
+          which opens the system browser. */}
+      {(tier === 'founder' || tier === 'annual' || tier === 'monthly') && (
+        <button
+          type="button"
+          onClick={handleUpgrade}
+          className="w-full text-left rounded-lg bg-gradient-to-br from-crimson-950/40 to-charcoal-900 ring-1 ring-crimson-700/40 hover:ring-crimson-500/60 transition px-3 py-2.5"
+        >
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
+            Running multiple teams?
+          </p>
+          <p className="text-bone text-sm font-bold leading-tight">
+            Upgrade to Club at goalkickr.com →
+          </p>
+          <p className="text-charcoal-300 text-[11px] mt-1 leading-snug">
+            One subscription covers every team in your club. $299/yr, waived for clubs running $15K+/yr in registrations.
+          </p>
+        </button>
+      )}
+      {tier === 'club' && (
+        <button
+          type="button"
+          onClick={handleUpgrade}
+          className="w-full text-left rounded-lg bg-gradient-to-br from-crimson-950/40 to-charcoal-900 ring-1 ring-crimson-700/40 hover:ring-crimson-500/60 transition px-3 py-2.5"
+        >
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
+            Need integrations?
+          </p>
+          <p className="text-bone text-sm font-bold leading-tight">
+            Upgrade to Club Pro at goalkickr.com →
+          </p>
+          <p className="text-charcoal-300 text-[11px] mt-1 leading-snug">
+            Sports Affinity sync, registration onboarding, dedicated support. $499/yr.
+          </p>
+        </button>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
         <button
           type="button"
           onClick={handleManage}
           disabled={opening || !subscription?.customerId}
-          className="inline-flex items-center justify-center px-3 py-2 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all disabled:opacity-50"
+          className="inline-flex items-center justify-center px-3 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 transition-all disabled:opacity-50"
         >
-          {opening ? 'Opening…' : 'Manage at goalkickr.com'}
+          {opening ? 'Opening…' : 'Manage subscription'}
         </button>
         <button
           type="button"
           onClick={handleUpgrade}
-          className="inline-flex items-center justify-center px-3 py-2 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all"
+          className="inline-flex items-center justify-center px-3 py-2.5 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all"
         >
-          Change plan on web
+          Change plan
         </button>
       </div>
       <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
-        Billing happens on goalkickr.com. Both buttons open your system browser.
+        Billing, cancellation, and plan changes happen on goalkickr.com in your system browser.
       </p>
       {emailModal}
     </div>

@@ -85,13 +85,22 @@ const Helpdesk: React.FC = () => {
   const isUserCoach = userData ? isCoach(userData.role) : false;
   const isAdmin = !!(userData as any)?.isClubAdmin;
 
-  // Admins get a team filter — pull the club's teams once so the chip
-  // list can show names. Non-admins don't need this query.
+  // Admins get a team filter — pull this admin's CLUB's teams so
+  // the chip list shows names. Non-admins don't need this query.
+  // 2026-06-23 multi-tenant fix: was pulling EVERY team in the DB
+  // across all clubs; now scoped to the admin's clubIds.
   useEffect(() => {
     if (!isAdmin) return;
     (async () => {
       try {
-        const snap = await getDocs(query(collection(db, 'teams')));
+        const clubIds: string[] = Array.isArray((userData as any)?.clubIds)
+          ? (userData as any).clubIds
+          : (userData as any)?.clubId ? [(userData as any).clubId] : [];
+        if (clubIds.length === 0) { setTeams([]); return; }
+        const snap = await getDocs(query(
+          collection(db, 'teams'),
+          where('clubId', 'in', clubIds.slice(0, 30)),
+        ));
         setTeams(snap.docs
           .map(d => ({ id: d.id, name: ((d.data() as any).name as string) || 'Team' }))
           .sort((a, b) => a.name.localeCompare(b.name)));
@@ -99,7 +108,7 @@ const Helpdesk: React.FC = () => {
         console.warn('teams fetch failed', err);
       }
     })();
-  }, [isAdmin]);
+  }, [isAdmin, (userData as any)?.clubIds, (userData as any)?.clubId]);
 
   useEffect(() => {
     if (!userData?.uid) return;

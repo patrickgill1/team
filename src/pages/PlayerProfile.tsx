@@ -12,7 +12,6 @@ import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import AddPlayer from '../components/player/AddPlayer';
-import FunnelStepper from '../components/player/FunnelStepper';
 import EmptyState from '../components/common/EmptyState';
 import { computeStreakDays } from '../utils/devPlanActions';
 import { computePlayerAttendance } from '../utils/attendance';
@@ -473,21 +472,12 @@ const PlayerProfile: React.FC = () => {
         jugglesBest={(player as any).juggles?.best || 0}
       />
 
-      {/* Recruitment-funnel timeline — only rendered if this player has
-          actually moved through any of the funnel stages. New roster
-          additions (legacy players added directly) skip this entirely
-          so we don't dangle empty checkboxes on every page. Coaches can
-          edit; parents are read-only here (admin tools live in PersonAdmin). */}
-      {player && (player as any).funnelProgress && Object.keys((player as any).funnelProgress).length > 0 && (
-        <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 sm:px-6 py-4 border-b border-white/5">
-          <FunnelStepper
-            playerId={player.id}
-            progress={(player as any).funnelProgress}
-            canEdit={!!userData && isCoach(userData.role)}
-            actorUid={userData?.uid}
-          />
-        </div>
-      )}
+      {/* Recruitment funnel moved to PersonAdmin (admin CRM only).
+          Patrick 2026-06-25: 'I don't know if the recruitment timeline
+          needs to show in the player profile, just needs to show in
+          their crm profile for club admins.' Kids + parents + coaches
+          shouldn't see registration/offer/dues plumbing on the player
+          card — that's an admin pipeline view. */}
 
       {/* Existing top-of-hero action row preserved for parity */}
       <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 sm:px-6 py-3 border-b border-white/5 flex items-center justify-between">

@@ -4,8 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useSubscription } from '../../hooks/useSubscription';
-import { openWebSignup } from '../../utils/subscriptionApi';
 import { isCoach } from '../../utils/helpers';
+import TierPickerSheet from '../common/TierPickerSheet';
 
 // Getting Started checklist for new coaches. Patrick: "the guide was
 // cool until you got into the dashboard... they need to be able to
@@ -40,6 +40,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const { selectedTeamId } = useTeam();
   const { isActive } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
+  const [tierSheet, setTierSheet] = useState(false);
 
   // Per-team dismiss key + auto-clear on fresh teams. Patrick: "it
   // let me click out of the guide, and now i can't get it back."
@@ -78,14 +79,12 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const allDone = hasPlayers && hasEvent && hasInvitedParents && hasTrial;
   if (allDone) return null;
 
-  const handleStartTrial = () => {
-    openWebSignup({
-      email: currentUser?.email || userData?.email || undefined,
-      uid: currentUser?.uid,
-      tier: 'annual',
-      intent: 'subscribe',
-    });
-  };
+  // Open the tier picker sheet. The sheet hands off to openWebSignup
+  // with the user's choice (Coach annual vs Club). Used to be a
+  // direct openWebSignup call hardcoded to Coach annual — meaning
+  // a coach running a multi-team club had no way to pick Club from
+  // inside the app.
+  const handleStartTrial = () => setTierSheet(true);
 
   const handleDismiss = () => {
     if (!selectedTeamId) return;
@@ -256,6 +255,14 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
           );
         })}
       </ul>
+
+      <TierPickerSheet
+        open={tierSheet}
+        onClose={() => setTierSheet(false)}
+        email={currentUser?.email || userData?.email || undefined}
+        uid={currentUser?.uid}
+        intent="subscribe"
+      />
     </div>
   );
 };

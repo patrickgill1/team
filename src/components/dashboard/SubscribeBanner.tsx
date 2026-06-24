@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
-import { openWebSignup } from '../../utils/subscriptionApi';
 import { isCoach } from '../../utils/helpers';
+import TierPickerSheet from '../common/TierPickerSheet';
 
 // Persistent dashboard nudge for coaches without an active
 // subscription. Dismissable; auto-reappears after 7 days so a
@@ -23,6 +23,7 @@ const SubscribeBanner: React.FC = () => {
   const { currentUser, userData } = useAuth();
   const { loading, isActive } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
+  const [tierSheet, setTierSheet] = useState(false);
 
   useEffect(() => {
     try {
@@ -37,14 +38,9 @@ const SubscribeBanner: React.FC = () => {
   if (isActive) return null;                  // already paying
   if (dismissed) return null;
 
-  const handleStart = () => {
-    openWebSignup({
-      email: currentUser?.email || userData?.email || undefined,
-      uid: currentUser?.uid,
-      tier: 'annual',
-      intent: 'subscribe',
-    });
-  };
+  // Open the tier picker first so a coach running a multi-team
+  // club can pick Club instead of being railroaded into Coach.
+  const handleStart = () => setTierSheet(true);
 
   const handleDismiss = () => {
     try { window.localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* ignore */ }
@@ -89,6 +85,14 @@ const SubscribeBanner: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <TierPickerSheet
+        open={tierSheet}
+        onClose={() => setTierSheet(false)}
+        email={currentUser?.email || userData?.email || undefined}
+        uid={currentUser?.uid}
+        intent="subscribe"
+      />
     </div>
   );
 };

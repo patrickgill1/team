@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useSubscription } from '../../hooks/useSubscription';
 import { openCustomerPortal, openWebSignup, isAppleDevice } from '../../utils/subscriptionApi';
+import TierPickerSheet from '../common/TierPickerSheet';
 
 // Settings-page tile for the coach's GoalKickr subscription. Reads
 // from subscriptions/{uid} in real-time (worker stamps the doc from
@@ -68,6 +69,11 @@ const SubscriptionCard: React.FC = () => {
   const [emailDraft, setEmailDraft] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  // Tier picker (Coach vs Club) opens BEFORE the email-prompt /
+  // Safari handoff. pickerIntent tracks why the picker was opened
+  // so we can route the chosen tier through the right downstream
+  // step (email prompt OR direct openWebSignup).
+  const [pickerIntent, setPickerIntent] = useState<null | 'subscribe' | 'upgrade'>(null);
 
   const knownEmail = (currentUser?.email || userData?.email || '').trim();
 
@@ -80,23 +86,40 @@ const SubscriptionCard: React.FC = () => {
     if (err) setPortalError('Could not open the billing portal. Try again in a moment.');
   };
 
-  const openSignupWith = (intent: 'subscribe' | 'upgrade', email: string) => {
+  const openSignupWith = (intent: 'subscribe' | 'upgrade', email: string, tier?: 'annual' | 'club') => {
     openWebSignup({
       email,
       uid: currentUser?.uid,
       intent,
+      tier,
     });
   };
 
+  // Step 1: open the tier picker so the coach chooses Coach vs Club.
+  // The picker's onPick callback below routes their choice through
+  // the email-prompt (if needed) and into openWebSignup.
   const requestSubscribe = (intent: 'subscribe' | 'upgrade') => {
+    setPickerIntent(intent);
+  };
+
+  // Step 2 (from TierPickerSheet's onPick): the user chose a tier.
+  // If we have an email on file go straight to Safari; otherwise
+  // open the email-prompt modal first so the receipt has somewhere
+  // to land.
+  const handleTierPicked = (tier: 'annual' | 'club') => {
+    const intent = pickerIntent || 'subscribe';
+    setPickerIntent(null);
     if (knownEmail) {
-      openSignupWith(intent, knownEmail);
+      openSignupWith(intent, knownEmail, tier);
       return;
     }
     setEmailError(null);
     setEmailDraft('');
     setEmailIntent(intent);
+    // Stash tier so the email-prompt's submit can forward it.
+    setPendingTier(tier);
   };
+  const [pendingTier, setPendingTier] = useState<null | 'annual' | 'club'>(null);
 
   const handleSubscribe = () => requestSubscribe('subscribe');
   const handleUpgrade = () => requestSubscribe('upgrade');
@@ -115,8 +138,10 @@ const SubscriptionCard: React.FC = () => {
         await updateDocument('users', currentUser.uid, { email, updatedAt: new Date() });
       }
       const intent = emailIntent || 'subscribe';
+      const tier = pendingTier || undefined;
       setEmailIntent(null);
-      openSignupWith(intent, email);
+      setPendingTier(null);
+      openSignupWith(intent, email, tier);
     } catch (err: any) {
       setEmailError(String(err?.message || err));
     } finally {
@@ -219,6 +244,14 @@ const SubscriptionCard: React.FC = () => {
           </button>
         </div>
         {emailModal}
+        <TierPickerSheet
+          open={!!pickerIntent}
+          onClose={() => setPickerIntent(null)}
+          email={knownEmail || undefined}
+          uid={currentUser?.uid}
+          intent={pickerIntent || 'subscribe'}
+          onPick={handleTierPicked}
+        />
       </>
     );
   }

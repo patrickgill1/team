@@ -3,6 +3,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { createPlayerInvite, createStaffInvite } from '../../utils/invites';
 import { getShareOrigin } from '../../utils/origin';
+import { FamilyRelationship, RELATIONSHIP_LABELS } from '../../types';
 
 // Unified invite flow that lives on the People directory. Branches by
 // who you're inviting so the model matches how coaches actually think:
@@ -50,6 +51,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>(defaultPlayerId || '');
   const [selectedTeamId, setSelectedTeamId] = useState<string>(clubTeams[0]?.id || '');
   const [staffRole, setStaffRole] = useState<StaffRole>('assistant_coach');
+  const [relationship, setRelationship] = useState<FamilyRelationship>('parent');
   const [playerQuery, setPlayerQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -83,6 +85,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
           teamId,
           playerId: selectedPlayer.id,
           createdBy: currentUid,
+          relationship,
         });
       } else {
         if (!selectedTeam) { alert('Pick a team first.'); setBusy(false); return; }
@@ -126,7 +129,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
         <div className="px-4 pt-3">
           <div className="flex gap-1">
             {([
-              { k: 'parent' as const, label: 'Parent' },
+              { k: 'parent' as const, label: 'Family' },
               { k: 'staff' as const, label: 'Coach / Manager' },
             ]).map(({ k, label }) => (
               <button
@@ -149,7 +152,19 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
           {kind === 'parent' ? (
             <>
               <div className="text-[11px] text-slate-500">
-                Parents are anchored to a player. They sign up via the share link and automatically inherit access to every team their player is on.
+                Family members are anchored to a player. They sign up via the share link and automatically inherit access to every team their player is on.
+              </div>
+              <div>
+                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Relationship</label>
+                <select
+                  value={relationship}
+                  onChange={e => setRelationship(e.target.value as FamilyRelationship)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+                >
+                  {(Object.keys(RELATIONSHIP_LABELS) as FamilyRelationship[]).map(r => (
+                    <option key={r} value={r}>{RELATIONSHIP_LABELS[r]}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-[10px] font-extrabold tracking-widest uppercase text-slate-500 mb-1">Pick player</label>

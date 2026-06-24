@@ -779,21 +779,18 @@ const Dashboard: React.FC = () => {
     return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${time}`;
   };
 
-  // Aggregate RSVP counts for the next event. Players only — same rule
-  // as EventDetail and EventListCard. Adult event.rsvps no longer
-  // contributes to the count (was leaving the hero saying "6 going"
-  // when only 3 kids were actually going + 3 parents had self-RSVPed).
+  // Aggregate RSVP counts for the next event. Players only — public
+  // share-link RSVPs were removed 2026-06-24 (parents are on the app now;
+  // extended family invite as parents with relationship='grandparent'
+  // etc., so their RSVPs come through playerRsvps too).
   const rsvpCounts = useMemo(() => {
     const playerR = ((nextEvent as any)?.playerRsvps || {}) as Record<string, { status: string }>;
-    const pub = ((nextEvent as any)?.publicRsvps || {}) as Record<string, { status: string }>;
     let going = 0, maybe = 0, no = 0;
-    const tally = (status: string) => {
-      if (status === 'going') going++;
-      else if (status === 'maybe') maybe++;
-      else if (status === 'no') no++;
-    };
-    Object.values(playerR).forEach((v) => tally(v.status));
-    Object.values(pub).forEach((v) => tally(v.status));
+    Object.values(playerR).forEach((v) => {
+      if (v.status === 'going') going++;
+      else if (v.status === 'maybe') maybe++;
+      else if (v.status === 'no') no++;
+    });
     const respondedPlayers = Object.keys(playerR).length;
     const pending = Math.max(0, players.length - respondedPlayers);
     return { going, maybe, no, pending };

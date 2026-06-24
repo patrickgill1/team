@@ -545,49 +545,11 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  const handleShare = async () => {
-    if (!event) return;
-    // window.location.origin on the Capacitor iOS shell is
-    // `capacitor://localhost` — useless to a recipient. getShareOrigin
-    // returns the real https origin baked into the build.
-    const { getShareOrigin } = await import('../utils/origin');
-    const shareUrl = `${getShareOrigin()}/event/${event.id}`;
-    const isNative = (window as any).Capacitor?.isNativePlatform?.();
-    // Native iOS WKWebView blocks navigator.share. Use the Capacitor
-    // Share plugin which bridges to UIActivityViewController on iOS
-    // and the system chooser on Android.
-    if (isNative) {
-      try {
-        const { Share } = await import('@capacitor/share');
-        await Share.share({ title: event.title, url: shareUrl, dialogTitle: 'Share event' });
-        return;
-      } catch (err: any) {
-        // "Share canceled" is a user dismiss, not an error worth
-        // surfacing. Anything else falls through to clipboard.
-        if (typeof err?.message === 'string' && /cancel/i.test(err.message)) return;
-        console.warn('native share failed, falling back', err);
-      }
-    } else if (typeof navigator !== 'undefined' && (navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: event.title, url: shareUrl });
-        return;
-      } catch {
-        // user dismissed — drop through to clipboard
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Share link copied to clipboard!');
-    } catch {
-      // Final fallback for contexts where clipboard write is blocked
-      // (older iOS WebView, etc).
-      window.prompt('Copy this link:', shareUrl);
-    }
-  };
-
   // Convert a guest (share-link) RSVP into an official roster RSVP.
   // Removes the entry from publicRsvps and adds it to playerRsvps so
   // the player's lineup math is correct. Coach-only.
+  // 2026-06-24: public share page killed; no NEW publicRsvps come in,
+  // but old data can still be merged.
   const mergeGuestIntoRoster = async (guestToken: string, playerId: string, playerName: string) => {
     if (!event || !userData?.uid) return;
     setMergeBusy(true);
@@ -1092,38 +1054,30 @@ const EventDetail: React.FC = () => {
         </section>
       )}
 
-      {/* QUICK ACTIONS — adult RSVP buttons removed. RSVPs are tracked
-          per player above; coaches don't need to mark themselves going
-          (they obviously are) and parents follow their kids. This row
-          is just Share + Cancel/Restore now. */}
-      <div className={`bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid ${isUserCoach ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
-        <button
-          onClick={handleShare}
-          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-charcoal-800 ring-1 ring-white/10 text-bone text-xs font-bold tracking-wider uppercase hover:ring-crimson-400/50 hover:bg-charcoal-700 transition"
-        >
-          <Icon name="share" className="w-4 h-4 text-crimson-400" />
-          Share
-        </button>
-        {isUserCoach && (
-          event.isCancelled ? (
-            <button
-              onClick={handleRestore}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-300 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
-            >
-              <Icon name="check" className="w-4 h-4" />
-              Restore
-            </button>
-          ) : (
-            <button
-              onClick={handleCancel}
-              className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-300 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
-            >
-              <Icon name="trash" className="w-4 h-4" />
-              Cancel
-            </button>
-          )
+      {/* QUICK ACTIONS — coach-only Cancel/Restore. Share button
+          removed 2026-06-24 when the public RSVP page was killed
+          (everyone's expected to be on the app now). */}
+      {isUserCoach && (
+      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid grid-cols-1 gap-2">
+        {event.isCancelled ? (
+          <button
+            onClick={handleRestore}
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-300 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
+          >
+            <Icon name="check" className="w-4 h-4" />
+            Restore
+          </button>
+        ) : (
+          <button
+            onClick={handleCancel}
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-300 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
+          >
+            <Icon name="trash" className="w-4 h-4" />
+            Cancel
+          </button>
         )}
       </div>
+      )}
 
       {/* JERSEY BANNER — game days only. The jersey swatch IS the
           icon: a black or white square shows parents at a glance which

@@ -129,16 +129,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Events: get is public so /event/:id share links work without
-    // sign-in. LIST stays open to any auth (followup audit — many
-    // pages dump events client-side then filter). Public guests can
-    // RSVP via publicRsvps diff-only update. CREATE + DELETE are
-    // coach-paid-gated.
+    // Events: auth required for read + write. The public no-auth
+    // share page (/event/:id) was retired 2026-06-24 — everyone uses
+    // the app via parent/extended-family invites now. LIST stays
+    // open to any auth (followup audit — many pages dump events
+    // client-side then filter). CREATE + DELETE coach-paid-gated.
     match /events/{eventId} {
-      allow get: if true;
-      allow list: if request.auth != null;
-      allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['publicRsvps']))
-        || (request.auth != null && (resource == null || canCoachWrite() || !isCoachRole()));
+      allow get, list: if request.auth != null;
+      allow update: if request.auth != null
+        && (resource == null || canCoachWrite() || !isCoachRole());
       allow create: if request.auth != null && canCoachWrite();
       allow delete: if request.auth != null && canCoachWrite();
     }

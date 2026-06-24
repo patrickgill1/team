@@ -36,6 +36,21 @@ export interface ParentInviteOptions {
   inviteLink: string;
   /** Optional one-line note from the coach (rendered as a blockquote). */
   note?: string;
+  /** Family relationship the coach selected. Drives the copy ("Create
+   *  your grandparent account"). Defaults to 'parent' when absent. */
+  relationship?: 'parent' | 'grandparent' | 'aunt_uncle' | 'guardian' | 'sibling' | 'other';
+}
+
+/** Lowercase noun for inline body copy ("Create your <X> account"). */
+function relationshipNoun(r?: ParentInviteOptions['relationship']): string {
+  switch (r) {
+    case 'grandparent': return 'grandparent';
+    case 'aunt_uncle':  return 'family';
+    case 'guardian':    return 'guardian';
+    case 'sibling':     return 'family';
+    case 'other':       return 'family';
+    default:            return 'parent';
+  }
 }
 
 export interface BuiltEmail {
@@ -45,7 +60,9 @@ export interface BuiltEmail {
 }
 
 export function buildParentInviteEmail(opts: ParentInviteOptions): BuiltEmail {
-  const { playerName, teamName, coachName, coachFirstName, inviteLink, note } = opts;
+  const { playerName, teamName, coachName, coachFirstName, inviteLink, note, relationship } = opts;
+  const noun = relationshipNoun(relationship);
+  const isParent = noun === 'parent';
 
   const subject = `${coachFirstName} invited you to ${teamName} on ${APP_NAME}`;
 
@@ -54,7 +71,7 @@ export function buildParentInviteEmail(opts: ParentInviteOptions): BuiltEmail {
     ``,
     `${coachName} added ${playerName} to ${teamName} on ${APP_NAME}, the team-management app the coach is using this season.`,
     ``,
-    `Tap the link below to set up your parent account so you can RSVP to events, get team announcements, and follow ${playerName}'s schedule and stats:`,
+    `Tap the link below to set up your ${noun} account so you can RSVP to events, get team announcements, and follow ${playerName}'s schedule and stats:`,
     ``,
     inviteLink,
     ``,
@@ -119,10 +136,10 @@ export function buildParentInviteEmail(opts: ParentInviteOptions): BuiltEmail {
             <tr>
               <td style="padding:16px 32px 8px 32px;">
                 <p style="margin:0 0 12px 0;font-size:15px;line-height:1.55;color:#c2bdb1;">
-                  ${APP_NAME} is the team-management app ${escapeHtml(coachFirstName)} is using this season. Create your parent account to RSVP to events, get team announcements, and follow ${escapeHtml(playerName)}'s schedule.
+                  ${APP_NAME} is the team-management app ${escapeHtml(coachFirstName)} is using this season. Create your ${noun} account to RSVP to events, get team announcements, and follow ${escapeHtml(playerName)}'s schedule.
                 </p>
                 <p style="margin:0;font-size:13px;line-height:1.55;color:#8a8275;">
-                  Parents are always free.
+                  ${isParent ? 'Parents' : 'Family accounts'} are always free.
                 </p>
               </td>
             </tr>

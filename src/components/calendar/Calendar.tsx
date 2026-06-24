@@ -634,33 +634,21 @@ const Calendar: React.FC<CalendarProps> = ({
       { key: 'past', label: 'Past' },
     ];
 
-    // Build a compact card view-model per event. Reuses the rsvps/
-    // playerRsvps/publicRsvps fields already present on the doc.
+    // Build a compact card view-model per event. Counts are PLAYERS only.
+    // Public share-link RSVPs were retired 2026-06-24 (everyone's on the
+    // app via parent or extended-family invites); we no longer aggregate
+    // publicRsvps into the card headcounts.
     const buildCardProps = (ev: CalendarEvent) => {
       const playerR = (ev as any).playerRsvps || {};
-      const publicR = (ev as any).publicRsvps || {};
       const going: { name: string; photoURL?: string; isGuest?: boolean }[] = [];
       let goingCount = 0, maybeCount = 0, noCount = 0;
-      const tally = (status: string) => {
-        if (status === 'going') goingCount++;
-        else if (status === 'maybe') maybeCount++;
-        else if (status === 'no') noCount++;
-      };
-      // Counts are PLAYERS only. Adult event.rsvps no longer contribute
-      // (matches EventDetail + Dashboard so the same number shows
-      // everywhere).
       for (const pid of Object.keys(playerR)) {
         const r = playerR[pid];
-        tally(r.status);
+        if (r.status === 'going') goingCount++;
+        else if (r.status === 'maybe') maybeCount++;
+        else if (r.status === 'no') noCount++;
         if (r.status === 'going') {
           going.push({ name: r.playerName, photoURL: playerPhotoMap?.[pid], isGuest: false });
-        }
-      }
-      for (const tok of Object.keys(publicR)) {
-        const r = publicR[tok];
-        tally(r.status);
-        if (r.status === 'going') {
-          going.push({ name: r.name, isGuest: true });
         }
       }
       // Pending = roster size (from playerPhotoMap, which holds every

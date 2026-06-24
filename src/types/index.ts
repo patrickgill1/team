@@ -1,6 +1,22 @@
 export type UserRole = 'coach' | 'parent' | 'team_manager';
 export type ApprovalStatus = 'auto' | 'pending' | 'approved' | 'rejected';
 
+/** Family relationship for users with role 'parent'. Permissions are
+ *  identical for all values — this only changes the display label
+ *  ("Grandparent of Hunter" vs "Parent of Hunter"). Coaches/team-
+ *  managers leave this unset. Existing users without the field are
+ *  treated as 'parent'. */
+export type FamilyRelationship = 'parent' | 'grandparent' | 'aunt_uncle' | 'guardian' | 'sibling' | 'other';
+
+export const RELATIONSHIP_LABELS: Record<FamilyRelationship, string> = {
+  parent: 'Parent',
+  grandparent: 'Grandparent',
+  aunt_uncle: 'Aunt / Uncle',
+  guardian: 'Guardian',
+  sibling: 'Sibling',
+  other: 'Family',
+};
+
 export interface User {
   uid: string;
   id?: string;
@@ -25,6 +41,11 @@ export interface User {
   emergencyContact?: string | null;
   emergencyPhone?: string;
   children?: string[];
+  /** When role === 'parent', describes the family relationship to the
+   *  player(s) on parentIds. Permissions don't change — only the UI
+   *  label. Missing/undefined falls back to 'parent'. Stamped by
+   *  consumeInvite() when the inviting coach selected a relationship. */
+  relationship?: FamilyRelationship;
   privacy?: {
     showPhone: boolean;
     showEmail: boolean;
@@ -1281,6 +1302,12 @@ export interface Invite {
   teamId: string;
   playerId?: string;        // type === 'player'
   role?: 'assistant_coach' | 'head_coach' | 'team_manager'; // type !== 'player'
+  /** type === 'player' only: family relationship the inviting coach
+   *  picked (Parent / Grandparent / Aunt / Uncle / Guardian / etc).
+   *  Stamped onto the joining user's user doc on consume so the
+   *  directory can label them correctly. Defaults to 'parent' when
+   *  absent for legacy invites. */
+  relationship?: FamilyRelationship;
   createdBy: string;
   createdAt: Date;
   expiresAt: Date;

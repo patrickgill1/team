@@ -41,6 +41,10 @@ interface CreatePlayerInviteOpts {
   ttlDays?: number;
   maxUses?: number | null; // null = unlimited
   note?: string;
+  /** Family relationship of the invitee. Defaults to 'parent' when
+   *  unset (every legacy invite). Stamped on the new user's doc by
+   *  consumeInvite so the directory can show 'Grandparent of X'. */
+  relationship?: 'parent' | 'grandparent' | 'aunt_uncle' | 'guardian' | 'sibling' | 'other';
 }
 interface CreateStaffInviteOpts {
   teamId: string;
@@ -70,6 +74,7 @@ export async function createPlayerInvite(opts: CreatePlayerInviteOpts): Promise<
     usedBy: [],
   };
   if (opts.note) inv.note = opts.note;
+  if (opts.relationship && opts.relationship !== 'parent') inv.relationship = opts.relationship;
   await setDoc(doc(db, COLL, id), inv);
   return { ...inv, createdAt: new Date() } as Invite;
 }
@@ -164,8 +169,13 @@ export async function consumeInvite(inviteId: string, uid: string): Promise<{ ok
       if (!inv.playerId) return { ok: false, reason: 'invite-malformed' as const };
       const playerRef = doc(db, 'players', inv.playerId);
       tx.update(playerRef, { parentIds: arrayUnion(uid) });
+      // Stamp relationship from the invite (default 'parent' for
+      // legacy invites that pre-date the field) so the directory
+      // can label them as "Grandparent of Hunter" etc.
+      const relationship = (inv as any).relationship || 'parent';
       tx.update(userRef, {
         role: 'parent',
+        relationship,
         teamId: inv.teamId,
         teamIds: arrayUnion(inv.teamId),
         approved: true,

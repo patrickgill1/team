@@ -4,7 +4,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
-import { User, Player } from '../types';
+import { User, Player, FamilyRelationship, RELATIONSHIP_LABELS } from '../types';
 import { isCoach, isHeadCoach, isOwner } from '../utils/helpers';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
 
@@ -501,7 +501,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         {isCoachRole
                           ? 'Team Coach'
                           : entry.players.length > 0
-                            ? `Parent of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
+                            ? `${RELATIONSHIP_LABELS[(entry.user as any).relationship as FamilyRelationship] || 'Parent'} of ${entry.players.map(p => p.name.split(' ')[0]).join(', ')}`
                             : 'Team Member'}
                       </p>
                     </div>

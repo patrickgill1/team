@@ -1,6 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
@@ -66,18 +68,52 @@ const ClubOverview: React.FC = () => {
   const reload = async () => {
     setLoading(true);
     try {
-      const [t, p, e, u] = await Promise.all([
-        getDocuments('teams', []),
+      // Multi-tenant lock (2026-06-24): admin's Club view used to
+      // pull EVERY team in the database. Patrick: "still seeing this
+      // team in my team selection and it was made from another
+      // account." Now scoped to the admin's clubIds[]. Also drops
+      // archived teams (isActive: false) from the list.
+      const clubIds: string[] = Array.isArray((userData as any)?.clubIds)
+        ? (userData as any).clubIds
+        : (userData as any)?.clubId ? [(userData as any).clubId] : [];
+
+      // Teams: scope to clubIds, exclude archived.
+      let teamDocs: any[] = [];
+      if (clubIds.length > 0) {
+        const snap = await getDocs(query(
+          collection(db, 'teams'),
+          where('clubId', 'in', clubIds.slice(0, 30)),
+        ));
+        teamDocs = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((t: any) => t.isActive !== false);
+      }
+      const teamIdSet = new Set<string>(teamDocs.map(t => t.id));
+
+      // Players + events: still load broadly, then filter to our team
+      // set client-side. Tightening these queries is a separate audit
+      // pass (every players read site needs scoping; not in scope
+      // for this fix).
+      const [p, e, u] = await Promise.all([
         getDocuments('players', []).catch(() => []),
         getDocuments('events', []).catch(() => []),
         getDocuments('users', []).catch(() => []),
       ]);
-      setTeams(t as any[]);
-      setPlayers((p as any[]).filter((pl) => pl && pl.isActive !== false));
-      setEvents((e as any[]).map((ev: any) => ({
-        ...ev,
-        date: ev.date?.toDate ? ev.date.toDate() : new Date(ev.date),
-      })));
+      setTeams(teamDocs);
+      setPlayers((p as any[])
+        .filter((pl) => pl && pl.isActive !== false)
+        .filter((pl) => {
+          const tids: string[] = Array.isArray(pl.teamIds) && pl.teamIds.length
+            ? pl.teamIds
+            : (pl.teamId ? [pl.teamId] : []);
+          return tids.some((id) => teamIdSet.has(id));
+        }));
+      setEvents((e as any[])
+        .filter((ev) => teamIdSet.has(ev.teamId))
+        .map((ev: any) => ({
+          ...ev,
+          date: ev.date?.toDate ? ev.date.toDate() : new Date(ev.date),
+        })));
       setUsers(u as any[]);
     } catch (err) {
       console.error('[club] load failed', err);
@@ -361,6 +397,22 @@ const ClubOverview: React.FC = () => {
 // Tabs
 // ===========================================================================
 
+// Bucket an ageGroup string into a sort key + label. Handles common
+// variants Patrick's club has seen so far: "U10", "u10", "Under 10",
+// "10U", "Adult", missing/blank. Anything unknown buckets under "Other"
+// so we never silently drop a team.
+function ageBucket(raw: string | undefined): { key: string; label: string; sort: number } {
+  const s = (raw || '').trim();
+  if (!s) return { key: 'unspecified', label: 'No age group', sort: 9999 };
+  const m = s.match(/(\d{1,2})/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    return { key: `u${n}`, label: `U${n}`, sort: n };
+  }
+  if (/adult/i.test(s)) return { key: 'adult', label: 'Adult', sort: 1000 };
+  return { key: s.toLowerCase(), label: s, sort: 5000 };
+}
+
 const OverviewTab: React.FC<{
   teams: any[];
   teamStats: any;
@@ -369,64 +421,116 @@ const OverviewTab: React.FC<{
   setSearch: (s: string) => void;
   onTeamClick: (id: string) => void;
 }> = ({ teams, teamStats, coachNameByUid, search, setSearch, onTeamClick }) => {
-  const filtered = useMemo(() => {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const groups = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return teams
-      .filter((t) => !q || (t.name || '').toLowerCase().includes(q) || (t.ageGroup || '').toLowerCase().includes(q))
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    const matching = teams.filter((t) =>
+      !q || (t.name || '').toLowerCase().includes(q) || (t.ageGroup || '').toLowerCase().includes(q));
+    // Bucket by age group.
+    const buckets = new Map<string, { label: string; sort: number; teams: any[] }>();
+    for (const t of matching) {
+      const b = ageBucket(t.ageGroup);
+      if (!buckets.has(b.key)) buckets.set(b.key, { label: b.label, sort: b.sort, teams: [] });
+      buckets.get(b.key)!.teams.push(t);
+    }
+    const list = Array.from(buckets.entries()).map(([key, v]) => ({ key, ...v }));
+    list.sort((a, b) => a.sort - b.sort);
+    for (const g of list) {
+      g.teams.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+    }
+    return list;
   }, [teams, search]);
+
+  const totalMatching = useMemo(() => groups.reduce((s, g) => s + g.teams.length, 0), [groups]);
+  const showGrouped = teams.length > 6 && !search.trim();
+  const toggle = (key: string) => setCollapsed((s) => ({ ...s, [key]: !s[key] }));
+
+  const renderTeamLi = (t: any) => {
+    const s = teamStats[t.id] || { players: 0, upcoming: 0 };
+    const headCoach = t.headCoachId ? coachNameByUid(t.headCoachId) : '';
+    return (
+      <li key={t.id}>
+        <button
+          onClick={() => onTeamClick(t.id)}
+          className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.05] transition"
+        >
+          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-crimson-500 to-charcoal-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
+            {(t.name || '?').charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-bone truncate">{t.name || 'Untitled team'}</span>
+              {t.ageGroup && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
+                  {t.ageGroup}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-bone/50 truncate mt-0.5">
+              {s.players} player{s.players === 1 ? '' : 's'}
+              {headCoach ? ` · Head coach: ${headCoach}` : ''}
+              {s.upcoming > 0 ? ` · ${s.upcoming} upcoming` : ''}
+            </p>
+          </div>
+          <svg className="w-5 h-5 text-bone/35 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </li>
+    );
+  };
 
   return (
     <div className="space-y-3">
       <SearchBar value={search} onChange={setSearch} placeholder="Search teams…" />
-      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-bone">All teams</h2>
-          <span className="text-xs text-bone/50">
-            {filtered.length === teams.length ? `${teams.length} total` : `${filtered.length} of ${teams.length}`}
-          </span>
+      {totalMatching === 0 ? (
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+          <div className="p-8 text-center text-sm text-bone/50">
+            {teams.length === 0 ? 'No teams in your club yet.' : 'No teams match your search.'}
+          </div>
         </div>
-        {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-bone/50">No teams match.</div>
-        ) : (
+      ) : showGrouped ? (
+        // Many teams + no active search -> grouped accordion by age.
+        <div className="space-y-2.5">
+          {groups.map((g) => {
+            const isCollapsed = !!collapsed[g.key];
+            return (
+              <div key={g.key} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggle(g.key)}
+                  className="w-full px-5 py-3 border-b border-white/5 flex items-center justify-between gap-3 hover:bg-white/[0.03] transition"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <svg className={`w-4 h-4 text-bone/55 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <h2 className="font-bold text-bone">{g.label}</h2>
+                  </div>
+                  <span className="text-xs text-bone/50">{g.teams.length} team{g.teams.length === 1 ? '' : 's'}</span>
+                </button>
+                {!isCollapsed && (
+                  <ul className="divide-y divide-white/5">
+                    {g.teams.map(renderTeamLi)}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // Few teams OR active search -> single flat list.
+        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+          <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
+            <h2 className="font-bold text-bone">{search.trim() ? 'Matching teams' : 'All teams'}</h2>
+            <span className="text-xs text-bone/50">
+              {totalMatching === teams.length ? `${teams.length} total` : `${totalMatching} of ${teams.length}`}
+            </span>
+          </div>
           <ul className="divide-y divide-white/5">
-            {filtered.map((t) => {
-              const s = teamStats[t.id] || { players: 0, upcoming: 0 };
-              const headCoach = t.headCoachId ? coachNameByUid(t.headCoachId) : '';
-              return (
-                <li key={t.id}>
-                  <button
-                    onClick={() => onTeamClick(t.id)}
-                    className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.05] transition"
-                  >
-                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-crimson-500 to-charcoal-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
-                      {(t.name || '?').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-bone truncate">{t.name || 'Untitled team'}</span>
-                        {t.ageGroup && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
-                            {t.ageGroup}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-bone/50 truncate mt-0.5">
-                        {s.players} player{s.players === 1 ? '' : 's'}
-                        {headCoach ? ` · Head coach: ${headCoach}` : ''}
-                        {s.upcoming > 0 ? ` · ${s.upcoming} upcoming` : ''}
-                      </p>
-                    </div>
-                    <svg className="w-5 h-5 text-bone/35 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </li>
-              );
-            })}
+            {groups.flatMap((g) => g.teams).map(renderTeamLi)}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

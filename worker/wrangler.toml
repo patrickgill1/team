@@ -11,8 +11,8 @@ workers_dev = true
 #   npx wrangler secret put RESEND_API_KEY
 
 [vars]
-FROM_EMAIL = "noreply@firefc16.com"
-FROM_NAME  = "Fire FC"
+FROM_EMAIL = "noreply@goalkickr.com"
+FROM_NAME  = "GoalKickr"
 APP_ORIGIN = "https://firefc.app"
 # Required by /auth/exchange-id-token to validate the `aud` claim on
 # Firebase ID tokens received from the native plugin's getIdToken(). The

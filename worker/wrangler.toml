@@ -22,7 +22,7 @@ FIREBASE_PROJECT_ID = "soccer-team-app-7f6b4"
 # CORS allow-list (comma separated). Vercel preview URLs added later if needed.
 # capacitor://localhost is the iOS WebView origin; without it the native app
 # can't hit the worker.
-ALLOWED_ORIGINS = "https://firefc16.com,https://www.firefc16.com,https://firefc.app,https://www.firefc.app,http://localhost:3000,capacitor://localhost,ionic://localhost"
+ALLOWED_ORIGINS = "https://goalkickr.com,https://www.goalkickr.com,https://firefc16.com,https://www.firefc16.com,https://firefc.app,https://www.firefc.app,http://localhost:3000,capacitor://localhost,ionic://localhost"
 
 # Cron schedule:
 #   Sundays 22:00 UTC (Sun 4pm MDT)  — weekly digest + admin "needs attention" roundup

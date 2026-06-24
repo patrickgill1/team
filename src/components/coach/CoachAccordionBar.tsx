@@ -202,7 +202,7 @@ const CoachAccordionBar: React.FC = () => {
               priority: urgent ? 'crimson' : 'amber',
               label: urgent ? `${missing} RSVPs missing` : `${missing} pending RSVPs`,
               detail: `${data.title || 'Next event'} · ${urgent ? 'within 24h' : `${Math.round(hoursUntil)}h away`}`,
-              href: `/event/${nextEv.id}`,
+              href: `/events/${nextEv.id}`,
             });
           }
         }

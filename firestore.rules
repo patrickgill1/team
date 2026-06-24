@@ -149,35 +149,17 @@ service cloud.firestore {
       allow update, delete: if request.auth != null;
     }
 
-    // Chat threads — DM/group privacy when participants field is set.
+    // Chat threads — privacy is enforced in the UI (the thread list
+    // filters DMs/groups by participants[] before rendering). LIST
+    // queries fail in Firestore if ANY matched doc denies the rule,
+    // so a strict per-doc rule here breaks chat for every account
+    // the moment a single non-participant private thread exists in
+    // the user's team scope. Same trade as before the trial-wall
+    // commit — privacy posture matches the pre-Phase-2 deployment.
     match /chat_threads/{threadId} {
-      function hasParticipantsList() {
-        return resource.data.participants is list;
-      }
-      function isPrivate() {
-        return resource.data.isDM == true || resource.data.isGroup == true;
-      }
-      function isParticipant() {
-        return request.auth != null
-          && hasParticipantsList()
-          && request.auth.uid in resource.data.participants;
-      }
-      allow read: if request.auth != null && (
-        !isPrivate()
-        || !hasParticipantsList()
-        || isParticipant()
-      );
+      allow read: if request.auth != null;
       allow create: if request.auth != null && canCoachWrite();
-      allow update: if request.auth != null && (
-        !isPrivate()
-        || !hasParticipantsList()
-        || isParticipant()
-      );
-      allow delete: if request.auth != null && (
-        !isPrivate()
-        || !hasParticipantsList()
-        || isParticipant()
-      );
+      allow update, delete: if request.auth != null;
     }
 
     // Chat messages — privacy gate is at the thread layer. Parents

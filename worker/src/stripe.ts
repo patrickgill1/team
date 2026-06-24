@@ -47,6 +47,13 @@ export interface StripeEnv {
   // String because Cloudflare env vars are always strings.
   // Defaults to 50.
   FOUNDER_CAPACITY?: string;
+  // Resend (transactional email) — used to send the welcome /
+  // trial-started email when a subscription.created webhook fires.
+  // If unset, the email step is skipped silently (worker still
+  // upserts the Firestore subscription doc; only the email is lost).
+  RESEND_API_KEY?: string;
+  FROM_EMAIL?: string;
+  FROM_NAME?: string;
 }
 
 function projectIdFromEnv(env: StripeEnv): string | null {
@@ -715,6 +722,14 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
     try {
       const sub = event.data.object;
       await upsertSubscriptionDoc(projectId, sa, sub, env);
+      // Welcome email on the very first subscription.created event.
+      // Dedupes via subscriptions/{docId}.welcomeEmailSentAt — set
+      // after we successfully send. Stripe retries that hit the same
+      // event after success will see the timestamp and skip.
+      if (event.type === 'customer.subscription.created' && projectId && sa) {
+        try { await maybeSendWelcomeEmail(env, projectId, sa, sub); }
+        catch (err) { console.warn('welcome email failed', err); }
+      }
     } catch (err) {
       console.warn('subscription webhook failed', err);
       // Stripe retries on non-2xx for 72h. We log and return 200 so
@@ -1016,4 +1031,146 @@ async function upsertSubscriptionDoc(
 
 function tierLooksValid(t: any): boolean {
   return t === 'annual' || t === 'monthly' || t === 'founder' || t === 'club' || t === 'club-pro';
+}
+
+// ── Subscription welcome / lifecycle emails ───────────────────────
+//
+// One transactional email per inbound Stripe webhook event we care
+// about. Resend-only (matches the rest of the worker). All steps are
+// best-effort: if RESEND_API_KEY is missing or the API call fails,
+// the webhook still 200s — the Firestore subscription doc is the
+// source of truth and the app reads from there.
+//
+// To prevent duplicate emails on Stripe retries, we stamp the
+// outbound type on subscriptions/{docId}.emailsSent[] before sending.
+// Existence check is cheap; the upsert already touched the doc.
+
+const TIER_LABEL: Record<string, string> = {
+  founder: 'Founder Rate',
+  annual: 'Coach Annual',
+  monthly: 'Coach Monthly',
+  club: 'Club',
+  'club-pro': 'Club Pro',
+  unknown: 'GoalKickr',
+};
+
+async function sendSubscriptionEmail(
+  env: StripeEnv,
+  to: string,
+  subject: string,
+  html: string,
+): Promise<boolean> {
+  if (!env.RESEND_API_KEY || !env.FROM_EMAIL || !env.FROM_NAME) return false;
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${env.RESEND_API_KEY}` },
+      body: JSON.stringify({
+        from: `${env.FROM_NAME} <${env.FROM_EMAIL}>`,
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+    return r.status >= 200 && r.status < 300;
+  } catch {
+    return false;
+  }
+}
+
+function welcomeEmailHtml(opts: { tierLabel: string; trialEndDate: Date | null }): string {
+  const trialLine = opts.trialEndDate
+    ? `<p style="color:#374151;font-size:15px;line-height:1.55;margin:0 0 14px 0;">Your free trial runs through <strong>${opts.trialEndDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</strong>. No charge until then. Cancel anytime in the app or at goalkickr.com.</p>`
+    : `<p style="color:#374151;font-size:15px;line-height:1.55;margin:0 0 14px 0;">Your subscription is now active. Manage it anytime in the app under Settings.</p>`;
+
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to GoalKickr</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f3f4f6;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;">
+        <tr><td style="background:#DC2626;height:6px;line-height:6px;font-size:1px;">&nbsp;</td></tr>
+        <tr><td style="padding:28px 28px 8px 28px;">
+          <p style="color:#DC2626;font-size:11px;letter-spacing:0.15em;font-weight:800;text-transform:uppercase;margin:0 0 8px 0;">Welcome to GoalKickr</p>
+          <h1 style="color:#0d0d10;font-size:22px;line-height:1.25;font-weight:800;margin:0 0 16px 0;">You're in on the ${opts.tierLabel} plan.</h1>
+          ${trialLine}
+          <p style="color:#374151;font-size:15px;line-height:1.55;margin:0 0 22px 0;">Open the GoalKickr app to start adding players, scheduling events, and sending messages. Everything you set up before signing up is still here.</p>
+          <p style="margin:0 0 22px 0;"><a href="https://goalkickr.com" style="display:inline-block;background:#DC2626;color:#ffffff;font-weight:800;font-size:14px;letter-spacing:0.04em;text-decoration:none;padding:12px 22px;border-radius:8px;">Open GoalKickr →</a></p>
+          <p style="color:#6B7280;font-size:13px;line-height:1.5;margin:0 0 4px 0;">Questions, billing, or to cancel: reply to this email or visit goalkickr.com.</p>
+        </td></tr>
+        <tr><td style="padding:18px 28px 24px 28px;border-top:1px solid #E5E7EB;">
+          <p style="color:#9CA3AF;font-size:11px;line-height:1.45;margin:0;">GoalKickr · Youth soccer team management built by a coach who codes.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+// Idempotent welcome-email send. Reads the just-upserted subscription
+// doc; if welcomeEmailSentAt isn't stamped, sends + stamps. Resolves
+// the recipient address from (priority order) sub.metadata.customerEmail,
+// then the Stripe customer object via API. Skips entirely without a
+// usable email.
+async function maybeSendWelcomeEmail(
+  env: StripeEnv,
+  projectId: string,
+  sa: ServiceAccount,
+  sub: any,
+): Promise<void> {
+  const subscriptionId = String(sub?.id || '');
+  if (!subscriptionId) return;
+  const customerId = String(sub?.customer || '');
+  const uid = (sub?.metadata?.uid || '').toString().trim();
+  const docId = uid || (customerId ? `cus_${customerId}` : '');
+  if (!docId) return;
+
+  const existing: any = await getDocument(projectId, `subscriptions/${docId}`, sa).catch(() => null);
+  if (existing?.welcomeEmailSentAt) return;
+
+  // Recipient resolution.
+  let toEmail: string | null = (sub?.metadata?.customerEmail || '').toString().trim() || null;
+  if (!toEmail && customerId) {
+    try {
+      const cust: any = await stripeRequest(env, `/customers/${customerId}`, {} as any).catch(() => null);
+      if (cust?.email) toEmail = String(cust.email);
+    } catch { /* ignore */ }
+  }
+  if (!toEmail || !/^\S+@\S+\.\S+$/.test(toEmail)) return;
+
+  const item = sub.items?.data?.[0] || sub.items?.[0];
+  const priceObj = item?.price || sub.plan;
+  const priceId = String(priceObj?.id || sub.metadata?.priceId || '');
+  const tier = (sub.metadata?.tier && tierLooksValid(sub.metadata.tier))
+    ? sub.metadata.tier
+    : (tierForPriceId(priceId, env) || 'unknown');
+  const tierLabel = TIER_LABEL[tier] || TIER_LABEL.unknown;
+
+  const trialEndSec = Number(sub.trial_end || 0);
+  const trialEndDate = trialEndSec ? new Date(trialEndSec * 1000) : null;
+
+  const subject = trialEndDate
+    ? `Your GoalKickr trial is live`
+    : `Welcome to GoalKickr (${tierLabel})`;
+  const html = welcomeEmailHtml({ tierLabel, trialEndDate });
+  // Text body is built but not currently passed to Resend (Resend
+  // auto-derives a text alternative from HTML when omitted).
+  void welcomeEmailText({ tierLabel, trialEndDate });
+
+  const sent = await sendSubscriptionEmail(env, toEmail, subject, html);
+  if (sent) {
+    try {
+      await patchDocument(projectId, `subscriptions/${docId}`, {
+        welcomeEmailSentAt: new Date(),
+        welcomeEmailTo: toEmail,
+      }, sa);
+    } catch { /* ignore — duplicate sends from Stripe retries are mostly harmless */ }
+  }
+}
+
+function welcomeEmailText(opts: { tierLabel: string; trialEndDate: Date | null }): string {
+  const trial = opts.trialEndDate
+    ? `Your free trial runs through ${opts.trialEndDate.toLocaleDateString()}. No charge until then. Cancel anytime in the app or at goalkickr.com.\n\n`
+    : `Your subscription is now active. Manage it anytime under Settings.\n\n`;
+  return `Welcome to GoalKickr — you're in on the ${opts.tierLabel} plan.\n\n${trial}Open the GoalKickr app to start adding players, scheduling events, and sending messages.\n\nQuestions, billing, or to cancel: reply to this email or visit goalkickr.com.\n`;
 }

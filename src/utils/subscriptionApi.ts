@@ -96,6 +96,18 @@ export function openWebSignup(opts: {
   if (opts.uid) params.set('uid', opts.uid);
   if (opts.tier) params.set('tier', opts.tier);
   if (opts.intent) params.set('intent', opts.intent);
+  // Tell the marketing site that this signup originated from a
+  // native app session. Used by the post-checkout success page to
+  // skip the "Download the GoalKickr app" CTA (they're literally
+  // standing in the app already) and instead show a "Back to
+  // GoalKickr →" deep link / "Close this tab" prompt.
+  try {
+    const cap = (window as any)?.Capacitor;
+    if (cap?.isNativePlatform?.()) {
+      params.set('source', 'app');
+      params.set('platform', cap.getPlatform ? cap.getPlatform() : 'native');
+    }
+  } catch { /* ignore */ }
   const qs = params.toString();
   const url = `${SITE_URL}/signup${qs ? `?${qs}` : ''}`;
   openExternal(url);

@@ -13,7 +13,7 @@
 
 const APP_NAME = 'GoalKickr';
 const SITE_URL = 'https://goalkickr.com';
-const APP_STORE_URL = 'https://apps.apple.com/us/app/goalkickr/id6504055554';
+const APP_STORE_URL = 'https://apps.apple.com/us/app/goalkickr/id6770324158';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
 const LOGO_URL = 'https://goalkickr.com/logo-light.svg';
 const CRIMSON = '#DC2626';

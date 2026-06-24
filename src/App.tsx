@@ -7,6 +7,7 @@ import { TeamProvider } from './contexts/TeamContext';
 import { ViewModeProvider } from './contexts/ViewModeContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import SilentErrorBoundary from './components/common/SilentErrorBoundary';
 import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
 import Navigation from './components/common/Navigation';
 import InstallAppBanner from './components/common/InstallAppBanner';
@@ -453,7 +454,31 @@ function App() {
             <Route path="/chat" element={
               <ProtectedRoute>
                 <AppLayout>
-                  <TeamChat />
+                  {/* Chat must never bounce the user to the global
+                      'Something went wrong' page. Wrap in a silent
+                      boundary that just shows a small reconnect hint
+                      if the surface ever crashes. The per-message
+                      boundary inside TeamChat already isolates single
+                      bad messages; this is the wider safety net. */}
+                  <SilentErrorBoundary
+                    label="chat-surface"
+                    fallback={(
+                      <div className="min-h-[60vh] flex items-center justify-center p-6">
+                        <div className="text-center max-w-sm">
+                          <p className="text-bone/85 font-bold mb-1">Reconnecting chat…</p>
+                          <p className="text-bone/55 text-sm mb-4">Your messages are safe. Pull to refresh, or wait a moment.</p>
+                          <button
+                            onClick={() => window.location.reload()}
+                            className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-400 hover:text-bone"
+                          >
+                            Tap to refresh
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  >
+                    <TeamChat />
+                  </SilentErrorBoundary>
                 </AppLayout>
               </ProtectedRoute>
             } />

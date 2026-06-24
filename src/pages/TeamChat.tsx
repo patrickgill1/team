@@ -9,6 +9,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
+import SilentErrorBoundary from '../components/common/SilentErrorBoundary';
 import ChatImageLightbox, { LightboxImage } from '../components/chat/ChatImageLightbox';
 import GlobalChatSearch from '../components/chat/GlobalChatSearch';
 import SwipeableThreadRow from '../components/chat/SwipeableThreadRow';
@@ -2970,6 +2971,14 @@ const TeamChat: React.FC = () => {
                     <div id={`msg-${message.id}`} className={`transition-shadow ${
                       idx === visibleMessages.length - 1 ? 'animate-bubble-in' : ''
                     } ${(message as any).__pending ? 'opacity-60' : ''} ${(message as any).__failed ? 'ring-2 ring-rose-300 rounded-2xl' : ''}`}>
+                    <SilentErrorBoundary
+                      label="message-bubble"
+                      fallback={(
+                        <div className="text-[11px] text-bone/35 italic px-3 py-1.5">
+                          (couldn&apos;t render this message)
+                        </div>
+                      )}
+                    >
                     <MessageBubble
                       message={message}
                       currentUserId={userData?.uid || ''}
@@ -3036,6 +3045,7 @@ const TeamChat: React.FC = () => {
                         }
                       }}
                     />
+                    </SilentErrorBoundary>
                     </div>
                     </React.Fragment>
                   );
@@ -3441,6 +3451,14 @@ const TeamChat: React.FC = () => {
                 const isLastInGroup = !next || next.senderId !== message.senderId || ts(next) - ts(message) > GAP_MS;
                 return (
                   <div key={message.id} id={`msg-${message.id}`} className="transition-shadow">
+                  <SilentErrorBoundary
+                    label="message-bubble"
+                    fallback={(
+                      <div className="text-[11px] text-bone/35 italic px-3 py-1.5">
+                        (couldn&apos;t render this message)
+                      </div>
+                    )}
+                  >
                   <MessageBubble
                     message={message}
                     currentUserId={userData?.uid || ''}
@@ -3485,6 +3503,7 @@ const TeamChat: React.FC = () => {
                         }
                       }}
                   />
+                  </SilentErrorBoundary>
                   </div>
                 );
               })}

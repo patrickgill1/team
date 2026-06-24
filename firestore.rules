@@ -3,25 +3,30 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ─────────────────────────────────────────────────────────────
-    // SaaS multi-tenant helpers (Phase 1 — 2026-06-23)
+    // Multi-tenant + subscription helpers (Phase 2 — 2026-06-23)
     // ─────────────────────────────────────────────────────────────
     //
-    // Patrick's incident: a brand-new account on the same device
-    // could read Fire FC team data because every team-scoped
-    // collection was readable by any authenticated user. These
-    // helpers gate reads to "is this user actually on the team?"
+    // userDoc() loads the caller's user doc once per rule evaluation.
+    // Used by onTeam (membership check) and hasActiveSub
+    // (subscription-active check).
     //
-    // Membership source of truth: users/{uid}.teamIds[]. Kept in
-    // sync by every team-creation, invite-consume, and onboarding
-    // path. One get() per rule evaluation — cheap on the low-
-    // traffic collections we're locking in Phase 1 (teams, stats,
-    // development_plans). Phase 2 will tackle hot-path collections
-    // (events, chat_messages, messages) more carefully.
+    // Subscription enforcement: the Cloudflare worker patches
+    // users/{uid}.subscriptionActive whenever Stripe fires a
+    // subscription.* webhook. The flag is true for status in
+    // {trialing, active} and false otherwise. Rules read this flag
+    // O(0) extra reads since we're already loading userDoc.
     //
-    // Patrick's platform-admin user (isClubAdmin == true on the
-    // user doc) keeps full read access via isPlatformAdmin().
-    // Rollback: revert this commit + redeploy with firebase deploy
-    // --only firestore:rules.
+    // Roles: 'coach' and 'team_manager' are paid roles — they must
+    // have an active subscription to CREATE new docs in the gated
+    // collections (events, chat_messages, players, player_media,
+    // gallery, full_games, live_games, practice_plans, parent_whispers,
+    // wall_posts, development_plans).
+    // 'parent' is free — they bypass the subscription gate so they
+    // can still RSVP, reply in chat, sign forms, etc.
+    // Platform admin (isClubAdmin == true) bypasses everything.
+    //
+    // Reads are NOT subscription-gated — a coach whose trial ended
+    // can still see all their existing data.
 
     function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -40,65 +45,111 @@ service cloud.firestore {
     function isSelf(uid) {
       return isAuthed() && request.auth.uid == uid;
     }
+    function isCoachRole() {
+      return isAuthed()
+        && (userDoc().role == 'coach' || userDoc().role == 'team_manager');
+    }
+    function hasActiveSub() {
+      // Worker-stamped flag. True for status in {trialing, active}.
+      // Coaches without this flag can READ everything but can't
+      // CREATE new content. Forces them through goalkickr.com signup.
+      return isAuthed() && userDoc().subscriptionActive == true;
+    }
+    function canCoachWrite() {
+      // The trial wall. Non-coaches (parents) and platform admin
+      // bypass. Coaches must have an active subscription stamped on
+      // their user doc by the Stripe webhook.
+      return isPlatformAdmin() || !isCoachRole() || hasActiveSub();
+    }
 
     // Public: anyone can read active votings (for the /vote page)
     match /match_votings/{votingId} {
       allow read: if true;
-      // Allow votes to be cast (update votes array) without auth
       allow update: if true;
-      // Only authenticated users can create/delete votings
       allow create, delete: if request.auth != null;
     }
 
-    // Public: anyone can read player profiles (needed to show player cards on vote page)
+    // Players: get is public (/vote page). LIST stays open to any
+    // auth user (TODO: dozens of pages dump the full collection
+    // client-side then filter; locking list breaks them all. Followup
+    // audit pass to scope every query, then tighten this). CREATE +
+    // delete are coach-write-gated; UPDATE allows parents to edit
+    // their own kid's profile.
     match /players/{playerId} {
-      allow read: if true;
-      // Only authenticated users can write player data
-      allow write: if request.auth != null;
+      allow get: if true;
+      allow list: if request.auth != null;
+      allow create: if isAuthed() && canCoachWrite()
+        && onTeam(request.resource.data.teamId);
+      allow update: if isAuthed() && (
+        isPlatformAdmin()
+        || onTeam(resource.data.teamId)
+        || (resource.data.parentIds is list && request.auth.uid in resource.data.parentIds)
+      );
+      allow delete: if isAuthed() && (
+        isPlatformAdmin()
+        || (onTeam(resource.data.teamId) && canCoachWrite())
+      );
     }
 
-    // Team docs. READ is restricted to actual team members so a
-    // brand-new (or cross-club) user can't enumerate other teams'
-    // data. Membership = the team's id is in the user's teamIds[]
-    // array. Platform admin (Patrick) bypasses.
-    //
-    // WRITE stays loose for now (any auth user) — too many code
-    // paths write to team docs (roster joins, invite consumption,
-    // settings updates). Phase 2 will tighten writes to coaches +
-    // the head coach + the joining user.
+    // Team docs. GET restricted to actual team members. LIST stays
+    // open to any auth (same followup audit as players — too many
+    // pages dump the collection client-side). WRITE stays loose
+    // because invite-consume / roster-join paths write arrays on
+    // the team doc from the joining user's account. CREATE is
+    // subscription-gated (joining an existing team doesn't need a
+    // sub; spinning up a brand-new team does).
     match /teams/{teamId} {
-      allow read: if isPlatformAdmin() || onTeam(teamId);
-      allow write: if isAuthed();
+      allow get: if isPlatformAdmin() || onTeam(teamId);
+      allow list: if request.auth != null;
+      allow create: if isAuthed() && canCoachWrite();
+      allow update, delete: if isAuthed();
     }
 
+    // User docs. Every authed user can read (member lookups, mentions).
+    // Self-write only for general fields. CRITICAL: clients CANNOT
+    // write subscriptionActive / subscriptionTier / subscriptionStatus
+    // / isClubAdmin — those are platform-controlled (worker + Patrick
+    // manually). Allowing client write of subscriptionActive would
+    // defeat the entire trial gate.
     match /users/{userId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAuthed();
+      allow create: if isSelf(userId);
+      allow update: if isAuthed() && (
+        isPlatformAdmin()
+        || (
+          isSelf(userId)
+          && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['subscriptionActive', 'subscriptionTier', 'subscriptionStatus', 'subscriptionUpdatedAt', 'isClubAdmin'])
+        )
+      );
+      allow delete: if isPlatformAdmin();
     }
 
     match /news/{newsId} {
       allow read, write: if request.auth != null;
     }
 
+    // Events: get is public so /event/:id share links work without
+    // sign-in. LIST stays open to any auth (followup audit — many
+    // pages dump events client-side then filter). Public guests can
+    // RSVP via publicRsvps diff-only update. CREATE + DELETE are
+    // coach-paid-gated.
     match /events/{eventId} {
-      // Public read so /event/:id share links work without sign-in.
-      allow read: if true;
-      // Public guests can RSVP — but only by writing to publicRsvps. Anything
-      // else (title, date, etc.) still requires an authenticated team member.
+      allow get: if true;
+      allow list: if request.auth != null;
       allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['publicRsvps']))
-        || request.auth != null;
-      allow create, delete: if request.auth != null;
+        || (request.auth != null && (resource == null || canCoachWrite() || !isCoachRole()));
+      allow create: if request.auth != null && canCoachWrite();
+      allow delete: if request.auth != null && canCoachWrite();
     }
 
     match /messages/{messageId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && canCoachWrite();
+      allow update, delete: if request.auth != null;
     }
 
     // Chat threads — DM/group privacy when participants field is set.
-    // Legacy threads created before the participants field was tracked
-    // fall back to "any auth" so they don't go dark on existing users.
-    // Lock-strict mode (deny missing participants) can come once we
-    // backfill — but the practical privacy goal is met today because
-    // the UI hides DMs/groups from non-participants in the thread list.
     match /chat_threads/{threadId} {
       function hasParticipantsList() {
         return resource.data.participants is list;
@@ -113,10 +164,10 @@ service cloud.firestore {
       }
       allow read: if request.auth != null && (
         !isPrivate()
-        || !hasParticipantsList()  // legacy escape hatch
+        || !hasParticipantsList()
         || isParticipant()
       );
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && canCoachWrite();
       allow update: if request.auth != null && (
         !isPrivate()
         || !hasParticipantsList()
@@ -129,51 +180,39 @@ service cloud.firestore {
       );
     }
 
-    // Chat messages — open to any auth. The privacy gate is at the
-    // thread layer; a non-participant can't list a private thread's
-    // id and can't query messages scoped to one they don't know.
+    // Chat messages — privacy gate is at the thread layer. Parents
+    // CAN send messages (no canCoachWrite check) so they can reply
+    // in team chat. The trial wall applies to coaches creating NEW
+    // threads (above), not posting messages in existing ones.
     match /chat_messages/{messageId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
     }
 
-    // Per-message push delivery log. Written exclusively by the
-    // onChatMessageCreate Cloud Function (server-side, bypasses rules).
-    // Reads gated to the sender + club admins so a coach can see "12/15
-    // pushed" on their own messages without exposing recipient lists
-    // across the club.
+    // Per-message push delivery log. Worker-only writes.
     match /push_attempts/{messageId} {
       allow read: if request.auth != null
         && (resource.data.senderId == request.auth.uid
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
-      allow write: if false; // server-only
+      allow write: if false;
     }
 
-    // The Wall is its own surface — separate collection from chat.
-    // Any signed-in user can read (everyone on the team sees the same
-    // wall). Any signed-in user can create their own post. After the
-    // fact, the author OR a club admin can edit/delete; any signed-in
-    // user can update ONLY the reactions array (so likes work).
+    // The Wall — team-wide posts. Coach-create gated by sub.
     match /wall_posts/{postId} {
-      // Public reads only when the post explicitly opted in via
-      // isPublic === true (coach toggled "Share publicly"). Auth users
-      // can read everything as before.
       allow read: if request.auth != null || resource.data.isPublic == true;
       allow create: if request.auth != null
-        && request.resource.data.senderId == request.auth.uid;
+        && request.resource.data.senderId == request.auth.uid
+        && canCoachWrite();
       allow update: if request.auth != null
         && (resource.data.senderId == request.auth.uid
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true
             || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
-            // Any signed-in user can mark a post as seen — touches the
-            // viewedBy map only. Same shape as the reactions self-update.
             || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy']));
       allow delete: if request.auth != null
         && (resource.data.senderId == request.auth.uid
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
     }
 
-    // Comments on wall posts. Any signed-in user can read + create
-    // their own; author or club admin can delete after the fact.
     match /wall_comments/{commentId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
@@ -183,20 +222,15 @@ service cloud.firestore {
             || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isClubAdmin == true);
     }
 
-    // Per-event discussion (comments live with the event, not in the
-    // Chat tab — keeps the inbox clean). Auth required for both read
-    // and create. Only the author can edit or delete their own.
+    // Per-event discussion comments.
     match /eventComments/{commentId} {
       allow read, create: if request.auth != null;
       allow update, delete: if request.auth != null
         && resource.data.authorId == request.auth.uid;
     }
 
-    // Helpdesk tickets. Anyone authenticated can create / read all
-    // (visibility scoping is done client-side: regular users only see
-    // their own + open tickets they can comment on; club admins see
-    // everything). Only the author OR a club admin can edit / delete
-    // — admins need to update status/assignedTo.
+    // Helpdesk — open to any auth (not subscription gated; everyone
+    // should be able to file a ticket regardless of trial state).
     match /helpdeskTickets/{ticketId} {
       allow read, create: if request.auth != null;
       allow update: if request.auth != null
@@ -212,35 +246,66 @@ service cloud.firestore {
         && resource.data.authorId == request.auth.uid;
     }
 
+    // Player media — was publicly readable (CRITICAL leak: kid photos
+    // readable to anyone with the doc ID). Now team-scoped on read,
+    // team-scoped + coach-paid-gated on create.
     match /player_media/{mediaId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow create: if isAuthed()
+        && onTeam(request.resource.data.teamId)
+        && canCoachWrite();
+      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 
+    // Team gallery photos — same pattern as player_media.
     match /gallery/{photoId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow create: if isAuthed()
+        && onTeam(request.resource.data.teamId)
+        && canCoachWrite();
+      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 
+    // Full-game recordings — same pattern.
     match /full_games/{gameId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow create: if isAuthed()
+        && onTeam(request.resource.data.teamId)
+        && canCoachWrite();
+      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
     }
 
-    // Stats records (per-game player stats). Gated on the doc's
-    // teamId field — only team members can read. WRITE stays loose
-    // (every member can record stats during gameday). Phase 2 will
-    // tighten writes to coaches/team managers if needed.
+    // Live games (gameday tracker) — team-scoped throughout.
+    match /live_games/{gameId} {
+      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow create: if isAuthed()
+        && onTeam(request.resource.data.teamId)
+        && canCoachWrite();
+      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
+    }
+
+    // Practice plans — team-scoped throughout.
+    match /practice_plans/{planId} {
+      allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
+      allow create: if isAuthed()
+        && onTeam(request.resource.data.teamId)
+        && canCoachWrite();
+      allow update, delete: if isAuthed() && onTeam(resource.data.teamId);
+    }
+
+    // Stats records (per-game player stats). Team-scoped.
     match /stats/{statId} {
       allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
       allow create: if isAuthed() && onTeam(request.resource.data.teamId);
       allow update, delete: if isAuthed();
     }
 
-    // Player development plans. Gated on teamId. Same shape as stats.
+    // Player development plans. Team-scoped.
     match /development_plans/{planId} {
       allow read: if isPlatformAdmin() || (resource != null && onTeam(resource.data.teamId));
-      allow create: if isAuthed() && onTeam(request.resource.data.teamId);
+      allow create: if isAuthed()
+        && onTeam(request.resource.data.teamId)
+        && canCoachWrite();
       allow update, delete: if isAuthed();
     }
 
@@ -248,21 +313,31 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    match /attendance_records/{recordId} {
+      allow read, write: if request.auth != null;
+    }
+
     match /volunteers/{volunteerId} {
       allow read, write: if request.auth != null;
     }
 
-    // Invites: an unguessable doc ID acts as the capability. The /join/:id
-    // page needs to read it BEFORE the visitor signs up (to show "you're
-    // joining Team X as a coach"). Writes still require auth — consumeInvite
-    // runs after the new user authenticates.
+    // Player + staff memberships (season-scoped roster pivot tables).
+    // Auth required; no sub gate (these get written by invite-consume
+    // flows where the joining user may not yet have an active sub).
+    match /player_memberships/{membershipId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /staff_memberships/{membershipId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Invites — unguessable doc ID is the capability.
     match /invites/{inviteId} {
       allow read: if true;
       allow create, update, delete: if request.auth != null;
     }
 
-    // Legacy collection used by the older email-based coach invite flow.
-    // Same reasoning as /invites above.
     match /coach_invites/{inviteId} {
       allow read: if true;
       allow create, update, delete: if request.auth != null;
@@ -270,70 +345,37 @@ service cloud.firestore {
 
     // ────────────────────────────────────────────────────────────
     // CLUB MODULE — registration funnel, products, offers, forms,
-    // tasks, activities. Several of these need PUBLIC access because
-    // they're used in no-auth flows (/register, /offer/:id). The
-    // catch-all at the bottom requires auth so we MUST grant public
-    // read/create explicitly where appropriate.
+    // tasks, activities.
     // ────────────────────────────────────────────────────────────
 
-    // Products — pricing + coupons. Public READ because /register
-    // (no-auth) needs to load the active registration product to quote
-    // a fee. Writes restricted to authenticated users (and further
-    // gated to club admins client-side; full server-side admin check
-    // requires resource.data.clubId lookup against the user doc,
-    // which is doable but adds a get() to every write — current
-    // tradeoff: client-side admin gate is acceptable while there's
-    // one club. Tighten when multi-tenant goes live.).
     match /products/{productId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Seasons — public READ so /register can discover the open season
-    // and its dates. Writes still require auth.
     match /seasons/{seasonId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Registrations — the /register form is no-auth, so CREATE is
-    // public. READ is restricted to the parent's own (matched by email)
-    // OR any authenticated club member (admins, coaches). Updates +
-    // deletes require auth (admin flips status, etc.).
-    //
-    // For tighter security later: validate request.resource.data.clubId
-    // matches an active Club, that parents[].email is non-empty, etc.
     match /registrations/{registrationId} {
       allow create: if request.resource.data.clubId is string
         && request.resource.data.parents.size() > 0;
       allow read, update, delete: if request.auth != null;
     }
 
-    // Registration form configs — public READ (parent loads them on
-    // /register), authed write (admin defines them).
     match /registration_form_configs/{configId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Activities — append-only audit log. CREATE is broadly allowed
-    // (including from /register + /offer/:id) because every meaningful
-    // system event logs to this collection regardless of auth state.
-    // READ requires auth (timeline is admin-side). Updates + deletes
-    // forbidden — keep the trail immutable.
     match /activities/{activityId} {
       allow create: if true;
       allow read: if request.auth != null;
       allow update, delete: if false;
     }
 
-    // Offers — /offer/:id is a public, no-auth page. The parent
-    // needs to READ the offer to see what's being offered, and
-    // UPDATE it to accept/decline. CREATE requires auth (coach
-    // sends the offer from the admin UI).
-    //
-    // We don't gate accept/decline by token here — the unguessable
-    // offer id itself is the capability (same pattern as invites).
+    // Offers — /offer/:id is no-auth.
     match /offers/{offerId} {
       allow read: if true;
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
@@ -342,65 +384,39 @@ service cloud.firestore {
       allow create, delete: if request.auth != null;
     }
 
-    // Offer templates — admin-only.
     match /offer_templates/{templateId} {
       allow read, write: if request.auth != null;
     }
 
-    // Form definitions — public READ in case a future parent-facing
-    // sign flow renders them; authed write.
     match /form_definitions/{formId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Form signatures — every authed user can read (coaches need to
-    // see "is this kid cleared?"); writes require auth.
     match /form_signatures/{signatureId} {
       allow read, write: if request.auth != null;
     }
 
-    // Questionnaire submissions — parents writing their answers to a
-    // form's questions (alongside the signature side, when both are
-    // present). Same auth gate as form_signatures: any signed-in user
-    // can write since the doc id ${playerId}_${formId} composition + the
-    // existing form_definitions club scoping fence off cross-club leaks.
     match /form_submissions/{submissionId} {
       allow read, write: if request.auth != null;
     }
 
-    // Parent Whispers — coach-private notes about a player, persisted
-    // so parents can re-read in /player/:id Whispers tab (email is
-    // still the primary delivery channel). Same auth gate as other
-    // player-scoped collections.
+    // Parent Whispers — coach-private notes. Coach create requires
+    // active sub (whispers are a paid feature).
     match /parent_whispers/{whisperId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && canCoachWrite();
+      allow update, delete: if request.auth != null;
     }
 
-    // Tasks — admin/coach todos. Authed read + write; further role
-    // gating happens client-side via the Tasks page.
     match /tasks/{taskId} {
       allow read, write: if request.auth != null;
     }
 
-    // Households — admin-linked multi-email families. Authed read +
-    // write; further gating happens client-side (only club admins
-    // surface the link/unlink controls). Public unauthenticated
-    // access would leak family-graph data so we don't open it up
-    // the way registrations are open.
     match /households/{householdId} {
       allow read, write: if request.auth != null;
     }
 
-    // Clubs — every authed user reads (for club picker, member lookups).
-    // Writes require auth AND block `platformFeeBps` mutations to
-    // anyone except the platform owner. Without this gate a club admin
-    // could open the Firestore console and zero out their own platform
-    // fee, defeating the SaaS revenue model. See [[platform-fee]] memory.
-    //
-    // The worker (Cloud Functions / Cloudflare Worker using the admin
-    // service account) bypasses all of these rules and writes
-    // platformFeeBps from the /platform/clubs UI on Patrick's behalf.
     match /clubs/{clubId} {
       allow read: if true;
       allow create: if request.auth != null
@@ -413,43 +429,34 @@ service cloud.firestore {
         && request.auth.token.email == 'patrickgill4@gmail.com';
     }
 
-    // Surveys: public read for shared links, creator controls edits
     match /surveys/{surveyId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      // Anyone can increment responseCount (public survey submissions); only creator can change other fields
+      allow create: if request.auth != null && canCoachWrite();
       allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['responseCount']))
         || (request.auth != null && resource.data.createdBy == request.auth.uid);
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
     }
 
-    // Survey responses: anyone can submit, only creator can read
     match /survey_responses/{responseId} {
       allow create: if request.resource.data.surveyId is string;
-
       allow read: if request.auth != null
         && resource.data.surveyId is string
         && get(/databases/$(database)/documents/surveys/$(resource.data.surveyId)).data.createdBy == request.auth.uid;
-
       allow update, delete: if false;
     }
 
-    // Subscriptions are owned by the user whose uid matches the doc
-    // id. Anyone signed in could otherwise read other users' billing
-    // state under the catch-all rule below, which we don't want.
-    // Writes are always denied — the Cloudflare worker is the only
-    // legitimate writer (it uses a service account, which bypasses
-    // these rules entirely). Doc id may also be `cus_<customerId>`
-    // for marketing-site signups whose Firebase account hasn't been
-    // linked yet — those docs are unreadable from any client.
+    // Subscription docs are read by the owning uid only. Writes are
+    // always worker-only (service account bypasses these rules).
     match /subscriptions/{docId} {
       allow read: if request.auth != null && request.auth.uid == docId;
       allow write: if false;
     }
 
-    // Catch-all: deny everything else by default
+    // Catch-all: deny unknown collections by default. Anything added
+    // later must get an explicit rule. Previous catch-all was
+    // permissive ("any auth"), which was itself a multi-tenant leak.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

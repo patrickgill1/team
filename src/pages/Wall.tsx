@@ -11,6 +11,8 @@ import EmptyState from '../components/common/EmptyState';
 import EmojiPicker from '../components/chat/EmojiPicker';
 import WallPollCard from '../components/wall/WallPollCard';
 import WallEditor from '../components/wall/WallEditor';
+import TrialGateModal from '../components/common/TrialGateModal';
+import { useTrialGate } from '../hooks/useTrialGate';
 import { marked } from 'marked';
 import type { WallPost, WallComment } from '../types';
 
@@ -165,6 +167,8 @@ const Wall: React.FC = () => {
   // to scroll past it every time. It now opens from a floating +
   // button, the way Instagram / Facebook do new-post creation.
   const [composerOpen, setComposerOpen] = useState(false);
+  const { gated: trialGated, reason: trialReason } = useTrialGate();
+  const [trialGateOpen, setTrialGateOpen] = useState(false);
 
   // Poll composer state — when on, the post is published with an
   // attached poll. Question + 2-6 options + single-choice vs multi.
@@ -921,7 +925,10 @@ const Wall: React.FC = () => {
           {canPost && (
             <button
               type="button"
-              onClick={() => setComposerOpen(true)}
+              onClick={() => {
+                if (trialGated) { setTrialGateOpen(true); return; }
+                setComposerOpen(true);
+              }}
               className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-crimson-600 hover:bg-crimson-500/150 active:scale-95 text-white text-[12px] font-extrabold uppercase tracking-widest transition shadow-sm"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -1670,6 +1677,12 @@ const Wall: React.FC = () => {
           </div>
         );
       })()}
+      <TrialGateModal
+        open={trialGateOpen}
+        onClose={() => setTrialGateOpen(false)}
+        action="post to the team wall"
+        reason={trialReason}
+      />
     </div>
   );
 };

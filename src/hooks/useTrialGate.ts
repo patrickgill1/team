@@ -1,0 +1,62 @@
+// @ts-nocheck
+import { useAuth } from './useAuth';
+import { useSubscription } from './useSubscription';
+
+// The trial wall, client side.
+//
+// Returns `{ gated, reason }` for any place that's about to perform a
+// paid-feature action (create event, send announcement, add player,
+// upload media, write a dev plan, etc.). When `gated` is true, the
+// UI should swap the action for a friendly "Start your free trial"
+// prompt instead of letting the click through.
+//
+// Defense in depth: firestore.rules ALSO checks
+// userDoc.subscriptionActive via canCoachWrite(). The rule layer is
+// the only thing that prevents a determined user from running the
+// app in a custom client. This hook is the obvious-UX layer — it
+// makes the gate visible and recoverable instead of a silent rules
+// rejection.
+//
+// Gate logic:
+//   - Not signed in -> no gate (sign-in is its own wall)
+//   - Parent role -> never gated (parents don't pay)
+//   - Platform admin (isClubAdmin) -> never gated (Patrick + comp accounts)
+//   - Coach / team_manager with active subscription -> not gated
+//   - Coach / team_manager without -> gated, must start trial
+//
+// Active = trialing OR active. Past_due / canceled / no doc -> gated.
+
+export interface TrialGateState {
+  /** True when the current user is a coach without an active sub.
+   *  CTAs should show "Start your free trial" instead of running. */
+  gated: boolean;
+  /** Human-readable reason. Shown in the upgrade modal title. */
+  reason: 'none' | 'no-sub' | 'past-due' | 'canceled' | 'expired';
+  /** True while subscription status is still loading. CTAs should
+   *  stay enabled but no-op (or show a spinner) until this clears. */
+  loading: boolean;
+}
+
+export function useTrialGate(): TrialGateState {
+  const { userData } = useAuth();
+  const { loading, subscription, isActive } = useSubscription();
+
+  if (loading) return { gated: false, reason: 'none', loading: true };
+  if (!userData) return { gated: false, reason: 'none', loading: false };
+
+  const role = (userData as any)?.role;
+  const isCoachRole = role === 'coach' || role === 'team_manager';
+  const isPlatformAdmin = (userData as any)?.isClubAdmin === true;
+  if (!isCoachRole || isPlatformAdmin) {
+    return { gated: false, reason: 'none', loading: false };
+  }
+  if (isActive) return { gated: false, reason: 'none', loading: false };
+
+  const status = subscription?.status;
+  const reason: TrialGateState['reason'] =
+    status === 'past_due' ? 'past-due'
+    : status === 'canceled' ? 'canceled'
+    : !subscription ? 'no-sub'
+    : 'expired';
+  return { gated: true, reason, loading: false };
+}

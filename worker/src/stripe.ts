@@ -984,6 +984,34 @@ async function upsertSubscriptionDoc(
   } else {
     await createDocument(projectId, 'subscriptions', { ...data, createdAt: new Date() }, sa, docId);
   }
+
+  // Mirror to users/{uid} so firestore.rules can gate writes on
+  // subscriptionActive in O(0) extra reads. The trial wall depends
+  // on this flag — without the mirror, a coach who pays would still
+  // be blocked from creating events. Only patch when we know the
+  // uid (cus_xxx-keyed docs from pre-signup will mirror on relink).
+  //
+  // The user-doc write rule in firestore.rules explicitly forbids
+  // clients from touching these fields, so this worker (service-
+  // account, bypasses rules) is the only writer.
+  if (uid) {
+    const status = String(sub.status || 'incomplete');
+    const isActive = status === 'trialing' || status === 'active';
+    try {
+      await patchDocument(projectId, `users/${uid}`, {
+        subscriptionActive: isActive,
+        subscriptionTier: tier,
+        subscriptionStatus: status,
+        subscriptionUpdatedAt: new Date(),
+      }, sa);
+    } catch (err) {
+      // Non-fatal: subscriptions/{uid} is still the source of truth
+      // for the in-app UI, so a failed user-doc mirror just means
+      // the rule layer won't gate writes for this user until the
+      // next webhook fires successfully. Surface in logs.
+      console.warn('[stripe] failed to mirror sub flags to users/', uid, err);
+    }
+  }
 }
 
 function tierLooksValid(t: any): boolean {

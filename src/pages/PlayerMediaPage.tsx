@@ -7,6 +7,8 @@ import { useStorage } from '../hooks/useStorage';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
+import { useTrialGate } from '../hooks/useTrialGate';
+import TrialGateModal from '../components/common/TrialGateModal';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
@@ -32,6 +34,8 @@ const PlayerMediaPage: React.FC = () => {
   const [media, setMedia] = useState<PlayerMediaType[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const { gated: trialGated, reason: trialReason } = useTrialGate();
+  const [trialGateOpen, setTrialGateOpen] = useState(false);
   const [showEmbedModal, setShowEmbedModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -1314,7 +1318,10 @@ const PlayerMediaPage: React.FC = () => {
                     <span className="hidden sm:inline">Link</span>
                   </button>
                   <button
-                    onClick={() => { resetUploadForm(); setShowUploadModal(true); }}
+                    onClick={() => {
+                      if (trialGated) { setTrialGateOpen(true); return; }
+                      resetUploadForm(); setShowUploadModal(true);
+                    }}
                     className="bg-crimson-500 hover:bg-crimson-400 text-bone px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -2204,6 +2211,12 @@ const PlayerMediaPage: React.FC = () => {
           );
         })()}
       </div>
+      <TrialGateModal
+        open={trialGateOpen}
+        onClose={() => setTrialGateOpen(false)}
+        action="upload media"
+        reason={trialReason}
+      />
     </div>
   );
 };

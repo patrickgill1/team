@@ -10,6 +10,8 @@ import EventForm from './EventForm';
 import DeleteEventSheet from './DeleteEventSheet';
 import EventListCard from './EventListCard';
 import EventWeekStrip from './EventWeekStrip';
+import { useTrialGate } from '../../hooks/useTrialGate';
+import TrialGateModal from '../common/TrialGateModal';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
@@ -110,6 +112,8 @@ const Calendar: React.FC<CalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isEventFormOpen, setIsEventFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const { gated: trialGated, reason: trialReason } = useTrialGate();
+  const [trialGateOpen, setTrialGateOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null);
   // In list mode, parents almost always want "what's next" (Scheduled).
@@ -719,6 +723,7 @@ const Calendar: React.FC<CalendarProps> = ({
               </button>
               <button
                 onClick={() => {
+                  if (trialGated) { setTrialGateOpen(true); return; }
                   setEditingEvent(null);
                   setSelectedDate(null);
                   setIsEventFormOpen(true);
@@ -1504,6 +1509,12 @@ const RsvpBar: React.FC<{
         </div>,
         document.body
       )}
+      <TrialGateModal
+        open={trialGateOpen}
+        onClose={() => setTrialGateOpen(false)}
+        action="create events"
+        reason={trialReason}
+      />
     </div>
   );
 };

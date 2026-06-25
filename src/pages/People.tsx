@@ -130,16 +130,24 @@ const People: React.FC = () => {
         ]);
         if (cancelled) return;
 
-        // Determine team scope. If we have a club, use every team in it.
-        const teamsInClub = clubId
-          ? (allTeams as any[]).filter(t => clubId && (t as any).clubId === clubId)
-          : (allTeams as any[]);
-        // Fall back to teams the current user belongs to if club lookup
-        // hasn't migrated those team docs yet.
-        const fallbackTeamIds = (userData?.teamIds || []).concat(userData?.teamId || []);
-        const effectiveTeams = teamsInClub.length
-          ? teamsInClub
-          : (allTeams as any[]).filter(t => fallbackTeamIds.includes(t.id));
+        // Determine team scope. Union of two sets:
+        //   1. Every team in the user's club (if they have a clubId)
+        //   2. Every team the user is personally on (via teamIds)
+        // The union surfaces personal teams an admin manages that
+        // aren't formally in a club (Patrick's Sat Skills pickup),
+        // without bleeding in OTHER clubs' teams. Archived teams
+        // (isActive === false) are filtered out everywhere — they
+        // were showing up in the assign-team dropdown after the
+        // ClubOverview archived-filter went in. Patrick 2026-06-25:
+        // 'the archived teams still show to assign. The Sat skills
+        // team should still be available as it is an active team
+        // in my club.'
+        const ownTeamIds = new Set<string>(
+          (userData?.teamIds || []).concat(userData?.teamId || []).filter(Boolean)
+        );
+        const effectiveTeams = (allTeams as any[])
+          .filter((t) => t.isActive !== false)
+          .filter((t) => (clubId && (t as any).clubId === clubId) || ownTeamIds.has(t.id));
         const teamIdSet = new Set(effectiveTeams.map(t => t.id));
         setTeams(effectiveTeams.map(t => ({ id: t.id, name: t.name, clubId: (t as any).clubId })));
 

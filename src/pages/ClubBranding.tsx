@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useClubId } from '../hooks/useClubId';
 import { isClubAdmin } from '../utils/helpers';
 import ClubBrandingCard from '../components/club/ClubBrandingCard';
+import ClubStoreCard from '../components/club/ClubStoreCard';
 import Header from '../components/common/Header';
 
 // Standalone club-admin page for logo + brand color. Reachable from
@@ -17,11 +18,15 @@ import Header from '../components/common/Header';
 const ClubBranding: React.FC = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
-  const clubId = useClubId();
+  // useClubId returns { clubId, loading }; assigning the whole object
+  // to clubId threw on doc(db, 'clubs', <object>), which surfaced as
+  // 'Something went wrong'. Patrick 2026-06-25.
+  const { clubId, loading: clubIdLoading } = useClubId();
   const [club, setClub] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (clubIdLoading) return;
     if (!clubId) { setLoading(false); return; }
     const unsub = onSnapshot(
       doc(db, 'clubs', clubId),
@@ -32,7 +37,7 @@ const ClubBranding: React.FC = () => {
       () => setLoading(false),
     );
     return () => unsub();
-  }, [clubId]);
+  }, [clubId, clubIdLoading]);
 
   if (!isClubAdmin(userData)) {
     return (
@@ -59,6 +64,8 @@ const ClubBranding: React.FC = () => {
         ) : (
           <>
             <ClubBrandingCard club={club} />
+
+            <ClubStoreCard club={club} />
 
             {/* Live preview — shows the parent invite landing as it
                 would appear to a new family. Only the surfaces that

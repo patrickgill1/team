@@ -799,6 +799,18 @@ const TeamChat: React.FC = () => {
     return all
       .filter((thread: any) => {
         const scope = thread.scope || 'team';
+
+        // DMs + groups follow the USER, not the selected team.
+        // Patrick 2026-06-25: 'I don't want to have to switch teams
+        // to check dm's.' Privacy is already enforced via the
+        // participants[] check on the thread rule + below.
+        if (thread.isDM === true || thread.isGroup === true) {
+          const me = (userData as any)?.uid;
+          if (!me) return false;
+          const parts: string[] = Array.isArray(thread.participants) ? thread.participants : [];
+          return parts.includes(me);
+        }
+
         // Team-only private threads still gated by coach role.
         if (scope === 'team' && thread.isPrivate && !isCoach) return false;
         if (scope === 'admins' && !isUserClubAdmin) return false;

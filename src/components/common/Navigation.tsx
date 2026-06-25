@@ -22,6 +22,7 @@ import WallHeaderButton from './WallHeaderButton';
 import ProfileMenuSheet from './ProfileMenuSheet';
 import ChatHeaderButton from './ChatHeaderButton';
 import { useTeam } from '../../contexts/TeamContext';
+import { useClubStore } from '../../hooks/useClubStore';
 import { isCoach, isClubAdmin } from '../../utils/helpers';
 // Legacy InviteSystem import removed — invites now live on /people.
 import AppIcon from './AppIcon';
@@ -29,6 +30,7 @@ import AppIcon from './AppIcon';
 const Navigation: React.FC = () => {
   const { userData, logout, deleteAccount } = useAuth();
   const { teams, selectedTeamId, selectedTeam, setSelectedTeamId } = useTeam();
+  const { hasStore } = useClubStore((selectedTeam as any)?.clubId || null);
   const location = useLocation();
   // isInviteOpen state removed with the legacy modal.
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -182,7 +184,10 @@ const Navigation: React.FC = () => {
     { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps' },
     { name: 'Mentions', path: '/mentions', icon: 'highlight', group: 'apps' },
     { name: 'Wall', path: '/wall', icon: 'news', group: 'apps' },
-    { name: 'Team Store', path: '/store', icon: 'soccer', group: 'apps' },
+    // Team Store only shows when the active club has a storeUrl set.
+    // Empty-state-as-nav-entry felt like clutter on clubs that don't
+    // run a store. Patrick 2026-06-25.
+    ...(hasStore ? [{ name: 'Team Store', path: '/store', icon: 'soccer' as const, group: 'apps' as const }] : []),
     { name: 'Calendar', path: '/calendar', icon: 'calendar', group: 'apps' },
     { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps' },
     { name: 'Full Games', path: '/full-games', icon: 'film', group: 'apps' },

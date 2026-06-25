@@ -5,6 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Player, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDate } from '../utils/helpers';
 import StreamPlayer from '../components/common/StreamPlayer';
+import DataGate from '../components/common/DataGate';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { getShareOrigin } from '../utils/origin';
 
@@ -130,8 +131,8 @@ const Highlights: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center bg-black">
-        <div className="text-white text-lg">Loading highlight reel…</div>
+      <div className="min-h-[100dvh] bg-black">
+        <DataGate when="loading" />
       </div>
     );
   }

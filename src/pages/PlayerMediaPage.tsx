@@ -9,6 +9,7 @@ import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { autoPostVideoToWall } from '../utils/autoPostToWall';
 import { useTrialGate } from '../hooks/useTrialGate';
 import TrialGateModal from '../components/common/TrialGateModal';
+import DataGate from '../components/common/DataGate';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
@@ -1245,16 +1246,7 @@ const PlayerMediaPage: React.FC = () => {
     items: filteredMedia.filter(m => m.playerId === player.id),
   })).filter(group => group.items.length > 0);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
-          <span className="text-sm text-bone/40 font-medium">Loading...</span>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <DataGate when="loading" />;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-gray-950 to-gray-950">

@@ -12,6 +12,7 @@ import EventListCard from './EventListCard';
 import EventWeekStrip from './EventWeekStrip';
 import { useTrialGate } from '../../hooks/useTrialGate';
 import TrialGateModal from '../common/TrialGateModal';
+import DataGate from '../common/DataGate';
 import { getWeatherForEvent, WeatherSummary } from '../../utils/weather';
 import { getShareOrigin } from '../../utils/origin';
 import ImportScheduleModal from './ImportScheduleModal';
@@ -825,13 +826,7 @@ const Calendar: React.FC<CalendarProps> = ({
     );
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-crimson-200 border-t-fire-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <DataGate when="loading" />;
 
   return (
     <div>

@@ -1500,6 +1500,10 @@ export interface Team {
   ageGroup: string;
   league?: string;
   homeField?: string;
+  /** Owning club, when the team is part of a multi-team club. Drives
+   *  club-scope chat threads, team store, ClubOverview scoping. Teams
+   *  with no clubId are personal/standalone (e.g. an adult pickup). */
+  clubId?: string;
   /** Standard match format — used to size the field + decide how many
    *  players auto-place into the lineup. Defaults to '7v7' if unset. */
   format?: GameFormat;

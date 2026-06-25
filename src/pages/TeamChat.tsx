@@ -10,6 +10,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
 import SilentErrorBoundary from '../components/common/SilentErrorBoundary';
+import { useClubId } from '../hooks/useClubId';
 import ChatImageLightbox, { LightboxImage } from '../components/chat/ChatImageLightbox';
 import GlobalChatSearch from '../components/chat/GlobalChatSearch';
 import SwipeableThreadRow from '../components/chat/SwipeableThreadRow';
@@ -368,6 +369,12 @@ const TeamChat: React.FC = () => {
 
   const isCoach = userData?.role === 'coach';
   const isUserClubAdmin = !!(userData as any)?.isClubAdmin;
+  // Fallback clubId resolver — same chain Branding + AdminCockpit use.
+  // Tries userData.clubId → user's first team's clubId → 'any club'.
+  // Used by createThread when selectedTeam.clubId is missing, so a
+  // club-scope thread create doesn't dead-end on partially-stamped
+  // team data.
+  const { clubId: fallbackClubId } = useClubId();
 
   // Detect mobile + track viewport height. With Capacitor's
   // Keyboard.resize: 'native', iOS shrinks the WebView when the keyboard
@@ -1246,16 +1253,21 @@ const TeamChat: React.FC = () => {
         alert('Only club admins can create club-wide channels.');
         return;
       }
-      // Club-scope threads MUST carry a clubId. The selected team
-      // is the source. Without a clubId there's no way for the
-      // filter to gate visibility — the thread falls through every
-      // tenant boundary and leaks to other clubs.
-      // Patrick 2026-06-25: 'I just tried making a new coach chat
-      // on my club, and sure enough, it showed up on the other
+      // Club-scope threads MUST carry a clubId. Resolution order:
+      //   1. selectedTeam.clubId  (canonical when stamped)
+      //   2. userData.clubId      (the admin's home club)
+      //   3. useClubId() fallback (any club doc in the project)
+      // Without a clubId there's no tenant scope and the thread
+      // leaks. Patrick 2026-06-25: 'I just tried making a new coach
+      // chat on my club, and sure enough, it showed up on the other
       // account that has nothing to do with my actual team/club.'
-      const selectedClubId = (selectedTeam as any)?.clubId || '';
+      const selectedClubId =
+        (selectedTeam as any)?.clubId
+        || (userData as any)?.clubId
+        || fallbackClubId
+        || '';
       if (isClubScope && !selectedClubId) {
-        alert("This team isn't part of a club yet, so a club-wide channel has no scope. Add a clubId to the team (Club Branding) or create a regular team chat instead.");
+        alert("Couldn't resolve which club this thread belongs to. Open Club Branding → Save to stamp a clubId, then try again.");
         return;
       }
       const threadData: any = {

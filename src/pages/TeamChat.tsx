@@ -804,19 +804,29 @@ const TeamChat: React.FC = () => {
         if (scope === 'admins' && !isUserClubAdmin) return false;
         if (scope === 'coaches' && !isCoach && !isUserClubAdmin) return false;
 
-        // Cross-team membership gate. Patrick's bug: a coaches-scope
-        // thread for one club was bleeding into another club's chat
-        // list because the only filter was "is the user a coach?"
-        // (role string), which is true regardless of which team.
-        // Now: any team- or coaches-scope thread that names a teamId
-        // is only visible to members of that team. Club admins
-        // bypass — they need cross-team visibility by design.
-        // Threads with no teamId (true club-wide threads) keep
-        // showing as before.
-        if (!isUserClubAdmin) {
-          if ((scope === 'team' || scope === 'coaches') && thread.teamId && !myTeamIds.has(thread.teamId)) {
-            return false;
-          }
+        // Cross-team / cross-club membership gate. Patrick's
+        // recurring bug: a coaches-scope thread for one club was
+        // bleeding into other teams' chat lists.
+        //
+        // Rules:
+        //   - 'team' scope threads must match a team in user.teamIds
+        //     AND when the user has explicitly selected a team, they
+        //     should only see THAT team's team-chat (not every team
+        //     they're on at once).
+        //   - 'coaches' scope threads are team-anchored too (each
+        //     team gets its own coaches channel). Match by
+        //     selectedTeamId when set, otherwise any team they're on.
+        //   - Admins NO LONGER bypass — viewing one team should show
+        //     that team's threads, not every club's. The Club page
+        //     is the right surface for cross-club visibility.
+        //   - 'club' threads (no teamId, true club-wide) stay visible
+        //     to everyone regardless of selectedTeamId.
+        if (scope === 'team' || scope === 'coaches') {
+          if (!thread.teamId) return false; // malformed; drop
+          if (!myTeamIds.has(thread.teamId)) return false;
+          // When a team is actively selected, narrow to that team
+          // only so switching teams swaps the chat surface cleanly.
+          if (selectedTeamId && thread.teamId !== selectedTeamId) return false;
         }
 
         // 'club' is visible to everyone.
@@ -840,7 +850,7 @@ const TeamChat: React.FC = () => {
         if (aT !== bT) return aT - bT;
         return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
       });
-  }, [teamThreads, clubThreads, isCoach, isUserClubAdmin, userData]);
+  }, [teamThreads, clubThreads, isCoach, isUserClubAdmin, userData, selectedTeamId]);
 
   // When a deep link includes &message=<id>, we stash it here and the
   // messages-watching effect below scrolls to it once the bubble lands

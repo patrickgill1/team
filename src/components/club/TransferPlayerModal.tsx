@@ -2,13 +2,20 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
+import { syncParentTeams } from '../../utils/syncParentTeams';
 
 interface TeamOption { id: string; name: string; ageGroup?: string }
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  player: { id: string; name: string; teamId?: string; teamIds?: string[] } | null;
+  player: {
+    id: string;
+    name: string;
+    teamId?: string;
+    teamIds?: string[];
+    parentIds?: string[];
+  } | null;
   teams: TeamOption[];
   /** Fires after the write completes so the caller can refresh. */
   onTransferred: () => void;
@@ -47,6 +54,14 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
       await updateDocument('players', player.id, {
         teamIds: nextTeamIds,
         teamId: nextPrimary,
+      });
+      // Going-forward parent-teamIds sync. Without this, the parents
+      // of this player would still be locked out of the new team
+      // by the onTeam(teamId) firestore rule. Best-effort; failures
+      // don't roll back the player transfer.
+      await syncParentTeams({
+        parentIds: player.parentIds,
+        teamIds: nextTeamIds,
       });
       onTransferred();
       onClose();

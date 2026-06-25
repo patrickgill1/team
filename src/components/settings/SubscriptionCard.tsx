@@ -5,6 +5,7 @@ import { useFirestore } from '../../hooks/useFirestore';
 import { useSubscription } from '../../hooks/useSubscription';
 import { openCustomerPortal, openWebSignup, isAppleDevice } from '../../utils/subscriptionApi';
 import TierPickerSheet from '../common/TierPickerSheet';
+import { Button, Pill } from '../ui';
 
 // Settings-page tile for the coach's GoalKickr subscription. Reads
 // from subscriptions/{uid} in real-time (worker stamps the doc from
@@ -273,13 +274,13 @@ const SubscriptionCard: React.FC = () => {
             {isTrialing && ' · in trial'}
           </p>
         </div>
-        <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest ${
-          isPastDue ? 'bg-amber-900/40 text-amber-300 ring-1 ring-amber-700/40'
-          : willCancelAtPeriodEnd ? 'bg-charcoal-800 text-charcoal-300 ring-1 ring-white/10'
-          : 'bg-emerald-900/40 text-emerald-300 ring-1 ring-emerald-700/40'
-        }`}>
+        <Pill
+          tone={isPastDue ? 'amber' : willCancelAtPeriodEnd ? 'neutral' : 'emerald'}
+          size="sm"
+          dot
+        >
           {isPastDue ? 'Past due' : willCancelAtPeriodEnd ? 'Canceling' : isTrialing ? 'Trial' : 'Active'}
-        </span>
+        </Pill>
       </div>
 
       {isPastDue && (
@@ -337,21 +338,18 @@ const SubscriptionCard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-        <button
-          type="button"
+        <Button
+          variant="primary"
           onClick={handleManage}
-          disabled={opening || !subscription?.customerId}
-          className="inline-flex items-center justify-center px-3 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 transition-all disabled:opacity-50"
+          disabled={!subscription?.customerId}
+          loading={opening}
+          fullWidth
         >
-          {opening ? 'Opening…' : 'Manage subscription'}
-        </button>
-        <button
-          type="button"
-          onClick={handleUpgrade}
-          className="inline-flex items-center justify-center px-3 py-2.5 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition-all"
-        >
+          Manage subscription
+        </Button>
+        <Button variant="outline" onClick={handleUpgrade} fullWidth>
           Change plan
-        </button>
+        </Button>
       </div>
       <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
         Billing, cancellation, and plan changes happen on goalkickr.com in your system browser.

@@ -839,19 +839,20 @@ const TeamChat: React.FC = () => {
           if (!myTeamIds.has(thread.teamId)) return false;
           if (selectedTeamId && thread.teamId !== selectedTeamId) return false;
         } else if (scope === 'coaches' || scope === 'club' || scope === 'admins') {
-          // Club-wide thread (no teamId). Match by clubId.
-          // Threads with no clubId AND no teamId are legacy global
-          // channels — hide unless the user has no clubId either
-          // (orphan parity, keeps the old behavior for accounts
-          // that haven't been migrated to a club yet).
+          // Club-wide thread (no teamId). Two cases:
+          //   - thread.clubId is set: require selectedClubId match.
+          //   - thread.clubId is missing / empty: hide from everyone
+          //     except the creator. Without a clubId the thread has
+          //     no tenant scope, so showing it anywhere is a leak.
+          //     Creator-only visibility lets them delete the orphan
+          //     without exposing it cross-club. Patrick 2026-06-25:
+          //     'I just tried making a new coach chat on my club,
+          //     and sure enough, it showed up on the other account.'
+          const me = (userData as any)?.uid;
           if (thread.clubId) {
             if (!selectedClubId || thread.clubId !== selectedClubId) return false;
-          } else if (selectedClubId) {
-            // Legacy global thread + user IS in a club. Hide to
-            // prevent cross-club leak. Patrick to backfill clubId
-            // onto existing legacy threads via the chat-thread admin
-            // UI (or a one-off Firestore Console edit).
-            return false;
+          } else {
+            if (thread.createdBy !== me) return false;
           }
         }
 
@@ -1239,27 +1240,29 @@ const TeamChat: React.FC = () => {
     if (!newThread.title.trim() || !userData) return;
 
     try {
-      // Club-scoped threads (club / coaches / admins) aren't tied to a
-      // team — use an empty teamId so they don't get pulled into any
-      // single team's view. Only club admins can create them.
       const scope = newThread.scope || 'team';
       const isClubScope = scope !== 'team';
       if (isClubScope && !isUserClubAdmin) {
         alert('Only club admins can create club-wide channels.');
         return;
       }
-      // Club-scope threads (coaches / club / admins) carry the
-      // selected team's clubId so they're visible across every team
-      // in that club. Without this, a 'Coaches' channel would either
-      // bleed into other clubs (when filter is too loose) or vanish
-      // entirely (when filter requires clubId match) — Patrick hit
-      // both modes in sequence.
+      // Club-scope threads MUST carry a clubId. The selected team
+      // is the source. Without a clubId there's no way for the
+      // filter to gate visibility — the thread falls through every
+      // tenant boundary and leaks to other clubs.
+      // Patrick 2026-06-25: 'I just tried making a new coach chat
+      // on my club, and sure enough, it showed up on the other
+      // account that has nothing to do with my actual team/club.'
       const selectedClubId = (selectedTeam as any)?.clubId || '';
+      if (isClubScope && !selectedClubId) {
+        alert("This team isn't part of a club yet, so a club-wide channel has no scope. Add a clubId to the team (Club Branding) or create a regular team chat instead.");
+        return;
+      }
       const threadData: any = {
         title: newThread.title,
         description: newThread.description,
         teamId: isClubScope ? '' : selectedTeamId,
-        clubId: isClubScope ? selectedClubId : (selectedClubId || ''),
+        clubId: selectedClubId || '',
         scope,
         createdBy: userData.uid,
         createdByName: userData.name,

@@ -1130,15 +1130,16 @@ function welcomeEmailHtml(opts: { tierLabel: string; trialEndDate: Date | null }
             <!-- Brand bar — gradient runs black -> red (left -> right)
                  so the warm color climbs into the wordmark space. Full
                  logo (shield + GOALKICKR text baked in) sits left; the
-                 tagline sits right. -->
+                 tagline sits right on a single line aligned to the
+                 logo's baseline. -->
             <tr>
-              <td style="background:linear-gradient(90deg,${CHARCOAL_950} 0%,${CRIMSON} 100%);padding:24px 32px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <td style="background:linear-gradient(90deg,${CHARCOAL_950} 0%,${CRIMSON} 100%);padding:22px 28px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="table-layout:fixed;">
                   <tr>
-                    <td style="vertical-align:middle;">
-                      <img src="${LOGO_FULL_URL}" alt="GoalKickr" height="40" style="display:block;border:0;outline:none;text-decoration:none;max-height:40px;" />
+                    <td width="160" style="vertical-align:middle;width:160px;">
+                      <img src="${LOGO_FULL_URL}" alt="GoalKickr" height="36" style="display:block;border:0;outline:none;text-decoration:none;height:36px;width:auto;" />
                     </td>
-                    <td align="right" style="vertical-align:middle;color:#ffffff;font-size:13px;font-style:italic;font-weight:600;letter-spacing:0.02em;line-height:1.3;padding-left:12px;">
+                    <td align="right" style="vertical-align:middle;color:#ffffff;font-size:12px;font-weight:600;letter-spacing:0.02em;line-height:1;white-space:nowrap;">
                       ${escapeHtmlWorker(TAGLINE)}
                     </td>
                   </tr>

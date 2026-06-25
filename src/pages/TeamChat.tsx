@@ -10,6 +10,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
 import MessageBubble from '../components/chat/MessageBubble';
 import SilentErrorBoundary from '../components/common/SilentErrorBoundary';
+import DataGate from '../components/common/DataGate';
 import { useClubId } from '../hooks/useClubId';
 import ChatImageLightbox, { LightboxImage } from '../components/chat/ChatImageLightbox';
 import GlobalChatSearch from '../components/chat/GlobalChatSearch';
@@ -2200,15 +2201,10 @@ const TeamChat: React.FC = () => {
     });
   };
 
-  console.log('Current state:', { currentView, isMobile, selectedThread: selectedThread?.title });
-
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-white/[0.04]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crimson-600 mx-auto mb-2"></div>
-          <p className="text-bone/65">Loading chat...</p>
-        </div>
+        <DataGate when="loading" />
       </div>
     );
   }

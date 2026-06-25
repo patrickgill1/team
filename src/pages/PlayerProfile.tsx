@@ -13,6 +13,7 @@ import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
 import AddPlayer from '../components/player/AddPlayer';
 import EmptyState from '../components/common/EmptyState';
+import DataGate from '../components/common/DataGate';
 import { computeStreakDays } from '../utils/devPlanActions';
 import { computePlayerAttendance } from '../utils/attendance';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
@@ -404,8 +405,8 @@ const PlayerProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crimson-600"></div>
+      <div className="min-h-screen bg-charcoal-950">
+        <DataGate when="loading" />
       </div>
     );
   }

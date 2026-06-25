@@ -388,19 +388,6 @@ const Dashboard: React.FC = () => {
           const { computeStreakDays, recomputeAndPersistPlayerStreak } = await import('../utils/devPlanActions');
           const freshStreak = computeStreakDays(plans as any);
           const cachedStreak: number = (myPlayer as any)?.currentStreakDays || 0;
-          if (process.env.NODE_ENV !== 'production') {
-            const dayKeys: string[] = [];
-            for (const p of plans) {
-              for (const g of (p.goals || [])) {
-                for (const l of (g.practiceLog || [])) {
-                  const dt = l.date?.toDate ? l.date.toDate() : new Date(l.date);
-                  dayKeys.push(`${dt.getFullYear()}-${dt.getMonth()+1}-${dt.getDate()}`);
-                }
-              }
-            }
-            // eslint-disable-next-line no-console
-            console.debug('[dashboard streak]', { playerId: myPlayer.id, activePlans: plans.length, dayKeys, freshStreak, cachedStreak });
-          }
           if (freshStreak !== cachedStreak) {
             await recomputeAndPersistPlayerStreak(myPlayer.id, plans as any);
             setPlayers((prev) => prev.map((p: any) =>

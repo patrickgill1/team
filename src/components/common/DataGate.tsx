@@ -18,7 +18,10 @@ interface Props {
   progressDelayMs?: number;
   /** Optional class applied to the wrapper that animates content in. */
   className?: string;
-  children: React.ReactNode;
+  /** Optional — surface contents to show when ready. When omitted,
+   *  DataGate is just a loading/error indicator (use as a standalone
+   *  placeholder). */
+  children?: React.ReactNode;
 }
 
 /**

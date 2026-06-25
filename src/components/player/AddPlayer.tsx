@@ -581,15 +581,6 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="bg-white/5 ring-1 ring-white/10 text-bone/70 p-3 rounded text-xs">
-              <p><strong className="text-bone">Debug Info:</strong></p>
-              <p>Storage Bucket: {process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || 'Not loaded'}</p>
-              <p>User Team: {selectedTeamId || 'No team'}</p>
-            </div>
-          )}
-
           {/* Profile Photo */}
           <div>
             <label className="block text-sm font-medium text-bone/80 mb-2">

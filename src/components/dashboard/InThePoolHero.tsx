@@ -113,8 +113,10 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
               <>You've got an <span className="text-crimson-400">offer</span> waiting, {firstName}.</>
             ) : overallVibe === 'all_rostered' ? (
               <>You're <span className="bg-gradient-to-r from-emerald-300 to-crimson-300 bg-clip-text text-transparent">in</span>, {firstName}.</>
+            ) : overallVibe === 'just_registered' ? (
+              <>Welcome to <span className="text-crimson-400">GoalKickr</span>, {firstName}.</>
             ) : (
-              <>You're in the <span className="text-crimson-400">Fire FC pool</span>, {firstName}.</>
+              <>You're in the <span className="text-crimson-400">pool</span>, {firstName}.</>
             )}
           </h1>
           <p className="text-slate-300 mt-3 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
@@ -122,7 +124,9 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
               ? 'Check your email and tap the link to accept. We hope you say yes.'
               : overallVibe === 'all_rostered'
                 ? 'Reload the app to see your team dashboard, your roster, and the season ahead.'
-                : 'Coaches review the pool weekly. When they want to talk, you\'ll hear from us. While you wait, keep an eye on this card — your status will change in real time.'
+                : overallVibe === 'just_registered'
+                  ? "You don't have a team yet. Got an invite link from a coach? Tap it. Looking to register for a club? Start one below."
+                  : "Coaches review the pool weekly. When they want to talk, you'll hear from us. While you wait, keep an eye on this card — your status will change in real time."
             }
           </p>
         </div>
@@ -169,8 +173,10 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
           </div>
         )}
 
-        {/* What's next card — only shows while waiting */}
-        {(overallVibe === 'in_pool' || overallVibe === 'just_registered') && (
+        {/* What's next card — only shows for parents WHO ARE in the
+            pool (have at least one registration). Fresh-signup parents
+            with no registrations get a different card above instead. */}
+        {overallVibe === 'in_pool' && (
           <div className="mt-6 bg-white/[0.03] ring-1 ring-white/10 rounded-2xl p-5">
             <div className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-400 mb-2">What happens next</div>
             <ul className="space-y-2 text-sm text-slate-300">

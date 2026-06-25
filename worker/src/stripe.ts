@@ -1087,10 +1087,11 @@ const CHARCOAL_950 = '#0d0d10';
 const CHARCOAL_900 = '#16161c';
 const BONE = '#f1e9d8';
 const PAGE_BG = '#f3f4f6'; // light grey behind the dark email card
-// Full-wordmark logo (shield + GOALKICKR text baked into the image).
-// Add this asset to goalkickr.com — same dir as logo-light.svg.
-// Falls back gracefully if missing (alt text reads 'GoalKickr').
-const LOGO_FULL_URL = 'https://goalkickr.com/logo-full-light.svg';
+// Icon-only shield logo. Used inline with an HTML wordmark text
+// alongside — more reliable across email clients than a single
+// full-vector logo (Patrick's full-logo SVG was missing OAL
+// glyphs and rendered as 'G/ KICKR' with a gap in the middle).
+const LOGO_ICON_URL = 'https://goalkickr.com/logo-light.svg';
 const TAGLINE = 'Every Team Deserves a Shot';
 // COUNTRY-NEUTRAL App Store URL — no /us/ segment so iTunes uses
 // the user's home store automatically. The /us/ form was failing
@@ -1127,19 +1128,28 @@ function welcomeEmailHtml(opts: { tierLabel: string; trialEndDate: Date | null }
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background:${CHARCOAL_900};border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.25);">
 
-            <!-- Brand bar — gradient runs black -> red (left -> right)
-                 so the warm color climbs into the wordmark space. Full
-                 logo (shield + GOALKICKR text baked in) sits left; the
-                 tagline sits right on a single line aligned to the
-                 logo's baseline. -->
+            <!-- Brand bar — gradient runs black -> red (left -> right).
+                 Layout: shield icon + GOALKICKR wordmark text on the
+                 left, tagline on the right. Wordmark is HTML text so
+                 it always renders cleanly regardless of SVG file
+                 quirks. -->
             <tr>
               <td style="background:linear-gradient(90deg,${CHARCOAL_950} 0%,${CRIMSON} 100%);padding:22px 28px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="table-layout:fixed;">
                   <tr>
-                    <td width="160" style="vertical-align:middle;width:160px;">
-                      <img src="${LOGO_FULL_URL}" alt="GoalKickr" height="36" style="display:block;border:0;outline:none;text-decoration:none;height:36px;width:auto;" />
+                    <td style="vertical-align:middle;">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td style="vertical-align:middle;padding-right:10px;">
+                            <img src="${LOGO_ICON_URL}" alt="" width="32" height="32" style="display:block;border:0;outline:none;text-decoration:none;width:32px;height:32px;" />
+                          </td>
+                          <td style="vertical-align:middle;color:#ffffff;font-size:20px;font-weight:900;letter-spacing:0.04em;line-height:1;">
+                            <span style="color:${BONE};">GOAL</span><span style="color:#ffffff;">KICKR</span>
+                          </td>
+                        </tr>
+                      </table>
                     </td>
-                    <td align="right" style="vertical-align:middle;color:#ffffff;font-size:12px;font-weight:600;letter-spacing:0.02em;line-height:1;white-space:nowrap;">
+                    <td align="right" style="vertical-align:middle;color:#ffffff;font-size:12px;font-weight:600;letter-spacing:0.02em;line-height:1;white-space:nowrap;padding-left:8px;">
                       ${escapeHtmlWorker(TAGLINE)}
                     </td>
                   </tr>

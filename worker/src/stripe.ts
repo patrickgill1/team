@@ -1078,33 +1078,154 @@ async function sendSubscriptionEmail(
   }
 }
 
+// Brand constants mirrored from src/utils/inviteEmails.ts. Two
+// separate codebases (app vs worker) means we either duplicate this
+// or set up shared package; keeping it inline for now since the
+// template is short.
+const CRIMSON = '#DC2626';
+const CHARCOAL_950 = '#0d0d10';
+const CHARCOAL_900 = '#16161c';
+const BONE = '#f1e9d8';
+const LOGO_URL = 'https://goalkickr.com/logo-light.svg';
+// COUNTRY-NEUTRAL App Store URL — no /us/ segment so iTunes uses
+// the user's home store automatically. The /us/ form was failing
+// for non-US Apple IDs with "not available in your country."
+const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
+const APP_OPEN_URL = APP_STORE_URL; // sub email CTA -> straight to App Store
+
+function escapeHtmlWorker(s: string): string {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function welcomeEmailHtml(opts: { tierLabel: string; trialEndDate: Date | null }): string {
+  const tierLabel = escapeHtmlWorker(opts.tierLabel);
   const trialLine = opts.trialEndDate
-    ? `<p style="color:#374151;font-size:15px;line-height:1.55;margin:0 0 14px 0;">Your free trial runs through <strong>${opts.trialEndDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</strong>. No charge until then. Cancel anytime in the app or at goalkickr.com.</p>`
-    : `<p style="color:#374151;font-size:15px;line-height:1.55;margin:0 0 14px 0;">Your subscription is now active. Manage it anytime in the app under Settings.</p>`;
+    ? `<p style="margin:0 0 14px 0;font-size:15px;line-height:1.55;color:#c2bdb1;">Your free trial runs through <strong style="color:#ffffff;">${escapeHtmlWorker(opts.trialEndDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }))}</strong>. No charge until then. Cancel anytime in the app or at goalkickr.com.</p>`
+    : `<p style="margin:0 0 14px 0;font-size:15px;line-height:1.55;color:#c2bdb1;">Your subscription is now active. Manage it anytime in the app under Settings.</p>`;
 
   return `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to GoalKickr</title></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f3f4f6;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;">
-        <tr><td style="background:#DC2626;height:6px;line-height:6px;font-size:1px;">&nbsp;</td></tr>
-        <tr><td style="padding:28px 28px 8px 28px;">
-          <p style="color:#DC2626;font-size:11px;letter-spacing:0.15em;font-weight:800;text-transform:uppercase;margin:0 0 8px 0;">Welcome to GoalKickr</p>
-          <h1 style="color:#0d0d10;font-size:22px;line-height:1.25;font-weight:800;margin:0 0 16px 0;">You're in on the ${opts.tierLabel} plan.</h1>
-          ${trialLine}
-          <p style="color:#374151;font-size:15px;line-height:1.55;margin:0 0 22px 0;">Open the GoalKickr app to start adding players, scheduling events, and sending messages. Everything you set up before signing up is still here.</p>
-          <p style="margin:0 0 22px 0;"><a href="https://goalkickr.com" style="display:inline-block;background:#DC2626;color:#ffffff;font-weight:800;font-size:14px;letter-spacing:0.04em;text-decoration:none;padding:12px 22px;border-radius:8px;">Open GoalKickr →</a></p>
-          <p style="color:#6B7280;font-size:13px;line-height:1.5;margin:0 0 4px 0;">Questions, billing, or to cancel: reply to this email or visit goalkickr.com.</p>
-        </td></tr>
-        <tr><td style="padding:18px 28px 24px 28px;border-top:1px solid #E5E7EB;">
-          <p style="color:#9CA3AF;font-size:11px;line-height:1.45;margin:0;">GoalKickr · Youth soccer team management built by a coach who codes.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Welcome to GoalKickr</title>
+  </head>
+  <body style="margin:0;padding:0;background:${CHARCOAL_950};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:${BONE};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${CHARCOAL_950};">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background:${CHARCOAL_900};border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+
+            <!-- Brand bar -->
+            <tr>
+              <td style="background:linear-gradient(135deg,${CRIMSON} 0%,${CHARCOAL_950} 100%);padding:28px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="vertical-align:middle;">
+                      <img src="${LOGO_URL}" alt="GoalKickr" width="36" height="36" style="display:block;border:0;outline:none;text-decoration:none;" />
+                    </td>
+                    <td align="right" style="vertical-align:middle;color:#ffffff;font-size:18px;font-weight:800;letter-spacing:0.04em;">
+                      <span style="color:${BONE};">GOAL</span><span style="color:#ffffff;">KICKR</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Kicker -->
+            <tr>
+              <td style="padding:32px 32px 4px 32px;">
+                <p style="margin:0;font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:${CRIMSON};">Welcome to GoalKickr</p>
+              </td>
+            </tr>
+
+            <!-- Main headline -->
+            <tr>
+              <td style="padding:4px 32px 8px 32px;">
+                <h1 style="margin:0;font-size:24px;line-height:1.2;font-weight:900;color:${BONE};">
+                  You&rsquo;re in on the <span style="color:#ffffff;">${tierLabel}</span> plan.
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:16px 32px 8px 32px;">
+                ${trialLine}
+                <p style="margin:0;font-size:15px;line-height:1.55;color:#c2bdb1;">
+                  Open the GoalKickr app to start adding players, scheduling events, and sending messages. Everything you set up before signing up is still here.
+                </p>
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td align="center" style="padding:24px 32px 12px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" style="background:${CRIMSON};border-radius:8px;">
+                      <a href="${APP_OPEN_URL}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:800;color:#ffffff;text-decoration:none;letter-spacing:0.01em;">
+                        Open GoalKickr &rarr;
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Plain-text fallback link -->
+            <tr>
+              <td align="center" style="padding:0 32px 24px 32px;">
+                <p style="margin:0;font-size:12px;color:#8a8275;line-height:1.55;">
+                  Or paste this link into your browser:<br />
+                  <a href="${APP_OPEN_URL}" target="_blank" style="color:${CRIMSON};word-break:break-all;text-decoration:underline;">${APP_OPEN_URL}</a>
+                </p>
+              </td>
+            </tr>
+
+            <!-- App store badges -->
+            <tr>
+              <td align="center" style="padding:8px 32px 20px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding:0 6px;">
+                      <a href="${APP_STORE_URL}" target="_blank" style="display:inline-block;font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${BONE};background:#1a1a22;border:1px solid #2a2a36;border-radius:6px;padding:8px 14px;text-decoration:none;">
+                        App Store
+                      </a>
+                    </td>
+                    <td style="padding:0 6px;">
+                      <a href="${PLAY_STORE_URL}" target="_blank" style="display:inline-block;font-size:11px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${BONE};background:#1a1a22;border:1px solid #2a2a36;border-radius:6px;padding:8px 14px;text-decoration:none;">
+                        Google Play
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding:18px 32px 24px 32px;border-top:1px solid #2a2a36;">
+                <p style="margin:0;font-size:12px;color:#8a8275;line-height:1.5;">
+                  Questions, billing, or to cancel: reply to this email or visit <a href="https://goalkickr.com" style="color:${CRIMSON};text-decoration:underline;">goalkickr.com</a>.
+                </p>
+                <p style="margin:8px 0 0 0;font-size:11px;color:#6e6757;line-height:1.45;">
+                  GoalKickr &middot; Youth soccer team management built by a coach who codes.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 // Idempotent welcome-email send. Reads the just-upserted subscription

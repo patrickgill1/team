@@ -13,7 +13,10 @@
 
 const APP_NAME = 'GoalKickr';
 const SITE_URL = 'https://goalkickr.com';
-const APP_STORE_URL = 'https://apps.apple.com/us/app/goalkickr/id6770324158';
+// Country-neutral form (no /us/ segment) — iTunes auto-routes to the
+// user's home store. The /us/ form was failing for non-US Apple IDs
+// with 'not available in your country'.
+const APP_STORE_URL = 'https://apps.apple.com/app/id6770324158';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.firefc.team';
 const LOGO_URL = 'https://goalkickr.com/logo-light.svg';
 const CRIMSON = '#DC2626';

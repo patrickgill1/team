@@ -1,4 +1,4 @@
-name = "firefc16-mailer"
+name = "goalkickr-mailer"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 workers_dev = true
@@ -18,6 +18,19 @@ APP_ORIGIN = "https://firefc.app"
 # Firebase ID tokens received from the native plugin's getIdToken(). The
 # project ID isn't secret — Firebase exposes it in client-side config.
 FIREBASE_PROJECT_ID = "soccer-team-app-7f6b4"
+
+# Stripe price IDs — plaintext, baked into wrangler.toml so they live
+# in code instead of dashboard-only state. None of these are secrets;
+# leaking a price ID is harmless (the worker still validates inbound
+# prices against this allowlist before creating a Checkout session).
+STRIPE_PRICE_COACH_ANNUAL    = "price_1Tl154AGgBqwZqUrYIdc4kb7"
+STRIPE_PRICE_COACH_MONTHLY   = "price_1Tl15oAGgBqwZqUri4yjAgcG"
+STRIPE_PRICE_FOUNDER         = "price_1Tl194AGgBqwZqUrJHYEYW8C"
+STRIPE_PRICE_CLUB_ANNUAL     = "price_1TlFwIAGgBqwZqUrLuZEVevJ"
+STRIPE_PRICE_CLUB_PRO_ANNUAL = "price_1Tl16ZAGgBqwZqUrjTWW0TZf"
+# Reserved for the +$10/mo Video add-on. Not consumed by worker code
+# yet; ships here so the cutover doesn't lose the value.
+STRIPE_PRICE_VIDEO_ADDON_MONTHLY = "price_1Tl17KAGgBqwZqUr4qGT8RP5"
 
 # CORS allow-list (comma separated). Vercel preview URLs added later if needed.
 # capacitor://localhost is the iOS WebView origin; without it the native app

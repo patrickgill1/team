@@ -61,7 +61,12 @@ const Icon: React.FC<{ name: string; className?: string }> = ({ name, className 
 
 function formatTimeRange(start: Date, end?: Date): string {
   const s = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  if (!end) return s;
+  // Drop the range half when end is missing OR not a real Date.
+  // Recurring-event materialization sometimes leaves endDate as a
+  // non-parseable string; new Date(...) returns an Invalid Date
+  // (truthy) and toLocaleTimeString returns the literal string
+  // 'Invalid Date'. Patrick screenshot: '6:00 PM – Invalid Date'.
+  if (!end || isNaN(end.getTime())) return s;
   const e = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   return `${s} – ${e}`;
 }

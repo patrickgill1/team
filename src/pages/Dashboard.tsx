@@ -742,19 +742,19 @@ const Dashboard: React.FC = () => {
     return (myRsvp?.status as 'going' | 'maybe' | 'no' | null) || null;
   })();
 
-  // Button labels — adjust copy when RSVPing a kid so the parent
-  // knows who they're marking going. "Hunter going" / "All going"
-  // / "I'm going" / etc.
-  const posterGoingLabel = (() => {
-    if (useKidQuickRsvp) {
-      return myLinkedPlayers.length === 1
-        ? `${myLinkedPlayers[0].name.split(' ')[0]} going`
-        : 'All going';
-    }
-    return "I'm going";
-  })();
-  const posterNoLabel = useKidQuickRsvp
-    ? (myLinkedPlayers.length === 1 ? "Can't go" : "None going")
+  // Button labels — Going / Maybe / Can't go uniformly. Multi-kid
+  // parents see 'All going' / 'None going' since the all-kids action
+  // is the interesting variant. Single-kid + adult-only stays the
+  // verb form. Patrick 2026-06-25: 'the "going" switched to the
+  // player name instead of just saying going when can't go or maybe
+  // is selected.' Removed the single-kid player-name prefix because
+  // it created asymmetric labels (only the going button got the
+  // name, maybe / can't-go didn't) and read as confusing state.
+  const posterGoingLabel = useKidQuickRsvp && myLinkedPlayers.length > 1
+    ? 'All going'
+    : 'Going';
+  const posterNoLabel = useKidQuickRsvp && myLinkedPlayers.length > 1
+    ? 'None going'
     : "Can't go";
 
   // "Tomorrow at 5:00 PM" / "in 3 days" / "in 2 hours"

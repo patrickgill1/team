@@ -72,7 +72,7 @@ function rsvpAvatarColor(name: string): string {
 
 function formatTimeRange(start: Date, end?: Date): string {
   const s = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  if (!end) return s;
+  if (!end || isNaN(end.getTime())) return s;
   const e = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   return `${s} – ${e}`;
 }

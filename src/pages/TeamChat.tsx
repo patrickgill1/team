@@ -804,32 +804,45 @@ const TeamChat: React.FC = () => {
         if (scope === 'admins' && !isUserClubAdmin) return false;
         if (scope === 'coaches' && !isCoach && !isUserClubAdmin) return false;
 
-        // Cross-team / cross-club membership gate. Patrick's
-        // recurring bug: a coaches-scope thread for one club was
-        // bleeding into other teams' chat lists.
+        // Cross-team / cross-club membership gate. Three shapes:
         //
-        // Rules:
-        //   - 'team' scope threads must match a team in user.teamIds
-        //     AND when the user has explicitly selected a team, they
-        //     should only see THAT team's team-chat (not every team
-        //     they're on at once).
-        //   - 'coaches' scope threads are team-anchored too (each
-        //     team gets its own coaches channel). Match by
-        //     selectedTeamId when set, otherwise any team they're on.
-        //   - Admins NO LONGER bypass — viewing one team should show
-        //     that team's threads, not every club's. The Club page
-        //     is the right surface for cross-club visibility.
-        //   - 'club' threads (no teamId, true club-wide) stay visible
-        //     to everyone regardless of selectedTeamId.
-        if (scope === 'team' || scope === 'coaches') {
-          if (!thread.teamId) return false; // malformed; drop
+        //   1. team-anchored ('team' scope, teamId set): show only
+        //      when thread.teamId === selectedTeamId.
+        //   2. team-coaches ('coaches' scope, teamId set): rare —
+        //      a coaches channel scoped to one specific team. Same
+        //      rule as #1.
+        //   3. club-coaches ('coaches' / 'club' / 'admins' scope,
+        //      no teamId): show across every team in the same club.
+        //      Matched by thread.clubId === selectedTeam.clubId.
+        //      This is the 'Coaches, Managers and Staff' shape — one
+        //      club-wide thread visible from any of that club's
+        //      teams.
+        //
+        // Admins NO LONGER bypass — viewing one team should show
+        // that team's threads, not every club's. The /club page is
+        // the right surface for cross-club visibility.
+        const selectedClubId = (selectedTeam as any)?.clubId || null;
+        if ((scope === 'team' || scope === 'coaches') && thread.teamId) {
+          // Team-anchored thread.
           if (!myTeamIds.has(thread.teamId)) return false;
-          // When a team is actively selected, narrow to that team
-          // only so switching teams swaps the chat surface cleanly.
           if (selectedTeamId && thread.teamId !== selectedTeamId) return false;
+        } else if (scope === 'coaches' || scope === 'club' || scope === 'admins') {
+          // Club-wide thread (no teamId). Match by clubId.
+          // Threads with no clubId AND no teamId are legacy global
+          // channels — hide unless the user has no clubId either
+          // (orphan parity, keeps the old behavior for accounts
+          // that haven't been migrated to a club yet).
+          if (thread.clubId) {
+            if (!selectedClubId || thread.clubId !== selectedClubId) return false;
+          } else if (selectedClubId) {
+            // Legacy global thread + user IS in a club. Hide to
+            // prevent cross-club leak. Patrick to backfill clubId
+            // onto existing legacy threads via the chat-thread admin
+            // UI (or a one-off Firestore Console edit).
+            return false;
+          }
         }
 
-        // 'club' is visible to everyone.
         return true;
       })
       .sort((a: any, b: any) => {
@@ -1223,10 +1236,18 @@ const TeamChat: React.FC = () => {
         alert('Only club admins can create club-wide channels.');
         return;
       }
+      // Club-scope threads (coaches / club / admins) carry the
+      // selected team's clubId so they're visible across every team
+      // in that club. Without this, a 'Coaches' channel would either
+      // bleed into other clubs (when filter is too loose) or vanish
+      // entirely (when filter requires clubId match) — Patrick hit
+      // both modes in sequence.
+      const selectedClubId = (selectedTeam as any)?.clubId || '';
       const threadData: any = {
         title: newThread.title,
         description: newThread.description,
         teamId: isClubScope ? '' : selectedTeamId,
+        clubId: isClubScope ? selectedClubId : (selectedClubId || ''),
         scope,
         createdBy: userData.uid,
         createdByName: userData.name,

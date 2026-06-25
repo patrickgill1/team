@@ -310,7 +310,9 @@ const Navigation: React.FC = () => {
                 className="w-full text-sm bg-white/10 text-bone border border-white/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-crimson-400 focus:border-transparent"
               >
                 {teams.map(t => (
-                  <option key={t.id} value={t.id} className="bg-charcoal-950 text-white">{t.name}</option>
+                  <option key={t.id} value={t.id} className="bg-charcoal-950 text-white">
+                    {(t as any).isActive === false ? `${t.name} (archived)` : t.name}
+                  </option>
                 ))}
               </select>
             ) : selectedTeam ? (
@@ -527,6 +529,7 @@ const Navigation: React.FC = () => {
             <ul className="divide-y divide-white/5 max-h-[60vh] overflow-y-auto">
               {teams.map(t => {
                 const isCurrent = t.id === selectedTeamId;
+                const isArchived = (t as any).isActive === false;
                 return (
                   <li key={t.id}>
                     <button
@@ -537,10 +540,13 @@ const Navigation: React.FC = () => {
                       }}
                       className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/5 active:bg-white/10 transition-colors ${
                         isCurrent ? 'bg-crimson-500/10' : ''
-                      }`}
+                      } ${isArchived && !isCurrent ? 'opacity-55' : ''}`}
                     >
-                      <span className={`text-[15px] font-bold truncate ${isCurrent ? 'text-crimson-300' : 'text-bone'}`}>
+                      <span className={`text-[15px] font-bold truncate flex items-center gap-2 ${isCurrent ? 'text-crimson-300' : 'text-bone'}`}>
                         {t.name}
+                        {isArchived && (
+                          <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-white/[0.08] text-bone/55 ring-1 ring-white/10">Archived</span>
+                        )}
                       </span>
                       {isCurrent && (
                         <svg className="w-5 h-5 text-crimson-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -650,7 +656,9 @@ const Navigation: React.FC = () => {
                   className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-white/5 text-white focus:ring-2 focus:ring-crimson-400"
                 >
                   {teams.map(t => (
-                    <option key={t.id} value={t.id} className="bg-charcoal-900">{t.name}</option>
+                    <option key={t.id} value={t.id} className="bg-charcoal-900">
+                      {(t as any).isActive === false ? `${t.name} (archived)` : t.name}
+                    </option>
                   ))}
                 </select>
               </div>

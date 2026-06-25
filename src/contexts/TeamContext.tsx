@@ -93,17 +93,29 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (err) {
           console.error('Error loading club teams for admin:', err);
         }
-        teamDocs.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        const active = teamDocs.filter(t => t.isActive !== false);
-        setTeams(active);
-        const validIds = active.map((t) => t.id);
-        if (!selectedTeamId || !validIds.includes(selectedTeamId)) {
+        // Sort: active first (alpha), archived last (alpha). Keeps
+        // archived reachable for historical stat lookups while not
+        // pushing them in your face. Patrick 2026-06-25: 'i have
+        // my two archived teams, but they need to just hold their
+        // stat data.'
+        teamDocs.sort((a, b) => {
+          const aArchived = a.isActive === false;
+          const bArchived = b.isActive === false;
+          if (aArchived !== bArchived) return aArchived ? 1 : -1;
+          return (a.name || '').localeCompare(b.name || '');
+        });
+        setTeams(teamDocs);
+        const allIds = teamDocs.map((t) => t.id);
+        const activeIds = teamDocs.filter(t => t.isActive !== false).map(t => t.id);
+        if (!selectedTeamId || !allIds.includes(selectedTeamId)) {
           const stored = localStorage.getItem('selectedTeamId');
-          if (stored && validIds.includes(stored)) {
+          // Stored selection wins even if archived (user explicitly
+          // navigated there). Otherwise auto-select an ACTIVE team.
+          if (stored && allIds.includes(stored)) {
             setSelectedTeamIdState(stored);
           } else {
-            const own = userTeamIds.find((id) => validIds.includes(id));
-            setSelectedTeamIdState(own || validIds[0] || '');
+            const own = userTeamIds.find((id) => activeIds.includes(id));
+            setSelectedTeamIdState(own || activeIds[0] || allIds[0] || '');
           }
         }
         return;
@@ -158,21 +170,29 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Hide archived teams from the selector. They stay in Firestore
-      // (and on the user's teamIds[]) for historical lookups but
-      // shouldn't appear as a switchable active team.
-      const active = teamDocs.filter(t => t.isActive !== false);
-      setTeams(active);
-      const activeIds = active.map(t => t.id);
+      // Keep archived teams in the selector but pushed to the bottom.
+      // Patrick: 'i have my two archived teams, but they need to just
+      // hold their stat data.' Hidden entirely makes their stats
+      // unreachable; sorted-last + UI-de-emphasized in the dropdown
+      // is the right compromise. Auto-select still prefers ACTIVE.
+      teamDocs.sort((a, b) => {
+        const aArchived = a.isActive === false;
+        const bArchived = b.isActive === false;
+        if (aArchived !== bArchived) return aArchived ? 1 : -1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+      setTeams(teamDocs);
+      const allIds = teamDocs.map((t) => t.id);
+      const activeIds = teamDocs.filter(t => t.isActive !== false).map(t => t.id);
 
-      // Auto-select first ACTIVE team if nothing selected, or the
-      // current selection is invalid / archived.
-      if (!selectedTeamId || !activeIds.includes(selectedTeamId)) {
+      if (!selectedTeamId || !allIds.includes(selectedTeamId)) {
         const stored = localStorage.getItem('selectedTeamId');
-        if (stored && activeIds.includes(stored)) {
+        if (stored && allIds.includes(stored)) {
           setSelectedTeamIdState(stored);
         } else if (activeIds.length > 0) {
           setSelectedTeamIdState(activeIds[0]);
+        } else if (allIds.length > 0) {
+          setSelectedTeamIdState(allIds[0]);
         }
       }
     } catch (error) {

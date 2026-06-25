@@ -38,7 +38,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const navigate = useNavigate();
   const { currentUser, userData } = useAuth();
   const { selectedTeamId } = useTeam();
-  const { isActive } = useSubscription();
+  const { isActive, loading: subLoading } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
   const [tierSheet, setTierSheet] = useState(false);
 
@@ -67,6 +67,13 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   if (!isCoach(userData.role)) return null;
   if (!selectedTeamId) return null;
   if (dismissed) return null;
+  // Wait for the subscription doc to load before deciding to render.
+  // Without this guard, the card flashes the 'Start your 7-day free
+  // trial' step for a frame on every cold start (isActive defaults
+  // to false while the snapshot is in flight) and disappears once
+  // the active-sub state lands. Patrick 2026-06-25: 'I swear I see
+  // the 7 day trial come up briefly and then go away.'
+  if (subLoading) return null;
 
   // Steps
   const hasPlayers = (players?.length || 0) > 0;

@@ -13,6 +13,7 @@ import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
 import GettingStartedCard from '../components/dashboard/GettingStartedCard';
+import DataGate from '../components/common/DataGate';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
@@ -802,16 +803,11 @@ const Dashboard: React.FC = () => {
       : t === 'practice' ? 'from-crimson-500 to-charcoal-600'
       : 'from-violet-500 to-fuchsia-500';
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
-          <span className="text-sm text-gray-400 font-medium">Loading...</span>
-        </div>
-      </div>
-    );
-  }
+  // Atomic-render gate: render nothing for the first ~400ms of the
+  // load (per atomic-render rule), then a subtle progress hint, then
+  // the full dashboard fades in atomically. Replaces the loud spinner
+  // + 'Loading...' label that landed first on every cold start.
+  if (loading) return <DataGate when="loading" />;
 
   const firstName = userData?.name?.split(' ')[0] || (isUserCoach ? 'Coach' : 'Friend');
 

@@ -158,6 +158,25 @@ export interface SeasonMembership {
 // paths don't break. We cut them after the new paths are everywhere.
 // =====================================================================
 
+/** Scoped permissions for a club admin. Owner always has all
+ *  scopes implicitly; lesser admins get a subset. Picking the
+ *  right enum keeps the UI honest about which features each role
+ *  can actually touch. */
+export type ClubAdminScope =
+  | 'financials'      // revenue, refunds, payouts, Stripe Connect config
+  | 'rosters'         // add / edit / remove players + parents
+  | 'registrations'   // open / close / refund / configure cycles
+  | 'events'          // create / edit / delete games + practices
+  | 'comms'           // chat blasts, push, registration drips
+  | 'tickets'         // helpdesk + support inboxes
+  | 'admins';         // grant / revoke other admins (owner-equivalent)
+
+/** Convenience: every scope. Useful for 'director' presets and
+ *  the owner's implicit role. */
+export const ALL_CLUB_SCOPES: ClubAdminScope[] = [
+  'financials', 'rosters', 'registrations', 'events', 'comms', 'tickets', 'admins',
+];
+
 export interface Club {
   id: string;
   name: string;
@@ -171,8 +190,17 @@ export interface Club {
    *  sees during onboarding. */
   brandColor?: string;
   ownerUid: string;
-  /** Users with full club-admin rights. Always includes ownerUid. */
+  /** Users with full club-admin rights. Always includes ownerUid.
+   *  Legacy: kept as the "is this user a club admin at all" gate.
+   *  New scoped roles live in adminScopes (below); a uid in
+   *  adminUids without a matching adminScopes entry is treated as
+   *  having all scopes (director-equivalent) for back-compat. */
   adminUids: string[];
+  /** Per-admin scope grants. Map of uid -> list of granted scopes.
+   *  Owner is implicit (always all scopes, never read from here).
+   *  Absence of a key means 'no scoped grant' — fall back to
+   *  adminUids check for legacy admins. */
+  adminScopes?: Record<string, ClubAdminScope[]>;
   /** Denorm cache of team IDs in this club — kept up to date on team
    *  create/delete so we can list teams without a where() query. */
   teamIds: string[];

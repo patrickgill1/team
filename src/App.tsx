@@ -78,6 +78,7 @@ const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Tickets = React.lazy(() => import('./pages/Tickets'));
 const TicketDetail = React.lazy(() => import('./pages/TicketDetail'));
+const ClubAdmins = React.lazy(() => import('./pages/ClubAdmins'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
@@ -833,6 +834,13 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <TicketDetail />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/club/admins" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ClubAdmins />
                 </AppLayout>
               </ProtectedRoute>
             } />

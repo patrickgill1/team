@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { useClubId } from '../hooks/useClubId';
+import { useClubScopes } from '../hooks/useClubScopes';
 import { isClubAdmin, getPlayerPositionsLabel, formatDateTime } from '../utils/helpers';
 import Header from '../components/common/Header';
 import DataGate from '../components/common/DataGate';
@@ -38,8 +39,14 @@ const ClubOverview: React.FC = () => {
   const { userData } = useAuth();
   const { setSelectedTeamId } = useTeam();
   const { getDocuments } = useFirestore();
+  const { clubId: scopedClubId } = useClubId();
+  const { has: hasClubScope } = useClubScopes(scopedClubId);
 
   const allowed = isClubAdmin(userData);
+  // Financials tab hides for any admin without the 'financials'
+  // scope. Owners always have it (implicit), legacy isClubAdmin
+  // users without explicit scopes still see it (back-compat).
+  const canSeeFinancials = hasClubScope('financials');
 
   const [teams, setTeams] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
@@ -347,11 +354,11 @@ const ClubOverview: React.FC = () => {
             removed since the new /people directory does both better. */}
         <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1">
           {([
-            { k: 'overview', label: 'Overview' },
-            { k: 'calendar', label: 'Calendar' },
-            { k: 'stats', label: 'Stats' },
-            { k: 'payments', label: 'Payments' },
-          ] as { k: TabKey; label: string }[]).map((t) => (
+            { k: 'overview' as TabKey, label: 'Overview' },
+            { k: 'calendar' as TabKey, label: 'Calendar' },
+            { k: 'stats' as TabKey,    label: 'Stats' },
+            ...(canSeeFinancials ? [{ k: 'payments' as TabKey, label: 'Payments' }] : []),
+          ]).map((t) => (
             <button
               key={t.k}
               onClick={() => setTab(t.k)}
@@ -393,8 +400,13 @@ const ClubOverview: React.FC = () => {
             {tab === 'stats' && (
               <StatsTab players={players} teams={teams} teamStats={teamStats} />
             )}
-            {tab === 'payments' && (
+            {tab === 'payments' && canSeeFinancials && (
               <PaymentsTab />
+            )}
+            {tab === 'payments' && !canSeeFinancials && (
+              <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-center text-sm text-bone/60">
+                You don't have access to Payments. Ask the club owner for the 'financials' scope.
+              </div>
             )}
           </>
         )}

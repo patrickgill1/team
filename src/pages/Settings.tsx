@@ -455,6 +455,12 @@ const Settings: React.FC = () => {
               onClick={shareCalendarFeed}
             />
             <SettingsRow
+              icon="shield"
+              label="Club admins"
+              onClick={() => navigate('/club/admins')}
+              hint="Grant scoped access to other club staff."
+            />
+            <SettingsRow
               icon="lifebuoy"
               label="Customer Support"
               onClick={() => navigate('/tickets')}

@@ -40,5 +40,8 @@ ALLOWED_ORIGINS = "https://goalkickr.com,https://www.goalkickr.com,https://firef
 # Cron schedule:
 #   Sundays 22:00 UTC (Sun 4pm MDT)  — weekly digest + admin "needs attention" roundup
 #   Daily 16:00 UTC (10am MDT)       — registration drip nudges (parent funnel)
+#   Every 5 min                       — scheduled campaign tick (in-app
+#                                       Mailchimp replacement; only does
+#                                       work when campaigns are due)
 [triggers]
-crons = ["0 22 * * SUN", "0 16 * * *"]
+crons = ["0 22 * * SUN", "0 16 * * *", "*/5 * * * *"]

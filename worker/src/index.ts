@@ -29,6 +29,7 @@ import {
 import { handleWidgetRequest } from './widget';
 import { handleParentEmailPrecheck } from './precheck';
 import { logWorkerError } from './errorLog';
+import { handleUnsubscribe, handleOpenPixel, runDueCampaigns } from './campaigns';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -172,6 +173,21 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });
+    }
+
+    // GET /u/:token — campaign unsubscribe. Anonymous, signed link.
+    //   Flips users/{uid}.emailPreferences.tier3 (or tier2) to false
+    //   and returns a tiny success page. Never errors visibly to a
+    //   bot; only invalid links surface a soft error page.
+    if (url.pathname.startsWith('/u/') && req.method === 'GET') {
+      return handleUnsubscribe(req, env);
+    }
+
+    // GET /o/:campaignId/:token.gif — campaign open-tracking pixel.
+    //   Always returns a 1x1 transparent gif; bumps openCount when
+    //   the token is valid. No CORS or auth.
+    if (url.pathname.startsWith('/o/') && req.method === 'GET') {
+      return handleOpenPixel(req, env);
     }
 
     // POST /precheck/parent-email — anonymous lookup for the signup
@@ -570,9 +586,10 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
 }
 
 async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    // Two cron schedules per wrangler.toml — route by the cron string:
+    // Three cron schedules per wrangler.toml:
     //   "0 22 * * SUN" — weekly digest (Sun 4pm MDT)
     //   "0 16 * * *"   — daily registration drips (10am MDT)
+    //   "*/5 * * * *"  — campaign tick (in-app Mailchimp replacement)
     const cron = event.cron || '';
     if (cron === '0 22 * * SUN') {
       ctx.waitUntil(
@@ -585,10 +602,15 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
       ctx.waitUntil(
         runRegistrationDrips(env).then(r => console.log('[cron] registration drips', JSON.stringify(r)))
       );
+    } else if (cron === '*/5 * * * *') {
+      // Campaign tick — only does work when scheduled campaigns are
+      // due. Cheap to no-op on idle ticks (single Firestore query).
+      ctx.waitUntil(
+        runDueCampaigns(env).then(r => {
+          if (r.processed > 0) console.log('[cron] campaigns', JSON.stringify(r));
+        })
+      );
     } else {
-      // Unknown cron — run digest as a safe default so we don't lose
-      // the weekly send if Cloudflare hands us a slightly different
-      // string format.
       ctx.waitUntil(
         runWeeklyDigest(env).then(r => console.log('[cron] (unknown) digest', JSON.stringify(r)))
       );

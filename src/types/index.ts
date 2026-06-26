@@ -128,6 +128,32 @@ export interface UserData {
     helpdesk?: boolean;
     broadcast?: boolean;
   };
+  /** Three-tier email opt-out model:
+   *
+   *   tier1 (transactional + coach) — always on, no toggle. Includes
+   *     password resets, billing receipts, parent whispers, RSVP
+   *     confirmations. Required by Stripe / Apple to be deliverable
+   *     and to comply with CAN-SPAM transactional carve-out.
+   *
+   *   tier2 (club + team) — opt-in default. Wall-post emails, team
+   *     announcements, registration drips, club newsletters.
+   *
+   *   tier3 (goalkickr marketing) — opt-in default. Product
+   *     announcements, growth campaigns, feature drops. Powered by
+   *     the in-app campaigns engine, not Mailchimp (Patrick chose
+   *     to skip Mailchimp on per-contact pricing grounds).
+   *
+   *   All keys treat undefined as TRUE (opted in). Unsubscribe
+   *   sets the relevant key to false. tier1 is read-only — clients
+   *   should never write to it. */
+  emailPreferences?: {
+    tier2?: boolean;
+    tier3?: boolean;
+    /** Last unsubscribe action timestamp. Useful for re-engagement
+     *  flows ('it's been 90 days since you unsubscribed — want to
+     *  come back?'). */
+    lastUnsubscribedAt?: Date;
+  };
   fcmTokens?: string[];
   /** UIDs of other users this person has muted in chat. They still see
    *  the messages in-thread but no push notification fires from them.
@@ -2144,6 +2170,63 @@ export type CreateChatMessageData = Omit<ChatMessage, 'id' | 'createdAt' | 'upda
 export type UpdateChatThreadData = Partial<Omit<ChatThread, 'id' | 'createdAt' | 'teamId' | 'createdBy'>> & {
   updatedAt?: Date;
 };
+
+// ================================
+// CAMPAIGNS (GoalKickr-side email marketing)
+// ================================
+// In-app campaigns engine that replaces Mailchimp for Patrick's own
+// marketing emails. Sends via the existing Resend worker so it pays
+// per-email (Resend $20/mo for 50k) instead of per-contact
+// (Mailchimp's pricing penalty for storing parents who'll never get
+// marketing email). Authoring lives in the GoalKickr admin portal;
+// recipients are filtered against tier3 (marketing) opt-outs at
+// send time.
+
+export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
+
+/** Recipient segment — picked at authoring time, resolved to a
+ *  user-id list at send time. Keeps the campaign doc tiny (no
+ *  denormalized list of every recipient). */
+export type CampaignAudience =
+  | 'all-users'              // every user with tier3 opt-in
+  | 'all-coaches'            // role in [coach, team_manager]
+  | 'all-parents'            // role = parent
+  | 'all-adult-players'      // user.selfPlayerId set
+  | 'trial-expired'          // subscriptionStatus in [trial_expired, canceled]
+  | 'past-due'               // subscriptionStatus = past_due
+  | 'club-owners'            // user owns a clubs/{x}.ownerUid
+  | 'no-player-linked'       // signed up >30d ago, never linked
+;
+
+export interface Campaign {
+  id: string;
+  /** Author's uid (always a GoalKickr admin). */
+  createdBy: string;
+  createdByEmail: string;
+  /** Internal name only — recipients don't see it. */
+  name: string;
+  /** Email subject. */
+  subject: string;
+  /** Email body — HTML from the admin portal composer. We wrap it
+   *  in the same brand chrome as the other workers/notify templates
+   *  at send time so the campaign body is just the content area. */
+  bodyHtml: string;
+  audience: CampaignAudience;
+  status: CampaignStatus;
+  /** When the cron should send. null = send immediately on next
+   *  tick. Set in the future for scheduled campaigns. */
+  scheduledFor?: Date;
+  /** Counts. Incremented by the send pipeline + worker tracking
+   *  endpoints (open pixel, click redirect). */
+  recipientCount?: number;
+  sentCount?: number;
+  failedCount?: number;
+  openCount?: number;
+  clickCount?: number;
+  unsubscribeCount?: number;
+  createdAt: Date;
+  sentAt?: Date;
+}
 
 // ================================
 // SUPPORT TICKETS (two-tier: club + platform)

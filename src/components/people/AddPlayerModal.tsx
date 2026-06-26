@@ -10,6 +10,7 @@ import {
 import { db } from '../../utils/firebase';
 import { createPlayerInvite } from '../../utils/invites';
 import { getShareOrigin } from '../../utils/origin';
+import { Sheet, Button, FormField, fieldInputClass } from '../ui';
 
 // Combined "Add Player + Invite Parent" flow. Saves the round-trip
 // when a coach is bringing in a brand-new family — one form does
@@ -131,147 +132,125 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 overflow-x-hidden"
-      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
-      onClick={onClose}
+    <Sheet
+      open={true}
+      onClose={onClose}
+      kicker={result ? 'Player added' : 'Add player'}
+      title={result ? `${result.playerName} is on the roster` : 'New player'}
+      footer={result ? (
+        <Button variant="outline" onClick={onClose} fullWidth>Done</Button>
+      ) : (
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={save}
+            disabled={!name.trim() || selectedTeams.size === 0}
+            loading={busy}
+          >
+            Add player
+          </Button>
+        </>
+      )}
     >
-      <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 ring-1 ring-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/60">
-            {result ? 'Player added' : 'Add player'}
-          </div>
-          <button onClick={onClose} aria-label="Close" className="text-bone/50 hover:text-bone p-1 -mr-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+      {result ? (
+        <div className="space-y-3">
+          {result.inviteUrl ? (
+            <div className="rounded-lg ring-1 ring-brand-primary/30 bg-brand-primary/10 p-3 space-y-2">
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Parent invite link</div>
+              <div className="text-xs font-mono text-bone break-all">{result.inviteUrl}</div>
+              <Button variant="primary" onClick={copy} fullWidth size="sm">
+                {copied ? 'Copied' : 'Copy link'}
+              </Button>
+              <p className="text-[10px] text-bone/50">Send this to {parentEmail.trim() || 'the parent'}. Link expires in 30 days.</p>
+            </div>
+          ) : (
+            <p className="text-[11px] text-bone/50">No parent invite generated. You can send one anytime via the + Invite button.</p>
+          )}
         </div>
+      ) : (
+        <div className="space-y-3">
+          <FormField label="Name" required>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Logan Smith"
+              className={fieldInputClass}
+              autoFocus
+            />
+          </FormField>
 
-        {result ? (
-          <div className="px-4 py-4 space-y-3">
-            <div className="rounded-lg ring-1 ring-emerald-400/30 bg-emerald-500/10 p-3">
-              <div className="text-sm font-bold text-emerald-200">{result.playerName} added to the roster.</div>
-            </div>
-            {result.inviteUrl ? (
-              <div className="rounded-lg ring-1 ring-brand-primary-soft/30 bg-brand-primary/10 p-3 space-y-2">
-                <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Parent invite link</div>
-                <div className="text-xs font-mono text-bone break-all">{result.inviteUrl}</div>
-                <button
-                  onClick={copy}
-                  className="w-full text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md bg-brand-primary text-white hover:bg-brand-primary"
-                >
-                  {copied ? 'Copied' : 'Copy link'}
-                </button>
-                <p className="text-[10px] text-bone/50">Send this to {parentEmail.trim() || "the parent"}. Link expires in 30 days.</p>
-              </div>
-            ) : (
-              <p className="text-[11px] text-bone/50">No parent invite generated. You can send one anytime via the + Invite button.</p>
-            )}
-            <button
-              onClick={onClose}
-              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-white/5 text-bone ring-1 ring-white/10 hover:bg-white/10"
-            >
-              Done
-            </button>
-          </div>
-        ) : (
-          <div className="px-4 py-3 space-y-3 overflow-y-auto flex-1">
-            {/* Name */}
-            <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Name <span className="text-rose-300">*</span></label>
+          <div className="grid grid-cols-2 gap-2">
+            <FormField label="Jersey #">
               <input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Logan Smith"
-                className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
-                autoFocus
+                type="number"
+                value={jerseyNumber}
+                onChange={e => setJerseyNumber(e.target.value)}
+                placeholder="5"
+                className={fieldInputClass}
               />
-            </div>
-
-            {/* Jersey + Position side-by-side */}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Jersey #</label>
-                <input
-                  type="number"
-                  value={jerseyNumber}
-                  onChange={e => setJerseyNumber(e.target.value)}
-                  placeholder="5"
-                  className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Position</label>
-                <select
-                  value={position}
-                  onChange={e => setPosition(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
-                >
-                  <option value="">—</option>
-                  {positions.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Teams */}
-            <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Team{clubTeams.length > 1 ? 's' : ''}</label>
-              <div className="space-y-1">
-                {clubTeams.map(t => {
-                  const on = selectedTeams.has(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => toggleTeam(t.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg ring-1 text-sm ${
-                        on ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft' : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
-                      }`}
-                    >
-                      <span className="font-semibold">{t.name}</span>
-                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-white' : 'border-white/20'}`}>
-                        {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Parent invite (optional) */}
-            <div className="rounded-lg ring-1 ring-white/10 p-3 space-y-2 bg-charcoal-950">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={generateInvite}
-                  onChange={e => setGenerateInvite(e.target.checked)}
-                  className="rounded text-brand-primary focus:ring-brand-primary"
-                />
-                <span className="text-xs font-bold text-bone">Also generate a parent invite link</span>
-              </label>
-              {generateInvite && (
-                <>
-                  <input
-                    type="email"
-                    value={parentEmail}
-                    onChange={e => setParentEmail(e.target.value)}
-                    placeholder="parent@example.com (optional — for your records)"
-                    className="w-full px-3 py-2 text-sm bg-charcoal-900 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
-                  />
-                  <p className="text-[10px] text-bone/50">You'll get a share link to text or email the parent. No automatic email is sent.</p>
-                </>
-              )}
-            </div>
-
-            <button
-              onClick={save}
-              disabled={busy || !name.trim() || selectedTeams.size === 0}
-              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-brand-primary text-white shadow-md shadow-brand-primary/30 disabled:opacity-40 hover:bg-brand-primary"
-            >
-              {busy ? 'Saving…' : 'Add player'}
-            </button>
+            </FormField>
+            <FormField label="Position">
+              <select
+                value={position}
+                onChange={e => setPosition(e.target.value)}
+                className={fieldInputClass}
+              >
+                <option value="">—</option>
+                {positions.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </FormField>
           </div>
-        )}
-      </div>
-    </div>
+
+          <FormField label={`Team${clubTeams.length > 1 ? 's' : ''}`}>
+            <div className="space-y-1 mt-1">
+              {clubTeams.map(t => {
+                const on = selectedTeams.has(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggleTeam(t.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg ring-1 text-sm ${
+                      on ? 'bg-brand-primary/15 ring-brand-primary/40 text-brand-primary-soft' : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="font-semibold">{t.name}</span>
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-brand-primary-fg' : 'border-white/20'}`}>
+                      {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </FormField>
+
+          <div className="rounded-lg ring-1 ring-white/10 p-3 space-y-2 bg-charcoal-950">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={generateInvite}
+                onChange={e => setGenerateInvite(e.target.checked)}
+                className="accent-brand-primary"
+              />
+              <span className="text-xs font-bold text-bone">Also generate a parent invite link</span>
+            </label>
+            {generateInvite && (
+              <>
+                <input
+                  type="email"
+                  value={parentEmail}
+                  onChange={e => setParentEmail(e.target.value)}
+                  placeholder="parent@example.com (optional — for your records)"
+                  className={fieldInputClass}
+                />
+                <p className="text-[10px] text-bone/50">You'll get a share link to text or email the parent. No automatic email is sent.</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </Sheet>
   );
 };
 

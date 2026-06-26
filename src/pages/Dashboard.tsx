@@ -7,6 +7,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Player, CalendarEvent, PlayerMedia as PlayerMediaType } from '../types';
 import { formatDateTime, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
+import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
 import NextEventPoster from '../components/common/NextEventPoster';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
@@ -850,6 +851,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
+      <EmailVerifyBanner />
       {/* Stadium hero — navy scene with floodlights that toggle on
           at dusk/night, a faint pitch silhouette, and the day's
           most important glance-able info (next-event RSVP count,

@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  sendEmailVerification,
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
@@ -103,7 +104,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       console.log('Creating Firebase Auth user...');
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
+
+      // Best-effort email verification send. Fire-and-forget; the
+      // user can always trigger a resend from the banner in
+      // Settings if this fails. Patrick: 'we should also make
+      // people verify emails.' Default Firebase email — branded
+      // version via Resend is a future polish.
+      try {
+        sendEmailVerification(result.user).catch((e) => {
+          console.warn('[auth] sendEmailVerification failed', e);
+        });
+      } catch (e) {
+        console.warn('[auth] sendEmailVerification threw', e);
+      }
+
       console.log('Auth user created, now creating Firestore document...');
       
       // Only attach to a team when the signup carried a real invite-

@@ -162,13 +162,24 @@ async function buildSnapshot(
   const playerId = ranked[0].id;
 
   // Aggregate teams across EVERY linked player record so events
-  // from any of the kid's teams can surface. Capped to keep the
-  // event-query fanout bounded.
+  // Aggregate teams across:
+  //   (a) every linked player record's teamIds (kid plays on)
+  //   (b) the user's own teamIds (coach OR parent membership)
+  //
+  // (b) is critical for coach-parents: when Patrick coaches his
+  // main team, Hunter's main-team player record may not list him
+  // in parentIds (his wife is the parent there), so (a) alone
+  // would miss every main-team event. Patrick caught this on the
+  // second-round widget test. user.teamIds covers any team the
+  // user belongs to in any role.
   const teamSet = new Set<string>();
   for (const r of linked) {
     const d = r.data || {};
     if (Array.isArray(d.teamIds)) d.teamIds.forEach((t: string) => t && teamSet.add(t));
     if (d.teamId) teamSet.add(d.teamId);
+  }
+  if (Array.isArray(user?.teamIds)) {
+    user.teamIds.forEach((t: string) => t && teamSet.add(t));
   }
   const tIds: string[] = Array.from(teamSet);
   let nextEvent: any = null;

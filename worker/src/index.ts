@@ -27,6 +27,7 @@ import {
   handleWebhook,
 } from './stripe';
 import { handleWidgetRequest } from './widget';
+import { handleParentEmailPrecheck } from './precheck';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -136,6 +137,17 @@ export default {
     // the user doc that the user pastes into the widget config.
     if (url.pathname === '/widget/snapshot' && req.method === 'GET') {
       const res = await handleWidgetRequest(req, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // POST /precheck/parent-email — anonymous lookup for the signup
+    // lockdown gate. Returns { hasPlayer: boolean }. Client uses it
+    // instead of querying players directly (Firestore list requires
+    // auth and the user isn't authenticated at signup time).
+    if (url.pathname === '/precheck/parent-email' && req.method === 'POST') {
+      const res = await handleParentEmailPrecheck(req, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

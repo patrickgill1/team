@@ -109,14 +109,30 @@ const SimpleAuth: React.FC = () => {
         // active team. Brand-new coaches need a staff invite from a
         // club admin first.
         if (!formData.inviteCode) {
-          const { collection, query, where, getDocs } = await import('firebase/firestore');
-          const { db } = await import('../utils/firebase');
-          const emailLc = formData.email.toLowerCase().trim();
-          const snap = await getDocs(query(
-            collection(db, 'players'),
-            where('parentEmails', 'array-contains', emailLc),
-          ));
-          if (snap.empty) {
+          // Hit the worker precheck instead of querying players
+          // directly. The Firestore `players` list rule requires
+          // auth, but the user isn't authenticated yet during
+          // signup — direct queries returned permission-denied and
+          // bubbled up as 'Something went wrong on our end'.
+          // Worker uses the service account and returns just a
+          // boolean, never any player data.
+          let hasPlayer = false;
+          try {
+            const resp = await fetch('https://api.goalkickr.com/precheck/parent-email', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ email: formData.email.toLowerCase().trim() }),
+            });
+            const j = await resp.json().catch(() => ({}));
+            hasPlayer = !!j?.hasPlayer;
+          } catch (e) {
+            // Network blip — let signup proceed; the auto-link
+            // path inside signUp() will still validate, and if no
+            // player matches the user simply ends up unapproved.
+            console.warn('precheck failed, allowing signup', e);
+            hasPlayer = true;
+          }
+          if (!hasPlayer) {
             setErrors({ submit:
               "You need an invite to join. Ask your coach for an invite link, or have them add your email to your player's parent list."
             });

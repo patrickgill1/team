@@ -897,14 +897,14 @@ const EventDetail: React.FC = () => {
       {event.isCancelled && (
         <div className="bg-amber-500/15 border-y border-amber-400/30 px-4 sm:px-6 py-3">
           <div className="flex items-start gap-3 max-w-3xl mx-auto">
-            <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-white flex-shrink-0">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-amber-50 flex-shrink-0">
               Cancelled
             </div>
-            <div className="text-sm text-amber-900 flex-1 min-w-0">
+            <div className="text-sm text-amber-200 flex-1 min-w-0">
               {event.cancelReason ? (
                 <p className="leading-snug">{event.cancelReason}</p>
               ) : (
-                <p className="leading-snug italic text-amber-200">No reason given.</p>
+                <p className="leading-snug italic text-amber-200/60">No reason given.</p>
               )}
             </div>
           </div>

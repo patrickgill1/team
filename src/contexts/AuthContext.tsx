@@ -14,7 +14,7 @@ import {
   getRedirectResult,
 } from 'firebase/auth';
 import { auth, db } from '../utils/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '../hooks/useFirestore';
 
 // FIXED TEAM ID - existing team; new users get assigned here by default
@@ -553,6 +553,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         for (const k of keysToKill) localStorage.removeItem(k);
       } catch { /* ignore */ }
+
+      // Remove THIS device's FCM token from the outgoing user's
+      // user doc BEFORE we lose write authority via signOut. Without
+      // this, the worker keeps pushing the previous user's
+      // notifications to this device after another account signs
+      // in. Patrick caught this — got pushes for the account he had
+      // logged out from while signed in as a different one.
+      try {
+        const outgoingUid = currentUser?.uid;
+        if (outgoingUid) {
+          const { getCurrentPushToken } = await import('../utils/nativeShell');
+          const token = await getCurrentPushToken();
+          if (token) {
+            await updateDoc(doc(db, 'users', outgoingUid), {
+              fcmTokens: arrayRemove(token),
+            }).catch((e) => console.warn('[logout] fcmTokens cleanup failed', e));
+            // Also invalidate the token on the native side so the
+            // device generates a fresh one for the next user. Avoids
+            // a rare race where Firebase reuses the same token.
+            try {
+              const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+              await FirebaseMessaging.deleteToken().catch(() => {});
+            } catch { /* ignore */ }
+          }
+        }
+      } catch (e) {
+        console.warn('[logout] push cleanup failed', e);
+      }
 
       // Now safe to sign out — listeners see clean state.
       try {

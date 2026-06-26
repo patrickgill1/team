@@ -653,11 +653,16 @@ const EventForm: React.FC<EventFormProps> = ({
   };
 
   const getEventTypeColor = (type: string) => {
+    // Dark-theme legible: light tinted text on translucent fill so the
+    // chip stays readable on a charcoal preview background. Previous
+    // values used dark text (rose-700 / charcoal-800 / emerald-700) on
+    // a 10%-opacity tinted fill, which read as 'dark on dark' on the
+    // charcoal preview card — Patrick caught this on the practice chip.
     switch (type) {
-      case 'game': return 'border-rose-500 bg-rose-500/10 text-rose-700 ring-2 ring-rose-500/30';
-      case 'practice': return 'border-brand-primary bg-brand-primary/10 text-charcoal-800 ring-2 ring-brand-primary/30';
-      case 'event': return 'border-emerald-500 bg-emerald-500/10 text-emerald-700 ring-2 ring-emerald-500/30';
-      default: return 'border-white/15 bg-charcoal-950 text-bone';
+      case 'game':     return 'border-rose-500 bg-rose-500/15 text-rose-300 ring-2 ring-rose-500/30';
+      case 'practice': return 'border-brand-primary bg-brand-primary/15 text-brand-primary-soft ring-2 ring-brand-primary/30';
+      case 'event':    return 'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-2 ring-emerald-500/30';
+      default:         return 'border-white/15 bg-charcoal-950 text-bone';
     }
   };
 
@@ -752,7 +757,7 @@ const EventForm: React.FC<EventFormProps> = ({
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+              className={`w-full px-3 py-2 bg-charcoal-900 text-bone placeholder:text-bone/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
                 errors.title ? 'border-rose-300' : 'border-white/10'
               }`}
               placeholder={`Enter ${formData.type} title...`}
@@ -1312,10 +1317,10 @@ const EventForm: React.FC<EventFormProps> = ({
                       <p className="text-sm text-bone/75 mt-2">{formData.description}</p>
                     )}
                     {weather && (
-                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft text-charcoal-700 text-xs font-semibold">
+                      <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/30 text-brand-primary-soft text-xs font-semibold">
                         <span className="text-base leading-none">{weather.icon}</span>
                         <span>{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F</span>
-                        {weather.precipChance > 0 && <span className="text-charcoal-700">· {weather.precipChance}% rain</span>}
+                        {weather.precipChance > 0 && <span>· {weather.precipChance}% rain</span>}
                       </div>
                     )}
 
@@ -1357,7 +1362,10 @@ const EventForm: React.FC<EventFormProps> = ({
             className="w-full bg-gradient-to-br from-brand-primary to-charcoal-600 hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-brand-primary/30 transition disabled:opacity-50 flex items-center justify-center"
           >
             {isSubmitting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/40 border-t-white" />
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" aria-hidden="true" />
+                <span>{editingEvent ? 'Saving…' : 'Creating…'}</span>
+              </span>
             ) : (
               editingEvent ? 'Save changes' : 'Create event'
             )}

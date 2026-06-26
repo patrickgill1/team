@@ -25,7 +25,15 @@ const ApplyClubBrand: React.FC = () => {
   const [brandColor, setBrandColor] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!clubId) { setBrandColor(null); return; }
+    // Reset to defaults IMMEDIATELY on any clubId change, before the
+    // new club doc's snapshot fires. Without this, switching from a
+    // blue-themed club to another club leaves the UI blue for the
+    // ~200ms it takes to load the new club doc — Patrick caught this
+    // when his color stayed blue after switching clubs. Even if the
+    // new club has no brandColor (null), the reset still hides the
+    // stale paint until the snapshot lands.
+    setBrandColor(null);
+    if (!clubId) return;
     const unsub = onSnapshot(
       doc(db, 'clubs', clubId),
       (snap) => {

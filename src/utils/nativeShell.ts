@@ -211,6 +211,27 @@ export async function getPushPermissionState(): Promise<'granted' | 'denied' | '
 // @capacitor-firebase/messaging which returns FCM tokens directly (instead
 // of raw APNs tokens), so the existing Worker /send-push endpoint works
 // unchanged on iOS.
+/** Read the current FCM token without (re)registering listeners.
+ *  Used on logout so we can remove this device's token from the
+ *  user doc — otherwise the worker keeps targeting this phone for
+ *  the previously-signed-in account.
+ *
+ *  Returns null on web, when permission is denied, or when the
+ *  plugin throws. We never block logout on a token read. */
+export async function getCurrentPushToken(): Promise<string | null> {
+  if (!Capacitor.isNativePlatform()) return null;
+  try {
+    const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+    const perm = await FirebaseMessaging.checkPermissions().catch(() => null);
+    if (perm?.receive !== 'granted') return null;
+    const { token } = await FirebaseMessaging.getToken();
+    return token || null;
+  } catch (err) {
+    console.warn('[push] getCurrentPushToken failed', err);
+    return null;
+  }
+}
+
 export async function registerPushNotifications(
   saveToken: (token: string) => void | Promise<void>,
 ): Promise<void> {

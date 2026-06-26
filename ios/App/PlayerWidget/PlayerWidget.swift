@@ -131,10 +131,10 @@ struct NeedsSetupView: View {
                 .foregroundColor(.brand)
             Text("Tap to set up")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.bone)
+                .foregroundColor(.primary)
             Text("Long-press, Edit Widget, then paste the setup code from the app.")
                 .font(.system(size: 11))
-                .foregroundColor(.bone.opacity(0.65))
+                .foregroundColor(.secondary)
                 .lineLimit(4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -147,11 +147,11 @@ struct ErrorView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("GoalKickr").font(.system(size: 11, weight: .heavy)).kerning(1.5).foregroundColor(.brand)
             Text(code == "invalid-code" ? "Setup code expired" : "Can't connect")
-                .font(.system(size: 16, weight: .bold)).foregroundColor(.bone)
+                .font(.system(size: 16, weight: .bold)).foregroundColor(.primary)
             Text(code == "invalid-code"
                  ? "Open GoalKickr, Settings, Widget, and paste the latest code."
                  : "We'll try again automatically.")
-                .font(.system(size: 11)).foregroundColor(.bone.opacity(0.6)).lineLimit(3)
+                .font(.system(size: 11)).foregroundColor(.secondary).lineLimit(3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -174,7 +174,7 @@ struct AvatarView: View {
             if let n = snap.jerseyNumber {
                 Text("#\(n)")
                     .font(.system(size: 10, weight: .heavy))
-                    .foregroundColor(.bone)
+                    .foregroundColor(.white)
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(Capsule().fill(Color.brand))
                     .offset(x: size * 0.32, y: size * 0.32)
@@ -199,13 +199,13 @@ struct SmallPlayerView: View {
             AvatarView(snap: snap, photo: photo, size: 44)
             Text(snap.playerName)
                 .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.bone)
+                .foregroundColor(.primary)
                 .lineLimit(1)
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill").font(.system(size: 10)).foregroundColor(.brand)
                 Text("\(snap.streakDays) day streak")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.bone.opacity(0.8))
+                    .foregroundColor(.secondary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -221,19 +221,19 @@ struct MediumPlayerView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(snap.playerName)
                     .font(.system(size: 18, weight: .heavy))
-                    .foregroundColor(.bone)
+                    .foregroundColor(.primary)
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     Image(systemName: "flame.fill").font(.system(size: 11)).foregroundColor(.brand)
                     Text("\(snap.streakDays)d")
-                        .font(.system(size: 12, weight: .heavy)).foregroundColor(.bone)
+                        .font(.system(size: 12, weight: .heavy)).foregroundColor(.primary)
                     if let n = snap.potmCount, n > 0 {
-                        Text("·").foregroundColor(.bone.opacity(0.3))
+                        Text("·").foregroundColor(.secondary)
                         Image(systemName: "star.fill").font(.system(size: 11)).foregroundColor(.brand)
-                        Text("\(n) POTM").font(.system(size: 12, weight: .heavy)).foregroundColor(.bone)
+                        Text("\(n) POTM").font(.system(size: 12, weight: .heavy)).foregroundColor(.primary)
                     }
                 }
-                Divider().background(Color.bone.opacity(0.15)).padding(.vertical, 1)
+                Divider().padding(.vertical, 1)
                 NextEventRow(snap: snap)
             }
         }
@@ -247,15 +247,15 @@ struct NextEventRow: View {
         if let title = snap.nextEventTitle, let ms = snap.nextEventDateMs {
             let date = Date(timeIntervalSince1970: ms / 1000)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Next up").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.bone.opacity(0.45))
-                Text(title).font(.system(size: 13, weight: .bold)).foregroundColor(.bone).lineLimit(1)
+                Text("Next up").font(.system(size: 9, weight: .heavy)).kerning(1.2).foregroundColor(.secondary)
+                Text(title).font(.system(size: 13, weight: .bold)).foregroundColor(.primary).lineLimit(1)
                 Text(date, style: .relative)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.brand)
             }
         } else {
             Text("Nothing on the schedule")
-                .font(.system(size: 11)).foregroundColor(.bone.opacity(0.55))
+                .font(.system(size: 11)).foregroundColor(.secondary)
         }
     }
 }

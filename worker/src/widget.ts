@@ -107,16 +107,45 @@ async function findLinkedPlayers(
   sa: ServiceAccount,
   uid: string,
 ): Promise<Array<{ id: string; data: any }>> {
-  const rows = await runQuery(
-    pid,
-    'players',
-    [{ field: 'parentIds', op: 'ARRAY_CONTAINS', value: uid }],
-    sa,
-    10,
-  ).catch(() => [] as any[]);
+  let rows: any[] = [];
+  try {
+    rows = await runQuery(
+      pid,
+      'players',
+      [{ field: 'parentIds', op: 'ARRAY_CONTAINS', value: uid }],
+      sa,
+      10,
+    );
+  } catch (e) {
+    console.error('[widget] findLinkedPlayers failed:', (e as Error).message);
+  }
   return (rows || [])
     .map((r: any) => ({ id: r.id as string, data: r.data || {} }))
     .filter(r => r.data.isActive !== false);
+}
+
+// Every team the user coaches. Coach membership is stored on the
+// TEAM side (team.coachIds array-contains uid), NOT on the user.
+// So a coach's user.teamIds will not include their coached team
+// unless an unrelated path also populates it (it usually doesn't).
+async function findCoachedTeamIds(
+  pid: string,
+  sa: ServiceAccount,
+  uid: string,
+): Promise<string[]> {
+  let rows: any[] = [];
+  try {
+    rows = await runQuery(
+      pid,
+      'teams',
+      [{ field: 'coachIds', op: 'ARRAY_CONTAINS', value: uid }],
+      sa,
+      20,
+    );
+  } catch (e) {
+    console.error('[widget] findCoachedTeamIds failed:', (e as Error).message);
+  }
+  return (rows || []).map((r: any) => r.id as string).filter(Boolean);
 }
 
 async function buildSnapshot(
@@ -181,7 +210,14 @@ async function buildSnapshot(
   if (Array.isArray(user?.teamIds)) {
     user.teamIds.forEach((t: string) => t && teamSet.add(t));
   }
+  // Coach membership lives on team.coachIds, NOT user.teamIds, so
+  // a coach-parent's coached team would be missing without this
+  // explicit query. Worth the extra round-trip — it's the only
+  // way to surface main-team events for coach-parents.
+  const coachedTeams = await findCoachedTeamIds(pid, sa, uid);
+  coachedTeams.forEach(t => t && teamSet.add(t));
   const tIds: string[] = Array.from(teamSet);
+  console.log(`[widget] uid=${uid} linkedPlayers=${linked.length} coached=${coachedTeams.length} userTeamIds=${(user?.teamIds||[]).length} teams=${JSON.stringify(tIds)}`);
   let nextEvent: any = null;
   let nextMs = Number.POSITIVE_INFINITY;
   let lastGame: any = null;
@@ -189,43 +225,80 @@ async function buildSnapshot(
   const nowMs = Date.now();
   const lookbackDays = 21;
   const lookbackDate = new Date(nowMs - lookbackDays * 24 * 60 * 60 * 1000);
+  const nowDate = new Date(nowMs);
 
+  // PASS 1 — upcoming. Tight query (date >= now) so the result
+  // window can't be saturated by past events. Earlier version
+  // queried `date >= 21daysAgo` with limit 40; for teams with
+  // dense schedules Firestore returned 40 past events in doc-ID
+  // order and we never saw any future events. Patrick caught this
+  // on a team with ~25 past events in the lookback window. Limit
+  // 100 is enough for any reasonable team's upcoming schedule.
   for (const tid of tIds.slice(0, 5)) {
+    let rows: any[] = [];
     try {
-      const rows = await runQuery(
+      rows = await runQuery(
         pid,
         'events',
         [
           { field: 'teamId', op: 'EQUAL', value: tid },
-          { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: lookbackDate },
+          { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: nowDate },
         ],
         sa,
-        40,
-      ).catch(() => [] as any[]);
+        100,
+      );
+      console.log(`[widget] upcoming team=${tid} count=${rows.length}`);
+    } catch (e) {
+      console.error('[widget] upcoming query failed for team', tid, (e as Error).message);
+      continue;
+    }
+    for (const r of rows) {
+      const d: any = r.data || {};
+      if (d.isCancelled === true) continue;
+      const ms = d.date instanceof Date
+        ? d.date.getTime()
+        : (typeof d.date === 'string' ? Date.parse(d.date) : NaN);
+      if (!Number.isFinite(ms) || ms < nowMs) continue;
+      if (ms < nextMs) { nextMs = ms; nextEvent = d; }
+    }
+  }
 
+  // PASS 2 — last completed game (fallback when no upcoming).
+  // Only fired if Pass 1 found nothing, since walking the past for
+  // every render is wasted work when the schedule isn't empty.
+  if (!nextEvent) {
+    for (const tid of tIds.slice(0, 5)) {
+      let rows: any[] = [];
+      try {
+        rows = await runQuery(
+          pid,
+          'events',
+          [
+            { field: 'teamId', op: 'EQUAL', value: tid },
+            { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: lookbackDate },
+            { field: 'date', op: 'LESS_THAN', value: nowDate },
+          ],
+          sa,
+          100,
+        );
+        console.log(`[widget] past team=${tid} count=${rows.length}`);
+      } catch (e) {
+        console.error('[widget] past query failed for team', tid, (e as Error).message);
+        continue;
+      }
       for (const r of rows) {
         const d: any = r.data || {};
-        // Soft-delete pattern: cancelled events stay in the
-        // collection with isCancelled=true so attendees can see
-        // why nothing's happening. Never surface them on the
-        // widget — Patrick caught this on the first screenshot.
         if (d.isCancelled === true) continue;
         const ms = d.date instanceof Date
           ? d.date.getTime()
           : (typeof d.date === 'string' ? Date.parse(d.date) : NaN);
         if (!Number.isFinite(ms)) continue;
-        if (ms >= nowMs) {
-          if (ms < nextMs) { nextMs = ms; nextEvent = d; }
-        } else {
-          // Past event — only games with a completed result are
-          // useful as a fallback display.
-          const res: any = d.result;
-          const isCompleted = res && typeof res === 'object' && res.status === 'completed'
-            && typeof res.teamScore === 'number' && typeof res.opponentScore === 'number';
-          if (isCompleted && ms > lastGameMs) { lastGameMs = ms; lastGame = d; }
-        }
+        const res: any = d.result;
+        const isCompleted = res && typeof res === 'object' && res.status === 'completed'
+          && typeof res.teamScore === 'number' && typeof res.opponentScore === 'number';
+        if (isCompleted && ms > lastGameMs) { lastGameMs = ms; lastGame = d; }
       }
-    } catch { /* ignore */ }
+    }
   }
 
   let lastResultScore: string | null = null;

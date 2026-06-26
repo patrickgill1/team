@@ -96,20 +96,27 @@ async function findUserByWidgetToken(
   return { uid: row.id, user: row.data || {} };
 }
 
-async function findFirstChildPlayerId(
+// Pull every player linked to this user. Multi-team kids show up
+// as multiple player documents (one per team — common when a kid
+// is on a club team AND a skills-academy team, since each team is
+// often managed by a different coach who creates their own roster
+// entry). Returns the raw rows; caller picks the display identity
+// and aggregates teamIds across the whole set.
+async function findLinkedPlayers(
   pid: string,
   sa: ServiceAccount,
   uid: string,
-): Promise<string | null> {
+): Promise<Array<{ id: string; data: any }>> {
   const rows = await runQuery(
     pid,
     'players',
     [{ field: 'parentIds', op: 'ARRAY_CONTAINS', value: uid }],
     sa,
-    1,
+    10,
   ).catch(() => [] as any[]);
-  if (!rows || rows.length === 0) return null;
-  return rows[0].id || null;
+  return (rows || [])
+    .map((r: any) => ({ id: r.id as string, data: r.data || {} }))
+    .filter(r => r.data.isActive !== false);
 }
 
 async function buildSnapshot(
@@ -118,26 +125,52 @@ async function buildSnapshot(
   uid: string,
   user: any,
 ): Promise<WidgetSnapshot | null> {
-  // Resolve which player to show. Priority:
+  // Resolve which player(s) we're working with.
   //   1. user.selfPlayerId — adult player path (they ARE the player)
   //   2. user.widgetPlayerId — user explicitly picked which kid
-  //   3. first player linked via player.parentIds
-  let playerId: string | null = user?.selfPlayerId || user?.widgetPlayerId || null;
-  if (!playerId) playerId = await findFirstChildPlayerId(pid, sa, uid);
-  if (!playerId) return null;
+  //   3. otherwise: every player linked via player.parentIds
+  //
+  // For #3 we intentionally pull the whole set (not just the first)
+  // because a kid can have multiple player documents — one per
+  // team. Without aggregating, the widget would only ever see
+  // events from whichever team Firestore returned first. Patrick
+  // caught this when his widget only showed Sat Skills events and
+  // missed his main team entirely.
+  let primaryId: string | null = user?.selfPlayerId || user?.widgetPlayerId || null;
+  let linked: Array<{ id: string; data: any }> = [];
 
-  const doc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
-  if (!doc) return null;
-  const p: any = doc.data || {};
+  if (primaryId) {
+    const single = await getDocument(pid, `players/${primaryId}`, sa).catch(() => null);
+    if (single) linked = [{ id: primaryId, data: single.data || {} }];
+  } else {
+    linked = await findLinkedPlayers(pid, sa, uid);
+    if (linked.length > 0) primaryId = linked[0].id;
+  }
+  if (!primaryId || linked.length === 0) return null;
 
-  // Pull events for the player's teams. We fetch a small window
-  // forward AND backward and bucket on the worker because runQuery
-  // only handles simple AND filters — easier to do scoring +
-  // cancellation filtering here than in 4 separate structured
-  // queries.
-  const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length
-    ? p.teamIds
-    : (p.teamId ? [p.teamId] : []);
+  // Display identity: prefer the linked player record with the
+  // most photo / jersey detail (a kid's "main team" record usually
+  // has the full profile; the academy record is sparser).
+  const ranked = [...linked].sort((a, b) => {
+    const score = (r: { data: any }) =>
+      (r.data?.profilePhotoUrl ? 4 : 0) +
+      (typeof r.data?.jerseyNumber === 'number' ? 2 : 0) +
+      (Array.isArray(r.data?.teamIds) ? r.data.teamIds.length : (r.data?.teamId ? 1 : 0));
+    return score(b) - score(a);
+  });
+  const p: any = ranked[0].data || {};
+  const playerId = ranked[0].id;
+
+  // Aggregate teams across EVERY linked player record so events
+  // from any of the kid's teams can surface. Capped to keep the
+  // event-query fanout bounded.
+  const teamSet = new Set<string>();
+  for (const r of linked) {
+    const d = r.data || {};
+    if (Array.isArray(d.teamIds)) d.teamIds.forEach((t: string) => t && teamSet.add(t));
+    if (d.teamId) teamSet.add(d.teamId);
+  }
+  const tIds: string[] = Array.from(teamSet);
   let nextEvent: any = null;
   let nextMs = Number.POSITIVE_INFINITY;
   let lastGame: any = null;
@@ -146,7 +179,7 @@ async function buildSnapshot(
   const lookbackDays = 21;
   const lookbackDate = new Date(nowMs - lookbackDays * 24 * 60 * 60 * 1000);
 
-  for (const tid of tIds.slice(0, 3)) {
+  for (const tid of tIds.slice(0, 5)) {
     try {
       const rows = await runQuery(
         pid,
@@ -219,9 +252,15 @@ async function buildSnapshot(
     nextEventRsvp: ((): 'going' | 'maybe' | 'no' | null => {
       const m = nextEvent?.playerRsvps;
       if (!m || typeof m !== 'object') return null;
-      const r = (m as any)[playerId];
-      const s = r?.status;
-      return s === 'going' || s === 'maybe' || s === 'no' ? s : null;
+      // Check every linked player id — the kid's main-team record
+      // and academy-team record have different player ids, and the
+      // RSVP is keyed by whichever id matches the event's team.
+      for (const r of linked) {
+        const row = (m as any)[r.id];
+        const s = row?.status;
+        if (s === 'going' || s === 'maybe' || s === 'no') return s;
+      }
+      return null;
     })(),
     lastResultTitle,
     lastResultScore,

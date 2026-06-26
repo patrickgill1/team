@@ -14,6 +14,7 @@ import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
 import GettingStartedCard from '../components/dashboard/GettingStartedCard';
 import DataGate from '../components/common/DataGate';
+import Walkthrough, { shouldShowWalkthrough } from '../components/onboarding/Walkthrough';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { streamThumbnailUrl } from '../utils/streamUpload';
 import { ChatThread } from '../types';
@@ -79,6 +80,19 @@ const Dashboard: React.FC = () => {
   // 'atomic-render-over-skeletons.md'. Set true at the end of the
   // useEffect that calls setTonightGoal.
   const [goalLoaded, setGoalLoaded] = useState(false);
+  // First-launch walkthrough — 5 slides shown once per device. Patrick
+  // 2026-06-26: 'when i tell people all of the features, there are so
+  // many good ones, I find it hard to communicate to someone before
+  // I feel like I am talking too much.' Tour does the showing instead.
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  useEffect(() => {
+    // Defer one tick so the dashboard paints first, then the
+    // walkthrough fades over it — feels less like a forced gate.
+    const t = window.setTimeout(() => {
+      if (shouldShowWalkthrough()) setWalkthroughOpen(true);
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, []);
   const [tonightGoal, setTonightGoal] = useState<{
     planId: string;
     goalId: string;
@@ -1118,6 +1132,11 @@ const Dashboard: React.FC = () => {
             proves desirable, but not as ambient dashboard chrome. */}
       </div>
       </div>
+
+      {/* First-launch walkthrough — shows once per device, 600ms
+          after the dashboard paints. localStorage flag inside the
+          component prevents re-shows. */}
+      <Walkthrough open={walkthroughOpen} onClose={() => setWalkthroughOpen(false)} />
     </div>
   );
 };

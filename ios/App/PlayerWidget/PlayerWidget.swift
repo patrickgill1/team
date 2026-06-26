@@ -278,6 +278,24 @@ private struct PotmBadge: View {
     }
 }
 
+// Shown next to the relative-date label when the player hasn't
+// RSVPed yet. Outlined bone capsule, no fill — reads as a nudge,
+// not a CTA. Lower weight than the 'Going' pill so the parent who
+// HAS responded still sees their status first when glancing at
+// the widget.
+private struct RsvpPrompt: View {
+    var body: some View {
+        Text("Please RSVP")
+            .font(.system(size: 9, weight: .black))
+            .kerning(0.4)
+            .foregroundColor(.boneSoft)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1.5)
+            .background(Capsule().fill(Color.bone.opacity(0.05)))
+            .overlay(Capsule().stroke(Color.bone.opacity(0.30), lineWidth: 1))
+    }
+}
+
 private struct RsvpPill: View {
     let status: String   // "going" | "maybe" | "no"
 
@@ -341,6 +359,8 @@ private struct UpcomingRow: View {
                             .foregroundColor(.boneSoft)
                         if let rsvp = snap.nextEventRsvp {
                             RsvpPill(status: rsvp)
+                        } else {
+                            RsvpPrompt()
                         }
                     }
                 }

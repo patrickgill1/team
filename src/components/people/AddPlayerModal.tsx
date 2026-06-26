@@ -41,6 +41,12 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
   );
   const [parentEmail, setParentEmail] = useState('');
   const [generateInvite, setGenerateInvite] = useState(true);
+  // Adult-team mode: the player IS the user (no parent layer).
+  // Patrick: 'i have an adult team looking to add it' — pickup
+  // leagues, over-35s, etc. When on, the parent-invite section
+  // becomes a self-signup invite that links the user as both
+  // parent (for permissions) AND the player themself (for UI).
+  const [isAdultPlayer, setIsAdultPlayer] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ playerName: string; inviteUrl?: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -76,6 +82,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
         ...(jerseyNumber ? { jerseyNumber: parseInt(jerseyNumber, 10) || undefined } : {}),
         ...(position ? { position, positions: [position] } : {}),
         ...(parentEmail.trim() ? { parentEmails: [parentEmail.trim().toLowerCase()] } : {}),
+        ...(isAdultPlayer ? { isAdultPlayer: true } : {}),
       };
       const playerRef = await addDoc(collection(db, 'players'), playerData);
 
@@ -100,12 +107,16 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
       }
 
       // 4. Optional: generate a parent invite link for this player.
+      //    Adult players: the same invite goes to the player themself;
+      //    isAdultPlayer flag carries through so consumeInvite stamps
+      //    selfPlayerId on the joining user's doc.
       let inviteUrl: string | undefined;
       if (generateInvite) {
         const invite = await createPlayerInvite({
           teamId: teamIds[0],
           playerId: playerRef.id,
           createdBy: currentUid,
+          isAdultPlayer: isAdultPlayer || undefined,
         });
         inviteUrl = `${getShareOrigin()}/join/${invite.id}`;
       }
@@ -225,6 +236,25 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
             </div>
           </FormField>
 
+          {/* Adult-player toggle. When on, the invite below becomes a
+              self-signup invite (the player IS the user; no parent
+              layer). UI labels in the app flip from 'your kid' to
+              'you' once they accept. */}
+          <label className="flex items-start gap-2 p-3 rounded-lg ring-1 ring-white/10 bg-charcoal-950 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAdultPlayer}
+              onChange={e => setIsAdultPlayer(e.target.checked)}
+              className="mt-0.5 accent-brand-primary"
+            />
+            <div className="flex-1">
+              <div className="text-xs font-bold text-bone">Adult player (no parent)</div>
+              <div className="text-[10px] text-bone/55 mt-0.5">
+                Pickup leagues, over-35s, adult rec teams. The invite goes to the player themself; they sign up and manage their own profile.
+              </div>
+            </div>
+          </label>
+
           <div className="rounded-lg ring-1 ring-white/10 p-3 space-y-2 bg-charcoal-950">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -233,7 +263,9 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                 onChange={e => setGenerateInvite(e.target.checked)}
                 className="accent-brand-primary"
               />
-              <span className="text-xs font-bold text-bone">Also generate a parent invite link</span>
+              <span className="text-xs font-bold text-bone">
+                {isAdultPlayer ? 'Also generate a player invite link' : 'Also generate a parent invite link'}
+              </span>
             </label>
             {generateInvite && (
               <>
@@ -241,10 +273,12 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                   type="email"
                   value={parentEmail}
                   onChange={e => setParentEmail(e.target.value)}
-                  placeholder="parent@example.com (optional — for your records)"
+                  placeholder={isAdultPlayer ? 'player@example.com (optional — for your records)' : 'parent@example.com (optional — for your records)'}
                   className={fieldInputClass}
                 />
-                <p className="text-[10px] text-bone/50">You'll get a share link to text or email the parent. No automatic email is sent.</p>
+                <p className="text-[10px] text-bone/50">
+                  You'll get a share link to text or email {isAdultPlayer ? 'the player' : 'the parent'}. No automatic email is sent.
+                </p>
               </>
             )}
           </div>

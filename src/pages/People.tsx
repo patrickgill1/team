@@ -9,7 +9,7 @@ import AddPlayerModal from '../components/people/AddPlayerModal';
 import ActiveInvitesPanel from '../components/people/ActiveInvitesPanel';
 import TrialGateModal from '../components/common/TrialGateModal';
 import DataGate from '../components/common/DataGate';
-import { EmptyState } from '../components/ui';
+import { EmptyState, Sheet, Button } from '../components/ui';
 import { useTrialGate } from '../hooks/useTrialGate';
 import { RELATIONSHIP_LABELS } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -752,47 +752,44 @@ const ManagePersonModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2.5">
-          {person.photoURL
-            ? <img src={person.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
-            : <span className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 text-white text-sm font-bold flex items-center justify-center">{(person.name||'?').charAt(0).toUpperCase()}</span>}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-bone truncate">{person.name}</div>
-            <div className="text-[11px] text-bone/50 truncate">{ROLE_LABEL[person.role]}{person.email ? ` · ${person.email}` : ''}</div>
-          </div>
-        </div>
-        <div className="px-4 py-3">
-          <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-2">Teams</div>
-          <div className="space-y-1">
-            {teams.map(t => {
-              const on = draft.has(t.id);
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => toggle(t.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    on ? 'bg-brand-primary/15 border-brand-primary-soft/30 text-brand-primary-dim' : 'bg-charcoal-900 border-white/10 text-bone/85 hover:border-white/20'
-                  }`}
-                >
-                  <span className="font-semibold">{t.name}</span>
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-white' : 'border-white/15'}`}>
-                    {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div className="px-4 py-3 border-t border-white/5 flex justify-end gap-2">
-          <button onClick={onClose} className="text-xs font-bold tracking-wide text-bone/50 px-3 py-1.5">Cancel</button>
-          <button onClick={save} disabled={busy} className="text-xs font-extrabold tracking-widest uppercase bg-brand-primary text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
-            {busy ? '…' : 'Save'}
-          </button>
+    <Sheet
+      open={true}
+      onClose={onClose}
+      size="sm"
+      kicker={ROLE_LABEL[person.role]}
+      title={person.name}
+      subtitle={person.email || undefined}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} loading={busy}>Save</Button>
+        </>
+      }
+    >
+      <div>
+        <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">Teams</div>
+        <div className="space-y-1">
+          {teams.map(t => {
+            const on = draft.has(t.id);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => toggle(t.id)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg ring-1 text-sm transition ${
+                  on ? 'bg-brand-primary/15 ring-brand-primary/40 text-brand-primary-soft' : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                }`}
+              >
+                <span className="font-semibold">{t.name}</span>
+                <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-brand-primary-fg' : 'border-white/20'}`}>
+                  {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
-    </div>
+    </Sheet>
   );
 };
 

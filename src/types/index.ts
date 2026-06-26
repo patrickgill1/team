@@ -46,6 +46,12 @@ export interface User {
    *  label. Missing/undefined falls back to 'parent'. Stamped by
    *  consumeInvite() when the inviting coach selected a relationship. */
   relationship?: FamilyRelationship;
+  /** Adult player flag: when set, this user IS a player on the
+   *  roster (not a parent of one). Points at the player doc that
+   *  represents them. Drives in-app copy ('your profile' vs 'your
+   *  kid'). Stamped by consumeInvite() when the invite carries
+   *  isAdultPlayer=true. */
+  selfPlayerId?: string;
   privacy?: {
     showPhone: boolean;
     showEmail: boolean;
@@ -408,6 +414,15 @@ export interface Player {
   teamId: string;
   teamIds?: string[]; // Player can belong to multiple teams
   isActive: boolean;
+  /** True when the player IS an adult who manages their own account —
+   *  no separate parent layer. Used by adult-team formats (Patrick's
+   *  Saturday pickup; over-35 leagues; etc). When true: invites go
+   *  to the player themself, the in-app 'your kid' copy flips to
+   *  'you', and RSVP buttons say 'Going' instead of 'Hunter going'.
+   *  Permissions still flow through parentIds[] (the adult is their
+   *  own parent in the data) so nothing else has to branch on this
+   *  flag — display only. */
+  isAdultPlayer?: boolean;
   profilePhotoUrl?: string | null;
   emergencyContacts?: EmergencyContact[];
   medicalInfo?: string;
@@ -1308,6 +1323,12 @@ export interface Invite {
    *  directory can label them correctly. Defaults to 'parent' when
    *  absent for legacy invites. */
   relationship?: FamilyRelationship;
+  /** type === 'player' only: when true, the invitee IS the player
+   *  (an adult on the roster), not a parent of one. On consume the
+   *  joining user gets selfPlayerId stamped on their user doc and
+   *  the player doc gets isAdultPlayer=true. Used for adult-team
+   *  formats (Saturday pickup, over-35 leagues). */
+  isAdultPlayer?: boolean;
   createdBy: string;
   createdAt: Date;
   expiresAt: Date;

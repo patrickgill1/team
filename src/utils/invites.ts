@@ -45,6 +45,10 @@ interface CreatePlayerInviteOpts {
    *  unset (every legacy invite). Stamped on the new user's doc by
    *  consumeInvite so the directory can show 'Grandparent of X'. */
   relationship?: 'parent' | 'grandparent' | 'aunt_uncle' | 'guardian' | 'sibling' | 'other';
+  /** When true: invitee IS the player (adult-team format). On
+   *  consume, the joining user gets selfPlayerId pointed at the
+   *  player AND the player doc gets isAdultPlayer=true. */
+  isAdultPlayer?: boolean;
 }
 interface CreateStaffInviteOpts {
   teamId: string;
@@ -75,6 +79,7 @@ export async function createPlayerInvite(opts: CreatePlayerInviteOpts): Promise<
   };
   if (opts.note) inv.note = opts.note;
   if (opts.relationship && opts.relationship !== 'parent') inv.relationship = opts.relationship;
+  if (opts.isAdultPlayer) inv.isAdultPlayer = true;
   await setDoc(doc(db, COLL, id), inv);
   return { ...inv, createdAt: new Date() } as Invite;
 }
@@ -168,12 +173,20 @@ export async function consumeInvite(inviteId: string, uid: string): Promise<{ ok
     if (inv.type === 'player') {
       if (!inv.playerId) return { ok: false, reason: 'invite-malformed' as const };
       const playerRef = doc(db, 'players', inv.playerId);
-      tx.update(playerRef, { parentIds: arrayUnion(uid) });
+      // Adult-player invites: the joining user IS the player. Stamp
+      // isAdultPlayer on the player doc so UI labels flip from
+      // 'your kid' to 'you'. Permissions still flow through
+      // parentIds (the adult is their own parent in the data) so
+      // nothing else has to branch on the flag.
+      const isAdultPlayer = !!(inv as any).isAdultPlayer;
+      const playerPatch: Record<string, any> = { parentIds: arrayUnion(uid) };
+      if (isAdultPlayer) playerPatch.isAdultPlayer = true;
+      tx.update(playerRef, playerPatch);
       // Stamp relationship from the invite (default 'parent' for
       // legacy invites that pre-date the field) so the directory
       // can label them as "Grandparent of Hunter" etc.
       const relationship = (inv as any).relationship || 'parent';
-      tx.update(userRef, {
+      const userPatch: Record<string, any> = {
         role: 'parent',
         relationship,
         teamId: inv.teamId,
@@ -183,7 +196,9 @@ export async function consumeInvite(inviteId: string, uid: string): Promise<{ ok
         approvedAt: serverTimestamp(),
         invitedBy: inv.createdBy,
         invitedVia: inviteId,
-      });
+      };
+      if (isAdultPlayer) userPatch.selfPlayerId = inv.playerId;
+      tx.update(userRef, userPatch);
     } else if (inv.type === 'coach') {
       tx.update(userRef, {
         role: 'coach',

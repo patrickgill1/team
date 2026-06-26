@@ -28,6 +28,7 @@ import {
 } from './stripe';
 import { handleWidgetRequest } from './widget';
 import { handleParentEmailPrecheck } from './precheck';
+import { logWorkerError } from './errorLog';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -120,8 +121,39 @@ async function sendOne(msg: MailMessage, env: Env): Promise<{ ok: boolean; error
   return { ok: false, error: `resend ${res.status}: ${txt.slice(0, 300)}` };
 }
 
+// Top-level catch so any unhandled error inside fetch() ends up
+// in crash_logs (with source: 'worker') instead of disappearing
+// into wrangler-tail history. The handler still returns a clean
+// 500 to the client so a logging failure doesn't cascade.
+async function safeFetch(req: Request, env: Env): Promise<Response> {
+  try {
+    return await routeFetch(req, env);
+  } catch (err: any) {
+    const url = new URL(req.url);
+    await logWorkerError(env, {
+      err,
+      workerRoute: url.pathname,
+      url: req.url,
+      status: 500,
+    }).catch(() => { /* never throw */ });
+    const cors = corsHeaders(req, env);
+    return new Response(JSON.stringify({ ok: false, error: 'internal' }), {
+      status: 500,
+      headers: { 'content-type': 'application/json; charset=utf-8', ...cors },
+    });
+  }
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
+    return safeFetch(req, env);
+  },
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    return scheduledHandler(event, env, ctx);
+  },
+};
+
+async function routeFetch(req: Request, env: Env): Promise<Response> {
     const cors = corsHeaders(req, env);
 
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
@@ -535,9 +567,9 @@ export default {
     }
 
     return json({ ok: false, error: 'not-found' }, 404, cors);
-  },
+}
 
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     // Two cron schedules per wrangler.toml — route by the cron string:
     //   "0 22 * * SUN" — weekly digest (Sun 4pm MDT)
     //   "0 16 * * *"   — daily registration drips (10am MDT)
@@ -561,5 +593,4 @@ export default {
         runWeeklyDigest(env).then(r => console.log('[cron] (unknown) digest', JSON.stringify(r)))
       );
     }
-  },
-};
+}

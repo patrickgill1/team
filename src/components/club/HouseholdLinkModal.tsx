@@ -12,6 +12,7 @@ import {
 import { db } from '../../utils/firebase';
 import { logActivity } from '../../utils/activityLog';
 import type { Household, Registration } from '../../types';
+import { Sheet, Button, FormField, fieldInputClass } from '../ui';
 
 // Link a second parent email into the current household. If neither
 // email has a Household yet we create one and bind both sides. If
@@ -140,44 +141,46 @@ const HouseholdLinkModal: React.FC<Props> = ({ clubId, currentEmail, currentHous
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <div>
-            <h2 className="font-black text-charcoal-950">Link another email</h2>
-            <p className="text-[11px] text-slate-500">to {currentEmail}</p>
+    <Sheet
+      open={true}
+      onClose={onClose}
+      kicker="Households"
+      title="Link another email"
+      subtitle={`to ${currentEmail}`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={handleLink} disabled={!valid} loading={busy}>
+            Link households
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-xs text-bone/60 leading-snug">
+          Use this when two parents in the same family used different emails. Their kids, registrations, payments, and timeline all roll up under one household.
+        </p>
+        {currentHousehold && (currentHousehold.parentEmails || []).length > 0 && (
+          <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-3 py-2 text-[11px] text-bone/75">
+            Already linked: <b className="text-bone">{currentHousehold.parentEmails.join(', ')}</b>
           </div>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
-        </div>
-        <div className="p-5 space-y-4">
-          <p className="text-xs text-slate-600">
-            Use this when two parents in the same family used different emails. Their kids, registrations, payments, and timeline all roll up under one household.
-          </p>
-          {currentHousehold && (currentHousehold.parentEmails || []).length > 0 && (
-            <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200 px-3 py-2 text-[11px] text-slate-700">
-              Already linked: <b>{currentHousehold.parentEmails.join(', ')}</b>
-            </div>
-          )}
-          <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-slate-600 mb-1">Other parent's email</span>
-            <input
-              type="email"
-              value={otherEmail}
-              onChange={(e) => setOtherEmail(e.target.value)}
-              placeholder="dad.work@example.com"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
-            />
-          </label>
-          {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
-        </div>
-        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
-          <button type="button" disabled={!valid || busy} onClick={handleLink} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
-            {busy ? 'Linking…' : 'Link households'}
-          </button>
-        </div>
+        )}
+        <FormField label="Other parent's email">
+          <input
+            type="email"
+            value={otherEmail}
+            onChange={(e) => setOtherEmail(e.target.value)}
+            placeholder="dad.work@example.com"
+            className={fieldInputClass}
+          />
+        </FormField>
+        {error && (
+          <div className="rounded-lg bg-rose-950/30 ring-1 ring-rose-700/40 px-3 py-2 text-sm text-rose-200">
+            {error}
+          </div>
+        )}
       </div>
-    </div>
+    </Sheet>
   );
 };
 

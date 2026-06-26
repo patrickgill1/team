@@ -9,6 +9,7 @@ import { streamIframeUrl } from '../utils/streamUpload';
 import { isCoach, formatDate } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
+import DataGate from '../components/common/DataGate';
 
 // Extract YouTube video ID from any common YouTube URL shape (also accepts a raw 11-char ID)
 function extractYouTubeId(input: string): string | null {
@@ -899,16 +900,7 @@ const PlayerDevelopment: React.FC = () => {
   // Convenience for hiding coach-side controls in Parent View.
   const showCoachControls = effectiveView === 'coach';
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
-          <span className="text-sm text-bone/40 font-medium">Loading...</span>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <DataGate when="loading" />;
 
   return (
     <div className="min-h-screen bg-charcoal-950">

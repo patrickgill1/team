@@ -79,12 +79,16 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
       } as any);
       // Patrick's data-model intent: every team belongs to a club,
       // even solo coaches get a default one named after the team so
-      // 'becoming a club later' is a no-op.
+      // 'becoming a club later' is a no-op. The default wrapper
+      // gets isDefaultSoloClub: true so the admin portal + billing
+      // can distinguish solo-coach accounts from real multi-team
+      // clubs (Coach $99/yr vs Club $499/yr Pro tier).
       const clubId = await createClub({
         name: teamName.trim(),
         ownerUid: uid,
         initialTeamId: teamId,
       });
+      await updateDoc(doc(db, 'clubs', clubId), { isDefaultSoloClub: true });
       // Stamp the team's clubId so multi-tenant scoping works.
       await updateDoc(doc(db, 'teams', teamId), { clubId });
       // Patch the user as a coach attached to the new team + club.

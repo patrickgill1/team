@@ -467,6 +467,36 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Support tickets (two-tier rebuild, distinct from the older
+    // helpdesk_tickets collection):
+    //   scope='club' — author files to clubId, visible to that
+    //                 club's coaches/admins.
+    //   scope='platform' — visible only to platform admin
+    //                     (Patrick / GoalKickr support).
+    // Author can always read + reply to their own tickets. No client
+    // can delete; admin handles deletion via admin portal.
+    match /support_tickets/{ticketId} {
+      allow get, list: if request.auth != null && (
+        isPlatformAdmin()
+        || resource.data.authorUid == request.auth.uid
+        || (resource.data.scope == 'club' && resource.data.clubId in userDoc().clubIds)
+      );
+      allow create: if request.auth != null
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.scope in ['club', 'platform']
+        // Block clients from forging the recentMessages array.
+        // First message comes from the create call; client must send
+        // exactly one entry whose authorUid matches them.
+        && request.resource.data.recentMessages is list
+        && request.resource.data.recentMessages.size() == 1;
+      allow update: if request.auth != null && (
+        isPlatformAdmin()
+        || resource.data.authorUid == request.auth.uid
+        || (resource.data.scope == 'club' && resource.data.clubId in userDoc().clubIds)
+      );
+      allow delete: if isPlatformAdmin();
+    }
+
     // Catch-all: deny unknown collections by default. Anything added
     // later must get an explicit rule. Previous catch-all was
     // permissive ("any auth"), which was itself a multi-tenant leak.

@@ -435,6 +435,18 @@ const Settings: React.FC = () => {
         </section>
 
         <section>
+          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Help</h2>
+          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
+            <SettingsRow
+              icon="lifebuoy"
+              label="My tickets"
+              onClick={() => navigate('/tickets')}
+              hint="Support requests you've opened or that your club has filed."
+            />
+          </div>
+        </section>
+
+        <section>
           <h2 className="text-2xl font-bold text-bone mb-2 px-1">Manage Account</h2>
           <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
             <SettingsRow
@@ -445,9 +457,8 @@ const Settings: React.FC = () => {
             <SettingsRow
               icon="lifebuoy"
               label="Customer Support"
-              onClick={() => {
-                window.location.href = 'mailto:support@goalkickr.com?subject=GoalKickr%20support';
-              }}
+              onClick={() => navigate('/tickets')}
+              hint="Open a ticket so we can track it."
             />
             <SettingsRow
               icon="palette"

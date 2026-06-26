@@ -2073,6 +2073,53 @@ export type UpdateChatThreadData = Partial<Omit<ChatThread, 'id' | 'createdAt' |
 };
 
 // ================================
+// SUPPORT TICKETS (two-tier: club + platform)
+// ================================
+// Separate from the older HelpdeskTicket above. HelpdeskTicket is
+// the pre-existing club-only support system; SupportTicket is the
+// 2026-06-26 two-tier rebuild (club OR platform scope) with a
+// single denormalized message thread + email-bridge readiness.
+// Both can coexist; over time we'll fold HelpdeskTicket into
+// SupportTicket when the existing club inboxes get migrated.
+
+export type SupportTicketScope = 'club' | 'platform';
+export type SupportTicketStatus = 'open' | 'pending' | 'resolved' | 'closed';
+export type SupportTicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type SupportTicketMessageSource = 'in-app' | 'email' | 'admin';
+
+export interface SupportTicketMessage {
+  id: string;
+  authorUid: string | null;
+  authorName: string;
+  authorEmail: string;
+  source: SupportTicketMessageSource;
+  body: string;
+  sentAt: Date;
+}
+
+export interface SupportTicket {
+  id: string;
+  scope: SupportTicketScope;
+  clubId?: string;
+  teamId?: string;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  subject: string;
+  bodyPreview: string;
+  authorUid: string | null;
+  authorName: string;
+  authorEmail: string;
+  /** For email-bridge inbounds (queued): Message-ID header to thread replies. */
+  threadId?: string;
+  recentMessages: SupportTicketMessage[];
+  tags?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  lastReplyAt?: Date;
+  lastTouchedBy?: string;
+}
+
+// ================================
 // FIRESTORE COLLECTION REFERENCES
 // ================================
 

@@ -76,6 +76,8 @@ const GameDay = React.lazy(() => import('./pages/GameDay'));
 const QuickGameLauncher = React.lazy(() => import('./pages/QuickGameLauncher'));
 const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder'));
 const Settings = React.lazy(() => import('./pages/Settings'));
+const Tickets = React.lazy(() => import('./pages/Tickets'));
+const TicketDetail = React.lazy(() => import('./pages/TicketDetail'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
@@ -816,6 +818,21 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Settings />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/tickets" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Tickets />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/tickets/:ticketId" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <TicketDetail />
                 </AppLayout>
               </ProtectedRoute>
             } />

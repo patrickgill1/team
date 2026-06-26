@@ -64,9 +64,16 @@ private let WIDGET_ENDPOINT = "https://api.goalkickr.com/widget/snapshot"
 
 private func fetchSnapshot(setupCode: String) async -> (PlayerSnapshot?, String?) {
     guard !setupCode.isEmpty else { return (nil, "needs-setup") }
-    var req = URLRequest(url: URL(string: WIDGET_ENDPOINT)!)
+    // Cache-bust: append a per-second nonce AND set URLSession to
+    // skip the local cache. Two layers of defense because iOS
+    // widget extensions are aggressive about caching responses to
+    // save battery, and a stale 'no events' payload can hang
+    // around for hours otherwise.
+    let nonce = Int(Date().timeIntervalSince1970)
+    var req = URLRequest(url: URL(string: "\(WIDGET_ENDPOINT)?t=\(nonce)")!)
     req.httpMethod = "GET"
     req.setValue("Bearer \(setupCode)", forHTTPHeaderField: "Authorization")
+    req.cachePolicy = .reloadIgnoringLocalCacheData
     req.timeoutInterval = 20
     do {
         let (data, resp) = try await URLSession.shared.data(for: req)

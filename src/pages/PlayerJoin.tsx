@@ -103,10 +103,16 @@ const PlayerJoin: React.FC = () => {
         parentIds: arrayUnion(user.uid),
       });
 
-      // Add player to user's children list
-      await updateDoc(doc(db, 'users', user.uid), {
+      // Add player to user's children list. Adult players: the
+      // player IS the user, so also stamp selfPlayerId on the user
+      // doc so in-app copy can flip from 'your kid' to 'you'.
+      const userPatch: Record<string, any> = {
         children: arrayUnion(playerData.id),
-      });
+      };
+      if ((playerData as any).isAdultPlayer) {
+        userPatch.selfPlayerId = playerData.id;
+      }
+      await updateDoc(doc(db, 'users', user.uid), userPatch);
 
       setLinked(true);
     } catch (err) {

@@ -96,6 +96,12 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
     dateOfBirth: '',
     medicalInfo: ''
   });
+  // Adult-team mode: the player IS the user (no parent layer).
+  // Drives `isAdultPlayer` on the player doc + flips the invite to
+  // a self-signup link.
+  const [isAdultPlayer, setIsAdultPlayer] = useState<boolean>(
+    !!(editingPlayer as any)?.isAdultPlayer,
+  );
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -414,6 +420,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         teamId: effectiveTeamId,
         teamIds: newTeamIds,
         isActive: true,
+        isAdultPlayer: isAdultPlayer || undefined,
         profilePhotoUrl: profilePhotoUrl,
         updatedAt: new Date(),
         stats: editingPlayer?.stats || createDefaultStats(),
@@ -776,10 +783,30 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             {errors.dateOfBirth && <p className="text-rose-300 text-sm mt-1">{errors.dateOfBirth}</p>}
           </div>
 
+          {/* Adult-team mode toggle. When on, the player IS the user
+              (no parent layer). Flips invite to self-signup and the
+              parent-email row label below. Patrick 2026-06-26 — for
+              the Saturday pickup wedge. */}
+          <label className="flex items-start gap-2 p-3 rounded-lg ring-1 ring-white/10 bg-charcoal-950 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAdultPlayer}
+              onChange={(e) => setIsAdultPlayer(e.target.checked)}
+              disabled={isSubmitting}
+              className="mt-0.5 accent-brand-primary"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-bold text-bone">Adult player (no parent)</div>
+              <div className="text-[11px] text-bone/55 mt-0.5">
+                Pickup leagues, over-35s, adult rec teams. The invite goes to the player themself; they sign up and manage their own profile.
+              </div>
+            </div>
+          </label>
+
           {/* Parent Emails */}
           <div>
             <label className="block text-sm font-medium text-bone/80 mb-1">
-              Parent Email Addresses (Optional)
+              {isAdultPlayer ? 'Player Email (Optional)' : 'Parent Email Addresses (Optional)'}
             </label>
             <div className="space-y-2">
               {formData.parentEmails.map((email, index) => (

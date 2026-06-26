@@ -26,11 +26,24 @@ interface WidgetSnapshot {
   playerName: string;
   jerseyNumber?: number | null;
   photoUrl?: string | null;
+  teamName?: string | null;
   streakDays: number;
+  potmCount?: number;
+  // Next non-cancelled event on the player's schedule. Cancelled
+  // events are explicitly filtered upstream so the widget never
+  // shows a CANCELLED row as 'Next up'.
   nextEventTitle?: string | null;
+  nextEventType?: string | null;
   nextEventDateMs?: number | null;
   nextEventLocation?: string | null;
-  potmCount?: number;
+  // Player's RSVP for the next event ('going' | 'maybe' | 'no' |
+  // null if no response). Read from event.playerRsvps[playerId].
+  nextEventRsvp?: 'going' | 'maybe' | 'no' | null;
+  // Fallback when the schedule is empty — shows the most recent
+  // game result so the widget always has something to show.
+  lastResultTitle?: string | null;
+  lastResultScore?: string | null;    // 'W 3-1' / 'L 0-2'
+  lastResultDateMs?: number | null;
   generatedAt: number;
 }
 
@@ -117,15 +130,22 @@ async function buildSnapshot(
   if (!doc) return null;
   const p: any = doc.data || {};
 
-  // Next event: query events for any of the player's teams with
-  // date >= now, asc. runQuery() only takes simple AND filters, so
-  // we do one query per team (usually 1-2) and pick the soonest.
+  // Pull events for the player's teams. We fetch a small window
+  // forward AND backward and bucket on the worker because runQuery
+  // only handles simple AND filters — easier to do scoring +
+  // cancellation filtering here than in 4 separate structured
+  // queries.
   const tIds: string[] = Array.isArray(p.teamIds) && p.teamIds.length
     ? p.teamIds
     : (p.teamId ? [p.teamId] : []);
   let nextEvent: any = null;
   let nextMs = Number.POSITIVE_INFINITY;
+  let lastGame: any = null;
+  let lastGameMs = Number.NEGATIVE_INFINITY;
   const nowMs = Date.now();
+  const lookbackDays = 21;
+  const lookbackDate = new Date(nowMs - lookbackDays * 24 * 60 * 60 * 1000);
+
   for (const tid of tIds.slice(0, 3)) {
     try {
       const rows = await runQuery(
@@ -133,19 +153,54 @@ async function buildSnapshot(
         'events',
         [
           { field: 'teamId', op: 'EQUAL', value: tid },
-          { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: new Date(nowMs) },
+          { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: lookbackDate },
         ],
         sa,
-        5,
+        40,
       ).catch(() => [] as any[]);
+
       for (const r of rows) {
         const d: any = r.data || {};
-        const ms = d.date instanceof Date ? d.date.getTime() : (typeof d.date === 'string' ? Date.parse(d.date) : NaN);
-        if (Number.isFinite(ms) && ms < nextMs) {
-          nextMs = ms;
-          nextEvent = d;
+        // Soft-delete pattern: cancelled events stay in the
+        // collection with isCancelled=true so attendees can see
+        // why nothing's happening. Never surface them on the
+        // widget — Patrick caught this on the first screenshot.
+        if (d.isCancelled === true) continue;
+        const ms = d.date instanceof Date
+          ? d.date.getTime()
+          : (typeof d.date === 'string' ? Date.parse(d.date) : NaN);
+        if (!Number.isFinite(ms)) continue;
+        if (ms >= nowMs) {
+          if (ms < nextMs) { nextMs = ms; nextEvent = d; }
+        } else {
+          // Past event — only games with a completed result are
+          // useful as a fallback display.
+          const res: any = d.result;
+          const isCompleted = res && typeof res === 'object' && res.status === 'completed'
+            && typeof res.teamScore === 'number' && typeof res.opponentScore === 'number';
+          if (isCompleted && ms > lastGameMs) { lastGameMs = ms; lastGame = d; }
         }
       }
+    } catch { /* ignore */ }
+  }
+
+  let lastResultScore: string | null = null;
+  let lastResultTitle: string | null = null;
+  if (lastGame && lastGame.result) {
+    const ts = lastGame.result.teamScore;
+    const os = lastGame.result.opponentScore;
+    const tag = ts > os ? 'W' : ts < os ? 'L' : 'T';
+    lastResultScore = `${tag} ${ts}-${os}`;
+    lastResultTitle = lastGame.opponent
+      ? `vs ${lastGame.opponent}`
+      : (lastGame.title || 'Game');
+  }
+
+  let teamName: string | null = null;
+  if (tIds.length > 0) {
+    try {
+      const tDoc = await getDocument(pid, `teams/${tIds[0]}`, sa).catch(() => null);
+      teamName = (tDoc?.data as any)?.name || null;
     } catch { /* ignore */ }
   }
 
@@ -154,11 +209,23 @@ async function buildSnapshot(
     playerName: p.name || 'Player',
     jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
     photoUrl: p.profilePhotoUrl || null,
+    teamName,
     streakDays: typeof p.currentStreakDays === 'number' ? p.currentStreakDays : 0,
+    potmCount: typeof p.potmCount === 'number' ? p.potmCount : 0,
     nextEventTitle: nextEvent?.title || null,
+    nextEventType: nextEvent?.type || null,
     nextEventDateMs: Number.isFinite(nextMs) ? nextMs : null,
     nextEventLocation: nextEvent?.location || null,
-    potmCount: typeof p.potmCount === 'number' ? p.potmCount : 0,
+    nextEventRsvp: ((): 'going' | 'maybe' | 'no' | null => {
+      const m = nextEvent?.playerRsvps;
+      if (!m || typeof m !== 'object') return null;
+      const r = (m as any)[playerId];
+      const s = r?.status;
+      return s === 'going' || s === 'maybe' || s === 'no' ? s : null;
+    })(),
+    lastResultTitle,
+    lastResultScore,
+    lastResultDateMs: Number.isFinite(lastGameMs) ? lastGameMs : null,
     generatedAt: Date.now(),
   };
 }

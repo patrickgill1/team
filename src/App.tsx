@@ -8,6 +8,7 @@ import { ViewModeProvider } from './contexts/ViewModeContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import SilentErrorBoundary from './components/common/SilentErrorBoundary';
+import OnboardingGate from './components/gates/OnboardingGate';
 import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
 import Navigation from './components/common/Navigation';
 import InstallAppBanner from './components/common/InstallAppBanner';
@@ -159,64 +160,14 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-  if (gateReason === 'pending-approval') {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center px-4">
-        <div className="max-w-sm w-full text-center">
-          <div className="text-6xl mb-4">🔒</div>
-          <h1 className="text-2xl font-bold text-charcoal-950 mb-2">Waiting for Approval</h1>
-          <p className="text-gray-600 mb-6">
-            Your account has been created but needs to be approved by a coach before you can access the team.
-          </p>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left text-sm text-amber-800 mb-6">
-            <p className="font-medium mb-1">Your email:</p>
-            <p className="font-mono bg-amber-100 px-2 py-1 rounded-lg">{userData?.email}</p>
-          </div>
-          <button
-            onClick={() => { window.location.reload(); }}
-            className="w-full bg-brand-primary text-white rounded-2xl py-3 font-semibold hover:bg-brand-primary transition-colors mb-3"
-          >
-            Check Again
-          </button>
-          <button
-            onClick={logout}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (gateReason === 'not-linked') {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center px-4">
-        <div className="max-w-sm w-full text-center">
-          <div className="text-6xl mb-4">⏳</div>
-          <h1 className="text-2xl font-bold text-charcoal-950 mb-2">Almost There!</h1>
-          <p className="text-gray-600 mb-6">
-            Your account is approved! A coach just needs to link you to your child's player profile and everything will appear automatically.
-          </p>
-          <div className="bg-brand-primary-soft border border-brand-primary-soft rounded-2xl p-4 text-left text-sm text-charcoal-800 mb-6">
-            <p className="font-medium mb-1">Let your coach know:</p>
-            <p>Edit the player → add <span className="font-mono bg-brand-primary-soft px-1 rounded-lg">{userData?.email}</span> as a parent email.</p>
-          </div>
-          <button
-            onClick={() => { window.location.reload(); }}
-            className="w-full bg-brand-primary text-white rounded-2xl py-3 font-semibold hover:bg-brand-primary transition-colors mb-3"
-          >
-            Check Again
-          </button>
-          <button
-            onClick={logout}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
-    );
+  // Old 'Waiting for Approval' and 'Almost There' dead-end screens
+  // replaced 2026-06-26 with OnboardingGate — gives the user real
+  // paths forward (enter invite code / start a team / start a club)
+  // instead of telling them to nag their coach. Patrick: 'this gate
+  // should not exist. if they are tied to a player, it should start
+  // the option to make a team, club or join another team.'
+  if (gateReason === 'pending-approval' || gateReason === 'not-linked') {
+    return <OnboardingGate onSignOut={logout} />;
   }
 
   return (

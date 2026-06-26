@@ -145,14 +145,30 @@ const SimpleAuth: React.FC = () => {
         }
 
         const tempTeamId = formData.inviteCode || `team_${Date.now()}`;
+        // The precheck already confirmed an email-on-player match
+        // when hasPlayer=true. Pass that signal to signUp() so the
+        // user doc is written with approved=true on the FIRST write.
+        // Without this, there's a 100-300ms window where the user
+        // doc is approved=false (before the auto-link fires), the
+        // OnboardingGate's checkAccess sees it, and flashes the
+        // 'pick a path' screen even though we already know the
+        // user will be auto-linked. Patrick caught this on a new
+        // test account.
+        const willAutoLink = !formData.inviteCode;  // precheck only ran in this branch
 
         await signUp(formData.email, formData.password, {
           email: formData.email,
           name: formData.name,
           role: formData.role,
           teamId: tempTeamId,
-          createdAt: new Date()
-        });
+          createdAt: new Date(),
+          // Pre-approval hint: the precheck found a matching player,
+          // so the auto-link inside signUp() will succeed. Tell
+          // signUp() to write approved=true on the initial create
+          // so the OnboardingGate doesn't flash 'approved=false' in
+          // the ~200ms window before auto-link's user-doc patch.
+          ...(willAutoLink ? { preApproveOnAutoLink: true } : {}),
+        } as any);
         console.log('Signup successful - waiting for auth state change');
       }
     } catch (error: any) {

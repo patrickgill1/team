@@ -119,16 +119,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         && !newUserData.teamId.startsWith('team_'); // bare timestamps used to fall through
       const effectiveTeamId = looksReal ? newUserData.teamId : '';
 
+      // Caller-supplied hint: the precheck already confirmed an
+      // email-on-player match, so auto-link is guaranteed to fire
+      // and approve them. Treat as if they joined via a real invite
+      // for the purposes of the initial user-doc write. Without
+      // this the OnboardingGate flashes 'approved=false' in the
+      // ~200ms window between createUser and the auto-link's
+      // approved=true patch.
+      const preApproveHint = (newUserData as any).preApproveOnAutoLink === true;
+      const shouldPreApprove = looksReal || preApproveHint;
+      // Strip the hint so it doesn't get persisted on the user doc.
+      delete (newUserData as any).preApproveOnAutoLink;
+
       const userDataWithId: any = {
         ...newUserData,
         uid: result.user.uid,
         teamId: effectiveTeamId,
         teamIds: effectiveTeamId ? [effectiveTeamId] : [],
         isActive: true,
-        // Approved only when joining via a real invite. Self-signup
-        // (even with role=coach) starts as not-approved.
-        approved: looksReal,
-        approvalStatus: looksReal ? 'auto' : 'pending',
+        // Approved when joining via a real invite OR when the
+        // precheck already confirmed an email-on-player match.
+        approved: shouldPreApprove,
+        approvalStatus: looksReal ? 'auto'
+                      : preApproveHint ? 'auto-email-match'
+                      : 'pending',
         authProvider: 'email'
       };
       

@@ -429,6 +429,13 @@ const Settings: React.FC = () => {
           <NotificationPreferences />
         </section>
 
+        {isCoach(userData?.role || '') && (
+          <section>
+            <h2 className="text-2xl font-bold text-bone mb-2 px-1">Drill library</h2>
+            <DrillLibraryToggle />
+          </section>
+        )}
+
         <section>
           <h2 className="text-2xl font-bold text-bone mb-2 px-1">Widget</h2>
           <WidgetSetupCard />
@@ -609,5 +616,46 @@ function roleLabel(role?: string, coachLevel?: string, isClubAdmin?: boolean): s
   if (role === 'player') return 'Player';
   return role || '';
 }
+
+const DrillLibraryToggle: React.FC = () => {
+  const { userData } = useAuth();
+  const { updateDocument } = useFirestore();
+  const [browse, setBrowse] = useState((userData as any)?.browseDrillLibrary !== false);
+  const [busy, setBusy] = useState(false);
+  const flip = async () => {
+    if (!userData || busy) return;
+    const next = !browse;
+    setBusy(true);
+    try {
+      await updateDocument('users', userData.uid, { browseDrillLibrary: next });
+      setBrowse(next);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('drill library pref save failed', e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="bg-charcoal-900 rounded-xl border border-white/10 px-4 py-4 flex items-start gap-3">
+      <div className="flex-1">
+        <p className="text-bone font-bold text-sm">Browse the shared library</p>
+        <p className="text-bone/55 text-xs mt-0.5 leading-snug">
+          Show the cross-club catalog tab in your drills page. Other coaches' shared drills appear there with ratings.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={flip}
+        disabled={busy}
+        className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
+          browse ? 'bg-brand-primary text-white' : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+        }`}
+      >
+        {busy ? '…' : browse ? 'On' : 'Off'}
+      </button>
+    </div>
+  );
+};
 
 export default Settings;

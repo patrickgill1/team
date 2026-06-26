@@ -57,6 +57,11 @@ export interface User {
     showEmail: boolean;
     showAddress: boolean;
   };
+  /** Coach-level: show the shared drill library tab in /drills.
+   *  Treat undefined as true (default-on). Coaches who'd rather
+   *  not browse other people's drills can flip this off in
+   *  Settings to declutter their library page. */
+  browseDrillLibrary?: boolean;
   /** USSF Learning Center credentials. Today these are populated manually
    *  via Settings; once we have API creds from connect.ussdlc.com, the
    *  webhook handler writes them with source: 'ussf' and the manual
@@ -232,6 +237,13 @@ export interface Club {
    *  See `project_platform_fee` memory + the auth check on the
    *  platform page. */
   platformFeeBps?: number;
+
+  /** Allow this club's coaches to flip drills into the public catalog.
+   *  Default-on at the data layer (treat undefined as true) so existing
+   *  clubs keep working. Owner can disable in Settings -> Club Admins
+   *  to keep the playbook proprietary. Existing shared drills stay
+   *  shared even if this is later turned off; new shares are blocked. */
+  allowDrillSharing?: boolean;
 }
 
 export interface Invoice {
@@ -1872,6 +1884,39 @@ export interface Drill {
    *  up. */
   assignmentCount?: number;
   isActive: boolean;
+
+  // ── Shared drill library (2026-06-27) ────────────────────────────
+  // Coaches opt drills into a cross-club catalog. Other coaches can
+  // browse + save (which copies the drill into their own club/team
+  // library with source: 'imported'). Stars + save counts drive
+  // discovery sort. Author keeps editing rights on their original;
+  // saved copies are snapshots so an upstream edit doesn't change
+  // what the downstream coach is running this Tuesday.
+
+  /** True when the author flipped this drill into the public catalog.
+   *  Required: matching club's allowDrillSharing must also be true. */
+  shareToLibrary?: boolean;
+  /** Server-set timestamp on the flip to true. Drives 'recently added'. */
+  sharedAt?: Date;
+  /** Bumps every time another coach saves this drill (with source:
+   *  'imported'). Strongest signal of usefulness; weighted higher
+   *  than ratings in trending. */
+  saveCount?: number;
+  /** Star rating — 1 to 5. Stored as sum + count so the average can
+   *  be re-derived without a transaction. averageRating is
+   *  denormalized for sortable queries; recomputed on every vote.
+   *  ratedBy maps uid -> their stars, used to toggle / re-vote. */
+  ratingCount?: number;
+  ratingSum?: number;
+  averageRating?: number;
+  ratedBy?: Record<string, 1 | 2 | 3 | 4 | 5>;
+
+  /** Linkage back to the source drill when this row was created via
+   *  Save-from-library. Lets the admin portal show 'this drill was
+   *  saved from X by Y'. Source's saveCount is what bumps; this is
+   *  read-only metadata. */
+  importedFromDrillId?: string;
+  importedFromClubName?: string;
 }
 
 export interface DevelopmentGoal {

@@ -461,6 +461,42 @@ service cloud.firestore {
     // Any signed-in user can CREATE (they're degraded; can't expect
     // perfect auth); only platform admin reads. No updates/deletes —
     // these are append-only forensic records.
+    // Drills. Two access patterns:
+    //   - 'My library' — drill scoped to clubId or teamId I belong to.
+    //   - 'Public library' — drill where shareToLibrary == true. Any
+    //                       authed user can read it (browse), rate it
+    //                       (write thumbsCount/ratingSum/etc), and
+    //                       save a snapshot copy.
+    // Only the creator can edit the body of a drill they wrote.
+    // Anyone authed can write to the rating + saveCount fields on a
+    // shared drill — those are append-style social signals, not the
+    // drill content.
+    match /drills/{drillId} {
+      allow get: if request.auth != null && (
+        resource.data.shareToLibrary == true
+        || (resource.data.clubId is string && resource.data.clubId in userDoc().clubIds)
+        || (resource.data.teamId is string && resource.data.teamId in userDoc().teamIds)
+        || resource.data.createdBy == request.auth.uid
+      );
+      // List is permissive (any authed) because the library tab needs
+      // collection-level reads; rule-level filtering would block legit
+      // 'my own drills' queries. Tighter scoping happens client-side.
+      allow list: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid;
+      // Anyone authed can write to the social-signal fields on a
+      // shared drill (rate, save-count bump). Owner can edit anything.
+      allow update: if request.auth != null && (
+        resource.data.createdBy == request.auth.uid
+        || (
+          resource.data.shareToLibrary == true
+          && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['ratingCount', 'ratingSum', 'averageRating', 'ratedBy', 'saveCount'])
+        )
+      );
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+    }
+
     match /crash_logs/{logId} {
       allow create: if request.auth != null;
       allow read: if isPlatformAdmin();

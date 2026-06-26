@@ -6,6 +6,10 @@ import { useFirestore } from '../hooks/useFirestore';
 import { Drill } from '../types';
 import { isCoach } from '../utils/helpers';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl } from '../utils/streamUpload';
+import {
+  loadLibraryDrills, rateDrill, saveDrillFromLibrary, toggleShareToLibrary,
+  isAutoHidden, isFeatured,
+} from '../utils/drillLibrary';
 
 const TOPICS: { value: Drill['topic']; label: string }[] = [
   { value: 'dribbling', label: 'Dribbling' },
@@ -41,6 +45,17 @@ const Drills: React.FC = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Drill | null>(null);
 
+  // Tab + library state. The library tab pulls shareToLibrary==true
+  // drills from across every club. Default-on per user pref
+  // (browseDrillLibrary). When the user flips that pref off the
+  // tab disappears entirely.
+  const browseLibrary = (userData as any)?.browseDrillLibrary !== false;
+  const [tab, setTab] = useState<'mine' | 'library'>('mine');
+  const [libraryDrills, setLibraryDrills] = useState<Drill[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [librarySort, setLibrarySort] = useState<'top' | 'recent' | 'featured'>('top');
+  const [saveTarget, setSaveTarget] = useState<{ drill: Drill; busy: boolean } | null>(null);
+
   const reload = async () => {
     if (!selectedTeamId) { setLoading(false); return; }
     try {
@@ -61,6 +76,96 @@ const Drills: React.FC = () => {
     }
   };
   useEffect(() => { void reload(); }, [selectedTeamId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pull the public catalog whenever the user switches to the Library
+  // tab. Filtered in memory by the current topic / age / featured-only.
+  useEffect(() => {
+    if (tab !== 'library' || !userData) return;
+    let cancelled = false;
+    (async () => {
+      setLibraryLoading(true);
+      try {
+        const rows = await loadLibraryDrills({
+          topic: filterTopic === 'all' ? undefined : filterTopic,
+          ageBand: filterAge === 'all' ? undefined : filterAge,
+          featuredOnly: librarySort === 'featured',
+          excludeCreatorUid: userData.uid,  // don't show my own drills back to me
+        });
+        if (cancelled) return;
+        const sorted = rows.slice().sort((a, b) => {
+          if (librarySort === 'recent') {
+            const at = (a as any).sharedAt?.toDate?.()?.getTime?.() ?? 0;
+            const bt = (b as any).sharedAt?.toDate?.()?.getTime?.() ?? 0;
+            return bt - at;
+          }
+          // 'top' and 'featured' both prefer rating, then saves
+          return (b.averageRating || 0) - (a.averageRating || 0)
+            || (b.saveCount || 0) - (a.saveCount || 0);
+        });
+        setLibraryDrills(sorted);
+      } catch (e) {
+        console.warn('library load failed', e);
+        setLibraryDrills([]);
+      } finally {
+        if (!cancelled) setLibraryLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tab, filterTopic, filterAge, librarySort, userData]);
+
+  const handleSaveFromLibrary = async (drill: Drill) => {
+    if (!userData) return;
+    setSaveTarget({ drill, busy: true });
+    try {
+      const target: { clubId?: string; teamId?: string } = {};
+      const userClubId = (userData as any).clubIds?.[0] || (userData as any).clubId;
+      if (userClubId) target.clubId = userClubId;
+      else if (selectedTeamId) target.teamId = selectedTeamId;
+      else throw new Error('No team or club to save into');
+      await saveDrillFromLibrary({
+        sourceDrillId: drill.id,
+        sourceClubName: (drill as any).importedFromClubName,
+        newOwnerUid: userData.uid,
+        newOwnerName: userData.name || 'Coach',
+        destination: target,
+      });
+      // Reload my drills so the new copy shows up.
+      void reload();
+      setSaveTarget(null);
+      // Bump local saveCount so the UI updates without a full reload
+      setLibraryDrills(prev => prev.map(d => d.id === drill.id ? { ...d, saveCount: (d.saveCount || 0) + 1 } : d));
+    } catch (e: any) {
+      setSaveTarget({ drill, busy: false });
+      window.alert(e?.message || 'Save failed');
+    }
+  };
+
+  const handleRate = async (drillId: string, stars: 1 | 2 | 3 | 4 | 5) => {
+    if (!userData) return;
+    try {
+      await rateDrill(drillId, userData.uid, stars);
+      // Local optimistic update: recompute avg in the rows
+      setLibraryDrills(prev => prev.map(d => {
+        if (d.id !== drillId) return d;
+        const prevVote = d.ratedBy?.[userData.uid];
+        let sum = d.ratingSum || 0;
+        let count = d.ratingCount || 0;
+        if (prevVote) sum -= prevVote;
+        else count += 1;
+        sum += stars;
+        const avg = count > 0 ? sum / count : 0;
+        return {
+          ...d,
+          ratingCount: count,
+          ratingSum: sum,
+          averageRating: avg,
+          ratedBy: { ...(d.ratedBy || {}), [userData.uid]: stars },
+        };
+      }));
+    } catch (e: any) {
+      window.alert(e?.message || 'Rate failed');
+    }
+  };
 
   const visible = useMemo(() => {
     return drills.filter(d => {
@@ -105,6 +210,52 @@ const Drills: React.FC = () => {
       </section>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        {/* Tab pills — My library vs shared community library. Hidden
+            entirely when the user has browseDrillLibrary off, so a
+            coach who prefers to focus on their own drills doesn't see
+            the extra surface. */}
+        {browseLibrary && (
+          <div className="flex items-center gap-1.5">
+            {([
+              { k: 'mine' as const,    label: 'My drills' },
+              { k: 'library' as const, label: 'Library' },
+            ]).map(t => (
+              <button
+                key={t.k}
+                onClick={() => setTab(t.k)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
+                  tab === t.k
+                    ? 'bg-brand-primary text-white'
+                    : 'bg-charcoal-900 text-bone/55 hover:text-bone ring-1 ring-white/10'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+            {tab === 'library' && (
+              <div className="ml-auto flex items-center gap-1.5">
+                {([
+                  { k: 'top' as const,      label: 'Top rated' },
+                  { k: 'featured' as const, label: 'Featured' },
+                  { k: 'recent' as const,   label: 'Recent' },
+                ]).map(s => (
+                  <button
+                    key={s.k}
+                    onClick={() => setLibrarySort(s.k)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+                      librarySort === s.k
+                        ? 'bg-brand-primary-soft/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30'
+                        : 'bg-charcoal-900 text-bone/55 ring-1 ring-white/10 hover:text-bone'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -122,11 +273,38 @@ const Drills: React.FC = () => {
           >
             {AGE_BANDS.map(a => <option key={a.value as string} value={a.value as string}>{a.label}</option>)}
           </select>
-          <span className="ml-auto text-xs text-bone/50">{visible.length} drill{visible.length === 1 ? '' : 's'}</span>
+          <span className="ml-auto text-xs text-bone/50">
+            {tab === 'library' ? libraryDrills.length : visible.length} drill{(tab === 'library' ? libraryDrills.length : visible.length) === 1 ? '' : 's'}
+          </span>
         </div>
 
-        {/* Grid */}
-        {loading ? (
+        {/* Library tab grid */}
+        {tab === 'library' && (
+          libraryLoading ? (
+            <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">Loading library…</div>
+          ) : libraryDrills.length === 0 ? (
+            <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-10 text-center">
+              <p className="text-sm font-bold text-bone/85">No shared drills match these filters.</p>
+              <p className="text-xs text-bone/50 mt-1">Loosen the filters or be the first to share one — flip a drill in My drills.</p>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {libraryDrills.map(d => (
+                <LibraryCard
+                  key={d.id}
+                  drill={d}
+                  voterUid={userData?.uid}
+                  onRate={(stars) => handleRate(d.id, stars)}
+                  onSave={() => handleSaveFromLibrary(d)}
+                  saving={!!(saveTarget && saveTarget.drill.id === d.id && saveTarget.busy)}
+                />
+              ))}
+            </ul>
+          )
+        )}
+
+        {/* My drills grid (existing) */}
+        {tab === 'mine' && (loading ? (
           <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">Loading…</div>
         ) : visible.length === 0 ? (
           <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-10 text-center">
@@ -189,7 +367,7 @@ const Drills: React.FC = () => {
               </li>
             ))}
           </ul>
-        )}
+        ))}
       </div>
 
       {createOpen && (
@@ -516,6 +694,15 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               </ul>
             </div>
           )}
+
+          {/* Share to library — only on existing drills, not during
+              create. Flipping this triggers an immediate Firestore
+              write (via toggleShareToLibrary) so the state is
+              visible to other coaches the moment the toggle moves;
+              we don't wait for the parent 'Save drill' click. */}
+          {!isNew && drill && drill.id && (
+            <ShareToLibraryRow drill={drill} />
+          )}
         </div>
 
         <div className="px-5 py-3 border-t border-white/10 flex items-center justify-end gap-2">
@@ -540,5 +727,150 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
     {children}
   </div>
 );
+
+// ─────────────────────────────────────────────────────────────
+// ShareToLibraryRow — toggle inside the DrillEditor for putting
+// the drill into the public catalog. Writes immediately on flip;
+// the parent 'Save drill' button doesn't need to know about it.
+// ─────────────────────────────────────────────────────────────
+const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
+  const [shared, setShared] = useState(drill.shareToLibrary === true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const flip = async () => {
+    if (busy) return;
+    const next = !shared;
+    setBusy(true); setError(null);
+    try {
+      await toggleShareToLibrary(drill.id, next);
+      setShared(next);
+    } catch (e: any) {
+      setError(e?.message || 'Could not update share status.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="bg-charcoal-800 rounded-xl ring-1 ring-white/10 px-4 py-3">
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-bone">Share to library</p>
+          <p className="text-xs text-bone/55 mt-0.5 leading-snug">
+            Let other coaches across GoalKickr find, rate, and save this drill. You can unshare anytime.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={flip}
+          disabled={busy}
+          className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
+            shared
+              ? 'bg-brand-primary text-white'
+              : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+          }`}
+        >
+          {busy ? '…' : shared ? 'Shared' : 'Off'}
+        </button>
+      </div>
+      {error && (
+        <p className="mt-2 text-rose-300 text-xs bg-rose-500/10 border border-rose-500/30 rounded p-2">{error}</p>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// LibraryCard — surface for shared community drills.
+// Shows the rating badge + save button + star row. Tapping the
+// card body navigates to a read-only detail view in the future;
+// for v1 it just expands info inline via the description.
+// ─────────────────────────────────────────────────────────────
+const LibraryCard: React.FC<{
+  drill: Drill;
+  voterUid?: string;
+  onRate: (stars: 1 | 2 | 3 | 4 | 5) => void;
+  onSave: () => void;
+  saving: boolean;
+}> = ({ drill, voterUid, onRate, onSave, saving }) => {
+  const myStars = voterUid ? (drill.ratedBy?.[voterUid] as 1 | 2 | 3 | 4 | 5 | undefined) : undefined;
+  const avg = drill.averageRating || 0;
+  const count = drill.ratingCount || 0;
+  const saveCount = drill.saveCount || 0;
+  const featured = isFeatured(drill);
+
+  return (
+    <li className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+      {drill.streamUid && (
+        <div className="aspect-video w-full bg-white/10 relative">
+          <img
+            src={streamThumbnailUrl(drill.streamUid, { height: 240 })}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+        </div>
+      )}
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">
+            {TOPICS.find(t => t.value === drill.topic)?.label || drill.topic}
+          </span>
+          {drill.ageBand && drill.ageBand !== 'all' && (
+            <span className="text-[10px] font-bold text-bone/50">{drill.ageBand}</span>
+          )}
+          {featured && (
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 bg-amber-500/15 ring-1 ring-amber-300/30 px-1.5 py-0.5 rounded">Featured</span>
+          )}
+        </div>
+        <h3 className="text-base font-bold text-bone mb-1 line-clamp-2">{drill.title}</h3>
+        {drill.focus && <p className="text-xs text-bone/65 line-clamp-2">{drill.focus}</p>}
+        {drill.description && !drill.focus && <p className="text-xs text-bone/65 line-clamp-2">{drill.description}</p>}
+
+        <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-bone/55">
+          <div className="flex items-center gap-2">
+            <span title={`Average ${avg.toFixed(1)} from ${count} ${count === 1 ? 'rating' : 'ratings'}`}>
+              ★ {count > 0 ? avg.toFixed(1) : '—'} <span className="text-bone/35">({count})</span>
+            </span>
+            {saveCount > 0 && <span>· saved {saveCount}×</span>}
+          </div>
+          <span className="text-bone/35 truncate">by {drill.createdByName || 'Coach'}</span>
+        </div>
+
+        {/* Star row — five buttons. Filled if user's vote >= n. */}
+        <div className="mt-3 flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map(n => {
+            const active = myStars !== undefined && n <= myStars;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => onRate(n as 1 | 2 | 3 | 4 | 5)}
+                className={`text-lg leading-none transition ${active ? 'text-amber-300' : 'text-bone/25 hover:text-bone/55'}`}
+                title={`Rate ${n} star${n === 1 ? '' : 's'}`}
+              >
+                ★
+              </button>
+            );
+          })}
+          {myStars !== undefined && (
+            <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-bone/45">
+              your rating
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          className="mt-3 w-full px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60 transition"
+        >
+          {saving ? 'Saving…' : 'Save to my drills'}
+        </button>
+      </div>
+    </li>
+  );
+};
 
 export default Drills;

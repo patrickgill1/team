@@ -26,6 +26,7 @@ import {
   handleCustomerPortal,
   handleWebhook,
 } from './stripe';
+import { handleWidgetRequest } from './widget';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -128,6 +129,16 @@ export default {
 
     if (url.pathname === '/health') {
       return json({ ok: true, from: env.FROM_EMAIL }, 200, cors);
+    }
+
+    // GET /widget/snapshot is anonymous — the iOS widget extension
+    // can't run Firebase Auth. Gated by a long-lived widgetToken on
+    // the user doc that the user pastes into the widget config.
+    if (url.pathname === '/widget/snapshot' && req.method === 'GET') {
+      const res = await handleWidgetRequest(req, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
     }
 
     // Stripe webhook is anonymous — Stripe doesn't send our bearer.

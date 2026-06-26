@@ -13,6 +13,7 @@ import { enablePushForUser, getNotifPermission } from '../utils/push';
 import { isCoach } from '../utils/helpers';
 import NotificationPreferences from '../components/common/NotificationPreferences';
 import SubscriptionCard from '../components/settings/SubscriptionCard';
+import WidgetSetupCard from '../components/settings/WidgetSetupCard';
 
 interface LinkedPlayer {
   id: string;
@@ -426,6 +427,11 @@ const Settings: React.FC = () => {
         <section>
           <h2 className="text-2xl font-bold text-bone mb-2 px-1">Notifications</h2>
           <NotificationPreferences />
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Widget</h2>
+          <WidgetSetupCard />
         </section>
 
         <section>

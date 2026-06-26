@@ -88,13 +88,39 @@ private func fetchSnapshot(setupCode: String) async -> (PlayerSnapshot?, String?
     }
 }
 
+// Aggressive downscale before the image enters the timeline entry.
+// WidgetKit caps archived images at ~1.2M total pixels; a full-res
+// 1600x1500 player photo blows past that and silently kills the
+// entry render (the widget goes blank with a console error like
+// 'Widget archival failed due to image being too large'). Pre-scale
+// to <= 192 on the long edge — that's twice the small-widget
+// avatar at @2x, plenty for crisp Retina rendering on any size.
+private let WIDGET_PHOTO_MAX: CGFloat = 192
+
 private func fetchImage(urlString: String?) async -> UIImage? {
     guard let urlString = urlString, let url = URL(string: urlString) else { return nil }
     do {
         let (data, _) = try await URLSession.shared.data(from: url)
-        return UIImage(data: data)
+        guard let raw = UIImage(data: data) else { return nil }
+        return downscale(raw, maxEdge: WIDGET_PHOTO_MAX)
     } catch {
         return nil
+    }
+}
+
+private func downscale(_ image: UIImage, maxEdge: CGFloat) -> UIImage {
+    let w = image.size.width
+    let h = image.size.height
+    let longEdge = max(w, h)
+    if longEdge <= maxEdge { return image }
+    let scale = maxEdge / longEdge
+    let newSize = CGSize(width: w * scale, height: h * scale)
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1   // already targeting a fixed pixel size; don't double via screen scale
+    format.opaque = false
+    let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+    return renderer.image { _ in
+        image.draw(in: CGRect(origin: .zero, size: newSize))
     }
 }
 

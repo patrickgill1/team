@@ -257,7 +257,7 @@ const Settings: React.FC = () => {
             {!editingProfile && (
               <button
                 onClick={() => setEditingProfile(true)}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-crimson-300 hover:text-crimson-900"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary-soft hover:text-brand-primary-dim"
               >
                 <AppIcon name="edit" className="w-4 h-4" />
                 <span>Edit</span>
@@ -281,7 +281,7 @@ const Settings: React.FC = () => {
                     className="w-20 h-20 rounded-full object-cover ring-2 ring-white/10"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-700 flex items-center justify-center text-white text-2xl font-bold ring-2 ring-white/10">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary flex items-center justify-center text-white text-2xl font-bold ring-2 ring-white/10">
                     {userInitial}
                   </div>
                 )}
@@ -311,7 +311,7 @@ const Settings: React.FC = () => {
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
@@ -322,7 +322,7 @@ const Settings: React.FC = () => {
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="(555) 555-5555"
-                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
@@ -341,7 +341,7 @@ const Settings: React.FC = () => {
                       <button
                         onClick={saveProfile}
                         disabled={savingProfile}
-                        className="bg-crimson-600 hover:bg-crimson-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg disabled:opacity-50"
+                        className="bg-brand-primary hover:bg-brand-primary text-white text-sm font-semibold px-4 py-1.5 rounded-lg disabled:opacity-50"
                       >
                         {savingProfile ? 'Saving…' : 'Save'}
                       </button>
@@ -371,7 +371,7 @@ const Settings: React.FC = () => {
             {isCoach(userData?.role || '') && (
               <Link
                 to="/players?add=1"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-crimson-300 hover:text-crimson-900"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary-soft hover:text-brand-primary-dim"
               >
                 <AppIcon name="plus" className="w-4 h-4" />
                 <span>Add Player</span>
@@ -392,7 +392,7 @@ const Settings: React.FC = () => {
                   <Link
                     key={p.id}
                     to={`/player/${p.id}`}
-                    className="flex flex-col items-center text-center rounded-xl ring-1 ring-white/10 hover:ring-crimson-300 hover:shadow-sm p-3 transition"
+                    className="flex flex-col items-center text-center rounded-xl ring-1 ring-white/10 hover:ring-brand-primary-soft hover:shadow-sm p-3 transition"
                   >
                     {p.profilePhotoUrl ? (
                       <img
@@ -566,7 +566,7 @@ const SettingsRow: React.FC<{
     className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.05] transition disabled:opacity-60 text-left"
   >
     <span className="flex items-center gap-3 min-w-0">
-      <span className="w-9 h-9 rounded-lg bg-crimson-500/15 text-crimson-300 flex items-center justify-center shrink-0">
+      <span className="w-9 h-9 rounded-lg bg-brand-primary/15 text-brand-primary-soft flex items-center justify-center shrink-0">
         <AppIcon name={icon} className="w-5 h-5" />
       </span>
       <span className="min-w-0">

@@ -73,14 +73,14 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
   }, [votersOpen, totalVoters.size]);
 
   return (
-    <div className="mx-4 mb-3 rounded-2xl ring-1 ring-crimson-200 bg-crimson-50/40 px-3.5 py-3">
+    <div className="mx-4 mb-3 rounded-2xl ring-1 ring-brand-primary-soft bg-brand-primary-soft/40 px-3.5 py-3">
       <div className="flex items-center gap-1.5 mb-2">
-        <svg className="w-4 h-4 text-crimson-700" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-brand-primary" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <rect x="3" y="12" width="4" height="9" rx="1" />
           <rect x="10" y="7" width="4" height="14" rx="1" />
           <rect x="17" y="3" width="4" height="18" rx="1" />
         </svg>
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-800">Poll</span>
+        <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-dim">Poll</span>
       </div>
       <p className="font-bold text-[15px] leading-snug text-slate-900 mb-2.5">{poll.question}</p>
 
@@ -98,14 +98,14 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               onClick={() => onVote(opt.id)}
               className={`relative w-full text-left rounded-xl px-3 py-2 ring-1 transition overflow-hidden ${
                 mine
-                  ? 'bg-white text-crimson-900 ring-crimson-400'
+                  ? 'bg-white text-brand-primary-dim ring-brand-primary-soft'
                   : 'bg-white text-slate-800 ring-slate-200 hover:bg-slate-50'
               }`}
             >
               {/* Fill bar — represents this option's share of total votes. */}
               <span
                 aria-hidden
-                className={`absolute inset-y-0 left-0 ${mine ? 'bg-crimson-100' : 'bg-crimson-50'} transition-all`}
+                className={`absolute inset-y-0 left-0 ${mine ? 'bg-brand-primary-soft' : 'bg-brand-primary-soft'} transition-all`}
                 style={{ width: `${pct}%` }}
               />
               <span className="relative flex items-start justify-between gap-3">
@@ -125,7 +125,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
           <button
             type="button"
             onClick={() => setVotersOpen(true)}
-            className="text-crimson-700 font-bold uppercase tracking-widest hover:text-crimson-900"
+            className="text-brand-primary font-bold uppercase tracking-widest hover:text-brand-primary-dim"
           >
             See voters →
           </button>
@@ -145,7 +145,7 @@ const WallPollCard: React.FC<Props> = ({ poll, currentUserId, onVote, canSeeVote
               <button onClick={() => setVotersOpen(false)} className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white">
                 Close
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Voters</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Voters</div>
               <span className="w-12" />
             </div>
             <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

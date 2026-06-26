@@ -152,7 +152,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
                 key={i}
                 type="button"
                 onClick={() => setMessage(p)}
-                className="text-xs px-2.5 py-1.5 rounded-lg bg-crimson-500/15 hover:bg-crimson-500/25 text-bone ring-1 ring-crimson-400/30"
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-brand-primary/15 hover:bg-brand-primary/25 text-bone ring-1 ring-brand-primary-soft/30"
               >
                 {p.slice(0, 32)}…
               </button>
@@ -178,7 +178,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
               type="checkbox"
               checked={includePlan}
               onChange={e => setIncludePlan(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-crimson-600"
+              className="mt-0.5 h-4 w-4 accent-brand-primary"
             />
             <div className="text-sm">
               <div className="font-semibold text-bone">Mention current dev plan</div>

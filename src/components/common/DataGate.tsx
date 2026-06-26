@@ -55,7 +55,7 @@ const DataGate: React.FC<Props> = ({
     return (
       <div className="flex items-center justify-center py-6">
         <div className="h-1 w-32 bg-white/[0.06] overflow-hidden rounded-full">
-          <div className="h-full w-1/3 bg-crimson-500/70 animate-progress-slide" />
+          <div className="h-full w-1/3 bg-brand-primary/70 animate-progress-slide" />
         </div>
       </div>
     );
@@ -71,7 +71,7 @@ const DataGate: React.FC<Props> = ({
           <button
             type="button"
             onClick={reload}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-400 hover:text-bone"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-bone"
           >
             Try again
           </button>

@@ -248,7 +248,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                       onChange={(e) => handleCaptionChange(file.name, e.target.value)}
                       placeholder="Add a caption for this photo..."
                       disabled={isUploading || uploadLoading}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500 disabled:opacity-50"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:opacity-50"
                     />
                   </div>
                 ))}
@@ -265,7 +265,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
                       disabled={isUploading || uploadLoading}
                       className={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 disabled:opacity-50 ${
                         selectedTags.includes(tag)
-                          ? 'bg-crimson-100 text-charcoal-800 border border-crimson-300'
+                          ? 'bg-brand-primary-soft text-charcoal-800 border border-brand-primary-soft'
                           : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
                       }`}
                     >

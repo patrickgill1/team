@@ -787,7 +787,7 @@ const Dashboard: React.FC = () => {
   const eventEmoji = (t: string) => t === 'game' ? '⚽' : t === 'practice' ? '🏃' : '📅';
   const eventGradient = (t: string) =>
     t === 'game' ? 'from-rose-500 to-orange-500'
-      : t === 'practice' ? 'from-crimson-500 to-charcoal-600'
+      : t === 'practice' ? 'from-brand-primary to-charcoal-600'
       : 'from-violet-500 to-fuchsia-500';
 
   // Atomic-render gate: render nothing for the first ~400ms of the
@@ -955,15 +955,15 @@ const Dashboard: React.FC = () => {
           return (
             <Link
               to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-              className="block group relative overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/5 hover:ring-crimson-500/40 transition shadow-lg"
+              className="block group relative overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/5 hover:ring-brand-primary/40 transition shadow-lg"
             >
-              <div className="absolute -top-12 -right-12 w-40 h-40 bg-crimson-500/10 blur-3xl pointer-events-none" aria-hidden />
+              <div className="absolute -top-12 -right-12 w-40 h-40 bg-brand-primary/10 blur-3xl pointer-events-none" aria-hidden />
 
               <div className="relative px-4 pt-3 pb-3.5">
                 {/* Row 1: focus on left, streak chip on right */}
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400">
+                    <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">
                       {tonightGoal.loggedToday ? 'Logged today' : 'This week'}
                       <span className="text-charcoal-500"> · </span>
                       <span className="text-charcoal-300 normal-case tracking-normal font-bold">{tonightGoal.planTitle}</span>
@@ -989,7 +989,7 @@ const Dashboard: React.FC = () => {
                           {DAY_LETTER[d.date.getDay()]}
                         </span>
                         {d.logged ? (
-                          <span className="w-2 h-2 rounded-full bg-crimson-500 shadow-sm shadow-crimson-500/50" aria-label="logged" />
+                          <span className="w-2 h-2 rounded-full bg-brand-primary shadow-sm shadow-brand-primary/50" aria-label="logged" />
                         ) : d.isFuture ? (
                           <span className="w-2 h-2 rounded-full ring-1 ring-charcoal-700" aria-label="upcoming" />
                         ) : (
@@ -1002,7 +1002,7 @@ const Dashboard: React.FC = () => {
                     <span className="text-bone font-bold tabular-nums">{loggedCount}</span> of 6 days
                   </div>
                   <svg
-                    className="w-4 h-4 text-charcoal-500 group-hover:text-crimson-400 transition-colors flex-shrink-0"
+                    className="w-4 h-4 text-charcoal-500 group-hover:text-brand-primary-soft transition-colors flex-shrink-0"
                     fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
                   >
                     <polyline points="9 18 15 12 9 6"/>
@@ -1145,7 +1145,7 @@ const NextEventHero: React.FC<{
   const fullDate = `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`;
   const tileGradient =
     event.type === 'game' ? 'from-rose-500 to-orange-600' :
-    event.type === 'practice' ? 'from-crimson-500 to-charcoal-600' :
+    event.type === 'practice' ? 'from-brand-primary to-charcoal-600' :
     'from-violet-500 to-fuchsia-600';
   return (
     <section
@@ -1177,7 +1177,7 @@ const NextEventHero: React.FC<{
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-crimson-600 mb-0.5">Next event</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-brand-primary mb-0.5">Next event</p>
           <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight truncate">{event.title}</h2>
           <p className="text-sm text-gray-600 mt-1 flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -1233,13 +1233,13 @@ const NextEventHero: React.FC<{
             </span>
           )}
           {isCoach && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-crimson-50 text-crimson-700 ring-1 ring-crimson-200 text-xs font-bold whitespace-nowrap">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-primary-soft text-brand-primary ring-1 ring-brand-primary-soft text-xs font-bold whitespace-nowrap">
               {counts.going} going
             </span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); goToCalendar(); }}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-crimson-50 hover:bg-crimson-100 text-crimson-700 ring-1 ring-crimson-200 text-xs font-bold whitespace-nowrap transition"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-primary-soft hover:bg-brand-primary-soft text-brand-primary ring-1 ring-brand-primary-soft text-xs font-bold whitespace-nowrap transition"
           >
             View details
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -1311,7 +1311,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
             for (let i = 0; i < (displayTitle || '').length; i++) hash = (hash * 31 + displayTitle.charCodeAt(i)) >>> 0;
             // Brand-coherent two-tone fallback — cyan for DMs you've
             // got a photo for and slate for everyone else. No rainbow.
-            const palette = ['bg-crimson-600', 'bg-slate-600'];
+            const palette = ['bg-brand-primary', 'bg-slate-600'];
             const avatarBg = palette[hash % palette.length];
             // For DMs, show the other participant's real photo when we have it.
             const dmPhotoUrl = isDM && otherUid ? userPhotoMap?.[otherUid] : undefined;
@@ -1355,7 +1355,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
                       {last?.senderName ? <span className="font-medium text-white/80">{last.senderName}: </span> : null}
                       {last?.content || (isDM ? 'Tap to start chatting' : 'No messages yet')}
                     </p>
-                    {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-crimson-400" />}
+                    {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-brand-primary-soft" />}
                   </div>
                 </div>
               </Link>
@@ -1398,9 +1398,9 @@ const MyPlayerCard: React.FC<{
   // place. Cohesion across players matters more than per-player
   // color identity for brand consistency.
   const brandAccent = {
-    ring: 'ring-crimson-500/35',
-    shadow: 'shadow-crimson-600/25',
-    blob: 'bg-crimson-500/20',
+    ring: 'ring-brand-primary/35',
+    shadow: 'shadow-brand-primary/25',
+    blob: 'bg-brand-primary/20',
   };
   // POTM-of-the-week treatment — the whole card goes gold. Bright
   // saturated gradient, thick gold ring, glow shadow, animated
@@ -1475,7 +1475,7 @@ const MyPlayerCard: React.FC<{
               loading="lazy"
             />
           ) : (
-            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}>
+            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-charcoal-700 flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}>
               {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
           )}
@@ -1493,7 +1493,7 @@ const MyPlayerCard: React.FC<{
               className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-full text-[11px] font-black tabular-nums shadow-lg ring-2 ring-charcoal-900 ${
                 streakDays >= 3
                   ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
-                  : 'bg-crimson-500 text-white'
+                  : 'bg-brand-primary text-white'
               }`}
             >
               {streakDays >= 3 ? '🔥' : ''}{streakDays}
@@ -1622,7 +1622,7 @@ const TeamPulseCard: React.FC<{
         to={`/game-day/quick_${Date.now()}`}
         className="mx-4 mt-4 p-3 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-400/30 flex items-center gap-3 hover:bg-emerald-500/20 transition active:scale-[0.99]"
       >
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-crimson-600 text-white flex items-center justify-center shadow flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-brand-primary text-white flex items-center justify-center shadow flex-shrink-0">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="6" />
@@ -1662,7 +1662,7 @@ const TeamPulseCard: React.FC<{
           )}
           {topAssister && topAssister.id !== topScorer?.id && (
             <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-white/[0.05] transition">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-crimson-500 to-charcoal-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-brand-primary to-charcoal-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ta.profilePhotoUrl ? (
                   <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
                 ) : (
@@ -1672,7 +1672,7 @@ const TeamPulseCard: React.FC<{
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-bone/60">Top assister</p>
                 <p className="font-bold text-white text-sm truncate">{topAssister.name}</p>
-                <p className="text-xs text-crimson-400 font-bold">
+                <p className="text-xs text-brand-primary-soft font-bold">
                   <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
                   <span className="text-white/40 font-medium uppercase tracking-wider text-[10px]">assists</span>
                 </p>
@@ -1718,7 +1718,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
 
       {/* Top-left: label + headline */}
       <div className="absolute top-4 sm:top-5 left-4 sm:left-5 right-32 text-white">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-crimson-400 mb-1">Latest highlight</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-primary-soft mb-1">Latest highlight</p>
         <p className="text-2xl sm:text-3xl font-black leading-tight drop-shadow">{headline}</p>
         {ctxLine && (
           <p className="text-sm text-white/85 mt-0.5 drop-shadow">{ctxLine}</p>
@@ -1728,7 +1728,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
       {/* Center play button */}
       {clip.type === 'video' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-crimson-500/95 ring-2 ring-white/80 shadow-2xl flex items-center justify-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-brand-primary/95 ring-2 ring-white/80 shadow-2xl flex items-center justify-center">
             <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
@@ -1738,7 +1738,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
 
       {/* Bottom-left: Watch clip link */}
       <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
-        <span className="inline-flex items-center gap-1.5 text-crimson-400 font-bold text-sm drop-shadow">
+        <span className="inline-flex items-center gap-1.5 text-brand-primary-soft font-bold text-sm drop-shadow">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
             <path d="M10 8l6 4-6 4V8z" />
@@ -1769,7 +1769,7 @@ const DashTile: React.FC<{
 }> = ({ to, label, icon, badge, badgeTone = 'rose' }) => {
   const badgeColor = {
     rose: 'bg-rose-500 text-white',
-    cyan: 'bg-crimson-500 text-white',
+    cyan: 'bg-brand-primary text-white',
     amber: 'bg-orange-500 text-white',
   }[badgeTone];
   return (
@@ -1777,7 +1777,7 @@ const DashTile: React.FC<{
       to={to}
       className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ring-white/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-white/20 hover:bg-white/[0.03] active:scale-[0.97] transition shadow"
     >
-      <span className="text-crimson-400">{icon}</span>
+      <span className="text-brand-primary-soft">{icon}</span>
       <span className="text-[11px] font-bold uppercase tracking-widest text-white/85">{label}</span>
       {badge != null && badge !== 0 && badge !== '' && (
         <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-charcoal-950 ${badgeColor}`}>

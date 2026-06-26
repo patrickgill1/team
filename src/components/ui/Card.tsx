@@ -53,8 +53,8 @@ const VARIANTS: Record<CardVariant, string> = {
   raised:  'bg-charcoal-900 ring-1 ring-white/10 shadow-xl shadow-black/30',
   subtle:  'bg-white/[0.04] ring-1 ring-white/5',
   accent:
-    'bg-gradient-to-br from-crimson-950/40 via-charcoal-900 to-charcoal-900 ' +
-    'ring-1 ring-crimson-700/40',
+    'bg-gradient-to-br from-brand-primary-deep/40 via-charcoal-900 to-charcoal-900 ' +
+    'ring-1 ring-brand-primary/40',
 };
 
 const PADDINGS: Record<CardPadding, string> = {
@@ -90,7 +90,7 @@ const Card: React.FC<Props> = ({
         <div className="px-5 py-4 border-b border-white/5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             {kicker && (
-              <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1">
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">
                 {kicker}
               </p>
             )}

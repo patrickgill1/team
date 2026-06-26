@@ -357,9 +357,9 @@ const PlayerProfile: React.FC = () => {
   // (fire/cyan/navy + emerald for "growth"). No more violet/orange.
   const getCategoryColor = (cat: string) => {
     switch (cat) {
-      case 'technical': return 'bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-100';
+      case 'technical': return 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft';
       case 'tactical': return 'bg-charcoal-700/10 text-charcoal-800 ring-1 ring-charcoal-700/10';
-      case 'physical': return 'bg-crimson-500/15 text-charcoal-800 ring-1 ring-crimson-100';
+      case 'physical': return 'bg-brand-primary/15 text-charcoal-800 ring-1 ring-brand-primary-soft';
       case 'mental': return 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-100';
       default: return 'bg-white/[0.04] text-bone/85 ring-1 ring-gray-100';
     }
@@ -369,12 +369,12 @@ const PlayerProfile: React.FC = () => {
   // away from the most off-brand tones (amber, orange) where possible.
   const positionDot = (pos?: string): string => {
     switch (pos) {
-      case 'Goalkeeper': return 'bg-crimson-400';
+      case 'Goalkeeper': return 'bg-brand-primary-soft';
       case 'Defender': return 'bg-charcoal-700';
       case 'Midfielder': return 'bg-emerald-500';
       case 'Forward':
       case 'Striker': return 'bg-rose-500';
-      case 'Winger': return 'bg-crimson-500';
+      case 'Winger': return 'bg-brand-primary';
       default: return 'bg-white/40';
     }
   };
@@ -417,7 +417,7 @@ const PlayerProfile: React.FC = () => {
         <div className="text-center">
           <div className="text-5xl mb-4">😕</div>
           <h2 className="text-xl font-bold text-bone">Player Not Found</h2>
-          <Link to="/players" className="text-crimson-600 hover:underline mt-2 inline-block">← Back to Roster</Link>
+          <Link to="/players" className="text-brand-primary hover:underline mt-2 inline-block">← Back to Roster</Link>
         </div>
       </div>
     );
@@ -570,7 +570,7 @@ const PlayerProfile: React.FC = () => {
                         <button
                           key={s.id}
                           onClick={() => { setSelectedSeasonId(s.id); setSeasonMenuOpen(false); }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === s.id ? 'text-crimson-400 font-semibold' : 'text-white/85'}`}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 ${selectedSeasonId === s.id ? 'text-brand-primary-soft font-semibold' : 'text-white/85'}`}
                         >
                           {s.name}
                         </button>
@@ -600,11 +600,11 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Goals</div>
                   </div>
                   <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-crimson-400">{s.assists || 0}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{s.assists || 0}</div>
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Assists</div>
                   </div>
                   <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-crimson-400">{votingWins.length}</div>
+                    <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{votingWins.length}</div>
                     <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">POTM</div>
                   </div>
                   <div className="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur p-2.5 sm:p-3 text-center">
@@ -684,8 +684,8 @@ const PlayerProfile: React.FC = () => {
               className="w-full text-left relative overflow-hidden rounded-2xl bg-white/[0.04] backdrop-blur ring-1 ring-white/10 p-5 hover:bg-white/[0.06] transition"
             >
               <div className="flex items-center gap-2 mb-2">
-                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                <span className="text-[10px] uppercase tracking-widest font-black text-crimson-400">What people said</span>
+                <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                <span className="text-[10px] uppercase tracking-widest font-black text-brand-primary-soft">What people said</span>
               </div>
               {latestQuote ? (
                 <>
@@ -741,7 +741,7 @@ const PlayerProfile: React.FC = () => {
               return (
                 <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-400">Stats</h2>
+                    <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Stats</h2>
                     <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold">{scopeLabel}</span>
                   </div>
                   {/* Scope toggle */}
@@ -756,7 +756,7 @@ const PlayerProfile: React.FC = () => {
                         onClick={() => setStatsScope(k)}
                         className={`flex-1 px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-widest uppercase transition ${
                           statsScope === k
-                            ? 'bg-crimson-500/20 text-bone ring-1 ring-crimson-400/40'
+                            ? 'bg-brand-primary/20 text-bone ring-1 ring-brand-primary-soft/40'
                             : 'text-white/60 hover:text-white'
                         }`}
                       >
@@ -766,7 +766,7 @@ const PlayerProfile: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
-                      <div className="text-2xl sm:text-3xl font-black text-crimson-400">{scoped.gamesPlayed || 0}</div>
+                      <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{scoped.gamesPlayed || 0}</div>
                       <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Games</div>
                     </div>
                     <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
@@ -774,7 +774,7 @@ const PlayerProfile: React.FC = () => {
                       <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Goals</div>
                     </div>
                     <div className="rounded-xl bg-white/[0.03] ring-1 ring-white/10 p-2.5 text-center">
-                      <div className="text-2xl sm:text-3xl font-black text-crimson-400">{scoped.assists || 0}</div>
+                      <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{scoped.assists || 0}</div>
                       <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Assists</div>
                     </div>
                     {isGoalkeeper(player) ? (
@@ -809,14 +809,14 @@ const PlayerProfile: React.FC = () => {
                 <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <div className={`text-[10px] uppercase tracking-widest font-black mb-1 ${hot ? 'text-orange-300' : 'text-crimson-400'}`}>Practice Effort</div>
+                      <div className={`text-[10px] uppercase tracking-widest font-black mb-1 ${hot ? 'text-orange-300' : 'text-brand-primary-soft'}`}>Practice Effort</div>
                       <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-white">{streakDays}</div>
                       <div className="text-xs sm:text-sm font-semibold text-white/60 mt-1.5">{streakDays === 1 ? 'day' : 'days'} in a row · {hot ? "you're on fire" : 'keep it going'}</div>
                     </div>
                     <div className={`shrink-0 w-14 h-14 rounded-full flex items-center justify-center ${
                       hot
                         ? 'bg-orange-500/15 ring-1 ring-orange-400/30 text-orange-300'
-                        : 'bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-400'
+                        : 'bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft'
                     }`}>
                       <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
                         {hot
@@ -849,13 +849,13 @@ const PlayerProfile: React.FC = () => {
               <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-black text-bone">Development</h2>
-                  <button onClick={() => setActiveTab('development')} className="text-sm text-crimson-600 hover:text-crimson-300 font-bold">View All →</button>
+                  <button onClick={() => setActiveTab('development')} className="text-sm text-brand-primary hover:text-brand-primary-soft font-bold">View All →</button>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2 mb-4">
-                  <div className="rounded-xl bg-crimson-500/15 ring-1 ring-crimson-100 p-3 text-center">
-                    <div className="text-xl sm:text-2xl font-black text-crimson-300">{activePlans.length}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-crimson-300/70 font-bold">Active</div>
+                  <div className="rounded-xl bg-brand-primary/15 ring-1 ring-brand-primary-soft p-3 text-center">
+                    <div className="text-xl sm:text-2xl font-black text-brand-primary-soft">{activePlans.length}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-brand-primary-soft/70 font-bold">Active</div>
                   </div>
                   <div className="rounded-xl bg-emerald-500/15 ring-1 ring-emerald-100 p-3 text-center">
                     <div className="text-xl sm:text-2xl font-black text-emerald-300">{completedPlans.length}</div>
@@ -897,7 +897,7 @@ const PlayerProfile: React.FC = () => {
                         </div>
                         <div>
                           <div className="flex justify-between text-[10px] text-bone/50 font-semibold uppercase tracking-wider"><span>Coach Verified</span><span>{verified}%</span></div>
-                          <div className="w-full bg-white/[0.08] rounded-full h-1.5"><div className={`h-1.5 rounded-full transition-all ${verified === 100 ? 'bg-emerald-500' : 'bg-crimson-500'}`} style={{ width: `${verified}%` }} /></div>
+                          <div className="w-full bg-white/[0.08] rounded-full h-1.5"><div className={`h-1.5 rounded-full transition-all ${verified === 100 ? 'bg-emerald-500' : 'bg-brand-primary'}`} style={{ width: `${verified}%` }} /></div>
                         </div>
                         {planTarget > 0 && (
                           <div>
@@ -924,8 +924,8 @@ const PlayerProfile: React.FC = () => {
             {recentMedia.length > 0 && (
               <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-400">Recent Highlights</h2>
-                  <button onClick={() => setActiveTab('media')} className="text-xs font-bold text-crimson-400 hover:text-bone">View All →</button>
+                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Recent Highlights</h2>
+                  <button onClick={() => setActiveTab('media')} className="text-xs font-bold text-brand-primary-soft hover:text-bone">View All →</button>
                 </div>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {recentMedia.map(item => (
@@ -933,7 +933,7 @@ const PlayerProfile: React.FC = () => {
                       key={item.id}
                       type="button"
                       onClick={() => setLightboxItem(item)}
-                      className="group relative aspect-square bg-black/40 rounded-xl overflow-hidden ring-1 ring-white/10 hover:ring-crimson-400/40 transition"
+                      className="group relative aspect-square bg-black/40 rounded-xl overflow-hidden ring-1 ring-white/10 hover:ring-brand-primary-soft/40 transition"
                     >
                       {item.type === 'video' ? (
                         <>
@@ -966,8 +966,8 @@ const PlayerProfile: React.FC = () => {
             {(votingWins.length > 0 || votingNominations > 0) && (
               <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-crimson-400">Player of the Match</h2>
-                  <button onClick={() => setActiveTab('awards')} className="text-xs font-bold text-crimson-400 hover:text-bone">View All →</button>
+                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Player of the Match</h2>
+                  <button onClick={() => setActiveTab('awards')} className="text-xs font-bold text-brand-primary-soft hover:text-bone">View All →</button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl bg-amber-500/10 ring-1 ring-amber-400/30 p-5">
@@ -977,8 +977,8 @@ const PlayerProfile: React.FC = () => {
                     <div className="text-3xl sm:text-4xl font-black leading-none text-amber-200">{votingWins.length}</div>
                     <div className="text-[10px] uppercase tracking-wider font-bold text-white/70 mt-1">Wins</div>
                   </div>
-                  <div className="rounded-2xl bg-crimson-500/10 ring-1 ring-crimson-400/30 p-5">
-                    <div className="flex items-center gap-2 mb-2 text-crimson-400">
+                  <div className="rounded-2xl bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 p-5">
+                    <div className="flex items-center gap-2 mb-2 text-brand-primary-soft">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                     </div>
                     <div className="text-3xl sm:text-4xl font-black leading-none text-bone">{votingNominations}</div>
@@ -1037,7 +1037,7 @@ const PlayerProfile: React.FC = () => {
             {/* EMPTY STATE */}
             {plans.length === 0 && recentMedia.length === 0 && votingWins.length === 0 && (
               <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-8 text-center">
-                <div className="mx-auto w-14 h-14 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 flex items-center justify-center text-crimson-400 mb-3">
+                <div className="mx-auto w-14 h-14 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 flex items-center justify-center text-brand-primary-soft mb-3">
                   <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="white" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-1">{player.name.split(' ')[0]}'s journey starts here</h3>
@@ -1154,7 +1154,7 @@ const PlayerProfile: React.FC = () => {
                   <div className="text-[10px] sm:text-xs uppercase tracking-widest font-bold opacity-90 mt-1.5">POTM Wins</div>
                 </div>
               </div>
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-crimson-500 to-sky-600 text-white p-5 sm:p-6 text-center shadow-xl">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-primary to-sky-600 text-white p-5 sm:p-6 text-center shadow-xl">
                 <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
                 <div className="relative flex flex-col items-center">
                   <svg className="w-12 h-12 sm:w-14 sm:h-14 mb-2 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
@@ -1269,7 +1269,7 @@ const PlayerProfile: React.FC = () => {
                       {w.coachAvatarUrl ? (
                         <img src={w.coachAvatarUrl} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-white/10" />
                       ) : (
-                        <span className="w-9 h-9 rounded-full bg-crimson-500/20 text-crimson-200 ring-1 ring-crimson-400/30 flex items-center justify-center text-sm font-black">
+                        <span className="w-9 h-9 rounded-full bg-brand-primary/20 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 flex items-center justify-center text-sm font-black">
                           {(w.coachName || 'C').charAt(0).toUpperCase()}
                         </span>
                       )}
@@ -1304,7 +1304,7 @@ const PlayerProfile: React.FC = () => {
                     {(w.devPlanTitle || w.clipUrl) && (
                       <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap gap-2 text-[11px]">
                         {w.devPlanTitle && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-crimson-500/10 ring-1 ring-crimson-400/30 text-crimson-200 font-bold">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft font-bold">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
                             {w.devPlanTitle}
                           </span>
@@ -1344,7 +1344,7 @@ const PlayerProfile: React.FC = () => {
                   value={juggleDraft}
                   onChange={(e) => setJuggleDraft(e.target.value)}
                   autoFocus
-                  className="w-full px-3 py-3 text-2xl font-black text-center border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+                  className="w-full px-3 py-3 text-2xl font-black text-center border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                   placeholder="0"
                 />
               </div>
@@ -1391,7 +1391,7 @@ const PlayerProfile: React.FC = () => {
                     alert('Save failed — try again.');
                   }
                 }}
-                className="px-4 py-2 text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-500 rounded-lg"
+                className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary rounded-lg"
               >
                 Save
               </button>
@@ -1576,7 +1576,7 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
           </div>
         </div>
         <div className="w-full bg-white/15 rounded-full h-1.5 mt-3">
-          <div className={`h-1.5 rounded-full transition-all ${plan.status === 'completed' ? 'bg-emerald-500' : 'bg-crimson-500'}`} style={{ width: `${progress}%` }} />
+          <div className={`h-1.5 rounded-full transition-all ${plan.status === 'completed' ? 'bg-emerald-500' : 'bg-brand-primary'}`} style={{ width: `${progress}%` }} />
         </div>
       </button>
       {expanded && (
@@ -1604,13 +1604,13 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                   <div className="flex items-center justify-between flex-wrap gap-1">
                     <p className={`text-sm font-medium ${goal.coachVerified ? 'text-emerald-300 line-through' : 'text-bone'}`}>{goal.title}</p>
                     {totalMins > 0 && (
-                      <span className="text-xs font-medium text-crimson-600 bg-crimson-500/15 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-medium text-brand-primary bg-brand-primary/15 px-2 py-0.5 rounded-full">
                         ⏱️ {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`}
                       </span>
                     )}
                   </div>
                   {goal.description && <p className="text-xs text-bone/50 mt-0.5">{goal.description}</p>}
-                  {goal.notes && <p className="text-xs text-crimson-600 mt-1 italic">Coach: {goal.notes}</p>}
+                  {goal.notes && <p className="text-xs text-brand-primary mt-1 italic">Coach: {goal.notes}</p>}
                   <div className="flex gap-2 mt-1">
                     {goal.playerCompleted && <span className="text-[10px] text-bone/40">Marked done by player</span>}
                     {goal.coachVerified && goal.coachVerifiedByName && <span className="text-[10px] text-emerald-600">Verified by {goal.coachVerifiedByName}</span>}
@@ -1625,13 +1625,13 @@ const PlanDetail: React.FC<PlanDetailProps> = ({ plan, getCategoryColor, getCate
                           <span className="text-bone/40">
                             {entry.date?.toDate ? entry.date.toDate().toLocaleDateString() : new Date(entry.date).toLocaleDateString()}
                           </span>
-                          {entry.minutes && <span className="text-crimson-600 font-medium ml-1">({entry.minutes} min)</span>}
+                          {entry.minutes && <span className="text-brand-primary font-medium ml-1">({entry.minutes} min)</span>}
                           {' — '}{entry.note}
                           {entry.loggedByName && <span className="text-bone/40 ml-1">— {entry.loggedByName}</span>}
                         </div>
                       ))}
                       {logs.length > 3 && showAllLogs !== goal.id && (
-                        <button onClick={() => setShowAllLogs(goal.id)} className="text-xs text-crimson-600 hover:text-crimson-300">
+                        <button onClick={() => setShowAllLogs(goal.id)} className="text-xs text-brand-primary hover:text-brand-primary-soft">
                           Show all {logs.length} entries
                         </button>
                       )}

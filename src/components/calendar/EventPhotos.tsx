@@ -106,7 +106,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="text-xs font-bold text-crimson-700 hover:text-crimson-900 disabled:opacity-50"
+              className="text-xs font-bold text-brand-primary hover:text-brand-primary-dim disabled:opacity-50"
             >
               {uploading ? `Uploading ${uploadPct}%…` : '+ Add photos'}
             </button>

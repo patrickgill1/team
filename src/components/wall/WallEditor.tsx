@@ -46,7 +46,7 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
       Link.configure({
         openOnClick: false,
         autolink: true,
-        HTMLAttributes: { class: 'text-crimson-300 underline underline-offset-2' },
+        HTMLAttributes: { class: 'text-brand-primary-soft underline underline-offset-2' },
       }),
       Placeholder.configure({
         placeholder: placeholder || 'Share an update with the team…',
@@ -181,7 +181,7 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
             title="Image"
             className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition text-xs font-bold cursor-pointer ${
               imgUploading
-                ? 'bg-crimson-500/20 text-crimson-300'
+                ? 'bg-brand-primary/20 text-brand-primary-soft'
                 : 'text-bone/70 hover:bg-white/[0.06] hover:text-bone'
             }`}
           >
@@ -244,7 +244,7 @@ function ToolBtn({ label, icon, title, active, onClick }: {
       title={title || label}
       className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition text-xs font-bold ${
         active
-          ? 'bg-crimson-500/20 text-crimson-300'
+          ? 'bg-brand-primary/20 text-brand-primary-soft'
           : 'text-bone/70 hover:bg-white/[0.06] hover:text-bone'
       }`}
     >

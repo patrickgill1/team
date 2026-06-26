@@ -24,15 +24,15 @@ const CATEGORY_LABEL: Record<TicketCategory, string> = {
   other: 'Other',
 };
 const STATUS_CHIP: Record<TicketStatus, string> = {
-  open: 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30',
+  open: 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30',
   assigned: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
-  in_progress: 'bg-crimson-500/15 text-bone/85 border-crimson-400/30',
+  in_progress: 'bg-brand-primary/15 text-bone/85 border-brand-primary-soft/30',
   resolved: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
   closed: 'bg-charcoal-950 text-bone/50 border-white/10',
 };
 const PRIORITY_CHIP: Record<TicketPriority, string> = {
   low: 'bg-charcoal-950 text-bone/65 border-white/10',
-  normal: 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30',
+  normal: 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30',
   high: 'bg-rose-500/15 text-rose-300 border-rose-400/30',
 };
 
@@ -163,7 +163,7 @@ const Helpdesk: React.FC = () => {
           <button
             onClick={() => setNewOpen(true)}
             aria-label="New ticket"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -187,7 +187,7 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setStatusFilter(k)}
                   className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     statusFilter === k
-                      ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30'
+                      ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30'
                       : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
                   }`}
                 >
@@ -400,7 +400,7 @@ const NewTicketModal: React.FC<{
           <button
             onClick={submit}
             disabled={busy || !subject.trim() || !description.trim()}
-            className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white shadow-md shadow-crimson-500/30 disabled:opacity-40"
+            className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-brand-primary to-charcoal-600 text-white shadow-md shadow-brand-primary/30 disabled:opacity-40"
           >
             {busy ? 'Submitting…' : 'Submit ticket'}
           </button>

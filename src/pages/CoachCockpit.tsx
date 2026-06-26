@@ -110,7 +110,7 @@ const CoachCockpit: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
         <p className="text-bone/85 font-semibold mb-1">Coach view</p>
         <p className="text-bone/55 text-sm mb-4">This page is for coaches.</p>
-        <Link to="/dashboard" className="text-crimson-300 font-bold text-sm hover:text-crimson-200">← Back to dashboard</Link>
+        <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
       </div>
     );
   }
@@ -126,8 +126,8 @@ const CoachCockpit: React.FC = () => {
       />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-4">
         {showProgress && !loaded && (
-          <div className="h-0.5 bg-crimson-500/15 overflow-hidden rounded-full">
-            <div className="h-full w-1/3 bg-crimson-500 animate-progress-slide" />
+          <div className="h-0.5 bg-brand-primary/15 overflow-hidden rounded-full">
+            <div className="h-full w-1/3 bg-brand-primary animate-progress-slide" />
           </div>
         )}
 
@@ -136,9 +136,9 @@ const CoachCockpit: React.FC = () => {
           {nextEvent ? (
             <Link
               to={`/event/${nextEvent.id}`}
-              className="block rounded-2xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-500/30 transition p-4"
+              className="block rounded-2xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/30 transition p-4"
             >
-              <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1">Next up</p>
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Next up</p>
               <p className="text-base font-black text-bone leading-tight">{nextEvent.title || 'Event'}</p>
               <p className="text-xs text-bone/55 mt-0.5">
                 {nextEvent.date.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
@@ -148,7 +148,7 @@ const CoachCockpit: React.FC = () => {
           ) : (
             <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-4">
               <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Next up</p>
-              <p className="text-sm text-bone/70">Nothing scheduled. <Link to="/events" className="text-crimson-300 font-bold hover:text-crimson-200">Create an event →</Link></p>
+              <p className="text-sm text-bone/70">Nothing scheduled. <Link to="/events" className="text-brand-primary-soft font-bold hover:text-brand-primary-soft">Create an event →</Link></p>
             </div>
           )}
 
@@ -156,9 +156,9 @@ const CoachCockpit: React.FC = () => {
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-3">
             <Link
               to="/events"
-              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-500/30 transition p-4 flex flex-col gap-1"
+              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
             >
-              <svg className="w-5 h-5 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
               </svg>
               <p className="text-[13px] font-black text-bone leading-tight mt-1">New event</p>
@@ -167,9 +167,9 @@ const CoachCockpit: React.FC = () => {
 
             <Link
               to="/wall"
-              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-500/30 transition p-4 flex flex-col gap-1"
+              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
             >
-              <svg className="w-5 h-5 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <rect x="3" y="4" width="18" height="16" rx="2" /><line x1="7" y1="9" x2="17" y2="9" /><line x1="7" y1="13" x2="17" y2="13" /><line x1="7" y1="17" x2="13" y2="17" />
               </svg>
               <p className="text-[13px] font-black text-bone leading-tight mt-1">Post to wall</p>
@@ -178,9 +178,9 @@ const CoachCockpit: React.FC = () => {
 
             <Link
               to="/chat"
-              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-500/30 transition p-4 flex flex-col gap-1"
+              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
             >
-              <svg className="w-5 h-5 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
               </svg>
               <p className="text-[13px] font-black text-bone leading-tight mt-1">Open team chat</p>
@@ -189,9 +189,9 @@ const CoachCockpit: React.FC = () => {
 
             <Link
               to="/development"
-              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-500/30 transition p-4 flex flex-col gap-1"
+              className="rounded-xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
             >
-              <svg className="w-5 h-5 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
               </svg>
               <p className="text-[13px] font-black text-bone leading-tight mt-1">Development plans</p>
@@ -218,7 +218,7 @@ const CoachCockpit: React.FC = () => {
               </div>
               <Link
                 to="/settings"
-                className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 hover:text-crimson-200"
+                className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary-soft"
               >
                 Update →
               </Link>

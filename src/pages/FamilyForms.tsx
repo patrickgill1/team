@@ -285,7 +285,7 @@ const FamilyForms: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => { setSigning({ playerId: player.id, formId: form.id }); setSignedByName(''); setAnswers({}); }}
-                              className="shrink-0 text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-crimson-600 hover:bg-crimson-500 text-white"
+                              className="shrink-0 text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary hover:bg-brand-primary text-white"
                             >
                               {ctaLabel}
                             </button>
@@ -315,7 +315,7 @@ const FamilyForms: React.FC = () => {
                                   value={signedByName}
                                   onChange={(e) => setSignedByName(e.target.value)}
                                   placeholder="First Last"
-                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                                   style={{ fontSize: '16px' }}
                                 />
                                 <p className="text-[10px] text-bone/45 mt-1">Recorded as your e-signature for this release.</p>
@@ -329,7 +329,7 @@ const FamilyForms: React.FC = () => {
                                   value={signedByName}
                                   onChange={(e) => setSignedByName(e.target.value)}
                                   placeholder="First Last"
-                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                                   style={{ fontSize: '16px' }}
                                 />
                               </label>
@@ -346,7 +346,7 @@ const FamilyForms: React.FC = () => {
                                 type="button"
                                 disabled={!canSubmit || savingSig}
                                 onClick={() => handleSign(player, form)}
-                                className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
+                                className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold"
                               >
                                 {savingSig ? 'Submitting…' : ctaLabel}
                               </button>
@@ -396,7 +396,7 @@ const QuestionInput: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             rows={3}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -410,7 +410,7 @@ const QuestionInput: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
           >
             <option value="">— Select —</option>
             {(question.options || []).map(o => (
@@ -434,8 +434,8 @@ const QuestionInput: React.FC<{
                   onClick={() => onChange(opt)}
                   className={`flex-1 py-2 rounded-lg text-sm font-bold ring-1 transition ${
                     selected
-                      ? 'bg-crimson-500 text-white ring-crimson-500'
-                      : 'bg-charcoal-900 text-bone/80 ring-white/10 hover:ring-crimson-400/40'
+                      ? 'bg-brand-primary text-white ring-brand-primary'
+                      : 'bg-charcoal-900 text-bone/80 ring-white/10 hover:ring-brand-primary-soft/40'
                   }`}
                 >
                   {opt}
@@ -455,7 +455,7 @@ const QuestionInput: React.FC<{
             value={value == null ? '' : String(value)}
             onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -471,7 +471,7 @@ const QuestionInput: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}

@@ -101,7 +101,7 @@ const Products: React.FC = () => {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold"
+            className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 text-white text-sm font-bold"
           >
             + New product
           </button>
@@ -117,7 +117,7 @@ const Products: React.FC = () => {
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold"
+              className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 text-white text-sm font-bold"
             >
               Create product
             </button>
@@ -161,7 +161,7 @@ const ProductCard: React.FC<{ product: Product; seasonName?: string; onEdit: () 
     <button
       type="button"
       onClick={onEdit}
-      className="text-left bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-crimson-400 p-4 transition"
+      className="text-left bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-brand-primary-soft p-4 transition"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -183,7 +183,7 @@ const ProductCard: React.FC<{ product: Product; seasonName?: string; onEdit: () 
         <div className="text-right shrink-0">
           <div className="font-black text-bone">${(quote.totalCents / 100).toFixed(2)}</div>
           {activeTier && (
-            <div className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-300">
+            <div className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft">
               {activeTier.label}
             </div>
           )}
@@ -197,7 +197,7 @@ const ProductCard: React.FC<{ product: Product; seasonName?: string; onEdit: () 
           {couponCount} coupon{couponCount === 1 ? '' : 's'}
         </span>
         {(product.metadata?.ageGroups || []).length > 0 && (
-          <span className="px-2 py-0.5 rounded bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300">
+          <span className="px-2 py-0.5 rounded bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft">
             {(product.metadata!.ageGroups as string[]).join(', ')}
           </span>
         )}
@@ -358,30 +358,30 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <FieldRow>
             <Field label="Name" required>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spring 2026 Registration" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spring 2026 Registration" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </Field>
             <Field label="Type">
-              <select value={type} onChange={(e) => setType(e.target.value as Product['type'])} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm">
+              <select value={type} onChange={(e) => setType(e.target.value as Product['type'])} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 {PRODUCT_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
           </FieldRow>
 
           <Field label="Description (optional)">
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </Field>
 
           {type === 'registration' && (
             <>
               <FieldRow>
                 <Field label="Season">
-                  <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm">
+                  <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                     <option value="">— None (applies to any season) —</option>
                     {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </Field>
                 <Field label="Stripe processing surcharge (basis points)">
-                  <input type="number" min={0} max={1000} value={surchargeBps} onChange={(e) => setSurchargeBps(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
+                  <input type="number" min={0} max={1000} value={surchargeBps} onChange={(e) => setSurchargeBps(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
                   <p className="text-[10px] text-bone/50 mt-1">100 = 1%. Stripe's flat take is ~290bps. Leave 0 to absorb fees.</p>
                 </Field>
               </FieldRow>
@@ -397,8 +397,8 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                         onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])}
                         className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${
                           on
-                            ? 'bg-crimson-600 text-white ring-crimson-600'
-                            : 'bg-charcoal-900 text-bone/65 ring-white/10 hover:ring-crimson-400'
+                            ? 'bg-brand-primary text-white ring-brand-primary'
+                            : 'bg-charcoal-900 text-bone/65 ring-white/10 hover:ring-brand-primary-soft'
                         }`}
                       >
                         {ag}
@@ -417,7 +417,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
               <button
                 type="button"
                 onClick={() => setTiers([...tiers, blankTier()])}
-                className="text-[11px] font-bold text-crimson-300 hover:text-crimson-100"
+                className="text-[11px] font-bold text-brand-primary-soft hover:text-brand-primary-soft"
               >
                 + Add tier
               </button>
@@ -488,7 +488,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
               <button
                 type="button"
                 onClick={() => setCoupons([...coupons, blankCoupon()])}
-                className="text-[11px] font-bold text-crimson-300 hover:text-crimson-100"
+                className="text-[11px] font-bold text-brand-primary-soft hover:text-brand-primary-soft"
               >
                 + Add coupon
               </button>
@@ -578,10 +578,10 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
           </div>
 
           {/* Live preview */}
-          <div className="rounded-xl bg-crimson-500/15 ring-1 ring-crimson-400/30 p-3 text-sm">
+          <div className="rounded-xl bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 p-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-200">Live quote</span>
-              <span className="text-[11px] text-crimson-300">{livePreview.tier?.label || 'No active tier'}</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft">Live quote</span>
+              <span className="text-[11px] text-brand-primary-soft">{livePreview.tier?.label || 'No active tier'}</span>
             </div>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="font-black text-bone">${(livePreview.totalCents / 100).toFixed(2)}</span>
@@ -608,7 +608,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
             type="button"
             disabled={!canSave}
             onClick={handleSave}
-            className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-50 text-white text-sm font-bold"
+            className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-sm font-bold"
           >
             {saving ? 'Saving…' : isNew ? 'Create product' : 'Save changes'}
           </button>

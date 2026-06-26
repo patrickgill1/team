@@ -69,10 +69,12 @@ module.exports = {
         // Existing surfaces still use `crimson-*` — migrate
         // intentionally over time.
         brand: {
-          primary:       'rgb(var(--brand-primary) / <alpha-value>)',
-          'primary-hov': 'rgb(var(--brand-primary-hov) / <alpha-value>)',
-          'primary-dim': 'rgb(var(--brand-primary-dim) / <alpha-value>)',
-          'primary-fg':  'rgb(var(--brand-primary-fg) / <alpha-value>)',
+          primary:        'rgb(var(--brand-primary) / <alpha-value>)',
+          'primary-hov':  'rgb(var(--brand-primary-hov) / <alpha-value>)',
+          'primary-soft': 'rgb(var(--brand-primary-soft) / <alpha-value>)',
+          'primary-dim':  'rgb(var(--brand-primary-dim) / <alpha-value>)',
+          'primary-deep': 'rgb(var(--brand-primary-deep) / <alpha-value>)',
+          'primary-fg':   'rgb(var(--brand-primary-fg) / <alpha-value>)',
         },
       },
       animation: {

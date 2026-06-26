@@ -129,13 +129,13 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
           chrome (TeamChat action sheet, Wall composer, etc.). Title
           on the left, search + close on the right. */}
       <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Add Reaction</div>
+        <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Add Reaction</div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSearchOpen(s => !s)}
             aria-label="Search emoji"
             className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
-              searchOpen ? 'bg-crimson-500/150/20 text-bone' : 'text-bone/40 hover:text-white hover:bg-white/10'
+              searchOpen ? 'bg-brand-primary/150/20 text-bone' : 'text-bone/40 hover:text-white hover:bg-white/10'
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -162,7 +162,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search…"
-            className="w-full px-3 py-2 text-sm bg-charcoal-800 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+            className="w-full px-3 py-2 text-sm bg-charcoal-800 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
         </div>
       )}
@@ -178,7 +178,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
               onClick={() => setActiveTab(g.id)}
               aria-label={g.id}
               className={`flex-1 mx-0.5 h-8 rounded-lg text-base flex items-center justify-center transition ${
-                activeTab === g.id ? 'bg-crimson-500/15 ring-1 ring-crimson-400/30' : 'hover:bg-white/[0.05]'
+                activeTab === g.id ? 'bg-brand-primary/15 ring-1 ring-brand-primary-soft/30' : 'hover:bg-white/[0.05]'
               }`}
             >
               {g.label}

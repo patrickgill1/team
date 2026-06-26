@@ -28,14 +28,14 @@ const positionDot = (pos?: string): string => {
     case 'Forward':
     case 'Striker': return 'bg-rose-400';
     case 'Winger': return 'bg-orange-400';
-    default: return 'bg-crimson-400';
+    default: return 'bg-brand-primary-soft';
   }
 };
 
 const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cyan' | 'amber' | 'violet' }> = ({ label, value, accent }) => {
   const ring =
     accent === 'emerald' ? 'text-emerald-300' :
-    accent === 'cyan' ? 'text-crimson-400' :
+    accent === 'cyan' ? 'text-brand-primary-soft' :
     accent === 'amber' ? 'text-amber-300' :
     'text-violet-300';
   return (
@@ -136,10 +136,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-charcoal-900 to-charcoal-800 p-4 sm:p-5 text-white shadow-md border border-crimson-500/10">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-charcoal-900 to-charcoal-800 p-4 sm:p-5 text-white shadow-md border border-brand-primary/10">
         {/* Faint cyan accent — keeps a hint of "card has personality"
             without the bubbly blur-blob look. */}
-        <div className="absolute -top-12 -right-12 w-32 h-32 bg-crimson-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
 
         {/* Edit / Delete actions */}
         {canEdit && (
@@ -194,7 +194,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-lg ring-2 ring-charcoal-900 ${
                     ((player as any).currentStreakDays ?? 0) >= 3
                       ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
-                      : 'bg-crimson-500 text-white'
+                      : 'bg-brand-primary text-white'
                   }`}
                 >
                   {((player as any).currentStreakDays ?? 0) >= 3 ? '🔥' : ''}{(player as any).currentStreakDays}
@@ -283,7 +283,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               <button
                 onClick={handleInviteParent}
                 disabled={generatingInvite}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-crimson-400/20 ring-1 ring-crimson-300/40 text-bone hover:bg-crimson-400/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-brand-primary-soft/20 ring-1 ring-brand-primary-soft/40 text-bone hover:bg-brand-primary-soft/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
                 title="Generate a one-tap link to share with a parent"
               >
                 {generatingInvite ? '…' : '✉ Invite Parent'}
@@ -330,10 +330,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                       <div key={index} className="text-xs text-white/85">
                         <span className="font-semibold">{contact.name}</span>
                         <span className="text-white/60"> ({contact.relationship})</span>
-                        {contact.isPrimary && <span className="text-crimson-400 ml-1">• Primary</span>}
+                        {contact.isPrimary && <span className="text-brand-primary-soft ml-1">• Primary</span>}
                         <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="block text-crimson-400 hover:text-bone underline-offset-2 hover:underline"
+                          className="block text-brand-primary-soft hover:text-bone underline-offset-2 hover:underline"
                         >
                           {contact.phoneNumber}
                         </a>

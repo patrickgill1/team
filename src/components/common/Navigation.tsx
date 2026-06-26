@@ -292,7 +292,7 @@ const Navigation: React.FC = () => {
           </Link>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="text-crimson-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+            className="text-brand-primary-soft hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
           >
             <svg className={`w-5 h-5 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -307,7 +307,7 @@ const Navigation: React.FC = () => {
               <select
                 value={selectedTeamId}
                 onChange={e => setSelectedTeamId(e.target.value)}
-                className="w-full text-sm bg-white/10 text-bone border border-white/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-crimson-400 focus:border-transparent"
+                className="w-full text-sm bg-white/10 text-bone border border-white/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary-soft focus:border-transparent"
               >
                 {teams.map(t => (
                   <option key={t.id} value={t.id} className="bg-charcoal-950 text-white">
@@ -316,7 +316,7 @@ const Navigation: React.FC = () => {
                 ))}
               </select>
             ) : selectedTeam ? (
-              <div className="text-sm text-crimson-400 px-1">{selectedTeam.name}</div>
+              <div className="text-sm text-brand-primary-soft px-1">{selectedTeam.name}</div>
             ) : null}
           </div>
         )}
@@ -325,7 +325,7 @@ const Navigation: React.FC = () => {
         <nav className="flex-1 overflow-y-auto px-3 space-y-1">
           {/* Main section */}
           {!sidebarCollapsed && (
-            <div className="px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-crimson-500">
+            <div className="px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-brand-primary">
               Main
             </div>
           )}
@@ -336,8 +336,8 @@ const Navigation: React.FC = () => {
               title={sidebarCollapsed ? item.name : undefined}
               className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive(item.path)
-                  ? 'bg-crimson-500/20 text-crimson-400 shadow-lg shadow-crimson-500/10'
-                  : 'text-crimson-400 hover:bg-white/5 hover:text-white'
+                  ? 'bg-brand-primary/20 text-brand-primary-soft shadow-lg shadow-brand-primary/10'
+                  : 'text-brand-primary-soft hover:bg-white/5 hover:text-white'
               }`}
             >
               <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
@@ -347,7 +347,7 @@ const Navigation: React.FC = () => {
 
           {/* Apps section */}
           {!sidebarCollapsed && (
-            <div className="px-2 pt-5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-crimson-500">
+            <div className="px-2 pt-5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-brand-primary">
               Apps
             </div>
           )}
@@ -359,8 +359,8 @@ const Navigation: React.FC = () => {
               title={sidebarCollapsed ? item.name : undefined}
               className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive(item.path)
-                  ? 'bg-crimson-500/20 text-crimson-400 shadow-lg shadow-crimson-500/10'
-                  : 'text-crimson-400 hover:bg-white/5 hover:text-white'
+                  ? 'bg-brand-primary/20 text-brand-primary-soft shadow-lg shadow-brand-primary/10'
+                  : 'text-brand-primary-soft hover:bg-white/5 hover:text-white'
               }`}
             >
               <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
@@ -374,7 +374,7 @@ const Navigation: React.FC = () => {
           {isUserCoach && (
             <Link
               to="/people"
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-crimson-500 hover:bg-crimson-400 text-charcoal-950 transition-colors`}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-2 px-3 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary-soft text-charcoal-950 transition-colors`}
               title="Add a player or invite someone"
             >
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -387,7 +387,7 @@ const Navigation: React.FC = () => {
             <Link
               to="/settings"
               aria-label="Settings"
-              className="h-9 w-9 rounded-full overflow-hidden bg-gradient-to-br from-crimson-400 to-crimson-400 flex items-center justify-center text-charcoal-950 font-bold text-sm flex-shrink-0"
+              className="h-9 w-9 rounded-full overflow-hidden bg-gradient-to-br from-brand-primary-soft to-brand-primary-soft flex items-center justify-center text-charcoal-950 font-bold text-sm flex-shrink-0"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
@@ -397,15 +397,15 @@ const Navigation: React.FC = () => {
             </Link>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <Link to="/settings" className="text-sm font-medium text-white truncate block hover:text-crimson-400 transition-colors">
+                <Link to="/settings" className="text-sm font-medium text-white truncate block hover:text-brand-primary-soft transition-colors">
                   {userData?.name}
                 </Link>
                 <div className="flex items-center gap-3 mt-0.5">
-                  <Link to="/settings" className="text-xs text-crimson-400 hover:text-white transition-colors">
+                  <Link to="/settings" className="text-xs text-brand-primary-soft hover:text-white transition-colors">
                     Settings
                   </Link>
                   <span className="text-charcoal-700">·</span>
-                  <button onClick={handleLogout} className="text-xs text-crimson-400 hover:text-red-400 transition-colors">
+                  <button onClick={handleLogout} className="text-xs text-brand-primary-soft hover:text-red-400 transition-colors">
                     Sign out
                   </button>
                 </div>
@@ -489,7 +489,7 @@ const Navigation: React.FC = () => {
               type="button"
               onClick={() => setIsProfileSheetOpen(true)}
               aria-label="Profile menu"
-              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-crimson-400 to-crimson-400 ring-1 ring-white/20 hover:ring-white/40 transition"
+              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-brand-primary-soft to-brand-primary-soft ring-1 ring-white/20 hover:ring-white/40 transition"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
@@ -517,7 +517,7 @@ const Navigation: React.FC = () => {
           >
             <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
               <span className="w-12" aria-hidden />
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-300">Switch team</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Switch team</div>
               <button
                 type="button"
                 onClick={() => setTeamSwitcherOpen(false)}
@@ -539,17 +539,17 @@ const Navigation: React.FC = () => {
                         setTeamSwitcherOpen(false);
                       }}
                       className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/5 active:bg-white/10 transition-colors ${
-                        isCurrent ? 'bg-crimson-500/10' : ''
+                        isCurrent ? 'bg-brand-primary/10' : ''
                       } ${isArchived && !isCurrent ? 'opacity-55' : ''}`}
                     >
-                      <span className={`text-[15px] font-bold truncate flex items-center gap-2 ${isCurrent ? 'text-crimson-300' : 'text-bone'}`}>
+                      <span className={`text-[15px] font-bold truncate flex items-center gap-2 ${isCurrent ? 'text-brand-primary-soft' : 'text-bone'}`}>
                         {t.name}
                         {isArchived && (
                           <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-white/[0.08] text-bone/55 ring-1 ring-white/10">Archived</span>
                         )}
                       </span>
                       {isCurrent && (
-                        <svg className="w-5 h-5 text-crimson-400 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-brand-primary-soft shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       )}
@@ -585,7 +585,7 @@ const Navigation: React.FC = () => {
                     setIsMoreOpen(!isMoreOpen);
                   }}
                   className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                    active ? 'text-crimson-400' : 'text-white/55'
+                    active ? 'text-brand-primary-soft' : 'text-white/55'
                   }`}
                 >
                   <AppIcon name={tab.icon} className="w-6 h-6" strokeWidth={active ? 2.25 : 1.75} />
@@ -599,7 +599,7 @@ const Navigation: React.FC = () => {
                 to={tab.path}
                 onClick={() => void import('../../utils/nativeShell').then(m => m.tapHaptic('light'))}
                 className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  active ? 'text-crimson-400' : 'text-white/55'
+                  active ? 'text-brand-primary-soft' : 'text-white/55'
                 }`}
               >
                 <AppIcon name={tab.icon} className="w-6 h-6" strokeWidth={active ? 2.25 : 1.75} />
@@ -653,7 +653,7 @@ const Navigation: React.FC = () => {
                 <select
                   value={selectedTeamId}
                   onChange={e => setSelectedTeamId(e.target.value)}
-                  className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-white/5 text-white focus:ring-2 focus:ring-crimson-400"
+                  className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-white/5 text-white focus:ring-2 focus:ring-brand-primary-soft"
                 >
                   {teams.map(t => (
                     <option key={t.id} value={t.id} className="bg-charcoal-900">
@@ -682,13 +682,13 @@ const Navigation: React.FC = () => {
                           key={item.path}
                           to={item.path}
                           onClick={() => setIsMoreOpen(false)}
-                          className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-crimson-500/15' : 'hover:bg-white/5'}`}
+                          className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-brand-primary/15' : 'hover:bg-white/5'}`}
                         >
                           <span className="flex items-center gap-3 min-w-0">
-                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-crimson-500/25 text-bone' : 'bg-crimson-500/10 text-crimson-400'}`}>
+                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-brand-primary/25 text-bone' : 'bg-brand-primary/10 text-brand-primary-soft'}`}>
                               <AppIcon name={item.icon as any} className="w-5 h-5" />
                             </span>
-                            <span className={`text-[15px] font-semibold truncate ${active ? 'text-crimson-100' : 'text-white'}`}>{item.name}</span>
+                            <span className={`text-[15px] font-semibold truncate ${active ? 'text-brand-primary-soft' : 'text-white'}`}>{item.name}</span>
                           </span>
                           <AppIcon name="arrow-right" className="w-4 h-4 text-white/30 shrink-0" />
                         </Link>
@@ -710,7 +710,7 @@ const Navigation: React.FC = () => {
                     className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-crimson-500/10 text-crimson-400 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary-soft flex items-center justify-center shrink-0">
                         <AppIcon name="survey" className="w-5 h-5" />
                       </span>
                       <span className="text-[15px] font-semibold text-white">Club Support</span>
@@ -723,7 +723,7 @@ const Navigation: React.FC = () => {
                     className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-crimson-500/10 text-crimson-400 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary-soft flex items-center justify-center shrink-0">
                         <AppIcon name="gear" className="w-5 h-5" />
                       </span>
                       <span className="text-[15px] font-semibold text-white">Settings</span>

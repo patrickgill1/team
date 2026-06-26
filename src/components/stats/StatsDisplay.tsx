@@ -133,7 +133,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
           <select
             value={selectedPlayer}
             onChange={(e) => setSelectedPlayer(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
           >
             <option value="">All Players Overview</option>
             {players.map(player => (
@@ -237,14 +237,14 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         /* Individual Player Stats */
         <div className="space-y-6">
           {/* Player Header */}
-          <div className="bg-gradient-to-r from-crimson-500 to-charcoal-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-brand-primary to-charcoal-600 rounded-lg p-6 text-white">
             <div className="flex items-center space-x-4">
               <div className="bg-white bg-opacity-20 rounded-full w-16 h-16 flex items-center justify-center">
                 <span className="text-2xl font-bold">#{selectedPlayerData.jerseyNumber}</span>
               </div>
               <div>
                 <h2 className="text-2xl font-bold">{selectedPlayerData.name}</h2>
-                <p className="text-crimson-100">{selectedPlayerData.position}</p>
+                <p className="text-brand-primary-soft">{selectedPlayerData.position}</p>
               </div>
             </div>
           </div>
@@ -326,7 +326,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
                       <div key={stat.id} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
-                            <span className="bg-crimson-100 text-charcoal-800 text-xs font-medium px-2 py-1 rounded-full">
+                            <span className="bg-brand-primary-soft text-charcoal-800 text-xs font-medium px-2 py-1 rounded-full">
                               Game {playerStats.length - index}
                             </span>
                             <span className="text-sm text-gray-600">

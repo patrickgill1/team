@@ -141,7 +141,7 @@ const Sheet: React.FC<Props> = ({
           <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               {kicker && (
-                <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1.5">
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1.5">
                   {kicker}
                 </p>
               )}

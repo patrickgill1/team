@@ -119,7 +119,7 @@ const PlatformClubs: React.FC = () => {
                         max={10000}
                         value={drafts[c.id] ?? ''}
                         onChange={(e) => setDrafts(prev => ({ ...prev, [c.id]: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+                        className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
                       />
                       <p className="text-[10px] text-bone/50 mt-1">
                         {bps === 0
@@ -131,7 +131,7 @@ const PlatformClubs: React.FC = () => {
                       type="button"
                       disabled={!dirty || saving === c.id}
                       onClick={() => handleSave(c)}
-                      className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-30 text-white text-sm font-bold"
+                      className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-30 text-white text-sm font-bold"
                     >
                       {saving === c.id ? 'Saving…' : 'Save'}
                     </button>

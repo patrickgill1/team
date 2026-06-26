@@ -42,7 +42,7 @@ interface Props {
  *  inside a FormField for the canonical look + focus state. */
 export const fieldInputClass =
   'mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 ' +
-  'focus:ring-2 focus:ring-crimson-500 focus:outline-none ' +
+  'focus:ring-2 focus:ring-brand-primary focus:outline-none ' +
   'px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm ' +
   'disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -61,7 +61,7 @@ const FormField: React.FC<Props> = ({
         {label && (
           <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">
             {label}
-            {required && <span className="text-crimson-400 ml-0.5" aria-hidden>*</span>}
+            {required && <span className="text-brand-primary-soft ml-0.5" aria-hidden>*</span>}
             {optional && <span className="text-bone/35 ml-1.5 normal-case font-normal tracking-normal">(optional)</span>}
           </span>
         )}

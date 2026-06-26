@@ -55,7 +55,7 @@ export function seasonLifecycleTone(s: SeasonLifecycle): { bg: string; text: str
     case 'draft': return { bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-300' };
     case 'coach_commit': return { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300' };
     case 'tryout_prep': return { bg: 'bg-sky-100', text: 'text-sky-800', ring: 'ring-sky-300' };
-    case 'registration_open': return { bg: 'bg-crimson-100', text: 'text-crimson-800', ring: 'ring-crimson-300' };
+    case 'registration_open': return { bg: 'bg-brand-primary-soft', text: 'text-brand-primary-dim', ring: 'ring-brand-primary-soft' };
     case 'tryouts': return { bg: 'bg-violet-100', text: 'text-violet-800', ring: 'ring-violet-300' };
     case 'roster_locked': return { bg: 'bg-amber-100', text: 'text-amber-800', ring: 'ring-amber-300' };
     case 'in_season': return { bg: 'bg-emerald-100', text: 'text-emerald-800', ring: 'ring-emerald-300' };

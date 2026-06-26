@@ -95,7 +95,7 @@ const Forms: React.FC = () => {
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="shrink-0 inline-flex items-center gap-1.5 self-start px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold whitespace-nowrap"
+              className="shrink-0 inline-flex items-center gap-1.5 self-start px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold whitespace-nowrap"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               New form
@@ -108,14 +108,14 @@ const Forms: React.FC = () => {
         ) : forms.length === 0 ? (
           <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center">
             <p className="text-sm text-bone/65 mb-3">No forms yet. Player Waiver and Medical Release are usually the first two.</p>
-            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold">
+            <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 text-white text-sm font-bold">
               Create form
             </button>
           </div>
         ) : (
           <ul className="space-y-2">
             {forms.map(f => (
-              <li key={f.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-crimson-400/40 p-4 transition">
+              <li key={f.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-brand-primary-soft/40 p-4 transition">
                 <button type="button" onClick={() => setEditing(f)} className="w-full text-left">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -125,7 +125,7 @@ const Forms: React.FC = () => {
                         {f.required && <span className="font-extrabold tracking-widest uppercase bg-rose-500/15 text-rose-300 ring-1 ring-rose-200 px-1.5 py-0.5 rounded">Required</span>}
                         {!f.isActive && <span className="font-extrabold tracking-widest uppercase bg-charcoal-950 text-bone/50 ring-1 ring-white/15 px-1.5 py-0.5 rounded">Archived</span>}
                         {f.seasonId && <span className="font-extrabold tracking-widest uppercase bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">{seasons.find(s => s.id === f.seasonId)?.name || 'Season scoped'}</span>}
-                        {(f.ageGroups || []).length > 0 && <span className="font-extrabold tracking-widest uppercase bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30 px-1.5 py-0.5 rounded">{(f.ageGroups || []).join(', ')}</span>}
+                        {(f.ageGroups || []).length > 0 && <span className="font-extrabold tracking-widest uppercase bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">{(f.ageGroups || []).join(', ')}</span>}
                       </div>
                     </div>
                   </div>
@@ -134,14 +134,14 @@ const Forms: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSendingFor(f)}
-                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-crimson-400/40 hover:text-bone"
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-brand-primary-soft/40 hover:text-bone"
                   >
                     Send reminder
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditing(f)}
-                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-crimson-400/40 hover:text-bone"
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-brand-primary-soft/40 hover:text-bone"
                   >
                     Edit
                   </button>
@@ -276,30 +276,30 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
 
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Short description (optional)</span>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
+            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
 
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Body text (terms / instructions, optional)</span>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm leading-relaxed" />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to season (optional)</span>
-              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm">
+              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 <option value="">Every season</option>
                 {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Display order</span>
-              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm" />
+              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </label>
           </div>
 
@@ -309,7 +309,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
               {AGE_GROUP_OPTIONS.map(ag => {
                 const on = ageGroups.includes(ag);
                 return (
-                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-crimson-600 text-white ring-crimson-600' : 'bg-charcoal-900 text-bone/65 ring-white/10 hover:ring-crimson-400'}`}>{ag}</button>
+                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-brand-primary text-white ring-brand-primary' : 'bg-charcoal-900 text-bone/65 ring-white/10 hover:ring-brand-primary-soft'}`}>{ag}</button>
                 );
               })}
             </div>
@@ -339,7 +339,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
               <select
                 value={allocateToEventId}
                 onChange={(e) => setAllocateToEventId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-charcoal-950 text-bone ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-charcoal-950 text-bone ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
               >
                 <option value="">— None (just collect answers) —</option>
                 {upcomingEvents.map(ev => (
@@ -365,7 +365,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
               <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65">
                 Questions <span className="text-bone/40 font-normal normal-case tracking-normal">(optional — adds a fill-out step before signing)</span>
               </span>
-              <button type="button" onClick={addQuestion} className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md bg-crimson-600 hover:bg-crimson-500 text-white">+ Question</button>
+              <button type="button" onClick={addQuestion} className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md bg-brand-primary hover:bg-brand-primary text-white">+ Question</button>
             </div>
             {questions.length === 0 ? (
               <p className="text-[11px] text-bone/45 rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2">
@@ -381,7 +381,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
                         value={q.label}
                         onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
                         placeholder="Question label"
-                        className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-sm"
+                        className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-sm"
                       />
                       <button type="button" disabled={i === 0} onClick={() => moveQuestion(q.id, -1)} className="text-bone/50 hover:text-bone disabled:opacity-30 px-1" title="Move up" aria-label="Move up">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
@@ -397,7 +397,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
                       <select
                         value={q.type}
                         onChange={(e) => updateQuestion(q.id, { type: e.target.value as any })}
-                        className="px-2 py-1.5 rounded-md bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-sm"
+                        className="px-2 py-1.5 rounded-md bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-sm"
                       >
                         <option value="text">Short text</option>
                         <option value="textarea">Long text</option>
@@ -415,14 +415,14 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
                         value={(q.options || []).join(', ')}
                         onChange={(e) => updateQuestion(q.id, { options: e.target.value.split(',').map(o => o.trim()).filter(Boolean) })}
                         placeholder="Comma-separated options: Youth Small, Youth Medium, Youth Large"
-                        className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-[12px]"
+                        className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-[12px]"
                       />
                     )}
                     <input
                       value={q.help || ''}
                       onChange={(e) => updateQuestion(q.id, { help: e.target.value || undefined })}
                       placeholder="Helper text (optional)"
-                      className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/40 text-[12px]"
+                      className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-[12px]"
                     />
                   </li>
                 ))}
@@ -435,7 +435,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
 
         <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
-          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : isNew ? 'Create form' : 'Save changes'}
           </button>
         </div>
@@ -584,7 +584,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                 ? 'No unsigned families in this scope.'
                 : `Pushed to ${sent.recipients} parent${sent.recipients === 1 ? '' : 's'} who still needs to sign.`}
             </p>
-            <button type="button" onClick={onClose} className="mt-2 w-full py-2.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">
+            <button type="button" onClick={onClose} className="mt-2 w-full py-2.5 rounded-lg bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold">
               Done
             </button>
           </div>
@@ -603,7 +603,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                   onClick={() => setScope('club')}
                   className={`px-3 py-2 rounded-lg ring-1 text-sm font-semibold ${
                     scope === 'club'
-                      ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-100'
+                      ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
                       : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
                   }`}
                 >
@@ -614,7 +614,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                   onClick={() => setScope('team')}
                   className={`px-3 py-2 rounded-lg ring-1 text-sm font-semibold ${
                     scope === 'team'
-                      ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-100'
+                      ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
                       : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
                   }`}
                 >
@@ -625,7 +625,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                 <select
                   value={teamId}
                   onChange={(e) => setTeamId(e.target.value)}
-                  className="mt-2 w-full px-3 py-2 text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                  className="mt-2 w-full px-3 py-2 text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                 >
                   <option value="">— Pick a team —</option>
                   {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -649,7 +649,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                 type="button"
                 disabled={sending || (scope === 'team' && !teamId) || unsignedCount === 0}
                 onClick={handleSend}
-                className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
+                className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold"
               >
                 {sending ? 'Sending…' : 'Send'}
               </button>

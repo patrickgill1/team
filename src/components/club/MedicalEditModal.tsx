@@ -294,7 +294,7 @@ const MedicalEditModal: React.FC<Props> = ({ player, actorUid, actorName, onClos
 
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900">Cancel</button>
-          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save medical profile'}
           </button>
         </div>
@@ -309,7 +309,7 @@ const Section: React.FC<{ title: string; onAdd: () => void; children: React.Reac
   <div>
     <div className="flex items-center justify-between mb-2">
       <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-700">{title}</h3>
-      <button type="button" onClick={onAdd} className="text-[11px] font-bold text-crimson-700 hover:text-crimson-900">+ Add</button>
+      <button type="button" onClick={onAdd} className="text-[11px] font-bold text-brand-primary hover:text-brand-primary-dim">+ Add</button>
     </div>
     <div className="space-y-2">{children}</div>
   </div>

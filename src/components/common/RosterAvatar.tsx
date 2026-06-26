@@ -26,10 +26,10 @@ const PALETTE = [
   'from-rose-400 to-rose-600',
   'from-amber-400 to-orange-600',
   'from-emerald-400 to-emerald-600',
-  'from-crimson-400 to-crimson-600',
+  'from-brand-primary-soft to-brand-primary',
   'from-violet-400 to-violet-600',
   'from-fuchsia-400 to-pink-600',
-  'from-crimson-400 to-charcoal-600',
+  'from-brand-primary-soft to-charcoal-600',
   'from-sky-400 to-sky-600',
 ];
 

@@ -362,7 +362,7 @@ const Offer: React.FC = () => {
           {showingWaivers && !showingDecline ? (
             <div className="space-y-4">
               <div>
-                <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 mb-1">Sign to finish</div>
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Sign to finish</div>
                 <h2 className="text-lg font-black text-bone">{waivers.length === 1 ? 'One quick release' : `${waivers.length} releases`} before {offer.playerName} is rostered</h2>
                 <p className="text-[12px] text-slate-400 mt-1">Tap each to read, then type your name to sign.</p>
               </div>
@@ -382,7 +382,7 @@ const Offer: React.FC = () => {
                           )}
                           {w.body && (
                             <details className="mt-2">
-                              <summary className="text-[11px] font-bold uppercase tracking-widest text-crimson-300 cursor-pointer">Read full text</summary>
+                              <summary className="text-[11px] font-bold uppercase tracking-widest text-brand-primary-soft cursor-pointer">Read full text</summary>
                               <div className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-black/40 ring-1 ring-white/10 px-3 py-2 text-[12px] text-bone/80 whitespace-pre-wrap leading-relaxed">
                                 {w.body}
                               </div>
@@ -417,7 +417,7 @@ const Offer: React.FC = () => {
                   value={signedByName}
                   onChange={(e) => setSignedByName(e.target.value)}
                   placeholder="First Last"
-                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-950 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-950 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
                 <p className="text-[10px] text-bone/45 mt-1">This name is bound to each release as your e-signature.</p>
@@ -440,7 +440,7 @@ const Offer: React.FC = () => {
                     || !signedByName.trim()
                     || waivers.some(w => !waiverAck[w.id])
                   }
-                  className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 shadow-lg"
+                  className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg"
                 >
                   {submitting ? 'Working…' : 'Sign & accept'}
                 </button>
@@ -460,7 +460,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={() => waivers.length > 0 ? setShowingWaivers(true) : handleAccept()}
                 disabled={submitting}
-                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 shadow-lg"
+                className="flex-[2] py-3 rounded-xl text-base font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 shadow-lg"
               >
                 {submitting ? 'Working…' : waivers.length > 0 ? `Accept · sign ${waivers.length} release${waivers.length === 1 ? '' : 's'}` : 'Accept the offer'}
               </button>
@@ -503,7 +503,7 @@ const Offer: React.FC = () => {
 
 const Detail: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400/80">{label}</div>
+    <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft/80">{label}</div>
     <div className="text-white font-bold mt-0.5">{value}</div>
   </div>
 );
@@ -522,12 +522,12 @@ const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: stri
         ) : tone === 'warning' ? (
           <svg className="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
         ) : (
-          <svg className="w-6 h-6 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg className="w-6 h-6 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         )}
       </div>
       <h1 className="text-xl font-black text-white mb-2">{title}</h1>
       {body && <p className="text-sm text-slate-400 leading-relaxed">{body}</p>}
-      <Link to="/" className="block mt-4 text-crimson-400 hover:text-bone text-xs font-bold">Home</Link>
+      <Link to="/" className="block mt-4 text-brand-primary-soft hover:text-bone text-xs font-bold">Home</Link>
     </div>
   </div>
 );

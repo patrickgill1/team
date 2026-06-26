@@ -74,8 +74,8 @@ interface LineupState {
 const KIND_META: Record<StatKind, { label: string; emoji: string; color: string }> = {
   goal:    { label: 'Goal',     emoji: '⚽', color: 'bg-emerald-500' },
   owngoal: { label: 'Own Goal', emoji: '🥅', color: 'bg-rose-500' },
-  assist:  { label: 'Assist',   emoji: '🅰️', color: 'bg-crimson-500' },
-  save:    { label: 'Save',     emoji: '🧘', color: 'bg-crimson-500' },
+  assist:  { label: 'Assist',   emoji: '🅰️', color: 'bg-brand-primary' },
+  save:    { label: 'Save',     emoji: '🧘', color: 'bg-brand-primary' },
   yellow:  { label: 'Yellow',   emoji: '🟨', color: 'bg-yellow-500' },
   red:     { label: 'Red',      emoji: '🟥', color: 'bg-red-600' },
   sub:     { label: 'Sub',      emoji: '🔄', color: 'bg-purple-500' },
@@ -671,7 +671,7 @@ const GameDay: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft border-t-cyan-500" />
       </div>
     );
   }
@@ -679,11 +679,11 @@ const GameDay: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center p-4 text-white">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-400 flex items-center justify-center mb-3">
+          <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center mb-3">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="#0f172a" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
           </div>
           <p className="mb-4 text-sm text-white/80">{error || 'Event not found'}</p>
-          <Link to="/calendar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-crimson-600 hover:bg-crimson-500 rounded-lg text-sm font-bold">Back to Calendar</Link>
+          <Link to="/calendar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-primary hover:bg-brand-primary rounded-lg text-sm font-bold">Back to Calendar</Link>
         </div>
       </div>
     );
@@ -705,7 +705,7 @@ const GameDay: React.FC = () => {
               status === 'live' ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
               status === 'halftime' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40' :
               status === 'final' ? 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40' :
-              'bg-crimson-500/20 text-crimson-400 ring-1 ring-crimson-500/40'
+              'bg-brand-primary/20 text-brand-primary-soft ring-1 ring-brand-primary/40'
             }`}>
               {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}
             </span>
@@ -837,7 +837,7 @@ const GameDay: React.FC = () => {
                     setPickerKind(k);
                     setNoteText('');
                   }}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-charcoal-800 ring-1 ring-white/10 hover:ring-crimson-400/50 hover:bg-charcoal-700 active:scale-95 transition"
+                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-charcoal-800 ring-1 ring-white/10 hover:ring-brand-primary-soft/50 hover:bg-charcoal-700 active:scale-95 transition"
                 >
                   <span className="text-bone/85">{TAP_ICONS[k]}</span>
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-bone/75">{KIND_META[k].label}</span>
@@ -882,7 +882,7 @@ const GameDay: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between text-[11px] text-white/60 mb-1">
                         <span>Next rotation in {formatClock(remaining)}</span>
-                        <button onClick={acknowledgeBell} className="text-crimson-400 hover:text-bone">Reset</button>
+                        <button onClick={acknowledgeBell} className="text-brand-primary-soft hover:text-bone">Reset</button>
                       </div>
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${pct}%` }} />
@@ -897,7 +897,7 @@ const GameDay: React.FC = () => {
             {lineup.onField.length === 0 && lineup.benchIds.length === 0 && (
               <button
                 onClick={initRosterToBench}
-                className="w-full py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 font-semibold text-sm"
+                className="w-full py-2 rounded-lg bg-brand-primary hover:bg-brand-primary font-semibold text-sm"
               >Load roster to bench</button>
             )}
 
@@ -993,7 +993,7 @@ const GameDay: React.FC = () => {
                       {t.playerName && (
                         <>
                           {' · '}
-                          <span className="text-crimson-400">
+                          <span className="text-brand-primary-soft">
                             {t.jerseyNumber != null ? `#${t.jerseyNumber} ` : ''}{t.playerName}
                           </span>
                         </>
@@ -1005,7 +1005,7 @@ const GameDay: React.FC = () => {
                         href={t.clipUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-crimson-400 hover:text-bone"
+                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-brand-primary-soft hover:text-bone"
                       >
                         🎬 {t.source === 'clip' ? 'Clip credit' : 'Watch clip'}
                       </a>
@@ -1058,7 +1058,7 @@ const GameDay: React.FC = () => {
                   return (
                     <tr key={p.id} className={`border-t border-white/5 ${hasAny ? 'text-white' : 'text-white/40'}`}>
                       <td className="px-3 py-2 truncate">
-                        {p.jerseyNumber != null ? <span className="text-crimson-400 font-bold mr-1">#{p.jerseyNumber}</span> : null}
+                        {p.jerseyNumber != null ? <span className="text-brand-primary-soft font-bold mr-1">#{p.jerseyNumber}</span> : null}
                         {p.name}
                       </td>
                       <td className="text-center tabular-nums">{tally.goals || ''}</td>
@@ -1094,7 +1094,7 @@ const GameDay: React.FC = () => {
                   onChange={e => setNoteText(e.target.value)}
                   placeholder="What happened? (e.g. great defensive stop, weather break)"
                   rows={4}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   autoFocus
                 />
                 <button
@@ -1104,7 +1104,7 @@ const GameDay: React.FC = () => {
                     setPickerKind(null);
                     setNoteText('');
                   }}
-                  className="w-full py-2.5 bg-crimson-600 hover:bg-crimson-500 rounded-lg font-semibold"
+                  className="w-full py-2.5 bg-brand-primary hover:bg-brand-primary rounded-lg font-semibold"
                 >Save Note</button>
               </div>
             ) : (
@@ -1120,7 +1120,7 @@ const GameDay: React.FC = () => {
                     }}
                     className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 text-left"
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
                       {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
                     </div>
                     <div className="min-w-0">

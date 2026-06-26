@@ -108,7 +108,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
           </button>
         </div>
         <p className="text-sm text-white/70">
-          No active plan yet — coach can build one from <button onClick={() => navigate('/development')} className="text-crimson-400 underline">Development</button>.
+          No active plan yet — coach can build one from <button onClick={() => navigate('/development')} className="text-brand-primary-soft underline">Development</button>.
         </p>
       </div>
     );
@@ -147,7 +147,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-white">{goal.title}</span>
                     {sessions > 0 && (
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-crimson-500/15 text-bone ring-1 ring-crimson-400/30">
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-brand-primary/15 text-bone ring-1 ring-brand-primary-soft/30">
                         {sessions} session{sessions === 1 ? '' : 's'}
                       </span>
                     )}
@@ -166,7 +166,7 @@ const InlineDevPlanCard: React.FC<Props> = ({ plans, playerId, actor, currentStr
                   className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-extrabold uppercase tracking-widest transition ${
                     doneToday
                       ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40 cursor-default'
-                      : 'bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50'
+                      : 'bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50'
                   }`}
                   title={doneToday ? 'Already logged today — keep the streak alive tomorrow!' : 'Tap to log a practice for today'}
                 >

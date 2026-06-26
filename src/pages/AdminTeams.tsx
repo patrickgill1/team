@@ -93,7 +93,7 @@ const AdminTeams: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
         <p className="text-bone/85 font-semibold mb-1">Admin only</p>
         <p className="text-bone/55 text-sm mb-4">This page is for club admins.</p>
-        <Link to="/dashboard" className="text-crimson-300 font-bold text-sm hover:text-crimson-200">← Back to dashboard</Link>
+        <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
       </div>
     );
   }
@@ -101,7 +101,7 @@ const AdminTeams: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative">
       <div className="mb-5 sm:mb-7">
-        <p className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-400">Club admin</p>
+        <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</p>
         <h1 className="font-display text-2xl sm:text-3xl font-black text-bone mt-1">Team activation</h1>
         <p className="text-sm text-bone/65 mt-1.5">
           Drive every team through the five activation stages. Stamp manually until the Sports Affinity API is wired; some stages auto-fill from existing data.
@@ -109,8 +109,8 @@ const AdminTeams: React.FC = () => {
       </div>
 
       {showProgress && !loaded && (
-        <div className="h-0.5 bg-crimson-500/15 overflow-hidden rounded-full mb-3">
-          <div className="h-full w-1/3 bg-crimson-500 animate-progress-slide" />
+        <div className="h-0.5 bg-brand-primary/15 overflow-hidden rounded-full mb-3">
+          <div className="h-full w-1/3 bg-brand-primary animate-progress-slide" />
         </div>
       )}
 

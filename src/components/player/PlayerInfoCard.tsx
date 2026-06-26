@@ -121,7 +121,7 @@ const PlayerInfoEditModal: React.FC<{ player: Player; onClose: () => void; onSav
         <div className="p-5 space-y-4">
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Preferred foot</span>
-            <select value={preferredFoot} onChange={(e) => setPreferredFoot(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-crimson-400 text-sm">
+            <select value={preferredFoot} onChange={(e) => setPreferredFoot(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-primary-soft text-sm">
               <option value="">—</option>
               <option value="Left">Left</option>
               <option value="Right">Right</option>
@@ -130,17 +130,17 @@ const PlayerInfoEditModal: React.FC<{ player: Player; onClose: () => void; onSav
           </label>
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Favorite position</span>
-            <input value={favoritePosition} onChange={(e) => setFavoritePosition(e.target.value)} placeholder="Center Back" className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
+            <input value={favoritePosition} onChange={(e) => setFavoritePosition(e.target.value)} placeholder="Center Back" className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
           <label className="block">
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-gray-600 mb-1">Favorite player</span>
-            <input value={favoritePlayer} onChange={(e) => setFavoritePlayer(e.target.value)} placeholder="Virgil van Dijk" className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-crimson-400 text-sm" />
+            <input value={favoritePlayer} onChange={(e) => setFavoritePlayer(e.target.value)} placeholder="Virgil van Dijk" className="w-full px-3 py-2 rounded-lg ring-1 ring-gray-200 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
           {error && <div className="rounded-lg bg-rose-50 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-700">{error}</div>}
         </div>
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-gray-600 hover:text-gray-900">Cancel</button>
-          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save'}
           </button>
         </div>

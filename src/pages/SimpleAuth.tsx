@@ -194,7 +194,7 @@ const SimpleAuth: React.FC = () => {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-crimson-800 from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
+      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
     >
       {/* Top region pure black so it blends with the native
@@ -212,7 +212,7 @@ const SimpleAuth: React.FC = () => {
           to top-48 so the orb lives below the safe-area zone; the
           top edge of the WebView is now uniform black and blends
           seamlessly with the native strip. */}
-      <div className="pointer-events-none absolute top-48 -left-32 h-96 w-96 rounded-full bg-crimson-500/20 blur-[120px]" />
+      <div className="pointer-events-none absolute top-48 -left-32 h-96 w-96 rounded-full bg-brand-primary/20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-violet-600/20 blur-[140px]" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[100px]" />
       {/* Subtle grid */}
@@ -229,14 +229,14 @@ const SimpleAuth: React.FC = () => {
           </div>
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 ring-1 ring-white/10 backdrop-blur-md mb-4">
-            <span className="h-1.5 w-1.5 rounded-full bg-crimson-400 animate-pulse" />
-            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-crimson-400/90">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-primary-soft animate-pulse" />
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-brand-primary-soft/90">
               {mode === 'login' && 'Member Access'}
               {mode === 'register' && 'Get Started'}
             </span>
           </div>
 
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-crimson-200 to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-brand-primary-soft to-violet-300 bg-clip-text text-transparent leading-tight mb-2">
             {mode === 'login' && 'Welcome Back'}
             {mode === 'register' && 'Start Your Team'}
           </h2>
@@ -248,7 +248,7 @@ const SimpleAuth: React.FC = () => {
 
         {/* Form Container - dark glass */}
         <div className="relative rounded-3xl bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
-          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-crimson-400/60 to-transparent" />
+          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-brand-primary-soft/60 to-transparent" />
           {/* Form padding optimized for mobile */}
           <div className="p-6 sm:p-8">
 
@@ -262,7 +262,7 @@ const SimpleAuth: React.FC = () => {
                 onClick={() => switchMode('register')}
                 className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
                   mode === 'register'
-                    ? 'bg-crimson-600 text-white shadow-lg shadow-crimson-900/40'
+                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40'
                     : 'text-white/65 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
@@ -273,7 +273,7 @@ const SimpleAuth: React.FC = () => {
                 onClick={() => switchMode('login')}
                 className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
                   mode === 'login'
-                    ? 'bg-crimson-600 text-white shadow-lg shadow-crimson-900/40'
+                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40'
                     : 'text-white/65 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
@@ -327,7 +327,7 @@ const SimpleAuth: React.FC = () => {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-white/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-crimson-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-white/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -381,7 +381,7 @@ const SimpleAuth: React.FC = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
                   }`}
                   placeholder="you@example.com"
                   disabled={isSubmitting}
@@ -401,7 +401,7 @@ const SimpleAuth: React.FC = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
                   }`}
                   placeholder={mode === 'login' ? '••••••••' : 'At least 6 characters'}
                   disabled={isSubmitting}
@@ -422,7 +422,7 @@ const SimpleAuth: React.FC = () => {
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
                     }`}
                     placeholder="Repeat your password"
                     disabled={isSubmitting}
@@ -444,7 +444,7 @@ const SimpleAuth: React.FC = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-crimson-400/60 focus:bg-white/[0.07]'
+                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
                     }`}
                     placeholder="Enter your full name"
                     disabled={isSubmitting}
@@ -495,7 +495,7 @@ const SimpleAuth: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.email.trim() || !formData.password.trim()}
-                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] enabled:hover:-translate-y-0.5 bg-crimson-600 hover:bg-crimson-500"
+                className="relative w-full overflow-hidden rounded-xl py-4 px-4 font-semibold text-white text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-[0_10px_30px_-10px_rgba(34,211,238,0.5)] enabled:hover:-translate-y-0.5 bg-brand-primary hover:bg-brand-primary"
               >
                 {isSubmitting ? (
                   <>
@@ -534,7 +534,7 @@ const SimpleAuth: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => switchMode('register')}
-                      className="font-semibold text-crimson-400 hover:text-bone transition-colors duration-200"
+                      className="font-semibold text-brand-primary-soft hover:text-bone transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Join your team
@@ -548,7 +548,7 @@ const SimpleAuth: React.FC = () => {
                     <button 
                       type="button"
                       onClick={() => switchMode('login')}
-                      className="font-semibold text-crimson-400 hover:text-bone transition-colors duration-200"
+                      className="font-semibold text-brand-primary-soft hover:text-bone transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Sign in

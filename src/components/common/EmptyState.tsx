@@ -36,8 +36,8 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
   const titleClass = isDark ? 'text-white' : 'text-slate-900';
   const descClass = isDark ? 'text-white/60' : 'text-slate-500';
   const iconTile = isDark
-    ? 'bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-400'
-    : 'bg-crimson-50 ring-1 ring-crimson-100 text-crimson-600';
+    ? 'bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft'
+    : 'bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary';
 
   return (
     <div className={`${wrapper} ${pad} text-center`}>
@@ -55,7 +55,7 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
           {cta.to ? (
             <Link
               to={cta.to}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold transition"
             >
               {cta.label} →
             </Link>
@@ -63,7 +63,7 @@ const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'li
             <button
               type="button"
               onClick={cta.onClick}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold transition"
             >
               {cta.label}
             </button>

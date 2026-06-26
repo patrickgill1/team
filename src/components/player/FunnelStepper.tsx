@@ -150,7 +150,7 @@ const FunnelStepper: React.FC<Props> = ({ playerId, progress, canEdit = false, a
                 <div
                   aria-hidden
                   className={`absolute top-3 sm:top-4 left-1/2 right-[-50%] h-0.5 ${
-                    done ? 'bg-crimson-500' : 'bg-white/10'
+                    done ? 'bg-brand-primary' : 'bg-white/10'
                   }`}
                 />
               )}
@@ -163,9 +163,9 @@ const FunnelStepper: React.FC<Props> = ({ playerId, progress, canEdit = false, a
                 <span
                   className={`relative z-10 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ring-2 transition ${
                     done
-                      ? 'bg-crimson-600 ring-crimson-500 text-white'
+                      ? 'bg-brand-primary ring-brand-primary text-white'
                       : isNext
-                        ? 'bg-charcoal-950 ring-crimson-400 text-crimson-300'
+                        ? 'bg-charcoal-950 ring-brand-primary-soft text-brand-primary-soft'
                         : 'bg-charcoal-950 ring-white/15 text-bone/40'
                   } ${canEdit ? 'group-hover:ring-bone/60' : ''}`}
                 >
@@ -178,7 +178,7 @@ const FunnelStepper: React.FC<Props> = ({ playerId, progress, canEdit = false, a
                   )}
                 </span>
                 <span className={`text-[8px] sm:text-[10px] font-extrabold tracking-wider sm:tracking-widest uppercase text-center leading-tight px-0.5 ${
-                  done ? 'text-bone/85' : isNext ? 'text-crimson-300' : 'text-bone/50'
+                  done ? 'text-bone/85' : isNext ? 'text-brand-primary-soft' : 'text-bone/50'
                 }`}>
                   {stage.short}
                 </span>
@@ -235,7 +235,7 @@ const FunnelStepper: React.FC<Props> = ({ playerId, progress, canEdit = false, a
                   type="button"
                   disabled={saving}
                   onClick={() => markDone(stage.key)}
-                  className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50"
+                  className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50"
                 >
                   {saving ? 'Marking…' : 'Mark complete'}
                 </button>

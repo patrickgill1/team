@@ -173,7 +173,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
-            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
+            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -202,7 +202,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
             onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: '' }))}
             className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
               tagFilter === '' 
-                ? 'bg-crimson-100 text-charcoal-800' 
+                ? 'bg-brand-primary-soft text-charcoal-800' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -214,7 +214,7 @@ const canDeletePhoto = (photo: GalleryPhoto) => {
               onClick={() => window.dispatchEvent(new CustomEvent('tagFilter', { detail: tag }))}
               className={`px-2 py-1 text-xs rounded-full transition-colors duration-200 ${
                 tagFilter === tag 
-                  ? 'bg-crimson-100 text-charcoal-800' 
+                  ? 'bg-brand-primary-soft text-charcoal-800' 
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -362,7 +362,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
             {photo.tags.slice(0, 3).map(tag => (
               <span
                 key={tag}
-                className="px-2 py-1 bg-crimson-100 text-charcoal-800 text-xs rounded-full"
+                className="px-2 py-1 bg-brand-primary-soft text-charcoal-800 text-xs rounded-full"
               >
                 {tag}
               </span>
@@ -465,7 +465,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
               {photo.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-2 py-1 bg-crimson-100 text-charcoal-800 text-sm rounded-full"
+                  className="px-2 py-1 bg-brand-primary-soft text-charcoal-800 text-sm rounded-full"
                 >
                   {tag}
                 </span>

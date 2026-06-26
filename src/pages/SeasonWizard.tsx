@@ -134,7 +134,7 @@ const SeasonWizard: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
         <p className="text-bone/85 font-semibold mb-1">Admin only</p>
         <p className="text-bone/55 text-sm mb-4">The season wizard is for club admins.</p>
-        <Link to="/dashboard" className="text-crimson-300 font-bold text-sm hover:text-crimson-200">← Back to dashboard</Link>
+        <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
       </div>
     );
   }
@@ -205,7 +205,7 @@ const SeasonWizard: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <div className="mb-5 sm:mb-7">
-        <p className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-400">Club admin</p>
+        <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</p>
         <h1 className="font-display text-2xl sm:text-3xl font-black text-bone mt-1">
           {isNew ? 'New season' : (season?.name || 'Season')}
         </h1>
@@ -215,8 +215,8 @@ const SeasonWizard: React.FC = () => {
       </div>
 
       {showProgress && !loaded && (
-        <div className="h-0.5 bg-crimson-500/15 overflow-hidden rounded-full mb-3">
-          <div className="h-full w-1/3 bg-crimson-500 animate-progress-slide" />
+        <div className="h-0.5 bg-brand-primary/15 overflow-hidden rounded-full mb-3">
+          <div className="h-full w-1/3 bg-brand-primary animate-progress-slide" />
         </div>
       )}
 
@@ -232,7 +232,7 @@ const SeasonWizard: React.FC = () => {
                 key={step.key}
                 className={`rounded-2xl ring-1 transition-colors ${
                   isActive
-                    ? 'bg-charcoal-900 ring-crimson-500/40'
+                    ? 'bg-charcoal-900 ring-brand-primary/40'
                     : done
                       ? 'bg-charcoal-900 ring-emerald-400/25'
                       : 'bg-charcoal-900 ring-white/10'
@@ -249,7 +249,7 @@ const SeasonWizard: React.FC = () => {
                       done
                         ? 'bg-emerald-500 ring-emerald-400 text-charcoal-950'
                         : isActive
-                          ? 'bg-crimson-600 ring-crimson-400 text-white'
+                          ? 'bg-brand-primary ring-brand-primary-soft text-white'
                           : 'bg-charcoal-950 ring-white/15 text-bone/50'
                     }`}
                   >
@@ -277,7 +277,7 @@ const SeasonWizard: React.FC = () => {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Fall 2026 / Spring 2027 / 2027-28 ECNL"
-                        className="w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone placeholder:text-bone/35 focus:outline-none focus:ring-crimson-400/50"
+                        className="w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone placeholder:text-bone/35 focus:outline-none focus:ring-brand-primary-soft/50"
                       />
                     </div>
                     {/* Date inputs constrained to a max width so the native
@@ -295,7 +295,7 @@ const SeasonWizard: React.FC = () => {
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
-                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-crimson-400/50"
+                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-brand-primary-soft/50"
                         />
                       </div>
                       <div className="min-w-0">
@@ -304,7 +304,7 @@ const SeasonWizard: React.FC = () => {
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
-                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-crimson-400/50"
+                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-brand-primary-soft/50"
                         />
                       </div>
                     </div>
@@ -317,7 +317,7 @@ const SeasonWizard: React.FC = () => {
                             const allSelected = selectedAgeGroups.length === AGE_GROUP_OPTIONS.length;
                             setSelectedAgeGroups(allSelected ? [] : [...AGE_GROUP_OPTIONS]);
                           }}
-                          className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 hover:text-crimson-200"
+                          className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary-soft"
                         >
                           {selectedAgeGroups.length === AGE_GROUP_OPTIONS.length ? 'Clear all' : 'Select all'}
                         </button>
@@ -334,7 +334,7 @@ const SeasonWizard: React.FC = () => {
                               )}
                               className={`text-[12px] font-extrabold tracking-wide px-2.5 py-1 rounded-full transition-colors ring-1 ${
                                 on
-                                  ? 'bg-crimson-600 ring-crimson-400 text-white'
+                                  ? 'bg-brand-primary ring-brand-primary-soft text-white'
                                   : 'bg-charcoal-950 ring-white/10 text-bone/65 hover:bg-white/5 hover:text-bone'
                               }`}
                             >
@@ -354,7 +354,7 @@ const SeasonWizard: React.FC = () => {
                         type="button"
                         onClick={savePlan}
                         disabled={saving}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-crimson-600 hover:bg-crimson-500 text-white font-bold rounded-md ring-1 ring-crimson-400/30 transition-colors text-sm disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary text-white font-bold rounded-md ring-1 ring-brand-primary-soft/30 transition-colors text-sm disabled:opacity-50"
                       >
                         {saving ? 'Saving…' : (done ? 'Save changes' : 'Save and continue')}
                       </button>

@@ -173,7 +173,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                   type="text"
                   value={row.firstName}
                   onChange={e => updateRow(i, { firstName: e.target.value })}
-                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
                   placeholder="First name"
                   autoComplete="off"
                 />
@@ -181,7 +181,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                   type="text"
                   value={row.lastName}
                   onChange={e => updateRow(i, { lastName: e.target.value })}
-                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
                   placeholder="Last name"
                   autoComplete="off"
                 />
@@ -190,7 +190,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                 type="email"
                 value={row.parentEmail}
                 onChange={e => updateRow(i, { parentEmail: e.target.value })}
-                className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
                 placeholder="Parent email"
                 autoComplete="off"
               />
@@ -223,7 +223,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
       </button>
 
       {error && (
-        <div className="mt-4 rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-sm">
+        <div className="mt-4 rounded-md bg-brand-primary-deep/40 ring-1 ring-brand-primary/40 px-3 py-2 text-brand-primary-soft text-sm">
           {error}
         </div>
       )}
@@ -232,7 +232,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
         type="button"
         onClick={handleSubmit}
         disabled={busy}
-        className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20 transition disabled:opacity-60 disabled:cursor-wait"
+        className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition disabled:opacity-60 disabled:cursor-wait"
       >
         {busy ? 'Adding players…' : primaryLabel}
       </button>

@@ -245,7 +245,7 @@ const Surveys: React.FC = () => {
   if (loading) {
     return (
       <div className="p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft/30 border-t-cyan-500" />
       </div>
     );
   }
@@ -255,7 +255,7 @@ const Surveys: React.FC = () => {
       <div className="p-6">
         <Header title="Surveys" />
         <div className="card-modern p-8 text-center mt-4">
-          <p className="text-crimson-500">Only coaches can manage surveys.</p>
+          <p className="text-brand-primary">Only coaches can manage surveys.</p>
         </div>
       </div>
     );
@@ -270,16 +270,16 @@ const Surveys: React.FC = () => {
       <div className="p-4 sm:p-6 max-w-3xl mx-auto">
         <Header title="Survey Results" subtitle={selectedSurvey.title} />
 
-        <button onClick={() => { setView('list'); setSelectedSurvey(null); setResultsTab('summary'); setIndividualIndex(0); }} className="text-crimson-600 hover:text-crimson-700 text-sm font-medium mb-4 flex items-center gap-1">
+        <button onClick={() => { setView('list'); setSelectedSurvey(null); setResultsTab('summary'); setIndividualIndex(0); }} className="text-brand-primary hover:text-brand-primary text-sm font-medium mb-4 flex items-center gap-1">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back to surveys
         </button>
 
         {responsesLoading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" /></div>
+          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft/30 border-t-cyan-500" /></div>
         ) : responses.length === 0 ? (
           <div className="card-modern p-8 text-center">
-            <p className="text-crimson-400 text-lg">No responses yet</p>
+            <p className="text-brand-primary-soft text-lg">No responses yet</p>
             <button onClick={() => copyShareLink(selectedSurvey.id)} className="btn-primary mt-4 px-4 py-2 rounded-xl text-sm">
               Copy Share Link
             </button>
@@ -289,20 +289,20 @@ const Surveys: React.FC = () => {
             {/* Header bar */}
             <div className="card-modern p-4 flex items-center justify-between">
               <span className="text-bone/65 font-medium">{responses.length} response{responses.length !== 1 ? 's' : ''}</span>
-              {selectedSurvey.isAnonymous && <span className="text-xs bg-crimson-100 text-crimson-500 px-2 py-0.5 rounded-full">Anonymous</span>}
+              {selectedSurvey.isAnonymous && <span className="text-xs bg-brand-primary-soft text-brand-primary px-2 py-0.5 rounded-full">Anonymous</span>}
             </div>
 
             {/* Tab toggle */}
-            <div className="flex rounded-xl overflow-hidden border border-crimson-400/30 w-fit">
+            <div className="flex rounded-xl overflow-hidden border border-brand-primary-soft/30 w-fit">
               <button
                 onClick={() => setResultsTab('summary')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-crimson-500 text-white' : 'bg-charcoal-800 text-bone/65 hover:bg-white/[0.08]'}`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'summary' ? 'bg-brand-primary text-white' : 'bg-charcoal-800 text-bone/65 hover:bg-white/[0.08]'}`}
               >
                 Summary
               </button>
               <button
                 onClick={() => { setResultsTab('individual'); setIndividualIndex(0); }}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-crimson-500 text-white' : 'bg-charcoal-800 text-bone/65 hover:bg-white/[0.08]'}`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${resultsTab === 'individual' ? 'bg-brand-primary text-white' : 'bg-charcoal-800 text-bone/65 hover:bg-white/[0.08]'}`}
               >
                 Individual
               </button>
@@ -318,22 +318,22 @@ const Surveys: React.FC = () => {
                     {q.type === 'rating' && (
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <span className="text-3xl font-bold text-crimson-600">{getAverageRating(q.id).toFixed(1)}</span>
-                          <span className="text-crimson-400 text-sm">/ {q.maxRating || 5} avg</span>
+                          <span className="text-3xl font-bold text-brand-primary">{getAverageRating(q.id).toFixed(1)}</span>
+                          <span className="text-brand-primary-soft text-sm">/ {q.maxRating || 5} avg</span>
                         </div>
-                        <div className="h-2 bg-crimson-100 rounded-full overflow-hidden">
-                          <div className="h-2 rounded-full bg-crimson-500 transition-all" style={{ width: `${(getAverageRating(q.id) / (q.maxRating || 5)) * 100}%` }} />
+                        <div className="h-2 bg-brand-primary-soft rounded-full overflow-hidden">
+                          <div className="h-2 rounded-full bg-brand-primary transition-all" style={{ width: `${(getAverageRating(q.id) / (q.maxRating || 5)) * 100}%` }} />
                         </div>
                         <div className="flex gap-1 mt-2">
                           {Array.from({ length: q.maxRating || 5 }, (_, i) => {
                             const count = responses.filter(r => r.answers.find(a => a.questionId === q.id)?.value === i + 1).length;
                             return (
                               <div key={i} className="flex-1 text-center">
-                                <div className="text-xs text-crimson-400 mb-1">{i + 1}★</div>
-                                <div className="h-8 bg-crimson-100 rounded relative overflow-hidden">
-                                  <div className="absolute bottom-0 left-0 right-0 bg-crimson-400 rounded transition-all" style={{ height: responses.length ? `${(count / responses.length) * 100}%` : '0%' }} />
+                                <div className="text-xs text-brand-primary-soft mb-1">{i + 1}★</div>
+                                <div className="h-8 bg-brand-primary-soft rounded relative overflow-hidden">
+                                  <div className="absolute bottom-0 left-0 right-0 bg-brand-primary-soft rounded transition-all" style={{ height: responses.length ? `${(count / responses.length) * 100}%` : '0%' }} />
                                 </div>
-                                <div className="text-xs text-crimson-400 mt-1">{count}</div>
+                                <div className="text-xs text-brand-primary-soft mt-1">{count}</div>
                               </div>
                             );
                           })}
@@ -368,8 +368,8 @@ const Surveys: React.FC = () => {
                           {(q.options || []).map(opt => (
                             <div key={opt} className="flex items-center gap-3">
                               <span className="text-sm text-bone/85 w-40 truncate">{opt}</span>
-                              <div className="flex-1 h-6 bg-crimson-100 rounded-full overflow-hidden">
-                                <div className="h-6 bg-crimson-400 rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
+                              <div className="flex-1 h-6 bg-brand-primary-soft rounded-full overflow-hidden">
+                                <div className="h-6 bg-brand-primary-soft rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
                                   {counts[opt] ? <span className="text-xs font-medium text-white">{counts[opt]}</span> : null}
                                 </div>
                               </div>
@@ -385,10 +385,10 @@ const Surveys: React.FC = () => {
                           const ans = r.answers.find(a => a.questionId === q.id);
                           if (!ans || !ans.value) return null;
                           return (
-                            <div key={r.id} className="bg-crimson-500/15 rounded-lg p-3 text-sm text-bone/85 border border-crimson-400/30">
+                            <div key={r.id} className="bg-brand-primary/15 rounded-lg p-3 text-sm text-bone/85 border border-brand-primary-soft/30">
                               "{String(ans.value)}"
                               {!selectedSurvey.isAnonymous && r.respondentName && (
-                                <span className="block text-xs text-crimson-400 mt-1">— {r.respondentName}</span>
+                                <span className="block text-xs text-brand-primary-soft mt-1">— {r.respondentName}</span>
                               )}
                             </div>
                           );
@@ -408,7 +408,7 @@ const Surveys: React.FC = () => {
                   <button
                     onClick={() => setIndividualIndex(i => Math.max(0, i - 1))}
                     disabled={individualIndex === 0}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-crimson-100 text-bone/65 disabled:opacity-30 hover:bg-crimson-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-primary-soft text-bone/65 disabled:opacity-30 hover:bg-brand-primary-soft transition-colors"
                   >
                     ← Prev
                   </button>
@@ -416,12 +416,12 @@ const Surveys: React.FC = () => {
                     <span className="text-bone/65 font-medium text-sm">
                       {selectedSurvey.isAnonymous ? `Response ${individualIndex + 1}` : (currentResp.respondentName || 'Anonymous')}
                     </span>
-                    <div className="text-xs text-crimson-400">{individualIndex + 1} of {responses.length} · {currentResp.submittedAt.toLocaleDateString()}</div>
+                    <div className="text-xs text-brand-primary-soft">{individualIndex + 1} of {responses.length} · {currentResp.submittedAt.toLocaleDateString()}</div>
                   </div>
                   <button
                     onClick={() => setIndividualIndex(i => Math.min(responses.length - 1, i + 1))}
                     disabled={individualIndex === responses.length - 1}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-crimson-100 text-bone/65 disabled:opacity-30 hover:bg-crimson-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-primary-soft text-bone/65 disabled:opacity-30 hover:bg-brand-primary-soft transition-colors"
                   >
                     Next →
                   </button>
@@ -432,14 +432,14 @@ const Surveys: React.FC = () => {
                   const ans = currentResp.answers.find(a => a.questionId === q.id);
                   return (
                     <div key={q.id} className="card-modern p-5">
-                      <div className="text-xs font-medium text-crimson-400 uppercase tracking-wide mb-1">{QUESTION_TYPE_LABELS[q.type]}</div>
+                      <div className="text-xs font-medium text-brand-primary-soft uppercase tracking-wide mb-1">{QUESTION_TYPE_LABELS[q.type]}</div>
                       <h3 className="font-semibold text-charcoal-900 mb-3">{q.order}. {q.text}</h3>
                       {!ans || ans.value === undefined || ans.value === '' ? (
-                        <span className="text-crimson-400 italic text-sm">No answer</span>
+                        <span className="text-brand-primary-soft italic text-sm">No answer</span>
                       ) : q.type === 'rating' ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-3xl font-bold text-crimson-600">{ans.value}</span>
-                          <span className="text-crimson-400">/ {q.maxRating || 5}</span>
+                          <span className="text-3xl font-bold text-brand-primary">{ans.value}</span>
+                          <span className="text-brand-primary-soft">/ {q.maxRating || 5}</span>
                           <span className="ml-1 text-amber-400 text-xl">{'★'.repeat(Number(ans.value))}{'☆'.repeat((q.maxRating || 5) - Number(ans.value))}</span>
                         </div>
                       ) : q.type === 'yes_no' ? (
@@ -447,9 +447,9 @@ const Surveys: React.FC = () => {
                           {ans.value === 'yes' ? 'Yes' : 'No'}
                         </span>
                       ) : q.type === 'multiple_choice' ? (
-                        <span className="inline-block bg-crimson-100 text-crimson-700 px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
+                        <span className="inline-block bg-brand-primary-soft text-brand-primary px-3 py-1 rounded-full text-sm font-medium">{String(ans.value)}</span>
                       ) : (
-                        <p className="text-bone/85 text-sm bg-crimson-500/15 rounded-lg p-3 border border-crimson-400/30">"{String(ans.value)}"</p>
+                        <p className="text-bone/85 text-sm bg-brand-primary/15 rounded-lg p-3 border border-brand-primary-soft/30">"{String(ans.value)}"</p>
                       )}
                     </div>
                   );
@@ -470,16 +470,16 @@ const Surveys: React.FC = () => {
       <div className="p-4 sm:p-6 max-w-3xl mx-auto">
         <Header title={editingSurvey ? 'Edit Survey' : 'Create Survey'} />
 
-        <button onClick={() => { resetBuilder(); setView('list'); }} className="text-crimson-600 hover:text-crimson-700 text-sm font-medium mb-4 flex items-center gap-1">
+        <button onClick={() => { resetBuilder(); setView('list'); }} className="text-brand-primary hover:text-brand-primary text-sm font-medium mb-4 flex items-center gap-1">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
 
         {/* Template Button */}
         {!editingSurvey && questions.length === 0 && (
-          <button onClick={useTemplate} className="w-full card-modern p-4 mb-4 border-2 border-dashed border-crimson-400/50 hover:border-crimson-400 hover:bg-crimson-500/10 transition-colors text-left">
+          <button onClick={useTemplate} className="w-full card-modern p-4 mb-4 border-2 border-dashed border-brand-primary-soft/50 hover:border-brand-primary-soft hover:bg-brand-primary/10 transition-colors text-left">
             <div className="font-semibold text-charcoal-900">Use "How Am I Doing?" Template</div>
-            <div className="text-sm text-crimson-500 mt-1">Pre-built anonymous coach feedback survey — 5 questions ready to go</div>
+            <div className="text-sm text-brand-primary mt-1">Pre-built anonymous coach feedback survey — 5 questions ready to go</div>
           </button>
         )}
 
@@ -492,7 +492,7 @@ const Surveys: React.FC = () => {
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. End of Season Feedback"
-              className="w-full border border-crimson-400/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none"
+              className="w-full border border-brand-primary-soft/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none"
             />
           </div>
           <div>
@@ -502,14 +502,14 @@ const Surveys: React.FC = () => {
               onChange={e => setDescription(e.target.value)}
               rows={2}
               placeholder="Brief description shown to respondents…"
-              className="w-full border border-crimson-400/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none resize-none"
+              className="w-full border border-brand-primary-soft/30 rounded-xl px-4 py-2.5 text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none resize-none"
             />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} className="w-4 h-4 rounded text-crimson-500 focus:ring-crimson-400" />
+            <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary-soft" />
             <span className="text-sm text-bone/85">Anonymous responses</span>
           </label>
-          <p className="text-xs text-crimson-500">Survey results are private and visible only to the survey creator.</p>
+          <p className="text-xs text-brand-primary">Survey results are private and visible only to the survey creator.</p>
         </div>
 
         {/* Questions */}
@@ -517,10 +517,10 @@ const Surveys: React.FC = () => {
           {questions.map((q, idx) => (
             <div key={q.id} className="card-modern p-4 border-l-4 border-l-cyan-400">
               <div className="flex items-start justify-between gap-2 mb-3">
-                <span className="text-xs font-semibold text-crimson-300 bg-crimson-500/15 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
+                <span className="text-xs font-semibold text-brand-primary-soft bg-brand-primary/15 px-2 py-0.5 rounded-full">{QUESTION_TYPE_LABELS[q.type]}</span>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => moveQuestion(q.id, 'up')} disabled={idx === 0} className="p-1 text-crimson-400 hover:text-bone/85 disabled:opacity-30">↑</button>
-                  <button onClick={() => moveQuestion(q.id, 'down')} disabled={idx === questions.length - 1} className="p-1 text-crimson-400 hover:text-bone/85 disabled:opacity-30">↓</button>
+                  <button onClick={() => moveQuestion(q.id, 'up')} disabled={idx === 0} className="p-1 text-brand-primary-soft hover:text-bone/85 disabled:opacity-30">↑</button>
+                  <button onClick={() => moveQuestion(q.id, 'down')} disabled={idx === questions.length - 1} className="p-1 text-brand-primary-soft hover:text-bone/85 disabled:opacity-30">↓</button>
                   <button onClick={() => removeQuestion(q.id)} className="p-1 text-rose-400 hover:text-rose-300 ml-1">✕</button>
                 </div>
               </div>
@@ -530,13 +530,13 @@ const Surveys: React.FC = () => {
                 value={q.text}
                 onChange={e => updateQuestion(q.id, { text: e.target.value })}
                 placeholder="Question text…"
-                className="w-full border border-crimson-400/30 rounded-lg px-3 py-2 text-sm text-charcoal-900 focus:ring-2 focus:ring-crimson-400 focus:border-crimson-400 outline-none mb-2"
+                className="w-full border border-brand-primary-soft/30 rounded-lg px-3 py-2 text-sm text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none mb-2"
               />
 
               {q.type === 'rating' && (
-                <div className="flex items-center gap-2 text-sm text-crimson-500">
+                <div className="flex items-center gap-2 text-sm text-brand-primary">
                   <span>Max rating:</span>
-                  <select value={q.maxRating || 5} onChange={e => updateQuestion(q.id, { maxRating: Number(e.target.value) })} className="border border-crimson-400/30 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-crimson-400 outline-none">
+                  <select value={q.maxRating || 5} onChange={e => updateQuestion(q.id, { maxRating: Number(e.target.value) })} className="border border-brand-primary-soft/30 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-brand-primary-soft outline-none">
                     {[3, 4, 5, 7, 10].map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
@@ -546,7 +546,7 @@ const Surveys: React.FC = () => {
                 <div className="space-y-2 mt-1">
                   {(q.options || []).map((opt, oi) => (
                     <div key={oi} className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full border-2 border-crimson-300 flex-shrink-0" />
+                      <span className="w-5 h-5 rounded-full border-2 border-brand-primary-soft flex-shrink-0" />
                       <input
                         type="text"
                         value={opt}
@@ -555,19 +555,19 @@ const Surveys: React.FC = () => {
                           next[oi] = e.target.value;
                           updateQuestion(q.id, { options: next });
                         }}
-                        className="flex-1 border border-crimson-400/30 rounded-lg px-3 py-1.5 text-sm text-charcoal-900 focus:ring-2 focus:ring-crimson-400 outline-none"
+                        className="flex-1 border border-brand-primary-soft/30 rounded-lg px-3 py-1.5 text-sm text-charcoal-900 focus:ring-2 focus:ring-brand-primary-soft outline-none"
                       />
                       {(q.options || []).length > 2 && (
                         <button onClick={() => updateQuestion(q.id, { options: (q.options || []).filter((_, i) => i !== oi) })} className="text-rose-400 hover:text-rose-300 text-sm">✕</button>
                       )}
                     </div>
                   ))}
-                  <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options || []).length + 1}`] })} className="text-crimson-600 hover:text-crimson-700 text-sm font-medium">+ Add option</button>
+                  <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options || []).length + 1}`] })} className="text-brand-primary hover:text-brand-primary text-sm font-medium">+ Add option</button>
                 </div>
               )}
 
-              <label className="flex items-center gap-2 mt-2 text-sm text-crimson-500 cursor-pointer">
-                <input type="checkbox" checked={q.required} onChange={e => updateQuestion(q.id, { required: e.target.checked })} className="w-3.5 h-3.5 rounded text-crimson-500 focus:ring-crimson-400" />
+              <label className="flex items-center gap-2 mt-2 text-sm text-brand-primary cursor-pointer">
+                <input type="checkbox" checked={q.required} onChange={e => updateQuestion(q.id, { required: e.target.checked })} className="w-3.5 h-3.5 rounded text-brand-primary focus:ring-brand-primary-soft" />
                 Required
               </label>
             </div>
@@ -582,7 +582,7 @@ const Surveys: React.FC = () => {
               <button
                 key={type}
                 onClick={() => addQuestion(type)}
-                className="px-3 py-2.5 rounded-xl border border-crimson-400/30 hover:border-crimson-400 hover:bg-crimson-500/10 text-sm text-bone/85 font-medium transition-colors text-left"
+                className="px-3 py-2.5 rounded-xl border border-brand-primary-soft/30 hover:border-brand-primary-soft hover:bg-brand-primary/10 text-sm text-bone/85 font-medium transition-colors text-left"
               >
                 {QUESTION_TYPE_LABELS[type]}
               </button>
@@ -613,7 +613,7 @@ const Surveys: React.FC = () => {
           <button
             onClick={() => { resetBuilder(); setView('create'); }}
             aria-label="New survey"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -631,7 +631,7 @@ const Surveys: React.FC = () => {
           surveys.map(s => (
             <div key={s.id} className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
               {/* Type stripe — active = cyan, closed = slate */}
-              <div className={`h-[3px] ${s.isActive ? 'bg-gradient-to-r from-emerald-500 to-crimson-500' : 'bg-white/15'}`} />
+              <div className={`h-[3px] ${s.isActive ? 'bg-gradient-to-r from-emerald-500 to-brand-primary' : 'bg-white/15'}`} />
               <div className="px-4 py-3">
                 <div className="flex items-start gap-2 flex-wrap mb-1">
                   <h3 className="font-bold text-bone text-base truncate flex-1">{s.title}</h3>
@@ -665,7 +665,7 @@ const Surveys: React.FC = () => {
                 <div className="mt-3 flex items-center gap-1.5 flex-wrap">
                   <button
                     onClick={() => copyShareLink(s.id)}
-                    className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-crimson-500/15 text-crimson-300 border-crimson-400/30 hover:bg-crimson-500/25 inline-flex items-center gap-1"
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30 hover:bg-brand-primary/25 inline-flex items-center gap-1"
                   >
                     {copySuccess === s.id ? (
                       <><svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Copied</>

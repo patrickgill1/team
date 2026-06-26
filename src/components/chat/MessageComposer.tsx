@@ -346,13 +346,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       }
     >
       {replyingTo && (
-        <div className="mb-2 px-3 py-1.5 bg-crimson-500/10 ring-1 ring-crimson-400/30 rounded-xl flex items-center justify-between">
-          <span className="text-xs text-crimson-200 truncate">
+        <div className="mb-2 px-3 py-1.5 bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 rounded-xl flex items-center justify-between">
+          <span className="text-xs text-brand-primary-soft truncate">
             <span className="font-semibold">↪ Replying to {replyingTo.senderName}</span>
           </span>
           <button
             onClick={onCancelReply}
-            className="text-crimson-300 hover:text-bone ml-2 flex-shrink-0"
+            className="text-brand-primary-soft hover:text-bone ml-2 flex-shrink-0"
             aria-label="Cancel reply"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,13 +380,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {postToWall && (
-        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-crimson-500/15 text-crimson-200 ring-1 ring-crimson-400/30">
+        <div className="mb-1.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30">
           <span>Posting to wall</span>
           <button
             type="button"
             onClick={() => setPostToWall(false)}
             aria-label="Clear wall post"
-            className="text-crimson-300 hover:text-bone"
+            className="text-brand-primary-soft hover:text-bone"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -465,7 +465,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             onPaste={onPaste}
             placeholder="Message"
             rows={1}
-            className="block w-full resize-none bg-charcoal-950 rounded-[20px] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/50 text-[15px] text-bone placeholder-bone/40 leading-tight transition-colors ring-1 ring-white/10"
+            className="block w-full resize-none bg-charcoal-950 rounded-[20px] px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/50 text-[15px] text-bone placeholder-bone/40 leading-tight transition-colors ring-1 ring-white/10"
             style={{ fontSize: '16px', maxHeight: '140px', minHeight: '40px', lineHeight: '24px' }}
           />
           {mentionQuery !== null && filteredMembers.length > 0 && (
@@ -485,11 +485,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                     }`}
                   >
                     {isTeam && (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white text-[10px] font-bold flex-shrink-0">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white text-[10px] font-bold flex-shrink-0">
                         @
                       </span>
                     )}
-                    <span className={`font-medium ${isTeam ? 'text-crimson-300' : 'text-bone'}`}>
+                    <span className={`font-medium ${isTeam ? 'text-brand-primary-soft' : 'text-bone'}`}>
                       @{m.name}
                     </span>
                     {m.role && (
@@ -505,7 +505,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <button
           onClick={doSend}
           disabled={uploading || (!text.trim() && pending.length === 0)}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-600 hover:from-crimson-600 hover:to-crimson-700 active:scale-95 disabled:from-white/10 disabled:to-white/10 disabled:text-bone/30 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary hover:from-brand-primary hover:to-brand-primary active:scale-95 disabled:from-white/10 disabled:to-white/10 disabled:text-bone/30 text-white flex items-center justify-center shadow-sm disabled:shadow-none disabled:cursor-not-allowed transition"
           aria-label="Send"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -532,7 +532,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
               >
                 Cancel
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Add</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Add</div>
               <span className="w-12" aria-hidden />
             </div>
             <div className="divide-y divide-white/5">
@@ -618,7 +618,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-white/[0.04]"
                 >
                   <span className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                    postToWall ? 'bg-crimson-500 text-white ring-2 ring-crimson-300' : 'bg-crimson-600 text-white'
+                    postToWall ? 'bg-brand-primary text-white ring-2 ring-brand-primary-soft' : 'bg-brand-primary text-white'
                   }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 2v6"/>

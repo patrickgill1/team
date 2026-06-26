@@ -162,7 +162,7 @@ const SubscriptionCard: React.FC = () => {
         onClick={e => e.stopPropagation()}
       >
         <div>
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1.5">
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1.5">
             One quick thing
           </p>
           <h3 className="text-bone text-lg font-bold leading-tight">
@@ -182,12 +182,12 @@ const SubscriptionCard: React.FC = () => {
             value={emailDraft}
             onChange={e => setEmailDraft(e.target.value)}
             placeholder="you@example.com"
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500"
+            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500"
             onKeyDown={e => { if (e.key === 'Enter' && !emailSaving) handleEmailConfirm(); }}
           />
         </label>
         {emailError && (
-          <div className="rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-xs">
+          <div className="rounded-md bg-brand-primary-deep/40 ring-1 ring-brand-primary/40 px-3 py-2 text-brand-primary-soft text-xs">
             {emailError}
           </div>
         )}
@@ -204,7 +204,7 @@ const SubscriptionCard: React.FC = () => {
             type="button"
             onClick={handleEmailConfirm}
             disabled={emailSaving || !emailDraft.trim()}
-            className="px-4 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white transition disabled:opacity-60 disabled:cursor-wait"
+            className="px-4 py-2.5 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white transition disabled:opacity-60 disabled:cursor-wait"
           >
             {emailSaving ? 'Saving…' : 'Continue'}
           </button>
@@ -239,7 +239,7 @@ const SubscriptionCard: React.FC = () => {
           <button
             type="button"
             onClick={handleSubscribe}
-            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-crimson-600 hover:bg-crimson-500 text-white transition-all"
+            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold bg-brand-primary hover:bg-brand-primary text-white transition-all"
           >
             Subscribe at goalkickr.com
           </button>
@@ -290,7 +290,7 @@ const SubscriptionCard: React.FC = () => {
       )}
 
       {portalError && (
-        <div className="rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-xs">
+        <div className="rounded-md bg-brand-primary-deep/40 ring-1 ring-brand-primary/40 px-3 py-2 text-brand-primary-soft text-xs">
           {portalError}
         </div>
       )}
@@ -306,9 +306,9 @@ const SubscriptionCard: React.FC = () => {
         <button
           type="button"
           onClick={handleUpgrade}
-          className="w-full text-left rounded-lg bg-gradient-to-br from-crimson-950/40 to-charcoal-900 ring-1 ring-crimson-700/40 hover:ring-crimson-500/60 transition px-3 py-2.5"
+          className="w-full text-left rounded-lg bg-gradient-to-br from-brand-primary-deep/40 to-charcoal-900 ring-1 ring-brand-primary/40 hover:ring-brand-primary/60 transition px-3 py-2.5"
         >
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Running multiple teams?
           </p>
           <p className="text-bone text-sm font-bold leading-tight">
@@ -323,9 +323,9 @@ const SubscriptionCard: React.FC = () => {
         <button
           type="button"
           onClick={handleUpgrade}
-          className="w-full text-left rounded-lg bg-gradient-to-br from-crimson-950/40 to-charcoal-900 ring-1 ring-crimson-700/40 hover:ring-crimson-500/60 transition px-3 py-2.5"
+          className="w-full text-left rounded-lg bg-gradient-to-br from-brand-primary-deep/40 to-charcoal-900 ring-1 ring-brand-primary/40 hover:ring-brand-primary/60 transition px-3 py-2.5"
         >
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Need integrations?
           </p>
           <p className="text-bone text-sm font-bold leading-tight">

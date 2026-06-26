@@ -17,7 +17,7 @@ const CoachJoin: React.FC = () => (
       </p>
       <Link
         to="/auth"
-        className="inline-block px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-semibold"
+        className="inline-block px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary text-white text-sm font-semibold"
       >
         Go to sign-in
       </Link>

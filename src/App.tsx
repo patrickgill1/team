@@ -89,12 +89,12 @@ const PageSpinner = () => (
       <img
         src="/images/logo.png"
         alt=""
-        className="w-24 h-24 rounded-2xl shadow-2xl shadow-crimson-500/20 ring-1 ring-white/10 splash-breathe"
+        className="w-24 h-24 rounded-2xl shadow-2xl shadow-brand-primary/20 ring-1 ring-white/10 splash-breathe"
       />
       <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '0ms' }} />
-        <span className="w-2 h-2 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '180ms' }} />
-        <span className="w-2 h-2 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '360ms' }} />
+        <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '0ms' }} />
+        <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '180ms' }} />
+        <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '360ms' }} />
       </div>
     </div>
   </div>
@@ -153,7 +153,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-500/30 border-t-cyan-400" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary/30 border-t-cyan-400" />
         </div>
       </div>
     );
@@ -174,7 +174,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
           <button
             onClick={() => { window.location.reload(); }}
-            className="w-full bg-crimson-600 text-white rounded-2xl py-3 font-semibold hover:bg-crimson-700 transition-colors mb-3"
+            className="w-full bg-brand-primary text-white rounded-2xl py-3 font-semibold hover:bg-brand-primary transition-colors mb-3"
           >
             Check Again
           </button>
@@ -198,13 +198,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <p className="text-gray-600 mb-6">
             Your account is approved! A coach just needs to link you to your child's player profile and everything will appear automatically.
           </p>
-          <div className="bg-crimson-100 border border-crimson-200 rounded-2xl p-4 text-left text-sm text-charcoal-800 mb-6">
+          <div className="bg-brand-primary-soft border border-brand-primary-soft rounded-2xl p-4 text-left text-sm text-charcoal-800 mb-6">
             <p className="font-medium mb-1">Let your coach know:</p>
-            <p>Edit the player → add <span className="font-mono bg-crimson-200 px-1 rounded-lg">{userData?.email}</span> as a parent email.</p>
+            <p>Edit the player → add <span className="font-mono bg-brand-primary-soft px-1 rounded-lg">{userData?.email}</span> as a parent email.</p>
           </div>
           <button
             onClick={() => { window.location.reload(); }}
-            className="w-full bg-crimson-600 text-white rounded-2xl py-3 font-semibold hover:bg-crimson-700 transition-colors mb-3"
+            className="w-full bg-brand-primary text-white rounded-2xl py-3 font-semibold hover:bg-brand-primary transition-colors mb-3"
           >
             Check Again
           </button>
@@ -477,7 +477,7 @@ function App() {
                           <p className="text-bone/55 text-sm mb-4">Your messages are safe. Pull to refresh, or wait a moment.</p>
                           <button
                             onClick={() => window.location.reload()}
-                            className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-400 hover:text-bone"
+                            className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-bone"
                           >
                             Tap to refresh
                           </button>
@@ -910,11 +910,11 @@ const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
       className="fixed left-0 right-0 z-[9998] pointer-events-none"
       style={{ top: 'env(safe-area-inset-top)' }}
     >
-      <div className="mx-3 mt-1 rounded-full bg-charcoal-900/85 ring-1 ring-crimson-400/20 backdrop-blur-md shadow-lg shadow-crimson-500/10 overflow-hidden">
+      <div className="mx-3 mt-1 rounded-full bg-charcoal-900/85 ring-1 ring-brand-primary-soft/20 backdrop-blur-md shadow-lg shadow-brand-primary/10 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-1.5">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inset-0 rounded-full bg-crimson-400 animate-ping opacity-75" />
-            <span className="relative rounded-full bg-crimson-400 h-2 w-2" />
+            <span className="absolute inset-0 rounded-full bg-brand-primary-soft animate-ping opacity-75" />
+            <span className="relative rounded-full bg-brand-primary-soft h-2 w-2" />
           </span>
           <span className="text-[11px] font-semibold tracking-wide text-white/90 flex-1">
             Updating · {Math.max(1, Math.floor(percent))}%
@@ -922,7 +922,7 @@ const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
         </div>
         <div className="h-0.5 bg-white/5">
           <div
-            className="h-full bg-gradient-to-r from-crimson-400 to-fuchsia-400 transition-[width] duration-300 ease-out"
+            className="h-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 transition-[width] duration-300 ease-out"
             style={{ width: `${Math.max(2, Math.floor(percent))}%` }}
           />
         </div>
@@ -987,12 +987,12 @@ const UpdatingSplash: React.FC = () => {
         <img
           src="/images/logo.png"
           alt=""
-          className="w-28 h-28 rounded-2xl shadow-2xl shadow-crimson-500/30 ring-1 ring-white/10 splash-breathe"
+          className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-white/10 splash-breathe"
         />
         <div className="flex flex-col items-center gap-3">
           <p className="text-white/85 text-sm font-semibold tracking-wide">Updating…</p>
           <div className="w-44 h-1 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full w-full bg-gradient-to-r from-crimson-400 to-fuchsia-400 animate-shimmer-bar" />
+            <div className="h-full w-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 animate-shimmer-bar" />
           </div>
         </div>
       </div>
@@ -1052,9 +1052,9 @@ const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         <img
           src="/images/logo.png"
           alt=""
-          className="w-20 h-20 rounded-2xl shadow-2xl shadow-crimson-500/30 ring-1 ring-white/10 splash-breathe"
+          className="w-20 h-20 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-white/10 splash-breathe"
         />
-        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-crimson-400/70">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-brand-primary-soft/70">
           {KIND_LABEL[item.kind]}
         </p>
         <p className="text-white text-base sm:text-lg font-medium leading-relaxed text-center">
@@ -1066,9 +1066,9 @@ const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           </p>
         )}
         <div className="flex items-center gap-1.5 mt-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '0ms' }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '180ms' }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '360ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '0ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '180ms' }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '360ms' }} />
         </div>
       </div>
     </div>
@@ -1144,12 +1144,12 @@ const BrandedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         <img
           src="/images/logo.png"
           alt=""
-          className="w-28 h-28 rounded-2xl shadow-2xl shadow-crimson-500/30 ring-1 ring-white/10 splash-breathe"
+          className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-white/10 splash-breathe"
         />
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '0ms' }} />
-          <span className="w-2 h-2 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '180ms' }} />
-          <span className="w-2 h-2 rounded-full bg-crimson-400 splash-dot" style={{ animationDelay: '360ms' }} />
+          <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '0ms' }} />
+          <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '180ms' }} />
+          <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '360ms' }} />
         </div>
       </div>
     </div>

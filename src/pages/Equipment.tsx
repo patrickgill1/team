@@ -86,9 +86,9 @@ const Equipment: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
         <div className="max-w-4xl mx-auto">
-          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
+          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-bone mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Dashboard
           </Link>
@@ -115,7 +115,7 @@ const Equipment: React.FC = () => {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded ${
-                  filter === f ? 'bg-crimson-600 text-white' : 'text-bone/50 hover:text-bone/90'
+                  filter === f ? 'bg-brand-primary text-white' : 'text-bone/50 hover:text-bone/90'
                 }`}
               >
                 {f}
@@ -164,7 +164,7 @@ const Equipment: React.FC = () => {
                         {p.profilePhotoUrl ? (
                           <img src={p.profilePhotoUrl} alt={p.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-white/10" />
                         ) : (
-                          <span className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-crimson-700 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                          <span className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                             {p.jerseyNumber != null ? `#${p.jerseyNumber}` : p.name.charAt(0).toUpperCase()}
                           </span>
                         )}

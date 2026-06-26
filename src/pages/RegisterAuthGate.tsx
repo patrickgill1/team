@@ -82,7 +82,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight">
             You're a few clicks from the<br />
-            <span className="text-crimson-400">GoalKickr family.</span>
+            <span className="text-brand-primary-soft">GoalKickr family.</span>
           </h1>
           <p className="text-slate-300 mt-3 text-sm leading-relaxed">
             Sign in or create your account to start your registration. One login covers every kid in your family — past, present, and future seasons.
@@ -125,14 +125,14 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
               <button
                 type="button"
                 onClick={() => setMode('email-signup')}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white"
+                className="w-full py-3 rounded-xl font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white"
               >
                 Create account with email
               </button>
               <button
                 type="button"
                 onClick={() => setMode('email-signin')}
-                className="w-full py-2 text-xs font-bold text-crimson-400 hover:text-bone"
+                className="w-full py-2 text-xs font-bold text-brand-primary-soft hover:text-bone"
               >
                 Already have an account? Sign in
               </button>
@@ -148,7 +148,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Carter"
-                    className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                    className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                     style={{ fontSize: '16px' }}
                   />
                 </label>
@@ -160,7 +160,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="jane@example.com"
-                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
               </label>
@@ -171,7 +171,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={mode === 'email-signup' ? 'At least 6 characters' : 'Your password'}
-                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-crimson-400/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
               </label>
@@ -179,7 +179,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                 type="button"
                 onClick={handleEmail}
                 disabled={busy || !email || !password}
-                className="w-full py-3 rounded-xl font-bold text-sm text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50"
+                className="w-full py-3 rounded-xl font-bold text-sm text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50"
               >
                 {busy ? 'Working…' : mode === 'email-signup' ? 'Create account' : 'Sign in'}
               </button>

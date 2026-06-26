@@ -143,7 +143,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const firstUndoneIdx = steps.findIndex(s => !s.done);
 
   return (
-    <div className="relative rounded-2xl bg-gradient-to-br from-charcoal-900 via-charcoal-900 to-crimson-950/30 ring-1 ring-crimson-700/30 p-4 sm:p-5 overflow-hidden shadow-xl">
+    <div className="relative rounded-2xl bg-gradient-to-br from-charcoal-900 via-charcoal-900 to-brand-primary-deep/30 ring-1 ring-brand-primary/30 p-4 sm:p-5 overflow-hidden shadow-xl">
       <button
         type="button"
         onClick={handleDismiss}
@@ -155,7 +155,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
 
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Getting started
           </p>
           <p className="text-bone font-bold leading-tight">
@@ -174,7 +174,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
       {/* Progress bar */}
       <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-5">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-crimson-500 to-amber-400 transition-all"
+          className="h-full rounded-full bg-gradient-to-r from-brand-primary to-amber-400 transition-all"
           style={{ width: `${(completedCount / steps.length) * 100}%` }}
         />
       </div>
@@ -190,7 +190,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                 s.done
                   ? 'bg-emerald-500/5 ring-1 ring-emerald-500/15'
                   : isNext
-                    ? 'bg-charcoal-950 ring-1 ring-crimson-500/30'
+                    ? 'bg-charcoal-950 ring-1 ring-brand-primary/30'
                     : 'bg-charcoal-950/60 ring-1 ring-white/5'
               }`}
             >
@@ -218,7 +218,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                     onClick={s.onClick}
                     className={`shrink-0 w-[120px] px-3 py-1.5 rounded-md font-bold text-xs transition text-center ${
                       isNext
-                        ? 'bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20'
+                        ? 'bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20'
                         : 'bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 text-bone'
                     }`}
                   >

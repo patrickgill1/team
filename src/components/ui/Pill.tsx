@@ -51,7 +51,7 @@ interface Props {
 // already shows up most often in the existing codebase.
 const TONES: Record<PillTone, string> = {
   neutral: 'text-bone/65 bg-white/[0.08] ring-1 ring-white/10',
-  crimson: 'text-crimson-200 bg-crimson-500/15 ring-1 ring-crimson-400/30',
+  crimson: 'text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary/30',
   amber:   'text-amber-200   bg-amber-500/15   ring-1 ring-amber-400/30',
   emerald: 'text-emerald-200 bg-emerald-500/15 ring-1 ring-emerald-400/30',
   rose:    'text-rose-200    bg-rose-500/15    ring-1 ring-rose-400/30',
@@ -61,7 +61,7 @@ const TONES: Record<PillTone, string> = {
 
 const DOT_TONES: Record<PillTone, string> = {
   neutral: 'bg-bone/55',
-  crimson: 'bg-crimson-400',
+  crimson: 'bg-brand-primary-soft',
   amber:   'bg-amber-400',
   emerald: 'bg-emerald-400',
   rose:    'bg-rose-400',

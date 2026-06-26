@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { useFirestore } from '../../hooks/useFirestore';
 import { uploadClubLogo } from '../../utils/storage';
+import { brandColorIsTooLight } from '../../hooks/useApplyClubBrand';
 
 // Club-admin tile for setting the club's brand: logo + brand color.
 // Lives at the top of ClubOverview when the viewer is a club admin
@@ -55,6 +56,16 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
   const handleColor = async (hex: string) => {
     if (!club?.id) return;
     setError(null);
+    // Reject colors too light for the dark theme (white text on a
+    // pastel yellow is invisible). Patrick: 'probably shouldn't do
+    // any colors that would make it contrast the background, unless
+    // we allowed a white background as well.' The picker still lets
+    // you choose any color in the system swatch, we just refuse to
+    // save the unreadable ones.
+    if (brandColorIsTooLight(hex)) {
+      setError("That color's too light for the dark theme — white text won't read on it. Try a deeper shade.");
+      return;
+    }
     setSaving(true);
     try {
       await updateDocument('clubs', club.id, { brandColor: hex, updatedAt: new Date() });
@@ -72,7 +83,7 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
     <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1">Branding</p>
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Branding</p>
           <h2 className="text-bone font-bold text-lg">Club logo + color</h2>
           <p className="text-bone/60 text-xs mt-1">Shows on the parent invite page and your club&apos;s public surfaces.</p>
         </div>
@@ -147,7 +158,7 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-xs">
+        <div className="mt-4 rounded-md bg-amber-950/40 ring-1 ring-amber-700/40 px-3 py-2 text-amber-100 text-xs">
           {error}
         </div>
       )}

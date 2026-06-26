@@ -188,7 +188,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
             <select
               value={seasonId}
               onChange={(e) => setSeasonId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             >
               {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -215,8 +215,8 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                           onClick={() => setAgeFilter(on ? ageFilter.filter(x => x !== ag) : [...ageFilter, ag])}
                           className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${
                             on
-                              ? 'bg-crimson-600 text-white ring-crimson-600'
-                              : 'bg-white text-slate-600 ring-slate-200 hover:ring-crimson-400'
+                              ? 'bg-brand-primary text-white ring-brand-primary'
+                              : 'bg-white text-slate-600 ring-slate-200 hover:ring-brand-primary-soft'
                           }`}
                         >
                           {ag}
@@ -236,7 +236,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                   onChange={(e) => setCustomIntro(e.target.value)}
                   rows={3}
                   placeholder="e.g. Hey families! Spring tryouts are May 14–15..."
-                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
                 />
               </label>
 
@@ -248,13 +248,13 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
                   value={customSignoff}
                   onChange={(e) => setCustomSignoff(e.target.value)}
                   placeholder="See you on the pitch — Coach Ollie"
-                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-crimson-400 text-sm"
+                  className="w-full px-3 py-2 rounded-lg ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-primary-soft text-sm"
                 />
               </label>
 
-              <div className="rounded-xl bg-crimson-50 ring-1 ring-crimson-200 p-3 text-sm flex items-center justify-between">
+              <div className="rounded-xl bg-brand-primary-soft ring-1 ring-brand-primary-soft p-3 text-sm flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-crimson-800">Recipients</div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-dim">Recipients</div>
                   <div className="text-charcoal-950 font-black text-lg">
                     {recipients.length} famil{recipients.length === 1 ? 'y' : 'ies'}
                   </div>
@@ -279,7 +279,7 @@ const RegistrationBlastModal: React.FC<Props> = ({ clubId, seasons, defaultSeaso
               type="button"
               disabled={sending || recipients.length === 0 || !seasonId}
               onClick={handleSend}
-              className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold"
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold"
             >
               {sending ? 'Sending…' : `Send to ${recipients.length}`}
             </button>

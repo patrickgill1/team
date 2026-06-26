@@ -35,10 +35,10 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
       'from-rose-400 to-rose-600',
       'from-amber-400 to-orange-600',
       'from-emerald-400 to-emerald-600',
-      'from-crimson-400 to-crimson-600',
+      'from-brand-primary-soft to-brand-primary',
       'from-violet-400 to-violet-600',
       'from-fuchsia-400 to-pink-600',
-      'from-crimson-400 to-charcoal-600',
+      'from-brand-primary-soft to-charcoal-600',
       'from-teal-400 to-teal-600',
     ];
     return palette[h % palette.length];
@@ -60,7 +60,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
           >
             Close
           </button>
-          <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">
             Reactions <span className="text-bone/50">{totalReactors}</span>
           </div>
           <span className="w-12" aria-hidden />
@@ -93,7 +93,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
                             {initial}
                           </span>
                         )}
-                        <span className={`text-sm truncate ${isMe ? 'font-bold text-crimson-700' : 'text-bone'}`}>
+                        <span className={`text-sm truncate ${isMe ? 'font-bold text-brand-primary' : 'text-bone'}`}>
                           {isMe ? 'You' : name}
                         </span>
                       </span>

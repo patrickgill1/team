@@ -167,7 +167,7 @@ const StatsTrends: React.FC<StatsTrendsProps> = ({ stats, isKeeper = false }) =>
 
       {/* Streaks grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="text-center bg-crimson-50 rounded-lg p-3">
+        <div className="text-center bg-brand-primary-soft rounded-lg p-3">
           <div className="text-xs text-gray-600 mb-1">Goal streak</div>
           <div className="text-2xl font-bold text-charcoal-700">{streaks.currentGoalStreak}</div>
           <div className="text-[10px] text-gray-500">best {streaks.longestGoalStreak}</div>

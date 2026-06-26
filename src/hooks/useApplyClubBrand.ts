@@ -2,78 +2,101 @@
 import { useEffect } from 'react';
 
 /**
- * Read the active club's brandColor and apply it as CSS custom
- * properties on document.documentElement, so any surface using
- * `bg-brand-primary` / `text-brand-primary` / etc. (Tailwind alias
- * for var(--brand-primary)) picks up the club's color automatically.
+ * Reads the active club's brandColor (single hex) and writes the
+ * full shade family to document.documentElement as CSS custom
+ * properties, so any surface using bg-brand-primary / -soft / -dim
+ * / -deep re-tints automatically when the club admin saves a new
+ * color in /club/branding.
  *
- * Falls back to the GoalKickr crimson defaults declared in
- * src/index.css `:root` if the club's color is missing or unparseable.
+ * Five derived shades from one input:
+ *   primary       — the base color (CTAs)
+ *   primary-hov   — ~18% brighter (hover state on CTAs)
+ *   primary-soft  — ~45% brighter (text accents, kicker labels)
+ *   primary-dim   — ~45% darker  (shadow backgrounds, quiet fills)
+ *   primary-deep  — ~75% darker  (gradient ends, faintest fills)
  *
- * Multi-club SaaS theming hook: each club's clubs/{id}.brandColor
- * (hex string like "#1F4E8E") overrides --brand-primary at runtime.
- * This makes new clubs' primary CTAs match their own brand without
- * any code change.
+ * Foreground (text on top of the primary fill) stays white unless
+ * the brand color is light enough to need dark text. The color
+ * picker rejects too-light colors anyway (contrast guard in
+ * ClubBrandingCard), so foreground stays white.
  *
- * Usage (mount once near the top of the tree, after the active
- * club id is known):
- *
- *   useApplyClubBrand(selectedTeam?.clubId, club?.brandColor);
+ * Multi-club SaaS hook: every club's clubs/{id}.brandColor maps
+ * to the entire crimson-styled UI surface area without any
+ * code branches.
  */
 
-const DEFAULT_PRIMARY = '200 32 44';        // crimson-600
-const DEFAULT_PRIMARY_HOV = '229 72 93';    // crimson-500
-const DEFAULT_PRIMARY_DIM = '116 25 32';    // crimson-900
+const DEFAULTS = {
+  primary:      '200 32 44',
+  hov:          '229 72 93',
+  soft:         '241 114 130',
+  dim:          '116 25 32',
+  deep:         '64 10 16',
+};
 
-function parseHexToRgbTriplet(hex: string | null | undefined): string | null {
+function parseHexToRgb(hex: string | null | undefined): { r: number; g: number; b: number } | null {
   if (!hex || typeof hex !== 'string') return null;
-  const cleaned = hex.trim().replace(/^#/, '');
-  const re3 = /^([0-9a-f])([0-9a-f])([0-9a-f])$/i;
+  const c = hex.trim().replace(/^#/, '');
   const re6 = /^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
-  let r: number, g: number, b: number;
-  const m6 = cleaned.match(re6);
-  if (m6) {
-    r = parseInt(m6[1], 16);
-    g = parseInt(m6[2], 16);
-    b = parseInt(m6[3], 16);
-  } else {
-    const m3 = cleaned.match(re3);
-    if (!m3) return null;
-    r = parseInt(m3[1] + m3[1], 16);
-    g = parseInt(m3[2] + m3[2], 16);
-    b = parseInt(m3[3] + m3[3], 16);
-  }
-  return `${r} ${g} ${b}`;
+  const re3 = /^([0-9a-f])([0-9a-f])([0-9a-f])$/i;
+  const m6 = c.match(re6);
+  if (m6) return { r: parseInt(m6[1], 16), g: parseInt(m6[2], 16), b: parseInt(m6[3], 16) };
+  const m3 = c.match(re3);
+  if (m3) return {
+    r: parseInt(m3[1] + m3[1], 16),
+    g: parseInt(m3[2] + m3[2], 16),
+    b: parseInt(m3[3] + m3[3], 16),
+  };
+  return null;
 }
 
-/** Derive a darker dim variant by multiplying each channel by 0.55. */
-function dim(triplet: string): string {
-  const [r, g, b] = triplet.split(' ').map(Number);
-  return `${Math.round(r * 0.55)} ${Math.round(g * 0.55)} ${Math.round(b * 0.55)}`;
-}
+const triplet = ({ r, g, b }: { r: number; g: number; b: number }) => `${r} ${g} ${b}`;
 
-/** Derive a brighter hover variant by lifting each channel ~12%. */
-function brighten(triplet: string): string {
-  const [r, g, b] = triplet.split(' ').map(Number);
-  const lift = (v: number) => Math.min(255, Math.round(v + (255 - v) * 0.18));
-  return `${lift(r)} ${lift(g)} ${lift(b)}`;
-}
+const brighten = (rgb: { r: number; g: number; b: number }, factor: number) => ({
+  r: Math.min(255, Math.round(rgb.r + (255 - rgb.r) * factor)),
+  g: Math.min(255, Math.round(rgb.g + (255 - rgb.g) * factor)),
+  b: Math.min(255, Math.round(rgb.b + (255 - rgb.b) * factor)),
+});
+
+const darken = (rgb: { r: number; g: number; b: number }, factor: number) => ({
+  r: Math.max(0, Math.round(rgb.r * (1 - factor))),
+  g: Math.max(0, Math.round(rgb.g * (1 - factor))),
+  b: Math.max(0, Math.round(rgb.b * (1 - factor))),
+});
 
 export function useApplyClubBrand(brandColor?: string | null): void {
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    const primary = parseHexToRgbTriplet(brandColor);
-    if (primary) {
-      root.style.setProperty('--brand-primary', primary);
-      root.style.setProperty('--brand-primary-hov', brighten(primary));
-      root.style.setProperty('--brand-primary-dim', dim(primary));
+    const rgb = parseHexToRgb(brandColor);
+    if (rgb) {
+      root.style.setProperty('--brand-primary',      triplet(rgb));
+      root.style.setProperty('--brand-primary-hov',  triplet(brighten(rgb, 0.18)));
+      root.style.setProperty('--brand-primary-soft', triplet(brighten(rgb, 0.45)));
+      root.style.setProperty('--brand-primary-dim',  triplet(darken(rgb, 0.45)));
+      root.style.setProperty('--brand-primary-deep', triplet(darken(rgb, 0.75)));
     } else {
-      // Restore defaults — important when switching from a custom-brand
-      // club back to one without a brandColor set.
-      root.style.setProperty('--brand-primary', DEFAULT_PRIMARY);
-      root.style.setProperty('--brand-primary-hov', DEFAULT_PRIMARY_HOV);
-      root.style.setProperty('--brand-primary-dim', DEFAULT_PRIMARY_DIM);
+      root.style.setProperty('--brand-primary',      DEFAULTS.primary);
+      root.style.setProperty('--brand-primary-hov',  DEFAULTS.hov);
+      root.style.setProperty('--brand-primary-soft', DEFAULTS.soft);
+      root.style.setProperty('--brand-primary-dim',  DEFAULTS.dim);
+      root.style.setProperty('--brand-primary-deep', DEFAULTS.deep);
     }
   }, [brandColor]);
+}
+
+/** Returns true if the hex is light enough that the dark theme can't
+ *  read white text on it. Use to reject the color BEFORE saving in
+ *  the picker. Threshold ~0.6 relative luminance — anything brighter
+ *  is roughly the "pastel yellow / pale blue" zone. */
+export function brandColorIsTooLight(hex: string | null | undefined): boolean {
+  const rgb = parseHexToRgb(hex);
+  if (!rgb) return false;
+  // sRGB relative luminance (W3C formula, simplified — accurate
+  // enough for the picker contrast guard).
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const L = 0.2126 * lin(rgb.r) + 0.7152 * lin(rgb.g) + 0.0722 * lin(rgb.b);
+  return L > 0.55;
 }

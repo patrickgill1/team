@@ -162,7 +162,7 @@ const Highlights: React.FC = () => {
               Clear filters
             </button>
           )}
-          <Link to="/player-media" className="px-4 py-2 bg-crimson-600 hover:bg-crimson-700 rounded-lg text-sm font-medium">
+          <Link to="/player-media" className="px-4 py-2 bg-brand-primary hover:bg-brand-primary rounded-lg text-sm font-medium">
             Go to Media
           </Link>
         </div>
@@ -296,7 +296,7 @@ const Highlights: React.FC = () => {
                   vertical scroll is the navigation. */}
               <div className="flex-[2] min-h-0 bg-charcoal-950 border-t border-white/10 overflow-y-auto">
                 <div className="max-w-xl mx-auto px-5 py-4">
-                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 mb-1">
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">
                     Clip {i + 1} of {filtered.length}
                     {clip.createdAt && <span className="text-bone/50 font-bold ml-1">· {formatDate(clip.createdAt)}</span>}
                   </div>

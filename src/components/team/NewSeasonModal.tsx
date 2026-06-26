@@ -187,7 +187,7 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-crimson-50 to-white">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-brand-primary-soft to-white">
           <div>
             <h3 className="text-lg font-bold text-gray-900">New season</h3>
             <p className="text-xs text-gray-500">For AYSO: Fall (Aug–Nov) and Spring (Mar–May).</p>
@@ -207,7 +207,7 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Fall 2026"
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
               style={{ fontSize: '16px' }}
             />
           </div>
@@ -219,7 +219,7 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                 style={{ fontSize: '16px' }}
               />
             </div>
@@ -229,7 +229,7 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-crimson-500 text-base"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                 style={{ fontSize: '16px' }}
               />
             </div>
@@ -259,7 +259,7 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
               type="checkbox"
               checked={makeActive}
               onChange={(e) => setMakeActive(e.target.checked)}
-              className="mt-0.5 w-4 h-4 accent-crimson-600"
+              className="mt-0.5 w-4 h-4 accent-brand-primary"
             />
             <span>
               Make this the active season{applyToAll && userIsClubAdmin ? ' (for every team)' : ''}
@@ -286,7 +286,7 @@ const NewSeasonModal: React.FC<Props> = ({ isOpen, onClose, teamId, onCreated })
           <button
             onClick={handleSubmit}
             disabled={submitting || !name.trim() || !startDate || !endDate}
-            className="bg-gradient-to-br from-crimson-500 to-crimson-600 hover:from-crimson-600 hover:to-crimson-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
+            className="bg-gradient-to-br from-brand-primary to-brand-primary hover:from-brand-primary hover:to-brand-primary disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition active:scale-95"
           >
             {submitting ? 'Saving…' : 'Create season'}
           </button>

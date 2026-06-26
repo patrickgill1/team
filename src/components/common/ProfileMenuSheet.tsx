@@ -82,7 +82,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
 
         {/* User block */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-crimson-500 text-white flex items-center justify-center font-bold text-base shrink-0">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-brand-primary text-white flex items-center justify-center font-bold text-base shrink-0">
             {(userData as any)?.photoURL || (userData as any)?.profilePhotoUrl ? (
               <img src={(userData as any).photoURL || (userData as any).profilePhotoUrl} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -116,7 +116,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 active:bg-white/10 transition text-left"
                     >
                       <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center ring-2 transition ${
-                        selected ? 'bg-crimson-600 ring-crimson-500' : 'bg-charcoal-950 ring-white/15'
+                        selected ? 'bg-brand-primary ring-brand-primary' : 'bg-charcoal-950 ring-white/15'
                       }`}>
                         {selected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                       </span>
@@ -140,7 +140,7 @@ const ProfileMenuSheet: React.FC<Props> = ({ open, onClose }) => {
               onClick={handleOpenClub}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 active:bg-white/10 transition text-left"
             >
-              <span className="shrink-0 w-8 h-8 rounded-lg bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-300 flex items-center justify-center">
+              <span className="shrink-0 w-8 h-8 rounded-lg bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
               </span>
               <span className="min-w-0 flex-1">

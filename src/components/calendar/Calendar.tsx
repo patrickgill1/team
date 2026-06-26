@@ -447,7 +447,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const getEventTypeColor = (type: string) => {
     switch (type) {
       case 'game': return 'bg-rose-500/10 text-rose-700 border-rose-300/50';
-      case 'practice': return 'bg-crimson-500/10 text-charcoal-800 border-crimson-300/50';
+      case 'practice': return 'bg-brand-primary/10 text-charcoal-800 border-brand-primary-soft/50';
       case 'event': return 'bg-emerald-500/10 text-emerald-700 border-emerald-300/50';
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
@@ -511,10 +511,10 @@ const Calendar: React.FC<CalendarProps> = ({
           onClick={() => handleDateClick(date)}
           className={`h-24 sm:h-28 border border-slate-200/70 p-1.5 cursor-pointer transition-all duration-150 ${
             isToday
-              ? 'bg-gradient-to-br from-crimson-50 to-white ring-1 ring-crimson-300/60'
+              ? 'bg-gradient-to-br from-brand-primary-soft to-white ring-1 ring-brand-primary-soft/60'
               : isPast
                 ? 'bg-slate-50/40 hover:bg-slate-50'
-                : 'bg-white hover:bg-crimson-50/40'
+                : 'bg-white hover:bg-brand-primary-soft/40'
           }`}
         >
           <div className={`text-xs font-semibold mb-1 inline-flex items-center justify-center ${
@@ -534,7 +534,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     handleEditEvent(event);
                   }
                 }}
-                className={`text-[11px] px-1.5 py-0.5 rounded-md truncate border ${getEventTypeColor(event.type)} ${isUserCoach ? 'cursor-pointer hover:ring-1 hover:ring-crimson-400' : ''}`}
+                className={`text-[11px] px-1.5 py-0.5 rounded-md truncate border ${getEventTypeColor(event.type)} ${isUserCoach ? 'cursor-pointer hover:ring-1 hover:ring-brand-primary-soft' : ''}`}
                 title={isUserCoach ? `Edit: ${event.title} — ${event.location}` : `${event.title} - ${event.location}`}
               >
                 {getEventTypeIcon(event.type)} {event.title}
@@ -603,7 +603,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
         {/* Click hint for coaches */}
         {isUserCoach && (
-          <div className="px-5 sm:px-6 py-3 bg-crimson-50/60 border-t border-crimson-100">
+          <div className="px-5 sm:px-6 py-3 bg-brand-primary-soft/60 border-t border-brand-primary-soft">
             <p className="text-xs sm:text-sm text-charcoal-700 font-medium">
               💡 Click any date to create a new event
             </p>
@@ -718,7 +718,7 @@ const Calendar: React.FC<CalendarProps> = ({
                   setIsEventFormOpen(true);
                 }}
                 aria-label="Add event"
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500"
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -737,7 +737,7 @@ const Calendar: React.FC<CalendarProps> = ({
               onClick={() => setListTab(key)}
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 listTab === key
-                  ? 'bg-crimson-500/15 text-crimson-400 border-crimson-400/40'
+                  ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/40'
                   : 'bg-charcoal-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
               }`}
             >
@@ -781,7 +781,7 @@ const Calendar: React.FC<CalendarProps> = ({
                     setSelectedDate(null);
                     setIsEventFormOpen(true);
                   }}
-                  className="mt-4 bg-gradient-to-r from-crimson-600 to-charcoal-600 hover:from-crimson-500 hover:to-crimson-500 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
+                  className="mt-4 bg-gradient-to-r from-brand-primary to-charcoal-600 hover:from-brand-primary hover:to-brand-primary text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
                 >
                   Add first event
                 </button>
@@ -794,7 +794,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 <div
                   key={event.id}
                   id={`event-${event.id}`}
-                  className={focusEventId === event.id ? 'ring-2 ring-crimson-400 ring-offset-2 ring-offset-slate-800 rounded-xl' : ''}
+                  className={focusEventId === event.id ? 'ring-2 ring-brand-primary-soft ring-offset-2 ring-offset-slate-800 rounded-xl' : ''}
                 >
                   <EventListCard
                     event={event}
@@ -918,11 +918,11 @@ const eventColors = (type: string) => {
     case 'game':
       return { stripe: 'bg-charcoal-700', stripeText: 'text-white', pill: 'bg-charcoal-700/10 text-charcoal-800' };
     case 'practice':
-      return { stripe: 'bg-crimson-500', stripeText: 'text-white', pill: 'bg-crimson-100 text-charcoal-800' };
+      return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
     case 'event':
-      return { stripe: 'bg-charcoal-700', stripeText: 'text-white', pill: 'bg-crimson-100 text-charcoal-800' };
+      return { stripe: 'bg-charcoal-700', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
     default:
-      return { stripe: 'bg-crimson-500', stripeText: 'text-white', pill: 'bg-crimson-100 text-charcoal-800' };
+      return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
   }
 };
 
@@ -1028,7 +1028,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 <button
                   onClick={() => onEdit(event)}
                   disabled={isDeleting}
-                  className="p-1.5 text-gray-400 hover:text-crimson-700 hover:bg-crimson-50 rounded-lg transition disabled:opacity-50"
+                  className="p-1.5 text-gray-400 hover:text-brand-primary hover:bg-brand-primary-soft rounded-lg transition disabled:opacity-50"
                   title="Edit"
                 >
                   <AppIcon name="edit" className="w-4 h-4" />
@@ -1067,7 +1067,7 @@ const EventCard: React.FC<EventCardProps> = ({
                 href={mapsUrlForEvent(event)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 min-w-0 hover:text-crimson-700 transition-colors"
+                className="flex items-center gap-1.5 min-w-0 hover:text-brand-primary transition-colors"
                 title="Open in Maps"
               >
                 <AppIcon name="map-pin" className="w-4 h-4 shrink-0" />
@@ -1083,7 +1083,7 @@ const EventCard: React.FC<EventCardProps> = ({
           )}
 
           {weather && (
-            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-crimson-50 ring-1 ring-crimson-200 text-crimson-900 text-xs font-semibold max-w-full self-start">
+            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary-dim text-xs font-semibold max-w-full self-start">
               <span className="text-base leading-none shrink-0">{weather.icon}</span>
               <span className="truncate">{weather.label} · {weather.tempMaxF}°/{weather.tempMinF}°F{weather.precipChance > 0 ? ` · ${weather.precipChance}% rain` : ''}</span>
             </div>
@@ -1112,7 +1112,7 @@ const EventCard: React.FC<EventCardProps> = ({
             {event.type === 'game' && (
               <a
                 href={`/game-day/${event.id}`}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-600 to-crimson-600 hover:from-emerald-500 hover:to-crimson-500 rounded-full shadow-sm transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-600 to-brand-primary hover:from-emerald-500 hover:to-brand-primary rounded-full shadow-sm transition-colors"
                 title="Open Game Day live tracker"
               >
                 <AppIcon name="whistle" className="w-3.5 h-3.5" />
@@ -1300,7 +1300,7 @@ const RsvpBar: React.FC<{
           {playerCounts.going} player{playerCounts.going === 1 ? '' : 's'} going
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-crimson-50 ring-1 ring-crimson-200 text-crimson-700 text-[9px] font-bold">C</span>
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary text-[9px] font-bold">C</span>
           {staffCounts.going} coach{staffCounts.going === 1 ? '' : 'es'} going
         </span>
       </div>
@@ -1412,7 +1412,7 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-crimson-400 to-crimson-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -1436,13 +1436,13 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
                               <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Unknown'}</span>
                               {e.isGuest && (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 border border-crimson-200 shrink-0">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-brand-primary-soft text-brand-primary border border-brand-primary-soft shrink-0">
                                   via link
                                 </span>
                               )}
@@ -1475,7 +1475,7 @@ const RsvpBar: React.FC<{
                               )}
                               <span className="text-sm text-gray-800 flex-1 min-w-0 break-words">{e.name || 'Guest'}</span>
                               {e.isGuest && (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-crimson-50 text-crimson-700 border border-crimson-200 shrink-0">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-brand-primary-soft text-brand-primary border border-brand-primary-soft shrink-0">
                                   via link
                                 </span>
                               )}
@@ -1568,7 +1568,7 @@ const CarpoolBar: React.FC<{
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-crimson-400 to-crimson-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-primary-soft to-brand-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">
                     {(p.name || '?').charAt(0).toUpperCase()}
                   </div>
                 )}

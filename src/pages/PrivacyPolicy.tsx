@@ -83,7 +83,7 @@ const PrivacyPolicy: React.FC = () => {
           <p className="mt-2">
             If you are a parent or guardian and would like a player's information removed
             from the App, contact your coach or email us at{' '}
-            <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            <a className="text-brand-primary underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
         </section>
 
@@ -93,7 +93,7 @@ const PrivacyPolicy: React.FC = () => {
             We retain account information and team data for as long as your account is active
             and your team is using the App. You can request deletion of your own account
             (and any data tied solely to you) at any time by emailing{' '}
-            <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{' '}
+            <a className="text-brand-primary underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{' '}
             from the email address on your account. We will delete or anonymize your data
             within 30 days, except where retention is required for legal, billing, or
             security purposes.
@@ -136,7 +136,7 @@ const PrivacyPolicy: React.FC = () => {
             <li>You can disable push notifications in your device settings.</li>
             <li>You can revoke share links you created from the relevant section of the App.</li>
             <li>You can request a copy of, or deletion of, your account data by emailing{' '}
-              <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+              <a className="text-brand-primary underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
             </li>
           </ul>
         </section>
@@ -163,7 +163,7 @@ const PrivacyPolicy: React.FC = () => {
           <h2 className="text-xl font-bold text-charcoal-900 mt-6 mb-2">Contact</h2>
           <p>
             Questions, requests, or concerns? Email{' '}
-            <a className="text-crimson-700 underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            <a className="text-brand-primary underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
         </section>
 

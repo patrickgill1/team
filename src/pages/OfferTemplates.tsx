@@ -230,7 +230,7 @@ const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userDat
             <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Required waivers <span className="text-bone/40 font-normal normal-case tracking-normal">(signed at acceptance)</span></span>
             {forms.length === 0 ? (
               <p className="text-[12px] text-bone/55 rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2">
-                No form definitions in this club yet. Create them at <Link to="/club/forms" className="text-crimson-300 hover:text-crimson-200 underline">Club → Forms</Link>, then come back to attach.
+                No form definitions in this club yet. Create them at <Link to="/club/forms" className="text-brand-primary-soft hover:text-brand-primary-soft underline">Club → Forms</Link>, then come back to attach.
               </p>
             ) : (
               <ul className="space-y-1.5">

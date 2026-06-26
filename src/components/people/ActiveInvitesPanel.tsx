@@ -144,7 +144,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
               onClick={() => setFilter(k)}
               className={`px-3 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 filter === k
-                  ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
+                  ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
                   : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
               }`}
             >
@@ -156,7 +156,7 @@ const ActiveInvitesPanel: React.FC<Props> = ({ isAdmin, currentUid, myTeamIds, t
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {loading ? (
             <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-200 border-t-cyan-500" />
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-primary-soft border-t-cyan-500" />
             </div>
           ) : visible.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-6">

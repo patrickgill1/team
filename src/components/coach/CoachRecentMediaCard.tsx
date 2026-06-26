@@ -79,7 +79,7 @@ const CoachRecentMediaCard: React.FC = () => {
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Recent media</p>
           <p className="text-sm font-bold text-bone mt-0.5">{media.length} new from your team</p>
         </div>
-        <Link to="/player-media" className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 hover:text-crimson-200">
+        <Link to="/player-media" className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary-soft">
           See all →
         </Link>
       </div>
@@ -88,7 +88,7 @@ const CoachRecentMediaCard: React.FC = () => {
           <Link
             key={m.id}
             to="/player-media"
-            className="relative aspect-square rounded-lg overflow-hidden bg-charcoal-950 ring-1 ring-white/10 hover:ring-crimson-500/40 transition group"
+            className="relative aspect-square rounded-lg overflow-hidden bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/40 transition group"
             title={m.uploadedByName ? `From ${m.uploadedByName}` : undefined}
           >
             {m.thumb ? (

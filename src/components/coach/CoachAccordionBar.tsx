@@ -315,7 +315,7 @@ const CoachAccordionBar: React.FC = () => {
   // priority color too so the SIGNAL stays glanceable without the
   // bar flipping its whole background.
   const colorFor = (p: Priority) => {
-    if (p === 'crimson') return { dot: 'bg-crimson-400', text: 'text-crimson-200', chip: 'bg-crimson-500/15 text-crimson-200 ring-crimson-400/40' };
+    if (p === 'crimson') return { dot: 'bg-brand-primary-soft', text: 'text-brand-primary-soft', chip: 'bg-brand-primary/15 text-brand-primary-soft ring-brand-primary-soft/40' };
     if (p === 'amber')   return { dot: 'bg-amber-400',   text: 'text-amber-200',   chip: 'bg-amber-500/15 text-amber-200 ring-amber-400/40' };
     return                      { dot: 'bg-sky-400',     text: 'text-sky-200',     chip: 'bg-sky-500/15 text-sky-200 ring-sky-400/40' };
   };
@@ -431,20 +431,20 @@ const CoachAccordionBar: React.FC = () => {
 
             {/* Quick action 2x4 — what coaches do daily */}
             <div className="grid grid-cols-4 gap-1.5">
-              <Link to="/events" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-crimson-500/30 transition py-2 text-bone/85 hover:text-bone">
-                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+              <Link to="/events" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+                <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                 <span className="text-[10px] font-bold">Event</span>
               </Link>
-              <Link to="/chat" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-crimson-500/30 transition py-2 text-bone/85 hover:text-bone">
-                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
+              <Link to="/chat" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+                <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
                 <span className="text-[10px] font-bold">Message</span>
               </Link>
-              <Link to="/wall" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-crimson-500/30 transition py-2 text-bone/85 hover:text-bone">
-                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><line x1="7" y1="9" x2="17" y2="9" /><line x1="7" y1="13" x2="17" y2="13" /><line x1="7" y1="17" x2="13" y2="17" /></svg>
+              <Link to="/wall" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+                <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><line x1="7" y1="9" x2="17" y2="9" /><line x1="7" y1="13" x2="17" y2="13" /><line x1="7" y1="17" x2="13" y2="17" /></svg>
                 <span className="text-[10px] font-bold">Post</span>
               </Link>
-              <Link to="/coach" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-crimson-500/30 transition py-2 text-bone/85 hover:text-bone">
-                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>
+              <Link to="/coach" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+                <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>
                 <span className="text-[10px] font-bold">Cockpit</span>
               </Link>
             </div>

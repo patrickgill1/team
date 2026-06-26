@@ -517,7 +517,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </p>
           </div>
 
-          <div className="bg-crimson-500/10 ring-1 ring-crimson-400/30 rounded-xl p-4 mb-4">
+          <div className="bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 rounded-xl p-4 mb-4">
             <p className="text-xs text-bone/60 font-medium mb-2 uppercase tracking-wide">Invite Link</p>
             <p className="text-sm text-bone break-all font-mono mb-3">{inviteLink}</p>
             <button
@@ -525,7 +525,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-medium transition-all duration-200 ${
                 inviteCopied
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-crimson-600 hover:bg-crimson-700 text-white'
+                  : 'bg-brand-primary hover:bg-brand-primary text-white'
               }`}
             >
               {inviteCopied ? (
@@ -650,7 +650,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                   <select
                     value={targetTeamId}
                     onChange={(e) => setTargetTeamId(e.target.value)}
-                    className="w-full px-3 py-2 bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                    className="w-full px-3 py-2 bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                     disabled={isSubmitting}
                   >
                     {pickerTeams.length === 0 && (
@@ -674,7 +674,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               <select
                 value={targetTeamId}
                 onChange={(e) => setTargetTeamId(e.target.value)}
-                className="w-full px-3 py-2 bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                className="w-full px-3 py-2 bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                 disabled={isSubmitting}
               >
                 {pickerTeams.map(t => (
@@ -693,7 +693,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+              className={`w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 ${
                 errors.name ? 'border-rose-500' : 'border-white/10'
               }`}
               placeholder="Enter player's full name"
@@ -714,7 +714,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 max="99"
                 value={formData.jerseyNumber}
                 onChange={(e) => setFormData({ ...formData, jerseyNumber: e.target.value })}
-                className={`w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+                className={`w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 ${
                   errors.jerseyNumber ? 'border-rose-500' : 'border-white/10'
                 }`}
                 placeholder="1-99"
@@ -746,7 +746,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                       disabled={isSubmitting}
                       className={`px-3 py-1.5 rounded-full text-sm font-semibold ring-1 transition ${
                         active
-                          ? 'bg-crimson-600 text-white ring-crimson-500 shadow-sm'
+                          ? 'bg-brand-primary text-white ring-brand-primary shadow-sm'
                           : 'bg-charcoal-950 text-bone/80 ring-white/15 hover:bg-white/5'
                       }`}
                     >
@@ -768,7 +768,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               type="date"
               value={formData.dateOfBirth}
               onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-              className={`w-full px-3 py-2 bg-charcoal-950 text-bone border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+              className={`w-full px-3 py-2 bg-charcoal-950 text-bone border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 ${
                 errors.dateOfBirth ? 'border-rose-500' : 'border-white/10'
               }`}
               disabled={isSubmitting}
@@ -788,7 +788,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                     type="email"
                     value={email}
                     onChange={(e) => updateParentEmail(index, e.target.value)}
-                    className={`flex-1 min-w-0 px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 ${
+                    className={`flex-1 min-w-0 px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 ${
                       errors[`parentEmail${index}`] ? 'border-rose-500' : 'border-white/10'
                     }`}
                     placeholder="parent@example.com"
@@ -815,7 +815,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 type="button"
                 onClick={addParentEmailField}
                 disabled={isSubmitting}
-                className="mt-2 text-crimson-300 hover:text-crimson-200 text-sm font-medium disabled:opacity-50"
+                className="mt-2 text-brand-primary-soft hover:text-brand-primary-soft text-sm font-medium disabled:opacity-50"
               >
                 + Add another parent email
               </button>
@@ -834,7 +834,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             <textarea
               value={formData.medicalInfo}
               onChange={(e) => setFormData({ ...formData, medicalInfo: e.target.value })}
-              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40 resize-none"
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 resize-none"
               rows={3}
               placeholder="Any allergies, medical conditions, or special instructions..."
               disabled={isSubmitting}
@@ -850,10 +850,10 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
           {/* Upload Progress */}
           {uploadLoading && (
-            <div className="bg-crimson-500/10 ring-1 ring-crimson-400/30 rounded-lg p-3">
+            <div className="bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 rounded-lg p-3">
               <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-crimson-300"></div>
-                <p className="text-crimson-200 text-sm">Uploading profile photo...</p>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-primary-soft"></div>
+                <p className="text-brand-primary-soft text-sm">Uploading profile photo...</p>
               </div>
             </div>
           )}
@@ -871,7 +871,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || uploadLoading}
-              className="flex-1 bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+              className="flex-1 bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
             >
               {(isSubmitting || uploadLoading) ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

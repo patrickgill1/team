@@ -24,7 +24,7 @@ const AddRoster: React.FC = () => {
         <div className="max-w-md mx-auto mt-10 px-4">
           <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-6">
             <p className="text-bone/80">No team selected. Pick a team first, then come back.</p>
-            <Link to="/teams" className="mt-4 inline-block text-crimson-400 text-sm font-bold">
+            <Link to="/teams" className="mt-4 inline-block text-brand-primary-soft text-sm font-bold">
               ← Go to Teams
             </Link>
           </div>
@@ -70,7 +70,7 @@ const AddRoster: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="px-5 py-3 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20 transition"
+              className="px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition"
             >
               Open dashboard
             </button>
@@ -85,7 +85,7 @@ const AddRoster: React.FC = () => {
       <Header title="Add players" subtitle={selectedTeam.name} />
       <div className="max-w-xl mx-auto mt-6 px-4 sm:px-6">
         <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-5 sm:p-6">
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1">
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">
             Bulk add
           </p>
           <h1 className="text-bone text-2xl sm:text-3xl font-black tracking-tight">

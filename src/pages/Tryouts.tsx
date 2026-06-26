@@ -274,9 +274,9 @@ const Tryouts: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
         <div className="max-w-6xl mx-auto">
-          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
+          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-bone mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
@@ -295,26 +295,26 @@ const Tryouts: React.FC = () => {
             were inheriting system white/black via no explicit bg/text,
             producing the light-mode pill row Patrick called out. */}
         <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 p-3 flex flex-wrap items-center gap-2">
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
+          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             <option value="all">All ages</option>
             {ageGroups.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
+          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             <option value="all">All genders</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
           {positions.length > 0 && (
-            <select value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
+            <select value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
               <option value="all">All positions</option>
               {positions.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           )}
-          <select value={filterReturning} onChange={(e) => setFilterReturning(e.target.value as any)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40">
+          <select value={filterReturning} onChange={(e) => setFilterReturning(e.target.value as any)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             <option value="all">New + returning</option>
             <option value="returning">Returning only</option>
             <option value="new">New only</option>
@@ -348,7 +348,7 @@ const Tryouts: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by player or parent…"
-            className="flex-1 min-w-[180px] text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+            className="flex-1 min-w-[180px] text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
           />
           <span className="ml-auto text-xs text-bone/50">{visible.length} of {registrations.length}</span>
         </div>
@@ -452,7 +452,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
               {r.player.ageGroup}
             </span>
             {r.player.playedBefore && (
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300 bg-crimson-500/15 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 px-1.5 py-0.5 rounded">
                 returning
               </span>
             )}
@@ -501,7 +501,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
         {r.promotedToPlayerId && (
           <Link
             to={`/club/person/${r.promotedToPlayerId}`}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500/150"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary/150"
           >
             Profile
           </Link>
@@ -517,7 +517,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
         <button
           type="button"
           onClick={onToggleOpen}
-          className="text-[11px] font-bold text-crimson-300 hover:text-crimson-100"
+          className="text-[11px] font-bold text-brand-primary-soft hover:text-brand-primary-soft"
         >
           {isOpen ? 'Close notes' : my?.note ? 'Edit note' : '+ Add note'}
         </button>
@@ -570,7 +570,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
             onChange={(e) => setNoteDraft(e.target.value)}
             rows={3}
             placeholder="Scouting notes — visible to all coaches"
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+            className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
           />
           <div className="flex items-center justify-end gap-2 mt-1">
             <button
@@ -581,7 +581,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
                 await onSaveNote(noteDraft);
                 setSavingNote(false);
               }}
-              className="px-3 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-50 text-white text-xs font-bold"
+              className="px-3 py-1.5 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-xs font-bold"
             >
               {savingNote ? 'Saving…' : 'Save note'}
             </button>

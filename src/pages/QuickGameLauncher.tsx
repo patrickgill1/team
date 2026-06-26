@@ -20,7 +20,7 @@ const QuickGameLauncher: React.FC = () => {
         <div className="text-center">
           <div className="text-5xl mb-3">🔒</div>
           <p className="text-white/70">Only coaches can start a game.</p>
-          <Link to="/dashboard" className="mt-4 inline-block text-crimson-400 hover:text-bone text-sm">← Dashboard</Link>
+          <Link to="/dashboard" className="mt-4 inline-block text-brand-primary-soft hover:text-bone text-sm">← Dashboard</Link>
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ const QuickGameLauncher: React.FC = () => {
               value={opponent}
               onChange={e => setOpponent(e.target.value)}
               placeholder="e.g. Lightning FC"
-              className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-crimson-500"
+              className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
               autoFocus
             />
           </div>
@@ -88,7 +88,7 @@ const QuickGameLauncher: React.FC = () => {
                 <button
                   key={v}
                   onClick={() => setHomeAway(v)}
-                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-crimson-600 ring-crimson-400 text-white' : 'bg-white/5 ring-white/10 text-white/70 hover:bg-white/10'}`}
+                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-brand-primary ring-brand-primary-soft text-white' : 'bg-white/5 ring-white/10 text-white/70 hover:bg-white/10'}`}
                 >{v === 'home' ? '🏠 Home' : '✈️ Away'}</button>
               ))}
             </div>

@@ -200,7 +200,7 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
                     className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-md pointer-events-none"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-crimson-400 to-charcoal-700 text-white font-black flex items-center justify-center ring-2 ring-white shadow-md pointer-events-none">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-primary-soft to-charcoal-700 text-white font-black flex items-center justify-center ring-2 ring-white shadow-md pointer-events-none">
                     {(p.name || '?').charAt(0)}
                   </div>
                 )}

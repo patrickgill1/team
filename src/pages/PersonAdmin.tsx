@@ -333,7 +333,7 @@ const PersonAdmin: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">
         <div className="text-center">
           <p>Player not found.</p>
-          <button type="button" onClick={() => navigate(-1)} className="mt-2 text-crimson-600 hover:text-crimson-200 text-xs font-bold">← Back</button>
+          <button type="button" onClick={() => navigate(-1)} className="mt-2 text-brand-primary hover:text-brand-primary-soft text-xs font-bold">← Back</button>
         </div>
       </div>
     );
@@ -342,7 +342,7 @@ const PersonAdmin: React.FC = () => {
   return (
     <div className="min-h-screen bg-charcoal-950">
       {/* Header strip */}
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 pt-4 pb-0 border-b border-crimson-500/10">
+      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 pt-4 pb-0 border-b border-brand-primary/10">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between gap-2 mb-3">
             <button
@@ -356,7 +356,7 @@ const PersonAdmin: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/club')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crimson-500/15 ring-1 ring-crimson-400/30 text-crimson-200 text-xs font-bold hover:bg-crimson-500/25 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft text-xs font-bold hover:bg-brand-primary/25 transition"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               Club
@@ -371,7 +371,7 @@ const PersonAdmin: React.FC = () => {
                 onClick={() => setTab(t.key)}
                 className={`shrink-0 px-3 py-2 text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition ${
                   tab === t.key
-                    ? 'text-crimson-400 border-crimson-400'
+                    ? 'text-brand-primary-soft border-brand-primary-soft'
                     : 'text-bone/40 border-transparent hover:text-white'
                 }`}
               >
@@ -395,7 +395,7 @@ const PersonAdmin: React.FC = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl sm:text-3xl font-black text-bone leading-tight">{player.name || `${player.firstName || ''} ${player.lastName || ''}`.trim()}</h1>
-              <span className="inline-block px-2 py-0.5 rounded bg-crimson-500 text-white text-[10px] font-extrabold tracking-widest uppercase">Player</span>
+              <span className="inline-block px-2 py-0.5 rounded bg-brand-primary text-white text-[10px] font-extrabold tracking-widest uppercase">Player</span>
               <EligibilityPill result={eligibility} />
             </div>
             <p className="text-sm text-bone/50 mt-0.5">
@@ -678,7 +678,7 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
                   </div>
                   <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 shrink-0 ${
                     t.id === primaryTeamId
-                      ? 'bg-crimson-500/15 text-bone/85 ring-crimson-200'
+                      ? 'bg-brand-primary/15 text-bone/85 ring-brand-primary-soft'
                       : 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
                   }`}>
                     {t.id === primaryTeamId ? 'Primary' : 'Additional'}
@@ -697,7 +697,7 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
             <ul className="space-y-3">
               {guardians.map(g => (
                 <li key={g.id} className="flex items-start gap-2">
-                  <div className="w-8 h-8 rounded-full bg-crimson-500/20 text-crimson-200 font-bold flex items-center justify-center shrink-0 text-xs">
+                  <div className="w-8 h-8 rounded-full bg-brand-primary/20 text-brand-primary-soft font-bold flex items-center justify-center shrink-0 text-xs">
                     {(g.name || '?').split(/\s+/).slice(0, 2).map((x: string) => x[0]?.toUpperCase()).join('')}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -768,7 +768,7 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
                     type="button"
                     disabled={paymentLinkLoading}
                     onClick={onGeneratePaymentLink}
-                    className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold"
+                    className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-xs font-bold"
                   >
                     {paymentLinkLoading ? 'Working…' : 'View & Pay'}
                   </button>
@@ -848,7 +848,7 @@ const OverviewBody: React.FC<OverviewProps> = ({ player, teams, guardians, regis
       {/* Quick Actions */}
       <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4">
         <div className="flex items-center gap-2 mb-3">
-          <svg className="w-4 h-4 text-crimson-500" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          <svg className="w-4 h-4 text-brand-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
           <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/85">Quick Actions</span>
         </div>
         <div className="grid grid-cols-4 gap-2">
@@ -933,7 +933,7 @@ const MedicalSummaryCard: React.FC<{ player: any; alerts: MedicalAlert[]; onEdit
             </span>
           )}
         </div>
-        <button type="button" onClick={onEdit} className="text-xs font-bold text-crimson-300 hover:text-crimson-900">
+        <button type="button" onClick={onEdit} className="text-xs font-bold text-brand-primary-soft hover:text-brand-primary-dim">
           {isEmpty ? '+ Add medical' : 'Edit'}
         </button>
       </div>
@@ -1033,7 +1033,7 @@ const TeamsTab: React.FC<{ player: any; teams: any[]; onAssignTeam: () => void }
     <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
         <h2 className="font-bold text-bone/90">Team assignments</h2>
-        <button type="button" onClick={onAssignTeam} className="text-xs font-bold text-crimson-300 hover:text-crimson-900">+ Assign / transfer</button>
+        <button type="button" onClick={onAssignTeam} className="text-xs font-bold text-brand-primary-soft hover:text-brand-primary-dim">+ Assign / transfer</button>
       </div>
       {teams.length === 0 ? (
         <div className="p-6 text-center text-sm text-bone/50">Not on any team yet.</div>
@@ -1053,7 +1053,7 @@ const TeamsTab: React.FC<{ player: any; teams: any[]; onAssignTeam: () => void }
                 </div>
               </div>
               <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 shrink-0 ${
-                t.id === primaryId ? 'bg-crimson-500/15 text-bone/85 ring-crimson-200' : 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
+                t.id === primaryId ? 'bg-brand-primary/15 text-bone/85 ring-brand-primary-soft' : 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
               }`}>
                 {t.id === primaryId ? 'Primary' : 'Additional'}
               </span>
@@ -1101,7 +1101,7 @@ const RegistrationTab: React.FC<{ registrations: Registration[] }> = ({ registra
           )}
           {r.parents?.[0]?.email && (
             <div className="px-4 py-2 border-t border-white/5 text-center">
-              <Link to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`} className="text-xs font-bold text-crimson-300 hover:text-crimson-900">
+              <Link to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`} className="text-xs font-bold text-brand-primary-soft hover:text-brand-primary-dim">
                 Full family timeline →
               </Link>
             </div>
@@ -1211,7 +1211,7 @@ const PaymentsTab: React.FC<{
                       <button
                         type="button"
                         onClick={() => onSplit(r.raw)}
-                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-900 text-crimson-300 ring-1 ring-crimson-200 hover:bg-crimson-500/15"
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-900 text-brand-primary-soft ring-1 ring-brand-primary-soft hover:bg-brand-primary/15"
                       >
                         Split into installments
                       </button>
@@ -1220,7 +1220,7 @@ const PaymentsTab: React.FC<{
                       <button
                         type="button"
                         onClick={() => onSplit(r.raw)}
-                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-900 text-crimson-300 ring-1 ring-crimson-200 hover:bg-crimson-500/15"
+                        className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-900 text-brand-primary-soft ring-1 ring-brand-primary-soft hover:bg-brand-primary/15"
                       >
                         Edit plan
                       </button>
@@ -1345,7 +1345,7 @@ const InstallmentList: React.FC<{
 
   if (installments.length === 0) return null;
   return (
-    <div className="mt-3 pl-3 border-l-2 border-crimson-400/30 space-y-1.5">
+    <div className="mt-3 pl-3 border-l-2 border-brand-primary-soft/30 space-y-1.5">
       {installments.map(inst => {
         const due = inst.dueDate ? toDate(inst.dueDate) : null;
         const overdue = inst.status === 'pending' && due && due.getTime() < Date.now();
@@ -1375,7 +1375,7 @@ const InstallmentList: React.FC<{
                 }`}>{inst.status}</span>
                 {inst.status === 'pending' && (
                   <>
-                    <button type="button" disabled={busyId === inst.id} onClick={() => sendLink(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50">
+                    <button type="button" disabled={busyId === inst.id} onClick={() => sendLink(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50">
                       Link
                     </button>
                     <button type="button" disabled={busyId === inst.id} onClick={() => markPaid(inst)} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-charcoal-900 text-emerald-300 ring-1 ring-emerald-400/30 hover:bg-emerald-500/15">
@@ -1389,15 +1389,15 @@ const InstallmentList: React.FC<{
               </div>
             </div>
             {linkFor?.id === inst.id && (
-              <div className="mt-1 rounded bg-crimson-500/15 ring-1 ring-crimson-200 p-2">
+              <div className="mt-1 rounded bg-brand-primary/15 ring-1 ring-brand-primary-soft p-2">
                 <div className="text-[10px] text-bone/85 font-mono break-all">{linkFor.url}</div>
                 <div className="mt-1 flex items-center gap-2">
                   <button type="button" onClick={async () => {
                     try { await navigator.clipboard.writeText(linkFor.url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
-                  }} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-crimson-600 text-white hover:bg-crimson-500">
+                  }} className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-brand-primary text-white hover:bg-brand-primary">
                     {copied ? 'Copied' : 'Copy link'}
                   </button>
-                  <a href={linkFor.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-charcoal-900 ring-1 ring-crimson-200 text-crimson-300">
+                  <a href={linkFor.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded bg-charcoal-900 ring-1 ring-brand-primary-soft text-brand-primary-soft">
                     Open
                   </a>
                   <button type="button" onClick={() => setLinkFor(null)} className="text-[9px] text-bone/50 hover:text-bone/90 ml-auto">
@@ -1419,7 +1419,7 @@ const NotesTab: React.FC<{ activities: Activity[]; onAddNote: () => void }> = ({
     <div className="space-y-3">
       <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4 flex items-center justify-between">
         <div className="text-sm text-bone/65">{notes.length} note{notes.length === 1 ? '' : 's'} on file.</div>
-        <button type="button" onClick={onAddNote} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-sm font-bold">+ Add note</button>
+        <button type="button" onClick={onAddNote} className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold">+ Add note</button>
       </div>
       {notes.length === 0 ? (
         <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">No notes yet — add one for the rest of the staff to see.</div>
@@ -1531,7 +1531,7 @@ function activityTone(kind: Activity['kind']): string {
   if (kind === 'offer_declined') return 'bg-rose-500';
   if (kind.startsWith('coach_')) return 'bg-amber-500';
   if (kind === 'email_sent') return 'bg-white/40';
-  if (kind.startsWith('task_')) return 'bg-crimson-500';
+  if (kind.startsWith('task_')) return 'bg-brand-primary';
   return 'bg-white/25';
 }
 
@@ -1601,12 +1601,12 @@ const NoteModal: React.FC<{ player: any; onClose: () => void; onSaved: () => voi
             onChange={(e) => setText(e.target.value)}
             rows={5}
             placeholder="Anything worth remembering about this player — visible to coaches + admins."
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+            className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
           />
         </div>
         <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
-          <button type="button" disabled={!text.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={!text.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Save note'}
           </button>
         </div>
@@ -1689,7 +1689,7 @@ const SignFormModal: React.FC<{
               value={signedByName}
               onChange={(e) => setSignedByName(e.target.value)}
               placeholder="Full name of the parent/guardian who signed"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
           <label className="block">
@@ -1699,14 +1699,14 @@ const SignFormModal: React.FC<{
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="e.g. Paper copy in office binder, signed in person at tryouts"
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             />
           </label>
           {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
         </div>
         <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
-          <button type="button" disabled={!signedByName.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+          <button type="button" disabled={!signedByName.trim() || saving} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : 'Record signature'}
           </button>
         </div>
@@ -1793,12 +1793,12 @@ const PaymentLinkModal: React.FC<{
             <button type="button" onClick={handleCopy} className="flex-1 px-3 py-2 rounded-lg bg-charcoal-950 hover:bg-white/15 text-bone/90 text-sm font-bold">
               {copied ? 'Copied' : 'Copy link'}
             </button>
-            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-3 py-2 rounded-lg bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-400 text-bone/90 text-sm font-bold">
+            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-3 py-2 rounded-lg bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary-soft text-bone/90 text-sm font-bold">
               Open
             </a>
           </div>
           {parentEmail && (
-            <button type="button" disabled={emailing || emailed} onClick={handleEmail} className="w-full px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-sm font-bold">
+            <button type="button" disabled={emailing || emailed} onClick={handleEmail} className="w-full px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white text-sm font-bold">
               {emailed ? `Sent to ${parentEmail}` : emailing ? 'Sending…' : `Email to ${parentEmail}`}
             </button>
           )}
@@ -1833,7 +1833,7 @@ const Card: React.FC<{ title: string; icon?: React.ReactNode; subtitle?: string;
   <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
     <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 min-w-0">
-        {icon && <span className="w-7 h-7 rounded bg-crimson-500/15 ring-1 ring-crimson-100 flex items-center justify-center text-crimson-600 shrink-0">{icon}</span>}
+        {icon && <span className="w-7 h-7 rounded bg-brand-primary/15 ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary shrink-0">{icon}</span>}
         <h2 className="font-bold text-bone/90 truncate">{title} {subtitle && <span className="text-[11px] text-bone/50 font-normal">{subtitle}</span>}</h2>
       </div>
       {badge}
@@ -1851,7 +1851,7 @@ const Field: React.FC<{ label: string; value: string }> = ({ label, value }) => 
 );
 
 const ActionLink: React.FC<{ children: React.ReactNode; onClick?: () => void }> = ({ children, onClick }) => (
-  <button type="button" onClick={onClick} className="text-crimson-600 hover:text-crimson-200 text-xs font-bold">{children}</button>
+  <button type="button" onClick={onClick} className="text-brand-primary hover:text-brand-primary-soft text-xs font-bold">{children}</button>
 );
 
 const Empty: React.FC<{ text: string }> = ({ text }) => <p className="text-[11px] text-bone/50">{text}</p>;
@@ -1862,7 +1862,7 @@ const QuickAction: React.FC<{ icon: React.ReactNode; label: string; onClick: () 
     onClick={onClick}
     className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl hover:bg-white/[0.05] transition"
   >
-    <span className="w-10 h-10 rounded-full bg-crimson-500/15 ring-1 ring-crimson-100 text-crimson-600 flex items-center justify-center">{icon}</span>
+    <span className="w-10 h-10 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft text-brand-primary flex items-center justify-center">{icon}</span>
     <span className="text-[10px] font-bold text-bone/85">{label}</span>
   </button>
 );
@@ -1875,7 +1875,7 @@ const StatusBadge: React.FC<{ status: Registration['status'] }> = ({ status }) =
   const map: Record<Registration['status'], string> = {
     pending_payment: 'bg-amber-500/20 text-amber-200 ring-amber-300',
     paid: 'bg-emerald-500/20 text-emerald-200 ring-emerald-300',
-    tryout_invited: 'bg-crimson-500/20 text-crimson-200 ring-crimson-300',
+    tryout_invited: 'bg-brand-primary/20 text-brand-primary-soft ring-brand-primary-soft',
     offer_sent: 'bg-violet-500/20 text-violet-200 ring-violet-300',
     accepted: 'bg-emerald-500/20 text-emerald-100 ring-emerald-400',
     declined: 'bg-rose-500/20 text-rose-800 ring-rose-300',

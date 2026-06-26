@@ -30,7 +30,7 @@ import type { Player } from '../types';
 
 const Spinner: React.FC = () => (
   <div className="flex items-center justify-center py-20">
-    <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-200 border-t-cyan-500" />
+    <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft border-t-cyan-500" />
   </div>
 );
 
@@ -367,7 +367,7 @@ const InviteJoin: React.FC = () => {
 
       {/* Hero */}
       <div
-        className="relative overflow-hidden bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black p-6 border-b border-crimson-500/10"
+        className="relative overflow-hidden bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black p-6 border-b border-brand-primary/10"
         style={clubBrand?.brandColor ? { borderBottomColor: `${clubBrand.brandColor}33` } : undefined}
       >
         <div
@@ -387,7 +387,7 @@ const InviteJoin: React.FC = () => {
           {error && <p className="text-rose-300 text-sm">{error}</p>}
           <button
             onClick={() => handleConsume(currentUser.uid)}
-            className="w-full py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-sm transition"
+            className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition"
           >
             Yes, link this account
           </button>
@@ -446,7 +446,7 @@ const InviteJoin: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-400"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
             />
           )}
           <input
@@ -456,7 +456,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
-            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-400"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
           <input
             type="password"
@@ -465,7 +465,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-crimson-400"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
 
           {error && <p className="text-rose-300 text-sm">{error}</p>}
@@ -473,7 +473,7 @@ const InviteJoin: React.FC = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-xl bg-brand-primary hover:bg-brand-primary text-white font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Working…' : mode === 'sign-up' ? 'Create account & join' : 'Sign in & join'}
           </button>

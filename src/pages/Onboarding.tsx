@@ -705,7 +705,7 @@ const Onboarding: React.FC = () => {
                     intent: 'subscribe',
                   });
                 }}
-                className="px-4 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white transition"
+                className="px-4 py-2.5 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white transition"
               >
                 {isClubTrack ? 'Subscribe' : 'Try anyway'}
               </button>
@@ -738,7 +738,7 @@ const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="bg-charcoal-900/80 backdrop-blur ring-1 ring-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">{children}</div>
 );
 const Kicker: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-2">{children}</p>
+  <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-2">{children}</p>
 );
 const H: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h1 className="text-2xl sm:text-3xl font-black text-bone tracking-tight">{children}</h1>
@@ -750,7 +750,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </label>
 );
 const ErrorBanner: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="mt-4 rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-sm">{children}</div>
+  <div className="mt-4 rounded-md bg-brand-primary-deep/40 ring-1 ring-brand-primary/40 px-3 py-2 text-brand-primary-soft text-sm">{children}</div>
 );
 const TrackOption: React.FC<{
   selected: boolean;
@@ -764,13 +764,13 @@ const TrackOption: React.FC<{
     onClick={onClick}
     className={`w-full text-left rounded-lg p-4 transition-all ${
       selected
-        ? 'bg-gradient-to-br from-crimson-950/40 to-charcoal-900 ring-2 ring-crimson-500 shadow-lg shadow-crimson-950/30'
+        ? 'bg-gradient-to-br from-brand-primary-deep/40 to-charcoal-900 ring-2 ring-brand-primary shadow-lg shadow-brand-primary-deep/30'
         : 'bg-charcoal-900/60 ring-1 ring-white/10 hover:ring-white/25'
     }`}
   >
     <div className="flex items-start gap-3">
       <span className={`shrink-0 mt-1 w-4 h-4 rounded-full ring-2 ${
-        selected ? 'bg-crimson-500 ring-crimson-300' : 'bg-transparent ring-white/30'
+        selected ? 'bg-brand-primary ring-brand-primary-soft' : 'bg-transparent ring-white/30'
       }`} aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="text-bone font-bold">{label}</p>
@@ -784,7 +784,7 @@ const TrackOption: React.FC<{
 const PrimaryButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ className = '', children, ...rest }) => (
   <button
     type="button"
-    className={`px-5 py-3 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20 transition disabled:opacity-60 disabled:cursor-wait ${className}`}
+    className={`px-5 py-3 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition disabled:opacity-60 disabled:cursor-wait ${className}`}
     {...rest}
   >
     {children}
@@ -800,7 +800,7 @@ const StepIndicator: React.FC<{ currentStep: Step; isClubTier: boolean }> = ({ c
       {order.map((s, i) => (
         <div
           key={s}
-          className={`flex-1 h-1 rounded ${i <= idx ? 'bg-crimson-500' : 'bg-white/10'}`}
+          className={`flex-1 h-1 rounded ${i <= idx ? 'bg-brand-primary' : 'bg-white/10'}`}
         />
       ))}
     </div>

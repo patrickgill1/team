@@ -132,7 +132,7 @@ const Seasons: React.FC = () => {
                             type="button"
                             disabled={transitioning === s.id}
                             onClick={() => handleTransition(s, next)}
-                            className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded bg-crimson-500/15 hover:bg-crimson-500/20 text-crimson-200 ring-1 ring-crimson-400/30 disabled:opacity-50"
+                            className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded bg-brand-primary/15 hover:bg-brand-primary/20 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 disabled:opacity-50"
                           >
                             → {seasonLifecycleLabel(next)}
                           </button>

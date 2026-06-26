@@ -50,7 +50,7 @@ const PublicWallPost: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-500/30 border-t-cyan-400" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary/30 border-t-cyan-400" />
       </div>
     );
   }
@@ -67,8 +67,8 @@ const PublicWallPost: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 text-center border-b border-crimson-500/15">
-        <p className="text-[10px] font-extrabold tracking-[0.3em] text-crimson-400 uppercase">GoalKickr · The Wall</p>
+      <header className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 text-center border-b border-brand-primary/15">
+        <p className="text-[10px] font-extrabold tracking-[0.3em] text-brand-primary-soft uppercase">GoalKickr · The Wall</p>
         <h1 className="text-xl sm:text-2xl font-black text-white mt-1">A post from {post.senderName}</h1>
       </header>
 
@@ -77,7 +77,7 @@ const PublicWallPost: React.FC = () => {
           <div className="px-4 sm:px-6 py-3 border-b border-slate-100 flex items-center gap-2">
             <span className="text-sm font-bold text-slate-900">{post.senderName}</span>
             {post.senderRole === 'coach' && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">Coach</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary bg-brand-primary-soft ring-1 ring-brand-primary-soft px-1.5 py-0.5 rounded">Coach</span>
             )}
             <span className="text-[11px] text-slate-400 ml-auto">
               {post.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
@@ -102,7 +102,7 @@ const PublicWallPost: React.FC = () => {
           )}
         </div>
         <p className="text-center text-xs text-slate-400 mt-6">
-          Shared from GoalKickr. <Link to="/" className="text-crimson-700 font-semibold">Open the app</Link>
+          Shared from GoalKickr. <Link to="/" className="text-brand-primary font-semibold">Open the app</Link>
         </p>
       </article>
     </div>

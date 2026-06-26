@@ -92,7 +92,7 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
         <label className="flex items-start gap-3 rounded-xl ring-1 ring-white/10 px-3 py-2.5 bg-white/[0.04] cursor-pointer">
           <input
             type="checkbox"
-            className="mt-1 w-4 h-4 accent-crimson-600"
+            className="mt-1 w-4 h-4 accent-brand-primary"
             checked={alertTeam}
             onChange={(e) => setAlertTeam(e.target.checked)}
           />

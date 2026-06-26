@@ -152,12 +152,12 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
               <div className="text-sm font-bold text-emerald-200">{result.playerName} added to the roster.</div>
             </div>
             {result.inviteUrl ? (
-              <div className="rounded-lg ring-1 ring-crimson-400/30 bg-crimson-500/10 p-3 space-y-2">
-                <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-300">Parent invite link</div>
+              <div className="rounded-lg ring-1 ring-brand-primary-soft/30 bg-brand-primary/10 p-3 space-y-2">
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Parent invite link</div>
                 <div className="text-xs font-mono text-bone break-all">{result.inviteUrl}</div>
                 <button
                   onClick={copy}
-                  className="w-full text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md bg-crimson-600 text-white hover:bg-crimson-500"
+                  className="w-full text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md bg-brand-primary text-white hover:bg-brand-primary"
                 >
                   {copied ? 'Copied' : 'Copy link'}
                 </button>
@@ -182,7 +182,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Logan Smith"
-                className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                 autoFocus
               />
             </div>
@@ -196,7 +196,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                   value={jerseyNumber}
                   onChange={e => setJerseyNumber(e.target.value)}
                   placeholder="5"
-                  className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                  className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                 />
               </div>
               <div>
@@ -204,7 +204,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                 <select
                   value={position}
                   onChange={e => setPosition(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                  className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                 >
                   <option value="">—</option>
                   {positions.map(p => <option key={p} value={p}>{p}</option>)}
@@ -223,11 +223,11 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                       key={t.id}
                       onClick={() => toggleTeam(t.id)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg ring-1 text-sm ${
-                        on ? 'bg-crimson-500/15 ring-crimson-400/40 text-crimson-100' : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                        on ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft' : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
                       }`}
                     >
                       <span className="font-semibold">{t.name}</span>
-                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-white/20'}`}>
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-white' : 'border-white/20'}`}>
                         {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                       </span>
                     </button>
@@ -243,7 +243,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                   type="checkbox"
                   checked={generateInvite}
                   onChange={e => setGenerateInvite(e.target.checked)}
-                  className="rounded text-crimson-600 focus:ring-crimson-500"
+                  className="rounded text-brand-primary focus:ring-brand-primary"
                 />
                 <span className="text-xs font-bold text-bone">Also generate a parent invite link</span>
               </label>
@@ -254,7 +254,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                     value={parentEmail}
                     onChange={e => setParentEmail(e.target.value)}
                     placeholder="parent@example.com (optional — for your records)"
-                    className="w-full px-3 py-2 text-sm bg-charcoal-900 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-400/40"
+                    className="w-full px-3 py-2 text-sm bg-charcoal-900 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                   />
                   <p className="text-[10px] text-bone/50">You'll get a share link to text or email the parent. No automatic email is sent.</p>
                 </>
@@ -264,7 +264,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
             <button
               onClick={save}
               disabled={busy || !name.trim() || selectedTeams.size === 0}
-              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-crimson-600 text-white shadow-md shadow-crimson-500/30 disabled:opacity-40 hover:bg-crimson-500"
+              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-brand-primary text-white shadow-md shadow-brand-primary/30 disabled:opacity-40 hover:bg-brand-primary"
             >
               {busy ? 'Saving…' : 'Add player'}
             </button>

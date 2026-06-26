@@ -194,12 +194,12 @@ const ChatAttachmentImage: React.FC<{
 
 function renderRichContent(text: string, ownTheme: boolean): string {
   const safe = escapeHtml(text);
-  const linkColor = ownTheme ? 'text-white underline underline-offset-2' : 'text-crimson-700 underline underline-offset-2';
+  const linkColor = ownTheme ? 'text-white underline underline-offset-2' : 'text-brand-primary underline underline-offset-2';
   const linked = safe.replace(
     /(https?:\/\/[^\s<]+)/g,
     `<a href="$1" target="_blank" rel="noopener noreferrer" class="${linkColor} break-all">$1</a>`
   );
-  const mentionColor = ownTheme ? 'bg-white/25 text-white' : 'bg-crimson-100 text-crimson-900';
+  const mentionColor = ownTheme ? 'bg-white/25 text-white' : 'bg-brand-primary-soft text-brand-primary-dim';
   // @team is a special everyone-ping mention; render it noticeably
   // differently so it's clear at a glance that the whole team got
   // pinged, not just one parent.
@@ -278,10 +278,10 @@ const senderColor = (name: string): string => {
     'bg-gradient-to-br from-rose-400 to-rose-600',
     'bg-gradient-to-br from-amber-400 to-orange-600',
     'bg-gradient-to-br from-emerald-400 to-emerald-600',
-    'bg-gradient-to-br from-crimson-400 to-crimson-600',
+    'bg-gradient-to-br from-brand-primary-soft to-brand-primary',
     'bg-gradient-to-br from-violet-400 to-violet-600',
     'bg-gradient-to-br from-fuchsia-400 to-pink-600',
-    'bg-gradient-to-br from-crimson-400 to-charcoal-600',
+    'bg-gradient-to-br from-brand-primary-soft to-charcoal-600',
     'bg-gradient-to-br from-teal-400 to-teal-600',
   ];
   return palette[h % palette.length];
@@ -419,7 +419,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // gray on incoming. No shadow ring — looks dated. The colors are
   // calibrated to look like Apple's Messages app on iOS 17+.
   const bubbleBg = isOwn
-    ? 'bg-gradient-to-b from-crimson-500 to-crimson-600 text-white'
+    ? 'bg-gradient-to-b from-brand-primary to-brand-primary text-white'
     : 'bg-[#E9E9EB] text-[#0B0B0F]';
 
   // Swipe-gesture state. We resolve each touch into ONE of three modes:
@@ -526,7 +526,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       {showReplyIcon && (
         <span
           aria-hidden
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-crimson-500 text-white flex items-center justify-center pointer-events-none"
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-brand-primary text-white flex items-center justify-center pointer-events-none"
           style={{ opacity: swipeProgress }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
@@ -589,7 +589,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div className="ml-1 mb-0.5 flex items-center gap-1.5">
             <span className="text-xs font-semibold text-gray-700">{message.senderName}</span>
             {message.senderRole === 'coach' && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-crimson-700 bg-crimson-50 ring-1 ring-crimson-200 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary bg-brand-primary-soft ring-1 ring-brand-primary-soft px-1.5 py-0.5 rounded">
                 Coach
               </span>
             )}
@@ -622,12 +622,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               el.scrollIntoView({ behavior: 'smooth', block: 'center' });
               // Flash highlight via a temporary ring; clean up after
               // the animation so subsequent renders aren't sticky.
-              el.classList.add('ring-2', 'ring-crimson-400', 'rounded-2xl');
-              setTimeout(() => el.classList.remove('ring-2', 'ring-crimson-400', 'rounded-2xl'), 1400);
+              el.classList.add('ring-2', 'ring-brand-primary-soft', 'rounded-2xl');
+              setTimeout(() => el.classList.remove('ring-2', 'ring-brand-primary-soft', 'rounded-2xl'), 1400);
             }}
             disabled={!replyTarget}
             className={`text-xs mb-1 px-3 py-1.5 rounded-xl max-w-full text-left transition-opacity ${
-              isOwn ? 'bg-crimson-100 text-crimson-900' : 'bg-gray-100 text-gray-700'
+              isOwn ? 'bg-brand-primary-soft text-brand-primary-dim' : 'bg-gray-100 text-gray-700'
             } ${replyTarget ? 'hover:opacity-80 cursor-pointer' : 'cursor-default opacity-60'}`}
           >
             <div className="text-[10px] font-bold opacity-70">
@@ -648,7 +648,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {editing && message.content ? (
           <div
             className={`px-3.5 py-2 rounded-[20px] shadow-sm ${
-              isOwn ? 'bg-crimson-50 ring-1 ring-crimson-300' : 'bg-slate-50 ring-1 ring-slate-300'
+              isOwn ? 'bg-brand-primary-soft ring-1 ring-brand-primary-soft' : 'bg-slate-50 ring-1 ring-slate-300'
             }`}
           >
             <textarea
@@ -685,7 +685,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   }
                 }}
                 disabled={savingEdit || !editDraft.trim()}
-                className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500 disabled:opacity-50"
+                className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary disabled:opacity-50"
               >
                 {savingEdit ? 'Saving…' : 'Save'}
               </button>
@@ -882,7 +882,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               }}
               aria-label="Message actions"
               title="Message actions"
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-crimson-700 active:scale-95 transition"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-brand-primary active:scale-95 transition"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="5" r="1.9"/>
@@ -928,7 +928,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 title={info.names.join(', ')}
                 className={`text-[11px] px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 ${
                   info.mine
-                    ? 'bg-crimson-100 ring-1 ring-crimson-300 text-crimson-900'
+                    ? 'bg-brand-primary-soft ring-1 ring-brand-primary-soft text-brand-primary-dim'
                     : 'bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
@@ -964,7 +964,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               // signal becomes noise. DMs keep both states.
               const showSeen = !!threadIsDm && seen > 0;
               return (
-                <span className={`ml-1.5 inline-flex items-center gap-0.5 ${showSeen ? 'text-crimson-500' : 'text-gray-400'}`} title={showSeen ? 'Seen' : 'Sent'}>
+                <span className={`ml-1.5 inline-flex items-center gap-0.5 ${showSeen ? 'text-brand-primary' : 'text-gray-400'}`} title={showSeen ? 'Seen' : 'Sent'}>
                   {showSeen ? (
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <polyline points="2 12 7 17 13 9" />
@@ -1029,7 +1029,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               >
                 Cancel
               </button>
-              <div className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">Actions</div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Actions</div>
               <span className="w-12" aria-hidden />
             </div>
 

@@ -45,7 +45,7 @@ const ClubBranding: React.FC = () => {
         <Header title="Branding" />
         <div className="max-w-md mx-auto mt-10 bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6">
           <p className="text-bone/80">Only club admins can change branding.</p>
-          <Link to="/club" className="mt-4 inline-block text-crimson-400 text-sm font-bold">← Back to club</Link>
+          <Link to="/club" className="mt-4 inline-block text-brand-primary-soft text-sm font-bold">← Back to club</Link>
         </div>
       </div>
     );

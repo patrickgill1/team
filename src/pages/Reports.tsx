@@ -239,7 +239,7 @@ const Tile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
 const FunnelRow: React.FC<{ label: string; value: number; of: number; tone: 'cyan' | 'emerald' | 'violet' | 'rose' }> = ({ label, value, of, tone }) => {
   const pct = of > 0 ? Math.round((value / of) * 100) : 0;
   const bg = {
-    cyan: 'bg-crimson-500/150',
+    cyan: 'bg-brand-primary/150',
     emerald: 'bg-emerald-500/150',
     violet: 'bg-violet-500/150',
     rose: 'bg-rose-500/150',

@@ -138,18 +138,18 @@ const WallHeaderButton: React.FC = () => {
               style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)', paddingBottom: '0.75rem' }}
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                 </svg>
-                <span className="text-xs font-extrabold tracking-widest uppercase text-crimson-400">The Wall</span>
+                <span className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">The Wall</span>
               </div>
               <div className="flex items-center gap-3">
                 <Link
                   to="/wall"
                   onClick={() => setOpen(false)}
-                  className="text-[11px] font-bold uppercase tracking-widest text-crimson-400 hover:text-white"
+                  className="text-[11px] font-bold uppercase tracking-widest text-brand-primary-soft hover:text-white"
                 >
                   View all →
                 </Link>
@@ -170,7 +170,7 @@ const WallHeaderButton: React.FC = () => {
             <div className="flex-1">
               {posts.length === 0 ? (
                 <div className="px-6 py-10 text-center">
-                  <div className="mx-auto w-12 h-12 rounded-full bg-crimson-500/15 ring-1 ring-crimson-500/25 flex items-center justify-center text-crimson-300 mb-3">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/25 flex items-center justify-center text-brand-primary-soft mb-3">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
                   <p className="text-sm font-semibold text-bone/85">Nothing posted yet</p>
@@ -202,13 +202,13 @@ const WallHeaderButton: React.FC = () => {
               className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 flex items-center justify-between flex-shrink-0"
               style={{ paddingTop: '0.75rem', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
             >
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400/70">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft/70">
                 {posts.length === 0 ? 'No posts yet' : `${posts.length} recent post${posts.length === 1 ? '' : 's'}`}
               </span>
               <Link
                 to="/wall"
                 onClick={() => setOpen(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-crimson-400 hover:text-white inline-flex items-center gap-1"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-white inline-flex items-center gap-1"
               >
                 Open the wall
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>

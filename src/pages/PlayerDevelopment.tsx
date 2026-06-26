@@ -792,7 +792,7 @@ const PlayerDevelopment: React.FC = () => {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'technical': return 'bg-crimson-500/15 text-crimson-300 border-crimson-400/20';
+      case 'technical': return 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/20';
       case 'tactical': return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'physical': return 'bg-orange-100 text-orange-300 border-orange-400/30';
       case 'mental': return 'bg-green-100 text-emerald-300 border-green-200';
@@ -915,7 +915,7 @@ const PlayerDevelopment: React.FC = () => {
               type="button"
               onClick={() => setViewMode('coach')}
               className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
-                viewMode === 'coach' ? 'bg-crimson-600 text-white shadow' : 'text-bone/50 hover:text-bone'
+                viewMode === 'coach' ? 'bg-brand-primary text-white shadow' : 'text-bone/50 hover:text-bone'
               }`}
             >
               Coach View
@@ -924,7 +924,7 @@ const PlayerDevelopment: React.FC = () => {
               type="button"
               onClick={() => { setViewMode('parent'); setSelectedPlayerId('all'); }}
               className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
-                viewMode === 'parent' ? 'bg-crimson-600 text-white shadow' : 'text-bone/50 hover:text-bone'
+                viewMode === 'parent' ? 'bg-brand-primary text-white shadow' : 'text-bone/50 hover:text-bone'
               }`}
             >
               My {myLinkedPlayers.length > 1 ? 'kids' : 'kid'}
@@ -941,7 +941,7 @@ const PlayerDevelopment: React.FC = () => {
             <select
               value={selectedPlayerId}
               onChange={e => setSelectedPlayerId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-charcoal-900 border border-white/10 rounded-xl text-sm font-medium text-bone shadow-sm focus:outline-none focus:ring-2 focus:ring-crimson-500"
+              className="w-full pl-9 pr-3 py-2.5 bg-charcoal-900 border border-white/10 rounded-xl text-sm font-medium text-bone shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
               style={{ fontSize: '16px' }}
             >
               <option value="all">{effectiveView === 'coach' ? 'All Players' : (myLinkedPlayers.length > 1 ? 'All My Children' : myLinkedPlayers[0]?.name || 'My child')}</option>
@@ -953,7 +953,7 @@ const PlayerDevelopment: React.FC = () => {
           {showCoachControls && (
             <button
               onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(true); }}
-              className="bg-crimson-600 hover:bg-crimson-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+              className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2.5 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
               <span>New Plan</span>
@@ -1105,7 +1105,7 @@ const PlayerDevelopment: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => { setBulkPlayerIds(players.map(p => p.id)); setPlanPlayerId(''); }}
-                            className="text-crimson-300 hover:text-crimson-100 font-bold"
+                            className="text-brand-primary-soft hover:text-brand-primary-soft font-bold"
                           >All</button>
                           <span className="text-bone/35">·</span>
                           <button
@@ -1148,8 +1148,8 @@ const PlayerDevelopment: React.FC = () => {
                                 }}
                                 title={p.name}
                                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${checked
-                                  ? 'bg-crimson-600 text-white shadow-sm'
-                                  : 'bg-charcoal-900 text-bone/85 ring-1 ring-white/15 hover:ring-crimson-400'}`}
+                                  ? 'bg-brand-primary text-white shadow-sm'
+                                  : 'bg-charcoal-900 text-bone/85 ring-1 ring-white/15 hover:ring-brand-primary-soft'}`}
                               >
                                 {label}
                               </button>
@@ -1157,7 +1157,7 @@ const PlayerDevelopment: React.FC = () => {
                           })}
                         </div>
                         {bulkPlayerIds.length > 1 && (
-                          <p className="mt-1.5 text-[11px] text-crimson-300 bg-crimson-500/15 ring-1 ring-crimson-400/30 rounded-md px-2 py-1">
+                          <p className="mt-1.5 text-[11px] text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 rounded-md px-2 py-1">
                             Creates <b>{bulkPlayerIds.length}</b> identical plans — each tracks progress on its own.
                           </p>
                         )}
@@ -1170,7 +1170,7 @@ const PlayerDevelopment: React.FC = () => {
                       type="text"
                       value={planTitle}
                       onChange={e => setPlanTitle(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+                      className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                       placeholder="e.g. Ball Control Mastery"
                     />
                   </div>
@@ -1180,7 +1180,7 @@ const PlayerDevelopment: React.FC = () => {
                       <select
                         value={planCategory}
                         onChange={e => setPlanCategory(e.target.value as DevelopmentPlan['category'])}
-                        className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+                        className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                       >
                         <option value="technical">Technical — ball, passing, shooting</option>
                         <option value="tactical">Tactical — positioning, awareness</option>
@@ -1194,7 +1194,7 @@ const PlayerDevelopment: React.FC = () => {
                         type="text"
                         value={planDescription}
                         onChange={e => setPlanDescription(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+                        className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                         placeholder="What this plan focuses on…"
                       />
                     </div>
@@ -1223,7 +1223,7 @@ const PlayerDevelopment: React.FC = () => {
                               type="text"
                               value={goal.title}
                               onChange={e => updateGoalField(index, 'title', e.target.value)}
-                              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-crimson-500 text-sm font-medium"
+                              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-brand-primary text-sm font-medium"
                               placeholder="Title (e.g. Pass Weight Drill – Distance Control)"
                             />
                             <input
@@ -1336,7 +1336,7 @@ const PlayerDevelopment: React.FC = () => {
                                     urlInput.value = '';
                                     titleInput.value = '';
                                   }}
-                                  className="px-2 py-1 bg-crimson-600 hover:bg-crimson-700 text-white text-xs font-medium rounded"
+                                  className="px-2 py-1 bg-brand-primary hover:bg-brand-primary text-white text-xs font-medium rounded"
                                 >
                                   +
                                 </button>
@@ -1359,7 +1359,7 @@ const PlayerDevelopment: React.FC = () => {
                     <button
                       type="button"
                       onClick={addGoalField}
-                      className="mt-2 text-sm text-crimson-300 hover:text-crimson-100 font-bold"
+                      className="mt-2 text-sm text-brand-primary-soft hover:text-brand-primary-soft font-bold"
                     >
                       + Add another goal
                     </button>
@@ -1380,7 +1380,7 @@ const PlayerDevelopment: React.FC = () => {
                   type="button"
                   onClick={editingPlanId ? handleUpdatePlan : handleCreatePlan}
                   disabled={(editingPlanId ? !planPlayerId : (bulkPlayerIds.length === 0 && !planPlayerId)) || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
-                  className="px-4 py-2 text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-50 rounded-lg"
+                  className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 rounded-lg"
                 >
                   {editingPlanId ? 'Save changes' : (bulkPlayerIds.length > 1 ? `Create ${bulkPlayerIds.length} plans` : 'Create plan')}
                 </button>
@@ -1405,10 +1405,10 @@ const PlayerDevelopment: React.FC = () => {
 
 // ─── Summary tile ────────────────────────────────────────────────────────────
 const DEV_TILE_TINT: Record<string, { box: string; icon: string; value: string }> = {
-  cyan:    { box: 'bg-crimson-500/15',     icon: 'text-crimson-300',    value: 'text-crimson-300'    },
+  cyan:    { box: 'bg-brand-primary/15',     icon: 'text-brand-primary-soft',    value: 'text-brand-primary-soft'    },
   emerald: { box: 'bg-emerald-500/15',  icon: 'text-emerald-300', value: 'text-emerald-300' },
   navy:    { box: 'bg-charcoal-700/10', icon: 'text-bone/85',    value: 'text-bone/85'    },
-  fire:    { box: 'bg-crimson-500/15',     icon: 'text-bone/85',    value: 'text-bone/85'    },
+  fire:    { box: 'bg-brand-primary/15',     icon: 'text-bone/85',    value: 'text-bone/85'    },
 };
 
 const DevTile: React.FC<{
@@ -1429,7 +1429,7 @@ const DevTile: React.FC<{
         <p className="text-xs text-bone/65 truncate">{label}</p>
       </div>
       {badge && (
-        <span className="px-2 py-1 rounded-full bg-crimson-500/20 text-charcoal-800 text-[11px] font-bold whitespace-nowrap">
+        <span className="px-2 py-1 rounded-full bg-brand-primary/20 text-charcoal-800 text-[11px] font-bold whitespace-nowrap">
           {badge}
         </span>
       )}
@@ -1499,7 +1499,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-xs font-bold text-bone/90">{c.authorName}</span>
                   {isCoachAuthor && (
-                    <span className="text-[9px] font-extrabold tracking-widest uppercase text-crimson-300 bg-crimson-500/15 ring-1 ring-crimson-400/30 px-1 py-0.5 rounded">Coach</span>
+                    <span className="text-[9px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-1 py-0.5 rounded">Coach</span>
                   )}
                   <span className="ml-auto text-[10px] text-bone/40">{t.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
@@ -1516,13 +1516,13 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || true)) handleSubmit(); }}
           placeholder="Question, update, or note…"
-          className="flex-1 min-w-0 px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+          className="flex-1 min-w-0 px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
         />
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!draft.trim()}
-          className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-50 text-white text-xs font-bold"
+          className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-xs font-bold"
         >
           Post
         </button>
@@ -1569,7 +1569,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
   const playerInitial = (plan.playerName || '?').charAt(0).toUpperCase();
 
   return (
-    <div className={`bg-charcoal-900 rounded-2xl shadow-sm border overflow-hidden ${isExpanded ? 'border-crimson-400/40 ring-2 ring-crimson-100' : 'border-white/10'}`}>
+    <div className={`bg-charcoal-900 rounded-2xl shadow-sm border overflow-hidden ${isExpanded ? 'border-brand-primary-soft/40 ring-2 ring-brand-primary-soft' : 'border-white/10'}`}>
       {/* Header — player avatar + name + title, with two horizontal
           progress bars beneath. Matches the Ollie reference card. */}
       <div
@@ -1583,11 +1583,11 @@ const PlanCard: React.FC<PlanCardProps> = ({
               <img
                 src={playerPhoto}
                 alt={plan.playerName}
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-crimson-100"
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-brand-primary-soft"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-700 text-white flex items-center justify-center font-bold text-base ring-2 ring-crimson-100">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-700 text-white flex items-center justify-center font-bold text-base ring-2 ring-brand-primary-soft">
                 {playerInitial}
               </div>
             )}
@@ -1612,7 +1612,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
               )}
               {/* "Ready for review" badge removed — no verification flow. */}
               {typeof streak === 'number' && streak >= 2 && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-crimson-500/20 text-charcoal-800 border border-crimson-400/30" title={`${streak}-day practice streak`}>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-primary/20 text-charcoal-800 border border-brand-primary-soft/30" title={`${streak}-day practice streak`}>
                   <AppIcon name="highlight" className="w-3 h-3" />
                   <span>{streak} streak</span>
                 </span>
@@ -1640,14 +1640,14 @@ const PlanCard: React.FC<PlanCardProps> = ({
             return (
               <div className="text-[11px] flex items-center justify-between">
                 <span className="text-bone/50 font-semibold">Sessions logged</span>
-                <span className="text-crimson-300 font-bold tabular-nums">{totalSessions}</span>
+                <span className="text-brand-primary-soft font-bold tabular-nums">{totalSessions}</span>
               </div>
             );
           })()}
           <div className="mt-2 text-[11px] text-bone/50 flex items-center gap-3 justify-center">
             {totalLoggedMinutes > 0 && (
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-crimson-500/150" />
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/150" />
                 {totalTargetMinutes > 0 ? `${totalLoggedMinutes}/${totalTargetMinutes} min` : `${totalLoggedMinutes} min`}
               </span>
             )}
@@ -1660,7 +1660,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
         <div className="border-t border-white/10 p-4">
           {plan.description && (
             <div className="mb-4 flex items-start gap-3">
-              <span className="w-8 h-8 rounded-full bg-crimson-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+              <span className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center shrink-0 mt-0.5">
                 <AppIcon name="highlight" className="w-4 h-4" />
               </span>
               <p className="text-sm text-bone/85 flex-1">{plan.description}</p>
@@ -1677,7 +1677,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
             const mins = totalMinutes % 60;
             return (
               <div className="mb-4 flex items-center gap-3 text-xs">
-                <span className="inline-flex items-center gap-1.5 bg-crimson-500/15 text-crimson-300 px-2.5 py-1 rounded-full">
+                <span className="inline-flex items-center gap-1.5 bg-brand-primary/15 text-brand-primary-soft px-2.5 py-1 rounded-full">
                   <AppIcon name="clock" className="w-3.5 h-3.5" />
                   <span className="font-semibold">
                     {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} practiced
@@ -1712,7 +1712,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             const pct = Math.min(100, Math.round((goalMins / goal.targetMinutes) * 100));
                             const done = pct >= 100;
                             return (
-                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-emerald-500/20 text-emerald-300' : 'bg-crimson-500/20 text-bone/85'}`}>
+                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-emerald-500/20 text-emerald-300' : 'bg-brand-primary/20 text-bone/85'}`}>
                                 {goalMins}/{goal.targetMinutes} min
                               </span>
                             );
@@ -1739,18 +1739,18 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         )}
                         {goal.setup && (
                           <div>
-                            <div className="text-[11px] font-bold uppercase tracking-wide text-crimson-600">Setup</div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-brand-primary">Setup</div>
                             <p className="text-xs text-bone/85 whitespace-pre-line mt-0.5">{goal.setup}</p>
                           </div>
                         )}
                         {goal.instructions && (
                           <div>
-                            <div className="text-[11px] font-bold uppercase tracking-wide text-crimson-600">Instructions</div>
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-brand-primary">Instructions</div>
                             <p className="text-xs text-bone/85 whitespace-pre-line mt-0.5">{goal.instructions}</p>
                           </div>
                         )}
                         {goal.focus && (
-                          <div className="bg-crimson-500/15 ring-1 ring-crimson-400/30 rounded-lg p-2">
+                          <div className="bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 rounded-lg p-2">
                             <div className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-bone/85">
                               <AppIcon name="trophy" className="w-3 h-3" />
                               <span>Focus</span>
@@ -1761,7 +1761,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                       </div>
                     )}
                     {goal.notes && (
-                      <p className="text-xs text-crimson-600 mt-1 italic">Coach note: {goal.notes}</p>
+                      <p className="text-xs text-brand-primary mt-1 italic">Coach note: {goal.notes}</p>
                     )}
                     <div className="flex items-center space-x-3 mt-1 text-xs text-bone/40">
                       {goal.playerCompleted && (
@@ -1840,7 +1840,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="aspect-video bg-gradient-to-br from-crimson-500 to-charcoal-700 flex items-center justify-center text-white text-xs px-2 text-center">
+                                      <div className="aspect-video bg-gradient-to-br from-brand-primary to-charcoal-700 flex items-center justify-center text-white text-xs px-2 text-center">
                                         Open link
                                       </div>
                                     )}
@@ -1870,13 +1870,13 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         {isCoach && plan.status === 'active' && (
                           <div className="mt-2">
                             {linkGoalId === goal.id ? (
-                              <div className="space-y-2 bg-crimson-500/15/60 border border-crimson-400/20 rounded-lg p-2">
+                              <div className="space-y-2 bg-brand-primary/15/60 border border-brand-primary-soft/20 rounded-lg p-2">
                                 <input
                                   type="url"
                                   value={linkUrl}
                                   onChange={e => setLinkUrl(e.target.value)}
                                   placeholder="Paste YouTube link (https://youtu.be/...)"
-                                  className="w-full px-2 py-1.5 text-xs border border-white/15 rounded focus:ring-2 focus:ring-crimson-500"
+                                  className="w-full px-2 py-1.5 text-xs border border-white/15 rounded focus:ring-2 focus:ring-brand-primary"
                                   autoFocus
                                 />
                                 <input
@@ -1884,7 +1884,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   value={linkTitle}
                                   onChange={e => setLinkTitle(e.target.value)}
                                   placeholder="Optional title (e.g. 'Inside-of-foot pass technique')"
-                                  className="w-full px-2 py-1.5 text-xs border border-white/15 rounded focus:ring-2 focus:ring-crimson-500"
+                                  className="w-full px-2 py-1.5 text-xs border border-white/15 rounded focus:ring-2 focus:ring-brand-primary"
                                 />
                                 <div className="flex justify-end space-x-2">
                                   <button
@@ -1902,7 +1902,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                       setLinkTitle('');
                                     }}
                                     disabled={!linkUrl.trim()}
-                                    className="text-xs bg-crimson-600 hover:bg-crimson-700 disabled:opacity-50 text-white font-medium px-3 py-1 rounded"
+                                    className="text-xs bg-brand-primary hover:bg-brand-primary disabled:opacity-50 text-white font-medium px-3 py-1 rounded"
                                   >
                                     Add Link
                                   </button>
@@ -1911,7 +1911,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             ) : (
                               <button
                                 onClick={() => { setLinkGoalId(goal.id); setLinkUrl(''); setLinkTitle(''); }}
-                                className="text-xs text-crimson-600 hover:text-crimson-300 font-medium"
+                                className="text-xs text-brand-primary hover:text-brand-primary-soft font-medium"
                               >
                                 + Add YouTube tutorial
                               </button>
@@ -1934,7 +1934,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               <div className="flex items-center justify-between">
                                 <p className="text-xs font-semibold text-bone/50 uppercase tracking-wide">Practice Log</p>
                                 {totalMins > 0 && (
-                                  <span className="text-xs font-medium text-crimson-600 bg-crimson-500/15 px-2 py-0.5 rounded-full">
+                                  <span className="text-xs font-medium text-brand-primary bg-brand-primary/15 px-2 py-0.5 rounded-full">
                                     ⏱️ {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} total
                                   </span>
                                 )}
@@ -1966,7 +1966,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   <span className="text-bone/40">
                                     {parsed ? parsed.toLocaleDateString() : 'Date unknown'}
                                   </span>
-                                  {entry.minutes && <span className="text-crimson-600 font-medium ml-1">({entry.minutes} min)</span>}
+                                  {entry.minutes && <span className="text-brand-primary font-medium ml-1">({entry.minutes} min)</span>}
                                   {' — '}{entry.note}
                                   {entry.loggedByName && <span className="text-bone/40 ml-1">— {entry.loggedByName}</span>}
                                 </div>
@@ -1975,7 +1975,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               {logs.length > 3 && showAllLogs !== goal.id && (
                                 <button
                                   onClick={() => setShowAllLogs(goal.id)}
-                                  className="text-xs text-crimson-600 hover:text-crimson-300"
+                                  className="text-xs text-brand-primary hover:text-brand-primary-soft"
                                 >
                                   Show all {logs.length} entries
                                 </button>
@@ -2048,7 +2048,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => onQuickDidIt(goal.id)}
-                                    className="w-full rounded-xl bg-gradient-to-br from-crimson-500 via-crimson-600 to-charcoal-900 hover:from-crimson-400 hover:via-crimson-500 hover:to-charcoal-800 text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
+                                    className="w-full rounded-xl bg-gradient-to-br from-brand-primary via-brand-primary to-charcoal-900 hover:from-brand-primary-soft hover:via-brand-primary hover:to-charcoal-800 text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
                                   >
                                     <div className="flex items-center justify-center gap-3">
                                       <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -2098,7 +2098,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
             {isCoach && plan.status === 'completed' && (
               <button
                 onClick={onCreateNextPlan}
-                className="text-sm bg-crimson-600 text-white px-4 py-2 rounded-lg hover:bg-crimson-700 font-medium flex items-center space-x-1"
+                className="text-sm bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-primary font-medium flex items-center space-x-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -2110,7 +2110,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
               <div className="flex items-center gap-2 ml-auto">
                 <button
                   onClick={onEdit}
-                  className="text-sm text-crimson-600 hover:text-crimson-300 px-3 py-1 rounded-lg hover:bg-crimson-500/15 font-medium"
+                  className="text-sm text-brand-primary hover:text-brand-primary-soft px-3 py-1 rounded-lg hover:bg-brand-primary/15 font-medium"
                 >
                   ✏️ Edit Plan
                 </button>

@@ -82,7 +82,7 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
   return (
     <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
       <div className="px-5 py-4 border-b border-white/5">
-        <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1">Team Store</p>
+        <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Team Store</p>
         <h2 className="text-bone font-bold">External gear shop link</h2>
         <p className="text-bone/55 text-xs mt-1 leading-snug">
           Point this at your retailer (gotsoccer, Soccer.com, your own site). The Team Store tab appears in every team&apos;s nav once a URL is set. Leave blank to hide the tab.
@@ -96,7 +96,7 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
             value={storeUrl}
             onChange={(e) => setStoreUrl(e.target.value)}
             placeholder="https://team.wegotsoccer.com/yourclub"
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
           />
         </label>
         <label className="block">
@@ -106,7 +106,7 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
             value={discountCode}
             onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
             placeholder="FIREFCREWARDS"
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm font-mono tracking-wider"
+            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm font-mono tracking-wider"
           />
         </label>
         <label className="block">
@@ -116,11 +116,11 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
             value={storeLabel}
             onChange={(e) => setStoreLabel(e.target.value)}
             placeholder="Official gear, member pricing."
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-crimson-500 focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
           />
         </label>
         {error && (
-          <div className="rounded-md bg-crimson-950/40 ring-1 ring-crimson-700/40 px-3 py-2 text-crimson-100 text-xs">
+          <div className="rounded-md bg-brand-primary-deep/40 ring-1 ring-brand-primary/40 px-3 py-2 text-brand-primary-soft text-xs">
             {error}
           </div>
         )}
@@ -129,7 +129,7 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
             type="button"
             onClick={handleClear}
             disabled={saving || (!club.storeUrl && !storeUrl)}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-bone/45 hover:text-crimson-300 disabled:opacity-30"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-bone/45 hover:text-brand-primary-soft disabled:opacity-30"
           >
             Remove store
           </button>
@@ -141,7 +141,7 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
               type="button"
               onClick={handleSave}
               disabled={saving || !dirty}
-              className="px-4 py-2 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white disabled:opacity-50 transition"
+              className="px-4 py-2 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white disabled:opacity-50 transition"
             >
               {saving ? 'Saving…' : 'Save'}
             </button>

@@ -48,7 +48,7 @@ const SubscribeBanner: React.FC = () => {
   };
 
   return (
-    <div className="relative rounded-2xl bg-gradient-to-br from-crimson-950/40 via-charcoal-900 to-charcoal-900 ring-1 ring-crimson-700/40 p-4 sm:p-5 overflow-hidden">
+    <div className="relative rounded-2xl bg-gradient-to-br from-brand-primary-deep/40 via-charcoal-900 to-charcoal-900 ring-1 ring-brand-primary/40 p-4 sm:p-5 overflow-hidden">
       <button
         type="button"
         onClick={handleDismiss}
@@ -66,7 +66,7 @@ const SubscribeBanner: React.FC = () => {
           </svg>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-0.5">
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Free version
           </p>
           <p className="text-bone font-bold leading-tight">
@@ -79,7 +79,7 @@ const SubscribeBanner: React.FC = () => {
           <button
             type="button"
             onClick={handleStart}
-            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20 transition"
+            className="mt-3 inline-flex items-center justify-center px-4 py-2 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition"
           >
             Start free trial at goalkickr.com
           </button>

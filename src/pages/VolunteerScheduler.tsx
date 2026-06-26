@@ -262,10 +262,10 @@ const VolunteerScheduler: React.FC = () => {
   const getTypeColor = (type: string) => {
     const colors = {
       snacks: 'bg-emerald-500/15 text-emerald-300',
-      setup: 'bg-crimson-500/15 text-bone/85',
-      cleanup: 'bg-crimson-500/15 text-crimson-300',
+      setup: 'bg-brand-primary/15 text-bone/85',
+      cleanup: 'bg-brand-primary/15 text-brand-primary-soft',
       transportation: 'bg-charcoal-700/10 text-charcoal-800',
-      equipment: 'bg-crimson-500/20 text-charcoal-800',
+      equipment: 'bg-brand-primary/20 text-charcoal-800',
       other: 'bg-white/[0.08] text-bone/85'
     };
     return colors[type as keyof typeof colors] || 'bg-white/[0.08] text-bone/85';
@@ -288,7 +288,7 @@ const VolunteerScheduler: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-crimson-400/30 border-t-cyan-500" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft/30 border-t-cyan-500" />
           <span className="text-sm text-bone/40 font-medium">Loading...</span>
         </div>
       </div>
@@ -303,7 +303,7 @@ const VolunteerScheduler: React.FC = () => {
           <button
             onClick={() => setShowCreateModal(true)}
             disabled={upcomingEvents.length === 0}
-            className="bg-crimson-600 hover:bg-crimson-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-brand-primary hover:bg-brand-primary text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <AppIcon name="plus" className="w-4 h-4" strokeWidth={2.5} />
             <span>Add Volunteer Need</span>
@@ -311,7 +311,7 @@ const VolunteerScheduler: React.FC = () => {
         </div>
 
         {upcomingEvents.length === 0 && (
-          <div className="mb-6 p-4 bg-crimson-500/15 border border-crimson-400/30 rounded-2xl">
+          <div className="mb-6 p-4 bg-brand-primary/15 border border-brand-primary-soft/30 rounded-2xl">
             <div className="flex items-start gap-3">
               <AppIcon name="info" className="w-5 h-5 text-bone/85 mt-0.5" />
               <div>
@@ -323,7 +323,7 @@ const VolunteerScheduler: React.FC = () => {
             </div>
             <Link
               to="/calendar"
-              className="mt-3 inline-flex items-center gap-1.5 bg-crimson-600 hover:bg-crimson-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              className="mt-3 inline-flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
             >
               <AppIcon name="calendar" className="w-4 h-4" />
               <span>Go to Events</span>
@@ -335,7 +335,7 @@ const VolunteerScheduler: React.FC = () => {
         {upcomingEvents.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-bone mb-4 flex items-center gap-2">
-              <AppIcon name="calendar" className="w-5 h-5 text-crimson-300" />
+              <AppIcon name="calendar" className="w-5 h-5 text-brand-primary-soft" />
               <span>Upcoming events</span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -354,8 +354,8 @@ const VolunteerScheduler: React.FC = () => {
                       </div>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         event.type === 'game' ? 'bg-charcoal-700/10 text-charcoal-800' :
-                        event.type === 'practice' ? 'bg-crimson-500/20 text-charcoal-800' :
-                        'bg-crimson-500/15 text-bone/85'
+                        event.type === 'practice' ? 'bg-brand-primary/20 text-charcoal-800' :
+                        'bg-brand-primary/15 text-bone/85'
                       }`}>
                         {event.type}
                       </span>
@@ -400,7 +400,7 @@ const VolunteerScheduler: React.FC = () => {
                 onClick={() => setFilterType(type)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                   filterType === type
-                    ? 'bg-crimson-500/15 text-crimson-300 ring-1 ring-crimson-400/30'
+                    ? 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30'
                     : 'bg-white/[0.08] text-bone/85 hover:bg-white/[0.08]'
                 }`}
               >
@@ -462,7 +462,7 @@ const VolunteerScheduler: React.FC = () => {
                   </div>
 
                   {linkedEvent && (
-                    <div className="flex items-center space-x-2 text-sm text-crimson-600">
+                    <div className="flex items-center space-x-2 text-sm text-brand-primary">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
@@ -511,7 +511,7 @@ const VolunteerScheduler: React.FC = () => {
                       className={`w-full font-medium py-2 px-4 rounded-lg transition duration-200 ${
                         isFull
                           ? 'bg-white/[0.08] text-bone/40 cursor-not-allowed'
-                          : 'bg-crimson-600 hover:bg-crimson-700 text-white'
+                          : 'bg-brand-primary hover:bg-brand-primary text-white'
                       }`}
                     >
                       {isFull ? 'Full' : 'Sign Up to Help'}
@@ -549,7 +549,7 @@ const VolunteerScheduler: React.FC = () => {
                 <select
                   value={selectedEvent}
                   onChange={(e) => setSelectedEvent(e.target.value)}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="">Select an event...</option>
                   {upcomingEvents.map(event => (
@@ -574,7 +574,7 @@ const VolunteerScheduler: React.FC = () => {
                       timeOffset: typeInfo.defaultOffset
                     });
                   }}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="snacks">Snacks & Drinks</option>
                   <option value="setup">Setup Help</option>
@@ -593,7 +593,7 @@ const VolunteerScheduler: React.FC = () => {
                     min="1"
                     value={newOpportunity.slotsNeeded}
                     onChange={(e) => setNewOpportunity({...newOpportunity, slotsNeeded: parseInt(e.target.value) || 1})}
-                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                 </div>
                 <div>
@@ -602,7 +602,7 @@ const VolunteerScheduler: React.FC = () => {
                     type="number"
                     value={newOpportunity.timeOffset}
                     onChange={(e) => setNewOpportunity({...newOpportunity, timeOffset: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="0"
                   />
                   <p className="text-xs text-bone/50 mt-1">
@@ -617,7 +617,7 @@ const VolunteerScheduler: React.FC = () => {
                   value={newOpportunity.description}
                   onChange={(e) => setNewOpportunity({...newOpportunity, description: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   placeholder={getTypeInfo(newOpportunity.type).defaultDescription}
                 />
               </div>
@@ -633,7 +633,7 @@ const VolunteerScheduler: React.FC = () => {
               <button
                 onClick={handleCreateOpportunity}
                 disabled={!selectedEvent}
-                className="flex-1 bg-crimson-600 hover:bg-crimson-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                className="flex-1 bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
               >
                 Create
               </button>

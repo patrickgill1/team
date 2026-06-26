@@ -72,7 +72,7 @@ const ROLE_CHIP: Record<Role, string> = {
   parent: 'bg-emerald-600 text-white border-emerald-700',
   coach: 'bg-amber-400 text-charcoal-950 border-amber-500',
   team_manager: 'bg-sky-600 text-white border-sky-700',
-  admin: 'bg-crimson-600 text-white border-crimson-700',
+  admin: 'bg-brand-primary text-white border-brand-primary',
 };
 
 const People: React.FC = () => {
@@ -303,7 +303,7 @@ const People: React.FC = () => {
             <button
               onClick={() => setChooserOpen(true)}
               aria-label="Add someone"
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-crimson-500/30 hover:from-crimson-400 hover:to-crimson-500"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -325,7 +325,7 @@ const People: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or kid's name…"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             />
           </div>
           {teams.length > 1 && (
@@ -350,7 +350,7 @@ const People: React.FC = () => {
               onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()); }}
               className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border ${
                 selectMode
-                  ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30'
+                  ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30'
                   : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
               }`}
             >
@@ -374,11 +374,11 @@ const People: React.FC = () => {
               onClick={() => setRoleFilter(k as any)}
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 roleFilter === k
-                  ? 'bg-crimson-500/15 text-crimson-300 border-crimson-400/30'
+                  ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30'
                   : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
               }`}
             >
-              {label} <span className={roleFilter === k ? 'text-crimson-600' : 'text-bone/40'}>{counts[k as any]}</span>
+              {label} <span className={roleFilter === k ? 'text-brand-primary' : 'text-bone/40'}>{counts[k as any]}</span>
             </button>
           ))}
         </div>
@@ -408,12 +408,12 @@ const People: React.FC = () => {
               };
               const RowInner = (
                 <li
-                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-crimson-500/15' : 'hover:bg-white/[0.05]'}`}
+                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-brand-primary/15' : 'hover:bg-white/[0.05]'}`}
                   onClick={selectMode ? (e) => { e.preventDefault(); toggleSelect(); } : undefined}
                 >
                   {selectMode && (
                     <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-white/15'
+                      isSelected ? 'bg-brand-primary border-brand-primary text-white' : 'border-white/15'
                     }`}>
                       {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                     </span>
@@ -462,7 +462,7 @@ const People: React.FC = () => {
                       // PersonAdmin → Teams tab does that + more.
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/club/person/${p.id}`); }}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-crimson-600 text-white hover:bg-crimson-500/150 flex-shrink-0"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary/150 flex-shrink-0"
                       >
                         Profile
                       </button>
@@ -501,7 +501,7 @@ const People: React.FC = () => {
           aren't covered. On desktop the nav is a side rail so bottom-0
           is fine. safe-bottom keeps it clear of the home indicator. */}
       {selectMode && selectedIds.size > 0 && (
-        <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-charcoal-950 border-t border-crimson-500/20 px-4 py-3 flex items-center gap-3">
+        <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-charcoal-950 border-t border-brand-primary/20 px-4 py-3 flex items-center gap-3">
           <span className="text-xs font-extrabold tracking-widest uppercase text-white flex-shrink-0">
             {selectedIds.size} selected
           </span>
@@ -537,7 +537,7 @@ const People: React.FC = () => {
                 setBulkBusy(false);
               }
             }}
-            className="bg-crimson-600 hover:bg-crimson-500/150 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
+            className="bg-brand-primary hover:bg-brand-primary/150 text-white text-xs font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-lg disabled:opacity-50"
           >
             {bulkBusy ? '…' : 'Add'}
           </button>
@@ -565,7 +565,7 @@ const People: React.FC = () => {
               }}
               className="w-full text-left px-4 py-3 hover:bg-white/[0.05] border-b border-white/5 flex items-center gap-3"
             >
-              <span className="w-8 h-8 rounded-lg bg-crimson-500/15 text-crimson-600 flex items-center justify-center flex-shrink-0">
+              <span className="w-8 h-8 rounded-lg bg-brand-primary/15 text-brand-primary flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </span>
               <div className="flex-1">
@@ -773,11 +773,11 @@ const ManagePersonModal: React.FC<{
                   key={t.id}
                   onClick={() => toggle(t.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
-                    on ? 'bg-crimson-500/15 border-crimson-400/30 text-crimson-900' : 'bg-charcoal-900 border-white/10 text-bone/85 hover:border-white/20'
+                    on ? 'bg-brand-primary/15 border-brand-primary-soft/30 text-brand-primary-dim' : 'bg-charcoal-900 border-white/10 text-bone/85 hover:border-white/20'
                   }`}
                 >
                   <span className="font-semibold">{t.name}</span>
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-crimson-600 border-crimson-600 text-white' : 'border-white/15'}`}>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-white' : 'border-white/15'}`}>
                     {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                   </span>
                 </button>
@@ -787,7 +787,7 @@ const ManagePersonModal: React.FC<{
         </div>
         <div className="px-4 py-3 border-t border-white/5 flex justify-end gap-2">
           <button onClick={onClose} className="text-xs font-bold tracking-wide text-bone/50 px-3 py-1.5">Cancel</button>
-          <button onClick={save} disabled={busy} className="text-xs font-extrabold tracking-widest uppercase bg-crimson-600 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
+          <button onClick={save} disabled={busy} className="text-xs font-extrabold tracking-widest uppercase bg-brand-primary text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
             {busy ? '…' : 'Save'}
           </button>
         </div>

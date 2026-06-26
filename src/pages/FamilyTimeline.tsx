@@ -145,9 +145,9 @@ const FamilyTimeline: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
         <div className="max-w-4xl mx-auto">
-          <Link to="/club/registrations" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
+          <Link to="/club/registrations" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-bone mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Registrations
           </Link>
@@ -159,7 +159,7 @@ const FamilyTimeline: React.FC = () => {
             <button
               type="button"
               onClick={() => setLinkOpen(true)}
-              className="shrink-0 px-3 py-2 rounded-lg bg-crimson-500 hover:bg-crimson-400 text-white text-xs font-extrabold uppercase tracking-widest"
+              className="shrink-0 px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary-soft text-white text-xs font-extrabold uppercase tracking-widest"
             >
               + Link email
             </button>
@@ -178,13 +178,13 @@ const FamilyTimeline: React.FC = () => {
           <>
             {/* Household banner — only when multi-email linked. */}
             {data.household && data.emails.length > 1 && (
-              <div className="bg-crimson-500/15 ring-1 ring-crimson-200 rounded-2xl p-3 flex items-start gap-3">
-                <svg className="w-4 h-4 text-crimson-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <div className="bg-brand-primary/15 ring-1 ring-brand-primary-soft rounded-2xl p-3 flex items-start gap-3">
+                <svg className="w-4 h-4 text-brand-primary mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-200">Household · {data.emails.length} emails</div>
-                  <div className="text-xs text-crimson-900 mt-0.5 truncate">
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Household · {data.emails.length} emails</div>
+                  <div className="text-xs text-brand-primary-dim mt-0.5 truncate">
                     {data.emails.map(e => (
-                      <Link key={e} to={`/club/family/${encodeURIComponent(e)}`} className={`inline-block mr-2 ${e === email ? 'font-extrabold' : 'underline hover:text-crimson-300'}`}>
+                      <Link key={e} to={`/club/family/${encodeURIComponent(e)}`} className={`inline-block mr-2 ${e === email ? 'font-extrabold' : 'underline hover:text-brand-primary-soft'}`}>
                         {e}
                       </Link>
                     ))}
@@ -224,7 +224,7 @@ const FamilyTimeline: React.FC = () => {
                           {promotedTo && (
                             <Link
                               to={`/club/person/${promotedTo.id}`}
-                              className="inline-block mt-1 text-[11px] font-extrabold uppercase tracking-widest text-crimson-300 hover:text-crimson-900"
+                              className="inline-block mt-1 text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary-dim"
                             >
                               Open profile →
                             </Link>
@@ -326,7 +326,7 @@ const TimelineRow: React.FC<{ activity: Activity }> = ({ activity: a }) => {
 };
 
 function kindTone(kind: Activity['kind']): string {
-  if (kind === 'registration_submitted') return 'bg-crimson-500';
+  if (kind === 'registration_submitted') return 'bg-brand-primary';
   if (kind === 'registration_paid' || kind === 'offer_accepted' || kind === 'player_promoted') return 'bg-emerald-500';
   if (kind === 'offer_sent' || kind === 'tryout_invited') return 'bg-violet-500';
   if (kind === 'offer_declined') return 'bg-rose-500';

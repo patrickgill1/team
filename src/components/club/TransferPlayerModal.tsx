@@ -103,7 +103,7 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
             onClick={() => setMode('move')}
             className={`p-3 rounded-xl text-left ring-1 transition ${
               mode === 'move'
-                ? 'ring-crimson-400/60 bg-crimson-500/15 shadow-sm'
+                ? 'ring-brand-primary-soft/60 bg-brand-primary/15 shadow-sm'
                 : 'ring-white/10 bg-charcoal-950 hover:bg-white/5'
             }`}
           >

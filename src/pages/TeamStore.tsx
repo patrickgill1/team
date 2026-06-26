@@ -65,7 +65,7 @@ const TeamStore: React.FC = () => {
   };
 
   const headerCrumb = (
-    <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-crimson-400 hover:text-bone mb-2">
+    <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-bone mb-2">
       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
       Dashboard
     </Link>
@@ -74,7 +74,7 @@ const TeamStore: React.FC = () => {
   if (!loaded) {
     return (
       <div className="min-h-screen bg-charcoal-950">
-        <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+        <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
           <div className="max-w-3xl mx-auto">{headerCrumb}</div>
         </section>
       </div>
@@ -84,7 +84,7 @@ const TeamStore: React.FC = () => {
   if (!store) {
     return (
       <div className="min-h-screen bg-charcoal-950">
-        <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+        <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
           <div className="max-w-3xl mx-auto">
             {headerCrumb}
             <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Team Store</h1>
@@ -108,12 +108,12 @@ const TeamStore: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-crimson-500/10">
+      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
         <div className="max-w-3xl mx-auto">
           {headerCrumb}
           <div className="flex items-center gap-3">
-            <span className="flex-shrink-0 w-11 h-11 rounded-2xl bg-crimson-500/15 ring-1 ring-crimson-500/30 flex items-center justify-center">
-              <svg className="w-5 h-5 text-crimson-400" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <span className="flex-shrink-0 w-11 h-11 rounded-2xl bg-brand-primary/15 ring-1 ring-brand-primary/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <path d="M16 10a4 4 0 0 1-8 0"/>
@@ -129,8 +129,8 @@ const TeamStore: React.FC = () => {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
         {store.discountCode && (
-          <div className="rounded-2xl bg-charcoal-900 ring-1 ring-crimson-400/30 overflow-hidden shadow-sm">
-            <div className="bg-gradient-to-br from-crimson-500 to-crimson-600 px-5 py-3 text-white">
+          <div className="rounded-2xl bg-charcoal-900 ring-1 ring-brand-primary-soft/30 overflow-hidden shadow-sm">
+            <div className="bg-gradient-to-br from-brand-primary to-brand-primary px-5 py-3 text-white">
               <div className="text-[10px] font-extrabold tracking-widest uppercase opacity-90">Member discount code</div>
               <div className="text-[11px] opacity-90 mt-0.5">Apply at checkout for the team rate.</div>
             </div>
@@ -159,17 +159,17 @@ const TeamStore: React.FC = () => {
           href={store.storeUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 block rounded-2xl bg-gradient-to-br from-charcoal-950 to-charcoal-900 ring-1 ring-crimson-500/30 text-white px-5 py-5 hover:shadow-lg transition-shadow"
+          className="mt-4 block rounded-2xl bg-gradient-to-br from-charcoal-950 to-charcoal-900 ring-1 ring-brand-primary/30 text-white px-5 py-5 hover:shadow-lg transition-shadow"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400">Shop now</div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Shop now</div>
               <div className="text-base font-bold mt-0.5 truncate">{displayHost}</div>
               <div className="text-[12px] text-bone/40 mt-0.5">
                 Opens in your browser.{store.discountCode ? ' Copy the code above first.' : ''}
               </div>
             </div>
-            <span className="flex-shrink-0 w-10 h-10 rounded-full bg-crimson-500/20 ring-1 ring-crimson-400/40 flex items-center justify-center">
+            <span className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-primary/20 ring-1 ring-brand-primary-soft/40 flex items-center justify-center">
               <svg className="w-4 h-4 text-bone" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="5" y1="12" x2="19" y2="12"/>
                 <polyline points="12 5 19 12 12 19"/>

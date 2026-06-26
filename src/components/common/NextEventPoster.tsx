@@ -114,7 +114,7 @@ const NextEventPoster: React.FC<Props> = ({
 
           {/* Header row: kicker + greeting */}
           <div className="relative px-5 pt-5 sm:pt-6">
-            <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-crimson-300">
+            <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-brand-primary-soft">
               {isCoach ? 'Welcome' : 'Hi'}
             </p>
             <p className="mt-1 text-sm text-bone/80">{greeting}, {firstName}</p>
@@ -147,7 +147,7 @@ const NextEventPoster: React.FC<Props> = ({
               {isCoach && (
                 <Link
                   to="/calendar"
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold text-sm bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/40 ring-1 ring-crimson-400/20 transition"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-md font-bold text-sm bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20 transition"
                 >
                   Schedule your first event
                 </Link>
@@ -187,7 +187,7 @@ const NextEventPoster: React.FC<Props> = ({
         {/* Header row: greeting (left) + weather chip (right) */}
         <div className="relative flex items-start justify-between px-5 pt-5 sm:pt-6">
           <div>
-            <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-crimson-300">Next Up</p>
+            <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-brand-primary-soft">Next Up</p>
             <p className="mt-1 text-sm text-bone/80">{greeting}, {firstName}</p>
           </div>
           {weather && (
@@ -209,7 +209,7 @@ const NextEventPoster: React.FC<Props> = ({
               aria-label={`${nextEvent.title} on ${eventMonth} ${eventDay} ${eventDow}`}
               className="shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-2xl bg-black/45 ring-1 ring-white/15 backdrop-blur-md"
             >
-              <span className="text-[10px] font-extrabold tracking-widest text-crimson-300">{eventMonth}</span>
+              <span className="text-[10px] font-extrabold tracking-widest text-brand-primary-soft">{eventMonth}</span>
               <span className="text-3xl sm:text-[34px] font-black text-white leading-none">{eventDay}</span>
               <span className="text-[9px] font-bold tracking-widest text-bone/70 mt-0.5">{eventDow}</span>
             </Link>

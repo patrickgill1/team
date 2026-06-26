@@ -137,7 +137,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
                 onClick={() => { setKind(k); setShareUrl(null); }}
                 className={`flex-1 px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-widest uppercase border ${
                   kind === k
-                    ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
+                    ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
                     : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
                 }`}
               >
@@ -182,12 +182,12 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
                       key={p.id}
                       onClick={() => setSelectedPlayerId(p.id)}
                       className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between border-b border-slate-100 last:border-b-0 ${
-                        selectedPlayerId === p.id ? 'bg-crimson-50 text-crimson-900 font-bold' : 'hover:bg-slate-50'
+                        selectedPlayerId === p.id ? 'bg-brand-primary-soft text-brand-primary-dim font-bold' : 'hover:bg-slate-50'
                       }`}
                     >
                       <span>{p.name}{p.jerseyNumber != null ? ` · #${p.jerseyNumber}` : ''}</span>
                       {selectedPlayerId === p.id && (
-                        <svg className="w-3.5 h-3.5 text-crimson-700" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg className="w-3.5 h-3.5 text-brand-primary" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                       )}
                     </button>
                   ))}
@@ -222,7 +222,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
                       onClick={() => setStaffRole(r)}
                       className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-extrabold tracking-widest uppercase border ${
                         staffRole === r
-                          ? 'bg-crimson-50 text-crimson-700 border-crimson-200'
+                          ? 'bg-brand-primary-soft text-brand-primary border-brand-primary-soft'
                           : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800'
                       }`}
                     >
@@ -244,7 +244,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
               <div className="flex gap-2">
                 <button
                   onClick={copy}
-                  className="flex-1 text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md bg-crimson-600 text-white hover:bg-crimson-500"
+                  className="flex-1 text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 rounded-md bg-brand-primary text-white hover:bg-brand-primary"
                 >
                   {copied ? '✓ Copied' : 'Copy link'}
                 </button>
@@ -265,7 +265,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
             <button
               onClick={generate}
               disabled={busy || (kind === 'parent' && !selectedPlayerId)}
-              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-crimson-500 to-charcoal-600 text-white shadow-md shadow-crimson-500/30 disabled:opacity-40"
+              className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-brand-primary to-charcoal-600 text-white shadow-md shadow-brand-primary/30 disabled:opacity-40"
             >
               {busy ? 'Generating…' : 'Generate invite link'}
             </button>

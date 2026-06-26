@@ -112,7 +112,7 @@ const InstallAppBanner: React.FC = () => {
   const ctaButtonLabel = isAndroidBeta ? 'Join beta' : 'Install';
 
   return (
-    <div className="lg:hidden bg-gradient-to-r from-crimson-600 to-charcoal-700 text-white shadow">
+    <div className="lg:hidden bg-gradient-to-r from-brand-primary to-charcoal-700 text-white shadow">
       <div className="max-w-7xl mx-auto px-3 py-2 flex items-center gap-3">
         <img
           src="/images/logo.png"

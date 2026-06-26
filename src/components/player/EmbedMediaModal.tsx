@@ -107,7 +107,7 @@ const EmbedMediaModal: React.FC<Props> = ({ isOpen, onClose, players, onSubmit }
             <select
               value={playerId}
               onChange={(e) => setPlayerId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             >
               <option value="">— Pick a player —</option>
               {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -121,7 +121,7 @@ const EmbedMediaModal: React.FC<Props> = ({ isOpen, onClose, players, onSubmit }
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://youtube.com/watch?v=… or https://traceup.com/…"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             />
             {url && !parsed && (
               <p className="text-xs text-rose-600 mt-1">Not a recognized YouTube or Trace URL.</p>
@@ -138,7 +138,7 @@ const EmbedMediaModal: React.FC<Props> = ({ isOpen, onClose, players, onSubmit }
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               placeholder="Goal vs. Real Salt Lake — 64th min"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             />
           </div>
 
@@ -152,7 +152,7 @@ const EmbedMediaModal: React.FC<Props> = ({ isOpen, onClose, players, onSubmit }
           <button
             onClick={handleSubmit}
             disabled={!valid || submitting}
-            className="px-4 py-2 text-sm font-bold text-white bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 rounded-lg"
+            className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50 rounded-lg"
           >
             {submitting ? 'Saving…' : 'Add to media'}
           </button>

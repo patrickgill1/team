@@ -164,7 +164,7 @@ const RegistrationFormBuilder: React.FC = () => {
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-crimson-400 text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             >
               <option value="default">Club default (used when season has no override)</option>
               {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -200,7 +200,7 @@ const RegistrationFormBuilder: React.FC = () => {
               <button
                 type="button"
                 onClick={addQuestion}
-                className="px-3 py-2 rounded-lg bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-400 text-sm font-bold text-bone/85"
+                className="px-3 py-2 rounded-lg bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary-soft text-sm font-bold text-bone/85"
               >
                 + Add question
               </button>
@@ -210,7 +210,7 @@ const RegistrationFormBuilder: React.FC = () => {
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 disabled:opacity-50 text-white text-sm font-bold"
+                  className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-sm font-bold"
                 >
                   {saving ? 'Saving…' : 'Save'}
                 </button>

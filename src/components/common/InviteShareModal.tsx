@@ -69,11 +69,11 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black ring-1 ring-crimson-500/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
+        className="bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black ring-1 ring-brand-primary/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative overflow-hidden p-6 border-b border-crimson-500/15">
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-crimson-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative overflow-hidden p-6 border-b border-brand-primary/15">
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-brand-primary/15 rounded-full blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

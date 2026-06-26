@@ -109,7 +109,7 @@ const Tasks: React.FC = () => {
             <h1 className="text-2xl font-black text-bone mt-1">Tasks</h1>
             <p className="text-sm text-bone/65">Admin todos. Overdue + high priority float to the top.</p>
           </div>
-          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500/150 text-white text-sm font-bold">
+          <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 text-white text-sm font-bold">
             + New task
           </button>
         </div>
@@ -121,7 +121,7 @@ const Tasks: React.FC = () => {
                 key={s}
                 type="button"
                 onClick={() => setScope(s)}
-                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${scope === s ? 'bg-crimson-600 text-white' : 'bg-charcoal-900 text-bone/65 hover:bg-white/[0.05]'}`}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest ${scope === s ? 'bg-brand-primary text-white' : 'bg-charcoal-900 text-bone/65 hover:bg-white/[0.05]'}`}
               >
                 {s === 'mine' ? 'Mine' : 'All club'}
               </button>
@@ -193,7 +193,7 @@ const Row: React.FC<{ task: Task; myUid: string; updating: boolean; onUpdate: (s
         {task.description && <p className="text-[11px] text-bone/65 mt-0.5">{task.description}</p>}
         <div className="text-[11px] text-bone/50 mt-1 flex items-center gap-2 flex-wrap">
           {task.relatedPlayerName && (
-            <Link to={`/club/person/${task.relatedPlayerId}`} className="font-bold text-crimson-300 hover:text-crimson-100">
+            <Link to={`/club/person/${task.relatedPlayerId}`} className="font-bold text-brand-primary-soft hover:text-brand-primary-soft">
               {task.relatedPlayerName}
             </Link>
           )}

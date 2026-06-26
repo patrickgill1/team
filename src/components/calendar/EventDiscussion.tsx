@@ -132,7 +132,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
   return (
     <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-2 flex items-center gap-1.5">
-        <svg className="w-3 h-3 text-crimson-500" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <svg className="w-3 h-3 text-brand-primary" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Comments
         <span className="ml-1 text-charcoal-500 font-bold">{comments.length}</span>
       </div>
@@ -160,7 +160,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
                   <div
                     className={`inline-block mt-0.5 px-3 py-1.5 rounded-2xl text-sm break-words whitespace-pre-wrap text-left ${
                       isMine
-                        ? 'bg-crimson-600 text-white rounded-tr-sm'
+                        ? 'bg-brand-primary text-white rounded-tr-sm'
                         : 'bg-charcoal-800 text-bone ring-1 ring-white/10 rounded-tl-sm'
                     }`}
                   >
@@ -197,12 +197,12 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
             }}
             placeholder="Say something about this event…"
             rows={2}
-            className="flex-1 px-3 py-2 bg-charcoal-800 text-bone placeholder:text-charcoal-500 border border-white/10 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-crimson-500/40"
+            className="flex-1 px-3 py-2 bg-charcoal-800 text-bone placeholder:text-charcoal-500 border border-white/10 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
           <button
             onClick={post}
             disabled={!draft.trim() || posting}
-            className="px-4 rounded-lg bg-crimson-600 text-white text-sm font-bold disabled:opacity-50"
+            className="px-4 rounded-lg bg-brand-primary text-white text-sm font-bold disabled:opacity-50"
           >Send</button>
         </div>
       ) : (

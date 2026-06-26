@@ -102,12 +102,12 @@ const CoachTeamHealthCard: React.FC = () => {
   // Color the ratio by health: amber when most-on, crimson when
   // most-off, neutral when split.
   const ratio = stats.onStreak / stats.total;
-  const ratioTint = ratio >= 0.66 ? 'text-emerald-300' : ratio >= 0.33 ? 'text-amber-300' : 'text-crimson-300';
+  const ratioTint = ratio >= 0.66 ? 'text-emerald-300' : ratio >= 0.33 ? 'text-amber-300' : 'text-brand-primary-soft';
 
   return (
     <Link
       to="/development"
-      className="block rounded-2xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-crimson-500/30 transition group animate-fade-in"
+      className="block rounded-2xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/30 transition group animate-fade-in"
     >
       <div className="px-4 py-3 sm:px-5 sm:py-4">
         <div className="flex items-center justify-between gap-3">
@@ -119,7 +119,7 @@ const CoachTeamHealthCard: React.FC = () => {
               <span className="text-bone/55 font-normal text-sm"> on streak</span>
             </p>
           </div>
-          <svg className="w-4 h-4 text-bone/40 group-hover:text-crimson-300 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+          <svg className="w-4 h-4 text-bone/40 group-hover:text-brand-primary-soft transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
         </div>
 
         {stats.slackers.length > 0 && (

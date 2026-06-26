@@ -105,7 +105,7 @@ const CoachTonightCard: React.FC = () => {
   const isPractice = type === 'practice' || type === 'training';
 
   const eyebrow = isGame ? 'Game prep' : isPractice ? 'Practice prep' : 'Up next';
-  const eyebrowTint = isGame ? 'text-crimson-300' : isPractice ? 'text-amber-300' : 'text-sky-300';
+  const eyebrowTint = isGame ? 'text-brand-primary-soft' : isPractice ? 'text-amber-300' : 'text-sky-300';
   const headline = event.title || (isGame ? 'Game' : isPractice ? 'Practice' : 'Event');
 
   // Primary CTA differs by event type
@@ -131,7 +131,7 @@ const CoachTonightCard: React.FC = () => {
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             to={primary.href}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-crimson-600 hover:bg-crimson-500 text-white font-bold rounded-md text-[12px] tracking-wide ring-1 ring-crimson-400/30 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-primary hover:bg-brand-primary text-white font-bold rounded-md text-[12px] tracking-wide ring-1 ring-brand-primary-soft/30 transition-colors"
           >
             {primary.label}
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>

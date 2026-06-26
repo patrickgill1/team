@@ -9,6 +9,7 @@ import Header from '../components/common/Header';
 import DataGate from '../components/common/DataGate';
 import { EmptyState } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
+import { useClubScopes } from '../hooks/useClubScopes';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
 import { sendPushToUsers } from '../utils/notify';
@@ -85,7 +86,10 @@ const Helpdesk: React.FC = () => {
   const [newOpen, setNewOpen] = useState(false);
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
-  const isAdmin = !!(userData as any)?.isClubAdmin;
+  const userClubId = (userData as any)?.clubIds?.[0] || (userData as any)?.clubId || null;
+  const { has: hasClubScope } = useClubScopes(userClubId);
+  // 'tickets' scope takes precedence, else legacy isClubAdmin.
+  const isAdmin = hasClubScope('tickets') || !!(userData as any)?.isClubAdmin;
 
   // Admins get a team filter — pull this admin's CLUB's teams so
   // the chip list shows names. Non-admins don't need this query.

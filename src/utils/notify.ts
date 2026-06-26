@@ -574,3 +574,94 @@ export function tplRegistrationOpen(opts: {
   `, { signature: opts.signature });
   return { subject, html };
 }
+
+/** Wall post email — sent when the coach checks 'Also email' on a
+ *  new wall post. The post's TipTap-emitted HTML is dropped in
+ *  verbatim; we just wrap it in the brand chrome. For posts that
+ *  carry a poll, the email gets a 'Vote in the poll' button that
+ *  deep-links back to the public wall post URL. */
+/** Resolve every email address attached to a team: every user
+ *  doc with teamId == X OR teamIds array-contains X. Dedupes by
+ *  email. Used by sendEmailToTeam below. */
+export async function getTeamEmails(teamId: string, excludeUid?: string): Promise<string[]> {
+  if (!teamId) return [];
+  const emails = new Set<string>();
+  try {
+    const s1 = await getDocs(query(collection(db, 'users'), where('teamId', '==', teamId)));
+    s1.forEach((d) => {
+      const u: any = d.data();
+      const id = u.uid || d.id;
+      if (id && id === excludeUid) return;
+      if (u.isActive === false) return;
+      if (typeof u.email === 'string' && u.email.includes('@')) emails.add(u.email.toLowerCase());
+    });
+    const s2 = await getDocs(query(collection(db, 'users'), where('teamIds', 'array-contains', teamId)));
+    s2.forEach((d) => {
+      const u: any = d.data();
+      const id = u.uid || d.id;
+      if (id && id === excludeUid) return;
+      if (u.isActive === false) return;
+      if (typeof u.email === 'string' && u.email.includes('@')) emails.add(u.email.toLowerCase());
+    });
+  } catch (err) {
+    console.warn('[notify] getTeamEmails failed', err);
+  }
+  return [...emails];
+}
+
+/** Send one email per team member. Uses /send-batch so a single
+ *  worker call covers the whole roster. Returns the recipient
+ *  count actually sent. */
+export async function sendEmailToTeam(
+  teamId: string,
+  template: { subject: string; html: string },
+  opts?: { excludeUid?: string; replyTo?: string },
+): Promise<number> {
+  const emails = await getTeamEmails(teamId, opts?.excludeUid);
+  if (emails.length === 0) return 0;
+  const messages: NotifyMessage[] = emails.map((to) => ({
+    to,
+    subject: template.subject,
+    html: template.html,
+    ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+  }));
+  const ok = await sendEmailBatch(messages);
+  return ok ? emails.length : 0;
+}
+
+export function tplWallPost(opts: {
+  teamName: string;
+  senderName: string;
+  contentHtml: string;
+  category?: string | null;
+  pollQuestion?: string | null;
+  postUrl?: string | null;
+  signature?: CoachSignature;
+}): { subject: string; html: string } {
+  const categoryLabel = (opts.category && opts.category !== 'announcement')
+    ? opts.category.replace(/_/g, ' ')
+    : 'announcement';
+  const subjectPrefix = opts.pollQuestion ? 'New poll' : 'New post';
+  const subject = `${subjectPrefix} from ${opts.senderName} — ${opts.teamName}`;
+  const safeQuestion = (opts.pollQuestion || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const html = wrap(`
+    <div style="display:inline-block;background:${BRAND_CYAN}1A;color:${BRAND_CYAN_DEEP};font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px;">${categoryLabel}</div>
+    <h2 style="font-size:20px;margin:0 0 6px;color:${BRAND_NAVY_DARK};font-weight:800;line-height:1.25;">${opts.teamName}</h2>
+    <p style="margin:0 0 14px;color:#64748b;font-size:13px;">From ${opts.senderName}</p>
+    <div style="margin:0 0 18px;color:#0f172a;font-size:15px;line-height:1.65;">
+      ${opts.contentHtml || ''}
+    </div>
+    ${opts.pollQuestion ? `
+      <div style="margin:0 0 18px;padding:16px 18px;background:#f0f9ff;border-left:3px solid ${BRAND_CYAN};border-radius:8px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${BRAND_CYAN_DEEP};">Poll</p>
+        <p style="margin:0;color:#0c4a6e;font-size:15px;font-weight:600;line-height:1.4;">${safeQuestion}</p>
+      </div>
+    ` : ''}
+    ${opts.postUrl
+      ? button(opts.postUrl, opts.pollQuestion ? 'Vote in the poll' : 'Open the post')
+      : button(APP_BASE + '/wall', 'Open the wall')}
+    <p style="margin:14px 0 0;font-size:12px;color:#94a3b8;">You received this because ${opts.senderName} posted on the ${opts.teamName} wall. Manage your email preferences in the app.</p>
+  `, { signature: opts.signature || { name: opts.senderName, role: 'Coach', teamName: opts.teamName } });
+  return { subject, html };
+}

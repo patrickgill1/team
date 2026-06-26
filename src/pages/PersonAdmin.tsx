@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useClubScopes } from '../hooks/useClubScopes';
 import { useTeam } from '../contexts/TeamContext';
 import { isClubAdmin, isCoach } from '../utils/helpers';
 import { logActivity } from '../utils/activityLog';
@@ -61,6 +62,12 @@ const PersonAdmin: React.FC = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
   const { userData } = useAuth();
+  // Resolve club scope for gating the Payments tab + refund modal.
+  // Reads the user's first clubId (player's clubId is more accurate
+  // but Payments is club-wide anyway).
+  const userClubId = (userData as any)?.clubIds?.[0] || (userData as any)?.clubId || null;
+  const { has: hasClubScopeCheck } = useClubScopes(userClubId);
+  const canSeeFinancials = hasClubScopeCheck('financials');
   // TeamContext gives us the full list of teams the current user has
   // access to via the team picker (club-admin: every team in the
   // database; regular user: their teamIds[]). We union those into the
@@ -364,7 +371,7 @@ const PersonAdmin: React.FC = () => {
           </div>
           {/* Tab bar */}
           <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1 pb-0">
-            {TABS.map(t => (
+            {TABS.filter(t => t.key !== 'payments' || canSeeFinancials).map(t => (
               <button
                 key={t.key}
                 type="button"
@@ -477,7 +484,7 @@ const PersonAdmin: React.FC = () => {
 
         {tab === 'teams' && <TeamsTab player={player} teams={teams} onAssignTeam={() => setTransferOpen(true)} />}
         {tab === 'registration' && <RegistrationTab registrations={registrations} />}
-        {tab === 'payments' && (
+        {tab === 'payments' && canSeeFinancials && (
           <PaymentsTab
             registrations={registrations}
             actorUid={userData?.uid}
@@ -486,6 +493,11 @@ const PersonAdmin: React.FC = () => {
             onSplit={(r) => setSplitFor(r)}
             onReload={reload}
           />
+        )}
+        {tab === 'payments' && !canSeeFinancials && (
+          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-center text-sm text-bone/60">
+            You don't have access to financials. Ask the club owner for the 'financials' scope.
+          </div>
         )}
         {tab === 'notes' && (
           <NotesTab

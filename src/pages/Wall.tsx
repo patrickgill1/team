@@ -173,6 +173,11 @@ const Wall: React.FC = () => {
   // Poll composer state — when on, the post is published with an
   // attached poll. Question + 2-6 options + single-choice vs multi.
   const [pollOn, setPollOn] = useState(false);
+  // Optional 'also send via email' toggle. Off by default so we
+  // don't spam parents on every wall post. Stored separately from
+  // pollOn so a coach can email + poll together (the email
+  // template includes a Vote button linking back to the post).
+  const [emailBlast, setEmailBlast] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const resetPoll = () => {
@@ -243,6 +248,7 @@ const Wall: React.FC = () => {
     setEditingPostId(null);
     setExistingPoll(null);
     setRemoveExistingPoll(false);
+    setEmailBlast(false);
   };
 
   // Vote / unvote on a post's poll. Single-choice (default) means
@@ -627,6 +633,7 @@ const Wall: React.FC = () => {
     if ((!plainText && !hasImage && composerAttachments.length === 0 && !hasPoll) || !userData || !selectedTeamId || posting) return;
     setPosting(true);
     setPostError(null);
+    let newPostId: string | null = null;
     try {
       if (editingPostId) {
         await updateDoc(doc(db, 'wall_posts', editingPostId), {
@@ -659,7 +666,7 @@ const Wall: React.FC = () => {
               : {}),
         });
       } else {
-        await addDoc(collection(db, 'wall_posts'), {
+        const newRef = await addDoc(collection(db, 'wall_posts'), {
           teamId: selectedTeamId,
           content,
           contentFormat: 'tiptap-html',
@@ -691,12 +698,14 @@ const Wall: React.FC = () => {
               }
             : {}),
         });
+        newPostId = newRef.id;
       }
       const wasEdit = !!editingPostId;
       setComposer('');
       setComposerAttachments([]);
       setComposerCategory('announcement');
       resetPoll();
+      setEmailBlast(false);
       setPreviewMode(false);
       setEditingPostId(null);
       try { localStorage.removeItem(draftKey(selectedTeamId)); } catch { /* ignore */ }
@@ -716,6 +725,36 @@ const Wall: React.FC = () => {
             { excludeUid: userData.uid },
           );
         } catch (e) { console.warn('wall push failed', e); }
+
+        // Optional email blast — only fires when the coach
+        // explicitly opted in via the composer toggle. Poll posts
+        // get a 'Vote in the poll' button deep-linked back to the
+        // public wall post URL so a recipient can vote without
+        // logging in.
+        if (emailBlast && newPostId) {
+          try {
+            const { tplWallPost, sendEmailToTeam } = await import('../utils/notify');
+            const { wallPostShareUrl } = await import('./PublicWallPost');
+            // Flip the post to public so the share URL renders
+            // for non-app recipients. Best-effort — if this fails
+            // the email still goes; the button just links to /wall.
+            try {
+              await updateDoc(doc(db, 'wall_posts', newPostId), { isPublic: true });
+            } catch (e) { console.warn('wall isPublic flip failed', e); }
+            const teamObj = selectedTeam as any;
+            const tpl = tplWallPost({
+              teamName: teamObj?.name || 'your team',
+              senderName: userData.name || 'Coach',
+              contentHtml: content,
+              category: composerCategory,
+              pollQuestion: hasPoll ? pollQuestion.trim() : null,
+              postUrl: wallPostShareUrl(newPostId),
+              signature: { name: userData.name || 'Coach', role: 'Coach', teamName: teamObj?.name },
+            });
+            // Fire-and-forget; failures already log inside notify.
+            void sendEmailToTeam(selectedTeamId, tpl, { excludeUid: userData.uid });
+          } catch (e) { console.warn('wall email blast failed', e); }
+        }
       }
     } catch (err: any) {
       console.error('wall post failed', err);
@@ -1136,6 +1175,41 @@ const Wall: React.FC = () => {
                 </>
                 )}
               </div>
+
+              {/* Email blast toggle. Off by default so the wall
+                  stays cheap; coaches opt in when a post
+                  warrants reaching parents who don't open the
+                  app. Hidden during edits since edits don't
+                  re-send. */}
+              {!editingPostId && (
+                <div className="mt-2 rounded-2xl ring-1 ring-white/10 bg-charcoal-900/70 px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg className="w-4 h-4 text-brand-primary-soft shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="M3 7l9 6 9-6" />
+                      </svg>
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-extrabold uppercase tracking-widest text-bone/85">Also email</p>
+                        <p className="text-[11px] text-bone/55 leading-snug truncate">
+                          {pollOn ? 'Email with a Vote button linking back here.' : 'Email parents who miss app pushes.'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEmailBlast(v => !v)}
+                      className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
+                        emailBlast
+                          ? 'bg-brand-primary text-white'
+                          : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+                      }`}
+                    >
+                      {emailBlast ? 'On' : 'Off'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {postError && (
                 <div className="mt-3 rounded-lg bg-rose-500/15 ring-1 ring-rose-400/30 px-3 py-2 text-[12px] text-rose-300">

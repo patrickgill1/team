@@ -15,6 +15,16 @@
   --fire-sky:   #e5485d; /* crimson-500 */
   --fire-ice:   #f5f3ee; /* bone (page-level tint) */
   --fire-light: #fde2e4; /* crimson-100 (faint brand-tinted surfaces) */
+
+  /* Brand color CSS-variable layer for multi-club theming. Each value
+     is an `R G B` triplet so Tailwind's `<alpha-value>` substitution
+     works (lets `bg-brand-primary/40` resolve correctly). Defaults
+     are GoalKickr crimson. useApplyClubBrand(clubId) overrides these
+     at runtime from clubs/{id}.brandColor when a club is selected. */
+  --brand-primary:     200 32 44;   /* crimson-600 (#c8202c) */
+  --brand-primary-hov: 229 72 93;   /* crimson-500 (#e5485d) hover */
+  --brand-primary-dim: 116 25 32;   /* crimson-900 — quieter background tint */
+  --brand-primary-fg:  255 255 255; /* foreground (text on top of brand-primary fill) */
 }
 
 * {

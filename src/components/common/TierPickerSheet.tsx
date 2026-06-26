@@ -1,15 +1,11 @@
 // @ts-nocheck
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { openWebSignup, isAppleDevice } from '../../utils/subscriptionApi';
+import { Sheet, Button } from '../ui';
 
 // Bottom-sheet that lets a coach pick Coach vs Club track BEFORE
-// the system browser opens for /signup. Patrick: "i subscribed as
-// a coach, because there was still no option to pick a club
-// subscription from app..." — every in-app subscribe CTA used to
-// hardcode tier='annual'.
-//
-// Apple-safe: still names goalkickr.com explicitly + opens externally.
+// the system browser opens for /signup. Apple-safe: still names
+// goalkickr.com explicitly + opens externally.
 
 interface Props {
   open: boolean;
@@ -27,77 +23,47 @@ interface Props {
 }
 
 const TierPickerSheet: React.FC<Props> = ({ open, onClose, email, uid, intent = 'subscribe', onPick }) => {
-  if (!open || typeof document === 'undefined') return null;
-
   const goto = (tier: 'annual' | 'club') => {
-    if (onPick) {
-      onPick(tier);
-    } else {
-      openWebSignup({ email, uid, tier, intent });
-    }
+    if (onPick) onPick(tier);
+    else openWebSignup({ email, uid, tier, intent });
     onClose();
   };
 
-  // Founder is hidden on iOS per Apple anti-steering (the marketing
-  // page handles the founder counter + signup itself if a user
-  // navigates there directly — we just don't surface it in-app).
+  // Founder is hidden on iOS per Apple anti-steering.
   const showFounder = !isAppleDevice();
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fade-in"
-      onClick={onClose}
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      kicker="Pick a plan"
+      title="What are you running?"
+      subtitle="Tap one. Safari opens to goalkickr.com to finish checkout."
+      footer={<Button variant="outline" onClick={onClose} fullWidth>Cancel</Button>}
     >
-      <div
-        className="bg-charcoal-900 ring-1 ring-white/10 rounded-2xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div>
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-crimson-400 mb-1.5">
-            Pick a plan
-          </p>
-          <h3 className="text-bone text-xl font-bold leading-tight">
-            What are you running?
-          </h3>
-          <p className="text-charcoal-300 text-sm mt-2">
-            Tap one. Safari opens to goalkickr.com to finish checkout.
-          </p>
-        </div>
-
-        <div className="space-y-2.5">
-          <TierOption
-            onClick={() => goto('annual')}
-            kicker="Coach"
-            title="One team"
-            price="$99/yr or $10/mo"
-            note="7-day free trial · Founders' families always free"
-            highlight
-          />
-          <TierOption
-            onClick={() => goto('club')}
-            kicker="Club"
-            title="Multiple teams under one club"
-            price="$299/yr"
-            note="Waived for clubs running $15K+/yr in registrations through GoalKickr"
-          />
-        </div>
-
-        {showFounder && (
-          <p className="text-charcoal-500 text-[11px] text-center pt-1">
-            Founder Rate ($5/mo lifetime) is available on the web for the first 50 coaches.
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full px-4 py-2.5 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition mt-2"
-        >
-          Cancel
-        </button>
+      <div className="space-y-2.5">
+        <TierOption
+          onClick={() => goto('annual')}
+          kicker="Coach"
+          title="One team"
+          price="$99/yr or $10/mo"
+          note="7-day free trial · Founders' families always free"
+          highlight
+        />
+        <TierOption
+          onClick={() => goto('club')}
+          kicker="Club"
+          title="Multiple teams under one club"
+          price="$299/yr"
+          note="Waived for clubs running $15K+/yr in registrations through GoalKickr"
+        />
       </div>
-    </div>,
-    document.body,
+      {showFounder && (
+        <p className="text-charcoal-500 text-[11px] text-center pt-3">
+          Founder Rate ($5/mo lifetime) is available on the web for the first 50 coaches.
+        </p>
+      )}
+    </Sheet>
   );
 };
 

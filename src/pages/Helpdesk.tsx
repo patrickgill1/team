@@ -6,6 +6,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Header from '../components/common/Header';
+import DataGate from '../components/common/DataGate';
+import { EmptyState } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
@@ -234,14 +236,12 @@ const Helpdesk: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-crimson-400/30 border-t-cyan-500" />
-          </div>
+          <DataGate when="loading" />
         ) : filtered.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 p-8 text-center">
-            <p className="text-bone/50 text-sm mb-1">No tickets {statusFilter === 'open' ? 'open' : 'yet'}.</p>
-            <p className="text-[11px] text-bone/40">Tap + to ask a question or submit an issue.</p>
-          </div>
+          <EmptyState
+            title={`No tickets ${statusFilter === 'open' ? 'open' : 'yet'}`}
+            subtitle="Tap + to ask a question or submit an issue."
+          />
         ) : (
           <ul className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm divide-y divide-white/5 overflow-hidden">
             {filtered.map(t => (

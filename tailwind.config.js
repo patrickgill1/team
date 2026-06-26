@@ -62,6 +62,18 @@ module.exports = {
           900: '#15161a',
           950: '#0d0d10',
         },
+        // Brand color CSS-variable layer. Defaults match crimson but
+        // can be overridden per-club at runtime via useApplyClubBrand()
+        // (writes --brand-primary on document.documentElement). Lets
+        // new clubs use their own primary color without touching code.
+        // Existing surfaces still use `crimson-*` — migrate
+        // intentionally over time.
+        brand: {
+          primary:       'rgb(var(--brand-primary) / <alpha-value>)',
+          'primary-hov': 'rgb(var(--brand-primary-hov) / <alpha-value>)',
+          'primary-dim': 'rgb(var(--brand-primary-dim) / <alpha-value>)',
+          'primary-fg':  'rgb(var(--brand-primary-fg) / <alpha-value>)',
+        },
       },
       animation: {
         // Subtle scale/opacity pulse for the game-day glow on the

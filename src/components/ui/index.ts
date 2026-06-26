@@ -10,3 +10,4 @@ export { default as Sheet } from './Sheet';
 export type { SheetSize, SheetPosition } from './Sheet';
 export { default as EmptyState } from './EmptyState';
 export type { EmptyStateVariant } from './EmptyState';
+export { default as FormField, fieldInputClass } from './FormField';

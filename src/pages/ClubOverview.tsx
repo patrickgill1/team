@@ -9,6 +9,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useClubId } from '../hooks/useClubId';
 import { isClubAdmin, getPlayerPositionsLabel, formatDateTime } from '../utils/helpers';
 import Header from '../components/common/Header';
+import DataGate from '../components/common/DataGate';
 import TransferPlayerModal from '../components/club/TransferPlayerModal';
 import BroadcastModal from '../components/club/BroadcastModal';
 import AdminCockpit from '../components/admin/AdminCockpit';
@@ -905,9 +906,7 @@ const PaymentsTab: React.FC = () => {
   const connected = !!club?.stripeAccountId;
   const chargesEnabled = !!club?.stripeChargesEnabled;
 
-  if (loading) {
-    return <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>;
-  }
+  if (loading) return <DataGate when="loading" />;
 
   return (
     <div className="space-y-3">

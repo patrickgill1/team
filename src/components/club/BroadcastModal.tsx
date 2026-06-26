@@ -1,7 +1,9 @@
 // @ts-nocheck
+// @ts-nocheck
 import React, { useMemo, useState } from 'react';
 import { sendEmailBatch, sendPushToUsers } from '../../utils/notify';
 import { useAuth } from '../../hooks/useAuth';
+import { Sheet, Button, FormField, fieldInputClass } from '../ui';
 
 interface TeamOption { id: string; name: string }
 interface MemberOption { uid: string; name: string; email?: string; role?: string; teamIds: string[] }
@@ -100,133 +102,114 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
   };
 
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
-      style={{
-        zIndex: 100,
-        paddingTop: 'calc(4rem + env(safe-area-inset-top))',
-        paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))',
-      }}
-      onClick={onClose}
+    <Sheet
+      open={isOpen}
+      onClose={onClose}
+      kicker="Club broadcast"
+      title="Send to multiple teams at once"
+      size="lg"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={handleSend}
+            disabled={!subject.trim() || !body.trim() || recipients.length === 0}
+            loading={sending}
+          >
+            Send to {recipients.length}
+          </Button>
+        </>
+      }
     >
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-full flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">📣 Club broadcast</h3>
-            <p className="text-xs text-gray-500">Send an announcement to multiple teams at once.</p>
+      <div className="space-y-4">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-bone/55 mb-2">Recipients</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { k: 'all', label: 'Everyone' },
+              { k: 'parents', label: 'Parents only' },
+              { k: 'coaches', label: 'Coaches only' },
+              { k: 'teams', label: 'Specific teams' },
+            ].map((opt: any) => {
+              const active = scope === opt.k;
+              return (
+                <button
+                  key={opt.k}
+                  type="button"
+                  onClick={() => setScope(opt.k)}
+                  className={`p-2 rounded-xl text-sm font-semibold ring-1 transition ${
+                    active ? 'ring-brand-primary bg-brand-primary/15 text-bone' : 'ring-white/10 bg-charcoal-950 text-bone/70 hover:bg-white/5'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" aria-label="Close">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="p-5 space-y-4 overflow-y-auto">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Recipients</p>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { k: 'all', label: 'Everyone' },
-                { k: 'parents', label: 'Parents only' },
-                { k: 'coaches', label: 'Coaches only' },
-                { k: 'teams', label: 'Specific teams' },
-              ].map((opt: any) => {
-                const active = scope === opt.k;
+          {scope === 'teams' && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {teams.map((t) => {
+                const active = pickedTeamIds.has(t.id);
                 return (
                   <button
-                    key={opt.k}
-                    onClick={() => setScope(opt.k)}
-                    className={`p-2 rounded-xl text-sm font-semibold ring-1 transition ${
-                      active ? 'ring-brand-primary bg-brand-primary-soft/60' : 'ring-gray-200 bg-white hover:bg-gray-50'
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggleTeam(t.id)}
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ring-1 transition ${
+                      active ? 'bg-brand-primary text-brand-primary-fg ring-brand-primary' : 'bg-charcoal-950 text-bone/70 ring-white/10 hover:bg-white/5'
                     }`}
                   >
-                    {opt.label}
+                    {t.name}
                   </button>
                 );
               })}
             </div>
-            {scope === 'teams' && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {teams.map((t) => {
-                  const active = pickedTeamIds.has(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => toggleTeam(t.id)}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ring-1 transition ${
-                        active ? 'bg-brand-primary text-white ring-brand-primary' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {t.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <p className="text-xs text-gray-500 mt-2">
-              Will reach <span className="font-bold text-gray-900">{recipients.length}</span> {recipients.length === 1 ? 'person' : 'people'}.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g. Practice canceled tonight"
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
-              style={{ fontSize: '16px' }}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={5}
-              placeholder="Field is flooded, practice is canceled for tonight. We'll regroup Thursday."
-              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
-              style={{ fontSize: '16px' }}
-            />
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={sendPush}
-              onChange={(e) => setSendPush(e.target.checked)}
-              className="w-4 h-4 accent-brand-primary"
-            />
-            Also send as a push notification
-          </label>
-
-          {result && (
-            <p className={`text-sm font-semibold ${result.startsWith('Failed') ? 'text-red-600' : 'text-emerald-700'}`}>
-              {result}
-            </p>
           )}
+          <p className="text-xs text-bone/55 mt-2">
+            Will reach <span className="font-bold text-bone">{recipients.length}</span> {recipients.length === 1 ? 'person' : 'people'}.
+          </p>
         </div>
 
-        <div className="border-t border-gray-100 p-4 flex items-center justify-end gap-2 bg-gray-50">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900">
-            Cancel
-          </button>
-          <button
-            onClick={handleSend}
-            disabled={sending || !subject.trim() || !body.trim() || recipients.length === 0}
-            className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 text-white font-semibold rounded-xl px-5 py-2 text-sm transition-colors"
-          >
-            {sending ? 'Sending…' : `📣 Send to ${recipients.length}`}
-          </button>
-        </div>
+        <FormField label="Subject">
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="e.g. Practice canceled tonight"
+            className={fieldInputClass}
+            style={{ fontSize: '16px' }}
+          />
+        </FormField>
+
+        <FormField label="Message">
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={5}
+            placeholder="Field is flooded, practice is canceled for tonight. We'll regroup Thursday."
+            className={`${fieldInputClass} resize-none`}
+            style={{ fontSize: '16px' }}
+          />
+        </FormField>
+
+        <label className="flex items-center gap-2 text-sm text-bone/85 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={sendPush}
+            onChange={(e) => setSendPush(e.target.checked)}
+            className="w-4 h-4 accent-brand-primary"
+          />
+          Also send as a push notification
+        </label>
+
+        {result && (
+          <p className={`text-sm font-semibold ${result.startsWith('Failed') ? 'text-rose-300' : 'text-emerald-300'}`}>
+            {result}
+          </p>
+        )}
       </div>
-    </div>
+    </Sheet>
   );
 };
 

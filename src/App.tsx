@@ -11,6 +11,7 @@ import SilentErrorBoundary from './components/common/SilentErrorBoundary';
 import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
 import Navigation from './components/common/Navigation';
 import InstallAppBanner from './components/common/InstallAppBanner';
+import ApplyClubBrand from './components/common/ApplyClubBrand';
 
 // Eagerly load auth pages (needed immediately)
 import SimpleAuth from './pages/SimpleAuth';
@@ -240,6 +241,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           'i can[not] get a type box to show up on ipad simulator
           in chat.' Switched to Tailwind arbitrary-value class so
           lg:pt-0 can actually override it. */}
+      {/* Mount-only — subscribes to the active club's brandColor and
+          writes it to --brand-primary on document.documentElement so
+          any surface using bg-brand-primary (Button primary, hero
+          accents, etc.) re-tints in real time when the admin saves
+          a new color on /club/branding. Falls back to GoalKickr
+          crimson when no club / no brandColor is set. */}
+      <ApplyClubBrand />
       <main className="lg:ml-64 pt-[calc(env(safe-area-inset-top)+3.5rem)] lg:pt-0 pb-20 lg:pb-0">
         {/* Mobile-web only: prompt to install the native app. No-ops
             inside Capacitor, on desktop, or after dismissal. */}

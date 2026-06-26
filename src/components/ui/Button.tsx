@@ -42,9 +42,13 @@ interface Props extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'chi
 }
 
 const VARIANTS: Record<ButtonVariant, string> = {
+  // `primary` uses the brand-color CSS variable layer so the active
+  // club's brandColor re-tints every primary CTA in the app. Default
+  // resolves to crimson via :root vars in index.css; ApplyClubBrand
+  // pushes per-club overrides at runtime.
   primary:
-    'bg-crimson-600 hover:bg-crimson-500 text-white shadow-lg shadow-crimson-900/30 ' +
-    'disabled:bg-crimson-900 disabled:text-white/55 disabled:shadow-none',
+    'bg-brand-primary hover:bg-brand-primary-hov text-brand-primary-fg shadow-lg shadow-brand-primary-dim/30 ' +
+    'disabled:bg-brand-primary-dim disabled:text-white/55 disabled:shadow-none',
   outline:
     'bg-transparent ring-1 ring-white/15 text-bone hover:bg-white/5 hover:ring-white/30 ' +
     'disabled:opacity-40',

@@ -163,6 +163,15 @@ const ClubAdmins: React.FC = () => {
     <div className="min-h-screen bg-charcoal-950 pb-20">
       <Header title="Club admins" backTo="/settings" />
       <div className="max-w-3xl mx-auto px-4 mt-4 space-y-5">
+        {/* Club-level kill switch for the shared drill library.
+            Owner-only. When OFF, no new drills in this club can be
+            flipped into the public catalog; drills already shared
+            stay shared. Pairs with the per-coach browseDrillLibrary
+            toggle in Settings. */}
+        {isOwner && club && (
+          <ClubDrillSharingToggle clubId={club.id} initialValue={club.allowDrillSharing !== false} />
+        )}
+
         <div className="bg-charcoal-900 border border-white/10 rounded-2xl p-4">
           <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5">Add admin</p>
           <p className="text-bone/55 text-xs mb-3 leading-snug">
@@ -323,6 +332,54 @@ const EditScopesSheet: React.FC<{
         </Button>
       </div>
     </Sheet>
+  );
+};
+
+// Club-level toggle for whether coaches in this club can flip
+// drills into the cross-club public catalog. Owner-only at the
+// rules layer; this UI is a thin wrapper around the doc write.
+const ClubDrillSharingToggle: React.FC<{ clubId: string; initialValue: boolean }> = ({ clubId, initialValue }) => {
+  const [allow, setAllow] = useState(initialValue);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const flip = async () => {
+    if (busy) return;
+    const next = !allow;
+    setBusy(true); setError(null);
+    try {
+      await updateDoc(doc(db, 'clubs', clubId), { allowDrillSharing: next });
+      setAllow(next);
+    } catch (e: any) {
+      setError(e?.message || 'Could not update.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="bg-charcoal-900 border border-white/10 rounded-2xl p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5">Drill library</p>
+          <p className="text-bone font-bold text-sm">Allow coaches to share drills publicly</p>
+          <p className="text-bone/55 text-xs mt-0.5 leading-snug">
+            When ON, your coaches can flip drills into the cross-club catalog so anyone in GoalKickr can save them. Already-shared drills stay shared even if this is turned off.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={flip}
+          disabled={busy}
+          className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
+            allow ? 'bg-brand-primary text-white' : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+          }`}
+        >
+          {busy ? '…' : allow ? 'On' : 'Off'}
+        </button>
+      </div>
+      {error && (
+        <p className="mt-2 text-rose-300 text-xs bg-rose-500/10 border border-rose-500/30 rounded-lg p-2">{error}</p>
+      )}
+    </div>
   );
 };
 

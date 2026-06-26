@@ -294,6 +294,8 @@ const Drills: React.FC = () => {
                   key={d.id}
                   drill={d}
                   voterUid={userData?.uid}
+                  voterName={userData?.name}
+                  voterEmail={(userData as any)?.email}
                   onRate={(stars) => handleRate(d.id, stars)}
                   onSave={() => handleSaveFromLibrary(d)}
                   saving={!!(saveTarget && saveTarget.drill.id === d.id && saveTarget.busy)}
@@ -735,11 +737,40 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
 // ─────────────────────────────────────────────────────────────
 const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
   const [shared, setShared] = useState(drill.shareToLibrary === true);
+  const [clubAllowsSharing, setClubAllowsSharing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Read the club's allowDrillSharing setting. If the club owner has
+  // disabled outbound sharing, the toggle reads as locked. Already-
+  // shared drills stay shared (we don't auto-unshare on lockdown).
+  useEffect(() => {
+    const clubId = (drill as any).clubId;
+    if (!clubId) { setClubAllowsSharing(true); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getDoc, doc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        const snap = await getDoc(doc(db, 'clubs', clubId));
+        if (cancelled) return;
+        const allow = snap.exists() ? ((snap.data() as any).allowDrillSharing !== false) : true;
+        setClubAllowsSharing(allow);
+      } catch { setClubAllowsSharing(true); }
+    })();
+    return () => { cancelled = true; };
+  }, [drill]);
+
   const flip = async () => {
     if (busy) return;
     const next = !shared;
+    // Block enabling when the club has it disabled. Disabling
+    // (unshare) is always allowed so a coach can pull their drill
+    // back out of the catalog regardless of club setting.
+    if (next && !clubAllowsSharing) {
+      setError('Your club owner has paused outbound drill sharing.');
+      return;
+    }
     setBusy(true); setError(null);
     try {
       await toggleShareToLibrary(drill.id, next);
@@ -756,14 +787,18 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-bone">Share to library</p>
           <p className="text-xs text-bone/55 mt-0.5 leading-snug">
-            Let other coaches across GoalKickr find, rate, and save this drill. You can unshare anytime.
+            {clubAllowsSharing
+              ? 'Let other coaches across GoalKickr find, rate, and save this drill. You can unshare anytime.'
+              : (shared
+                  ? 'Your club owner paused new shares, but this drill stays public until you unshare it.'
+                  : 'Your club owner has paused outbound drill sharing.')}
           </p>
         </div>
         <button
           type="button"
           onClick={flip}
-          disabled={busy}
-          className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
+          disabled={busy || (!shared && !clubAllowsSharing)}
+          className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition disabled:opacity-50 ${
             shared
               ? 'bg-brand-primary text-white'
               : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
@@ -780,6 +815,75 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// ReportLibraryDrillButton — flag a shared drill for review.
+// Files a platform-scope support ticket with a 'drill-report'
+// tag so Patrick sees it in the GoalKickr admin portal Tickets
+// inbox. Single button, prompts for a reason, sends.
+// ─────────────────────────────────────────────────────────────
+const ReportLibraryDrillButton: React.FC<{
+  drill: Drill;
+  reporterUid?: string;
+  reporterName?: string;
+  reporterEmail?: string;
+}> = ({ drill, reporterUid, reporterName, reporterEmail }) => {
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const handle = async () => {
+    if (busy || done || !reporterUid) return;
+    const reason = window.prompt(
+      `Why are you reporting "${drill.title}"?\n\nGoalKickr will review and may remove the drill.`,
+      '',
+    );
+    if (reason === null) return; // cancelled
+    const trimmed = reason.trim();
+    if (!trimmed) {
+      window.alert('Please give a brief reason so we can review.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const { openTicket } = await import('../utils/tickets');
+      await openTicket({
+        scope: 'platform',
+        subject: `Drill report: "${drill.title}"`,
+        body:
+          `${trimmed}\n\n— context —\n` +
+          `Drill id: ${drill.id}\n` +
+          `Author: ${drill.createdByName || '—'} (uid ${drill.createdBy})\n` +
+          `Topic: ${drill.topic}\n` +
+          `Age band: ${drill.ageBand || 'all'}\n` +
+          `Rating: ${drill.averageRating?.toFixed(1) || '—'} (${drill.ratingCount || 0} votes)`,
+        authorUid: reporterUid,
+        authorName: reporterName || 'Coach',
+        authorEmail: reporterEmail || '',
+        tags: ['drill-report', `drill:${drill.id}`],
+        priority: 'normal',
+      });
+      setDone(true);
+    } catch (e: any) {
+      window.alert(e?.message || 'Could not send report. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      disabled={busy || done}
+      title={done ? 'Reported — thanks' : 'Report this drill'}
+      className={`shrink-0 px-2.5 py-2 rounded-lg text-xs font-bold transition ring-1 ${
+        done
+          ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30'
+          : 'bg-charcoal-800 text-bone/55 ring-white/10 hover:text-bone hover:bg-charcoal-700'
+      } disabled:opacity-60`}
+    >
+      {busy ? '…' : done ? '✓' : '⚑'}
+    </button>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 // LibraryCard — surface for shared community drills.
 // Shows the rating badge + save button + star row. Tapping the
 // card body navigates to a read-only detail view in the future;
@@ -788,10 +892,12 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
 const LibraryCard: React.FC<{
   drill: Drill;
   voterUid?: string;
+  voterName?: string;
+  voterEmail?: string;
   onRate: (stars: 1 | 2 | 3 | 4 | 5) => void;
   onSave: () => void;
   saving: boolean;
-}> = ({ drill, voterUid, onRate, onSave, saving }) => {
+}> = ({ drill, voterUid, voterName, voterEmail, onRate, onSave, saving }) => {
   const myStars = voterUid ? (drill.ratedBy?.[voterUid] as 1 | 2 | 3 | 4 | 5 | undefined) : undefined;
   const avg = drill.averageRating || 0;
   const count = drill.ratingCount || 0;
@@ -860,14 +966,22 @@ const LibraryCard: React.FC<{
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="mt-3 w-full px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60 transition"
-        >
-          {saving ? 'Saving…' : 'Save to my drills'}
-        </button>
+        <div className="mt-3 flex items-stretch gap-2">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="flex-1 px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60 transition"
+          >
+            {saving ? 'Saving…' : 'Save to my drills'}
+          </button>
+          <ReportLibraryDrillButton
+            drill={drill}
+            reporterUid={voterUid}
+            reporterName={voterName}
+            reporterEmail={voterEmail}
+          />
+        </div>
       </div>
     </li>
   );

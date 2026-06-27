@@ -1662,8 +1662,14 @@ export interface Game {
 export interface WallPost {
   id: string;
   teamId: string;
-  /** Markdown source. Rendered by the Wall's RichContent component. */
+  /** Markdown source (legacy) OR TipTap-emitted HTML (current).
+   *  Disambiguated by contentFormat below. */
   content: string;
+  /** Which dialect `content` is in. 'tiptap-html' → render via
+   *  dangerouslySetInnerHTML; absent/anything else → legacy
+   *  markdown via marked() in RichContent. Set on every new post
+   *  and on edit-save of an old post. */
+  contentFormat?: 'tiptap-html';
   senderId: string;
   senderName: string;
   /** Avatar snapshotted at post / edit time (matches the chat

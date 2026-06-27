@@ -406,6 +406,11 @@ const Wall: React.FC = () => {
           id: d.id,
           teamId: data.teamId,
           content: data.content || '',
+          // contentFormat drives the render branch (raw TipTap HTML
+          // vs legacy markdown). Was missing from this mapping,
+          // which is why every post rendered escaped HTML tags as
+          // visible text. Patrick caught it 2026-06-27.
+          ...(data.contentFormat ? { contentFormat: data.contentFormat } : {}),
           senderId: data.senderId,
           senderName: data.senderName || 'Coach',
           senderPhotoUrl: data.senderPhotoUrl || null,
@@ -416,6 +421,12 @@ const Wall: React.FC = () => {
           reactions: Array.isArray(data.reactions) ? data.reactions : [],
           wallPinnedTop: typeof data.wallPinnedTop === 'number' ? data.wallPinnedTop : null,
           postedFrom: data.postedFrom,
+          // Was also missing — needed by the public-share URL gate
+          // and the "Email to team" action's auto-flip on first send.
+          isPublic: !!data.isPublic,
+          // emailedAt drives the manage-post sheet's
+          // "Email to team" → "Resend email" label switch.
+          emailedAt: typeof data.emailedAt === 'number' ? data.emailedAt : null,
           category: data.category || 'announcement',
           poll: data.poll && typeof data.poll === 'object' && Array.isArray(data.poll.options)
             ? {

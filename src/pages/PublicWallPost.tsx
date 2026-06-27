@@ -29,6 +29,11 @@ const PublicWallPost: React.FC = () => {
           id: snap.id,
           teamId: data.teamId,
           content: data.content || '',
+          // Drives the TipTap-HTML vs legacy-markdown render branch.
+          // Without this, every post rendered escaped HTML tags as
+          // visible text. Same bug as fixed in Wall.tsx on 3.7.24,
+          // missed on this public-share page.
+          ...(data.contentFormat ? { contentFormat: data.contentFormat } : {}),
           senderId: data.senderId,
           senderName: data.senderName || 'Coach',
           senderRole: data.senderRole,
@@ -84,7 +89,17 @@ const PublicWallPost: React.FC = () => {
             </span>
           </div>
           <div className="px-4 sm:px-6 py-4 text-slate-800 break-words text-[15px] leading-relaxed">
-            <RichContent text={post.content} />
+            {post.contentFormat === 'tiptap-html' ? (
+              <div
+                className="tiptap-rendered"
+                // TipTap output is schema-constrained — only the
+                // nodes/marks our extensions allow are ever
+                // serialized. Safe to render directly.
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
+            ) : (
+              <RichContent text={post.content} />
+            )}
           </div>
           {post.attachments && post.attachments.length > 0 && (
             <div className={`px-4 sm:px-6 pb-4 grid gap-2 ${post.attachments.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>

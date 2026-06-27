@@ -146,7 +146,11 @@ const formatClock = (totalSec: number) => {
 const GameDay: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
+  // Short team name used in push-notification bodies ("Eagles 2-1
+  // Lightning"). Falls back to "Us" when the team doc hasn't loaded
+  // yet so we never ship a wrong club's name in a push.
+  const usLabel = selectedTeam?.name || 'Us';
   const { getDocument, getPlayersByTeam, addGameStat, updatePlayerStats, addChatMessage, addChatThread, getDocuments } = useFirestore();
   const isQuickGame = !!eventId && eventId.startsWith('quick_');
   const [event, setEvent] = useState<any | null>(null);
@@ -293,7 +297,7 @@ const GameDay: React.FC = () => {
       clockSecondsAtStart: 0,
     });
     const opp = event?.opponent || 'Opponent';
-    void notifyGoingParents('Halftime', `Fire FC ${game.ourScore || 0}-${game.oppScore || 0} ${opp}`);
+    void notifyGoingParents('Halftime', `${usLabel} ${game.ourScore || 0}-${game.oppScore || 0} ${opp}`);
   };
   const finalizeGame = async () => {
     if (!game) return;
@@ -311,7 +315,7 @@ const GameDay: React.FC = () => {
     const ours = game.ourScore || 0;
     const theirs = game.oppScore || 0;
     const result = ours > theirs ? 'Win' : ours < theirs ? 'Loss' : 'Draw';
-    void notifyGoingParents(`Full time — ${result}`, `Fire FC ${ours}-${theirs} ${opp}`);
+    void notifyGoingParents(`Full time — ${result}`, `${usLabel} ${ours}-${theirs} ${opp}`);
     // Write season-aggregate stats
     try {
       const counts: Record<string, { goals: number; assists: number; saves: number; yellow: number; red: number; name: string }> = {};
@@ -376,7 +380,7 @@ const GameDay: React.FC = () => {
       const ourScore = game?.ourScore || 0;
       const opp = event?.opponent || 'Opponent';
       const min = typeof minute === 'number' ? ` (${minute}')` : '';
-      void notifyGoingParents('Goal against', `${opp} scored. Fire FC ${ourScore}-${next}${min}`);
+      void notifyGoingParents('Goal against', `${opp} scored. ${usLabel} ${ourScore}-${next}${min}`);
     }
   };
 
@@ -481,9 +485,9 @@ const GameDay: React.FC = () => {
       const min = typeof minute === 'number' ? ` (${minute}')` : '';
       const who = entry.playerName || '';
       if (kind === 'goal') {
-        void notifyGoingParents('GOAL!', `${who ? `${who} scored. ` : ''}Fire FC ${ourScore}-${oppScore} ${opp}${min}`);
+        void notifyGoingParents('GOAL!', `${who ? `${who} scored. ` : ''}${usLabel} ${ourScore}-${oppScore} ${opp}${min}`);
       } else if (kind === 'owngoal') {
-        void notifyGoingParents('Own goal — in our favor', `Fire FC ${ourScore}-${oppScore} ${opp}${min}`);
+        void notifyGoingParents('Own goal — in our favor', `${usLabel} ${ourScore}-${oppScore} ${opp}${min}`);
       } else if (kind === 'yellow') {
         void notifyGoingParents('Yellow card', `${who}${min}`);
       } else if (kind === 'red') {
@@ -712,7 +716,7 @@ const GameDay: React.FC = () => {
           </div>
           <div className="grid grid-cols-3 items-center text-center gap-2">
             <div>
-              <div className="text-xs text-white/60 truncate">Fire FC</div>
+              <div className="text-xs text-white/60 truncate">{usLabel}</div>
               <div className="text-5xl font-black tabular-nums">{ourScore}</div>
               {isUserCoach && (
                 <div className="flex justify-center gap-1 mt-1">
@@ -764,7 +768,7 @@ const GameDay: React.FC = () => {
           <GameRecapCard
             event={event}
             game={game}
-            teamName={'Fire FC'}
+            teamName={selectedTeam?.name || 'Our team'}
             players={players}
             onPostToChat={postRecapToChat}
           />

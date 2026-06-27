@@ -207,7 +207,7 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
                 type="text"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
-                placeholder="e.g. Fire FC U12"
+                placeholder="e.g. Eagles U12"
                 className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30"
                 autoFocus
               />
@@ -229,7 +229,7 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
                 type="text"
                 value={clubName}
                 onChange={(e) => setClubName(e.target.value)}
-                placeholder="e.g. Fire FC Soccer Club"
+                placeholder="e.g. Riverside Soccer Club"
                 className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30"
                 autoFocus
               />

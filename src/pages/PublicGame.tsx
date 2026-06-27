@@ -222,7 +222,7 @@ const PublicGame: React.FC = () => {
         </div>
 
         <p className="text-xs text-white/40 mt-10 text-center">
-          Hosted on <span className="text-brand-primary-soft/80">firefcsoccer.com</span> · Shared by {game.addedByName}
+          Hosted on <span className="text-brand-primary-soft/80">goalkickr.com</span> · Shared by {game.addedByName}
         </p>
       </main>
     </div>

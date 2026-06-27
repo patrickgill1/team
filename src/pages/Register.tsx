@@ -63,7 +63,7 @@ const RegisterForm: React.FC = () => {
   const [dob, setDob] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
   const [preferredPosition, setPreferredPosition] = useState('');
-  const [ageGroup, setAgeGroup] = useState<string>('U10');
+  const [ageGroup, setAgeGroup] = useState<string>('');
   const [playedBefore, setPlayedBefore] = useState(false);
   const [medicalNotes, setMedicalNotes] = useState('');
   const [jerseySize, setJerseySize] = useState('');
@@ -676,7 +676,7 @@ const RegisterForm: React.FC = () => {
               </Row>
               <Row>
                 <Input label="Date of birth" type="date" value={dob} onChange={setDob} required />
-                <Select label="Age group" value={ageGroup} onChange={setAgeGroup} options={AGE_GROUPS.map(a => ({ value: a, label: a }))} required />
+                <Select label="Age group" value={ageGroup} onChange={setAgeGroup} options={[{ value: '', label: 'Choose…' }, ...AGE_GROUPS.map(a => ({ value: a, label: a }))]} required />
               </Row>
               <Row>
                 <Select label="Gender" value={gender} onChange={(v) => setGender(v as any)} options={[

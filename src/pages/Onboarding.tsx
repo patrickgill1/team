@@ -86,7 +86,7 @@ const Onboarding: React.FC = () => {
   const firstName = (userData?.name || currentUser?.displayName || '').split(' ')[0] || '';
   const [teamName, setTeamName] = useState(firstName ? `${firstName}'s team` : '');
   const [teamFormat, setTeamFormat] = useState('7v7');
-  const [teamAgeGroup, setTeamAgeGroup] = useState('U10');
+  const [teamAgeGroup, setTeamAgeGroup] = useState('');
   // Kit colors are free-form strings so clubs can use everything from
   // "Black" to "Red & Gold" to "Royal Blue / White". Left blank by
   // default — the event form hides the swatch label when unset rather
@@ -469,7 +469,7 @@ const Onboarding: React.FC = () => {
                 value={teamName}
                 onChange={e => setTeamName(e.target.value)}
                 className="form-input"
-                placeholder="e.g. Fire FC U10"
+                placeholder="e.g. Eagles U10"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -480,6 +480,7 @@ const Onboarding: React.FC = () => {
               </Field>
               <Field label="Age group">
                 <select value={teamAgeGroup} onChange={e => setTeamAgeGroup(e.target.value)} className="form-input">
+                  <option value="">Choose…</option>
                   {AGE_GROUPS.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </Field>
@@ -536,7 +537,7 @@ const Onboarding: React.FC = () => {
                 value={clubName}
                 onChange={e => setClubName(e.target.value)}
                 className="form-input"
-                placeholder="e.g. Fire FC"
+                placeholder="e.g. Riverside SC"
               />
             </Field>
             {error && <ErrorBanner>{error}</ErrorBanner>}

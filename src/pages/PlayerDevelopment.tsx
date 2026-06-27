@@ -110,6 +110,27 @@ const PlayerDevelopment: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedTeamId, getDocuments]);
 
+  // Deep-link: "Set a Challenge" button on a drill card lands here with
+  // ?seedDrill=<id>. Open the new-plan modal with that drill seeded as
+  // the first goal so the coach just picks players and saves. Wait for
+  // drillsById to populate before firing — otherwise we'd open an empty
+  // modal and the import would no-op.
+  useEffect(() => {
+    const seedDrill = searchParams.get('seedDrill');
+    if (!seedDrill) return;
+    const drill = drillsById[seedDrill];
+    if (!drill) return; // drills still loading; effect will re-run when ready
+    resetCreateForm();
+    setEditingPlanId(null);
+    importDrillsToPlan([drill]);
+    setShowCreateModal(true);
+    // Strip the param so a reload doesn't re-open the modal forever.
+    const next = new URLSearchParams(searchParams);
+    next.delete('seedDrill');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drillsById, searchParams]);
+
   // Resolve a goal's current video. Priority:
   // 1) Source drill (by drillId, or by normalized-title match for
   //    legacy goals that didn't store drillId).

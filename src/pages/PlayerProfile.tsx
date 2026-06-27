@@ -628,7 +628,9 @@ const PlayerProfile: React.FC = () => {
       {/* ───── PILL TABS (sticky) ───── */}
       <div className="bg-charcoal-900 border-b border-white/5 sticky top-0 z-20 shadow-sm">
         <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3">
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+          {/* Wrap, never scroll. Sideways pill scrolling hides options
+              behind the right edge and reads as "we ran out of room." */}
+          <div className="flex flex-wrap gap-1.5">
             {(['overview', 'media', 'development', 'awards', 'whispers'] as const).map(tab => {
               const count =
                 tab === 'media' ? media.length :
@@ -645,7 +647,7 @@ const PlayerProfile: React.FC = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition ${
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition ${
                     isActive
                       ? 'bg-charcoal-900 text-white shadow'
                       : 'bg-white/[0.08] text-bone/65 hover:bg-white/[0.1]'

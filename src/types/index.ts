@@ -1896,6 +1896,13 @@ export interface Drill {
   /** Age-band the drill is appropriate for. Used so a U10 coach doesn't
    *  see drills meant for U17. */
   ageBand?: 'U6-U8' | 'U9-U10' | 'U11-U12' | 'U13-U14' | 'U15-U17' | 'all';
+  /** Whether the drill fits a team practice (the default, requires
+   *  multiple players + space) or solo / at-home work an individual
+   *  kid can do. Drives the Team / Extra Reps filter on the library
+   *  and helps coaches surface the right drill when they're building
+   *  a pathway for one kid vs. planning Tuesday's session.
+   *  'both' = useful either way. */
+  useCase?: 'team' | 'solo' | 'both';
   videoLinks?: VideoLink[];
   /** Cloudflare Stream uid for coach-uploaded reference video (e.g.,
    *  TikTok downloaded + re-uploaded). Distinct from videoLinks which

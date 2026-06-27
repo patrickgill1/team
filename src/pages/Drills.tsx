@@ -42,6 +42,14 @@ const Drills: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filterTopic, setFilterTopic] = useState<Drill['topic'] | 'all'>('all');
   const [filterAge, setFilterAge] = useState<Drill['ageBand'] | 'all'>('all');
+  // Higher-level use-case split: team practice vs solo at-home work.
+  // Drives the headline filter pill row above the topic / age dropdowns
+  // so a coach building a Pathway sees "Extra Reps" content first.
+  const [filterUseCase, setFilterUseCase] = useState<'all' | 'team' | 'solo'>('all');
+  // Free-text search across title + focus + description. The single
+  // biggest discovery win — beats filtering by topic when you know
+  // the drill name but can't remember the topic tag.
+  const [searchQuery, setSearchQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Drill | null>(null);
 
@@ -168,12 +176,23 @@ const Drills: React.FC = () => {
   };
 
   const visible = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return drills.filter(d => {
       if (filterTopic !== 'all' && d.topic !== filterTopic) return false;
       if (filterAge !== 'all' && d.ageBand !== filterAge && d.ageBand !== 'all') return false;
+      // useCase filter: 'all' shows everything; 'team' shows team+both;
+      // 'solo' shows solo+both. Drills with no useCase default to team
+      // (the historical assumption) so legacy data still surfaces.
+      const uc = d.useCase || 'team';
+      if (filterUseCase === 'team' && uc === 'solo') return false;
+      if (filterUseCase === 'solo' && uc === 'team') return false;
+      if (q) {
+        const hay = `${d.title || ''} ${d.focus || ''} ${d.description || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     }).sort((a, b) => (b.assignmentCount || 0) - (a.assignmentCount || 0) || (b.createdAt.getTime() - a.createdAt.getTime()));
-  }, [drills, filterTopic, filterAge]);
+  }, [drills, filterTopic, filterAge, filterUseCase, searchQuery]);
 
   if (!allowed) {
     return (
@@ -188,24 +207,18 @@ const Drills: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
-        <div className="max-w-5xl mx-auto">
-          <Link to="/development" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-bone mb-2">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Development
-          </Link>
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Training Ground</h1>
-              <p className="text-sm text-bone/40 mt-0.5">Drills you can drop onto any player's plan in one tap.</p>
-            </div>
-            <button
-              onClick={() => { setEditing(null); setCreateOpen(true); }}
-              className="px-4 py-2 rounded-lg bg-brand-primary/150 hover:bg-brand-primary-soft text-charcoal-950 text-sm font-bold whitespace-nowrap"
-            >
-              + New drill
-            </button>
-          </div>
+      {/* Tight one-line header. No breadcrumb (bottom nav handles
+          movement), no marketing subtitle. Title left + primary action
+          right is enough. */}
+      <section className="bg-charcoal-900 px-4 sm:px-6 py-3 border-b border-white/5">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+          <h1 className="text-lg sm:text-xl font-black text-white leading-tight">Training Ground</h1>
+          <button
+            onClick={() => { setEditing(null); setCreateOpen(true); }}
+            className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase whitespace-nowrap shadow-sm"
+          >
+            + Add Drill
+          </button>
         </div>
       </section>
 
@@ -256,7 +269,55 @@ const Drills: React.FC = () => {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Search — the single biggest discovery win. */}
+        <div className="relative">
+          <svg className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name or focus…"
+            className="w-full bg-charcoal-900 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-2 my-auto w-6 h-6 rounded-full text-bone/40 hover:text-bone hover:bg-white/5 flex items-center justify-center"
+              aria-label="Clear search"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+
+        {/* Use-case pill row — Team vs Extra Reps. Wrapping flex so it
+            never scrolls sideways. */}
+        <div className="flex flex-wrap gap-1.5">
+          {([
+            { k: 'all' as const,  label: 'All' },
+            { k: 'team' as const, label: 'Team' },
+            { k: 'solo' as const, label: 'Extra Reps' },
+          ]).map(c => (
+            <button
+              key={c.k}
+              type="button"
+              onClick={() => setFilterUseCase(c.k)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold tracking-widest uppercase transition ${
+                filterUseCase === c.k
+                  ? 'bg-brand-primary text-white shadow-sm'
+                  : 'bg-charcoal-900 text-bone/55 ring-1 ring-white/10 hover:text-bone'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Topic + Age dropdowns — too many options for pill rows
+            (10 topics, 6 age bands). Selects are the right control here. */}
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={filterTopic}
@@ -314,7 +375,7 @@ const Drills: React.FC = () => {
             <p className="text-xs text-bone/50 mt-1 mb-4">Build one yourself, or have AI draft one from a topic.</p>
             <button
               onClick={() => { setEditing(null); setCreateOpen(true); }}
-              className="px-4 py-2 rounded-lg bg-brand-primary/150 hover:bg-brand-primary-soft text-charcoal-950 text-sm font-bold"
+              className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase shadow-sm"
             >
               + Add your first drill
             </button>
@@ -322,11 +383,13 @@ const Drills: React.FC = () => {
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {visible.map(d => (
-              <li key={d.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-brand-primary-soft overflow-hidden transition-shadow hover:shadow-md">
+              <li key={d.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-brand-primary-soft overflow-hidden transition-shadow hover:shadow-md flex flex-col">
+                {/* Card body opens the editor — clickable surface for
+                    reviewing / editing the drill. */}
                 <button
                   type="button"
                   onClick={() => { setEditing(d); setCreateOpen(true); }}
-                  className="w-full text-left"
+                  className="w-full text-left flex-1"
                 >
                   {d.streamUid && (
                     <div className="aspect-video w-full bg-white/15 relative">
@@ -349,6 +412,9 @@ const Drills: React.FC = () => {
                     <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">
                       {TOPICS.find(t => t.value === d.topic)?.label || d.topic}
                     </span>
+                    {d.useCase === 'solo' && (
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">Extra Reps</span>
+                    )}
                     {d.source === 'ai' && (
                       <span className="text-[10px] font-extrabold tracking-widest uppercase text-violet-300 bg-violet-500/15 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">AI</span>
                     )}
@@ -366,6 +432,18 @@ const Drills: React.FC = () => {
                   </div>
                   </div>
                 </button>
+                {/* Footer action — send the drill to a kid's Pathway as
+                    a goal. PlayerDevelopment reads ?seedDrill=<id> on
+                    mount, fetches the drill, opens its new-plan modal
+                    with the drill pre-seeded as the first goal. */}
+                <div className="px-4 pb-4">
+                  <Link
+                    to={`/development?seedDrill=${d.id}`}
+                    className="block w-full text-center px-3 py-2 rounded-lg bg-white/5 hover:bg-brand-primary/20 ring-1 ring-white/10 hover:ring-brand-primary-soft/40 text-[11px] font-extrabold tracking-widest uppercase text-bone/85 hover:text-brand-primary-soft transition"
+                  >
+                    Set a Challenge
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
@@ -416,6 +494,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
   const [topic, setTopic] = useState<Drill['topic']>(drill?.topic || 'dribbling');
   const [category, setCategory] = useState<Drill['category']>(drill?.category || 'technical');
   const [ageBand, setAgeBand] = useState<Drill['ageBand']>(drill?.ageBand || 'all');
+  const [useCase, setUseCase] = useState<Drill['useCase']>(drill?.useCase || 'team');
   const [description, setDescription] = useState(drill?.description || '');
   const [setup, setSetup] = useState(drill?.setup || '');
   const [instructions, setInstructions] = useState(drill?.instructions || '');
@@ -494,6 +573,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
       topic,
       category,
       ageBand,
+      useCase,
       description: description.trim() || undefined,
       setup: setup.trim() || undefined,
       instructions: instructions.trim() || undefined,
@@ -585,6 +665,32 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               </select>
             </Field>
           </div>
+          {/* Use case — drives the headline Team / Extra Reps filter on
+              the library so a coach building a Pathway sees the right
+              content first. */}
+          <Field label="Use case">
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { k: 'team' as const, label: 'Team practice', hint: 'Group drill, needs multiple players' },
+                { k: 'solo' as const, label: 'Extra Reps', hint: 'Solo / at-home work for one kid' },
+                { k: 'both' as const, label: 'Both', hint: 'Works either way' },
+              ]).map(c => (
+                <button
+                  key={c.k}
+                  type="button"
+                  onClick={() => setUseCase(c.k)}
+                  title={c.hint}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold tracking-widest uppercase transition ${
+                    useCase === c.k
+                      ? 'bg-brand-primary text-white shadow-sm'
+                      : 'bg-charcoal-900 text-bone/55 ring-1 ring-white/10 hover:text-bone'
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </Field>
           <Field label="Setup">
             <textarea
               value={setup}

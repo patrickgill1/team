@@ -369,7 +369,7 @@ const Settings: React.FC = () => {
         {/* ── MY PLAYERS PROFILES ───────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-2xl font-bold text-bone">My Players</h2>
+            <h2 className="text-2xl font-bold text-bone">My Squad</h2>
             {isCoach(userData?.role || '') && (
               <Link
                 to="/players?add=1"
@@ -437,7 +437,7 @@ const Settings: React.FC = () => {
 
         {isCoach(userData?.role || '') && (
           <section>
-            <h2 className="text-2xl font-bold text-bone mb-2 px-1">Drill library</h2>
+            <h2 className="text-2xl font-bold text-bone mb-2 px-1">Training Ground</h2>
             <DrillLibraryToggle />
           </section>
         )}

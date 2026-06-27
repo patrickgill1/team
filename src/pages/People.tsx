@@ -510,7 +510,7 @@ const People: React.FC = () => {
             onChange={(e) => setBulkTarget(e.target.value)}
             className="flex-1 bg-charcoal-900 border border-slate-700 text-white text-sm rounded-lg px-2 py-1.5"
           >
-            <option value="">Add to team…</option>
+            <option value="">Add to squad…</option>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           <button
@@ -569,8 +569,8 @@ const People: React.FC = () => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </span>
               <div className="flex-1">
-                <div className="text-sm font-bold text-bone">Add player</div>
-                <div className="text-[11px] text-bone/50">New player on the roster (+ optional parent invite)</div>
+                <div className="text-sm font-bold text-bone">Add to Squad</div>
+                <div className="text-[11px] text-bone/50">New player on the squad, with an optional invite to their family.</div>
               </div>
             </button>
             <button
@@ -581,8 +581,8 @@ const People: React.FC = () => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
               </span>
               <div className="flex-1">
-                <div className="text-sm font-bold text-bone">Invite someone</div>
-                <div className="text-[11px] text-bone/50">Parent (for an existing player) or coach / manager</div>
+                <div className="text-sm font-bold text-bone">Bring Someone In</div>
+                <div className="text-[11px] text-bone/50">A family for an existing player, or another coach / manager.</div>
               </div>
             </button>
             <button

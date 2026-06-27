@@ -574,7 +574,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         <div className="sticky top-0 bg-charcoal-900 border-b border-white/5 px-6 py-4 z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black text-bone">
-              {editingPlayer ? 'Edit Player' : 'Add New Player'}
+              {editingPlayer ? 'Edit Player Card' : 'Add to Squad'}
             </h2>
             <button
               onClick={onClose}
@@ -903,7 +903,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               {(isSubmitting || uploadLoading) ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
-                editingPlayer ? 'Update Player' : 'Add Player'
+                editingPlayer ? 'Save Player Card' : 'Add to Squad'
               )}
             </button>
           </div>

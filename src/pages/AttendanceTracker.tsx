@@ -286,7 +286,7 @@ const AttendanceTracker: React.FC = () => {
                     can't push the row past the viewport (which was
                     triggering horizontal scroll on the whole page). */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
-                  <h2 className="text-lg font-semibold text-bone shrink-0">RSVP Players</h2>
+                  <h2 className="text-lg font-semibold text-bone shrink-0">Who's In?</h2>
                   {calendarEvents.length > 0 && (
                     <select
                       value={selectedEvent}
@@ -432,7 +432,7 @@ const AttendanceTracker: React.FC = () => {
                             Saving...
                           </>
                         ) : (
-                          'Save RSVPs'
+                          'Lock It In'
                         )}
                       </button>
                     </div>

@@ -848,7 +848,7 @@ const PlayerProfile: React.FC = () => {
             {false && plans.length > 0 && (
               <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-gray-100 p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-black text-bone">Development</h2>
+                  <h2 className="text-lg font-black text-bone">Player Pathway</h2>
                   <button onClick={() => setActiveTab('development')} className="text-sm text-brand-primary hover:text-brand-primary-soft font-bold">View All →</button>
                 </div>
 
@@ -924,7 +924,7 @@ const PlayerProfile: React.FC = () => {
             {recentMedia.length > 0 && (
               <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Recent Highlights</h2>
+                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Spotlight</h2>
                   <button onClick={() => setActiveTab('media')} className="text-xs font-bold text-brand-primary-soft hover:text-bone">View All →</button>
                 </div>
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -966,7 +966,7 @@ const PlayerProfile: React.FC = () => {
             {(votingWins.length > 0 || votingNominations > 0) && (
               <div className="bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Player of the Match</h2>
+                  <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Trophy Case</h2>
                   <button onClick={() => setActiveTab('awards')} className="text-xs font-bold text-brand-primary-soft hover:text-bone">View All →</button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1115,7 +1115,7 @@ const PlayerProfile: React.FC = () => {
               <div className="space-y-4">
                 {activePlans.length > 0 && (
                   <>
-                    <h2 className="text-lg font-black text-bone px-1">Active Plans</h2>
+                    <h2 className="text-lg font-black text-bone px-1">In Motion</h2>
                     {activePlans.map(plan => (
                       <PlanDetail key={plan.id} plan={plan} getCategoryColor={getCategoryColor} getCategoryIcon={getCategoryIcon} getProgressPercent={getProgressPercent} />
                     ))}
@@ -1123,7 +1123,7 @@ const PlayerProfile: React.FC = () => {
                 )}
                 {completedPlans.length > 0 && (
                   <>
-                    <h2 className="text-lg font-black text-bone px-1 mt-6">✅ Completed Plans</h2>
+                    <h2 className="text-lg font-black text-bone px-1 mt-6">Done & Dusted</h2>
                     {completedPlans.map(plan => (
                       <PlanDetail key={plan.id} plan={plan} getCategoryColor={getCategoryColor} getCategoryIcon={getCategoryIcon} getProgressPercent={getProgressPercent} />
                     ))}

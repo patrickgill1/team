@@ -695,7 +695,7 @@ const Calendar: React.FC<CalendarProps> = ({
             events are). Lives in the navy band so the page reads
             as one continuous surface. */}
         <div className="bg-charcoal-950 px-4 pt-4 pb-3 flex items-center justify-between">
-          <h1 className="text-2xl font-black text-white tracking-tight">Events</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">The Schedule</h1>
           {isUserCoach && (
             <div className="flex items-center gap-2">
               <button
@@ -1402,7 +1402,7 @@ const RsvpBar: React.FC<{
                       who's on the field. */}
                   {entries.some(e => e.status === showList && e.isPlayer) && (
                     <>
-                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Players</div>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Squad</div>
                       <ul className="divide-y divide-gray-100">
                         {entries.filter(e => e.status === showList && e.isPlayer).map(e => {
                           const photo = e.playerId ? playerPhotoMap[e.playerId] : undefined;

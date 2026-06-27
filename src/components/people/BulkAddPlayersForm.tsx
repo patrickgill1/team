@@ -43,7 +43,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
   teamName,
   onComplete,
   onSkip,
-  primaryLabel = 'Add players + send parent invites',
+  primaryLabel = 'Build the Squad',
   skipLabel = 'Skip for now',
   initialRowCount = 6,
 }) => {
@@ -199,12 +199,12 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                   {hasEmail ? (
                     <>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                      Parent will get an emailed invite
+                      Family gets a link in their inbox
                     </>
                   ) : (
                     <>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                      Player created without an emailed invite
+                      Added to the Squad. Bring the family in later.
                     </>
                   )}
                 </p>
@@ -219,7 +219,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
         onClick={() => setRows(rs => [...rs, { ...BLANK_ROW }])}
         className="mt-3 w-full px-4 py-2 rounded-md text-bone/75 text-sm font-bold ring-1 ring-white/10 hover:bg-white/5 transition"
       >
-        + Add another player
+        + Add another
       </button>
 
       {error && (

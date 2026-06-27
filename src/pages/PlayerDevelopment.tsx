@@ -1099,7 +1099,26 @@ const PlayerDevelopment: React.FC = () => {
               {/* Sticky header */}
               <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                 <div>
-                  <h2 className="text-base font-bold text-bone">{editingPlanId ? 'Edit plan' : 'New development plan'}</h2>
+                  {/* When the modal opens from a "Set a Challenge"
+                      tap on a drill card, the first goal carries the
+                      source drill's id. Surface that as the title so
+                      the user understands what action they're in. */}
+                  {(() => {
+                    const seedDrill = !editingPlanId
+                      ? planGoals.find(g => (g as any).drillId && drillsById[(g as any).drillId])
+                      : null;
+                    if (editingPlanId) return <h2 className="text-base font-bold text-bone">Edit plan</h2>;
+                    if (seedDrill) {
+                      const drill = drillsById[(seedDrill as any).drillId];
+                      return (
+                        <>
+                          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">Set a Challenge</p>
+                          <h2 className="text-base font-bold text-bone">{drill.title}</h2>
+                        </>
+                      );
+                    }
+                    return <h2 className="text-base font-bold text-bone">New development plan</h2>;
+                  })()}
                   {!editingPlanId && bulkPlayerIds.length > 0 && (
                     <p className="text-[11px] text-bone/50 mt-0.5">{bulkPlayerIds.length} player{bulkPlayerIds.length === 1 ? '' : 's'} · {planGoals.filter(g => g.title.trim()).length || 0} goal{planGoals.filter(g => g.title.trim()).length === 1 ? '' : 's'}</p>
                   )}
@@ -1191,7 +1210,7 @@ const PlayerDevelopment: React.FC = () => {
                       type="text"
                       value={planTitle}
                       onChange={e => setPlanTitle(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                      className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                       placeholder="e.g. Ball Control Mastery"
                     />
                   </div>
@@ -1201,12 +1220,12 @@ const PlayerDevelopment: React.FC = () => {
                       <select
                         value={planCategory}
                         onChange={e => setPlanCategory(e.target.value as DevelopmentPlan['category'])}
-                        className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                        className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                       >
-                        <option value="technical">Technical — ball, passing, shooting</option>
-                        <option value="tactical">Tactical — positioning, awareness</option>
-                        <option value="physical">Physical — speed, strength</option>
-                        <option value="mental">Mental — focus, confidence</option>
+                        <option value="technical">Technical: ball, passing, shooting</option>
+                        <option value="tactical">Tactical: positioning, awareness</option>
+                        <option value="physical">Physical: speed, strength</option>
+                        <option value="mental">Mental: focus, confidence</option>
                       </select>
                     </div>
                     <div>
@@ -1215,7 +1234,7 @@ const PlayerDevelopment: React.FC = () => {
                         type="text"
                         value={planDescription}
                         onChange={e => setPlanDescription(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                        className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                         placeholder="What this plan focuses on…"
                       />
                     </div>
@@ -1244,50 +1263,50 @@ const PlayerDevelopment: React.FC = () => {
                               type="text"
                               value={goal.title}
                               onChange={e => updateGoalField(index, 'title', e.target.value)}
-                              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-brand-primary text-sm font-medium"
-                              placeholder="Title (e.g. Pass Weight Drill – Distance Control)"
+                              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:ring-2 focus:ring-brand-primary text-sm font-medium"
+                              placeholder="Title (e.g. Pass Weight Drill, Distance Control)"
                             />
                             <input
                               type="text"
                               value={(goal as any).duration || ''}
                               onChange={e => updateGoalField(index, 'duration', e.target.value)}
-                              className="w-full px-2 py-1 border border-white/10 rounded text-xs text-bone/65"
-                              placeholder="Duration (e.g. 10–15 min)"
+                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              placeholder="Duration (e.g. 10-15 min)"
                             />
                             <textarea
                               value={(goal as any).setup || ''}
                               onChange={e => updateGoalField(index, 'setup', e.target.value)}
                               rows={2}
-                              className="w-full px-2 py-1 border border-white/10 rounded text-xs text-bone/85"
-                              placeholder="Setup — e.g. Place 3 cones in a line at 10, 20, and 25 yards"
+                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              placeholder="Setup: e.g. Place 3 cones in a line at 10, 20, and 25 yards"
                             />
                             <textarea
                               value={(goal as any).instructions || ''}
                               onChange={e => updateGoalField(index, 'instructions', e.target.value)}
                               rows={3}
-                              className="w-full px-2 py-1 border border-white/10 rounded text-xs text-bone/85"
-                              placeholder="Instructions — step-by-step what to do"
+                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              placeholder="Instructions: step-by-step what to do"
                             />
                             <textarea
                               value={(goal as any).focus || ''}
                               onChange={e => updateGoalField(index, 'focus', e.target.value)}
                               rows={2}
-                              className="w-full px-2 py-1 border border-white/10 rounded text-xs text-bone/85"
-                              placeholder="Focus — the key coaching point"
+                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              placeholder="Focus: the key coaching point"
                             />
                             <input
                               type="number"
                               min={0}
                               value={(goal as any).targetMinutes ?? ''}
                               onChange={e => updateGoalField(index, 'targetMinutes', e.target.value === '' ? undefined : Number(e.target.value))}
-                              className="w-full px-2 py-1 border border-white/10 rounded text-xs text-bone/85"
+                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
                               placeholder="Practice minutes target (optional, e.g. 60)"
                             />
                             {/* YouTube link picker */}
                             <div className="space-y-1">
                               {(goal.videoLinks || []).map((link, li) => (
                                 <div key={link.id} className="flex items-center gap-2 px-2 py-1 bg-charcoal-900 border border-white/10 rounded text-xs">
-                                  <span className="text-rose-300">📺</span>
+                                  <svg className="w-3 h-3 text-rose-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M9 10l5 3-5 3z" fill="currentColor"/></svg>
                                   <span className="flex-1 truncate text-bone/85">{link.title || link.url}</span>
                                   <button
                                     type="button"
@@ -1301,7 +1320,7 @@ const PlayerDevelopment: React.FC = () => {
                                     className="text-bone/40 hover:text-rose-300"
                                     aria-label="Remove"
                                   >
-                                    ✕
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                   </button>
                                 </div>
                               ))}
@@ -1309,7 +1328,7 @@ const PlayerDevelopment: React.FC = () => {
                                 <input
                                   type="url"
                                   placeholder="YouTube URL (optional)"
-                                  className="flex-1 px-2 py-1 border border-white/10 rounded text-xs"
+                                  className="flex-1 px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
@@ -1335,7 +1354,7 @@ const PlayerDevelopment: React.FC = () => {
                                   type="text"
                                   data-link-title="1"
                                   placeholder="Title"
-                                  className="w-24 px-2 py-1 border border-white/10 rounded text-xs"
+                                  className="w-24 px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
                                 />
                                 <button
                                   type="button"
@@ -1877,10 +1896,10 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                         e.preventDefault();
                                         if (window.confirm('Remove this link?')) onRemoveVideoLink(goal.id, link.id);
                                       }}
-                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity"
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-opacity"
                                       aria-label="Remove link"
                                     >
-                                      ✕
+                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     </button>
                                   )}
                                 </div>

@@ -153,7 +153,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
 
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-4 pr-8">
         <div>
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Getting started
@@ -166,7 +166,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                 : `${completedCount} of ${steps.length} done.`}
           </p>
         </div>
-        <div className="shrink-0 text-bone/70 text-sm font-extrabold tabular-nums leading-none pt-1">
+        <div className="shrink-0 text-bone/70 text-sm font-extrabold tabular-nums leading-none pt-1 mr-2">
           {completedCount}<span className="text-bone/40 mx-0.5">/</span>{steps.length}
         </div>
       </div>

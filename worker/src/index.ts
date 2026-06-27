@@ -30,6 +30,7 @@ import { handleWidgetRequest } from './widget';
 import { handleParentEmailPrecheck } from './precheck';
 import { logWorkerError } from './errorLog';
 import { handleUnsubscribe, handleOpenPixel, runDueCampaigns } from './campaigns';
+import { handleSendVerification } from './authMail';
 
 export interface Env {
   NOTIFY_SECRET: string;
@@ -188,6 +189,18 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     //   the token is valid. No CORS or auth.
     if (url.pathname.startsWith('/o/') && req.method === 'GET') {
       return handleOpenPixel(req, env);
+    }
+
+    // POST /auth/send-verification — branded email verification
+    //   send via Resend. Replaces Firebase Auth's default sender
+    //   (noreply@<project>.firebaseapp.com) with GoalKickr branding
+    //   AND rewrites the link host to point at our /auth/action
+    //   page. Anonymous (signup flow hasn't fully auth'd yet).
+    if (url.pathname === '/auth/send-verification' && req.method === 'POST') {
+      const res = await handleSendVerification(req, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
     }
 
     // POST /precheck/parent-email — anonymous lookup for the signup

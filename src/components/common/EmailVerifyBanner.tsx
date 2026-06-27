@@ -32,6 +32,42 @@ const EmailVerifyBanner: React.FC = () => {
     return () => unsub();
   }, []);
 
+  // When the app returns to foreground (e.g. user just clicked the
+  // verification link in their browser, then switched back to the
+  // app), reload the auth user to pick up emailVerified=true so the
+  // banner self-dismisses without a manual refresh. Patrick: 'I had
+  // to force close the app to get the email send verification to go
+  // away.'
+  useEffect(() => {
+    const reloadIfPossible = () => {
+      const u = auth.currentUser;
+      if (!u || u.emailVerified) return;
+      u.reload().then(() => setUser(auth.currentUser)).catch(() => {});
+    };
+
+    // Web: focus/visibilitychange covers the "switched tabs back"
+    // case. The Capacitor App listener below covers native.
+    window.addEventListener('focus', reloadIfPossible);
+    document.addEventListener('visibilitychange', reloadIfPossible);
+
+    let nativeRemove: (() => void) | null = null;
+    (async () => {
+      try {
+        const { App } = await import('@capacitor/app');
+        const sub = await App.addListener('appStateChange', (state: any) => {
+          if (state.isActive) reloadIfPossible();
+        });
+        nativeRemove = () => { sub.remove?.(); };
+      } catch { /* not native or plugin missing */ }
+    })();
+
+    return () => {
+      window.removeEventListener('focus', reloadIfPossible);
+      document.removeEventListener('visibilitychange', reloadIfPossible);
+      nativeRemove?.();
+    };
+  }, []);
+
   useEffect(() => {
     try {
       const ts = parseInt(sessionStorage.getItem(DISMISS_KEY) || '0', 10);

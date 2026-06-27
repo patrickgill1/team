@@ -79,6 +79,7 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const Tickets = React.lazy(() => import('./pages/Tickets'));
 const TicketDetail = React.lazy(() => import('./pages/TicketDetail'));
 const ClubAdmins = React.lazy(() => import('./pages/ClubAdmins'));
+const AuthAction = React.lazy(() => import('./pages/AuthAction'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
@@ -391,6 +392,11 @@ function App() {
             <Routes>
               {/* Public Routes - NO ProtectedRoute wrapper */}
               <Route path="/auth" element={<SimpleAuth />} />
+              {/* Firebase Auth action handler — verify email, reset
+                  password, recover email. Worker rewrites Firebase's
+                  default action link to point here so we can render a
+                  branded success/error page. */}
+              <Route path="/auth/action" element={<AuthAction />} />
               <Route path="/login" element={<Navigate to="/auth" replace />} />
               <Route path="/setup" element={<Navigate to="/auth" replace />} />
               <Route path="/vote/:votingId" element={<PublicVote />} />

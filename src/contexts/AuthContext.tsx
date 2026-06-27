@@ -105,17 +105,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Creating Firebase Auth user...');
       const result = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Best-effort email verification send. Fire-and-forget; the
-      // user can always trigger a resend from the banner in
-      // Settings if this fails. Patrick: 'we should also make
-      // people verify emails.' Default Firebase email — branded
-      // version via Resend is a future polish.
+      // Send the branded verification email via our worker. This
+      // replaces Firebase's default sender (noreply@<project>.
+      // firebaseapp.com — Patrick: 'looks so unprofessional') with
+      // a Resend-powered email from noreply@goalkickr.com that links
+      // to OUR /auth/action route instead of Firebase's hosted page.
+      // Fire-and-forget; the banner has a resend button if this fails.
       try {
-        sendEmailVerification(result.user).catch((e) => {
-          console.warn('[auth] sendEmailVerification failed', e);
-        });
+        const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
+        if (NOTIFY_URL) {
+          fetch(`${NOTIFY_URL}/auth/send-verification`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ email }),
+          }).catch((e) => console.warn('[auth] branded verification send failed, falling back to Firebase default', e))
+            .then((r) => {
+              if (!r || !r.ok) {
+                // Fall back to Firebase's default sender if the worker
+                // path is unreachable — better to send the ugly email
+                // than no email at all.
+                sendEmailVerification(result.user).catch(() => {});
+              }
+            });
+        } else {
+          // No worker configured (local dev without env) — use the
+          // Firebase default.
+          sendEmailVerification(result.user).catch(() => {});
+        }
       } catch (e) {
-        console.warn('[auth] sendEmailVerification threw', e);
+        console.warn('[auth] verification send threw', e);
       }
 
       console.log('Auth user created, now creating Firestore document...');

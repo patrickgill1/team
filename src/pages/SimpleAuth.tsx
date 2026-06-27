@@ -108,15 +108,23 @@ const SimpleAuth: React.FC = () => {
         // that was letting random people land directly on the club's
         // active team. Brand-new coaches need a staff invite from a
         // club admin first.
+        // Precheck the email against player.parentEmails to decide
+        // the post-signup flow:
+        //   hasPlayer = true  → force role=parent, pre-approve, auto-
+        //                       link will fire after createUser, user
+        //                       lands inside their kid's team directly.
+        //   hasPlayer = false → role stays whatever the form has
+        //                       (default 'coach'), user lands on
+        //                       OnboardingGate to pick Enter invite /
+        //                       Start a team / Start a club.
+        // Patrick 2026-06-26: the previous version BLOCKED signup
+        // here when hasPlayer=false, which made the OnboardingGate
+        // 'Start a team / club' path unreachable. The right model is
+        // 'never block signup; let them choose what to do from the
+        // OnboardingGate' — the gate itself prevents random people
+        // from landing in an existing tenant without consent.
+        let hasPlayer = false;
         if (!formData.inviteCode) {
-          // Hit the worker precheck instead of querying players
-          // directly. The Firestore `players` list rule requires
-          // auth, but the user isn't authenticated yet during
-          // signup — direct queries returned permission-denied and
-          // bubbled up as 'Something went wrong on our end'.
-          // Worker uses the service account and returns just a
-          // boolean, never any player data.
-          let hasPlayer = false;
           try {
             const resp = await fetch('https://api.goalkickr.com/precheck/parent-email', {
               method: 'POST',
@@ -126,35 +134,27 @@ const SimpleAuth: React.FC = () => {
             const j = await resp.json().catch(() => ({}));
             hasPlayer = !!j?.hasPlayer;
           } catch (e) {
-            // Network blip — let signup proceed; the auto-link
-            // path inside signUp() will still validate, and if no
-            // player matches the user simply ends up unapproved.
-            console.warn('precheck failed, allowing signup', e);
-            hasPlayer = true;
+            console.warn('precheck failed, treating as no match', e);
+            hasPlayer = false;
           }
-          if (!hasPlayer) {
-            setErrors({ submit:
-              "You need an invite to join. Ask your coach for an invite link, or have them add your email to your player's parent list."
-            });
-            setIsSubmitting(false);
-            return;
+          if (hasPlayer) {
+            // Email matched a player → they're a parent. Force the
+            // role so a 'pick Coach' attempt on the form can't
+            // backdoor them into elevated permissions.
+            formData.role = 'parent';
           }
-          // Force parent role when we matched on parent-email. A coach
-          // claiming "Coach" without an invite shouldn't backdoor in.
-          formData.role = 'parent';
+          // hasPlayer=false: don't force role. They'll see the
+          // OnboardingGate after auth + pick Create Team / Create
+          // Club / Enter Invite. role stays whatever the form has.
         }
 
         const tempTeamId = formData.inviteCode || `team_${Date.now()}`;
-        // The precheck already confirmed an email-on-player match
-        // when hasPlayer=true. Pass that signal to signUp() so the
-        // user doc is written with approved=true on the FIRST write.
-        // Without this, there's a 100-300ms window where the user
-        // doc is approved=false (before the auto-link fires), the
-        // OnboardingGate's checkAccess sees it, and flashes the
-        // 'pick a path' screen even though we already know the
-        // user will be auto-linked. Patrick caught this on a new
-        // test account.
-        const willAutoLink = !formData.inviteCode;  // precheck only ran in this branch
+        // Pre-approve only when the precheck confirmed auto-link
+        // will fire (hasPlayer=true). Without this hint, the
+        // OnboardingGate would flash for ~200ms during the
+        // createUser → auto-link window. New coaches who'll see
+        // the gate intentionally DON'T get pre-approved.
+        const willAutoLink = !formData.inviteCode && hasPlayer;
 
         await signUp(formData.email, formData.password, {
           email: formData.email,

@@ -112,22 +112,45 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     const checkAccess = async () => {
-      if (!userData || userData.role !== 'parent') {
+      if (!userData) {
         setGateReason('none');
         setChecking(false);
         return;
       }
-      // Check approval first
       const userAny = userData as any;
+
+      // Coach / team_manager without ANY team → land on OnboardingGate
+      // so they can pick Enter invite / Start team / Start club.
+      // Patrick 2026-06-26: 'is every new user going to not be able to
+      // start a team or club how it sits?' — previous version only
+      // gated role=parent, leaving fresh coaches dropped into an empty
+      // dashboard. Now both paths land on the gate.
+      const role = String(userData.role || '');
+      if (role === 'coach' || role === 'team_manager') {
+        const teamIds: string[] = Array.isArray(userData.teamIds) ? userData.teamIds : [];
+        const hasTeam = teamIds.length > 0 || (typeof userData.teamId === 'string' && userData.teamId.length > 0);
+        if (!hasTeam) {
+          setGateReason('not-linked');
+          setChecking(false);
+          return;
+        }
+        setGateReason('none');
+        setChecking(false);
+        return;
+      }
+
+      if (role !== 'parent') {
+        setGateReason('none');
+        setChecking(false);
+        return;
+      }
+      // Parent path: check approval first.
       if (userAny.approved === false) {
         setGateReason('pending-approval');
         setChecking(false);
         return;
       }
       // Then check player link (with timeout so mobile doesn't hang).
-      // 3s race covers typical Firestore latency (<500ms) with a wide
-      // buffer; longer than that and we'd rather show the app than make
-      // the user stare at a spinner.
       try {
         const q = query(
           collection(db, 'players'),
@@ -151,7 +174,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setGateReason('none');
     }, 4000);
     return () => clearTimeout(timer);
-  }, [userData?.uid, userData?.role]);
+  }, [userData?.uid, userData?.role, userData?.teamId, userData?.teamIds?.length]);
 
   if (checking) {
     return (

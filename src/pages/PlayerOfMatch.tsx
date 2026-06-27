@@ -526,7 +526,7 @@ const PlayerOfMatch: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <Header title="Player of the Match" subtitle="Vote for outstanding performances" />
+      <Header title="Player of the Match" subtitle="Vote up the standout from every match." />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isUserCoach && (
           <div className="mb-6 flex justify-end">

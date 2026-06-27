@@ -376,7 +376,7 @@ const Settings: React.FC = () => {
                 className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary-soft hover:text-brand-primary-dim"
               >
                 <AppIcon name="plus" className="w-4 h-4" />
-                <span>Add Player</span>
+                <span>Add to Squad</span>
               </Link>
             )}
           </div>

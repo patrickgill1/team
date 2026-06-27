@@ -7,6 +7,7 @@ import { Player } from '../types';
 import { formatDate, isCoach } from '../utils/helpers';
 import Header from '../components/common/Header';
 import AppIcon from '../components/common/AppIcon';
+import { VOCAB } from '../vocab';
 
 interface CalendarEvent {
   id: string;
@@ -253,7 +254,7 @@ const AttendanceTracker: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <Header title="Attendance" subtitle="Track who showed up to practices, games, and events" />
+      <Header title={VOCAB.checkIn} subtitle="Who showed up — sessions, matches, everything." />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {calendarEvents.length === 0 && (
           <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10 p-6 mb-6 flex items-center justify-between gap-4">
@@ -407,12 +408,12 @@ const AttendanceTracker: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-bone/65">
-                      <p>No players found. Add players to track attendance.</p>
+                      <p>Squad's empty. Add some players first.</p>
                       <Link
                         to="/players"
                         className="mt-2 inline-block bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                       >
-                        Add Players
+                        Build Your Squad
                       </Link>
                     </div>
                   )}

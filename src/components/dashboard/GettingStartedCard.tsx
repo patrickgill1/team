@@ -114,12 +114,12 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
     {
       key: 'roster',
       label: rosterReady
-        ? `${players.length} ${players.length === 1 ? 'player' : 'players'} on the roster, parents invited`
+        ? `${players.length} on the squad, parents in.`
         : hasPlayers
-          ? 'Send the rest of your parent invites'
-          : 'Add players and invite parents',
+          ? 'Bring the rest of the parents in'
+          : 'Build your squad, bring parents in',
       done: rosterReady,
-      cta: hasPlayers ? 'Invite more' : 'Add roster',
+      cta: hasPlayers ? 'Bring more in' : 'Build squad',
       onClick: () => navigate('/people/add'),
     },
     {

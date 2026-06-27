@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTeam } from '../contexts/TeamContext';
 import BulkAddPlayersForm, { BulkAddResult } from '../components/people/BulkAddPlayersForm';
 import Header from '../components/common/Header';
+import { VOCAB } from '../vocab';
 
 // /people/add — bulk add players + send branded parent invite emails
 // in one shot. The dedicated answer to "I'm a new coach and clicked
@@ -20,7 +21,7 @@ const AddRoster: React.FC = () => {
   if (!selectedTeamId || !selectedTeam) {
     return (
       <div className="min-h-screen bg-charcoal-950 text-bone">
-        <Header title="Add players" />
+        <Header title={VOCAB.buildSquad} />
         <div className="max-w-md mx-auto mt-10 px-4">
           <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-6">
             <p className="text-bone/80">No team selected. Pick a team first, then come back.</p>
@@ -36,7 +37,7 @@ const AddRoster: React.FC = () => {
   if (result) {
     return (
       <div className="min-h-screen bg-charcoal-950 text-bone pb-24">
-        <Header title="Roster updated" subtitle={selectedTeam.name} />
+        <Header title="Squad locked in" subtitle={selectedTeam.name} />
         <div className="max-w-xl mx-auto mt-8 px-4 sm:px-6 space-y-5">
           <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 ring-2 ring-emerald-400/40 mb-4">
@@ -82,7 +83,7 @@ const AddRoster: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950 text-bone pb-24">
-      <Header title="Add players" subtitle={selectedTeam.name} />
+      <Header title={VOCAB.buildSquad} subtitle={selectedTeam.name} />
       <div className="max-w-xl mx-auto mt-6 px-4 sm:px-6">
         <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-5 sm:p-6">
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">

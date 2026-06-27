@@ -146,8 +146,8 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
     <Sheet
       open={true}
       onClose={onClose}
-      kicker={result ? 'Player added' : 'Add player'}
-      title={result ? `${result.playerName} is on the roster` : 'New player'}
+      kicker={result ? 'On the squad' : 'Add to squad'}
+      title={result ? `${result.playerName} is in.` : 'New player'}
       footer={result ? (
         <Button variant="outline" onClick={onClose} fullWidth>Done</Button>
       ) : (
@@ -159,7 +159,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
             disabled={!name.trim() || selectedTeams.size === 0}
             loading={busy}
           >
-            Add player
+            Add to squad
           </Button>
         </>
       )}

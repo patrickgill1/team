@@ -904,7 +904,7 @@ const PlayerDevelopment: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-charcoal-950">
-      <Header title="Player Development" subtitle="Personalized plans that help each player grow." />
+      <Header title="Player Pathway" subtitle="Personalized growth plans for every player on the squad." />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Coach View / Parent View toggle — only renders for users who
             wear both hats (Patrick coaches Hunter's U10 team). Other

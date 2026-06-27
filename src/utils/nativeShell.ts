@@ -3,6 +3,13 @@
 // running in a normal browser is a no-op.
 
 import { Capacitor } from '@capacitor/core';
+// Static import so the splash plugin lives in the main bundle, not a
+// dynamic chunk. A flaky network on cold start used to fail the
+// `await import('@capacitor/splash-screen')` chunk fetch, the catch
+// path skipped the dismissal entirely, and users sat on the native
+// splash for the full 10s safety ceiling. Static import = no chunk,
+// no fetch, no failure mode. Bundle cost is ~2KB.
+import { SplashScreen } from '@capacitor/splash-screen';
 
 export async function initNativeShell(): Promise<void> {
   // Stamp the platform onto <body> for CSS-side branching even on
@@ -77,11 +84,13 @@ export async function initNativeShell(): Promise<void> {
  * Dismiss the native splash. Call this from React AFTER first paint so
  * the user never sees an empty WebView between splash and React tree.
  * Safe to call multiple times; SplashScreen.hide() is idempotent.
+ *
+ * Uses the static SplashScreen import above so there's no chunk-fetch
+ * race on cold start.
  */
 export async function hideSplash(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   try {
-    const { SplashScreen } = await import('@capacitor/splash-screen');
     await SplashScreen.hide({ fadeOutDuration: 200 });
   } catch (err) {
     console.warn('SplashScreen hide failed', err);

@@ -14,6 +14,9 @@ import Navigation from './components/common/Navigation';
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext';
 import InstallAppBanner from './components/common/InstallAppBanner';
 import ApplyClubBrand from './components/common/ApplyClubBrand';
+// Static import so the splash dismissal can't be blocked by a
+// failed dynamic-chunk fetch on cold start.
+import { hideSplash, notifyCapgoReady } from './utils/nativeShell';
 
 // Eagerly load auth pages (needed immediately)
 import SimpleAuth from './pages/SimpleAuth';
@@ -249,6 +252,24 @@ function App() {
   // the BrandedSplash mounts (i.e. from the user's perspective, from
   // when the animated logo first appears).
   const [splashPlaying, setSplashPlaying] = useState(true);
+
+  // Belt-and-suspenders splash dismissal. The BrandedSplash mount
+  // effect is the polished path: it paints the React overlay first,
+  // THEN tells iOS to fade the native splash so the handoff is
+  // seamless. But if something prevents BrandedSplash from mounting
+  // (a hidden render error, a context throw, a lazy chunk failing
+  // to resolve), users used to sit on the native splash for the
+  // full 10s native ceiling. This top-level effect runs the moment
+  // ANYTHING in the App tree mounts and fires hideSplash() at 1.2s
+  // unconditionally — short enough to feel snappy, long enough
+  // that the BrandedSplash path still owns the handoff in the
+  // happy case (since IT calls hideSplash within ~3 frames of
+  // mount, well before this timer fires). Idempotent on the
+  // Capacitor side, so calling it twice is harmless.
+  useEffect(() => {
+    const t = window.setTimeout(() => { void hideSplash(); }, 1200);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // "Just updated" detection. On every cold start, compare the running
   // Capgo bundle version against the last one we saw and stored in
@@ -1095,27 +1116,19 @@ const BrandedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
 
     const id1 = requestAnimationFrame(() => {
       const id2 = requestAnimationFrame(() => {
-        import('./utils/nativeShell').then((m) => {
-          // Start counting the visible window the moment we ask
-          // Capacitor to dismiss. The native dismiss completes a
-          // frame or two later, but starting the clock here keeps
-          // the perceived duration consistent across fast and slow
-          // cold starts.
-          startVisibleClock();
-          void m.hideSplash();
-          // Tell Capgo the OTA bundle (if any) booted to a working
-          // state. Must fire within Capgo's appReadyTimeout (default
-          // 10s) or it rolls back to the previous bundle on next
-          // launch. Doing it here means a JS-crashing bundle that
-          // never reaches splash dismiss IS rolled back — exactly
-          // the safety net we want.
-          void m.notifyCapgoReady();
-        }).catch(() => {
-          // hideSplash failure (e.g. web build, no Capacitor) — still
-          // play the React splash for the full duration so devs see
-          // the same animation users do.
-          startVisibleClock();
-        });
+        // Use the statically-imported helpers — no dynamic chunk
+        // fetch that can fail on flaky cold-start networks. Start
+        // the visible clock first so the perceived duration is
+        // consistent regardless of plugin failure.
+        startVisibleClock();
+        void hideSplash();
+        // Tell Capgo the OTA bundle (if any) booted to a working
+        // state. Must fire within Capgo's appReadyTimeout (default
+        // 10s) or it rolls back to the previous bundle on next
+        // launch. Doing it here means a JS-crashing bundle that
+        // never reaches splash dismiss IS rolled back — exactly
+        // the safety net we want.
+        void notifyCapgoReady();
         (BrandedSplash as any).__raf2 = id2;
       });
       (BrandedSplash as any).__raf1 = id1;

@@ -40,14 +40,14 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      // Safety ceiling only. Our React BrandedSplash hides the
-      // native splash via hideSplash() as soon as it mounts — the
-      // tight handoff avoids the flash Patrick reported. This 10s
-      // value is just a paranoid backstop for the (rare) case where
-      // React fails to mount; before, the 3000ms cap force-dismissed
-      // the native splash on slow cold starts before React was
-      // ready, leaving an ugly gap.
-      launchShowDuration: 10000,
+      // Safety ceiling only. App.tsx has a top-level effect that
+      // unconditionally calls hideSplash() at 1.2s, AND the polished
+      // BrandedSplash path dismisses within ~3 frames of mount on
+      // a normal cold start. This 3s ceiling is the worst-case
+      // backstop. The previous 10s was a regression — any single
+      // splash-blocking bug trapped users for 10 full seconds.
+      // Bumped back down after Patrick reported it 2026-06-27.
+      launchShowDuration: 3000,
       autoHide: false,
       backgroundColor: '#000000',
       showSpinner: false,

@@ -346,6 +346,20 @@ const Onboarding: React.FC = () => {
               />
             </div>
 
+            {/* Escape hatch for users who landed here by mistake.
+                Patrick 2026-06-26: 'what if I was a parent but
+                decided to use a different email? no place for a
+                code?' If they have an invite code (parent OR
+                coach invited as staff), let them out of the
+                team/club setup wizard and into the standard
+                invite consume flow. */}
+            <div className="mt-5 pt-4 border-t border-white/10 space-y-2">
+              <p className="text-bone/55 text-xs">
+                Already have an invite code from a coach or club admin?
+              </p>
+              <InviteCodeRow />
+            </div>
+
             {subscription && (
               <p className="mt-5 text-charcoal-400 text-xs">
                 Active subscription: <span className="text-bone font-semibold">{
@@ -803,6 +817,39 @@ const StepIndicator: React.FC<{ currentStep: Step; isClubTier: boolean }> = ({ c
           className={`flex-1 h-1 rounded ${i <= idx ? 'bg-brand-primary' : 'bg-white/10'}`}
         />
       ))}
+    </div>
+  );
+};
+
+// Inline invite-code input. Submitting routes to /join/<code> which
+// runs the existing invite-consume flow (validates the code, attaches
+// the user to the correct team, sets role appropriately). Lives at
+// the bottom of the welcome step so a user who landed here by mistake
+// has a way out without picking 'team' or 'club' first.
+const InviteCodeRow: React.FC = () => {
+  const [code, setCode] = React.useState('');
+  const handleGo = () => {
+    const c = code.trim();
+    if (!c) return;
+    window.location.href = `/join/${encodeURIComponent(c)}`;
+  };
+  return (
+    <div className="flex gap-2">
+      <input
+        type="text"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder="Invite code"
+        className="flex-1 bg-charcoal-900 border border-white/10 rounded-lg px-3 py-2 text-bone placeholder:text-bone/30 text-sm"
+      />
+      <button
+        type="button"
+        onClick={handleGo}
+        disabled={!code.trim()}
+        className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 disabled:opacity-50 text-bone text-xs font-bold whitespace-nowrap"
+      >
+        Use code
+      </button>
     </div>
   );
 };

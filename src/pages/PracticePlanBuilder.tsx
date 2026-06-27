@@ -100,10 +100,13 @@ const PracticePlanBuilder: React.FC = () => {
     return (
       <div className="max-w-2xl mx-auto p-6">
         <div className="bg-amber-500/15 border border-amber-400/30 rounded-xl p-6 text-center">
-          <div className="text-4xl mb-2">🔒</div>
-          <h2 className="font-bold text-amber-900">Coaches only</h2>
-          <p className="text-sm text-amber-300 mt-1">The Practice Plan Builder is available to coaches only.</p>
-          <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-charcoal-700 text-white rounded-lg">Back to Dashboard</Link>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-2 text-amber-300">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+          <h2 className="font-bold text-amber-100">Coaches only</h2>
+          <p className="text-sm text-amber-300 mt-1">Training Sessions are coach-side. Parents see what their kid does, not the playbook.</p>
+          <Link to="/dashboard" className="inline-block mt-4 px-4 py-2 bg-charcoal-700 text-white rounded-lg">Back to Team HQ</Link>
         </div>
       </div>
     );

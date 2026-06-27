@@ -91,7 +91,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
     <div className="mt-3 pt-3 border-t border-gray-100">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          📸 Event photos {photos.length > 0 && <span className="text-gray-700">· {photos.length}</span>}
+          Photos {photos.length > 0 && <span className="text-gray-700">· {photos.length}</span>}
         </span>
         {canUpload && (
           <>

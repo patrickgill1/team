@@ -18,9 +18,12 @@ const QuickGameLauncher: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 text-white flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="text-5xl mb-3">🔒</div>
-          <p className="text-white/70">Only coaches can start a game.</p>
-          <Link to="/dashboard" className="mt-4 inline-block text-brand-primary-soft hover:text-bone text-sm">← Dashboard</Link>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-3 text-white/40">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+          <p className="text-white/70">Coaches only — kickoff is a coach-side action.</p>
+          <Link to="/dashboard" className="mt-4 inline-block text-brand-primary-soft hover:text-bone text-sm">← Team HQ</Link>
         </div>
       </div>
     );

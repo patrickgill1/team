@@ -558,7 +558,7 @@ const PlayerMediaPage: React.FC = () => {
           }
           // Push to parents who have the app — silent for those who don't.
           sendPushToPlayerParents(pid, {
-            title: `${player.name}: new ${isVideo ? 'clip' : 'photo'} 📸`,
+            title: `${player.name}: new ${isVideo ? 'clip' : 'photo'}`,
             body: uploadCaption.trim() || `Uploaded by ${userData.name}`,
             path: `/player/${pid}`,
           }, 'clip');
@@ -1087,7 +1087,7 @@ const PlayerMediaPage: React.FC = () => {
               messages.push({ to: p.email, subject, html });
             }
             sendPushToPlayerParents(pid, {
-              title: `${tp.name} tagged in a ${isVideo ? 'clip' : 'photo'} 📸`,
+              title: `${tp.name} tagged in a ${isVideo ? 'clip' : 'photo'}`,
               body: (selectedMedia as any).caption || `Tagged by ${userData.name}`,
               path: `/player/${pid}`,
             }, 'clip');
@@ -1469,7 +1469,7 @@ const PlayerMediaPage: React.FC = () => {
                   {[
                     { k: 'all' as const, label: 'All' },
                     { k: 'video' as const, label: '🎬 Videos' },
-                    { k: 'photo' as const, label: '📸 Photos' },
+                    { k: 'photo' as const, label: 'Photos' },
                   ].map((opt) => (
                     <button
                       key={opt.k}
@@ -2143,7 +2143,7 @@ const PlayerMediaPage: React.FC = () => {
                       }}
                       className="px-2 py-0.5 border border-white/20 text-white/50 rounded-full text-xs hover:text-white/80 hover:border-white/40 transition-colors"
                     >
-                      {selectedMedia.tags && selectedMedia.tags.length > 0 ? '✏️ Edit' : '+ Tags'}
+                      {selectedMedia.tags && selectedMedia.tags.length > 0 ? 'Edit tags' : '+ Tags'}
                     </button>
                   )}
                 </div>

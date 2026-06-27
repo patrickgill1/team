@@ -321,7 +321,7 @@ const PlayerDevelopment: React.FC = () => {
             sendEmailBatch(parents.map(p => ({ to: p.email, subject, html })));
           }
           sendPushToPlayerParents(pid, {
-            title: `${player.name}: new development plan 🎯`,
+            title: `${player.name}: new growth plan`,
             body: `${planTitle.trim()} · ${goals.length} goal${goals.length === 1 ? '' : 's'}`,
             path: `/development`,
           }, 'devPlan');
@@ -2112,7 +2112,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   onClick={onEdit}
                   className="text-sm text-brand-primary hover:text-brand-primary-soft px-3 py-1 rounded-lg hover:bg-brand-primary/15 font-medium"
                 >
-                  ✏️ Edit Plan
+                  Edit plan
                 </button>
                 <button
                   onClick={onArchive}

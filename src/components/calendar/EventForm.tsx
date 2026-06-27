@@ -520,7 +520,7 @@ const EventForm: React.FC<EventFormProps> = ({
             hour: 'numeric', minute: '2-digit',
           });
           void sendPushToTeam(selectedTeamId, {
-            title: `✏️ Event updated: ${formData.title}`,
+            title: `Updated: ${formData.title}`,
             body: `${whenStr}${formData.location ? ` · ${formData.location}` : ''}`,
             url: `/events/${editingEvent.id}`,
           }, { excludeUid: userData?.uid });

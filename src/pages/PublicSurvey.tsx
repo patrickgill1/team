@@ -182,9 +182,12 @@ const PublicSurvey: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
         <InAppSurveyBackBar />
         <div className="text-center max-w-sm mx-auto my-auto">
-          <div className="text-5xl mb-4">🔒</div>
-          <h1 className="text-xl font-bold text-bone mb-2">Survey Closed</h1>
-          <p className="text-bone/50 text-sm">This survey is no longer accepting responses.</p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-4 text-bone/40">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+          <h1 className="text-xl font-bold text-bone mb-2">Survey closed</h1>
+          <p className="text-bone/50 text-sm">This one's not taking responses anymore.</p>
         </div>
       </div>
     );

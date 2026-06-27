@@ -80,6 +80,7 @@ const Tickets = React.lazy(() => import('./pages/Tickets'));
 const TicketDetail = React.lazy(() => import('./pages/TicketDetail'));
 const ClubAdmins = React.lazy(() => import('./pages/ClubAdmins'));
 const AuthAction = React.lazy(() => import('./pages/AuthAction'));
+const AuthImpersonate = React.lazy(() => import('./pages/AuthImpersonate'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
@@ -397,6 +398,7 @@ function App() {
                   default action link to point here so we can render a
                   branded success/error page. */}
               <Route path="/auth/action" element={<AuthAction />} />
+              <Route path="/auth/impersonate" element={<AuthImpersonate />} />
               <Route path="/login" element={<Navigate to="/auth" replace />} />
               <Route path="/setup" element={<Navigate to="/auth" replace />} />
               <Route path="/vote/:votingId" element={<PublicVote />} />

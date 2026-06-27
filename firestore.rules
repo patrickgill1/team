@@ -55,11 +55,18 @@ service cloud.firestore {
       // CREATE new content. Forces them through goalkickr.com signup.
       return isAuthed() && userDoc().subscriptionActive == true;
     }
+    function hasClubCoverage() {
+      // Stamped on invite consume when a coach joins a team in a
+      // real (non-default-solo) club. The club owner pays for the
+      // staff; invited coaches inherit coverage rather than each
+      // needing to start their own trial.
+      return isAuthed() && userDoc().coverageSource == 'club';
+    }
     function canCoachWrite() {
       // The trial wall. Non-coaches (parents) and platform admin
-      // bypass. Coaches must have an active subscription stamped on
-      // their user doc by the Stripe webhook.
-      return isPlatformAdmin() || !isCoachRole() || hasActiveSub();
+      // bypass. Coaches must have either an active subscription
+      // OR club coverage inherited via invite.
+      return isPlatformAdmin() || !isCoachRole() || hasActiveSub() || hasClubCoverage();
     }
 
     // Public: anyone can read active votings (for the /vote page)

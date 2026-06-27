@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -53,6 +53,10 @@ const ClubOverview: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Club doc for the setup checklist — branding, stripe, and admin
+  // counts all live here. Loaded once at the top so the checklist
+  // can compute progress without each item querying separately.
+  const [clubDoc, setClubDoc] = useState<any | null>(null);
 
   const [tab, setTab] = useState<TabKey>('overview');
   const [search, setSearch] = useState('');
@@ -132,6 +136,20 @@ const ClubOverview: React.FC = () => {
         getDocuments('users', []).catch(() => []),
       ]);
       setTeams(teamDocs);
+
+      // Load the club doc itself for the setup checklist (stripeAccountId,
+      // brandColor, logoUrl, admin counts). Use the first clubId only —
+      // a user owning multiple clubs is rare and the checklist is
+      // primarily a first-launch tool for fresh admins.
+      if (clubIds.length > 0) {
+        try {
+          const clubSnap = await getDoc(doc(db, 'clubs', clubIds[0]));
+          if (clubSnap.exists()) setClubDoc({ id: clubSnap.id, ...(clubSnap.data() as any) });
+        } catch (err) {
+          console.warn('[club] club doc load failed', err);
+        }
+      }
+
       setPlayers((p as any[])
         .filter((pl) => pl && pl.isActive !== false)
         .filter((pl) => {
@@ -255,6 +273,13 @@ const ClubOverview: React.FC = () => {
         subtitle={`${teams.length} team${teams.length === 1 ? '' : 's'} · ${players.length} player${players.length === 1 ? '' : 's'} · ${users.length} member${users.length === 1 ? '' : 's'}`}
       />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        {/* Setup checklist — first-launch coaching for fresh club
+            admins who land here right after the OnboardingGate
+            "Start a club" flow. Surfaces the four things they need
+            to do to make the club usable. Dismissable, auto-hides
+            once everything is checked. */}
+        <ClubSetupChecklist club={clubDoc} teams={teams} users={users} navigate={navigate} />
+
         {/* Admin cockpit — moved here from Dashboard 2026-06-21. Patrick:
             'this option exists as part of the main dashboard, but only
             happens once a year. it needs to be in the club section
@@ -1098,6 +1123,140 @@ const PaymentsTab: React.FC = () => {
             : 'Connect Stripe above to start creating invoices.'}
         </div>
       </div>
+    </div>
+  );
+};
+
+// Setup checklist shown at the top of /club. Hidden once all items
+// are complete OR the admin manually dismisses (per-club localStorage
+// key so each club gets its own checklist state). Drives a fresh
+// admin from "just signed up" to "club is usable" without having to
+// hunt through the rest of the page.
+const ClubSetupChecklist: React.FC<{
+  club: any | null;
+  teams: any[];
+  users: any[];
+  navigate: (path: string) => void;
+}> = ({ club, teams, users, navigate }) => {
+  const dismissKey = club?.id ? `gk_club_checklist_dismissed_${club.id}` : null;
+  const [dismissed, setDismissed] = React.useState<boolean>(() => {
+    if (!dismissKey) return false;
+    try { return localStorage.getItem(dismissKey) === '1'; } catch { return false; }
+  });
+  React.useEffect(() => {
+    if (!dismissKey) return;
+    try { setDismissed(localStorage.getItem(dismissKey) === '1'); } catch { /* ignore */ }
+  }, [dismissKey]);
+
+  if (!club) return null;
+
+  // Each item is "done" when the underlying state is set up. The
+  // checklist hides automatically once every item is true, even if
+  // the admin never tapped dismiss.
+  const ownerUid = club.ownerUid;
+  const adminUids: string[] = Array.isArray(club.adminUids) ? club.adminUids : [];
+  const otherAdmins = adminUids.filter((uid) => uid !== ownerUid);
+  // "Has a coach" — any coach user attached to a team in this club
+  // beyond the owner themselves. Skips solo owners who haven't
+  // brought anyone else in yet.
+  const teamCoachIds = new Set<string>();
+  for (const t of teams) {
+    if (t.headCoachId && t.headCoachId !== ownerUid) teamCoachIds.add(t.headCoachId);
+    for (const c of (Array.isArray(t.coachIds) ? t.coachIds : [])) {
+      if (c !== ownerUid) teamCoachIds.add(c);
+    }
+  }
+
+  const items = [
+    {
+      key: 'team',
+      done: teams.length > 0,
+      label: 'Add your first team',
+      hint: teams.length === 0 ? 'Spin up a team so coaches have somewhere to land.' : `${teams.length} team${teams.length === 1 ? '' : 's'} in this club.`,
+      go: () => navigate('/teams'),
+    },
+    {
+      key: 'coach',
+      done: teamCoachIds.size > 0,
+      label: 'Invite a head coach',
+      hint: teamCoachIds.size === 0 ? 'Send the invite link from any team page so a coach can take over.' : `${teamCoachIds.size} coach${teamCoachIds.size === 1 ? '' : 'es'} attached.`,
+      go: () => navigate('/people'),
+    },
+    {
+      key: 'admin',
+      done: otherAdmins.length > 0,
+      label: 'Add a co-admin',
+      hint: otherAdmins.length === 0 ? 'Treasurer, registrar, or director — grant scoped club access.' : `${otherAdmins.length} co-admin${otherAdmins.length === 1 ? '' : 's'}.`,
+      go: () => navigate('/club/admins'),
+    },
+    {
+      key: 'stripe',
+      done: !!club.stripeAccountId,
+      label: 'Connect Stripe for payments',
+      hint: club.stripeAccountId ? 'Stripe connected.' : 'Required to collect dues, tournament fees, and merch.',
+      go: () => navigate('/club?tab=payments'),
+    },
+    {
+      key: 'branding',
+      done: !!(club.brandColor || club.logoUrl),
+      label: 'Customize your branding',
+      hint: (club.brandColor || club.logoUrl) ? 'Logo or color set.' : 'Logo + accent color show up across every team in the club.',
+      go: () => navigate('/club/branding'),
+    },
+  ];
+
+  const doneCount = items.filter((i) => i.done).length;
+  // Auto-hide once every item is checked (don't make the admin tap
+  // dismiss in that case — silence is the reward). Manual dismiss
+  // covers the case where they don't care about Stripe yet.
+  if (doneCount === items.length) return null;
+  if (dismissed) return null;
+
+  return (
+    <div className="bg-gradient-to-br from-brand-primary/15 to-charcoal-900 border border-brand-primary/30 rounded-2xl p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Welcome to {club.name || 'your club'}</p>
+          <h2 className="text-bone text-lg font-black leading-tight">Set up your club</h2>
+          <p className="text-bone/55 text-xs mt-1">{doneCount} of {items.length} done. Knock these out and you&apos;re ready to invite families.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setDismissed(true);
+            try { if (dismissKey) localStorage.setItem(dismissKey, '1'); } catch { /* ignore */ }
+          }}
+          className="text-bone/40 hover:text-bone/85 text-xs font-bold tracking-wide"
+        >
+          Dismiss
+        </button>
+      </div>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item.key}>
+            <button
+              type="button"
+              onClick={item.go}
+              className="w-full flex items-start gap-3 text-left bg-charcoal-950/50 hover:bg-charcoal-950 ring-1 ring-white/5 hover:ring-brand-primary/30 rounded-xl p-3 transition-colors group"
+            >
+              <span className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${item.done ? 'bg-emerald-500 border-emerald-500' : 'border-white/25'}`}>
+                {item.done && (
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className={`font-bold text-sm ${item.done ? 'text-bone/55 line-through' : 'text-bone'}`}>{item.label}</p>
+                <p className="text-bone/45 text-xs mt-0.5">{item.hint}</p>
+              </div>
+              <svg className={`w-4 h-4 mt-1 flex-shrink-0 ${item.done ? 'text-bone/20' : 'text-bone/40 group-hover:text-brand-primary'}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };

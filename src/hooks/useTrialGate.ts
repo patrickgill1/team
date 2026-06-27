@@ -50,6 +50,15 @@ export function useTrialGate(): TrialGateState {
   if (!isCoachRole || isPlatformAdmin) {
     return { gated: false, reason: 'none', loading: false };
   }
+  // Coaches who joined via a club invite inherit coverage from the
+  // club — the club owner is paying on behalf of the staff. Stamped
+  // at invite-consume time (see consumeInvite in utils/invites.ts).
+  // Default-solo "clubs" don't qualify; those are the implicit
+  // wrapper around a one-coach team, and the owner pays on a Coach
+  // tier, not Club tier.
+  if ((userData as any).coverageSource === 'club') {
+    return { gated: false, reason: 'none', loading: false };
+  }
   if (isActive) return { gated: false, reason: 'none', loading: false };
 
   const status = subscription?.status;

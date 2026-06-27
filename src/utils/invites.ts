@@ -232,6 +232,44 @@ export async function consumeInvite(inviteId: string, uid: string): Promise<{ ok
     });
 
     return { ok: true as const, type: inv.type as Invite['type'], teamId: inv.teamId, playerId: inv.playerId };
+  }).then(async (result) => {
+    // Post-transaction: an invited coach / team_manager joining a
+    // team that belongs to a real (non-default-solo) club inherits
+    // their coverage from the club. They don't need to start their
+    // own trial — the club owner is paying for the platform on
+    // their staff's behalf. Stamp coverageSource so useTrialGate
+    // can un-gate without re-doing this lookup on every render.
+    //
+    // Outside the transaction because it needs reads from teams +
+    // clubs collections, and getting those into the same tx for
+    // every invite consume would balloon doc-read costs on parent
+    // invites that don't care.
+    if (!result.ok) return result;
+    if (result.type !== 'coach' && result.type !== 'team_manager') return result;
+    try {
+      const teamSnap = await getDoc(doc(db, 'teams', result.teamId));
+      if (!teamSnap.exists()) return result;
+      const teamData: any = teamSnap.data();
+      const clubId: string | undefined = teamData.clubId;
+      if (!clubId) return result;
+      const clubSnap = await getDoc(doc(db, 'clubs', clubId));
+      if (!clubSnap.exists()) return result;
+      const clubData: any = clubSnap.data();
+      // Skip default-solo clubs — those are the implicit wrapper
+      // around a single-coach team and the owner pays as a
+      // Coach-tier subscriber, not as a club. Their invited
+      // assistant coaches still need to pay.
+      if (clubData.isDefaultSoloClub === true) return result;
+      await updateDoc(doc(db, 'users', uid), {
+        coverageSource: 'club',
+        coverageClubId: clubId,
+      });
+    } catch (err) {
+      // Non-fatal — coach still joins the team, just hits the
+      // trial gate. Better than failing the whole invite consume.
+      console.warn('[consumeInvite] club coverage stamp failed', err);
+    }
+    return result;
   });
 }
 

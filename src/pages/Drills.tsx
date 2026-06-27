@@ -261,7 +261,7 @@ const Drills: React.FC = () => {
           <select
             value={filterTopic}
             onChange={(e) => setFilterTopic(e.target.value as any)}
-            className="bg-charcoal-900 border border-white/15 rounded-lg px-3 py-2 text-sm"
+            className="bg-charcoal-900 text-bone [color-scheme:dark] border border-white/15 rounded-lg px-3 py-2 text-sm"
           >
             <option value="all">All topics</option>
             {TOPICS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -269,7 +269,7 @@ const Drills: React.FC = () => {
           <select
             value={filterAge as string}
             onChange={(e) => setFilterAge(e.target.value as any)}
-            className="bg-charcoal-900 border border-white/15 rounded-lg px-3 py-2 text-sm"
+            className="bg-charcoal-900 text-bone [color-scheme:dark] border border-white/15 rounded-lg px-3 py-2 text-sm"
           >
             {AGE_BANDS.map(a => <option key={a.value as string} value={a.value as string}>{a.label}</option>)}
           </select>
@@ -567,12 +567,12 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
           </Field>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Field label="Topic">
-              <select value={topic} onChange={(e) => setTopic(e.target.value as any)} className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg">
+              <select value={topic} onChange={(e) => setTopic(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg">
                 {TOPICS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </Field>
             <Field label="Category">
-              <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg">
+              <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg">
                 <option value="technical">Technical</option>
                 <option value="tactical">Tactical</option>
                 <option value="physical">Physical</option>
@@ -580,7 +580,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               </select>
             </Field>
             <Field label="Age band">
-              <select value={ageBand as string} onChange={(e) => setAgeBand(e.target.value as any)} className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg">
+              <select value={ageBand as string} onChange={(e) => setAgeBand(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg">
                 {AGE_BANDS.map(a => <option key={a.value as string} value={a.value as string}>{a.label}</option>)}
               </select>
             </Field>

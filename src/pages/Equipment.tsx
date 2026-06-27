@@ -127,7 +127,7 @@ const Equipment: React.FC = () => {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="bg-charcoal-900 border border-white/15 rounded-md px-2 py-1 text-xs"
+              className="bg-charcoal-900 text-bone [color-scheme:dark] border border-white/15 rounded-md px-2 py-1 text-xs"
             >
               <option value="name">Name</option>
               <option value="jersey">Jersey #</option>

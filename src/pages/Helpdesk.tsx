@@ -381,7 +381,7 @@ const NewTicketModal: React.FC<{
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value as any)}
-                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900 text-bone [color-scheme:dark]"
               >
                 {(Object.keys(CATEGORY_LABEL) as TicketCategory[]).map(k => (
                   <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
@@ -393,7 +393,7 @@ const NewTicketModal: React.FC<{
               <select
                 value={priority}
                 onChange={e => setPriority(e.target.value as any)}
-                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900 text-bone [color-scheme:dark]"
               >
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>

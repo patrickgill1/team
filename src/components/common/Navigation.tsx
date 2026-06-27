@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import { VOCAB } from '../../vocab';
 import { Link, useLocation } from 'react-router-dom';
 
 // Subscribe to body class changes so React can re-render when TeamChat
@@ -160,8 +161,8 @@ const Navigation: React.FC = () => {
   // AppIcon name — kept consistent (single stroke weight, outline)
   // across nav and Settings to match the cleaner Ollie-style look.
   const allNavItems: Array<{ name: string; path: string; icon: any; group: 'main' | 'apps' | 'account' }> = [
-    { name: 'Dashboard', path: '/dashboard', icon: 'home', group: 'main' },
-    { name: 'Players', path: '/players', icon: 'players', group: 'main' },
+    { name: VOCAB.teamHq, path: '/dashboard', icon: 'home', group: 'main' },
+    { name: VOCAB.squad, path: '/players', icon: 'players', group: 'main' },
     // People directory is staff-only — parents don't see it surfaced
     // in the nav (and the page itself enforces the same guard).
     ...(isUserCoach || isUserClubAdmin

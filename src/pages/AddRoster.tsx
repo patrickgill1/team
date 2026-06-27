@@ -50,7 +50,7 @@ const AddRoster: React.FC = () => {
             </h1>
             {result.invitesSent > 0 ? (
               <p className="text-charcoal-300 text-sm mt-2">
-                {result.invitesSent} parent {result.invitesSent === 1 ? 'invite' : 'invites'} sent. They&apos;ll get a branded email with a link to join {selectedTeam.name}.
+                {result.invitesSent} {result.invitesSent === 1 ? 'invite' : 'invites'} sent. Parents get a link to join {selectedTeam.name} in their inbox.
               </p>
             ) : result.created > 0 ? (
               <p className="text-charcoal-300 text-sm mt-2">
@@ -92,8 +92,7 @@ const AddRoster: React.FC = () => {
             Roster + parent invites
           </h1>
           <p className="text-charcoal-300 text-sm mt-2 leading-snug">
-            Add as many players as you want. If you include a parent email, we&apos;ll send each parent
-            a branded GoalKickr invite with a private link to join the team.
+            Drop in as many players as you want. Parents with an email get a private link to join in their inbox.
           </p>
 
           <div className="mt-6">

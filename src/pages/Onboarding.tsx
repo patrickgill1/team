@@ -443,8 +443,8 @@ const Onboarding: React.FC = () => {
             <Kicker>Add your roster</Kicker>
             <H>Who&apos;s on your team?</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              Add players + parent emails and we&apos;ll send each parent a branded GoalKickr invite.
-              You can leave rows blank or add more. Add the rest later from /people/add.
+              Drop in players + parent emails. Parents get a link to join in their inbox.
+              Skip rows you&apos;re not ready for. Add the rest later from the Team page.
             </p>
             <div className="mt-5">
               <BulkAddPlayersForm

@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { isCoach } from '../utils/helpers';
+import { VOCAB } from '../vocab';
 
 const Players: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +54,7 @@ const Players: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
-      <Header title="Players" subtitle="Roster, profiles, and contact info" />
+      <Header title={VOCAB.squad} subtitle="Cards, contact info, and who's on the bench" />
       <ImportPlayersModal
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}

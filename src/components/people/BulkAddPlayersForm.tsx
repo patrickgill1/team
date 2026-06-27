@@ -147,9 +147,9 @@ const BulkAddPlayersForm: React.FC<Props> = ({
           Patrick: "why is the email optional? they need to be
           invited, or will it share a link, or what?" */}
       <div className="rounded-md bg-charcoal-950 ring-1 ring-white/10 px-3 py-2.5 mb-4 text-charcoal-300 text-xs leading-relaxed">
-        <span className="text-bone font-bold">With a parent email:</span> they get a branded GoalKickr invite immediately.
+        <span className="text-bone font-bold">With an email:</span> we shoot the parent a link to join. They're in within a minute.
         <br />
-        <span className="text-bone font-bold">Without:</span> we&apos;ll still add the player — you can grab a join link from the Team page and share it however you like.
+        <span className="text-bone font-bold">Without:</span> we add the player anyway. Grab a join link from the Team page and send it however you want.
       </div>
 
       <div className="space-y-3">

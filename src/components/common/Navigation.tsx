@@ -23,6 +23,7 @@ import WallHeaderButton from './WallHeaderButton';
 import ProfileMenuSheet from './ProfileMenuSheet';
 import ChatHeaderButton from './ChatHeaderButton';
 import { useTeam } from '../../contexts/TeamContext';
+import { useSidebar } from '../../contexts/SidebarContext';
 import { useClubStore } from '../../hooks/useClubStore';
 import { isCoach, isClubAdmin } from '../../utils/helpers';
 // Legacy InviteSystem import removed — invites now live on /people.
@@ -37,7 +38,7 @@ const Navigation: React.FC = () => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isProfileSheetOpen, setIsProfileSheetOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebar();
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -189,7 +190,7 @@ const Navigation: React.FC = () => {
     // Empty-state-as-nav-entry felt like clutter on clubs that don't
     // run a store. Patrick 2026-06-25.
     ...(hasStore ? [{ name: 'Team Store', path: '/store', icon: 'soccer' as const, group: 'apps' as const }] : []),
-    { name: 'Calendar', path: '/calendar', icon: 'calendar', group: 'apps' },
+    { name: 'Events', path: '/calendar', icon: 'calendar', group: 'apps' },
     { name: 'Stats', path: '/stats', icon: 'stats', group: 'apps' },
     { name: 'Full Games', path: '/full-games', icon: 'film', group: 'apps' },
     { name: 'Highlights', path: '/highlights', icon: 'highlight', group: 'apps' },
@@ -251,7 +252,7 @@ const Navigation: React.FC = () => {
   const moreSections: { label: string; items: typeof allNavItems }[] = [
     {
       label: 'Schedule',
-      items: ['Calendar', 'Attendance']
+      items: ['Events', 'Attendance']
         .map(findItem).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {
@@ -311,7 +312,7 @@ const Navigation: React.FC = () => {
             )}
           </Link>
           <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onClick={toggleSidebar}
             className="text-brand-primary-soft hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
           >
             <svg className={`w-5 h-5 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

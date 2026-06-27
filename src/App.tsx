@@ -11,6 +11,7 @@ import SilentErrorBoundary from './components/common/SilentErrorBoundary';
 import OnboardingGate from './components/gates/OnboardingGate';
 import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent';
 import Navigation from './components/common/Navigation';
+import { SidebarProvider, useSidebar } from './contexts/SidebarContext';
 import InstallAppBanner from './components/common/InstallAppBanner';
 import ApplyClubBrand from './components/common/ApplyClubBrand';
 
@@ -199,37 +200,24 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   return (
+    <SidebarProvider>
+      <AppLayoutShell>{children}</AppLayoutShell>
+    </SidebarProvider>
+  );
+};
+
+// Inner shell — needs to live below SidebarProvider so it can read
+// the collapsed state and shift the <main> ml accordingly. Without
+// this layer, collapsing the sidebar to lg:w-20 left a 44 rem ghost
+// band between sidebar and content because main was hardcoded
+// lg:ml-64.
+const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { collapsed } = useSidebar();
+  return (
     <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
       <Navigation />
-      {/* Main content offset: chrome is safe-top + h-14 (the React
-          header has safe-top padding now that the AppDelegate
-          native strip is gone). pt-14 alone clears the h-14
-          content row but NOT the safe-area-top padding, so on
-          devices with a Dynamic Island / notch the first ~59px of
-          page content was rendering behind the chrome. The inline
-          style adds env(safe-area-inset-top) on top of the h-14
-          (3.5rem) offset so page content always starts cleanly
-          below the chrome regardless of device. lg sidebar layout
-          unchanged. */}
-      {/* paddingTop was an inline style that always WON against
-          lg:pt-0 (Tailwind responsive class), so on desktop / iPad
-          landscape the main element still had ~115px of top
-          padding it shouldn't have. Pages using height: 100dvh
-          (TeamChat's desktop two-pane layout) then overflowed by
-          that amount and pushed the composer off-screen. Patrick:
-          'i can[not] get a type box to show up on ipad simulator
-          in chat.' Switched to Tailwind arbitrary-value class so
-          lg:pt-0 can actually override it. */}
-      {/* Mount-only — subscribes to the active club's brandColor and
-          writes it to --brand-primary on document.documentElement so
-          any surface using bg-brand-primary (Button primary, hero
-          accents, etc.) re-tints in real time when the admin saves
-          a new color on /club/branding. Falls back to GoalKickr
-          crimson when no club / no brandColor is set. */}
       <ApplyClubBrand />
-      <main className="lg:ml-64 pt-[calc(env(safe-area-inset-top)+3.5rem)] lg:pt-0 pb-20 lg:pb-0">
-        {/* Mobile-web only: prompt to install the native app. No-ops
-            inside Capacitor, on desktop, or after dismissal. */}
+      <main className={`${collapsed ? 'lg:ml-20' : 'lg:ml-64'} pt-[calc(env(safe-area-inset-top)+3.5rem)] lg:pt-0 pb-20 lg:pb-0 transition-all duration-300`}>
         <InstallAppBanner />
         {children}
       </main>

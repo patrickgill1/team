@@ -1112,7 +1112,7 @@ const PlayerDevelopment: React.FC = () => {
                       const drill = drillsById[(seedDrill as any).drillId];
                       return (
                         <>
-                          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">Set a Challenge</p>
+                          <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">Add to a Plan</p>
                           <h2 className="text-base font-bold text-bone">{drill.title}</h2>
                         </>
                       );

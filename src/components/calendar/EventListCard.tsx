@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarEvent } from '../../types';
 import { mapsUrl } from '../../utils/maps';
+import { useTeam } from '../../contexts/TeamContext';
 
 // Event list card — cinematic dark surface matching the GoalKickr v9
 // mockup. Black-on-black with crimson accents: vertical date badge
@@ -114,6 +115,11 @@ const EventListCard: React.FC<Props> = ({
 
   const t = typeSpec(event.type);
   const cancelled = !!(event as any).isCancelled;
+  // Kit color label comes from the team doc, not a hardcoded "Black /
+  // White" — different teams have different uniforms.
+  const { selectedTeam } = useTeam();
+  const isHome = (event as any).homeAway === 'home';
+  const kitLabel = isHome ? selectedTeam?.homeKitColor : selectedTeam?.awayKitColor;
 
   // RSVP pill chrome per status. The "going" pill is the loudest
   // (filled emerald) since it's a celebratory state; maybe/can't are
@@ -245,13 +251,15 @@ const EventListCard: React.FC<Props> = ({
                   <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-widest uppercase">
                     <span
                       className={`inline-block w-2.5 h-2.5 rounded-sm border ${
-                        (event as any).homeAway === 'home'
+                        isHome
                           ? 'bg-charcoal-950 border-charcoal-600'
-                          : 'bg-white border-charcoal-400'
+                          : 'bg-charcoal-700 border-charcoal-400'
                       }`}
                       aria-hidden
                     />
-                    <span className="text-charcoal-300">{(event as any).homeAway === 'home' ? 'Black' : 'White'}</span>
+                    <span className="text-charcoal-300">
+                      {kitLabel || (isHome ? 'Home' : 'Away')}
+                    </span>
                   </span>
                 </>
               )}

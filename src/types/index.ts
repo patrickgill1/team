@@ -1623,6 +1623,14 @@ export interface Team {
     lon?: number;
     savedAt?: Date;
   }>;
+  /** Kit color labels surfaced on event cards so parents know which kit
+   *  to pack for home vs away games. Free-form strings (e.g. "Black",
+   *  "Red/White stripe") rather than enums — clubs use everything from
+   *  Pantone codes to nicknames. When unset, the home/away picker on
+   *  the event form omits the swatch label entirely instead of showing
+   *  another team's defaults. */
+  homeKitColor?: string;
+  awayKitColor?: string;
   createdAt: Date;
   updatedAt?: Date;
 }

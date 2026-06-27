@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useSubscription } from '../hooks/useSubscription';
-import { createPlayerInvite, inviteUrl } from '../utils/invites';
+import { createPlayerInvite, createStaffInvite, inviteUrl } from '../utils/invites';
+import { sendEmail } from '../utils/notify';
 import { openWebSignup } from '../utils/subscriptionApi';
 import BulkAddPlayersForm from '../components/people/BulkAddPlayersForm';
 import { Share } from '@capacitor/share';
@@ -86,7 +87,21 @@ const Onboarding: React.FC = () => {
   const [teamName, setTeamName] = useState(firstName ? `${firstName}'s team` : '');
   const [teamFormat, setTeamFormat] = useState('7v7');
   const [teamAgeGroup, setTeamAgeGroup] = useState('U10');
+  // Kit colors are free-form strings so clubs can use everything from
+  // "Black" to "Red & Gold" to "Royal Blue / White". Left blank by
+  // default — the event form hides the swatch label when unset rather
+  // than guessing.
+  const [homeKitColor, setHomeKitColor] = useState('');
+  const [awayKitColor, setAwayKitColor] = useState('');
   const [clubName, setClubName] = useState(firstName ? `${firstName}'s club` : '');
+  // Staff invites collected on the parents-invite step. One row per
+  // staff member, with role (assistant_coach | team_manager). Emails
+  // get an invite link to claim the role once they sign in.
+  const [staffEmails, setStaffEmails] = useState<Array<{ email: string; role: 'assistant_coach' | 'team_manager' }>>([
+    { email: '', role: 'assistant_coach' },
+  ]);
+  const [staffSentCount, setStaffSentCount] = useState(0);
+  const [staffBusy, setStaffBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdTeamId, setCreatedTeamId] = useState<string | null>(null);
@@ -145,6 +160,8 @@ const Onboarding: React.FC = () => {
         season: '',
         ageGroup: teamAgeGroup,
         format: teamFormat,
+        homeKitColor: homeKitColor.trim() || undefined,
+        awayKitColor: awayKitColor.trim() || undefined,
         updatedAt: new Date(),
       });
       if (!newTeamId) throw new Error('Team creation returned no id.');
@@ -315,6 +332,66 @@ const Onboarding: React.FC = () => {
     }
   };
 
+  // ─ Staff invites ─
+  // Generate one invite link per email + send a short branded email.
+  // Skipped rows with no email are ignored. Failures don't block the
+  // ones that succeed — sentCount reflects how many actually landed.
+  const handleSendStaffInvites = async () => {
+    if (!userData || !createdTeamId) return;
+    const validRows = staffEmails.filter(r => r.email.trim().includes('@'));
+    if (validRows.length === 0) return;
+    setStaffBusy(true);
+    setError(null);
+    let sent = 0;
+    try {
+      for (const row of validRows) {
+        try {
+          const inv = await createStaffInvite({
+            teamId: createdTeamId,
+            role: row.role,
+            createdBy: userData.uid,
+            maxUses: 1,
+            note: `Invited by ${userData.name || 'the coach'} during onboarding`,
+          });
+          const link = inviteUrl(inv.id);
+          const roleLabel = row.role === 'team_manager' ? 'team manager' : 'assistant coach';
+          const coachFirst = (userData.name || '').split(' ')[0] || 'Coach';
+          await sendEmail({
+            to: row.email.trim(),
+            subject: `${coachFirst} added you as ${roleLabel === 'team manager' ? 'team manager' : 'assistant coach'} on ${teamName}`,
+            text: [
+              `Hi,`,
+              ``,
+              `${userData.name || 'The coach'} added you as ${roleLabel} for ${teamName} on GoalKickr.`,
+              ``,
+              `Tap to claim your spot:`,
+              link,
+              ``,
+              `This link is just for you and works once.`,
+              ``,
+              `App Store: https://apps.apple.com/app/id6770324158`,
+              `Google Play: https://play.google.com/store/apps/details?id=com.firefc.team`,
+            ].join('\n'),
+          });
+          sent += 1;
+        } catch (rowErr) {
+          console.warn('staff invite row failed', rowErr);
+        }
+      }
+      setStaffSentCount(sent);
+    } catch (err: any) {
+      setError(String(err?.message || err));
+    } finally {
+      setStaffBusy(false);
+    }
+  };
+
+  const updateStaffRow = (i: number, patch: Partial<{ email: string; role: 'assistant_coach' | 'team_manager' }>) => {
+    setStaffEmails(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  };
+  const addStaffRow = () => setStaffEmails(prev => [...prev, { email: '', role: 'assistant_coach' }]);
+  const removeStaffRow = (i: number) => setStaffEmails(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev);
+
   // ─ Render ─
   return (
     <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 text-bone">
@@ -407,6 +484,37 @@ const Onboarding: React.FC = () => {
                 </select>
               </Field>
             </div>
+
+            {/* Kit colors — free-form so clubs aren't forced into a
+                10-option palette ("Royal Blue / White" beats picking
+                'Blue'). Optional: parents see "Home" / "Away" on the
+                event card when blank, your kit name when set. */}
+            <div className="mt-3">
+              <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5">
+                Kit colors <span className="text-bone/40 font-normal normal-case tracking-normal">(optional, shows on event cards)</span>
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Home kit">
+                  <input
+                    type="text"
+                    value={homeKitColor}
+                    onChange={e => setHomeKitColor(e.target.value)}
+                    className="form-input"
+                    placeholder="e.g. Black"
+                  />
+                </Field>
+                <Field label="Away kit">
+                  <input
+                    type="text"
+                    value={awayKitColor}
+                    onChange={e => setAwayKitColor(e.target.value)}
+                    className="form-input"
+                    placeholder="e.g. White"
+                  />
+                </Field>
+              </div>
+            </div>
+
             {error && <ErrorBanner>{error}</ErrorBanner>}
             <PrimaryButton onClick={handleCreateTeam} disabled={busy || !teamName.trim()} className="mt-6 w-full">
               {busy ? 'Creating team…' : 'Create team'}
@@ -562,6 +670,74 @@ const Onboarding: React.FC = () => {
             ) : (
               <div className="mt-5 text-charcoal-400 text-sm">Generating link…</div>
             )}
+
+            {/* Bring in your staff — assistant coaches + team managers
+                get one-use email invites that drop them into the right
+                role on first sign-in. Skip the whole block by leaving
+                emails blank. */}
+            <div className="mt-7 pt-6 border-t border-white/10">
+              <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">
+                Bring in your staff
+              </p>
+              <p className="text-charcoal-300 text-sm mb-3">
+                Assistant coaches and team managers get an email invite that lands them
+                in the right role. Skip if you&apos;re the only one running things.
+              </p>
+              <div className="space-y-2">
+                {staffEmails.map((row, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                    <input
+                      type="email"
+                      value={row.email}
+                      onChange={e => updateStaffRow(i, { email: e.target.value })}
+                      className="form-input"
+                      placeholder="coach@example.com"
+                      autoComplete="off"
+                    />
+                    <select
+                      value={row.role}
+                      onChange={e => updateStaffRow(i, { role: e.target.value as any })}
+                      className="form-input"
+                    >
+                      <option value="assistant_coach">Asst. Coach</option>
+                      <option value="team_manager">Team Mgr</option>
+                    </select>
+                    {staffEmails.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => removeStaffRow(i)}
+                        className="px-2 py-2 text-bone/55 hover:text-rose-300"
+                        aria-label="Remove row"
+                        title="Remove"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    ) : <span className="w-8" aria-hidden />}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addStaffRow}
+                className="mt-2 text-[11px] font-extrabold tracking-widest uppercase text-brand-primary hover:text-brand-primary-dim"
+              >
+                + Add another
+              </button>
+              {staffSentCount > 0 && (
+                <p className="mt-3 text-emerald-300 text-xs font-semibold">
+                  Sent {staffSentCount} invite{staffSentCount === 1 ? '' : 's'}.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleSendStaffInvites}
+                disabled={staffBusy || !staffEmails.some(r => r.email.trim().includes('@'))}
+                className="mt-3 w-full px-5 py-2.5 rounded-md bg-charcoal-800 ring-1 ring-white/15 hover:ring-white/30 font-bold text-sm transition disabled:opacity-50"
+              >
+                {staffBusy ? 'Sending…' : 'Send staff invites'}
+              </button>
+            </div>
+
             {error && <ErrorBanner>{error}</ErrorBanner>}
             <button
               type="button"

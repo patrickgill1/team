@@ -34,7 +34,7 @@ const EventForm: React.FC<EventFormProps> = ({
   selectedDate
 }) => {
   const { userData } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, selectedTeam } = useTeam();
   const { addDocument, updateDocument } = useFirestore();
 
   const [formData, setFormData] = useState({
@@ -765,36 +765,48 @@ const EventForm: React.FC<EventFormProps> = ({
             {errors.title && <p className="text-rose-600 text-xs mt-1">{errors.title}</p>}
           </div>
 
-          {/* Date and Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
-                Date *
-              </label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                  errors.date ? 'border-rose-300' : 'border-white/10'
-                }`}
-              />
-              {errors.date && <p className="text-rose-600 text-xs mt-1">{errors.date}</p>}
+          {/* Date / start time / end time. A two-column row with a vertical
+              divider between date and start time so the eye can tell where
+              one field ends and the next begins (Patrick: "Its also hard
+              to make out where the date stops and time starts"). End time
+              is its own row underneath so an optional field never reads as
+              a third item in the date+time pair. */}
+          <div>
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+              <div>
+                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className={`w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                    errors.date ? 'border-rose-300' : 'border-white/15'
+                  }`}
+                />
+              </div>
+              <div className="w-px h-9 bg-white/15 self-center" aria-hidden />
+              <div>
+                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+                  Start time *
+                </label>
+                <input
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  className={`w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                    errors.time ? 'border-rose-300' : 'border-white/15'
+                  }`}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
-                Start time *
-              </label>
-              <input
-                type="time"
-                value={formData.time}
-                onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                  errors.time ? 'border-rose-300' : 'border-white/10'
-                }`}
-              />
-              {errors.time && <p className="text-rose-600 text-xs mt-1">{errors.time}</p>}
-            </div>
+            {(errors.date || errors.time) && (
+              <div className="grid grid-cols-2 gap-4 mt-1">
+                <p className="text-rose-400 text-xs">{errors.date || ' '}</p>
+                <p className="text-rose-400 text-xs">{errors.time || ' '}</p>
+              </div>
+            )}
           </div>
 
           {/* End time — optional. Lets us display a "9:00 AM – 10:30 AM"
@@ -808,7 +820,7 @@ const EventForm: React.FC<EventFormProps> = ({
               type="time"
               value={formData.endTime}
               onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-              className="w-full px-3 py-2 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             />
           </div>
 
@@ -929,7 +941,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                     placeholder="Search venue or address…"
                     autoComplete="off"
-                    className={`w-full pl-9 pr-16 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                    className={`w-full pl-9 pr-16 py-2.5 text-sm bg-charcoal-950 text-bone placeholder:text-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
                       errors.location ? 'border-rose-300' : 'border-white/15'
                     }`}
                   />
@@ -1041,13 +1053,15 @@ const EventForm: React.FC<EventFormProps> = ({
               value={formData.fieldNumber}
               onChange={(e) => setFormData({ ...formData, fieldNumber: e.target.value })}
               placeholder="e.g. Field 7"
-              className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             />
           </div>
 
-          {/* Home / Away — game-only. Drives the jersey-color hint on
-              event cards so parents know which kit to pack (home =
-              black, away = white per Fire FC's rules). */}
+          {/* Home / Away — game-only. Kit labels come from the team doc
+              (selectedTeam.homeKitColor / awayKitColor) so each team's
+              cards reflect its own kit, not a hardcoded "Black / White".
+              When the team hasn't set kits yet the label is omitted
+              entirely — better silent than wrong. */}
           {formData.type === 'game' && (
             <div>
               <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
@@ -1063,13 +1077,13 @@ const EventForm: React.FC<EventFormProps> = ({
                       : 'bg-charcoal-900 text-bone border-white/10 hover:border-white/20'
                   }`}
                 >
-                  {/* Black jersey swatch — does double-duty as the icon
-                      AND a literal preview of the kit. */}
                   <span className={`inline-block w-3.5 h-3.5 rounded-sm border ${formData.homeAway === 'home' ? 'bg-charcoal-900 border-white/25' : 'bg-charcoal-900 border-white/15'}`} aria-hidden />
                   Home
-                  <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-bone/70' : 'text-bone/50'}`}>
-                    Black
-                  </span>
+                  {selectedTeam?.homeKitColor && (
+                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-bone/70' : 'text-bone/50'}`}>
+                      {selectedTeam.homeKitColor}
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -1082,11 +1096,18 @@ const EventForm: React.FC<EventFormProps> = ({
                 >
                   <span className="inline-block w-3.5 h-3.5 rounded-sm bg-charcoal-900 border border-white/20" aria-hidden />
                   Away
-                  <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'away' ? 'text-bone/60' : 'text-bone/50'}`}>
-                    White
-                  </span>
+                  {selectedTeam?.awayKitColor && (
+                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'away' ? 'text-bone/60' : 'text-bone/50'}`}>
+                      {selectedTeam.awayKitColor}
+                    </span>
+                  )}
                 </button>
               </div>
+              {!selectedTeam?.homeKitColor && !selectedTeam?.awayKitColor && (
+                <p className="mt-1.5 text-[11px] text-bone/50">
+                  Set your kit colors in Team Settings so parents know what to pack.
+                </p>
+              )}
             </div>
           )}
 
@@ -1100,7 +1121,7 @@ const EventForm: React.FC<EventFormProps> = ({
             <select
               value={formData.arriveOffsetMinutes}
               onChange={(e) => setFormData({ ...formData, arriveOffsetMinutes: Number(e.target.value) })}
-              className="w-full px-3 py-2 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             >
               <option value={0}>No arrive-early time</option>
               <option value={5}>5 minutes early</option>
@@ -1131,9 +1152,9 @@ const EventForm: React.FC<EventFormProps> = ({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 resize-none"
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 resize-none"
               rows={3}
-              placeholder="Add any additional details about the event..."
+              placeholder="Anything else parents should know..."
             />
           </div>
 
@@ -1147,7 +1168,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 <select
                   value={formData.recurrence}
                   onChange={(e) => setFormData({ ...formData, recurrence: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                  className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
                 >
                   <option value="none">Does not repeat</option>
                   <option value="daily">Every day</option>
@@ -1166,8 +1187,8 @@ const EventForm: React.FC<EventFormProps> = ({
                     value={formData.recurrenceUntil}
                     onChange={(e) => setFormData({ ...formData, recurrenceUntil: e.target.value })}
                     min={formData.date}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                      errors.recurrenceUntil ? 'border-rose-300' : 'border-white/10'
+                    className={`w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                      errors.recurrenceUntil ? 'border-rose-300' : 'border-white/15'
                     }`}
                   />
                   {errors.recurrenceUntil && <p className="text-red-500 text-xs mt-1">{errors.recurrenceUntil}</p>}

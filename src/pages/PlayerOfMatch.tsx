@@ -1293,56 +1293,61 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-bone/85 mb-1">Game Title</label>
+        <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">Match Title</label>
         <input
           type="text"
           value={gameTitle}
           onChange={(e) => setGameTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
           placeholder="e.g., vs Eagles, Championship Final"
           required
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-bone/85 mb-1">Game Date</label>
-          <input
-            type="date"
-            value={gameDate}
-            onChange={(e) => setGameDate(e.target.value)}
-            className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-bone/85 mb-1">Game Time</label>
-          <input
-            type="time"
-            value={gameTime}
-            onChange={(e) => setGameTime(e.target.value)}
-            className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
-          />
+      {/* Date / time pair with a vertical divider so the eye can tell
+          one field from the next (mirrors the EventForm pattern). */}
+      <div>
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
+          <div>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">Match Date</label>
+            <input
+              type="date"
+              value={gameDate}
+              onChange={(e) => setGameDate(e.target.value)}
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              required
+            />
+          </div>
+          <div className="w-px h-9 bg-white/15 self-center" aria-hidden />
+          <div>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">Match Time</label>
+            <input
+              type="time"
+              value={gameTime}
+              onChange={(e) => setGameTime(e.target.value)}
+              className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            />
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-bone/85 mb-1">Opponent <span className="text-bone/40 font-normal">(optional)</span></label>
+          <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">Opponent <span className="text-bone/40 font-normal normal-case tracking-normal">(optional)</span></label>
           <input
             type="text"
             value={opponent}
             onChange={(e) => setOpponent(e.target.value)}
-            className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
             placeholder="e.g. Eagles FC"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-bone/85 mb-1">Home / Away <span className="text-bone/40 font-normal">(optional)</span></label>
+          <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">Home or Away <span className="text-bone/40 font-normal normal-case tracking-normal">(optional)</span></label>
           <select
             value={homeAway}
             onChange={(e) => setHomeAway(e.target.value as 'home' | 'away' | '')}
-            className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
           >
             <option value="">—</option>
             <option value="home">Home</option>
@@ -1352,26 +1357,26 @@ const CustomGameForm: React.FC<CustomGameFormProps> = ({ onSubmit }) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-bone/85 mb-1">Venue / Location <span className="text-bone/40 font-normal">(optional)</span></label>
+        <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">Venue <span className="text-bone/40 font-normal normal-case tracking-normal">(optional)</span></label>
         <input
           type="text"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
           placeholder="e.g. Town Park, Pitch 3"
         />
       </div>
 
       <p className="text-[12px] text-bone/50">
-        <span className="font-bold text-bone/85">Note:</span> Parents cannot vote for their own children to ensure fair voting.
+        <span className="font-bold text-bone/85">Note:</span> Parents cannot vote for their own children to keep the vote clean.
       </p>
 
       <button
         type="submit"
         disabled={!gameTitle.trim() || !gameDate}
-        className="w-full bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+        className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl transition duration-200 disabled:opacity-50"
       >
-        Create Custom Voting
+        Open Custom Vote
       </button>
     </form>
   );

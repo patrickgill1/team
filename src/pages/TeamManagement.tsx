@@ -39,6 +39,8 @@ const TeamManagement: React.FC = () => {
   const [teamLeague, setTeamLeague] = useState('');
   const [teamHomeField, setTeamHomeField] = useState('');
   const [teamFormat, setTeamFormat] = useState<'7v7' | '9v9' | '11v11'>('7v7');
+  const [teamHomeKit, setTeamHomeKit] = useState('');
+  const [teamAwayKit, setTeamAwayKit] = useState('');
 
   // Coach invite form
   // inviteEmail / inviteLevel / inviteLink / linkCopied state
@@ -150,6 +152,8 @@ const TeamManagement: React.FC = () => {
         league: teamLeague.trim() || undefined,
         homeField: teamHomeField.trim() || undefined,
         format: teamFormat,
+        homeKitColor: teamHomeKit.trim() || undefined,
+        awayKitColor: teamAwayKit.trim() || undefined,
         updatedAt: new Date(),
       });
 
@@ -184,6 +188,8 @@ const TeamManagement: React.FC = () => {
         league: teamLeague.trim() || undefined,
         homeField: teamHomeField.trim() || undefined,
         format: teamFormat,
+        homeKitColor: teamHomeKit.trim() || undefined,
+        awayKitColor: teamAwayKit.trim() || undefined,
       });
       resetForm();
       setEditingTeam(null);
@@ -333,6 +339,8 @@ const TeamManagement: React.FC = () => {
     setTeamLeague(team.league || '');
     setTeamHomeField(team.homeField || '');
     setTeamFormat((team as any).format || '7v7');
+    setTeamHomeKit(team.homeKitColor || '');
+    setTeamAwayKit(team.awayKitColor || '');
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -442,6 +450,8 @@ const TeamManagement: React.FC = () => {
     setTeamLeague('');
     setTeamHomeField('');
     setTeamFormat('7v7');
+    setTeamHomeKit('');
+    setTeamAwayKit('');
     setEditingTeam(null);
   };
 
@@ -799,6 +809,28 @@ const TeamManagement: React.FC = () => {
                       ))}
                     </div>
                     <p className="text-xs text-bone/50 mt-1">Drives the formation field size + default player positions in the live tracker.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">Home Kit</label>
+                      <input
+                        type="text"
+                        value={teamHomeKit}
+                        onChange={e => setTeamHomeKit(e.target.value)}
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                        placeholder="e.g. Black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-bone/85 mb-1">Away Kit</label>
+                      <input
+                        type="text"
+                        value={teamAwayKit}
+                        onChange={e => setTeamAwayKit(e.target.value)}
+                        className="w-full px-3 py-2 border border-white/15 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                        placeholder="e.g. White"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-3 mt-6">

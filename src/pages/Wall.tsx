@@ -828,7 +828,12 @@ const Wall: React.FC = () => {
   // gated by a confirm prompt so it's not one-tap accidental.
   // Stamps emailedAt on the post for the manage sheet to read.
   const emailExistingPost = async (post: WallPost) => {
-    if (!canManage || !userData || !selectedTeamId) return;
+    if (!canManage || !userData) return;
+    // Use the POST's teamId, not selectedTeamId. The user could have
+    // switched teams since posting — selectedTeamId would resolve
+    // the wrong roster. The post itself knows what team it belongs to.
+    const postTeamId = post.teamId || selectedTeamId;
+    if (!postTeamId) return;
     const alreadySent = !!post.emailedAt;
     const teamObj = selectedTeam as any;
     const teamName = teamObj?.name || 'your team';
@@ -837,13 +842,25 @@ const Wall: React.FC = () => {
       : `Send this post as an email to everyone on ${teamName}?`;
     if (!window.confirm(confirmMsg)) return;
     try {
-      const { tplWallPost, sendEmailToTeam } = await import('../utils/notify');
+      const { tplWallPost, getTeamEmails, sendEmailBatch } = await import('../utils/notify');
       const { wallPostShareUrl } = await import('./PublicWallPost');
       // Make sure the public share URL works for non-app recipients
       // before the email goes out. Best-effort flip.
       if (!post.isPublic) {
         try { await updateDoc(doc(db, 'wall_posts', post.id), { isPublic: true }); }
         catch (e) { console.warn('isPublic flip failed', e); }
+      }
+      // Resolve the recipient list FIRST so we can give an honest
+      // error message — the wrapper sendEmailToTeam() returns 0 for
+      // BOTH "no emails found" AND "send failed", which lied to
+      // Patrick when the worker config was missing.
+      const emails = await getTeamEmails(postTeamId, userData.uid);
+      console.log('[wall] email-to-team recipient resolution', {
+        teamId: postTeamId, count: emails.length, sample: emails.slice(0, 3),
+      });
+      if (emails.length === 0) {
+        alert('No team emails found. Check that parents are signed up + have an email on file.');
+        return;
       }
       const tpl = tplWallPost({
         teamName,
@@ -854,11 +871,14 @@ const Wall: React.FC = () => {
         postUrl: wallPostShareUrl(post.id),
         signature: { name: userData.name || 'Coach', role: 'Coach', teamName },
       });
-      const sent = await sendEmailToTeam(selectedTeamId, tpl, { excludeUid: userData.uid });
+      const messages = emails.map((to) => ({ to, subject: tpl.subject, html: tpl.html }));
+      const ok = await sendEmailBatch(messages);
+      if (!ok) {
+        alert(`Found ${emails.length} ${emails.length === 1 ? 'recipient' : 'recipients'} but the email service rejected the send. Check the worker config (NOTIFY_URL / NOTIFY_SECRET) and try again.`);
+        return;
+      }
       await updateDoc(doc(db, 'wall_posts', post.id), { emailedAt: Date.now() });
-      alert(sent === 0
-        ? 'No team emails found to send to.'
-        : `Email sent to ${sent} ${sent === 1 ? 'person' : 'people'}.`);
+      alert(`Email sent to ${emails.length} ${emails.length === 1 ? 'person' : 'people'}.`);
     } catch (err) {
       console.error('email existing post failed', err);
       alert('Email failed — try again. The post itself is fine.');

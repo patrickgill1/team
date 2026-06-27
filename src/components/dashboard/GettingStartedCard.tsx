@@ -6,6 +6,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { isCoach } from '../../utils/helpers';
 import TierPickerSheet from '../common/TierPickerSheet';
+import { openWebSignup } from '../../utils/subscriptionApi';
 
 // Getting Started checklist for new coaches. Patrick: "the guide was
 // cool until you got into the dashboard... they need to be able to
@@ -247,21 +248,36 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                       period="/mo"
                       note="First 50"
                       highlight
-                      onClick={handleStartTrial}
+                      onClick={() => openWebSignup({
+                        email: currentUser?.email || userData?.email || undefined,
+                        uid: currentUser?.uid,
+                        tier: 'founder',
+                        intent: 'subscribe',
+                      })}
                     />
                     <PricingTier
                       name="Annual"
                       price="$99"
                       period="/yr"
                       note="Save 17%"
-                      onClick={handleStartTrial}
+                      onClick={() => openWebSignup({
+                        email: currentUser?.email || userData?.email || undefined,
+                        uid: currentUser?.uid,
+                        tier: 'annual',
+                        intent: 'subscribe',
+                      })}
                     />
                     <PricingTier
                       name="Monthly"
                       price="$10"
                       period="/mo"
                       note="Most flex"
-                      onClick={handleStartTrial}
+                      onClick={() => openWebSignup({
+                        email: currentUser?.email || userData?.email || undefined,
+                        uid: currentUser?.uid,
+                        tier: 'monthly',
+                        intent: 'subscribe',
+                      })}
                     />
                   </div>
                 </>

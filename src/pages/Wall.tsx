@@ -753,6 +753,14 @@ const Wall: React.FC = () => {
             });
             // Fire-and-forget; failures already log inside notify.
             void sendEmailToTeam(selectedTeamId, tpl, { excludeUid: userData.uid });
+            // Stamp emailedAt so the manage-post sheet can show
+            // "Resend email" instead of "Email to team" and warn on
+            // accidental double-send. Best-effort — failure here is
+            // cosmetic (worst case the label says "Email to team"
+            // when it should say "Resend").
+            try {
+              await updateDoc(doc(db, 'wall_posts', newPostId), { emailedAt: Date.now() });
+            } catch (e) { console.warn('wall emailedAt stamp failed', e); }
           } catch (e) { console.warn('wall email blast failed', e); }
         }
       }
@@ -803,6 +811,56 @@ const Wall: React.FC = () => {
       alert('Failed to update pin — try again.');
     }
   };
+
+  // Email an existing post out to the team. Same payload as the
+  // creation-time email blast (tplWallPost + sendEmailToTeam),
+  // gated by a confirm prompt so it's not one-tap accidental.
+  // Stamps emailedAt on the post for the manage sheet to read.
+  const emailExistingPost = async (post: WallPost) => {
+    if (!canManage || !userData || !selectedTeamId) return;
+    const alreadySent = !!post.emailedAt;
+    const teamObj = selectedTeam as any;
+    const teamName = teamObj?.name || 'your team';
+    const confirmMsg = alreadySent
+      ? `This post was already emailed ${fmtRelativeShort(post.emailedAt!)}. Send it again to everyone on ${teamName}?`
+      : `Send this post as an email to everyone on ${teamName}?`;
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      const { tplWallPost, sendEmailToTeam } = await import('../utils/notify');
+      const { wallPostShareUrl } = await import('./PublicWallPost');
+      // Make sure the public share URL works for non-app recipients
+      // before the email goes out. Best-effort flip.
+      if (!post.isPublic) {
+        try { await updateDoc(doc(db, 'wall_posts', post.id), { isPublic: true }); }
+        catch (e) { console.warn('isPublic flip failed', e); }
+      }
+      const tpl = tplWallPost({
+        teamName,
+        senderName: post.senderName || userData.name || 'Coach',
+        contentHtml: post.content || '',
+        category: post.category || null,
+        pollQuestion: post.poll?.question || null,
+        postUrl: wallPostShareUrl(post.id),
+        signature: { name: userData.name || 'Coach', role: 'Coach', teamName },
+      });
+      const sent = await sendEmailToTeam(selectedTeamId, tpl, { excludeUid: userData.uid });
+      await updateDoc(doc(db, 'wall_posts', post.id), { emailedAt: Date.now() });
+      alert(sent === 0
+        ? 'No team emails found to send to.'
+        : `Email sent to ${sent} ${sent === 1 ? 'person' : 'people'}.`);
+    } catch (err) {
+      console.error('email existing post failed', err);
+      alert('Email failed — try again. The post itself is fine.');
+    }
+  };
+
+  function fmtRelativeShort(ms: number): string {
+    const diff = Date.now() - ms;
+    if (diff < 60_000) return 'just now';
+    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+    return `${Math.floor(diff / 86_400_000)}d ago`;
+  }
 
   // Like / unlike a wall post (kept for the inline ♥ tap).
   const toggleLike = async (post: WallPost) => {
@@ -1717,6 +1775,28 @@ const Wall: React.FC = () => {
                       <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
                     </svg>
                     <span className="text-[15px] font-bold text-bone">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => { setManagePostId(null); void emailExistingPost(target); }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.05] active:bg-white/[0.1]"
+                  >
+                    <svg className="w-5 h-5 text-sky-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    <div className="flex-1">
+                      <span className="text-[15px] font-bold text-bone block">
+                        {target.emailedAt ? 'Resend email' : 'Email to team'}
+                      </span>
+                      {target.emailedAt && (
+                        <span className="text-[11px] text-bone/55 block mt-0.5">
+                          Last sent {fmtRelativeShort(target.emailedAt)}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 </li>
                 <li>

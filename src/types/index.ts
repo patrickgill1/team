@@ -1690,6 +1690,13 @@ export interface WallPost {
    *  default to 'announcement' if not set. Older posts predate the
    *  field and fall through to 'announcement' on read. */
   category?: 'announcement' | 'result' | 'spotlight' | 'practice' | 'system';
+  /** Date.now() the last time this post was emailed out to the
+   *  team's roster. Stamped after either the post-creation email
+   *  blast OR the "Email to team" action on an existing post.
+   *  Surfaced in the manage-post sheet so the coach knows if
+   *  they've already blasted (changes the action label to
+   *  "Resend email" and warns on double-fire). */
+  emailedAt?: number | null;
   /** Optional inline poll. Parents tap an option to vote; coaches /
    *  admins can open a per-option voter list. Single-choice by default
    *  (multi: false) — voting on a different option moves your vote.

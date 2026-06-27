@@ -96,7 +96,11 @@ export async function sendEmail(msg: NotifyMessage): Promise<boolean> {
 }
 
 export async function sendEmailBatch(messages: NotifyMessage[]): Promise<boolean> {
-  if (!configured()) return false;
+  if (!configured()) {
+    // eslint-disable-next-line no-console
+    console.error('[notify] sendEmailBatch aborted: NOTIFY_URL / NOTIFY_SECRET missing from bundle');
+    return false;
+  }
   if (messages.length === 0) return true;
   try {
     const res = await fetch(`${NOTIFY_URL}/send-batch`, {
@@ -107,10 +111,23 @@ export async function sendEmailBatch(messages: NotifyMessage[]): Promise<boolean
       },
       body: JSON.stringify({ messages }),
     });
-    return res.ok;
+    if (!res.ok) {
+      // Capture the body so we can see exactly why the worker
+      // rejected (401, 400 too-many, 500, etc). Without this it's
+      // a silent boolean and impossible to debug.
+      const body = await res.text().catch(() => '<no body>');
+      // eslint-disable-next-line no-console
+      console.error('[notify] worker rejected /send-batch', {
+        status: res.status,
+        statusText: res.statusText,
+        bodySample: body.slice(0, 300),
+      });
+      return false;
+    }
+    return true;
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('[notify] batch send threw', err);
+    console.error('[notify] batch send threw', err);
     return false;
   }
 }

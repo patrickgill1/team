@@ -36,27 +36,46 @@ const Tickets: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [openNew, setOpenNew] = useState(false);
   const [forceScope, setForceScope] = useState<'club' | 'platform' | undefined>(undefined);
+  // Surface query errors instead of silently rendering "0 tickets"
+  // when a missing Firestore index or rules failure hides real data.
+  // Patrick caught the silent-swallow on 2026-06-26: ticket created
+  // fine in DB, page still showed empty.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!uid) { setLoading(false); return; }
+      setLoading(true);
+      setLoadError(null);
       try {
-        const [m, i] = await Promise.all([
-          listMyTickets(uid).catch(() => [] as Ticket[]),
-          isClubAdminOrCoach && clubId
-            ? listClubInbox(clubId).catch(() => [] as Ticket[])
-            : Promise.resolve([] as Ticket[]),
-        ]);
+        const m = await listMyTickets(uid);
+        let i: Ticket[] = [];
+        if (isClubAdminOrCoach && clubId) {
+          try {
+            i = await listClubInbox(clubId);
+          } catch (clubErr: any) {
+            console.warn('club inbox query failed', clubErr);
+          }
+        }
         if (cancelled) return;
         setMine(m);
         setInbox(i);
+      } catch (err: any) {
+        if (cancelled) return;
+        console.error('tickets load failed', err);
+        const msg = String(err?.message || err);
+        const friendly = /requires an index/i.test(msg)
+          ? "We're missing a Firestore index for tickets. Tap 'Email GoalKickr support' below and we'll fix it fast."
+          : "Couldn't load your tickets. Pull to refresh in a moment.";
+        setLoadError(friendly);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [uid, clubId, isClubAdminOrCoach]);
+  }, [uid, clubId, isClubAdminOrCoach, reloadKey]);
 
   const startNew = (scope?: 'club' | 'platform') => {
     setForceScope(scope);
@@ -73,6 +92,12 @@ const Tickets: React.FC = () => {
           </div>
           <Button variant="primary" onClick={() => startNew()}>New ticket</Button>
         </header>
+
+        {loadError && (
+          <div className="mb-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 px-4 py-3 text-rose-200 text-sm">
+            {loadError}
+          </div>
+        )}
 
         <Section title="My tickets" empty="You haven't opened any tickets yet.">
           {loading ? <Loading /> : mine.map((t) => <TicketRow key={t.id} t={t} />)}
@@ -96,7 +121,7 @@ const Tickets: React.FC = () => {
         open={openNew}
         onClose={() => setOpenNew(false)}
         forceScope={forceScope}
-        onCreated={() => window.location.reload()}
+        onCreated={() => setReloadKey(k => k + 1)}
       />
     </div>
   );

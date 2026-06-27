@@ -448,102 +448,211 @@ struct ErrorView: View {
 }
 
 // MARK: - Small layout (158x158)
+//
+// At 158pt² the previous design crammed brand kicker, streak,
+// avatar, name, team, AND next event into the box. Each item got
+// 18-22pt of vertical space and the kicker word ("GOALKICKR")
+// literally wrapped to two lines because the streak pill was
+// pushing it over the edge. Result: nothing was readable.
+//
+// New approach: do ONE thing per widget size. The small is an
+// at-a-glance identity card — big avatar + big name + streak.
+// No event row, no team subtitle, no kicker. If you want next
+// event you use the medium widget.
 
 struct SmallPlayerView: View {
     let snap: PlayerSnapshot
     let photo: UIImage?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 0) {
-                BrandKicker()
-                Spacer(minLength: 0)
-                StreakBadge(days: snap.streakDays)
-            }
-            Spacer(minLength: 0)
-            HStack(alignment: .bottom, spacing: 10) {
-                AvatarView(snap: snap, photo: photo, size: 56, showJersey: true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(firstName(snap.playerName))
-                        .font(.system(size: 20, weight: .black))
-                        .foregroundColor(.bone)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    if let last = lastName(snap.playerName) {
-                        Text(last)
-                            .font(.system(size: 13, weight: .heavy))
-                            .foregroundColor(.boneSoft)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    } else if let team = snap.teamName {
-                        Text(team)
-                            .font(.system(size: 11, weight: .heavy))
-                            .foregroundColor(.boneSoft)
-                            .lineLimit(1)
-                    }
-                }
-            }
-            Spacer(minLength: 6)
-            // Bottom row: upcoming or last result. Always present.
-            UpcomingRow(snap: snap)
+        VStack(spacing: 8) {
+            // Top: avatar centered, taking most of the visual weight.
+            // Jersey badge is the secondary identity signal.
+            AvatarView(snap: snap, photo: photo, size: 72, showJersey: true)
+            // Name fills horizontally, scaled down only if necessary.
+            Text(firstName(snap.playerName))
+                .font(.system(size: 19, weight: .black))
+                .foregroundColor(.bone)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(maxWidth: .infinity)
+            // Streak as the SINGLE supporting stat. Day count drops
+            // gracefully (0d still shows; the consistency itself is
+            // the metric).
+            StreakBadge(days: snap.streakDays)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
     }
 
     private func firstName(_ n: String) -> String {
         n.split(separator: " ").first.map(String.init) ?? n
     }
-    private func lastName(_ n: String) -> String? {
-        let parts = n.split(separator: " ")
-        guard parts.count > 1 else { return nil }
-        return String(parts[1...].joined(separator: " "))
-    }
 }
 
 // MARK: - Medium layout (~329x158)
+//
+// Two-row design instead of the old avatar-left / column-right
+// layout that left a big empty patch under the right column.
+//
+// Top row (60% height): compact identity strip with avatar, name,
+// team, plus streak / POTM badges. Reads in one glance.
+//
+// Bottom row (40% height): a substantial upcoming-event card with
+// icon, title, location, and the RSVP status. The bigger footprint
+// fills the previously-dead horizontal-bottom area and makes the
+// "is my kid going to practice today" question instantly answerable.
 
 struct MediumPlayerView: View {
     let snap: PlayerSnapshot
     let photo: UIImage?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            AvatarView(snap: snap, photo: photo, size: 72, showJersey: true)
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Identity strip
+            HStack(alignment: .center, spacing: 12) {
+                AvatarView(snap: snap, photo: photo, size: 60, showJersey: true)
+                VStack(alignment: .leading, spacing: 2) {
                     BrandKicker()
-                    Spacer(minLength: 0)
-                }
-                Text(snap.playerName)
-                    .font(.system(size: 20, weight: .black))
-                    .foregroundColor(.bone)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if let team = snap.teamName {
-                    Text(team)
-                        .font(.system(size: 11, weight: .heavy))
-                        .kerning(0.4)
-                        .foregroundColor(.boneSoft)
+                    Text(snap.playerName)
+                        .font(.system(size: 18, weight: .black))
+                        .foregroundColor(.bone)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    if let team = snap.teamName {
+                        Text(team)
+                            .font(.system(size: 10, weight: .heavy))
+                            .kerning(0.4)
+                            .foregroundColor(.boneSoft)
+                            .lineLimit(1)
+                    }
                 }
-                HStack(spacing: 6) {
+                Spacer(minLength: 0)
+                // Streak as the right-side stat — vertical stack lets
+                // us add POTM under it when present without crowding
+                // the identity column.
+                VStack(alignment: .trailing, spacing: 4) {
                     StreakBadge(days: snap.streakDays)
                     if let n = snap.potmCount, n > 0 {
                         PotmBadge(count: n)
                     }
-                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
-                Rectangle()
-                    .fill(Color.bone.opacity(0.08))
-                    .frame(height: 1)
-                UpcomingRow(snap: snap)
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+
+            Rectangle()
+                .fill(Color.bone.opacity(0.08))
+                .frame(height: 1)
+
+            // Upcoming event card — fills the bottom of the widget
+            // so the previously-dead area carries real information.
+            UpcomingCard(snap: snap)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(14)
+    }
+}
+
+// Bigger upcoming-event view used by the medium widget. Two-line
+// body (title + location/time) with RSVP pill aligned right so the
+// parent's status is the at-a-glance answer.
+private struct UpcomingCard: View {
+    let snap: PlayerSnapshot
+
+    var body: some View {
+        if let title = snap.nextEventTitle, let ms = snap.nextEventDateMs {
+            let date = Date(timeIntervalSince1970: ms / 1000)
+            HStack(alignment: .center, spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.brand.opacity(0.18))
+                    Image(systemName: iconFor(type: snap.nextEventType))
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(.brand)
+                }
+                .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundColor(.bone)
+                        .lineLimit(1)
+                    HStack(spacing: 5) {
+                        Text(date, style: .relative)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.boneSoft)
+                            .lineLimit(1)
+                        if let loc = snap.nextEventLocation, !loc.isEmpty {
+                            Text("·")
+                                .font(.system(size: 11, weight: .heavy))
+                                .foregroundColor(.boneDim)
+                            Text(loc)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                Spacer(minLength: 4)
+                if let rsvp = snap.nextEventRsvp {
+                    RsvpPill(status: rsvp)
+                } else {
+                    RsvpPrompt()
+                }
+            }
+        } else if let title = snap.lastResultTitle, let score = snap.lastResultScore {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.brand.opacity(0.18))
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(.brand)
+                }
+                .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Last match")
+                        .font(.system(size: 9, weight: .black))
+                        .kerning(0.8)
+                        .foregroundColor(.boneDim)
+                    Text("\(score) — \(title)")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.bone)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+        } else {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.bone.opacity(0.08))
+                    Image(systemName: "moon.zzz.fill")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(.boneDim)
+                }
+                .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Up next")
+                        .font(.system(size: 9, weight: .black))
+                        .kerning(0.8)
+                        .foregroundColor(.boneDim)
+                    Text("Nothing on the calendar")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.boneSoft)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func iconFor(type: String?) -> String {
+        switch (type ?? "").lowercased() {
+        case "game":      return "sportscourt.fill"
+        case "practice":  return "figure.soccer"
+        case "tournament": return "trophy.fill"
+        default:          return "calendar"
+        }
     }
 }
 

@@ -227,7 +227,26 @@ const Navigation: React.FC = () => {
   // by scanning a wall of 16 tiles.
   const bottomTabPaths = new Set(['/dashboard', '/calendar', '/player-media', '/chat', '#more']);
   const inSheet = (path: string) => !bottomTabPaths.has(path);
-  const findItem = (name: string) => allNavItems.find(i => i.name === name);
+  // Lookup tolerates renames: a moreSections entry that uses an old
+  // label (e.g. 'Players' after renaming to 'Squad') falls back to
+  // matching the path so it doesn't silently drop out of the menu.
+  // Patrick caught this when the vocab swagger rename made Players
+  // vanish from More.
+  const PATH_ALIASES: Record<string, string> = {
+    'Players':   '/players',
+    'Dashboard': '/dashboard',
+    'Calendar':  '/calendar',
+    'Vote':      '/player-of-match',
+    'Stats':     '/stats',
+    'Wall':      '/wall',
+  };
+  const findItem = (name: string) => {
+    const direct = allNavItems.find(i => i.name === name);
+    if (direct) return direct;
+    const aliasPath = PATH_ALIASES[name];
+    if (aliasPath) return allNavItems.find(i => i.path === aliasPath);
+    return undefined;
+  };
 
   const moreSections: { label: string; items: typeof allNavItems }[] = [
     {
@@ -241,7 +260,7 @@ const Navigation: React.FC = () => {
         // Each linked kid gets their own entry — multi-kid families
         // see both, not just the first one Firestore returned.
         ...linkedPlayers.map(p => p.name.split(' ')[0]),
-        'Players', 'Vote', 'Stats', 'Development',
+        VOCAB.squad, 'Vote', 'Stats', 'Development',
       ].map((n) => findItem(n as string)).filter(Boolean).filter((i: any) => inSheet(i.path)) as typeof allNavItems,
     },
     {

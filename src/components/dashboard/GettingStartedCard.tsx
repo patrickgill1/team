@@ -236,27 +236,35 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                   Apple rules — only the actual payment trigger has
                   to be out-of-app (which it is — opens Safari). */}
               {isTrial && !s.done && (
-                <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-3 gap-2">
-                  <PricingTier
-                    name="Founder"
-                    price="$5"
-                    period="/mo"
-                    note="First 50"
-                    highlight
-                  />
-                  <PricingTier
-                    name="Annual"
-                    price="$99"
-                    period="/yr"
-                    note="Save 17%"
-                  />
-                  <PricingTier
-                    name="Monthly"
-                    price="$10"
-                    period="/mo"
-                    note="Most flex"
-                  />
-                </div>
+                <>
+                  <p className="mt-3 pt-3 border-t border-white/5 text-bone/55 text-[11px]">
+                    After your free week, pick what fits:
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    <PricingTier
+                      name="Founder"
+                      price="$5"
+                      period="/mo"
+                      note="First 50"
+                      highlight
+                      onClick={handleStartTrial}
+                    />
+                    <PricingTier
+                      name="Annual"
+                      price="$99"
+                      period="/yr"
+                      note="Save 17%"
+                      onClick={handleStartTrial}
+                    />
+                    <PricingTier
+                      name="Monthly"
+                      price="$10"
+                      period="/mo"
+                      note="Most flex"
+                      onClick={handleStartTrial}
+                    />
+                  </div>
+                </>
               )}
             </li>
           );
@@ -280,10 +288,17 @@ const PricingTier: React.FC<{
   period: string;
   note?: string;
   highlight?: boolean;
-}> = ({ name, price, period, note, highlight }) => (
-  <div className={`rounded-md px-2 py-2 text-center ring-1 ${
-    highlight ? 'bg-amber-500/5 ring-amber-500/20' : 'bg-charcoal-900 ring-white/5'
-  }`}>
+  onClick?: () => void;
+}> = ({ name, price, period, note, highlight, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`rounded-md px-2 py-2 text-center ring-1 transition active:scale-[0.98] ${
+      highlight
+        ? 'bg-amber-500/5 ring-amber-500/20 hover:bg-amber-500/10 hover:ring-amber-500/40'
+        : 'bg-charcoal-900 ring-white/5 hover:bg-charcoal-800 hover:ring-white/15'
+    }`}
+  >
     <p className={`text-[9px] font-extrabold tracking-widest uppercase ${
       highlight ? 'text-amber-300' : 'text-bone/60'
     }`}>
@@ -295,7 +310,7 @@ const PricingTier: React.FC<{
     {note && (
       <p className="text-bone/40 text-[9px] mt-0.5 font-bold">{note}</p>
     )}
-  </div>
+  </button>
 );
 
 export default GettingStartedCard;

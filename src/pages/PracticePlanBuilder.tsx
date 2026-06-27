@@ -48,19 +48,35 @@ const CATEGORY: Record<Drill['category'], { label: string; color: string; icon: 
   cooldown:  { label: 'Cool-down', color: 'bg-brand-primary/20 text-brand-primary-soft border-brand-primary-soft/30',        icon: 'check' },
 };
 
-const DRILL_LIBRARY: Drill[] = [
-  { id: 'lib_1', name: 'Dynamic Warm-up',          durationMin: 10, category: 'warmup',    notes: 'Skips, lunges, leg swings, arm circles' },
-  { id: 'lib_2', name: 'Rondo (4v1)',              durationMin: 10, category: 'technical', notes: 'Quick passes, one-touch focus' },
-  { id: 'lib_3', name: 'Passing Lanes',            durationMin: 12, category: 'technical', notes: 'Triangles, overlaps' },
-  { id: 'lib_4', name: '1v1 Defending',            durationMin: 10, category: 'tactical',  notes: 'Approach angle, body shape' },
-  { id: 'lib_5', name: 'Possession Game (5v5+1)',  durationMin: 15, category: 'tactical',  notes: 'Switch fields, find the +1' },
-  { id: 'lib_6', name: 'Shooting Reps',            durationMin: 12, category: 'technical', notes: 'Both feet, far post' },
-  { id: 'lib_7', name: 'Set Pieces',               durationMin: 10, category: 'tactical',  notes: 'Corners + free kicks' },
-  { id: 'lib_8', name: 'Small-sided Scrimmage',    durationMin: 20, category: 'scrimmage', notes: '4v4 or 5v5, 2 touches' },
-  { id: 'lib_9', name: 'Full Scrimmage',           durationMin: 25, category: 'scrimmage', notes: 'Full numbers if possible' },
-  { id: 'lib_10', name: 'Sprint Ladder',           durationMin: 8,  category: 'fitness',   notes: '4 sets of 6 sprints' },
-  { id: 'lib_11', name: 'Stretch & Cool-down',     durationMin: 8,  category: 'cooldown',  notes: 'Hamstrings, calves, hips' },
-];
+// Library drills now load LIVE from the real `drills` collection so
+// Practice Plan Builder is fed by the same catalog as the Training
+// Ground page. The hardcoded 11-drill DRILL_LIBRARY was retired and
+// imported as a one-time seed (see scripts/seed-starter-drills.ts).
+//
+// Real drills have a richer schema than the builder's local Drill
+// shape — adaptRealDrill() maps title → name, durationMinutes →
+// durationMin, focus/description → notes, and picks a sensible
+// session segment from the real drill's category + useCase.
+function pickSegment(realCategory: string | undefined, useCase: string | undefined): Drill['category'] {
+  if (useCase === 'solo') return 'fitness';
+  switch (realCategory) {
+    case 'tactical': return 'tactical';
+    case 'physical': return 'fitness';
+    case 'mental':   return 'technical';
+    case 'technical':
+    default:         return 'technical';
+  }
+}
+
+function adaptRealDrill(d: any): Drill {
+  return {
+    id: d.id,
+    name: d.title || 'Untitled drill',
+    durationMin: typeof d.durationMinutes === 'number' && d.durationMinutes > 0 ? d.durationMinutes : 10,
+    category: pickSegment(d.category, d.useCase),
+    notes: d.focus || d.description || undefined,
+  };
+}
 
 const newId = () => `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
@@ -73,6 +89,10 @@ const PracticePlanBuilder: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
+  // Real drill library, pulled from the `drills` collection so this
+  // page and Training Ground share the same source of truth.
+  const [libraryDrills, setLibraryDrills] = useState<Drill[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
 
   const active = useMemo(() => plans.find(p => p.id === activeId) || null, [plans, activeId]);
   const totalMin = useMemo(() => (active ? active.drills.reduce((s, d) => s + (d.durationMin || 0), 0) : 0), [active]);
@@ -94,6 +114,33 @@ const PracticePlanBuilder: React.FC = () => {
       } catch (e) { console.error(e); }
       setLoading(false);
     })();
+  }, [selectedTeamId]);
+
+  // Load the real drill library — same source as Training Ground.
+  // Filters: this team's drills + any club-shared drills the user
+  // has access to. Active only. Sort by most-used first so the
+  // workhorses bubble to the top of the library picker.
+  useEffect(() => {
+    if (!selectedTeamId) return;
+    let cancelled = false;
+    (async () => {
+      setLibraryLoading(true);
+      try {
+        const snap = await getDocs(query(collection(db, 'drills'), where('teamId', '==', selectedTeamId)));
+        if (cancelled) return;
+        const adapted = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((d: any) => d.isActive !== false)
+          .sort((a: any, b: any) => (b.assignmentCount || 0) - (a.assignmentCount || 0))
+          .map(adaptRealDrill);
+        setLibraryDrills(adapted);
+      } catch (e) {
+        console.warn('drill library load failed', e);
+      } finally {
+        if (!cancelled) setLibraryLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [selectedTeamId]);
 
   if (!isUserCoach) {
@@ -395,15 +442,33 @@ const PracticePlanBuilder: React.FC = () => {
       {showLibrary && active && (
         <div className="fixed inset-0 z-50 bg-charcoal-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden" onClick={() => setShowLibrary(false)}>
           <div className="bg-charcoal-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[88vh] overflow-y-auto ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-gradient-to-r from-charcoal-700 to-charcoal-700 px-5 py-3 flex items-center justify-between">
+            <div className="sticky top-0 bg-gradient-to-r from-charcoal-800 to-charcoal-900 px-5 py-3 flex items-center justify-between border-b border-white/5">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <AppIcon name="clipboard" className="w-5 h-5" />
-                <span>Drill Library</span>
+                <span>Training Ground</span>
               </h3>
-              <button onClick={() => setShowLibrary(false)} className="text-white/70 hover:text-white text-xl">✕</button>
+              <button onClick={() => setShowLibrary(false)} className="text-white/70 hover:text-white" aria-label="Close">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
             <div className="p-3 space-y-2">
-              {DRILL_LIBRARY.map(d => {
+              {libraryLoading && (
+                <div className="text-center text-bone/55 text-sm py-6">Loading drills…</div>
+              )}
+              {!libraryLoading && libraryDrills.length === 0 && (
+                <div className="text-center py-10 px-4">
+                  <p className="text-sm font-bold text-bone/85">No drills yet.</p>
+                  <p className="text-xs text-bone/55 mt-1">Head to Training Ground to build your library, then come back to drop drills into a session.</p>
+                  <Link
+                    to="/drills"
+                    onClick={() => setShowLibrary(false)}
+                    className="inline-block mt-4 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase"
+                  >
+                    Open Training Ground
+                  </Link>
+                </div>
+              )}
+              {!libraryLoading && libraryDrills.map(d => {
                 const meta = CATEGORY[d.category];
                 return (
                   <button
@@ -412,7 +477,7 @@ const PracticePlanBuilder: React.FC = () => {
                     className={`w-full text-left rounded-xl border ${meta.color} p-3 hover:ring-2 hover:ring-brand-primary-soft transition`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{meta.emoji} {meta.label}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{meta.label}</span>
                       <span className="ml-auto text-[10px] bg-white/60 rounded px-1.5 py-0.5 text-bone/85 font-semibold">{d.durationMin} min</span>
                     </div>
                     <div className="font-semibold text-sm mt-1">{d.name}</div>

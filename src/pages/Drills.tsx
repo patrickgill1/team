@@ -223,42 +223,47 @@ const Drills: React.FC = () => {
       </section>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-3">
-        {/* Tab pills — My library vs shared community library. Hidden
-            entirely when the user has browseDrillLibrary off, so a
-            coach who prefers to focus on their own drills doesn't see
-            the extra surface. */}
+        {/* Segmented control for the primary view toggle (My vs
+            Library). Two equal halves so it's obviously a binary
+            switch, not the same visual category as the sort/filter
+            chips below. Sort options for Library live on their own
+            row underneath so the two concerns don't fight for the
+            same line. */}
         {browseLibrary && (
-          <div className="flex items-center gap-1.5">
-            {([
-              { k: 'mine' as const,    label: 'My drills' },
-              { k: 'library' as const, label: 'Library' },
-            ]).map(t => (
-              <button
-                key={t.k}
-                onClick={() => setTab(t.k)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
-                  tab === t.k
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-charcoal-900 text-bone/55 hover:text-bone ring-1 ring-white/10'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+          <>
+            <div className="inline-flex p-1 bg-charcoal-900 ring-1 ring-white/10 rounded-lg w-full">
+              {([
+                { k: 'mine' as const,    label: 'My drills' },
+                { k: 'library' as const, label: 'Library' },
+              ]).map(t => (
+                <button
+                  key={t.k}
+                  onClick={() => setTab(t.k)}
+                  className={`flex-1 px-3 py-1.5 rounded-md text-xs font-extrabold tracking-widest uppercase whitespace-nowrap transition ${
+                    tab === t.k
+                      ? 'bg-brand-primary text-white shadow-sm'
+                      : 'text-bone/55 hover:text-bone'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
             {tab === 'library' && (
-              <div className="ml-auto flex items-center gap-1.5">
+              <div className="flex items-center justify-end gap-3 text-[10px] font-extrabold tracking-widest uppercase">
+                <span className="text-bone/40">Sort</span>
                 {([
-                  { k: 'top' as const,      label: 'Top rated' },
+                  { k: 'top' as const,      label: 'Top' },
                   { k: 'featured' as const, label: 'Featured' },
                   { k: 'recent' as const,   label: 'Recent' },
                 ]).map(s => (
                   <button
                     key={s.k}
                     onClick={() => setLibrarySort(s.k)}
-                    className={`px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition ${
+                    className={`whitespace-nowrap transition ${
                       librarySort === s.k
-                        ? 'bg-brand-primary-soft/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30'
-                        : 'bg-charcoal-900 text-bone/55 ring-1 ring-white/10 hover:text-bone'
+                        ? 'text-brand-primary-soft'
+                        : 'text-bone/45 hover:text-bone'
                     }`}
                   >
                     {s.label}
@@ -266,7 +271,7 @@ const Drills: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
+          </>
         )}
 
         {/* Search — the single biggest discovery win. */}

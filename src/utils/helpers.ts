@@ -153,11 +153,20 @@ export const isGoalkeeper = (player: { positions?: string[]; position?: string }
   return getPlayerPositions(player).some(p => p.toLowerCase() === 'goalkeeper');
 };
 
-/** True for users flagged as club admins. They get access to the /club
- *  overview that spans every team, without losing their per-team coach
- *  scope on their own teams. */
+/** True for users with club-admin access. Two paths grant it:
+ *  (1) userData.isClubAdmin === true — platform-controlled flag for
+ *      Patrick's super-admin role, granted on a per-account basis.
+ *  (2) userData.role === 'club_admin' — assigned when someone goes
+ *      through the "Start a club, I'm not a coach" onboarding path
+ *      (director / registrar / treasurer flow). They run a real club
+ *      via clubs.ownerUid but aren't on any team roster.
+ *  Either path opens the /club overview and the per-team toolbars
+ *  for any team that belongs to a club they own. */
 export const isClubAdmin = (userData: any): boolean => {
-  return !!userData?.isClubAdmin;
+  if (!userData) return false;
+  if (userData.isClubAdmin === true) return true;
+  if (userData.role === 'club_admin') return true;
+  return false;
 };
 
 /** Who is allowed to upload + edit + tag + thumbnail clips on a team.

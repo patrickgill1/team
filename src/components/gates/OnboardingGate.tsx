@@ -39,6 +39,12 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
   const [inviteCode, setInviteCode] = useState('');
   const [teamName, setTeamName] = useState('');
   const [clubName, setClubName] = useState('');
+  // Toggle for the club flow: a club admin might NOT also coach a
+  // team (they're a director / registrar / treasurer). Default off
+  // so a fresh registrar gets the lean "just spin up the club"
+  // path, not a forced-coach gate. When on, we reveal the team
+  // name field and create a team with this user as head coach.
+  const [clubIAlsoCoach, setClubIAlsoCoach] = useState(false);
   const [clubFirstTeam, setClubFirstTeam] = useState('');
 
   const uid = userData?.uid || currentUser?.uid;
@@ -109,34 +115,72 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
   };
 
   const handleCreateClub = async () => {
-    if (!uid || !clubName.trim() || !clubFirstTeam.trim()) return;
+    if (!uid || !clubName.trim()) return;
+    // If the user opted to ALSO coach a team, require the team name
+    // before submitting. If they're admin-only, no team is created.
+    if (clubIAlsoCoach && !clubFirstTeam.trim()) {
+      setError("Add the team name you'll be coaching, or turn the coach toggle off.");
+      return;
+    }
     setBusy(true); setError(null);
     try {
-      const teamId = await createTeam({
-        name: clubFirstTeam.trim(),
-        coachIds: [uid],
-        headCoachId: uid,
-        assistantCoachIds: [],
-        playerIds: [],
-        parentIds: [],
-        season: new Date().getFullYear().toString(),
-        ageGroup: '',
-      } as any);
+      let teamId: string | null = null;
+
+      // Coach path: create the team first so the club can stamp
+      // initialTeamId on creation. Skip when admin-only — the club
+      // exists as an empty shell that teams attach to later via the
+      // /club page's "+ Add team" flow.
+      if (clubIAlsoCoach) {
+        teamId = await createTeam({
+          name: clubFirstTeam.trim(),
+          coachIds: [uid],
+          headCoachId: uid,
+          assistantCoachIds: [],
+          playerIds: [],
+          parentIds: [],
+          season: new Date().getFullYear().toString(),
+          ageGroup: '',
+        } as any);
+      }
+
       const clubId = await createClub({
         name: clubName.trim(),
         ownerUid: uid,
-        initialTeamId: teamId,
+        ...(teamId ? { initialTeamId: teamId } : {}),
       });
-      await updateDoc(doc(db, 'teams', teamId), { clubId });
-      await updateDoc(doc(db, 'users', uid), {
-        role: 'coach',
-        isClubAdmin: false,  // platform-controlled flag; club ownership is via clubs.ownerUid
-        teamId,
-        teamIds: arrayUnion(teamId),
+      if (teamId) {
+        await updateDoc(doc(db, 'teams', teamId), { clubId });
+      }
+
+      // Role assignment depends on what they actually do.
+      // - club_admin: a director/registrar/treasurer who runs the
+      //   club but doesn't coach a team. They get club-level access
+      //   via clubs.ownerUid + adminUids, NOT coach UI surfaces.
+      // - coach: they're also head coach of the just-created team.
+      const userPatch: any = {
         clubIds: arrayUnion(clubId),
         approved: true,
         approvalStatus: 'self-created-club',
-      });
+        isClubAdmin: false, // platform-admin flag, unrelated to club ownership
+      };
+      if (clubIAlsoCoach && teamId) {
+        userPatch.role = 'coach';
+        userPatch.teamId = teamId;
+        userPatch.teamIds = arrayUnion(teamId);
+      } else {
+        userPatch.role = 'club_admin';
+        // No teamId / teamIds — they're not on a roster anywhere.
+      }
+      await updateDoc(doc(db, 'users', uid), userPatch);
+
+      // Redirect target — coaches land on the dashboard (their team
+      // shows up immediately); club-only admins land on /club where
+      // the next steps are inviting coaches and adding teams.
+      if (!clubIAlsoCoach) {
+        if (refreshUserData) await refreshUserData();
+        window.location.href = '/club';
+        return;
+      }
       await finishWithRefresh();
     } catch (e: any) {
       console.error('[onboarding] createClub failed', e);
@@ -234,23 +278,50 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
                 autoFocus
               />
             </label>
-            <label className="block">
-              <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">First team name</span>
-              <input
-                type="text"
-                value={clubFirstTeam}
-                onChange={(e) => setClubFirstTeam(e.target.value)}
-                placeholder="e.g. U12 Boys"
-                className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30"
-              />
-            </label>
+
+            {/* Coach toggle — defaults off so a director / registrar
+                / treasurer creating the club doesn't get forced into
+                a coach role they don't want. Toggling on reveals
+                the team name field and creates this user as head
+                coach of that team. */}
+            <div className="bg-charcoal-900/60 border border-white/10 rounded-xl p-3.5">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={clubIAlsoCoach}
+                  onChange={(e) => setClubIAlsoCoach(e.target.checked)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <p className="text-bone text-sm font-bold">I'll also coach a team myself</p>
+                  <p className="text-bone/55 text-xs mt-0.5 leading-snug">
+                    Leave off if you're a director, registrar, or treasurer who runs the club but doesn't coach. You can invite head coaches and add teams from the club page after setup.
+                  </p>
+                </div>
+              </label>
+              {clubIAlsoCoach && (
+                <label className="block mt-3">
+                  <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">Your team name</span>
+                  <input
+                    type="text"
+                    value={clubFirstTeam}
+                    onChange={(e) => setClubFirstTeam(e.target.value)}
+                    placeholder="e.g. U12 Boys"
+                    className="w-full bg-charcoal-950 border border-white/10 rounded-lg px-3 py-2.5 text-bone placeholder:text-bone/30"
+                  />
+                </label>
+              )}
+            </div>
+
             <p className="text-xs text-bone/55 leading-relaxed">
-              You'll be the club owner and head coach of the first team. Additional teams and admins can be added later.
+              You'll be set as club owner. {clubIAlsoCoach
+                ? 'Plus head coach of the team above.'
+                : "After signup, you'll land on the club page where you can invite coaches, add teams, set up payments, and customize branding."}
             </p>
             <Button
               variant="primary"
               onClick={handleCreateClub}
-              disabled={busy || !clubName.trim() || !clubFirstTeam.trim()}
+              disabled={busy || !clubName.trim() || (clubIAlsoCoach && !clubFirstTeam.trim())}
               fullWidth
             >
               {busy ? 'Creating...' : 'Create club'}

@@ -156,7 +156,7 @@ const PublicSurvey: React.FC = () => {
   // ─── Loading ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft/30 border-t-cyan-500" />
       </div>
     );
@@ -165,7 +165,7 @@ const PublicSurvey: React.FC = () => {
   // ─── Error ───────────────────────────────────────────────────────────
   if (error || !survey) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 p-6 flex flex-col">
         <InAppSurveyBackBar />
         <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">😕</div>
@@ -179,7 +179,7 @@ const PublicSurvey: React.FC = () => {
   // ─── Closed ──────────────────────────────────────────────────────────
   if (!survey.isActive) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 p-6 flex flex-col">
         <InAppSurveyBackBar />
         <div className="text-center max-w-sm mx-auto my-auto">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-4 text-bone/40">
@@ -196,7 +196,7 @@ const PublicSurvey: React.FC = () => {
   // ─── Already submitted ──────────────────────────────────────────────
   if (alreadySubmitted || step === 'thanks') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 p-6 flex flex-col">
         <InAppSurveyBackBar />
         <div className="text-center max-w-sm mx-auto my-auto">
           <div className="text-5xl mb-4">🎉</div>
@@ -210,7 +210,7 @@ const PublicSurvey: React.FC = () => {
   // ─── Identify step (only for non-anonymous surveys) ──────────────────
   if (!survey.isAnonymous && step === 'identify') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 flex flex-col">
+      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 p-6 flex flex-col">
         <InAppSurveyBackBar />
         <div className="w-full max-w-md mx-auto my-auto">
           <div className="text-center mb-6">
@@ -224,7 +224,7 @@ const PublicSurvey: React.FC = () => {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full border border-white/10 rounded-xl px-4 py-3 text-bone focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none"
+              className="w-full bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none"
               autoFocus
             />
             <button
@@ -242,7 +242,7 @@ const PublicSurvey: React.FC = () => {
 
   // ─── Fill survey ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950">
       <InAppSurveyBackBar />
       <div className="max-w-lg mx-auto py-8 px-4 sm:px-6">
         {/* Header */}
@@ -282,15 +282,20 @@ const PublicSurvey: React.FC = () => {
                       key={opt}
                       type="button"
                       onClick={() => setAnswer(q.id, opt)}
-                      className={`flex-1 py-3 rounded-xl font-medium text-sm border-2 transition-colors ${
+                      className={`flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm border-2 transition-colors ${
                         answers[q.id] === opt
                           ? opt === 'yes'
                             ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300'
                             : 'border-rose-400/40 bg-rose-500/15 text-rose-300'
-                          : 'border-white/10 text-bone/65 hover:border-gray-300'
+                          : 'border-white/15 text-bone/65 hover:border-white/30'
                       }`}
                     >
-                      {opt === 'yes' ? '👍 Yes' : '👎 No'}
+                      {opt === 'yes' ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      )}
+                      {opt === 'yes' ? 'Yes' : 'No'}
                     </button>
                   ))}
                 </div>
@@ -323,7 +328,7 @@ const PublicSurvey: React.FC = () => {
                   onChange={e => setAnswer(q.id, e.target.value)}
                   rows={3}
                   placeholder="Type your answer…"
-                  className="w-full border border-white/10 rounded-xl px-4 py-3 text-sm text-bone focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none resize-none mt-3"
+                  className="w-full bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-primary-soft focus:border-brand-primary-soft outline-none resize-none mt-3"
                 />
               )}
             </div>

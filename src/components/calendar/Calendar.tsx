@@ -770,9 +770,9 @@ const Calendar: React.FC<CalendarProps> = ({
             container as scroll position moves under them. */}
         <div className="bg-charcoal-950 px-3 py-4 space-y-4 min-h-[200px]">
           {showing.length === 0 ? (
-            <div className="bg-white rounded-xl ring-1 ring-gray-200 p-8 text-center">
-              <p className="text-gray-600 font-medium text-sm">
-                {listTab === 'past' ? 'No past events yet.' : 'No upcoming events.'}
+            <div className="bg-charcoal-900/60 rounded-xl ring-1 ring-white/10 p-8 text-center backdrop-blur-sm">
+              <p className="text-bone/70 font-medium text-sm">
+                {listTab === 'past' ? 'Nothing in the books yet.' : 'Calendar is wide open.'}
               </p>
               {listTab !== 'past' && isUserCoach && (
                 <button
@@ -781,9 +781,9 @@ const Calendar: React.FC<CalendarProps> = ({
                     setSelectedDate(null);
                     setIsEventFormOpen(true);
                   }}
-                  className="mt-4 bg-gradient-to-r from-brand-primary to-charcoal-600 hover:from-brand-primary hover:to-brand-primary text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
+                  className="mt-4 bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-all text-sm"
                 >
-                  Add first event
+                  Put Something on the Calendar
                 </button>
               )}
             </div>

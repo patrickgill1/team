@@ -382,9 +382,9 @@ const Onboarding: React.FC = () => {
         {step === 'team' && (
           <Card>
             <Kicker>Step 1{isClubTier ? ' of 3' : ' of 2'}</Kicker>
-            <H>Name your team.</H>
+            <H>Name your squad.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              You can edit any of this later from Team Settings.
+              Change any of this later from Team HQ.
             </p>
             <Field label="Team name">
               <input
@@ -440,8 +440,8 @@ const Onboarding: React.FC = () => {
 
         {step === 'roster' && createdTeamId && (
           <Card>
-            <Kicker>Add your roster</Kicker>
-            <H>Who&apos;s on your team?</H>
+            <Kicker>Build the squad</Kicker>
+            <H>Who&apos;s in?</H>
             <p className="mt-3 text-charcoal-300 text-sm">
               Drop in players + parent emails. Parents get a link to join in their inbox.
               Skip rows you&apos;re not ready for. Add the rest later from the Team page.
@@ -464,11 +464,11 @@ const Onboarding: React.FC = () => {
 
         {step === 'event' && (
           <Card>
-            <Kicker>Add your first practice</Kicker>
-            <H>Get something on the calendar.</H>
+            <Kicker>First session</Kicker>
+            <H>Put something on the calendar.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              We pre-filled tomorrow at 6:30 PM. Edit anything and save, or skip if you&apos;re not ready.
-              Parents you just invited will see it the moment they join.
+              We pre-filled tomorrow at 6:30 PM. Tweak and save, or skip for now.
+              Parents you just brought in see it the moment they're in.
             </p>
 
             <Field label="What is it?">
@@ -532,10 +532,10 @@ const Onboarding: React.FC = () => {
         {step === 'invite' && (
           <Card>
             <Kicker>Step {isClubTier ? '3 of 3' : '2 of 2'}</Kicker>
-            <H>Invite your parents.</H>
+            <H>Bring parents in.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              Share this link with parents. They&apos;ll sign in, add their player, and join your team.
-              You can revoke or regenerate it later from the Team page.
+              Send this link to parents. They sign in, claim their player, and they're in.
+              Revoke or regenerate it anytime from the Team page.
             </p>
             {inviteLink ? (
               <>

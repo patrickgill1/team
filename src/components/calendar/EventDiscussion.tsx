@@ -138,7 +138,7 @@ const EventDiscussion: React.FC<Props> = ({ eventId, teamId, userUid, userName, 
       </div>
 
       {comments.length === 0 ? (
-        <p className="text-sm text-charcoal-500 mb-3">No messages yet — say something to kick it off.</p>
+        <p className="text-sm text-charcoal-500 mb-3">First word's yours.</p>
       ) : (
         <ul className="space-y-2 mb-3 max-h-[60vh] overflow-y-auto">
           {comments.map(c => {

@@ -320,7 +320,7 @@ const PracticePlanBuilder: React.FC = () => {
               {/* Timeline */}
               <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10/70 p-5 print:shadow-none print:ring-0">
                 {active.drills.length === 0 ? (
-                  <div className="text-center text-bone/40 py-8 text-sm">No drills yet. Add from the library or build a custom block.</div>
+                  <div className="text-center text-bone/40 py-8 text-sm">Empty session. Pull drills from the library or build one.</div>
                 ) : (
                   <ol className="space-y-3">
                     {active.drills.map((d, idx) => {

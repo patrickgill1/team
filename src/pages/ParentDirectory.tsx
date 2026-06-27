@@ -547,8 +547,8 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   {/* Empty state for parents with no players */}
                   {entry.user.role === 'parent' && entry.players.length === 0 && (
                     <div className="mb-4 rounded-2xl bg-white/5 ring-1 ring-dashed ring-white/20 p-4 text-center backdrop-blur">
-                      <p className="text-white/85 text-sm font-medium mb-1">No players linked yet</p>
-                      <p className="text-white/55 text-xs mb-3">Coach can link this parent to a player</p>
+                      <p className="text-white/85 text-sm font-medium mb-1">Not linked to a player</p>
+                      <p className="text-white/55 text-xs mb-3">A coach can link them to one.</p>
                       {isUserCoach && (
                         linkingUid === entry.user.uid ? (
                           <div className="space-y-2">

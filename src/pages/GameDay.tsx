@@ -1110,7 +1110,7 @@ const GameDay: React.FC = () => {
             ) : (
               <div className="overflow-y-auto p-2 grid grid-cols-2 gap-2">
                 {players.length === 0 ? (
-                  <div className="col-span-2 p-6 text-center text-white/40 text-sm">No players on this team.</div>
+                  <div className="col-span-2 p-6 text-center text-white/40 text-sm">Squad's empty.</div>
                 ) : players.map(p => (
                   <button
                     key={p.id}

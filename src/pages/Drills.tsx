@@ -196,8 +196,8 @@ const Drills: React.FC = () => {
           </Link>
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Drill library</h1>
-              <p className="text-sm text-bone/40 mt-0.5">Reusable drills you can drop onto any player's plan in one tap.</p>
+              <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Training Ground</h1>
+              <p className="text-sm text-bone/40 mt-0.5">Drills you can drop onto any player's plan in one tap.</p>
             </div>
             <button
               onClick={() => { setEditing(null); setCreateOpen(true); }}
@@ -310,8 +310,8 @@ const Drills: React.FC = () => {
           <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">Loading…</div>
         ) : visible.length === 0 ? (
           <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-10 text-center">
-            <p className="text-sm font-bold text-bone/85">No drills in your library yet.</p>
-            <p className="text-xs text-bone/50 mt-1 mb-4">Type one yourself, or tap Generate to have Claude draft one from a topic.</p>
+            <p className="text-sm font-bold text-bone/85">Library's empty.</p>
+            <p className="text-xs text-bone/50 mt-1 mb-4">Build one yourself, or have AI draft one from a topic.</p>
             <button
               onClick={() => { setEditing(null); setCreateOpen(true); }}
               className="px-4 py-2 rounded-lg bg-brand-primary/150 hover:bg-brand-primary-soft text-charcoal-950 text-sm font-bold"

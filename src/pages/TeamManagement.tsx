@@ -639,7 +639,7 @@ const TeamManagement: React.FC = () => {
             Players on {teams.find(t => t.id === selectedTeamId)?.name || 'Current Team'}
           </h2>
           {players.length === 0 ? (
-            <p className="text-bone/50">No players on this team yet. Add players from the Players page.</p>
+            <p className="text-bone/50">Squad's empty. Build it from the Squad page.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {players.map(player => (

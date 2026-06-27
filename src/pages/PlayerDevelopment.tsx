@@ -1131,7 +1131,7 @@ const PlayerDevelopment: React.FC = () => {
                       <>
                         <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-2 border border-white/10 rounded-lg bg-white/[0.04]">
                           {players.length === 0 && (
-                            <div className="w-full text-center text-xs text-bone/50 py-3">No players on this team yet.</div>
+                            <div className="w-full text-center text-xs text-bone/50 py-3">Squad's empty.</div>
                           )}
                           {players.map(p => {
                             const checked = bulkPlayerIds.includes(p.id);

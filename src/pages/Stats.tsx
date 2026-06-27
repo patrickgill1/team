@@ -508,8 +508,8 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
           <div className="text-bone/40 mb-3 flex justify-center">
             <AppIcon name="players" className="w-12 h-12" />
           </div>
-          <h3 className="text-lg font-medium text-bone mb-1">No players yet</h3>
-          <p className="text-bone/65 mb-4">Add players to your team to start tracking stats.</p>
+          <h3 className="text-lg font-medium text-bone mb-1">Squad's empty</h3>
+          <p className="text-bone/65 mb-4">Build the squad first. Stats come once players are in.</p>
           <button
             onClick={() => window.location.href = '/players'}
             className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition"

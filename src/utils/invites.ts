@@ -232,7 +232,7 @@ export async function consumeInvite(inviteId: string, uid: string): Promise<{ ok
     });
 
     return { ok: true as const, type: inv.type as Invite['type'], teamId: inv.teamId, playerId: inv.playerId };
-  }).then(async (result) => {
+  }).then(async (result: any) => {
     // Post-transaction: an invited coach / team_manager joining a
     // team that belongs to a real (non-default-solo) club inherits
     // their coverage from the club. They don't need to start their

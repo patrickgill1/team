@@ -115,7 +115,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
       {/* Tagline strip */}
       <div className="relative px-4 sm:px-6 pb-5 text-center">
         <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] text-brand-primary-soft/70">
-          Embrace the Soccer Spirit
+          Every Player Deserves a Shot
         </p>
       </div>
     </section>

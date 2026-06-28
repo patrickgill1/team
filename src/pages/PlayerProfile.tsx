@@ -18,6 +18,7 @@ import { computeStreakDays } from '../utils/devPlanActions';
 import { computePlayerAttendance } from '../utils/attendance';
 import { getPlayerStats, getPlayerLifetimeStats, getAllSeasonsForTeam, getActiveSeasonForTeam } from '../utils/seasons';
 import { getShareOrigin } from '../utils/origin';
+import { publicPlayerCardUrl } from './PublicPlayerCard';
 import { downloadFile } from '../utils/downloadFile';
 import { streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
 
@@ -381,7 +382,40 @@ const PlayerProfile: React.FC = () => {
 
   const handleShareProfile = async () => {
     if (!player) return;
-    const url = `${getShareOrigin()}/player/${player.id}`;
+    // Sharing requires publicShare.enabled — otherwise the link
+    // would just hit the gated /player/<id> route and bounce
+    // anyone not signed in to the auth wall (Patrick caught this
+    // 2026-06-27). Walk the parent through enabling public share
+    // before generating the URL.
+    const isPublic = !!(player as any).publicShare?.enabled;
+    if (!isPublic) {
+      const ok = window.confirm(
+        `Sharing ${player.name}'s card publicly?\n\n` +
+        `Anyone with the link will see: photo, name, jersey, team, position, and Player of the Match count.\n\n` +
+        `Never shared: parent contact info, chat, medical, RSVPs, family addresses.\n\n` +
+        `You can turn sharing off any time.`,
+      );
+      if (!ok) return;
+      try {
+        const { updateDoc, doc } = await import('firebase/firestore');
+        const { db } = await import('../utils/firebase');
+        await updateDoc(doc(db, 'players', player.id), {
+          publicShare: {
+            enabled: true,
+            enabledAt: new Date(),
+            enabledBy: userData?.uid || null,
+          },
+        });
+        // Re-read into local state so the next share tap goes
+        // straight to the URL flow without re-prompting.
+        setPlayer({ ...(player as any), publicShare: { enabled: true, enabledAt: new Date(), enabledBy: userData?.uid || null } });
+      } catch (err) {
+        console.error('publicShare flip failed', err);
+        alert("Couldn't enable sharing. Try again.");
+        return;
+      }
+    }
+    const url = publicPlayerCardUrl(player.id);
     const data = { title: `${player.name} · GoalKickr`, url };
     try {
       if (navigator.share) await navigator.share(data);
@@ -390,6 +424,26 @@ const PlayerProfile: React.FC = () => {
       if ((err as any)?.name !== 'AbortError') {
         try { await navigator.clipboard.writeText(url); alert('Profile link copied!'); } catch {}
       }
+    }
+  };
+
+  // Parent-only action to turn public sharing off after they've
+  // enabled it. Useful when a link gets out further than intended
+  // or after a season ends. Reachable from the same share affordance.
+  const disablePublicShare = async () => {
+    if (!player) return;
+    if (!window.confirm(`Turn off public sharing for ${player.name}? Existing links will stop working immediately.`)) return;
+    try {
+      const { updateDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('../utils/firebase');
+      await updateDoc(doc(db, 'players', player.id), {
+        publicShare: { enabled: false },
+      });
+      setPlayer({ ...(player as any), publicShare: { enabled: false } });
+      alert('Public sharing is off.');
+    } catch (err) {
+      console.error('publicShare disable failed', err);
+      alert("Couldn't turn off sharing. Try again.");
     }
   };
 

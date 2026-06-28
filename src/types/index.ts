@@ -490,6 +490,10 @@ export interface Player {
    *  flag — display only. */
   isAdultPlayer?: boolean;
   profilePhotoUrl?: string | null;
+  /** Public-sharing config for the player. When enabled, the
+   *  /p/<playerId> route serves a sanitized card (no PII) to
+   *  anyone with the link — recruiters, family, friends. */
+  publicShare?: PlayerPublicShare;
   emergencyContacts?: EmergencyContact[];
   medicalInfo?: string;
   /** Structured medical profile (allergies, conditions, EAPs,
@@ -1888,6 +1892,26 @@ export interface VideoLink {
 // COPIED into a DevelopmentGoal on that plan (so edits to the template
 // later don't disturb in-flight plans, and per-player notes/practice
 // logs accumulate on the goal, not the drill).
+// Marker the player profile reads when constructing the share URL
+// and when serving the public /p/<id> page. Defaults to false on
+// every existing player — sharing has to be explicitly opted into
+// by the parent (or coach acting on the parent's behalf) before
+// any non-authed visitor can see anything.
+//
+// Public render NEVER shows: parent emails, phone numbers,
+// addresses, medical notes, chat history, RSVP behavior, anything
+// from parentIds. Visible: photo, name, jersey, team name, age
+// band, position, season stats summary, highlight reels marked
+// public, public awards (POTM count). No per-section privacy yet
+// — assume "if it's safe to show recruiters, show it." Per-toggle
+// granularity (showStats / showHighlights / showWhispers) is a
+// follow-up if a parent asks.
+export interface PlayerPublicShare {
+  enabled: boolean;
+  enabledAt?: Date;
+  enabledBy?: string;
+}
+
 export interface Drill {
   id: string;
   /** Which club / team library this drill belongs to. clubId is set if

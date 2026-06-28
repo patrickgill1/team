@@ -85,6 +85,7 @@ const TicketDetail = React.lazy(() => import('./pages/TicketDetail'));
 const ClubAdmins = React.lazy(() => import('./pages/ClubAdmins'));
 const AuthAction = React.lazy(() => import('./pages/AuthAction'));
 const AuthImpersonate = React.lazy(() => import('./pages/AuthImpersonate'));
+const PublicPlayerCard = React.lazy(() => import('./pages/PublicPlayerCard'));
 const EventDetail = React.lazy(() => import('./pages/EventDetail'));
 const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
@@ -419,6 +420,7 @@ function App() {
               <Route path="/survey/:surveyId" element={<PublicSurvey />} />
               <Route path="/game/:gameId" element={<PublicGame />} />
               <Route path="/wall/p/:postId" element={<PublicWallPost />} />
+              <Route path="/p/:playerId" element={<PublicPlayerCard />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
             
             {/* Root redirect - goes to dashboard if authenticated, auth if not */}

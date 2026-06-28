@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configure activity. Shown when the user drops the widget onto the
+  home screen. Asks them to paste the setupCode from GoalKickr ->
+  Settings -> Widget. Tap Save to store and return.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0C10"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.18"
+            android:text="@string/widget_brand_kicker"
+            android:textColor="#80F5F2E8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/widget_setup_title"
+            android:textColor="#F5F2E8"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="3dp"
+            android:text="@string/widget_setup_body"
+            android:textColor="#A6F5F2E8"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/widget_setup_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:autofillHints="off"
+            android:hint="@string/widget_setup_hint"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:textColor="#F5F2E8"
+            android:textColorHint="#66F5F2E8"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/widget_setup_save"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#DC2626"
+            android:text="@string/widget_setup_save"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:lineSpacingExtra="2dp"
+            android:text="@string/widget_setup_footnote"
+            android:textColor="#80F5F2E8"
+            android:textSize="11sp" />
+    </LinearLayout>
+</ScrollView>

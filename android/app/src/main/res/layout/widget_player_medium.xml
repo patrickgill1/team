@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Medium widget (4x2). Mirrors iOS MediumPlayerView:
+  - Top row: avatar + name + team + streak/POTM badges
+  - Divider
+  - Bottom row: upcoming-event card (icon + title + date/location + RSVP pill)
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root_medium"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <!-- Identity strip -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:background="@drawable/widget_avatar_ring">
+
+            <ImageView
+                android:id="@+id/widget_avatar_photo_m"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="@string/widget_avatar_desc" />
+
+            <TextView
+                android:id="@+id/widget_avatar_initials_m"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textColor="#DC2626"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="HG" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.12"
+                android:text="@string/widget_brand_kicker"
+                android:textColor="#6BF5F2E8"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_player_name_m"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#F5F2E8"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="Hunter Gill" />
+
+            <TextView
+                android:id="@+id/widget_team_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.04"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#A6F5F2E8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                tools:text="FIRE FC U10 PG" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_streak_pill_m"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_streak_pill"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
+
+            <TextView
+                android:id="@+id/widget_streak_label_m"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#F5F2E8"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:text="7d" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:background="#14F5F2E8" />
+
+    <!-- Upcoming event card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/widget_event_icon_bg">
+
+            <TextView
+                android:id="@+id/widget_event_icon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textColor="#DC2626"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="P" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_event_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#F5F2E8"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="Practice" />
+
+            <TextView
+                android:id="@+id/widget_event_meta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#A6F5F2E8"
+                android:textSize="11sp"
+                tools:text="in 4 hours · West Field" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_rsvp_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_rsvp_pill_neutral"
+            android:letterSpacing="0.04"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:textColor="#A6F5F2E8"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            tools:text="PLEASE RSVP" />
+    </LinearLayout>
+</LinearLayout>

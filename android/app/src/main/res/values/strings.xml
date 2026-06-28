@@ -4,4 +4,26 @@
     <string name="title_activity_main">GoalKickr</string>
     <string name="package_name">com.firefc.team</string>
     <string name="custom_url_scheme">com.firefc.team</string>
+
+    <!-- Widget strings. Match the iOS widget's NeedsSetupView /
+         ConfigurationAppIntent copy so users see consistent
+         language across platforms. -->
+    <string name="widget_brand_kicker">GOALKICKR</string>
+    <string name="widget_avatar_desc">Player photo</string>
+    <string name="widget_setup_title">Player Widget</string>
+    <string name="widget_setup_body">Open GoalKickr, go to Settings → Widget, copy your setup code, then paste it here.</string>
+    <string name="widget_setup_hint">Paste setup code</string>
+    <string name="widget_setup_save">Save</string>
+    <string name="widget_setup_footnote">The code is a long-lived per-user token. Your widget pulls a fresh snapshot every 30 minutes. You can revoke + regenerate the code from Settings at any time.</string>
+    <string name="widget_needs_setup_title">Tap to\nset up</string>
+    <string name="widget_needs_setup_body">Long-press, Edit Widget, paste your code.</string>
+    <string name="widget_error_offline">Offline</string>
+    <string name="widget_error_invalid_code">Code\nexpired</string>
+    <string name="widget_streak_label_short">%1$dd</string>
+    <string name="widget_streak_label_long">%1$dd streak</string>
+    <string name="widget_no_upcoming">Nothing on the calendar</string>
+    <string name="widget_please_rsvp">PLEASE RSVP</string>
+    <string name="widget_rsvp_going">GOING</string>
+    <string name="widget_rsvp_maybe">MAYBE</string>
+    <string name="widget_rsvp_no">NOT GOING</string>
 </resources>

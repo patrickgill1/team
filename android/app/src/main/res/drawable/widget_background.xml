@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Charcoal gradient matching the iOS widget's BRAND_GRADIENT
+     (Color.charcoal #0a0c10 → Color.charcoalLift #141820). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="135"
+        android:startColor="#0A0C10"
+        android:endColor="#141820"
+        android:type="linear" />
+    <corners android:radius="22dp" />
+</shape>

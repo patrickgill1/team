@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Small widget (2x2). Identity card: avatar + first name + streak.
+  No event row at this size (use medium for that). Mirrors the iOS
+  SmallPlayerView layout in PlayerWidget.swift.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root_small"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Avatar 72dp. Background drawable is the oval ring + faint
+         crimson fill; ImageView centerCrop holds the player photo
+         (pre-cropped to a circle bitmap before setImageViewBitmap).
+         Fallback initials TextView shows when photo is null. -->
+    <FrameLayout
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/widget_avatar_ring">
+
+        <ImageView
+            android:id="@+id/widget_avatar_photo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/widget_avatar_desc" />
+
+        <TextView
+            android:id="@+id/widget_avatar_initials"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#DC2626"
+            android:textSize="27sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="HG" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/widget_player_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textColor="#F5F2E8"
+        android:textSize="19sp"
+        android:textStyle="bold"
+        android:singleLine="true"
+        android:ellipsize="end"
+        tools:text="Hunter" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/widget_streak_pill"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_streak_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#F5F2E8"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            tools:text="7d streak" />
+    </LinearLayout>
+</LinearLayout>

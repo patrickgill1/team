@@ -27,6 +27,31 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Player widget (Android counterpart of ios/App/PlayerWidget).
+             Receiver listens for AppWidgetManager updates; the configure
+             activity runs when the user drops the widget on the home
+             screen and asks for the setup code. updatePeriodMillis is
+             set in player_widget_info.xml. -->
+        <receiver
+            android:name=".widget.PlayerWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/player_widget_info" />
+        </receiver>
+
+        <activity
+            android:name=".widget.PlayerWidgetConfigure"
+            android:exported="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 
     <!-- Permissions -->

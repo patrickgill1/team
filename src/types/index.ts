@@ -1635,6 +1635,21 @@ export interface Team {
    *  another team's defaults. */
   homeKitColor?: string;
   awayKitColor?: string;
+  /** Video storage tier the team is paying for. Drives quota gates.
+   *  - 'free' (or absent): 20 clips, each ≤60s. Default for new teams.
+   *  - 'addon': $10/mo. Unlimited clips, still ≤60s each.
+   *  - 'pro':   $29.99/mo. Unlimited clips, no length cap, up to 100hr stored.
+   *  Set by the Stripe webhook on subscribe / cancel. */
+  videoTier?: 'free' | 'addon' | 'pro';
+  /** Count of Stream-hosted clips currently stored against this team.
+   *  Bumped on upload completion, decremented on delete. Drives the
+   *  20-clip free-tier cap. Treat absent as 0 (backfill catches up
+   *  any existing teams). */
+  videoClipCount?: number;
+  /** Sum of durations (in minutes) for every Stream-hosted clip on
+   *  this team. Drives the 100-hour Tier 2 cap. Same lifecycle as
+   *  videoClipCount. */
+  videoMinutesStored?: number;
   createdAt: Date;
   updatedAt?: Date;
 }

@@ -7,6 +7,8 @@ import { FullGame } from '../types';
 import { isCoach, canManageTeamMedia, formatDate } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamThumbnailUrl } from '../utils/streamUpload';
+import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
+import VideoQuotaModal from '../components/common/VideoQuotaModal';
 import StreamPlayer from '../components/common/StreamPlayer';
 import { getShareOrigin } from '../utils/origin';
 
@@ -42,6 +44,7 @@ const FullGames: React.FC = () => {
   const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
 
   const [games, setGames] = useState<FullGame[]>([]);
+  const [quotaBlocked, setQuotaBlocked] = useState<QuotaCheck | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState<FullGame | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -192,6 +195,19 @@ const FullGames: React.FC = () => {
     try {
       // Upload to Cloudflare Stream first if needed
       if (formSource === 'upload' && formFile) {
+        // Quota gate. Full game film is by definition >60s, so
+        // free + Highlights+ teams will always fail the duration
+        // check here. Tier 2 (Full Game Film) is the only path
+        // that allows native upload of a full game. YouTube embeds
+        // are the free alternative, hence the modal CTA.
+        const durationSec = await probeVideoDuration(formFile);
+        const quota = await checkUploadQuota(selectedTeamId!, { durationSeconds: durationSec ?? undefined });
+        if (!quota.allowed) {
+          setQuotaBlocked(quota);
+          setSaving(false);
+          setUploadProgress(0);
+          return;
+        }
         setUploadProgress(0);
         const result = await uploadToStream(
           formFile,
@@ -205,6 +221,9 @@ const FullGames: React.FC = () => {
         payload.videoContentType = formFile.type;
         // R2 fields are no longer used for new uploads.
         (payload as any).videoKey = null;
+        // Bump team video usage so the Tier 2 100-hour cap can be
+        // enforced. Stored minutes drive the next upload's check.
+        void incrementTeamVideoUsage(selectedTeamId!, durationSec);
       } else if (formSource === 'upload' && existingVideoUrl) {
         // Editing without replacing the file — keep existing video fields
         payload.videoUrl = existingVideoUrl;
@@ -673,6 +692,11 @@ const FullGames: React.FC = () => {
           </div>
         </div>
       )}
+      <VideoQuotaModal
+        open={!!quotaBlocked}
+        quota={quotaBlocked}
+        onClose={() => setQuotaBlocked(null)}
+      />
     </div>
   );
 };

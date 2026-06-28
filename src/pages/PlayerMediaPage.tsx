@@ -13,6 +13,8 @@ import DataGate from '../components/common/DataGate';
 import { compressVideo, canCompressVideo, CompressionProgress } from '../utils/videoCompression';
 import { uploadToR2 } from '../utils/r2Upload';
 import { uploadToStream, streamIframeUrl, streamThumbnailUrl, getStreamDownloadUrl } from '../utils/streamUpload';
+import { checkUploadQuota, probeVideoDuration, incrementTeamVideoUsage, type QuotaCheck } from '../utils/videoQuota';
+import VideoQuotaModal from '../components/common/VideoQuotaModal';
 import { downloadFile } from '../utils/downloadFile';
 import { getShareOrigin } from '../utils/origin';
 import StreamPlayer, { loadStreamSdk, StreamSdkPlayer } from '../components/common/StreamPlayer';
@@ -40,6 +42,11 @@ const PlayerMediaPage: React.FC = () => {
   const [showEmbedModal, setShowEmbedModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  // Storage quota modal — opens when an upload attempt hits the
+  // team's video tier cap (clip count, per-clip duration, or
+  // total storage). Phase 1 is informational; Phase 2 wires the
+  // upgrade CTA to Stripe Checkout.
+  const [quotaBlocked, setQuotaBlocked] = useState<QuotaCheck | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [compressionStatus, setCompressionStatus] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -383,7 +390,20 @@ const PlayerMediaPage: React.FC = () => {
         // cellular). Photos stay on Firebase Storage.
         let url: string;
         let streamUid: string | undefined;
+        let videoDurationSec: number | null = null;
         if (isVideo) {
+          // Probe duration BEFORE uploading so we can reject over-cap
+          // clips without burning bandwidth. Then check the team's
+          // tier quota. Either failure pops the upgrade modal and
+          // aborts the rest of the batch.
+          videoDurationSec = await probeVideoDuration(file);
+          const quota = await checkUploadQuota(selectedTeamId!, { durationSeconds: videoDurationSec ?? undefined });
+          if (!quota.allowed) {
+            setQuotaBlocked(quota);
+            setUploading(false);
+            setUploadProgress(0);
+            return;
+          }
           const result = await uploadToStream(
             file,
             { name: uploadCaption || file.name, playerId: uploadPlayerId, teamId: selectedTeamId },
@@ -397,6 +417,9 @@ const PlayerMediaPage: React.FC = () => {
           // `m.url` still work (Safari will play HLS natively, and we render
           // the Stream iframe explicitly when streamUid is present).
           url = result.hlsUrl;
+          // Bump the team's video usage counters. Drives the quota
+          // gate on subsequent uploads + the admin Storage page.
+          void incrementTeamVideoUsage(selectedTeamId!, videoDurationSec);
         } else {
           const storagePath = `player_media/${selectedTeamId}/${uploadPlayerId}/${Date.now()}_${file.name}`;
           url = await uploadFile(file, storagePath);
@@ -2208,6 +2231,11 @@ const PlayerMediaPage: React.FC = () => {
         onClose={() => setTrialGateOpen(false)}
         action="upload media"
         reason={trialReason}
+      />
+      <VideoQuotaModal
+        open={!!quotaBlocked}
+        quota={quotaBlocked}
+        onClose={() => setQuotaBlocked(null)}
       />
     </div>
   );

@@ -76,6 +76,28 @@ module.exports = {
           'primary-deep': 'rgb(var(--brand-primary-deep) / <alpha-value>)',
           'primary-fg':   'rgb(var(--brand-primary-fg) / <alpha-value>)',
         },
+        // Semantic theme tokens — light/dark-aware via html[data-theme].
+        // New components reach for these; existing charcoal-* / bone
+        // classes keep working in dark mode and migrate incrementally.
+        // Source values live in src/index.css under --surface-* / --ink-*
+        // / --line-*. See that file for the full token table.
+        surface: {
+          base:     'rgb(var(--surface-base) / <alpha-value>)',
+          elevated: 'rgb(var(--surface-elevated) / <alpha-value>)',
+          input:    'rgb(var(--surface-input) / <alpha-value>)',
+          overlay:  'rgb(var(--surface-overlay) / <alpha-value>)',
+          raised:   'rgb(var(--surface-raised) / <alpha-value>)',
+        },
+        ink: {
+          primary:   'rgb(var(--ink-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--ink-secondary) / <alpha-value>)',
+          muted:     'rgb(var(--ink-muted) / <alpha-value>)',
+          inverse:   'rgb(var(--ink-inverse) / <alpha-value>)',
+        },
+        line: {
+          default: 'rgb(var(--line-default) / <alpha-value>)',
+          strong:  'rgb(var(--line-strong) / <alpha-value>)',
+        },
       },
       animation: {
         // Subtle scale/opacity pulse for the game-day glow on the

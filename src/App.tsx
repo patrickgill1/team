@@ -5,6 +5,7 @@ import { db } from './utils/firebase';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { ViewModeProvider } from './contexts/ViewModeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import SilentErrorBoundary from './components/common/SilentErrorBoundary';
@@ -218,8 +219,12 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 // lg:ml-64.
 const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { collapsed } = useSidebar();
+  // Page shell uses the semantic surface token so the toggle in
+  // Settings → Appearance flips the background. Inner components
+  // still render their own (mostly charcoal-*) backgrounds until
+  // migrated; the shell flip is what makes the toggle visible.
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       <Navigation />
       <ApplyClubBrand />
       <main className={`${collapsed ? 'lg:ml-20' : 'lg:ml-64'} pt-[calc(env(safe-area-inset-top)+3.5rem)] lg:pt-0 pb-20 lg:pb-0 transition-all duration-300`}>
@@ -395,6 +400,7 @@ function App() {
   // 'Install update now' row, with a clear warning) wants it.
 
   return (
+    <ThemeProvider>
     <AuthProvider>
       <TeamProvider>
         <ViewModeProvider>
@@ -921,6 +927,7 @@ function App() {
       )}
       {updateApplying && <UpdatingSplash />}
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

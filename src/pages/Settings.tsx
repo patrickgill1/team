@@ -16,6 +16,7 @@ import EmailPreferences from '../components/common/EmailPreferences';
 import SubscriptionCard from '../components/settings/SubscriptionCard';
 import WidgetSetupCard from '../components/settings/WidgetSetupCard';
 import VideoStorageCard from '../components/video/VideoStorageCard';
+import { useTheme, type ThemeMode } from '../contexts/ThemeContext';
 
 interface LinkedPlayer {
   id: string;
@@ -451,6 +452,11 @@ const Settings: React.FC = () => {
         )}
 
         <section>
+          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Appearance</h2>
+          <ThemeToggleCard />
+        </section>
+
+        <section>
           <h2 className="text-2xl font-bold text-bone mb-2 px-1">Widget</h2>
           <WidgetSetupCard />
         </section>
@@ -668,6 +674,44 @@ const DrillLibraryToggle: React.FC = () => {
       >
         {busy ? '…' : browse ? 'On' : 'Off'}
       </button>
+    </div>
+  );
+};
+
+const ThemeToggleCard: React.FC = () => {
+  const { mode, setMode, resolved } = useTheme();
+  const options: { key: ThemeMode; label: string; hint: string }[] = [
+    { key: 'system', label: 'System', hint: 'Match your device' },
+    { key: 'dark',   label: 'Dark',   hint: 'Always dark' },
+    { key: 'light',  label: 'Light',  hint: 'Always light' },
+  ];
+  return (
+    <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
+      <div className="p-4">
+        <div className="grid grid-cols-3 gap-2">
+          {options.map(o => {
+            const active = mode === o.key;
+            return (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => setMode(o.key)}
+                className={`rounded-xl px-3 py-3 text-center transition ring-1 ${
+                  active
+                    ? 'bg-brand-primary/15 ring-brand-primary text-bone'
+                    : 'bg-charcoal-950 ring-white/10 text-bone/65 hover:text-bone hover:ring-white/20'
+                }`}
+              >
+                <div className="text-sm font-bold">{o.label}</div>
+                <div className="text-[10px] mt-0.5 text-bone/55">{o.hint}</div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-bone/40 mt-3 leading-relaxed">
+          Currently rendering: <span className="text-bone/70 font-bold">{resolved}</span>. Light mode is being rolled out gradually; some screens still render dark until their cards migrate to the new theme tokens.
+        </p>
+      </div>
     </div>
   );
 };

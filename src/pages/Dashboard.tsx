@@ -1074,7 +1074,22 @@ const Dashboard: React.FC = () => {
                 ** or # don't leak into the preview. */}
             <ul className="divide-y divide-white/5">
               {wallPosts.map(p => {
+                // Strip BOTH HTML tags (TipTap-emitted posts) AND
+                // markdown special chars (legacy posts) before
+                // truncating. Patrick caught the raw-HTML-in-snippet
+                // bug 2026-06-27 — Dashboard Announcements card was
+                // showing literal "<pHello Team,</p<pWanted to..."
+                // because it only stripped markdown chars.
                 const snippet = p.content
+                  .replace(/<br\s*\/?>/gi, ' ')
+                  .replace(/<\/(p|div|h[1-6]|li|blockquote)>/gi, ' ')
+                  .replace(/<[^>]+>/g, '')
+                  .replace(/&nbsp;/g, ' ')
+                  .replace(/&amp;/g, '&')
+                  .replace(/&lt;/g, '<')
+                  .replace(/&gt;/g, '>')
+                  .replace(/&quot;/g, '"')
+                  .replace(/&#39;/g, "'")
                   .replace(/[*_#>`~]/g, '')
                   .replace(/\s+/g, ' ')
                   .trim();

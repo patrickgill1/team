@@ -5,7 +5,7 @@ import { db } from './utils/firebase';
 import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { ViewModeProvider } from './contexts/ViewModeContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme, isThemePickerVisible } from './contexts/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import SilentErrorBoundary from './components/common/SilentErrorBoundary';
@@ -219,6 +219,18 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 // lg:ml-64.
 const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { collapsed } = useSidebar();
+  const { userData } = useAuth();
+  const { mode, setMode } = useTheme();
+  // Self-heal non-owners back to dark. Light mode is owner-only while
+  // the native underlay fixes await binary submission; any non-owner
+  // who toggled to light during the brief 3.7.40-42 window (when the
+  // picker was visible to all) gets reset on next auth-resolved render.
+  React.useEffect(() => {
+    if (!userData) return;
+    if (!isThemePickerVisible(userData) && mode !== 'dark') {
+      setMode('dark');
+    }
+  }, [userData, mode, setMode]);
   // Page shell uses the semantic surface token so the toggle in
   // Settings → Appearance flips the background. Inner components
   // still render their own (mostly charcoal-*) backgrounds until

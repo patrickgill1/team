@@ -10,7 +10,7 @@ import { openWebSignup } from '../utils/subscriptionApi';
 import BulkAddPlayersForm from '../components/people/BulkAddPlayersForm';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
-import { useTheme, type ThemeMode, THEME_PICKER_ENABLED } from '../contexts/ThemeContext';
+import { useTheme, type ThemeMode, isThemePickerVisible } from '../contexts/ThemeContext';
 
 // First-run wizard for a freshly-signed-up coach. Lands here when
 // ProtectedRoute sees a signed-in user with no teamIds. Multi-step,
@@ -439,12 +439,11 @@ const Onboarding: React.FC = () => {
             </div>
 
             {/* Small appearance picker. Defaults to Dark for new users.
+                Owner-only via isThemePickerVisible() until the next
+                iOS + Android binaries ship with the underlay fixes.
                 Sits below the primary CTAs so it reads as a quiet
-                flourish ("we noticed") instead of competing with the
-                team/club decision. Persisted to localStorage on tap.
-                Gated behind THEME_PICKER_ENABLED while the AppDelegate
-                underlay fix awaits an App Store binary submission. */}
-            {THEME_PICKER_ENABLED && <ThemePickerStrip />}
+                flourish, not competing with the team/club decision. */}
+            {isThemePickerVisible(userData) && <ThemePickerStrip />}
 
             {subscription && (
               <p className="mt-5 text-charcoal-400 text-xs">

@@ -24,12 +24,29 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = 'gk.theme';
 
-// Light mode is gated until the next App Store binary ships with the
-// AppDelegate.swift UIWindow theme-aware patch (currently shipped on
-// main, awaiting submission). When THEME_PICKER_ENABLED flips true the
-// localStorage value drives the choice and the Settings + Onboarding
-// pickers re-appear. See feedback_light_mode_gated memory.
-export const THEME_PICKER_ENABLED = false;
+// Light mode is gated until the next iOS + Android binaries ship with
+// the AppDelegate.swift / styles.xml theme-aware underlay patches
+// (committed on main, awaiting submission). Until then the toggle is
+// owner-only so Patrick can audit on his own devices via Capgo OTA —
+// regular users still see dark only.
+//
+// The gate is computed at consumer-component-level (uses `useAuth`).
+// This constant is a kill switch — flip to false to hide from everyone
+// (including owner). When the binaries ship + light mode is launch-
+// ready, change isPickerVisible() to `return true` to roll out to all.
+export const THEME_PICKER_ENABLED = true;
+
+// Caller passes their userData (or null). Owner sees the toggle, no
+// one else does. Used by Settings → Appearance + Onboarding picker.
+export function isThemePickerVisible(userData: { email?: string } | null | undefined): boolean {
+  if (!THEME_PICKER_ENABLED) return false;
+  // Lazy-import to avoid pulling helpers into the context module's
+  // dependency graph (helpers.ts touches firestore types). Owner check
+  // is a hardcoded allowlist on the email — same as isOwner() in
+  // helpers.ts. Duplicated here to keep the gate evaluation pure.
+  const email = (userData?.email || '').toLowerCase();
+  return email === 'patrickgill4@gmail.com';
+}
 
 function readStoredMode(): ThemeMode {
   if (!THEME_PICKER_ENABLED) return 'dark';

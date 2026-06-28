@@ -105,7 +105,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
   }, [kids]);
 
   return (
-    <div className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 py-10 sm:py-14">
+    <div className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-4 py-10 sm:py-14">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">

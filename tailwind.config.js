@@ -89,6 +89,12 @@ module.exports = {
           raised:   'rgb(var(--surface-raised) / <alpha-value>)',
           tint:     'rgb(var(--surface-tint) / <alpha-value>)',
         },
+        // Vignette: theme-aware "darker end" for soft page-level gradients.
+        // Black in dark mode (matches the original to-black usage), slate-300
+        // in light mode (subtle vignette without the harsh contrast jump).
+        vignette: {
+          deep: 'rgb(var(--vignette-deep) / <alpha-value>)',
+        },
         ink: {
           primary:   'rgb(var(--ink-primary) / <alpha-value>)',
           secondary: 'rgb(var(--ink-secondary) / <alpha-value>)',

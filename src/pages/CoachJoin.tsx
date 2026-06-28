@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 // before that change still land here, so we show a clear hint instead of
 // the previous broken auto-join loop.
 const CoachJoin: React.FC = () => (
-  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center p-4 text-white">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center p-4 text-white">
     <div className="bg-surface-elevated/60 backdrop-blur ring-1 ring-line-default/10 rounded-3xl shadow-2xl w-full max-w-md p-8 text-center">
       <div className="text-5xl mb-3">🔄</div>
       <h1 className="text-xl font-bold mb-2">This invite link is out of date</h1>

@@ -572,7 +572,7 @@ const RegisterForm: React.FC = () => {
   const familyFirst = userData?.name?.split(' ')[0] || 'family';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-4 py-6 sm:py-10">
       <div className="max-w-2xl mx-auto">
         {/* Progress dots — always visible so parents know where they
             are. On step 1 (splash) we hide them to keep the entry card
@@ -1109,7 +1109,7 @@ const Checkbox: React.FC<{ label: string; checked: boolean; onChange: (v: boolea
 );
 
 const CenterMessage: React.FC<{ title: string; body?: string; success?: boolean }> = ({ title, body, success }) => (
-  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center p-6">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center p-6">
     <div className="max-w-md w-full bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-3xl p-8 text-center">
       <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4 ${
         success ? 'bg-emerald-500/20 ring-1 ring-emerald-400/40' : 'bg-line-default/5 ring-1 ring-line-default/10'

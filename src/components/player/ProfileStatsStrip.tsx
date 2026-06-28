@@ -17,7 +17,7 @@ interface Props {
 
 const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePct, jugglesBest }) => {
   return (
-    <section className="bg-gradient-to-br from-surface-base via-surface-elevated to-black px-3 sm:px-6 pb-5 border-b border-brand-primary/15">
+    <section className="bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-3 sm:px-6 pb-5 border-b border-brand-primary/15">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <StatTile
           accent="amber"
@@ -53,8 +53,8 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
 };
 
 const ACCENT: Record<string, { bg: string; ring: string; badge: string; text: string }> = {
-  amber: { bg: 'bg-amber-500/10', ring: 'ring-amber-400/30', badge: 'bg-amber-400', text: 'text-amber-200' },
-  orange: { bg: 'bg-orange-500/10', ring: 'ring-orange-400/30', badge: 'bg-orange-400', text: 'text-orange-200' },
+  amber: { bg: 'bg-amber-500/10', ring: 'ring-amber-400/30', badge: 'bg-amber-400', text: 'text-ink-primary' },
+  orange: { bg: 'bg-orange-500/10', ring: 'ring-orange-400/30', badge: 'bg-orange-400', text: 'text-ink-primary' },
   cyan: { bg: 'bg-brand-primary/10', ring: 'ring-brand-primary-soft/30', badge: 'bg-brand-primary-soft', text: 'text-ink-primary' },
 };
 
@@ -74,8 +74,8 @@ const StatTile: React.FC<{
         </span>
         <span className={`text-3xl sm:text-4xl font-black tabular-nums leading-none ${a.text}`}>{value}</span>
       </div>
-      <div className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-white/90 leading-tight">{label}</div>
-      <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-white/50">{sub}</div>
+      <div className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-ink-primary/90 leading-tight">{label}</div>
+      <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-ink-primary/50">{sub}</div>
     </div>
   );
 };

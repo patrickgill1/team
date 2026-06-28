@@ -45,6 +45,7 @@
   --surface-overlay:  13 13 16;
   --surface-raised:   52 53 58;
   --surface-tint:     72 73 78;
+  --vignette-deep:    0 0 0;
 
   --ink-primary:   245 243 238;
   --ink-secondary: 245 243 238;
@@ -64,6 +65,7 @@ html[data-theme="light"] {
   --surface-overlay:  255 255 255;
   --surface-raised:   226 232 240;
   --surface-tint:     203 213 225;
+  --vignette-deep:    226 232 240;
 
   --ink-primary:   15 23 42;
   --ink-secondary: 71 85 105;
@@ -506,14 +508,14 @@ body.platform-android .safe-top { padding-top: 0; }
   font-weight: 900;
   line-height: 1.2;
   margin: 1rem 0 0.5rem;
-  color: #f3f0eb; /* bone */
+  color: rgb(var(--ink-primary));
 }
 .tiptap-wall h2, .tiptap-rendered h2 {
   font-size: 1.25rem;
   font-weight: 800;
   line-height: 1.25;
   margin: 0.9rem 0 0.4rem;
-  color: #f3f0eb;
+  color: rgb(var(--ink-primary));
 }
 .tiptap-wall ul, .tiptap-rendered ul,
 .tiptap-wall ol, .tiptap-rendered ol {
@@ -528,25 +530,25 @@ body.platform-android .safe-top { padding-top: 0; }
   margin: 0.8rem 0;
   padding: 0.4rem 0 0.4rem 1rem;
   border-left: 3px solid rgba(199, 47, 70, 0.6); /* crimson-500/60 */
-  color: rgba(243, 240, 235, 0.7);
+  color: rgb(var(--ink-primary) / 0.7);
   font-style: italic;
 }
 .tiptap-wall hr, .tiptap-rendered hr {
   border: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(var(--line-default) / 0.1);
   margin: 1rem 0;
 }
 .tiptap-wall code, .tiptap-rendered code {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(243, 240, 235, 0.85);
+  background: rgb(var(--line-default) / 0.08);
+  color: rgb(var(--ink-primary) / 0.85);
   padding: 0.1rem 0.3rem;
   border-radius: 0.25rem;
   font-size: 0.85em;
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .tiptap-wall a, .tiptap-rendered a {
-  color: #fda4af; /* crimson-300 ish */
+  color: rgb(var(--brand-primary-soft));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -558,7 +560,7 @@ body.platform-android .safe-top { padding-top: 0; }
   max-width: 100%;
   display: block;
 }
-.tiptap-wall strong, .tiptap-rendered strong { font-weight: 700; color: #f3f0eb; }
+.tiptap-wall strong, .tiptap-rendered strong { font-weight: 700; color: rgb(var(--ink-primary)); }
 .tiptap-wall em, .tiptap-rendered em { font-style: italic; }
 .tiptap-wall s, .tiptap-rendered s { text-decoration: line-through; opacity: 0.7; }
 

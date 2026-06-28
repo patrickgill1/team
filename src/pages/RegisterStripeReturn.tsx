@@ -35,7 +35,7 @@ export const RegisterCancel: React.FC = () => {
 };
 
 const Frame: React.FC<{ tone: 'success' | 'warning'; title: string; body: string; regId: string | null }> = ({ tone, title, body, regId }) => (
-  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center p-6">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center p-6">
     <div className="max-w-md w-full bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-3xl p-8 text-center">
       <div className="inline-flex p-3 rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur mb-4">
         <Logo size="lg" variant="full" />

@@ -74,7 +74,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 py-10 sm:py-16">
+    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-4 py-10 sm:py-16">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex p-3 rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur mb-4">

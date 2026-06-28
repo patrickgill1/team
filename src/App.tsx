@@ -97,7 +97,7 @@ const HelpdeskTicketPage = React.lazy(() => import('./pages/HelpdeskTicket'));
 // (same dark navy bg) and shows the app mark with a subtle bouncing
 // three-dot indicator below so the user knows something's happening.
 const PageSpinner = () => (
-  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center">
     <div className="flex flex-col items-center gap-6 animate-fade-in">
       <img
         src="/images/logo.png"
@@ -1015,7 +1015,7 @@ const UpdatingSplash: React.FC = () => {
   return (
     <div
       aria-hidden
-      className="fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-black flex flex-col items-center justify-center animate-fade-in"
+      className="fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex flex-col items-center justify-center animate-fade-in"
     >
       <div className="flex flex-col items-center gap-6">
         <img
@@ -1079,7 +1079,7 @@ const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center px-8 transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center px-8 transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       style={{ transitionDuration: '400ms' }}
     >
       <div className="flex flex-col items-center gap-6 max-w-md">
@@ -1163,7 +1163,7 @@ const BrandedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       style={{ transitionDuration: '400ms' }}
     >
       <div className="flex flex-col items-center gap-6">

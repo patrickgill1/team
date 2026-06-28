@@ -69,7 +69,7 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-gradient-to-br from-surface-elevated via-surface-base to-black ring-1 ring-brand-primary/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
+        className="bg-gradient-to-br from-surface-elevated via-surface-base to-vignette-deep ring-1 ring-brand-primary/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative overflow-hidden p-6 border-b border-brand-primary/15">

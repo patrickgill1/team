@@ -29,6 +29,10 @@ function readStoredMode(): ThemeMode {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === 'light' || raw === 'dark' || raw === 'system') return raw;
   } catch { /* ignore */ }
+  // Default to dark for new users. Patrick's call: light mode is the
+  // option, dark is the brand. Don't follow OS preference by default —
+  // a parent on iOS auto-light at noon would land on a light theme
+  // the app's marketing screenshots don't match.
   return 'dark';
 }
 

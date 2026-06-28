@@ -35,7 +35,7 @@ const Spinner: React.FC = () => (
 );
 
 const Page: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-start justify-center p-4 pt-12 pb-16">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-start justify-center p-4 pt-12 pb-16">
     <div className="bg-surface-elevated/60 backdrop-blur ring-1 ring-line-default/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-white">
       {children}
     </div>
@@ -367,7 +367,7 @@ const InviteJoin: React.FC = () => {
 
       {/* Hero */}
       <div
-        className="relative overflow-hidden bg-gradient-to-br from-surface-elevated via-surface-base to-black p-6 border-b border-brand-primary/10"
+        className="relative overflow-hidden bg-gradient-to-br from-surface-elevated via-surface-base to-vignette-deep p-6 border-b border-brand-primary/10"
         style={clubBrand?.brandColor ? { borderBottomColor: `${clubBrand.brandColor}33` } : undefined}
       >
         <div

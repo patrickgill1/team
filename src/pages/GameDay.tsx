@@ -699,7 +699,7 @@ const GameDay: React.FC = () => {
   const sortedTimeline = [...(game?.timeline || [])].sort((a, b) => b.at - a.at);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-black text-white pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-white pb-32">
       {/* Header / Scoreboard */}
       <header className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-line-default/10">
         <div className="max-w-3xl mx-auto px-4 py-3">

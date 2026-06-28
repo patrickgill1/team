@@ -10,6 +10,7 @@ import { openWebSignup } from '../utils/subscriptionApi';
 import BulkAddPlayersForm from '../components/people/BulkAddPlayersForm';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
+import { useTheme, type ThemeMode } from '../contexts/ThemeContext';
 
 // First-run wizard for a freshly-signed-up coach. Lands here when
 // ProtectedRoute sees a signed-in user with no teamIds. Multi-step,
@@ -436,6 +437,12 @@ const Onboarding: React.FC = () => {
               </p>
               <InviteCodeRow />
             </div>
+
+            {/* Small appearance picker. Defaults to Dark for new users.
+                Sits below the primary CTAs so it reads as a quiet
+                flourish ("we noticed") instead of competing with the
+                team/club decision. Persisted to localStorage on tap. */}
+            <ThemePickerStrip />
 
             {subscription && (
               <p className="mt-5 text-charcoal-400 text-xs">
@@ -1003,6 +1010,76 @@ const StepIndicator: React.FC<{ currentStep: Step; isClubTier: boolean }> = ({ c
 // the user to the correct team, sets role appropriately). Lives at
 // the bottom of the welcome step so a user who landed here by mistake
 // has a way out without picking 'team' or 'club' first.
+// Slim three-up theme picker. Sits under the welcome step as a quiet
+// "make GoalKickr feel like home" flourish. New users land on Dark
+// by default (see ThemeContext.readStoredMode); tapping here writes
+// to localStorage and flips the wizard live so they see the change.
+const ThemePickerStrip: React.FC = () => {
+  const { mode, setMode } = useTheme();
+  const opts: { key: ThemeMode; label: string; hint: string; icon: React.ReactNode }[] = [
+    {
+      key: 'dark',
+      label: 'Dark',
+      hint: 'Default',
+      icon: (
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      ),
+    },
+    {
+      key: 'light',
+      label: 'Light',
+      hint: 'Bright',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+        </svg>
+      ),
+    },
+    {
+      key: 'system',
+      label: 'System',
+      hint: 'Match device',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="12" rx="2" />
+          <path d="M8 20h8M12 16v4" />
+        </svg>
+      ),
+    },
+  ];
+  return (
+    <div className="mt-5 pt-4 border-t border-line-default/10">
+      <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/45 mb-2">
+        Make it feel like home
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {opts.map(o => {
+          const active = mode === o.key;
+          return (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => setMode(o.key)}
+              className={`rounded-xl px-2 py-2.5 text-center transition ring-1 ${
+                active
+                  ? 'bg-brand-primary/15 ring-brand-primary text-ink-primary'
+                  : 'bg-surface-elevated ring-line-default/10 text-ink-primary/65 hover:text-ink-primary hover:ring-line-default/20'
+              }`}
+            >
+              <div className="flex items-center justify-center text-ink-primary/80">{o.icon}</div>
+              <div className="text-[12px] font-bold mt-1">{o.label}</div>
+              <div className="text-[10px] text-ink-primary/45">{o.hint}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const InviteCodeRow: React.FC = () => {
   const [code, setCode] = React.useState('');
   const handleGo = () => {

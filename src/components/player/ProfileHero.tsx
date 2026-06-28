@@ -26,7 +26,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
   const positionLabel = getPlayerPositionsLabel(player) || (player as any).position;
 
   return (
-    <section className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-black overflow-hidden">
+    <section className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep overflow-hidden">
       {/* Atmospheric glow + faint pitch silhouette */}
       <div className="absolute inset-0 pointer-events-none opacity-30">
         <div className="absolute -top-32 -right-20 w-[480px] h-[480px] rounded-full bg-brand-primary/15 blur-3xl" />

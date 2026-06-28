@@ -535,7 +535,7 @@ const PlayerProfile: React.FC = () => {
           card — that's an admin pipeline view. */}
 
       {/* Existing top-of-hero action row preserved for parity */}
-      <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 sm:px-6 py-3 border-b border-line-default/5 flex items-center justify-between">
+      <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-4 sm:px-6 py-3 border-b border-line-default/5 flex items-center justify-between">
         <Link
           to="/players"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-white text-xs font-semibold hover:bg-line-default/20 transition backdrop-blur"
@@ -583,7 +583,7 @@ const PlayerProfile: React.FC = () => {
       {/* Legacy hero band — season toggle + detailed 4-up career stats.
           Kept in a darker continuation strip so the visual flow is
           uninterrupted from the new hero into the existing toggle. */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-surface-elevated via-surface-elevated to-black text-white">
+      <div className="relative overflow-hidden bg-gradient-to-br from-surface-elevated via-surface-elevated to-vignette-deep text-white">
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
           {/* Hidden legacy block kept for the season toggle + detailed stats; the new ProfileHero replaces the old photo + name top. */}
           {false && (
@@ -743,7 +743,7 @@ const PlayerProfile: React.FC = () => {
           continues from the hero. Media/Development/Awards keep the
           original light treatment (different surface, different vibe). */}
       {activeTab === 'overview' && (
-        <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-black">
+        <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep">
           <div className="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
           <div className="space-y-4 sm:space-y-6">
 

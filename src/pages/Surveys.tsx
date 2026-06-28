@@ -313,7 +313,7 @@ const Surveys: React.FC = () => {
               <div className="space-y-4">
                 {selectedSurvey.questions.map(q => (
                   <div key={q.id} className="card-modern p-5">
-                    <h3 className="font-semibold text-charcoal-900 mb-3">{q.order}. {q.text}</h3>
+                    <h3 className="font-semibold text-bone mb-3">{q.order}. {q.text}</h3>
 
                     {q.type === 'rating' && (
                       <div className="space-y-2">
@@ -330,7 +330,7 @@ const Surveys: React.FC = () => {
                             return (
                               <div key={i} className="flex-1 text-center">
                                 <div className="text-xs text-brand-primary-soft mb-1">{i + 1}★</div>
-                                <div className="h-8 bg-brand-primary-soft rounded relative overflow-hidden">
+                                <div className="h-8 bg-white/10 rounded relative overflow-hidden">
                                   <div className="absolute bottom-0 left-0 right-0 bg-brand-primary-soft rounded transition-all" style={{ height: responses.length ? `${(count / responses.length) * 100}%` : '0%' }} />
                                 </div>
                                 <div className="text-xs text-brand-primary-soft mt-1">{count}</div>
@@ -349,8 +349,8 @@ const Surveys: React.FC = () => {
                       return (
                         <div className="flex gap-4">
                           <div className="flex-1 bg-emerald-500/15 rounded-xl p-3 text-center border border-emerald-400/30">
-                            <div className="text-2xl font-bold text-emerald-600">{yes}</div>
-                            <div className="text-xs text-emerald-500">Yes {total > 0 && `(${Math.round((yes / total) * 100)}%)`}</div>
+                            <div className="text-2xl font-bold text-emerald-300">{yes}</div>
+                            <div className="text-xs text-emerald-400">Yes {total > 0 && `(${Math.round((yes / total) * 100)}%)`}</div>
                           </div>
                           <div className="flex-1 bg-rose-500/15 rounded-xl p-3 text-center border border-rose-400/30">
                             <div className="text-2xl font-bold text-rose-300">{no}</div>
@@ -368,9 +368,16 @@ const Surveys: React.FC = () => {
                           {(q.options || []).map(opt => (
                             <div key={opt} className="flex items-center gap-3">
                               <span className="text-sm text-bone/85 w-40 truncate">{opt}</span>
-                              <div className="flex-1 h-6 bg-brand-primary-soft rounded-full overflow-hidden">
+                              {/* Track is dim charcoal so the cyan fill
+                                  reads as a progress bar; previously
+                                  both track AND fill were the same
+                                  bg-brand-primary-soft = invisible
+                                  progress. Count text inside the fill
+                                  is dark charcoal for legibility on
+                                  the light-cyan bar. */}
+                              <div className="flex-1 h-6 bg-white/10 rounded-full overflow-hidden">
                                 <div className="h-6 bg-brand-primary-soft rounded-full transition-all flex items-center pl-2" style={{ width: `${((counts[opt] || 0) / max) * 100}%`, minWidth: counts[opt] ? '28px' : '0' }}>
-                                  {counts[opt] ? <span className="text-xs font-medium text-white">{counts[opt]}</span> : null}
+                                  {counts[opt] ? <span className="text-xs font-bold text-charcoal-950">{counts[opt]}</span> : null}
                                 </div>
                               </div>
                             </div>
@@ -433,7 +440,7 @@ const Surveys: React.FC = () => {
                   return (
                     <div key={q.id} className="card-modern p-5">
                       <div className="text-xs font-medium text-brand-primary-soft uppercase tracking-wide mb-1">{QUESTION_TYPE_LABELS[q.type]}</div>
-                      <h3 className="font-semibold text-charcoal-900 mb-3">{q.order}. {q.text}</h3>
+                      <h3 className="font-semibold text-bone mb-3">{q.order}. {q.text}</h3>
                       {!ans || ans.value === undefined || ans.value === '' ? (
                         <span className="text-brand-primary-soft italic text-sm">No answer</span>
                       ) : q.type === 'rating' ? (

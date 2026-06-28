@@ -1,18 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import type { QuotaCheck } from '../../utils/videoQuota';
+import { startVideoCheckout } from '../../utils/subscriptionApi';
 
 // Shown when an upload attempt fails the team's video quota check.
-// Phase 1 — purely informational + waitlist CTA. Phase 2 will swap
-// the CTA for a Stripe Checkout button.
+// Pro tier is wired to live Stripe Checkout via the worker; Highlights+
+// stays "Coming soon" until that SKU exists in Stripe.
 
 interface Props {
   open: boolean;
   quota: QuotaCheck | null;
   onClose: () => void;
+  teamId?: string;
 }
 
-const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose }) => {
+const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose, teamId }) => {
+  const { currentUser } = useAuth();
+  const [upgrading, setUpgrading] = useState<'addon' | 'pro' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   if (!open || !quota) return null;
+
+  const proSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_PRO;
+  const addonSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_ADDON;
 
   const title = quota.reason === 'duration'
     ? 'This clip is too long for your tier'
@@ -25,6 +35,27 @@ const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose }) => {
     : quota.reason === 'storage'
       ? 'Full Game Film tier includes 100 hours of stored video. Delete an old clip from the team to free up space.'
       : `Free teams can store up to 20 short clips. Upgrade to Highlights+ ($10/mo) for unlimited 60-second clips, or Full Game Film ($29.99/mo) for full-length game video and up to 100 hours stored.`;
+
+  const handleUpgrade = async (tier: 'addon' | 'pro') => {
+    if (!teamId) {
+      setError('Pick a team first.');
+      return;
+    }
+    setError(null);
+    setUpgrading(tier);
+    const err = await startVideoCheckout({
+      tier,
+      teamId,
+      uid: currentUser?.uid,
+      customerEmail: currentUser?.email || undefined,
+    });
+    setUpgrading(null);
+    if (err) {
+      setError(err === 'price-not-configured'
+        ? 'Upgrades aren\'t available yet. Email patrick.gill@goalkickr.com.'
+        : `Couldn\'t open checkout (${err}).`);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in" onClick={onClose}>
@@ -62,19 +93,33 @@ const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose }) => {
               price="$10/mo per team"
               perks="Unlimited 60s clips, 720p"
               active={quota.tier === 'addon'}
-              comingSoon
+              ctaLabel={addonSkuConfigured ? 'Upgrade' : undefined}
+              comingSoon={!addonSkuConfigured}
+              onCta={addonSkuConfigured ? () => handleUpgrade('addon') : undefined}
+              busy={upgrading === 'addon'}
+              disabled={!!upgrading}
             />
             <TierRow
               label="Full Game Film"
               price="$29.99/mo per team"
               perks="Unlimited length, up to 100 hours stored"
               active={quota.tier === 'pro'}
-              comingSoon
+              ctaLabel={proSkuConfigured ? 'Upgrade' : undefined}
+              comingSoon={!proSkuConfigured}
+              onCta={proSkuConfigured ? () => handleUpgrade('pro') : undefined}
+              busy={upgrading === 'pro'}
+              disabled={!!upgrading}
             />
           </div>
 
+          {error && (
+            <p className="mt-4 text-xs text-rose-300 bg-rose-500/10 ring-1 ring-rose-500/30 rounded-lg px-3 py-2 leading-relaxed">
+              {error}
+            </p>
+          )}
+
           <p className="mt-5 text-bone/55 text-xs leading-relaxed">
-            Paid tiers ship soon. We're metering usage now to set the free-tier limit fairly. Want early access? Email <a href="mailto:patrick.gill@goalkickr.com" className="text-brand-primary-soft hover:underline">patrick.gill@goalkickr.com</a>.
+            Subscriptions are per-team and billed monthly. Manage or cancel anytime from the team settings page.
           </p>
 
           <button
@@ -82,7 +127,7 @@ const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose }) => {
             onClick={onClose}
             className="w-full mt-5 px-4 py-2.5 rounded-lg bg-charcoal-800 hover:bg-charcoal-700 ring-1 ring-white/10 text-bone text-xs font-extrabold tracking-widest uppercase"
           >
-            Got it
+            Not now
           </button>
         </div>
       </div>
@@ -90,7 +135,17 @@ const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose }) => {
   );
 };
 
-const TierRow: React.FC<{ label: string; price: string; perks: string; active?: boolean; comingSoon?: boolean }> = ({ label, price, perks, active, comingSoon }) => (
+const TierRow: React.FC<{
+  label: string;
+  price: string;
+  perks: string;
+  active?: boolean;
+  comingSoon?: boolean;
+  ctaLabel?: string;
+  onCta?: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+}> = ({ label, price, perks, active, comingSoon, ctaLabel, onCta, busy, disabled }) => (
   <div className={`rounded-xl p-3 ring-1 ${active ? 'bg-brand-primary/10 ring-brand-primary/30' : 'bg-charcoal-950 ring-white/10'}`}>
     <div className="flex items-center justify-between gap-2">
       <span className="text-bone font-bold text-sm">{label}</span>
@@ -102,6 +157,16 @@ const TierRow: React.FC<{ label: string; price: string; perks: string; active?: 
     )}
     {comingSoon && !active && (
       <p className="text-bone/40 text-[10px] font-extrabold tracking-widest uppercase mt-1.5">Coming soon</p>
+    )}
+    {ctaLabel && !active && onCta && (
+      <button
+        type="button"
+        onClick={onCta}
+        disabled={!!busy || !!disabled}
+        className="mt-2 w-full px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold tracking-widest uppercase hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-wait"
+      >
+        {busy ? 'Opening checkout…' : ctaLabel}
+      </button>
     )}
   </div>
 );

@@ -28,8 +28,11 @@ STRIPE_PRICE_COACH_MONTHLY   = "price_1Tl15oAGgBqwZqUri4yjAgcG"
 STRIPE_PRICE_FOUNDER         = "price_1Tl194AGgBqwZqUrJHYEYW8C"
 STRIPE_PRICE_CLUB_ANNUAL     = "price_1TlFwIAGgBqwZqUrLuZEVevJ"
 STRIPE_PRICE_CLUB_PRO_ANNUAL = "price_1Tl16ZAGgBqwZqUrjTWW0TZf"
-# Reserved for the +$10/mo Video add-on. Not consumed by worker code
-# yet; ships here so the cutover doesn't lose the value.
+STRIPE_PRICE_VIDEO_PRO_MONTHLY = "price_1TnKbNAGgBqwZqUrDX2WwUKP"
+
+# $10/mo Highlights+ video add-on (unlimited 60s clips). Stub SKU —
+# not yet sold; the modal still shows "Coming soon" until this is
+# wired into the UI as a real price.
 STRIPE_PRICE_VIDEO_ADDON_MONTHLY = "price_1Tl17KAGgBqwZqUr4qGT8RP5"
 
 # CORS allow-list (comma separated). Vercel preview URLs added later if needed.

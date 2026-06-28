@@ -1650,6 +1650,14 @@ export interface Team {
    *  this team. Drives the 100-hour Tier 2 cap. Same lifecycle as
    *  videoClipCount. */
   videoMinutesStored?: number;
+  /** Stripe subscription powering videoTier. Written by the Stripe
+   *  webhook on completion; null when tier reverts to 'free'. */
+  videoSubscriptionId?: string | null;
+  /** Stripe customer that owns videoSubscriptionId. Used to mint a
+   *  Customer Portal session for the "Manage subscription" button. */
+  videoCustomerId?: string | null;
+  /** Last time the Stripe webhook touched videoTier. Informational. */
+  videoTierUpdatedAt?: Date;
   createdAt: Date;
   updatedAt?: Date;
 }

@@ -22,6 +22,7 @@ import {
   handleRegistrationCheckout,
   handleRegistrationRefund,
   handleSubscriptionCheckout,
+  handleVideoCheckout,
   handleFounderCount,
   handleCustomerPortal,
   handleWebhook,
@@ -257,6 +258,21 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       let payload: any = {};
       try { payload = await req.json(); } catch {}
       const res = await handleSubscriptionCheckout(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    // POST /stripe/video-checkout — per-team video tier upgrade
+    // ($10/mo Add-on or $29.99/mo Pro). Anonymous from the auth
+    // perspective; the inbound priceId is validated against the
+    // env allowlist and the teamId is stamped into the Checkout
+    // session metadata so the webhook can flip the right team's
+    // videoTier without leaking cross-team writes.
+    if (url.pathname === '/stripe/video-checkout' && req.method === 'POST') {
+      let payload: any = {};
+      try { payload = await req.json(); } catch {}
+      const res = await handleVideoCheckout(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

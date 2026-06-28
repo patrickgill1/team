@@ -113,6 +113,49 @@ export function openWebSignup(opts: {
   openExternal(url);
 }
 
+// ── Per-team video tier checkout ─────────────────────────────────
+//
+// Video subscriptions are per-team (not per-user). The worker creates
+// a Checkout session keyed by teamId and stamps subscription metadata
+// so the webhook can flip teams/{teamId}.videoTier on completion.
+//
+// Required env (CRA build-time):
+//   REACT_APP_STRIPE_PRICE_VIDEO_PRO     $29.99/mo Full Game Film
+//   REACT_APP_STRIPE_PRICE_VIDEO_ADDON   $10/mo Highlights+ (optional, may be unset)
+export async function startVideoCheckout(opts: {
+  tier: 'addon' | 'pro';
+  teamId: string;
+  uid?: string;
+  customerEmail?: string;
+  returnUrl?: string;
+}): Promise<string | null> {
+  if (!NOTIFY_URL) return 'billing-not-configured';
+  const priceId = opts.tier === 'pro'
+    ? process.env.REACT_APP_STRIPE_PRICE_VIDEO_PRO
+    : process.env.REACT_APP_STRIPE_PRICE_VIDEO_ADDON;
+  if (!priceId) return 'price-not-configured';
+  if (!opts.teamId) return 'no-team-id';
+  try {
+    const res = await fetch(`${NOTIFY_URL.replace(/\/$/, '')}/stripe/video-checkout`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        priceId,
+        teamId: opts.teamId,
+        uid: opts.uid,
+        customerEmail: opts.customerEmail,
+        successUrl: opts.returnUrl,
+      }),
+    });
+    const data = await res.json().catch(() => ({} as any));
+    if (!res.ok || !data?.url) return data?.error || `checkout-error-${res.status}`;
+    openExternal(data.url);
+    return null;
+  } catch (err: any) {
+    return String(err?.message || err);
+  }
+}
+
 export function isAppleDevice(): boolean {
   try {
     const cap = (window as any)?.Capacitor;

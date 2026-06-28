@@ -43,6 +43,14 @@ export interface StripeEnv {
   STRIPE_PRICE_CLUB_ANNUAL?: string;
   // Club Pro $499/yr — integrations + advanced reporting.
   STRIPE_PRICE_CLUB_PRO_ANNUAL?: string;
+  // Per-team video tiers. Free is the implicit baseline (20 clips,
+  // 60s each). Add-on ($10/mo) lifts the count cap. Pro ($29.99/mo)
+  // also lifts the per-clip duration cap (unlimited length, 100hr
+  // total storage). Tier is matched by exact price ID equality on
+  // the inbound checkout request so a tampered client can't pay
+  // for the wrong plan.
+  STRIPE_PRICE_VIDEO_ADDON_MONTHLY?: string;
+  STRIPE_PRICE_VIDEO_PRO_MONTHLY?: string;
   // Number of Founder seats available before the tier closes.
   // String because Cloudflare env vars are always strings.
   // Defaults to 50.
@@ -548,6 +556,71 @@ export async function handleSubscriptionCheckout(payload: any, env: StripeEnv): 
   }
 }
 
+// ── Per-team video subscription checkout ────────────────────────
+//
+// Separate flow from the Coach / Club subscription above because the
+// owning entity is a TEAM, not a user. The Checkout metadata carries
+// teamId + videoTier, the webhook flips teams/{teamId}.videoTier
+// when the session completes, and a video_subscriptions/{subId}
+// pointer doc lets the cancel/update webhooks find the right team.
+//
+// Body: { priceId, teamId, uid, successUrl?, cancelUrl?, customerEmail? }
+export async function handleVideoCheckout(payload: any, env: StripeEnv): Promise<Response> {
+  const priceId = String(payload?.priceId || '').trim();
+  if (!priceId) return json({ ok: false, error: 'missing-priceId' }, 400);
+  const videoTier = videoTierForPriceId(priceId, env);
+  if (!videoTier) return json({ ok: false, error: 'invalid-priceId' }, 400);
+
+  const teamId = String(payload?.teamId || '').trim();
+  if (!teamId) return json({ ok: false, error: 'missing-teamId' }, 400);
+  const uid = payload?.uid ? String(payload.uid) : undefined;
+  const customerEmail = payload?.customerEmail ? String(payload.customerEmail) : undefined;
+
+  // Default success/cancel routes land back on the team's settings
+  // page where the new tier badge will read live from team.videoTier.
+  const successUrl = String(payload?.successUrl || `${env.APP_ORIGIN}/teams?video_upgrade=ok&team=${encodeURIComponent(teamId)}`);
+  const cancelUrl = String(payload?.cancelUrl || `${env.APP_ORIGIN}/teams?video_upgrade=cancel&team=${encodeURIComponent(teamId)}`);
+
+  try {
+    const sessionParams: Record<string, any> = {
+      mode: 'subscription',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      'line_items[0][price]': priceId,
+      'line_items[0][quantity]': 1,
+      allow_promotion_codes: true,
+      // Top-level metadata for the Checkout session — used by
+      // checkout.session.completed handler. Mirrored into
+      // subscription_data so it survives on the Subscription
+      // object itself for the recurring lifecycle events.
+      'metadata[kind]': 'video',
+      'metadata[videoTier]': videoTier,
+      'metadata[teamId]': teamId,
+      'metadata[priceId]': priceId,
+      'subscription_data[metadata][kind]': 'video',
+      'subscription_data[metadata][videoTier]': videoTier,
+      'subscription_data[metadata][teamId]': teamId,
+    };
+    if (customerEmail) sessionParams['customer_email'] = customerEmail;
+    if (uid) {
+      sessionParams['metadata[uid]'] = uid;
+      sessionParams['subscription_data[metadata][uid]'] = uid;
+    }
+    const session = await stripeRequest(env, '/checkout/sessions', sessionParams);
+    return json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
+// Map a Stripe priceId to one of the video-tier strings, or null
+// if it's not an allowlisted video price.
+function videoTierForPriceId(priceId: string, env: StripeEnv): 'addon' | 'pro' | null {
+  if (env.STRIPE_PRICE_VIDEO_ADDON_MONTHLY && priceId === env.STRIPE_PRICE_VIDEO_ADDON_MONTHLY) return 'addon';
+  if (env.STRIPE_PRICE_VIDEO_PRO_MONTHLY && priceId === env.STRIPE_PRICE_VIDEO_PRO_MONTHLY) return 'pro';
+  return null;
+}
+
 // Map a Stripe priceId to a canonical tier string, or null if the
 // price isn't one of our allowlisted plans.
 function tierForPriceId(priceId: string, env: StripeEnv): 'annual' | 'monthly' | 'founder' | 'club' | 'club-pro' | null {
@@ -721,14 +794,22 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
   ) {
     try {
       const sub = event.data.object;
-      await upsertSubscriptionDoc(projectId, sa, sub, env);
-      // Welcome email on the very first subscription.created event.
-      // Dedupes via subscriptions/{docId}.welcomeEmailSentAt — set
-      // after we successfully send. Stripe retries that hit the same
-      // event after success will see the timestamp and skip.
-      if (event.type === 'customer.subscription.created' && projectId && sa) {
-        try { await maybeSendWelcomeEmail(env, projectId, sa, sub); }
-        catch (err) { console.warn('welcome email failed', err); }
+      // Branch on metadata.kind. Video subscriptions are per-team
+      // and write to teams/{teamId}.videoTier instead of the
+      // per-user subscriptions doc. Coach/Club subs fall through
+      // to the existing upsertSubscriptionDoc path unchanged.
+      if (sub?.metadata?.kind === 'video') {
+        await syncVideoSubscription(projectId, sa, sub, event.type);
+      } else {
+        await upsertSubscriptionDoc(projectId, sa, sub, env);
+        // Welcome email on the very first subscription.created event.
+        // Dedupes via subscriptions/{docId}.welcomeEmailSentAt — set
+        // after we successfully send. Stripe retries that hit the same
+        // event after success will see the timestamp and skip.
+        if (event.type === 'customer.subscription.created' && projectId && sa) {
+          try { await maybeSendWelcomeEmail(env, projectId, sa, sub); }
+          catch (err) { console.warn('welcome email failed', err); }
+        }
       }
     } catch (err) {
       console.warn('subscription webhook failed', err);
@@ -765,11 +846,19 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
             ...(sub.metadata || {}),
             uid: sub.metadata?.uid || session?.metadata?.uid,
             tier: sub.metadata?.tier || session?.metadata?.tier,
+            kind: sub.metadata?.kind || session?.metadata?.kind,
+            videoTier: sub.metadata?.videoTier || session?.metadata?.videoTier,
+            teamId: sub.metadata?.teamId || session?.metadata?.teamId,
+            priceId: sub.metadata?.priceId || session?.metadata?.priceId,
             referralSource: sub.metadata?.referralSource || session?.metadata?.referralSource,
             checkoutSessionId: session.id,
             customerEmail: session?.customer_details?.email || session?.customer_email || null,
           };
-          await upsertSubscriptionDoc(projectId, sa, sub, env);
+          if (sub.metadata?.kind === 'video') {
+            await syncVideoSubscription(projectId, sa, sub, 'customer.subscription.created');
+          } else {
+            await upsertSubscriptionDoc(projectId, sa, sub, env);
+          }
         }
       } catch (err) {
         console.warn('subscription checkout.session.completed handler failed', err);
@@ -1031,6 +1120,79 @@ async function upsertSubscriptionDoc(
 
 function tierLooksValid(t: any): boolean {
   return t === 'annual' || t === 'monthly' || t === 'founder' || t === 'club' || t === 'club-pro';
+}
+
+// Video subscriptions are scoped to a single team (teams/{teamId}.videoTier)
+// instead of a user, so they don't share the subscriptions/{uid} doc shape.
+// We keep a small pointer doc at video_subscriptions/{subscriptionId} so the
+// cancel/update events (which only carry the subscription, not the team)
+// can find their way back to the team.
+async function syncVideoSubscription(
+  projectId: string | null,
+  sa: ServiceAccount | null,
+  sub: any,
+  eventType: string,
+): Promise<void> {
+  if (!projectId || !sa || !sub) return;
+  const subscriptionId = String(sub.id || '');
+  if (!subscriptionId) return;
+
+  // teamId comes from metadata on the subscription itself (mirrored at
+  // checkout time via subscription_data[metadata]). On cancel events the
+  // metadata is still there; on edge cases where it isn't, fall back to
+  // the pointer doc written on the create event.
+  let teamId = String(sub.metadata?.teamId || '').trim();
+  if (!teamId) {
+    const pointer = await getDocument(projectId, `video_subscriptions/${subscriptionId}`, sa).catch(() => null);
+    teamId = String(pointer?.data?.teamId || '').trim();
+  }
+  if (!teamId) return;
+
+  const status = String(sub.status || 'incomplete');
+  const isActive = status === 'trialing' || status === 'active';
+  const tierFromMeta = sub.metadata?.videoTier;
+  const resolvedTier: 'free' | 'addon' | 'pro' =
+    eventType === 'customer.subscription.deleted' || !isActive
+      ? 'free'
+      : (tierFromMeta === 'addon' || tierFromMeta === 'pro' ? tierFromMeta : 'free');
+
+  const periodEndSec = Number(sub.current_period_end || 0);
+  const canceledAtSec = Number(sub.canceled_at || 0);
+
+  // Pointer doc — survives so a later cancel without metadata can still
+  // resolve back to the team.
+  const pointer: Record<string, any> = {
+    subscriptionId,
+    teamId,
+    customerId: sub.customer ? String(sub.customer) : null,
+    priceId: sub.metadata?.priceId || null,
+    videoTier: resolvedTier,
+    status,
+    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    currentPeriodEnd: periodEndSec ? new Date(periodEndSec * 1000) : null,
+    canceledAt: canceledAtSec ? new Date(canceledAtSec * 1000) : null,
+    updatedAt: new Date(),
+  };
+  const existingPointer = await getDocument(projectId, `video_subscriptions/${subscriptionId}`, sa).catch(() => null);
+  if (existingPointer) {
+    await patchDocument(projectId, `video_subscriptions/${subscriptionId}`, pointer, sa);
+  } else {
+    await createDocument(projectId, 'video_subscriptions', { ...pointer, createdAt: new Date() }, sa, subscriptionId);
+  }
+
+  // Flip the team's tier. videoTier is the only field the upload-quota
+  // helper reads; the rest power the "Manage subscription" button on
+  // TeamManagement (Customer Portal needs the customerId).
+  try {
+    await patchDocument(projectId, `teams/${teamId}`, {
+      videoTier: resolvedTier,
+      videoSubscriptionId: resolvedTier === 'free' ? null : subscriptionId,
+      videoCustomerId: sub.customer ? String(sub.customer) : null,
+      videoTierUpdatedAt: new Date(),
+    }, sa);
+  } catch (err) {
+    console.warn('[stripe] failed to patch teams/', teamId, 'videoTier', err);
+  }
 }
 
 // ── Subscription welcome / lifecycle emails ───────────────────────

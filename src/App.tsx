@@ -76,6 +76,7 @@ const SharedMedia = React.lazy(() => import('./pages/SharedMedia'));
 const PlayerProfile = React.lazy(() => import('./pages/PlayerProfile'));
 const Surveys = React.lazy(() => import('./pages/Surveys'));
 const FullGames = React.lazy(() => import('./pages/FullGames'));
+const VideoUpgradePage = React.lazy(() => import('./pages/VideoUpgradePage'));
 const GameDay = React.lazy(() => import('./pages/GameDay'));
 const QuickGameLauncher = React.lazy(() => import('./pages/QuickGameLauncher'));
 const PracticePlanBuilder = React.lazy(() => import('./pages/PracticePlanBuilder'));
@@ -853,6 +854,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <FullGames />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/upgrade/video" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <VideoUpgradePage />
                 </AppLayout>
               </ProtectedRoute>
             } />

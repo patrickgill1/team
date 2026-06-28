@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
@@ -29,6 +29,7 @@ const ITEMS_PER_PAGE = 20;
 const PlayerMediaPage: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
+  const navigate = useNavigate();
   const canManageMedia = canManageTeamMedia(userData, selectedTeam);
   const { getDocuments, addPlayerMedia, getPlayerMediaByPlayer, getPlayerMediaByTeam, getPhotosByTeam, deleteDocument, updateDocument, updatePlayerStats, addGameStat } = useFirestore();
   const { uploadFile } = useStorage();
@@ -1288,7 +1289,7 @@ const PlayerMediaPage: React.FC = () => {
 
         {/* ── TABS + SEARCH + UPLOAD ──────────────────────────────── */}
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6 border-b border-white/10 pb-2">
-          <div className="flex space-x-1">
+          <div className="flex items-center space-x-1">
             <button
               onClick={() => setActiveTab('highlights')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
@@ -1307,6 +1308,14 @@ const PlayerMediaPage: React.FC = () => {
               Full Games
               {activeTab === 'fullgames' && <span className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-brand-primary-soft rounded-full" />}
             </button>
+            {canManageMedia && (selectedTeam?.videoTier || 'free') === 'free' && (
+              <button
+                onClick={() => navigate('/upgrade/video')}
+                className="ml-2 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/40 hover:bg-amber-500/25 transition-colors"
+              >
+                Upgrade
+              </button>
+            )}
           </div>
           {activeTab === 'highlights' && (
             <div className="flex items-center gap-2">
@@ -2236,6 +2245,7 @@ const PlayerMediaPage: React.FC = () => {
         open={!!quotaBlocked}
         quota={quotaBlocked}
         onClose={() => setQuotaBlocked(null)}
+        teamId={selectedTeamId || undefined}
       />
     </div>
   );

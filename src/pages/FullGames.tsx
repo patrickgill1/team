@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { where, orderBy } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
@@ -41,6 +42,7 @@ function extractYouTubeId(input: string): string | null {
 const FullGames: React.FC = () => {
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
+  const navigate = useNavigate();
   const { getDocuments, addDocument, updateDocument, deleteDocument } = useFirestore();
 
   const [games, setGames] = useState<FullGame[]>([]);
@@ -289,10 +291,20 @@ const FullGames: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-bone">🎬 Full Games</h1>
-          <p className="text-sm text-bone/50 mt-1">Watch full match recordings hosted on GoalKickr or YouTube.</p>
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-bone">🎬 Full Games</h1>
+            <p className="text-sm text-bone/50 mt-1">Watch full match recordings hosted on GoalKickr or YouTube.</p>
+          </div>
+          {canManageMedia && (selectedTeam?.videoTier || 'free') === 'free' && (
+            <button
+              onClick={() => navigate('/upgrade/video')}
+              className="px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/40 hover:bg-amber-500/25 transition-colors"
+            >
+              Upgrade
+            </button>
+          )}
         </div>
         {canManageMedia && (
           <button
@@ -696,6 +708,7 @@ const FullGames: React.FC = () => {
         open={!!quotaBlocked}
         quota={quotaBlocked}
         onClose={() => setQuotaBlocked(null)}
+        teamId={selectedTeamId || undefined}
       />
     </div>
   );

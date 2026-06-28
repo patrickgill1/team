@@ -10,11 +10,12 @@ import { usePhotoUpload } from '../hooks/useStorage';
 import AppIcon, { AppIconName } from '../components/common/AppIcon';
 import { getShareOrigin } from '../utils/origin';
 import { enablePushForUser, getNotifPermission } from '../utils/push';
-import { isCoach } from '../utils/helpers';
+import { isCoach, isTeamStaff } from '../utils/helpers';
 import NotificationPreferences from '../components/common/NotificationPreferences';
 import EmailPreferences from '../components/common/EmailPreferences';
 import SubscriptionCard from '../components/settings/SubscriptionCard';
 import WidgetSetupCard from '../components/settings/WidgetSetupCard';
+import VideoStorageCard from '../components/video/VideoStorageCard';
 
 interface LinkedPlayer {
   id: string;
@@ -439,6 +440,13 @@ const Settings: React.FC = () => {
           <section>
             <h2 className="text-2xl font-bold text-bone mb-2 px-1">Training Ground</h2>
             <DrillLibraryToggle />
+          </section>
+        )}
+
+        {isTeamStaff(userData?.role || '') && (
+          <section>
+            <h2 className="text-2xl font-bold text-bone mb-2 px-1">Video</h2>
+            <VideoStorageCard />
           </section>
         )}
 

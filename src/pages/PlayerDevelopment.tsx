@@ -52,6 +52,13 @@ const PlayerDevelopment: React.FC = () => {
   const [planTitle, setPlanTitle] = useState('');
   const [planDescription, setPlanDescription] = useState('');
   const [planCategory, setPlanCategory] = useState<DevelopmentPlan['category']>('technical');
+  // Anti-double-tap + preview gate. When the coach taps Create with 2+
+  // players selected (or any player already has a plan with the same
+  // title), we open the preview modal first so they can confirm or
+  // skip duplicates instead of fan-out spamming the team.
+  const [submitting, setSubmitting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
   const [planGoals, setPlanGoals] = useState<Omit<DevelopmentGoal, 'playerCompleted' | 'coachVerified' | 'readyForReview'>[]>([
     { id: `goal_${Date.now()}`, title: '', description: '', order: 0 }
   ]);
@@ -274,16 +281,57 @@ const PlayerDevelopment: React.FC = () => {
     return () => { cancelled = true; };
   }, [plans]);
 
-  const handleCreatePlan = async () => {
+  // Players who already have an ACTIVE plan with the same (case-insensitive)
+  // title. Surfaced in the preview modal so the coach can opt to skip them
+  // and avoid the duplicate fan-out (Patrick hit this — assigned the same
+  // plan to every kid, ended up with two of each).
+  const detectDuplicates = (title: string, candidatePlayerIds: string[]): string[] => {
+    const t = title.trim().toLowerCase();
+    if (!t) return [];
+    return candidatePlayerIds.filter(pid => plans.some(p =>
+      p.playerId === pid
+      && p.status === 'active'
+      && (p.title || '').trim().toLowerCase() === t
+    ));
+  };
+
+  // Validates + routes to the preview modal. Single-player creates
+  // skip the preview (it's friction the bulk case needs but the solo
+  // case doesn't).
+  const handleCreatePlan = () => {
     if (!userData || !planTitle.trim()) return;
 
-    // Bulk mode: create one plan per selected player. Single mode: use planPlayerId.
     const targetIds: string[] = bulkPlayerIds.length > 0 ? bulkPlayerIds : (planPlayerId ? [planPlayerId] : []);
     if (targetIds.length === 0) { alert('Please select at least one player.'); return; }
 
     const baseGoalsTpl = planGoals.filter(g => g.title.trim());
     if (baseGoalsTpl.length === 0) { alert('Please add at least one goal to the plan.'); return; }
 
+    const duplicates = detectDuplicates(planTitle, targetIds);
+
+    // Solo path with no duplicate: commit directly. No friction.
+    if (targetIds.length === 1 && duplicates.length === 0) {
+      void commitCreatePlan(targetIds);
+      return;
+    }
+
+    // Bulk OR any duplicate detected → confirm via preview first.
+    setSkipDuplicates(duplicates.length > 0); // default to skipping dups when any exist
+    setPreviewOpen(true);
+  };
+
+  // The actual fan-out write. Called either directly from the solo
+  // path or from the preview modal's Confirm. Disables the Create
+  // button via `submitting` so a slow network can't trigger a
+  // double-submit (one of the suspected sources of Patrick's
+  // accidental duplicates).
+  const commitCreatePlan = async (targetIds: string[]) => {
+    if (!userData) return;
+    if (submitting) return;
+    setSubmitting(true);
+    setPreviewOpen(false);
+
+    const baseGoalsTpl = planGoals.filter(g => g.title.trim());
     let createdCount = 0;
     let failedCount = 0;
     const baseTime = Date.now();
@@ -352,6 +400,8 @@ const PlayerDevelopment: React.FC = () => {
         failedCount++;
       }
     }
+
+    setSubmitting(false);
 
     if (createdCount > 0 && failedCount === 0) {
       void bumpDrillAssignmentCounts(createdCount);
@@ -1420,15 +1470,108 @@ const PlayerDevelopment: React.FC = () => {
                 <button
                   type="button"
                   onClick={editingPlanId ? handleUpdatePlan : handleCreatePlan}
-                  disabled={(editingPlanId ? !planPlayerId : (bulkPlayerIds.length === 0 && !planPlayerId)) || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
+                  disabled={submitting || (editingPlanId ? !planPlayerId : (bulkPlayerIds.length === 0 && !planPlayerId)) || !planTitle.trim() || planGoals.every(g => !g.title.trim())}
                   className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 rounded-lg"
                 >
-                  {editingPlanId ? 'Save changes' : (bulkPlayerIds.length > 1 ? `Create ${bulkPlayerIds.length} plans` : 'Create plan')}
+                  {submitting
+                    ? 'Creating…'
+                    : editingPlanId
+                      ? 'Save changes'
+                      : (bulkPlayerIds.length > 1 ? `Review ${bulkPlayerIds.length} plans` : 'Create plan')}
                 </button>
               </div>
             </div>
           </div>
         )}
+
+        {/* Bulk-create preview modal. Confirms the fan-out, surfaces
+            anyone who already has an active plan with the same title,
+            and offers a "skip duplicates" toggle so the coach doesn't
+            accidentally double-assign. Solo creates with no duplicate
+            skip this gate entirely. */}
+        {previewOpen && (() => {
+          const baseIds: string[] = bulkPlayerIds.length > 0 ? bulkPlayerIds : (planPlayerId ? [planPlayerId] : []);
+          const duplicates = detectDuplicates(planTitle, baseIds);
+          const dupSet = new Set(duplicates);
+          const finalIds = skipDuplicates ? baseIds.filter(id => !dupSet.has(id)) : baseIds;
+          return (
+            <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fade-in" onClick={() => setPreviewOpen(false)}>
+              <div className="bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Review · {finalIds.length} plan{finalIds.length === 1 ? '' : 's'}</p>
+                <h3 className="text-ink-primary text-lg font-bold leading-tight">
+                  You're about to create {finalIds.length} {finalIds.length === 1 ? 'plan' : 'plans'}.
+                </h3>
+                <p className="text-ink-primary/65 text-sm mt-2">
+                  Title: <span className="font-bold text-ink-primary">{planTitle.trim() || '(untitled)'}</span> · {planGoals.filter(g => g.title.trim()).length} goal{planGoals.filter(g => g.title.trim()).length === 1 ? '' : 's'} per player.
+                </p>
+
+                {duplicates.length > 0 && (
+                  <div className="mt-4 rounded-lg bg-amber-500/10 ring-1 ring-amber-400/30 px-3 py-3">
+                    <p className="text-amber-300 text-xs font-extrabold uppercase tracking-widest mb-1.5">
+                      Already has this plan
+                    </p>
+                    <ul className="text-amber-100 text-sm space-y-0.5">
+                      {duplicates.map(pid => {
+                        const player = players.find(p => p.id === pid);
+                        return <li key={pid}>· {player?.name || pid}</li>;
+                      })}
+                    </ul>
+                    <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={skipDuplicates}
+                        onChange={(e) => setSkipDuplicates(e.target.checked)}
+                        className="accent-brand-primary"
+                      />
+                      <span className="text-ink-primary text-xs">
+                        Skip players who already have a "{planTitle.trim()}" plan
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                <div className="mt-5 max-h-44 overflow-y-auto rounded-lg ring-1 ring-line-default/10 divide-y divide-line-default/10">
+                  {baseIds.map(pid => {
+                    const player = players.find(p => p.id === pid);
+                    const isDup = dupSet.has(pid);
+                    const willCreate = !isDup || !skipDuplicates;
+                    return (
+                      <div key={pid} className={`flex items-center justify-between px-3 py-2 text-sm ${willCreate ? 'text-ink-primary' : 'text-ink-primary/40 line-through'}`}>
+                        <span>{player?.name || pid}</span>
+                        {isDup && (
+                          <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300">
+                            Has it
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-5 flex items-center gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewOpen(false)}
+                    disabled={submitting}
+                    className="px-4 py-2 text-sm font-semibold text-ink-primary/85 hover:text-ink-primary disabled:opacity-50"
+                  >
+                    Back to edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void commitCreatePlan(finalIds)}
+                    disabled={submitting || finalIds.length === 0}
+                    className="px-4 py-2 text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary/90 disabled:opacity-50 rounded-lg"
+                  >
+                    {submitting
+                      ? 'Creating…'
+                      : `Create ${finalIds.length} ${finalIds.length === 1 ? 'plan' : 'plans'}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Drill picker — mounted AFTER the Create modal so when both
             are open it stacks on top. Same z-50 as the Create modal;

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dark-mode override for window_background_color. Charcoal-950 to
+  match the rest of the brand chrome and the JS app's surface-base
+  token in dark theme.
+-->
+<resources>
+    <color name="window_background_color">#0D0D10</color>
+</resources>

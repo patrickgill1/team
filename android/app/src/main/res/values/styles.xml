@@ -13,18 +13,22 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- POST-SPLASH theme. Without these, Android falls back to
-             its parent's defaults (DayNight in dark mode = a system
-             navy/charcoal that doesn't match the brand). Result:
-             splash showed correct charcoal bars, then once the React
-             tree mounted and SplashScreen handed off to NoActionBar,
-             the bottom gesture bar flipped to navy. Patrick caught
-             it 2026-06-21: 'still has navy blue band at bottom.'
-             Mirror the launch theme's color setup so both phases
-             use the brand charcoal. -->
+        <!-- POST-SPLASH theme. windowBackground is now theme-aware via
+             @color/window_background_color — values/ is white,
+             values-night/ is charcoal. Mirrors the iOS AppDelegate
+             dynamicProvider so the strip below the WebView (bottom
+             safe area, momentary keyboard shrink) follows the system
+             trait. Until the JS theme picker is launched, system
+             trait + JS theme should agree; once it's launched, light-
+             system + light-JS will agree end-to-end.
+
+             statusBarColor + navigationBarColor stay hardcoded charcoal
+             because Capacitor's StatusBar plugin overrides them at
+             runtime via nativeShell.ts. These values only matter for
+             the moment between native paint and Capacitor mount. -->
         <item name="android:statusBarColor">#0d0d10</item>
         <item name="android:navigationBarColor">#0d0d10</item>
-        <item name="android:windowBackground">#0d0d10</item>
+        <item name="android:windowBackground">@color/window_background_color</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>

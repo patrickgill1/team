@@ -156,15 +156,36 @@ const WidgetSetupCard: React.FC = () => {
             {showInstructions ? 'Hide setup steps' : 'How to add the widget'}
           </button>
 
-          {showInstructions && (
-            <ol className="text-ink-primary/65 text-xs leading-relaxed space-y-1.5 pl-4 list-decimal">
-              <li>On your iPhone home screen, long-press an empty area.</li>
-              <li>Tap the <span className="text-ink-primary font-semibold">+</span> in the top-left.</li>
-              <li>Search for <span className="text-ink-primary font-semibold">GoalKickr</span> and add the Player widget.</li>
-              <li>Long-press the new widget, tap <span className="text-ink-primary font-semibold">Edit Widget</span>.</li>
-              <li>Paste the code above into the <span className="text-ink-primary font-semibold">Setup code</span> field.</li>
-            </ol>
-          )}
+          {showInstructions && (() => {
+            // Platform-aware instructions. Detect via Capacitor's
+            // platform string when available, else fall back to a
+            // UA heuristic so the web preview still shows something
+            // sensible. iOS and Android widget add-flows differ
+            // enough that one set of instructions can't fit both.
+            const cap = (window as any)?.Capacitor;
+            const platform = cap?.getPlatform?.()
+              || (/Android/i.test(navigator.userAgent || '') ? 'android' : 'ios');
+            if (platform === 'android') {
+              return (
+                <ol className="text-ink-primary/65 text-xs leading-relaxed space-y-1.5 pl-4 list-decimal">
+                  <li>On your Android home screen, long-press an empty area.</li>
+                  <li>Tap <span className="text-ink-primary font-semibold">Widgets</span>.</li>
+                  <li>Scroll to <span className="text-ink-primary font-semibold">GoalKickr</span> and drag the Player widget onto your home screen.</li>
+                  <li>When the setup screen pops up, paste the code above into the <span className="text-ink-primary font-semibold">Setup code</span> field.</li>
+                  <li>Tap <span className="text-ink-primary font-semibold">Save</span>.</li>
+                </ol>
+              );
+            }
+            return (
+              <ol className="text-ink-primary/65 text-xs leading-relaxed space-y-1.5 pl-4 list-decimal">
+                <li>On your iPhone home screen, long-press an empty area.</li>
+                <li>Tap the <span className="text-ink-primary font-semibold">+</span> in the top-left.</li>
+                <li>Search for <span className="text-ink-primary font-semibold">GoalKickr</span> and add the Player widget.</li>
+                <li>Long-press the new widget, tap <span className="text-ink-primary font-semibold">Edit Widget</span>.</li>
+                <li>Paste the code above into the <span className="text-ink-primary font-semibold">Setup code</span> field.</li>
+              </ol>
+            );
+          })()}
 
           <button
             type="button"

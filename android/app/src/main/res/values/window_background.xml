@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Theme-aware UIWindow underlay equivalent. Mirrors the iOS
+  AppDelegate.swift dynamicProvider fix (charcoal in dark trait,
+  white in light trait). Default values/ is LIGHT; values-night/
+  overrides to DARK.
+
+  Read by AppTheme.NoActionBar in styles.xml. Only affects the
+  runtime window background that peeks through any WebView
+  shrink (keyboard transition, bottom safe area). Launch theme
+  (AppTheme.NoActionBarLaunch) intentionally stays charcoal to
+  preserve the brand splash continuity.
+-->
+<resources>
+    <color name="window_background_color">#FFFFFF</color>
+</resources>

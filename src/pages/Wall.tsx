@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
@@ -427,6 +427,11 @@ const Wall: React.FC = () => {
           // emailedAt drives the manage-post sheet's
           // "Email to team" → "Resend email" label switch.
           emailedAt: typeof data.emailedAt === 'number' ? data.emailedAt : null,
+          // viewedBy drives the "X seen" chip + the viewer-list
+          // modal. Same regression as contentFormat — was being
+          // dropped here, so the chip never appeared and Patrick
+          // thought the feature was gone. (3.7.30 fix.)
+          ...(data.viewedBy && typeof data.viewedBy === 'object' ? { viewedBy: data.viewedBy } : {}),
           category: data.category || 'announcement',
           poll: data.poll && typeof data.poll === 'object' && Array.isArray(data.poll.options)
             ? {
@@ -925,6 +930,13 @@ const Wall: React.FC = () => {
   // Tap the "Who reacted" link in the engagement bar → opens this
   // sheet, grouped by emoji.
   const [reactorsPostId, setReactorsPostId] = useState<string | null>(null);
+  // ID of the post whose viewer-list sheet is open. Patrick: "the
+  // ability to view who saw the wall post has been taken away."
+  // The 'X seen' chip was always non-interactive — this turns it
+  // into a tap target and renders the same kind of name list the
+  // reactor sheet does. Same author + admin gate as canSeeSeen.
+  const [viewersPostId, setViewersPostId] = useState<string | null>(null);
+  const [viewerNamesByUid, setViewerNamesByUid] = useState<Record<string, string>>({});
 
   // Image upload — insert inline at the caret as markdown so the image
   // appears in the flow of the post (interleaved with text), not as a
@@ -1525,15 +1537,17 @@ const Wall: React.FC = () => {
                         </button>
                       )}
                       {canSeeSeen && seenCount > 0 && (
-                        <span
-                          className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-bone/55 ${(commentCounts[p.id] || 0) > 0 ? '' : 'ml-auto'}`}
-                          title="People who saw this post on the wall"
+                        <button
+                          type="button"
+                          onClick={() => setViewersPostId(p.id)}
+                          className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-bone/55 hover:text-brand-primary-soft transition-colors ${(commentCounts[p.id] || 0) > 0 ? '' : 'ml-auto'}`}
+                          title="See who's viewed this post"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                           </svg>
                           {seenCount} seen
-                        </span>
+                        </button>
                       )}
                     </div>
                   )}
@@ -1758,6 +1772,88 @@ const Wall: React.FC = () => {
                       </ul>
                     </div>
                   ))
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Viewer list — opened from the "X seen" chip in each post's
+          engagement bar. Same pattern as the reactor list above.
+          Hydrates uid → name on open: known names come from in-memory
+          lookup, unknowns lazy-fetch from /users/{uid}. */}
+      {viewersPostId && (() => {
+        const target = posts.find(p => p.id === viewersPostId);
+        if (!target) return null;
+        const viewedBy = ((target as any).viewedBy || {}) as Record<string, any>;
+        const uids = Object.keys(viewedBy);
+        // Sort: most-recent view first. viewedBy values are
+        // Firestore Timestamps stamped via serverTimestamp().
+        uids.sort((a, b) => {
+          const at = viewedBy[a]?.toMillis ? viewedBy[a].toMillis() : 0;
+          const bt = viewedBy[b]?.toMillis ? viewedBy[b].toMillis() : 0;
+          return bt - at;
+        });
+        // Hydrate any unknown names so the list doesn't read "Member,
+        // Member, Member, ...". Fires once per modal open.
+        const missing = uids.filter((uid) => !knownNameByUid(uid) && !viewerNamesByUid[uid]);
+        if (missing.length > 0) {
+          (async () => {
+            const pairs: Array<[string, string]> = [];
+            for (const uid of missing) {
+              try {
+                const snap = await getDoc(doc(db, 'users', uid));
+                if (snap.exists()) {
+                  const n = (snap.data() as any).name || (snap.data() as any).displayName;
+                  if (n) pairs.push([uid, n]);
+                }
+              } catch { /* non-fatal */ }
+            }
+            if (pairs.length > 0) {
+              setViewerNamesByUid((prev) => ({ ...prev, ...Object.fromEntries(pairs) }));
+            }
+          })();
+        }
+        const nameFor = (uid: string) => knownNameByUid(uid) || viewerNamesByUid[uid] || uid.slice(0, 8) + '…';
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+            onClick={() => setViewersPostId(null)}
+          >
+            <div
+              className="bg-charcoal-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+                <button onClick={() => setViewersPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white">
+                  Close
+                </button>
+                <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">
+                  {uids.length} {uids.length === 1 ? 'viewer' : 'viewers'}
+                </div>
+                <span className="w-12" aria-hidden />
+              </div>
+              <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                {uids.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-bone/50">No views yet.</div>
+                ) : (
+                  <ul>
+                    {uids.map((uid) => {
+                      const ts = viewedBy[uid];
+                      const ms = ts?.toMillis ? ts.toMillis() : (ts instanceof Date ? ts.getTime() : null);
+                      return (
+                        <li key={uid} className="px-4 py-2.5 text-[14px] text-bone/90 border-b border-white/5 last:border-b-0 flex items-center justify-between gap-2">
+                          <span className="truncate">{nameFor(uid)}</span>
+                          {ms && (
+                            <span className="text-[11px] text-bone/45 shrink-0 tabular-nums">
+                              {new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </div>
             </div>

@@ -12,5 +12,12 @@
   preserve the brand splash continuity.
 -->
 <resources>
-    <color name="window_background_color">#FFFFFF</color>
+    <!-- TEMPORARILY charcoal until light mode picker is launched to all
+         users. While the JS app is force-dark for everyone (the picker
+         is owner-only via isThemePickerVisible), this color must NOT be
+         theme-aware — if a user's Android system trait is light, the
+         WebView's transparent gaps would expose a white strip beneath
+         the JS-dark UI. When the picker goes live for everyone, swap
+         this back to #FFFFFF so the underlay matches the JS theme. -->
+    <color name="window_background_color">#0D0D10</color>
 </resources>

@@ -11,7 +11,7 @@ doesn't let any tool automate.
 2. Filter by **App Groups** in the top-right dropdown.
 3. Click **+** (top-left), pick **App Groups**, Continue.
 4. Description: `GoalKickr Widget Shared`
-5. Identifier: `group.com.firefc.team.widget`
+5. Identifier: `group.com.goalkickr.widget`
    (must match exactly — this is hardcoded in
    `WidgetBridgePlugin.swift` and `PlayerWidget.swift`)
 6. Continue → Register.
@@ -33,7 +33,7 @@ stays the same — App Groups are global per developer account.
    - If the cloud-sync icon next to your team name is spinning,
      wait for it (Xcode is syncing the identifier you created in
      Step 1).
-   - Once it stops, `group.com.firefc.team.widget` should appear
+   - Once it stops, `group.com.goalkickr.widget` should appear
      as an option. Check the box next to it.
 6. **Now repeat 2–5 for the PlayerWidget target.** Click the
    `PlayerWidget` target in the same target list, repeat Signing
@@ -59,7 +59,7 @@ the diff will be a no-op. If Xcode insists on rewriting it
 
 If it shows "Tap to set up" instead:
 - Confirm both targets have the App Group capability checked.
-- Confirm the group ID is exactly `group.com.firefc.team.widget`
+- Confirm the group ID is exactly `group.com.goalkickr.widget`
   in BOTH the Apple Developer Portal and Xcode.
 - Open Console.app, filter for "PlayerWidget", look for any
   "Couldn't open App Group" entries — usually means the

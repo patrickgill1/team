@@ -61,7 +61,7 @@ private struct SnapshotResponse: Codable {
 // MARK: - Networking
 
 private let WIDGET_ENDPOINT = "https://api.goalkickr.com/widget/snapshot"
-private let APP_GROUP_ID = "group.com.firefc.team.widget"
+private let APP_GROUP_ID = "group.com.goalkickr.widget"
 private let WIDGET_TOKEN_KEY = "global_token"
 
 // Resolve the effective setup code with this priority:

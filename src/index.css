@@ -155,9 +155,21 @@ code {
    double-padded the mobile header by ~50px (visible as an empty
    lighter strip above the logo). Zeroing it on Android via the
    body.platform-android branch keeps iOS untouched. */
-.safe-top { padding-top: env(safe-area-inset-top); }
+/* Custom safe-area variables. iOS WebView extends under the status
+   bar so we add the inset; Android's MainActivity already pads the
+   WebView root by the system insets (see MainActivity.java), so any
+   ALSO-add of env() in CSS double-pads. Use these vars instead of
+   raw env() in inline styles to keep both platforms in sync. */
+:root {
+  --gk-safe-top: env(safe-area-inset-top);
+  --gk-safe-bottom: env(safe-area-inset-bottom);
+}
+body.platform-android {
+  --gk-safe-top: 0px;
+}
+
+.safe-top { padding-top: var(--gk-safe-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-body.platform-android .safe-top { padding-top: 0; }
 
 /* Hide scrollbars on horizontally-scrolling pill rows etc. */
 .scrollbar-hide::-webkit-scrollbar { display: none; }

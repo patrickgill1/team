@@ -2416,15 +2416,18 @@ const TeamChat: React.FC = () => {
           // the chrome — that's why Patrick reported 'no way to get
           // back to chats': the back button at the top of the chat
           // view was literally hidden under the GoalKickr header.
-          top: 'calc(env(safe-area-inset-top) + 3.5rem)',
+          top: 'calc(var(--gk-safe-top) + 3.5rem)',
           // Explicit height from window.innerHeight (in CSS pixels).
           // For threads view, also subtract the bottom tab bar height.
           // Subtract the safe-area too so the bottom edge still lands
           // above the home indicator instead of running off-screen.
+          // Uses --gk-safe-top so Android (where MainActivity already
+          // applied the inset) doesn't double-count it and leak a
+          // white strip between the top chrome and chat container.
           height:
             currentView === 'chat' && selectedThread
-              ? `calc(${winHeight}px - env(safe-area-inset-top) - 3.5rem)`
-              : `calc(${winHeight}px - env(safe-area-inset-top) - 3.5rem - 3rem)`,
+              ? `calc(${winHeight}px - var(--gk-safe-top) - 3.5rem)`
+              : `calc(${winHeight}px - var(--gk-safe-top) - 3.5rem - 3rem)`,
         }}
       >
         {currentView === 'threads' ? (

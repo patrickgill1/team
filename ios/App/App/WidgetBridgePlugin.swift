@@ -4,7 +4,7 @@
 //
 //  iOS counterpart of the Android WidgetBridgePlugin. Reads/writes
 //  the user's long-lived widget token into a UserDefaults instance
-//  backed by the shared App Group container (group.com.firefc.team.widget).
+//  backed by the shared App Group container (group.com.goalkickr.widget).
 //
 //  The widget extension reads the same App Group container in
 //  PlayerWidget.swift's fetchSnapshot. When the user generates a
@@ -22,7 +22,7 @@ import Foundation
 import Capacitor
 import WidgetKit
 
-public let APP_GROUP_ID = "group.com.firefc.team.widget"
+public let APP_GROUP_ID = "group.com.goalkickr.widget"
 public let WIDGET_TOKEN_KEY = "global_token"
 
 @objc(WidgetBridgePlugin)

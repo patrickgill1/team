@@ -16,7 +16,7 @@
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.firefc.team.widget</string>
+		<string>group.com.goalkickr.widget</string>
 	</array>
 </dict>
 </plist>

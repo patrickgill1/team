@@ -16,7 +16,7 @@ import EmailPreferences from '../components/common/EmailPreferences';
 import SubscriptionCard from '../components/settings/SubscriptionCard';
 import WidgetSetupCard from '../components/settings/WidgetSetupCard';
 import VideoStorageCard from '../components/video/VideoStorageCard';
-import { useTheme, type ThemeMode } from '../contexts/ThemeContext';
+import { useTheme, type ThemeMode, THEME_PICKER_ENABLED } from '../contexts/ThemeContext';
 
 interface LinkedPlayer {
   id: string;
@@ -451,10 +451,12 @@ const Settings: React.FC = () => {
           </section>
         )}
 
-        <section>
-          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Appearance</h2>
-          <ThemeToggleCard />
-        </section>
+        {THEME_PICKER_ENABLED && (
+          <section>
+            <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Appearance</h2>
+            <ThemeToggleCard />
+          </section>
+        )}
 
         <section>
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Widget</h2>

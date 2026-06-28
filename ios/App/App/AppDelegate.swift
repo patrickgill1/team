@@ -12,8 +12,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Capacitor Firebase plugins (Auth, Messaging) can find their config.
         FirebaseApp.configure()
 
-        // Window + root view controller backgrounds painted black as
-        // a defensive fallback ONLY. Capacitor's StatusBar plugin
+        // Window + root view controller backgrounds painted with a
+        // theme-aware baseline ONLY. Capacitor's StatusBar plugin
         // runs in overlay mode (see nativeShell.ts) so the WebView
         // extends edge-to-edge of the screen, including under the
         // notch / Dynamic Island. Each React page paints its own
@@ -22,7 +22,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // different color per page (crimson on dashboard, gradient
         // on login, etc.). These window/rootVC colors only become
         // visible if the WebView temporarily shrinks (e.g. during a
-        // native keyboard resize), so black is a safe baseline.
+        // native keyboard resize) OR around the bottom safe area in
+        // light mode where the page bg flips to white but our window
+        // would stay black underneath.
+        //
+        // dynamicProvider matches the system trait (UIUserInterfaceStyle).
+        // We let iOS pick because at native paint time the user's
+        // in-app theme choice (localStorage) isn't readable from Swift
+        // without a JS bridge; following the system is the closest
+        // honest default and rarely diverges from the in-app picker
+        // for users who keep both on system.
         //
         // The earlier implementation added a top UIView strip that
         // painted the safe-area region from Swift. It worked but
@@ -30,7 +39,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // it per route without a native bridge. Removed in favor of
         // per-page React control. Patrick confirmed 2026-06-18.
         DispatchQueue.main.async {
-            let baseline = UIColor.black
+            let baseline = UIColor { traits in
+                switch traits.userInterfaceStyle {
+                case .light:
+                    return UIColor.white
+                default:
+                    return UIColor.black
+                }
+            }
             self.window?.backgroundColor = baseline
             self.window?.rootViewController?.view.backgroundColor = baseline
         }

@@ -24,15 +24,19 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = 'gk.theme';
 
+// Light mode is gated until the next App Store binary ships with the
+// AppDelegate.swift UIWindow theme-aware patch (currently shipped on
+// main, awaiting submission). When THEME_PICKER_ENABLED flips true the
+// localStorage value drives the choice and the Settings + Onboarding
+// pickers re-appear. See feedback_light_mode_gated memory.
+export const THEME_PICKER_ENABLED = false;
+
 function readStoredMode(): ThemeMode {
+  if (!THEME_PICKER_ENABLED) return 'dark';
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === 'light' || raw === 'dark' || raw === 'system') return raw;
   } catch { /* ignore */ }
-  // Default to dark for new users. Patrick's call: light mode is the
-  // option, dark is the brand. Don't follow OS preference by default —
-  // a parent on iOS auto-light at noon would land on a light theme
-  // the app's marketing screenshots don't match.
   return 'dark';
 }
 

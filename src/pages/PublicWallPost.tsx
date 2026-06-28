@@ -84,6 +84,9 @@ const PublicWallPost: React.FC = () => {
             {post.senderRole === 'coach' && (
               <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary bg-brand-primary-soft ring-1 ring-brand-primary-soft px-1.5 py-0.5 rounded">Coach</span>
             )}
+            {post.senderRole === 'player' && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">Player</span>
+            )}
             <span className="text-[11px] text-slate-400 ml-auto">
               {post.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
             </span>

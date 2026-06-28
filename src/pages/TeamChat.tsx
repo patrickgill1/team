@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { useFirestore } from '../hooks/useFirestore';
 import { ChatThread, ChatMessage } from '../types';
+import { resolveSenderRole } from '../utils/helpers';
 import MessageBubble from '../components/chat/MessageBubble';
 import SilentErrorBoundary from '../components/common/SilentErrorBoundary';
 import DataGate from '../components/common/DataGate';
@@ -1341,7 +1342,7 @@ const TeamChat: React.FC = () => {
       senderId: userData.uid,
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
-      senderRole: userData.role,
+      senderRole: resolveSenderRole(userData),
       senderRelationship: (userData as any).relationship || undefined,
       timestamp: sendTimestamp,
       teamId: selectedTeamId || '',
@@ -1409,7 +1410,7 @@ const TeamChat: React.FC = () => {
       senderId: userData.uid,
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
-      senderRole: userData.role,
+      senderRole: resolveSenderRole(userData),
       senderRelationship: (userData as any).relationship || undefined,
       timestamp: sendTimestamp,
       teamId: selectedTeamId,
@@ -1725,7 +1726,7 @@ const TeamChat: React.FC = () => {
       senderId: userData.uid,
       senderName: userData.name,
       senderPhotoUrl: (userData as any).photoURL || undefined,
-      senderRole: userData.role,
+      senderRole: resolveSenderRole(userData),
       senderRelationship: (userData as any).relationship || undefined,
       timestamp: new Date(),
       teamId: selectedTeamId,

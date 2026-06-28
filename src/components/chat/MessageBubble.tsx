@@ -593,6 +593,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 Coach
               </span>
             )}
+            {message.senderRole === 'player' && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">
+                Player
+              </span>
+            )}
             {message.senderRole === 'parent' && (message as any).senderRelationship
               && (message as any).senderRelationship !== 'parent' && (
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-1.5 py-0.5 rounded">

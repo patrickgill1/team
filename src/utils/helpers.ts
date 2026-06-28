@@ -122,6 +122,31 @@ export const isParent = (userRole: string): boolean => {
   return userRole === 'parent';
 };
 
+// True when the user IS the player themself (adult-league path:
+// Saturday pickup group, college club teams, rec leagues for adults
+// where there is no parent intermediary).
+//
+// Signal is `selfPlayerId` set on the user doc. The companion
+// Player doc carries `isAdultPlayer: true` but we don't need to read
+// the player doc here — selfPlayerId is set ONLY when the user joined
+// via an adult-league invite (see invites.ts consumeInvite).
+//
+// Used by chat, RSVP, and dashboard copy to swap "parent" → "player"
+// language without a Firestore cross-doc lookup.
+export const isAdultPlayer = (user: { selfPlayerId?: string } | null | undefined): boolean => {
+  return !!user?.selfPlayerId;
+};
+
+// Resolves the senderRole stamped on chat/wall messages. Adult
+// players write as 'player' so the bubble label reads correctly;
+// everyone else falls through to their user role.
+export const resolveSenderRole = (user: { role?: string; selfPlayerId?: string } | null | undefined): 'coach' | 'parent' | 'player' => {
+  if (!user) return 'parent';
+  if (isAdultPlayer(user)) return 'player';
+  if (user.role === 'coach') return 'coach';
+  return 'parent';
+};
+
 export const getFileExtension = (filename: string): string => {
   return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2);
 };

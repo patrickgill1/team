@@ -102,6 +102,11 @@ export interface UserData {
    *  belong to. Set manually in Firestore for now — no admin UI yet. */
   isClubAdmin?: boolean;
   coachLevel?: 'head_coach' | 'assistant_coach';
+  /** If set, this user IS the player (adult-league path, not a parent
+   *  of a kid). Points at the Player doc that represents them.
+   *  Mirrors User.selfPlayerId; surfaced here so chat/RSVP/UI code
+   *  doesn't need a second Firestore read to label them as a player. */
+  selfPlayerId?: string;
   approved?: boolean; // legacy
   approvalStatus?: ApprovalStatus;
   invitedBy?: string;
@@ -1715,7 +1720,7 @@ export interface WallPost {
   /** Avatar snapshotted at post / edit time (matches the chat
    *  pattern). Falls back to senderName initial if absent. */
   senderPhotoUrl?: string | null;
-  senderRole?: 'coach' | 'parent' | 'admin';
+  senderRole?: 'coach' | 'parent' | 'admin' | 'player';
   timestamp: Date;
   /** Set when a post is edited — surface as "(edited)" beside the
    *  timestamp so parents know the author updated it. */
@@ -1780,7 +1785,7 @@ export interface ChatMessage {
    *  fetch — and means avatars don't retroactively change if someone
    *  swaps their photo later. */
   senderPhotoUrl?: string;
-  senderRole: 'coach' | 'parent';
+  senderRole: 'coach' | 'parent' | 'player';
   timestamp: Date;
   teamId: string;
   edited?: boolean;

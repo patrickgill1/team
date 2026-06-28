@@ -4,7 +4,7 @@ import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query,
 import { db } from '../utils/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoach } from '../utils/helpers';
+import { isCoach, resolveSenderRole } from '../utils/helpers';
 import { uploadToR2 } from '../utils/r2Upload';
 import AppIcon from '../components/common/AppIcon';
 import EmptyState from '../components/common/EmptyState';
@@ -682,7 +682,9 @@ const Wall: React.FC = () => {
           senderId: userData.uid,
           senderName: userData.name || 'Coach',
           senderPhotoUrl: userPhotoUrl,
-          senderRole: isCoach(userData.role) || (userData as any).isClubAdmin ? 'coach' : 'parent',
+          senderRole: (isCoach(userData.role) || (userData as any).isClubAdmin)
+            ? 'coach'
+            : resolveSenderRole(userData),
           timestamp: new Date(),
           attachments: composerAttachments.length > 0 ? composerAttachments : null,
           reactions: [],
@@ -1419,6 +1421,9 @@ const Wall: React.FC = () => {
                         <span className="text-[15px] font-bold text-bone truncate">{p.senderName}</span>
                         {p.senderRole === 'coach' && (
                           <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-primary-soft bg-brand-primary/150/15 ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">Coach</span>
+                        )}
+                        {p.senderRole === 'player' && (
+                          <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">Player</span>
                         )}
                       </div>
                       <div className="text-[12px] text-bone/50 mt-0.5 flex items-center gap-1.5 flex-wrap">

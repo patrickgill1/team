@@ -6,7 +6,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoach } from '../utils/helpers';
+import { isCoach, resolveSenderRole } from '../utils/helpers';
 import GameRecapCard from '../components/gameday/GameRecapCard';
 import FormationView from '../components/gameday/FormationView';
 
@@ -544,7 +544,7 @@ const GameDay: React.FC = () => {
         senderId: userData.uid,
         senderName: userData.name,
         senderPhotoUrl: (userData as any).photoURL || undefined,
-        senderRole: userData.role,
+        senderRole: resolveSenderRole(userData),
         timestamp: new Date(),
         teamId: event.teamId,
       } as any);

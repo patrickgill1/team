@@ -61,6 +61,20 @@ private struct SnapshotResponse: Codable {
 // MARK: - Networking
 
 private let WIDGET_ENDPOINT = "https://api.goalkickr.com/widget/snapshot"
+private let APP_GROUP_ID = "group.com.firefc.team.widget"
+private let WIDGET_TOKEN_KEY = "global_token"
+
+// Resolve the effective setup code with this priority:
+//   1. ConfigurationAppIntent.setupCode if the user manually pasted one
+//   2. App Group UserDefaults if WidgetBridgePlugin wrote one
+// Lets the user drop the widget on the home screen without ever
+// pasting — the React app's Settings -> Widget call to setToken()
+// populates the App Group container.
+private func resolveSetupCode(intent: ConfigurationAppIntent) -> String {
+    if !intent.setupCode.isEmpty { return intent.setupCode }
+    let shared = UserDefaults(suiteName: APP_GROUP_ID)
+    return shared?.string(forKey: WIDGET_TOKEN_KEY) ?? ""
+}
 
 private func fetchSnapshot(setupCode: String) async -> (PlayerSnapshot?, String?) {
     guard !setupCode.isEmpty else { return (nil, "needs-setup") }
@@ -143,13 +157,15 @@ struct Provider: AppIntentTimelineProvider {
         if context.isPreview {
             return PlayerEntry(date: Date(), snapshot: PlayerSnapshot.placeholder, photo: nil, errorCode: nil, configuration: configuration)
         }
-        let (snap, err) = await fetchSnapshot(setupCode: configuration.setupCode)
+        let code = resolveSetupCode(intent: configuration)
+        let (snap, err) = await fetchSnapshot(setupCode: code)
         let img = await fetchImage(urlString: snap?.photoUrl)
         return PlayerEntry(date: Date(), snapshot: snap, photo: img, errorCode: err, configuration: configuration)
     }
 
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<PlayerEntry> {
-        let (snap, err) = await fetchSnapshot(setupCode: configuration.setupCode)
+        let code = resolveSetupCode(intent: configuration)
+        let (snap, err) = await fetchSnapshot(setupCode: code)
         let img = await fetchImage(urlString: snap?.photoUrl)
         let now = Date()
         let entry = PlayerEntry(date: now, snapshot: snap, photo: img, errorCode: err, configuration: configuration)
@@ -664,7 +680,12 @@ struct PlayerWidgetEntryView: View {
 
     var body: some View {
         Group {
-            if entry.configuration.setupCode.isEmpty {
+            // Resolve the same way fetchSnapshot did. If both the
+            // configuration setupCode AND the App Group token are
+            // blank, the widget is genuinely unconfigured — show the
+            // setup placeholder. Otherwise we rely on the snapshot /
+            // errorCode pair below.
+            if resolveSetupCode(intent: entry.configuration).isEmpty {
                 NeedsSetupView()
             } else if let snap = entry.snapshot {
                 switch family {

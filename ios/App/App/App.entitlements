@@ -14,5 +14,9 @@
 		<string>applinks:firefc.app?mode=developer</string>
 		<string>webcredentials:example.com</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.firefc.team.widget</string>
+	</array>
 </dict>
 </plist>

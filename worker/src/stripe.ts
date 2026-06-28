@@ -19,7 +19,7 @@
  */
 
 import { ServiceAccount, parseServiceAccount } from './fcm';
-import { getDocument, patchDocument, createDocument, runQuery } from './firestore';
+import { getDocument, patchDocument, createDocument, runQuery, incrementFields } from './firestore';
 
 export interface StripeEnv {
   STRIPE_SECRET_KEY?: string;
@@ -317,9 +317,37 @@ export async function handleRegistrationCheckout(payload: any, env: StripeEnv): 
 
     // Platform fee — Fire FC's slice of every transaction. Settable
     // ONLY by the platform owner via /platform/clubs (see Club.platformFeeBps
-    // doc comment + project_platform_fee memory). Defaults to 0 = no
-    // platform fee, club keeps everything (minus Stripe's flat take).
-    const platformFeeBps = Number(club.data.platformFeeBps || 0);
+    // doc comment + project_platform_fee memory).
+    //
+    // Fallback order: explicit value on the club doc → platform default
+    // (read from platform_settings/defaults). The default is applied
+    // lazily AND persisted back to the club doc so PlatformClubs reads
+    // the same number going forward. "Explicit 0" beats default —
+    // we only fall back when the field is genuinely absent.
+    let platformFeeBps = (typeof club.data.platformFeeBps === 'number')
+      ? club.data.platformFeeBps
+      : null;
+    if (platformFeeBps === null) {
+      try {
+        const defaults = await getDocument(projectId, 'platform_settings/defaults', sa).catch(() => null);
+        const defaultBps = Number(defaults?.data?.platformFeeBps || 0);
+        if (defaultBps > 0) {
+          platformFeeBps = defaultBps;
+          // Persist so the PlatformClubs page sees the same value and
+          // so the next payment doesn't re-read defaults.
+          await patchDocument(projectId, `clubs/${clubId}`, {
+            platformFeeBps: defaultBps,
+            platformFeeBpsAppliedFromDefault: true,
+            updatedAt: new Date(),
+          }, sa);
+        } else {
+          platformFeeBps = 0;
+        }
+      } catch (err) {
+        console.warn('platform default fallback failed', err);
+        platformFeeBps = 0;
+      }
+    }
     const applicationFeeAmount = platformFeeBps > 0
       ? Math.round((totalCents * platformFeeBps) / 10000)
       : 0;
@@ -439,10 +467,28 @@ export async function handleRegistrationRefund(payload: any, env: StripeEnv): Pr
       stripeRefundId: refund.id,
       status: refund.status || 'pending',
     };
+    // Proportional platform-fee reversal — Stripe gives the slice back
+    // to the customer via refund_application_fee, so the club's
+    // platformFeeCentsCollected counter has to decrement to match.
+    const originalPlatformFeeCents = Number(reg.data.platformFeeCents || 0);
+    const refundedFeeCents = (originalCents > 0 && originalPlatformFeeCents > 0)
+      ? Math.round((refundCents * originalPlatformFeeCents) / originalCents)
+      : 0;
+
     await patchDocument(projectId, `registrations/${registrationId}`, {
       refunds: [...priorRefunds, entry],
       updatedAt: new Date(),
     }, sa);
+
+    if (refundedFeeCents > 0) {
+      try {
+        await incrementFields(projectId, `clubs/${clubId}`, {
+          platformFeeCentsCollected: -refundedFeeCents,
+        }, sa);
+      } catch (err) {
+        console.warn('platform fee counter decrement failed', err);
+      }
+    }
 
     await createDocument(projectId, 'activities', {
       clubId,
@@ -452,6 +498,7 @@ export async function handleRegistrationRefund(payload: any, env: StripeEnv): Pr
       actorName: actorName || 'Refund',
       payload: {
         amountCents: refundCents,
+        platformFeeCentsReversed: refundedFeeCents,
         stripeRefundId: refund.id,
         reason: reason || undefined,
         remainingCents: remainingCents - refundCents,
@@ -885,6 +932,17 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
             patch.status = 'paid';
             patch.paidAt = new Date();
           }
+          const installmentFeeCents = Number(session.metadata?.platformFeeCents || 0);
+          if (installmentFeeCents > 0) {
+            try {
+              await incrementFields(projectId, `clubs/${clubId}`, {
+                platformFeeCentsCollected: installmentFeeCents,
+                platformFeePaymentsCount: 1,
+              }, sa);
+            } catch (err) {
+              console.warn('platform fee counter increment failed (installment)', err);
+            }
+          }
           await patchDocument(projectId, `registrations/${registrationId}`, patch, sa);
           await createDocument(projectId, 'activities', {
             clubId,
@@ -895,6 +953,7 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
             payload: {
               installmentId,
               amountTotalCents: session.amount_total,
+              platformFeeCents: installmentFeeCents,
               sessionId: session.id,
               remainingInstallments: nextInstallments.filter(i => i.status === 'pending').length,
             },
@@ -917,11 +976,23 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
         } else {
           // Single-shot path — original behavior, mark the whole
           // registration paid.
+          const oneShotFeeCents = Number(session.metadata?.platformFeeCents || 0);
           await patchDocument(projectId, `registrations/${registrationId}`, {
             status: 'paid',
             stripePaymentIntentId: session.payment_intent || null,
             paidAt: new Date(),
+            platformFeeCents: oneShotFeeCents,
           }, sa);
+          if (oneShotFeeCents > 0) {
+            try {
+              await incrementFields(projectId, `clubs/${clubId}`, {
+                platformFeeCentsCollected: oneShotFeeCents,
+                platformFeePaymentsCount: 1,
+              }, sa);
+            } catch (err) {
+              console.warn('platform fee counter increment failed (one-shot)', err);
+            }
+          }
           await createDocument(projectId, 'activities', {
             clubId,
             kind: 'registration_paid',
@@ -930,6 +1001,7 @@ export async function handleWebhook(rawBody: string, sigHeader: string, env: Str
             actorName: 'Stripe webhook',
             payload: {
               amountTotalCents: session.amount_total,
+              platformFeeCents: oneShotFeeCents,
               sessionId: session.id,
             },
             createdAt: new Date(),

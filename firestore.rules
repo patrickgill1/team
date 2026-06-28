@@ -439,6 +439,15 @@ service cloud.firestore {
         && request.auth.token.email == 'patrickgill4@gmail.com';
     }
 
+    // Platform-wide config. Public-read so the worker can fall back to
+    // defaults at payment time; write is owner-only so a club admin
+    // can't lower the platform fee on themselves by editing defaults.
+    match /platform_settings/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.email == 'patrickgill4@gmail.com';
+    }
+
     match /surveys/{surveyId} {
       allow read: if true;
       allow create: if request.auth != null && canCoachWrite();

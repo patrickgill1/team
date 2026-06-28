@@ -99,6 +99,35 @@ export async function patchDocument(projectId: string, path: string, fields: Rec
   if (!r.ok) throw new Error(`firestore patch ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
 }
 
+// Atomic increment on one or more numeric fields. Uses the Firestore
+// `commit` endpoint with `fieldTransforms` so concurrent webhooks
+// don't race a read-merge-write cycle (matters when multiple Stripe
+// payments complete in the same second on a busy club).
+//
+// `deltas` accepts negative numbers — pass -42 to decrement.
+export async function incrementFields(projectId: string, path: string, deltas: Record<string, number>, sa: ServiceAccount): Promise<void> {
+  const token = await getAccessToken(sa, FIRESTORE_SCOPE);
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit`;
+  const docName = `projects/${projectId}/databases/(default)/documents/${path}`;
+  const body = {
+    writes: [{
+      transform: {
+        document: docName,
+        fieldTransforms: Object.entries(deltas).map(([field, delta]) => ({
+          fieldPath: field,
+          increment: { integerValue: String(Math.trunc(delta)) },
+        })),
+      },
+    }],
+  };
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`firestore increment ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+}
+
 export async function createDocument(projectId: string, collection: string, fields: Record<string, any>, sa: ServiceAccount, docId?: string): Promise<string> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
   const idParam = docId ? `?documentId=${encodeURIComponent(docId)}` : '';

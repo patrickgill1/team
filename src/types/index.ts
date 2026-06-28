@@ -263,6 +263,19 @@ export interface Club {
    *  See `project_platform_fee` memory + the auth check on the
    *  platform page. */
   platformFeeBps?: number;
+  /** Lifetime sum of platform fee earned from this club, in cents.
+   *  Stamped by the worker on every successful payment via an atomic
+   *  Firestore increment; decremented proportionally on refunds.
+   *  PlatformClubs reads this to display per-club earnings + total. */
+  platformFeeCentsCollected?: number;
+  /** Count of payments that have contributed to platformFeeCentsCollected.
+   *  Same lifecycle. */
+  platformFeePaymentsCount?: number;
+  /** Set to true if the worker lazy-filled platformFeeBps from the
+   *  platform_settings/defaults doc at first-payment time, rather than
+   *  the owner explicitly setting it on the PlatformClubs page.
+   *  Cosmetic — informs the "Default applied" pill in the admin UI. */
+  platformFeeBpsAppliedFromDefault?: boolean;
 
   /** Allow this club's coaches to flip drills into the public catalog.
    *  Default-on at the data layer (treat undefined as true) so existing

@@ -69,9 +69,9 @@ const PlatformClubs: React.FC = () => {
           <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Back</Link>
           <h1 className="text-2xl font-black text-charcoal-950 mt-1">Platform · Clubs</h1>
           <p className="text-sm text-bone/65">
-            Per-club GoalKickr platform fee. Stored as basis points (100 = 1%) and passed to Stripe as
+            Per-club GoalKickr platform fee. Stored as basis points (100 = 1%) and applied as the
             <code className="text-[11px] bg-charcoal-950 px-1.5 py-0.5 rounded mx-1">application_fee_amount</code>
-            on every Checkout Session. Defaults to 0 (club keeps everything minus Stripe's flat take).
+            on every checkout. Defaults to 0 (club keeps everything minus the standard card-processing fee).
           </p>
           <p className="text-[11px] text-amber-300 mt-2">
             ⚠ Disclose the fee on your terms before raising it on an existing club. Surprise platform fees are how SaaS relationships die.
@@ -97,8 +97,8 @@ const PlatformClubs: React.FC = () => {
                         {c.id}
                         {' · '}
                         {connected
-                          ? <span className="text-emerald-300 font-bold">Stripe connected</span>
-                          : <span className="text-bone/40">No Stripe</span>}
+                          ? <span className="text-emerald-300 font-bold">Payments on</span>
+                          : <span className="text-bone/40">Payments off</span>}
                       </div>
                     </div>
                     {(c.platformFeeBps ?? 0) > 0 && (
@@ -139,7 +139,7 @@ const PlatformClubs: React.FC = () => {
 
                   {!connected && (
                     <p className="text-[11px] text-amber-300 mt-2">
-                      No effect until this club completes Stripe Connect onboarding.
+                      No effect until this club completes payments onboarding.
                     </p>
                   )}
                 </li>

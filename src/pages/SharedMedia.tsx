@@ -29,7 +29,7 @@ const SharedMedia: React.FC = () => {
         if (dl.ready) {
           url = dl.url;
         } else {
-          alert('Cloudflare is still preparing the MP4 for this clip. Try again in 30–60 seconds.');
+          alert('Video is still processing. Try again in 30–60 seconds.');
           setDownloading(false);
           return;
         }

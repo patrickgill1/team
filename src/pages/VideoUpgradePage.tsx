@@ -96,7 +96,7 @@ const VideoUpgradePage: React.FC = () => {
         <TierCard
           label="Free"
           price="$0"
-          perks={['20 clips, up to 60 seconds each', '720p, hosted on Cloudflare Stream', 'Share to parents inside the app']}
+          perks={['20 clips, up to 60 seconds each', '720p HD playback', 'Share to parents inside the app']}
           current={tier === 'free'}
         />
         <TierCard
@@ -113,7 +113,7 @@ const VideoUpgradePage: React.FC = () => {
         <TierCard
           label="Full Game Film"
           price="$29.99/mo per team"
-          perks={['Full-length match uploads, no time cap', 'Up to 100 hours stored per team', '720p, Cloudflare Stream playback', 'Cancel anytime, no contract']}
+          perks={['Full-length match uploads, no time cap', 'Up to 100 hours stored per team', '720p HD playback', 'Cancel anytime, no contract']}
           current={tier === 'pro'}
           highlight
           comingSoon={!proSkuConfigured}

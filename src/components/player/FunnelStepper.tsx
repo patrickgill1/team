@@ -43,7 +43,7 @@ const STAGES: Stage[] = [
   // our club uploads players to the league portal by hand. If/when the
   // league opens an API we'd swap the autoNote in and remove this one.
   { key: 'external_league', short: 'League',    label: 'League registration', hint: 'Registered with the external league (Sports Affinity / USYS).', autoNote: 'Manual-only — flip when you finish the upload in the league portal.' },
-  { key: 'club_dues',       short: 'Dues',      label: 'Pay club dues',     hint: 'Season fee paid.',                                  autoNote: 'Auto-completes when Stripe confirms the dues payment.' },
+  { key: 'club_dues',       short: 'Dues',      label: 'Pay club dues',     hint: 'Season fee paid.',                                  autoNote: 'Auto-completes when the payment confirms.' },
 ];
 
 interface Props {

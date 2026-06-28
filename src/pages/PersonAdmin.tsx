@@ -465,7 +465,7 @@ const PersonAdmin: React.FC = () => {
                 const data: any = await r.json().catch(() => ({}));
                 if (!r.ok) {
                   alert(data?.error === 'club-not-stripe-ready'
-                    ? 'Club Stripe Connect setup not complete yet. See worker/README.md §6.'
+                    ? 'Club payments setup not complete yet.'
                     : data?.error || 'Could not generate link.');
                   return;
                 }
@@ -1285,7 +1285,7 @@ const InstallmentList: React.FC<{
       const data: any = await r.json().catch(() => ({}));
       if (!r.ok) {
         alert(data?.error === 'club-not-stripe-ready'
-          ? 'Club Stripe Connect not set up yet.'
+          ? 'Club payments not set up yet.'
           : data?.error || 'Could not generate link.');
         return;
       }
@@ -1296,7 +1296,7 @@ const InstallmentList: React.FC<{
   };
 
   const markPaid = async (inst: Installment) => {
-    if (!window.confirm(`Mark "${inst.label}" as paid manually? Use this only for cash/check — Stripe payments mark themselves automatically.`)) return;
+    if (!window.confirm(`Mark "${inst.label}" as paid manually? Use this only for cash/check — online payments mark themselves automatically.`)) return;
     setBusyId(inst.id);
     try {
       const next = installments.map(i => i.id === inst.id
@@ -1798,7 +1798,7 @@ const PaymentLinkModal: React.FC<{
           <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="text-xs text-bone/65">One-time Stripe Checkout URL for {playerName}'s outstanding balance. Send it to the parent or copy and share however you like.</div>
+          <div className="text-xs text-bone/65">One-time payment link for {playerName}'s outstanding balance. Send it to the parent or copy and share however you like.</div>
           <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-3 py-2 text-[11px] text-bone/85 font-mono break-all">{link}</div>
           {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
           <div className="flex items-center gap-2">

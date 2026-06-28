@@ -528,7 +528,7 @@ const Onboarding: React.FC = () => {
             <Kicker>Step 2 of 3</Kicker>
             <H>Name your club.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              The club is the umbrella over all your teams. You can connect Stripe
+              The club is the umbrella over all your teams. You can turn on payments
               later when you&apos;re ready to collect dues.
             </p>
             <Field label="Club name">

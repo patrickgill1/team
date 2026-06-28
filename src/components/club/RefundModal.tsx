@@ -70,8 +70,8 @@ const RefundModal: React.FC<Props> = ({ registration, actorUid, actorName, onClo
       });
       const data: any = await r.json().catch(() => ({}));
       if (!r.ok) {
-        const msg = data?.error === 'no-payment-intent' ? 'No Stripe payment on file for this registration. Refund manually if needed.'
-          : data?.error === 'club-not-stripe-ready' ? 'Club Stripe Connect setup not complete. Refund manually.'
+        const msg = data?.error === 'no-payment-intent' ? 'No online payment on file for this registration. Refund manually if needed.'
+          : data?.error === 'club-not-stripe-ready' ? 'Club payments setup not complete. Refund manually.'
           : data?.error === 'fully-refunded' ? 'Already fully refunded.'
           : data?.error || 'Refund failed.';
         setError(msg);

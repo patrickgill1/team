@@ -36,7 +36,7 @@ export function hasClubScope(uid: string | null | undefined, club: Club | null |
 
 /** Friendly label for the scope chips + checkbox labels. */
 export const CLUB_SCOPE_LABELS: Record<ClubAdminScope, { label: string; hint: string }> = {
-  financials:    { label: 'Financials',    hint: 'Revenue, refunds, payouts, Stripe Connect' },
+  financials:    { label: 'Financials',    hint: 'Revenue, refunds, payouts, payments setup' },
   rosters:       { label: 'Rosters',       hint: 'Add and edit players + parents' },
   registrations: { label: 'Registrations', hint: 'Open, close, refund registration cycles' },
   events:        { label: 'Events',        hint: 'Games and practices' },

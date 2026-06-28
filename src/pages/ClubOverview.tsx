@@ -910,7 +910,7 @@ const PaymentsTab: React.FC = () => {
         });
         const data: any = await r.json().catch(() => ({}));
         if (!r.ok) {
-          alert(data?.error || 'Stripe connect finish failed.');
+          alert(data?.error || 'Payments setup failed to finish.');
           return;
         }
         // Clean the URL so a refresh doesn't re-fire the exchange.
@@ -952,15 +952,15 @@ const PaymentsTab: React.FC = () => {
     <div className="space-y-3">
       {connectFinishing && (
         <div className="rounded-xl bg-violet-500/15 ring-1 ring-violet-200 px-4 py-3 text-sm text-violet-200">
-          Finalizing Stripe Connect…
+          Finalizing payments setup…
         </div>
       )}
-      {/* Stripe Connect status card */}
+      {/* GoalKickr Payments status card */}
       <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
         <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-bone">Stripe Connect</h2>
-            <p className="text-[11px] text-bone/50 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ Stripe fee.</p>
+            <h2 className="font-bold text-bone">GoalKickr Payments</h2>
+            <p className="text-[11px] text-bone/50 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ card-processing fee per transaction.</p>
           </div>
           <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded ${
             chargesEnabled ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-300'
@@ -974,8 +974,8 @@ const PaymentsTab: React.FC = () => {
           {!connected ? (
             <>
               <p className="text-sm text-bone/85 mb-3">
-                Connect a Stripe account to accept team-fee, tournament-entry, and uniform-order payments
-                directly from parents. Stripe holds the funds and deposits them to your bank — GoalKickr never
+                Turn on payments to accept team-fee, tournament-entry, and uniform-order payments
+                directly from parents. Funds settle straight to your bank account — GoalKickr never
                 touches the money.
               </p>
               {/* Disclosure of the platform-fee rate the worker will pass
@@ -985,7 +985,7 @@ const PaymentsTab: React.FC = () => {
               <div className="mb-3 rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 text-[12px] text-bone/85 leading-relaxed">
                 <div className="font-bold text-bone mb-1">What this costs</div>
                 <div>
-                  <b>Stripe processing:</b> 2.9% + 30¢ per transaction (Stripe's standard rate, deducted before payout).
+                  <b>Card-processing fee:</b> 2.9% + 30¢ per transaction (industry-standard rate, deducted before payout).
                 </div>
                 <div className="mt-1">
                   <b>GoalKickr platform fee:</b>{' '}
@@ -1016,7 +1016,7 @@ const PaymentsTab: React.FC = () => {
                       return;
                     }
                     if (data?.error === 'stripe-connect-not-configured') {
-                      alert('Stripe Connect secrets not set on the worker. Run:\n\nnpx wrangler secret put STRIPE_CONNECT_CLIENT_ID\n\nthen redeploy the worker.');
+                      alert('Payments isn\'t configured on this environment yet. Contact patrick.gill@goalkickr.com.');
                       return;
                     }
                     alert(`Connect start failed (${r.status}): ${data?.error || 'unknown error'}\n\nWorker URL: ${url}`);
@@ -1027,13 +1027,13 @@ const PaymentsTab: React.FC = () => {
                 disabled={!clubId}
                 className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 disabled:opacity-50 text-white text-sm font-bold"
               >
-                {clubId ? 'Connect Stripe' : 'Resolving club…'}
+                {clubId ? 'Turn on payments' : 'Resolving club…'}
               </button>
             </>
           ) : (
             <div className="space-y-2 text-sm text-bone/85">
               <div className="flex items-center justify-between">
-                <span>Account ID</span>
+                <span>Payments account ID</span>
                 <code className="text-[11px] text-bone/50">{club.stripeAccountId}</code>
               </div>
               <div className="flex items-center justify-between">
@@ -1058,7 +1058,7 @@ const PaymentsTab: React.FC = () => {
                 </span>
               </div>
               <p className="text-[10px] text-bone/50">
-                Plus Stripe's standard 2.9% + 30¢ per transaction.
+                Plus the standard 2.9% + 30¢ card-processing fee per transaction.
               </p>
               <div className="pt-3 mt-2 border-t border-white/5">
                 <button
@@ -1066,7 +1066,7 @@ const PaymentsTab: React.FC = () => {
                   onClick={async () => {
                     if (!clubId) return;
                     const confirm = window.confirm(
-                      `Disconnect Stripe from this club?\n\nThis stops new payments from working until you reconnect. Past transactions and refund history are NOT affected.`
+                      `Turn off payments for this club?\n\nThis stops new payments from working until you reconnect. Past transactions and refund history are NOT affected.`
                     );
                     if (!confirm) return;
                     try {
@@ -1095,7 +1095,7 @@ const PaymentsTab: React.FC = () => {
                   }}
                   className="text-[10px] font-extrabold tracking-widest uppercase text-rose-300 hover:text-rose-900"
                 >
-                  Disconnect Stripe
+                  Turn off payments
                 </button>
               </div>
             </div>
@@ -1111,7 +1111,7 @@ const PaymentsTab: React.FC = () => {
           <button
             type="button"
             disabled={!chargesEnabled}
-            onClick={() => alert('Coming once Stripe Connect is active.')}
+            onClick={() => alert('Available once payments are turned on.')}
             className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Create

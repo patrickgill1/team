@@ -6,6 +6,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { TeamProvider } from './contexts/TeamContext';
 import { ViewModeProvider } from './contexts/ViewModeContext';
 import { ThemeProvider, useTheme, isThemePickerVisible } from './contexts/ThemeContext';
+import { bootstrapWidgetToken } from './utils/widgetBridge';
+import { updateDoc } from 'firebase/firestore';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import SilentErrorBoundary from './components/common/SilentErrorBoundary';
@@ -231,6 +233,25 @@ const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) =
       setMode('dark');
     }
   }, [userData, mode, setMode]);
+
+  // Implicit widget-token bootstrap. Fires once per session for the
+  // signed-in user. If they already have a token on their user doc
+  // we just push it into the native App Group bridge so the widget
+  // can read it. If they don't, we generate one and persist. Result:
+  // the user never visits Settings → Widget to "Generate" — they
+  // sign in (which they had to do anyway), add the widget, done.
+  // Matches the Instagram / Facebook widget UX. See widgetBridge.ts.
+  React.useEffect(() => {
+    if (!userData?.uid) return;
+    void bootstrapWidgetToken({
+      uid: userData.uid,
+      existingToken: (userData as any).widgetToken,
+      writeFirestore: async (uid, token) => {
+        const { doc } = await import('firebase/firestore');
+        await updateDoc(doc(db, 'users', uid), { widgetToken: token });
+      },
+    });
+  }, [userData?.uid, (userData as any)?.widgetToken]);
   // Page shell uses the semantic surface token so the toggle in
   // Settings → Appearance flips the background. Inner components
   // still render their own (mostly charcoal-*) backgrounds until

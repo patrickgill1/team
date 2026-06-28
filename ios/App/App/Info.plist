@@ -33,8 +33,18 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>GoalKickr uses the camera to capture player photos, highlight clips, and game-day moments to share with your team.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>GoalKickr records audio along with highlight videos so cheers and commentary are captured with the clip.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>GoalKickr saves downloaded highlight videos and photos to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GoalKickr needs access to your photos so coaches and parents can upload pictures and highlight videos to the team gallery.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
@@ -62,19 +72,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>GoalKickr uses the camera to capture player photos, highlight clips, and game-day moments to share with your team.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>GoalKickr needs access to your photos so coaches and parents can upload pictures and highlight videos to the team gallery.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>GoalKickr saves downloaded highlight videos and photos to your photo library.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>GoalKickr records audio along with highlight videos so cheers and commentary are captured with the clip.</string>
-	<!-- App only uses standard HTTPS / system-provided encryption — qualifies for
-	     the Category 5, Part 2 exemption. Setting this to false auto-marks every
-	     future build as compliant so we don't have to answer the Export
-	     Compliance questions on each upload. -->
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 </dict>
 </plist>

@@ -14,13 +14,14 @@ const VideoUpgradePage: React.FC = () => {
   const { userData, currentUser } = useAuth();
   const { teams, selectedTeamId } = useTeam();
   const navigate = useNavigate();
-  const [busy, setBusy] = useState<'upgrade' | 'portal' | null>(null);
+  const [busy, setBusy] = useState<'addon' | 'pro' | 'portal' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const team = teams.find(t => t.id === selectedTeamId);
   const tier = (team?.videoTier || 'free') as 'free' | 'addon' | 'pro';
   const allowed = !!userData && isTeamStaff(userData.role);
   const proSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_PRO;
+  const addonSkuConfigured = !!process.env.REACT_APP_STRIPE_PRICE_VIDEO_ADDON;
 
   if (!allowed) {
     return (
@@ -39,15 +40,15 @@ const VideoUpgradePage: React.FC = () => {
     );
   }
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (which: 'addon' | 'pro') => {
     if (!team?.id) {
       setError('Pick a team first.');
       return;
     }
     setError(null);
-    setBusy('upgrade');
+    setBusy(which);
     const err = await startVideoCheckout({
-      tier: 'pro',
+      tier: which,
       teamId: team.id,
       uid: currentUser?.uid,
       customerEmail: currentUser?.email || undefined,
@@ -101,9 +102,13 @@ const VideoUpgradePage: React.FC = () => {
         <TierCard
           label="Highlights+"
           price="$10/mo per team"
-          perks={['Unlimited 60-second clips', '720p, still capped at one minute', 'Best for steady-clip teams']}
+          perks={['Unlimited 60-second clips', '720p, still capped at one minute', 'Skip the 20-clip ceiling without paying for full games']}
           current={tier === 'addon'}
-          comingSoon
+          comingSoon={!addonSkuConfigured}
+          ctaLabel={tier === 'free' && addonSkuConfigured ? 'Upgrade to Highlights+' : undefined}
+          onCta={() => handleUpgrade('addon')}
+          busy={busy === 'addon'}
+          disabled={!!busy}
         />
         <TierCard
           label="Full Game Film"
@@ -111,6 +116,11 @@ const VideoUpgradePage: React.FC = () => {
           perks={['Full-length match uploads, no time cap', 'Up to 100 hours stored per team', '720p, Cloudflare Stream playback', 'Cancel anytime, no contract']}
           current={tier === 'pro'}
           highlight
+          comingSoon={!proSkuConfigured}
+          ctaLabel={tier !== 'pro' && proSkuConfigured ? 'Upgrade to Full Game Film' : undefined}
+          onCta={() => handleUpgrade('pro')}
+          busy={busy === 'pro'}
+          disabled={!!busy}
         />
       </div>
 
@@ -124,16 +134,6 @@ const VideoUpgradePage: React.FC = () => {
         </ul>
       </div>
 
-      {tier === 'free' && proSkuConfigured && (
-        <button
-          type="button"
-          onClick={handleUpgrade}
-          disabled={busy === 'upgrade'}
-          className="mt-6 w-full px-5 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-charcoal-950 text-sm font-extrabold tracking-widest uppercase shadow-lg disabled:opacity-60 disabled:cursor-wait"
-        >
-          {busy === 'upgrade' ? 'Opening checkout…' : 'Upgrade to Full Game Film · $29.99/mo'}
-        </button>
-      )}
       {tier !== 'free' && team?.videoCustomerId && (
         <button
           type="button"
@@ -144,7 +144,7 @@ const VideoUpgradePage: React.FC = () => {
           {busy === 'portal' ? 'Opening portal…' : 'Manage subscription'}
         </button>
       )}
-      {tier === 'free' && !proSkuConfigured && (
+      {tier === 'free' && !proSkuConfigured && !addonSkuConfigured && (
         <p className="mt-6 text-bone/55 text-xs text-center">
           Upgrades aren't live yet — email <a className="text-brand-primary-soft" href="mailto:patrick.gill@goalkickr.com">patrick.gill@goalkickr.com</a> for early access.
         </p>
@@ -166,7 +166,11 @@ const TierCard: React.FC<{
   current?: boolean;
   comingSoon?: boolean;
   highlight?: boolean;
-}> = ({ label, price, perks, current, comingSoon, highlight }) => (
+  ctaLabel?: string;
+  onCta?: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+}> = ({ label, price, perks, current, comingSoon, highlight, ctaLabel, onCta, busy, disabled }) => (
   <div className={`rounded-xl p-4 ring-1 ${
     current
       ? 'bg-brand-primary/10 ring-brand-primary/40'
@@ -193,6 +197,20 @@ const TierCard: React.FC<{
     <ul className="text-xs text-bone/65 space-y-1 leading-relaxed">
       {perks.map((p, i) => <li key={i}>· {p}</li>)}
     </ul>
+    {ctaLabel && onCta && !current && (
+      <button
+        type="button"
+        onClick={onCta}
+        disabled={!!busy || !!disabled}
+        className={`mt-3 w-full px-4 py-2.5 rounded-lg text-xs font-extrabold tracking-widest uppercase disabled:opacity-60 disabled:cursor-wait ${
+          highlight
+            ? 'bg-amber-500 hover:bg-amber-400 text-charcoal-950'
+            : 'bg-brand-primary hover:bg-brand-primary/90 text-white'
+        }`}
+      >
+        {busy ? 'Opening checkout…' : ctaLabel}
+      </button>
+    )}
   </div>
 );
 

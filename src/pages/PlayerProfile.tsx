@@ -555,12 +555,28 @@ const PlayerProfile: React.FC = () => {
           )}
           <button
             onClick={handleShareProfile}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
-            title="Share profile"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ring-1 transition backdrop-blur ${
+              (player as any)?.publicShare?.enabled
+                ? 'bg-emerald-500/20 ring-emerald-400/40 text-emerald-200 hover:bg-emerald-500/30'
+                : 'bg-white/10 ring-white/20 text-white hover:bg-white/20'
+            }`}
+            title={(player as any)?.publicShare?.enabled ? 'Public card is live — tap to share the link again' : 'Share profile'}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-            Share
+            {(player as any)?.publicShare?.enabled ? 'Share · ON' : 'Share'}
           </button>
+          {(player as any)?.publicShare?.enabled && (
+            <button
+              onClick={disablePublicShare}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/20 text-white/80 text-xs font-semibold hover:bg-white/20 hover:text-white transition backdrop-blur"
+              title="Turn public sharing off — existing links stop working"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+              Stop sharing
+            </button>
+          )}
         </div>
       </div>
 

@@ -402,36 +402,29 @@ const Wall: React.FC = () => {
     const unsub = onSnapshot(q, (snap) => {
       const next: WallPost[] = snap.docs.map(d => {
         const data = d.data() as any;
+        // Inverted mapping: spread the raw Firestore doc through,
+        // then explicitly OVERRIDE the fields that need normalization
+        // (timestamps converted, defaults applied, malformed shapes
+        // sanitized). Anything not listed below just rides through
+        // unchanged — which means new schema fields (contentFormat,
+        // viewedBy, isPublic, emailedAt, the next thing someone
+        // adds) automatically reach the UI without needing this
+        // function to be touched. Three different fields silently
+        // dropped through this map in 2026-06-27 alone — refactor
+        // is the only way to stop firefighting the same bug class.
         return {
+          ...(data as WallPost),
           id: d.id,
-          teamId: data.teamId,
           content: data.content || '',
-          // contentFormat drives the render branch (raw TipTap HTML
-          // vs legacy markdown). Was missing from this mapping,
-          // which is why every post rendered escaped HTML tags as
-          // visible text. Patrick caught it 2026-06-27.
-          ...(data.contentFormat ? { contentFormat: data.contentFormat } : {}),
-          senderId: data.senderId,
           senderName: data.senderName || 'Coach',
           senderPhotoUrl: data.senderPhotoUrl || null,
-          senderRole: data.senderRole,
           timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp || Date.now()),
           editedAt: typeof data.editedAt === 'number' ? data.editedAt : null,
           attachments: Array.isArray(data.attachments) ? data.attachments : undefined,
           reactions: Array.isArray(data.reactions) ? data.reactions : [],
           wallPinnedTop: typeof data.wallPinnedTop === 'number' ? data.wallPinnedTop : null,
-          postedFrom: data.postedFrom,
-          // Was also missing — needed by the public-share URL gate
-          // and the "Email to team" action's auto-flip on first send.
           isPublic: !!data.isPublic,
-          // emailedAt drives the manage-post sheet's
-          // "Email to team" → "Resend email" label switch.
           emailedAt: typeof data.emailedAt === 'number' ? data.emailedAt : null,
-          // viewedBy drives the "X seen" chip + the viewer-list
-          // modal. Same regression as contentFormat — was being
-          // dropped here, so the chip never appeared and Patrick
-          // thought the feature was gone. (3.7.30 fix.)
-          ...(data.viewedBy && typeof data.viewedBy === 'object' ? { viewedBy: data.viewedBy } : {}),
           category: data.category || 'announcement',
           poll: data.poll && typeof data.poll === 'object' && Array.isArray(data.poll.options)
             ? {

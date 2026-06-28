@@ -653,34 +653,33 @@ const PlayerDevelopment: React.FC = () => {
   };
 
   const handleArchivePlan = async (planId: string) => {
-    if (!window.confirm('Archive this development plan?')) return;
+    if (!window.confirm('Archive this development plan? It will be hidden from the player\'s active list but the work history is kept.')) return;
     try {
-      // Snapshot the plan + player BEFORE archiving so we can fire the
-      // wall post (and so we have the name/teamId we need without
-      // racing the loadData refetch). The "plan complete" auto-post
-      // used to be gated on every goal being coach-verified, which
-      // no longer happens since the verification flow was removed.
-      // Archive is the natural completion signal — coach is saying
-      // "the kid is done with this plan, moving on."
-      const planSnap = plans.find(p => p.id === planId);
-      const playerSnap = planSnap ? players.find(pl => pl.id === planSnap.playerId) : null;
-
-      await updateDevelopmentPlan(planId, { status: 'archived', completedAt: new Date() });
-
-      if (planSnap && playerSnap?.teamId && userData) {
-        try {
-          const { autoPostDevPlanCompleteToWall } = await import('../utils/autoPostToWall');
-          void autoPostDevPlanCompleteToWall(
-            { name: playerSnap.name, teamId: playerSnap.teamId },
-            { title: planSnap.title },
-            { uid: userData.uid, name: userData.name || 'Coach', role: 'coach' },
-          );
-        } catch (e) { console.warn('dev plan archive wall post failed', e); }
-      }
-
+      // Archive is silent. The previous implementation also auto-posted
+      // a "X completed their plan!" to the wall on every archive, which
+      // false-fired when Patrick archived an accidental duplicate plan
+      // and the team saw "Hunter completed Foundations" for kids who
+      // hadn't touched it. The true completion signal still fires from
+      // handleVerifyGoal when every goal flips to coach-verified — that
+      // path is correct and intact. Archive just parks the plan.
+      await updateDevelopmentPlan(planId, { status: 'archived' });
       loadData();
     } catch (error) {
       console.error('Error archiving plan:', error);
+    }
+  };
+
+  // Soft-delete for "created in error" cleanup (e.g. accidental
+  // duplicates from the bulk-assign flow). status='deleted' is filtered
+  // out of every view query. No wall post, no completedAt stamp — this
+  // plan is treated as if it never existed.
+  const handleDeletePlan = async (planId: string) => {
+    if (!window.confirm('Delete this plan? It will disappear from the player\'s page. Use Archive instead if the kid actually worked on it. No wall post will be sent.')) return;
+    try {
+      await updateDevelopmentPlan(planId, { status: 'deleted' });
+      loadData();
+    } catch (error) {
+      console.error('Error deleting plan:', error);
     }
   };
 
@@ -1020,6 +1019,7 @@ const PlayerDevelopment: React.FC = () => {
                   onAddVideoLink={(goalId, url, title) => handleAddVideoLink(plan, goalId, url, title)}
                   onRemoveVideoLink={(goalId, linkId) => handleRemoveVideoLink(plan, goalId, linkId)}
                   onArchive={() => handleArchivePlan(plan.id)}
+                  onDelete={() => handleDeletePlan(plan.id)}
                   onEdit={() => handleEditPlan(plan)}
                   onCreateNextPlan={() => handleCreateNextPlan(plan)}
                   getCategoryColor={getCategoryColor}
@@ -1062,6 +1062,7 @@ const PlayerDevelopment: React.FC = () => {
                   onAddVideoLink={() => {}}
                   onRemoveVideoLink={() => {}}
                   onArchive={() => handleArchivePlan(plan.id)}
+                  onDelete={() => handleDeletePlan(plan.id)}
                   onEdit={() => handleEditPlan(plan)}
                   onCreateNextPlan={() => handleCreateNextPlan(plan)}
                   getCategoryColor={getCategoryColor}
@@ -1493,6 +1494,7 @@ interface PlanCardProps {
   onAddVideoLink: (goalId: string, url: string, title?: string) => void;
   onRemoveVideoLink: (goalId: string, linkId: string) => void;
   onArchive: () => void;
+  onDelete: () => void;
   onEdit: () => void;
   onCreateNextPlan: () => void;
   getCategoryColor: (cat: string) => string;
@@ -1573,7 +1575,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
 
 const PlanCard: React.FC<PlanCardProps> = ({
   plan, isCoach, isExpanded, onToggleExpand, onPlayerComplete, onCoachVerify,
-  onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddComment, onAddVideoLink, onRemoveVideoLink, onArchive, onEdit, onCreateNextPlan, playerPhoto,
+  onCoachNote, onReadyForReview, onAddPracticeLog, onQuickDidIt, onAddComment, onAddVideoLink, onRemoveVideoLink, onArchive, onDelete, onEdit, onCreateNextPlan, playerPhoto,
   getCategoryColor, getCategoryIcon, getProgressPercentage, canPlayerComplete, canLogPractice, streak, resolveGoalVideo
 }) => {
   const progress = getProgressPercentage(plan);
@@ -2159,6 +2161,13 @@ const PlanCard: React.FC<PlanCardProps> = ({
                   className="text-sm text-ink-primary/50 hover:text-ink-primary/85 px-3 py-1 rounded-lg hover:bg-line-default/[0.08]"
                 >
                   Archive
+                </button>
+                <button
+                  onClick={onDelete}
+                  className="text-sm text-rose-400 hover:text-rose-300 px-3 py-1 rounded-lg hover:bg-rose-500/10"
+                  title="Created in error? Delete removes the plan with no wall post."
+                >
+                  Delete
                 </button>
               </div>
             )}

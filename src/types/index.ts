@@ -1896,7 +1896,15 @@ export interface DevelopmentPlan {
   description?: string;
   category: 'technical' | 'tactical' | 'physical' | 'mental';
   goals: DevelopmentGoal[];
-  status: 'active' | 'completed' | 'archived';
+  /** Lifecycle:
+   *   - 'active'     → currently working on it (default)
+   *   - 'completed'  → all goals coach-verified (fires wall autopost)
+   *   - 'archived'   → coach parked it (silent — was previously firing a
+   *                    false-positive wall post, fixed v3.7.44)
+   *   - 'deleted'    → soft-delete for "created in error" cleanup; filtered
+   *                    out of every view query. Never hard-deleted because
+   *                    PITR isn't enabled (see soft-delete-pattern memory). */
+  status: 'active' | 'completed' | 'archived' | 'deleted';
   createdBy: string;
   createdByName: string;
   createdAt: Date;

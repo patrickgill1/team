@@ -394,7 +394,7 @@ const Onboarding: React.FC = () => {
 
   // ─ Render ─
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 text-bone">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base text-ink-primary">
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <StepIndicator currentStep={step} isClubTier={isClubTier} />
 
@@ -430,8 +430,8 @@ const Onboarding: React.FC = () => {
                 coach invited as staff), let them out of the
                 team/club setup wizard and into the standard
                 invite consume flow. */}
-            <div className="mt-5 pt-4 border-t border-white/10 space-y-2">
-              <p className="text-bone/55 text-xs">
+            <div className="mt-5 pt-4 border-t border-line-default/10 space-y-2">
+              <p className="text-ink-primary/55 text-xs">
                 Already have an invite code from a coach or club admin?
               </p>
               <InviteCodeRow />
@@ -439,7 +439,7 @@ const Onboarding: React.FC = () => {
 
             {subscription && (
               <p className="mt-5 text-charcoal-400 text-xs">
-                Active subscription: <span className="text-bone font-semibold">{
+                Active subscription: <span className="text-ink-primary font-semibold">{
                   tier === 'founder' ? 'Founder Rate ($5/mo lifetime)'
                   : tier === 'annual' ? 'Coach Annual ($99/yr)'
                   : tier === 'monthly' ? 'Coach Monthly ($10/mo)'
@@ -491,8 +491,8 @@ const Onboarding: React.FC = () => {
                 'Blue'). Optional: parents see "Home" / "Away" on the
                 event card when blank, your kit name when set. */}
             <div className="mt-3">
-              <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5">
-                Kit colors <span className="text-bone/40 font-normal normal-case tracking-normal">(optional, shows on event cards)</span>
+              <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">
+                Kit colors <span className="text-ink-primary/40 font-normal normal-case tracking-normal">(optional, shows on event cards)</span>
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Home kit">
@@ -631,7 +631,7 @@ const Onboarding: React.FC = () => {
             <button
               type="button"
               onClick={handleEventSkip}
-              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/5 transition"
             >
               Skip for now
             </button>
@@ -648,21 +648,21 @@ const Onboarding: React.FC = () => {
             </p>
             {inviteLink ? (
               <>
-                <div className="mt-5 rounded-md bg-charcoal-950 ring-1 ring-white/10 px-4 py-3 text-cyan-300 font-mono text-sm break-all">
+                <div className="mt-5 rounded-md bg-surface-base ring-1 ring-line-default/10 px-4 py-3 text-cyan-300 font-mono text-sm break-all">
                   {inviteLink}
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <button
                     type="button"
                     onClick={handleCopy}
-                    className="px-4 py-2.5 rounded-md bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 font-bold text-sm transition"
+                    className="px-4 py-2.5 rounded-md bg-surface-input ring-1 ring-line-default/10 hover:ring-line-default/25 font-bold text-sm transition"
                   >
                     {copyState === 'copied' ? 'Copied!' : 'Copy link'}
                   </button>
                   <button
                     type="button"
                     onClick={handleShare}
-                    className="px-4 py-2.5 rounded-md bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 font-bold text-sm transition"
+                    className="px-4 py-2.5 rounded-md bg-surface-input ring-1 ring-line-default/10 hover:ring-line-default/25 font-bold text-sm transition"
                   >
                     Share…
                   </button>
@@ -676,8 +676,8 @@ const Onboarding: React.FC = () => {
                 get one-use email invites that drop them into the right
                 role on first sign-in. Skip the whole block by leaving
                 emails blank. */}
-            <div className="mt-7 pt-6 border-t border-white/10">
-              <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">
+            <div className="mt-7 pt-6 border-t border-line-default/10">
+              <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">
                 Bring in your staff
               </p>
               <p className="text-charcoal-300 text-sm mb-3">
@@ -707,7 +707,7 @@ const Onboarding: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => removeStaffRow(i)}
-                        className="px-2 py-2 text-bone/55 hover:text-rose-300"
+                        className="px-2 py-2 text-ink-primary/55 hover:text-rose-300"
                         aria-label="Remove row"
                         title="Remove"
                       >
@@ -733,7 +733,7 @@ const Onboarding: React.FC = () => {
                 type="button"
                 onClick={handleSendStaffInvites}
                 disabled={staffBusy || !staffEmails.some(r => r.email.trim().includes('@'))}
-                className="mt-3 w-full px-5 py-2.5 rounded-md bg-charcoal-800 ring-1 ring-white/15 hover:ring-white/30 font-bold text-sm transition disabled:opacity-50"
+                className="mt-3 w-full px-5 py-2.5 rounded-md bg-surface-input ring-1 ring-line-default/15 hover:ring-line-default/30 font-bold text-sm transition disabled:opacity-50"
               >
                 {staffBusy ? 'Sending…' : 'Send staff invites'}
               </button>
@@ -743,7 +743,7 @@ const Onboarding: React.FC = () => {
             <button
               type="button"
               onClick={() => setStep('done')}
-              className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 hover:bg-white/5 transition"
+              className="mt-6 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-line-default/15 hover:bg-line-default/5 transition"
             >
               I&apos;ll do this later
             </button>
@@ -763,7 +763,7 @@ const Onboarding: React.FC = () => {
             <Kicker>Almost done</Kicker>
             <H>{isClubTrack ? 'Start your club subscription.' : 'Start your free trial.'}</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              <span className="text-bone font-semibold">{teamName}</span> is set up.
+              <span className="text-ink-primary font-semibold">{teamName}</span> is set up.
               {isClubTrack
                 ? ' Club includes unlimited teams, registrations, dues, and financial reporting. The fee is waived if your club processes $15K+/yr in registrations through GoalKickr.'
                 : ' Start your 7-day free trial to unlock everything — chat, RSVPs, gameday, development plans. No charge for 7 days, cancel anytime.'}
@@ -771,18 +771,18 @@ const Onboarding: React.FC = () => {
 
             {/* Pricing snapshot. Tier shown depends on the track the
                 user picked on the welcome step. */}
-            <div className="mt-5 rounded-lg bg-charcoal-950/80 ring-1 ring-white/10 px-4 py-3 space-y-1">
+            <div className="mt-5 rounded-lg bg-surface-base/80 ring-1 ring-line-default/10 px-4 py-3 space-y-1">
               {isClubTrack ? (
                 <>
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-bone font-bold text-sm">Club</span>
-                    <span className="text-bone font-black tabular-nums">
+                    <span className="text-ink-primary font-bold text-sm">Club</span>
+                    <span className="text-ink-primary font-black tabular-nums">
                       $299<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-bone/80 text-sm">Club Pro</span>
-                    <span className="text-bone/80 tabular-nums">
+                    <span className="text-ink-primary/80 text-sm">Club Pro</span>
+                    <span className="text-ink-primary/80 tabular-nums">
                       $499<span className="text-charcoal-400 text-xs ml-0.5">/yr</span>
                     </span>
                   </div>
@@ -793,14 +793,14 @@ const Onboarding: React.FC = () => {
               ) : (
                 <>
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-bone font-bold text-sm">Coach Annual</span>
-                    <span className="text-bone font-black tabular-nums">
+                    <span className="text-ink-primary font-bold text-sm">Coach Annual</span>
+                    <span className="text-ink-primary font-black tabular-nums">
                       $99<span className="text-charcoal-400 text-xs font-bold ml-0.5">/yr</span>
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-bone/80 text-sm">Coach Monthly</span>
-                    <span className="text-bone/80 tabular-nums">
+                    <span className="text-ink-primary/80 text-sm">Coach Monthly</span>
+                    <span className="text-ink-primary/80 tabular-nums">
                       $10<span className="text-charcoal-400 text-xs ml-0.5">/mo</span>
                     </span>
                   </div>
@@ -826,7 +826,7 @@ const Onboarding: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowSkipModal(true)}
-              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+              className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/5 transition"
             >
               Skip for now
             </button>
@@ -847,14 +847,14 @@ const Onboarding: React.FC = () => {
           onClick={() => setShowSkipModal(false)}
         >
           <div
-            className="bg-charcoal-900 ring-1 ring-white/10 rounded-2xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
+            className="bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div>
               <p className="text-[10px] font-extrabold tracking-widest uppercase text-amber-400 mb-1.5">
                 Wait
               </p>
-              <h3 className="text-bone text-lg font-bold leading-tight">
+              <h3 className="text-ink-primary text-lg font-bold leading-tight">
                 {isClubTrack ? 'Skip the Club subscription?' : 'Skip your 7-day free trial?'}
               </h3>
               <p className="text-charcoal-300 text-sm mt-2">
@@ -881,7 +881,7 @@ const Onboarding: React.FC = () => {
                   setShowSkipModal(false);
                   navigate('/dashboard', { replace: true });
                 }}
-                className="px-4 py-2.5 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+                className="px-4 py-2.5 rounded-md font-bold text-sm ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/5 transition"
               >
                 Continue without
               </button>
@@ -926,13 +926,13 @@ const Onboarding: React.FC = () => {
 
 // ── Small, file-local presentational pieces ─────────────────────
 const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="bg-charcoal-900/80 backdrop-blur ring-1 ring-white/10 rounded-2xl p-6 sm:p-8 shadow-xl">{children}</div>
+  <div className="bg-surface-elevated/80 backdrop-blur ring-1 ring-line-default/10 rounded-2xl p-6 sm:p-8 shadow-xl">{children}</div>
 );
 const Kicker: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-2">{children}</p>
 );
 const H: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h1 className="text-2xl sm:text-3xl font-black text-bone tracking-tight">{children}</h1>
+  <h1 className="text-2xl sm:text-3xl font-black text-ink-primary tracking-tight">{children}</h1>
 );
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <label className="block mt-5">
@@ -955,16 +955,16 @@ const TrackOption: React.FC<{
     onClick={onClick}
     className={`w-full text-left rounded-lg p-4 transition-all ${
       selected
-        ? 'bg-gradient-to-br from-brand-primary-deep/40 to-charcoal-900 ring-2 ring-brand-primary shadow-lg shadow-brand-primary-deep/30'
-        : 'bg-charcoal-900/60 ring-1 ring-white/10 hover:ring-white/25'
+        ? 'bg-gradient-to-br from-brand-primary-deep/40 to-surface-elevated ring-2 ring-brand-primary shadow-lg shadow-brand-primary-deep/30'
+        : 'bg-surface-elevated/60 ring-1 ring-line-default/10 hover:ring-line-default/25'
     }`}
   >
     <div className="flex items-start gap-3">
       <span className={`shrink-0 mt-1 w-4 h-4 rounded-full ring-2 ${
-        selected ? 'bg-brand-primary ring-brand-primary-soft' : 'bg-transparent ring-white/30'
+        selected ? 'bg-brand-primary ring-brand-primary-soft' : 'bg-transparent ring-line-default/30'
       }`} aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="text-bone font-bold">{label}</p>
+        <p className="text-ink-primary font-bold">{label}</p>
         <p className="text-charcoal-300 text-xs mt-1 leading-snug">{blurb}</p>
         <p className="text-charcoal-500 text-[11px] mt-2">{pricing}</p>
       </div>
@@ -991,7 +991,7 @@ const StepIndicator: React.FC<{ currentStep: Step; isClubTier: boolean }> = ({ c
       {order.map((s, i) => (
         <div
           key={s}
-          className={`flex-1 h-1 rounded ${i <= idx ? 'bg-brand-primary' : 'bg-white/10'}`}
+          className={`flex-1 h-1 rounded ${i <= idx ? 'bg-brand-primary' : 'bg-line-default/10'}`}
         />
       ))}
     </div>
@@ -1017,13 +1017,13 @@ const InviteCodeRow: React.FC = () => {
         value={code}
         onChange={(e) => setCode(e.target.value)}
         placeholder="Invite code"
-        className="flex-1 bg-charcoal-900 border border-white/10 rounded-lg px-3 py-2 text-bone placeholder:text-bone/30 text-sm"
+        className="flex-1 bg-surface-elevated border border-line-default/10 rounded-lg px-3 py-2 text-ink-primary placeholder:text-ink-primary/30 text-sm"
       />
       <button
         type="button"
         onClick={handleGo}
         disabled={!code.trim()}
-        className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 disabled:opacity-50 text-bone text-xs font-bold whitespace-nowrap"
+        className="px-3 py-2 rounded-lg bg-line-default/10 hover:bg-line-default/15 disabled:opacity-50 text-ink-primary text-xs font-bold whitespace-nowrap"
       >
         Use code
       </button>

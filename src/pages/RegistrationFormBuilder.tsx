@@ -138,33 +138,33 @@ const RegistrationFormBuilder: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">
+      <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm">
         Club admins only.
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-surface-base px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
         <div>
-          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">
+          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">
             ← Club
           </Link>
-          <h1 className="text-2xl font-black text-bone mt-1">Registration form</h1>
-          <p className="text-sm text-bone/65">
+          <h1 className="text-2xl font-black text-ink-primary mt-1">Registration form</h1>
+          <p className="text-sm text-ink-primary/65">
             Extra questions parents answer on the public registration page.
             Default applies whenever a season-specific form isn't set up.
           </p>
         </div>
 
-        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4">
+        <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope</span>
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+              className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
             >
               <option value="default">Club default (used when season has no override)</option>
               {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -173,12 +173,12 @@ const RegistrationFormBuilder: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : (
           <>
             <div className="space-y-2">
               {questions.length === 0 && (
-                <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-center text-sm text-bone/65">
+                <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-center text-sm text-ink-primary/65">
                   No custom questions yet. The registration form will just ask the standard player + parent fields.
                 </div>
               )}
@@ -200,7 +200,7 @@ const RegistrationFormBuilder: React.FC = () => {
               <button
                 type="button"
                 onClick={addQuestion}
-                className="px-3 py-2 rounded-lg bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary-soft text-sm font-bold text-bone/85"
+                className="px-3 py-2 rounded-lg bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary-soft text-sm font-bold text-ink-primary/85"
               >
                 + Add question
               </button>
@@ -244,18 +244,18 @@ const QuestionRow: React.FC<RowProps> = ({ question, isFirst, isLast, onChange, 
   }, [question.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-3 space-y-2">
+    <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-3 space-y-2">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <input
           value={question.label}
           onChange={(e) => onChange({ label: e.target.value })}
           placeholder="Question label"
-          className="sm:col-span-2 px-3 py-2 rounded-lg ring-1 ring-white/10 text-sm font-bold"
+          className="sm:col-span-2 px-3 py-2 rounded-lg ring-1 ring-line-default/10 text-sm font-bold"
         />
         <select
           value={question.type}
           onChange={(e) => onChange({ type: e.target.value as RegistrationQuestion['type'] })}
-          className="px-3 py-2 rounded-lg ring-1 ring-white/10 text-sm"
+          className="px-3 py-2 rounded-lg ring-1 ring-line-default/10 text-sm"
         >
           {QUESTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
@@ -264,7 +264,7 @@ const QuestionRow: React.FC<RowProps> = ({ question, isFirst, isLast, onChange, 
         value={question.help || ''}
         onChange={(e) => onChange({ help: e.target.value })}
         placeholder="Helper text (optional)"
-        className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 text-sm"
+        className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 text-sm"
       />
       {question.type === 'select' && (
         <textarea
@@ -275,10 +275,10 @@ const QuestionRow: React.FC<RowProps> = ({ question, isFirst, isLast, onChange, 
           }}
           placeholder="One option per line"
           rows={3}
-          className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 text-sm"
+          className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 text-sm"
         />
       )}
-      <div className="flex items-center flex-wrap gap-3 text-[11px] text-bone/65">
+      <div className="flex items-center flex-wrap gap-3 text-[11px] text-ink-primary/65">
         <label className="flex items-center gap-1.5">
           <input type="checkbox" checked={!!question.required} onChange={(e) => onChange({ required: e.target.checked })} />
           Required
@@ -288,8 +288,8 @@ const QuestionRow: React.FC<RowProps> = ({ question, isFirst, isLast, onChange, 
           Returning players only
         </label>
         <div className="flex-1" />
-        <button type="button" disabled={isFirst} onClick={onMoveUp} className="px-2 py-1 rounded hover:bg-white/[0.08] disabled:opacity-30">↑</button>
-        <button type="button" disabled={isLast} onClick={onMoveDown} className="px-2 py-1 rounded hover:bg-white/[0.08] disabled:opacity-30">↓</button>
+        <button type="button" disabled={isFirst} onClick={onMoveUp} className="px-2 py-1 rounded hover:bg-line-default/[0.08] disabled:opacity-30">↑</button>
+        <button type="button" disabled={isLast} onClick={onMoveDown} className="px-2 py-1 rounded hover:bg-line-default/[0.08] disabled:opacity-30">↓</button>
         <button type="button" onClick={onRemove} className="px-2 py-1 rounded text-rose-300 hover:bg-rose-500/15 font-bold">Remove</button>
       </div>
     </div>

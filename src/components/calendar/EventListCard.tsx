@@ -167,13 +167,13 @@ const EventListCard: React.FC<Props> = ({
   return (
     <Link
       to={`/events/${event.id}`}
-      className={`relative block overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/50 transition shadow-xl shadow-black/40 ${cancelled ? 'opacity-60' : ''}`}
+      className={`relative block overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/50 transition shadow-xl shadow-black/40 ${cancelled ? 'opacity-60' : ''}`}
     >
       {/* Left-edge accent stripe, color from event type. Cancelled
           events go neutral grey so the card reads as "not happening". */}
       <span
         aria-hidden
-        className={`absolute inset-y-0 left-0 w-1 ${cancelled ? 'bg-charcoal-600' : t.edge}`}
+        className={`absolute inset-y-0 left-0 w-1 ${cancelled ? 'bg-surface-tint' : t.edge}`}
       />
 
       <div className="relative pl-4 pr-4 py-3.5">
@@ -215,14 +215,14 @@ const EventListCard: React.FC<Props> = ({
 
         {/* Row 2: date badge + title block */}
         <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
-          <div className="w-[52px] rounded-lg bg-charcoal-950 ring-1 ring-brand-primary-soft/30 flex flex-col items-center justify-center py-1.5">
+          <div className="w-[52px] rounded-lg bg-surface-base ring-1 ring-brand-primary-soft/30 flex flex-col items-center justify-center py-1.5">
             <span className="text-[9px] font-extrabold tracking-widest text-brand-primary-soft">{month}</span>
             <span className={`text-[22px] font-black leading-none text-white ${cancelled ? 'line-through decoration-2' : ''}`}>{day}</span>
             <span className="text-[8px] font-bold tracking-widest text-charcoal-400 mt-0.5">{dow}</span>
           </div>
 
           <div className="min-w-0">
-            <h3 className={`text-[16px] font-extrabold leading-tight tracking-tight text-bone ${cancelled ? 'line-through' : ''}`}>
+            <h3 className={`text-[16px] font-extrabold leading-tight tracking-tight text-ink-primary ${cancelled ? 'line-through' : ''}`}>
               {event.title}
             </h3>
             <div className="mt-1 text-[11.5px] text-charcoal-300 flex items-center gap-1 flex-wrap">
@@ -252,8 +252,8 @@ const EventListCard: React.FC<Props> = ({
                     <span
                       className={`inline-block w-2.5 h-2.5 rounded-sm border ${
                         isHome
-                          ? 'bg-charcoal-950 border-charcoal-600'
-                          : 'bg-charcoal-700 border-charcoal-400'
+                          ? 'bg-surface-base border-charcoal-600'
+                          : 'bg-surface-raised border-charcoal-400'
                       }`}
                       aria-hidden
                     />
@@ -289,36 +289,36 @@ const EventListCard: React.FC<Props> = ({
             White-on-charcoal density block, separators are thin charcoal
             lines. Each column gets a crimson icon + bold number + small
             label so the eye lands on the count, not the chrome. */}
-        <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-4 gap-2 text-center">
+        <div className="mt-3 pt-3 border-t border-line-default/5 grid grid-cols-4 gap-2 text-center">
           <div className="flex items-center gap-1.5 justify-start pl-1">
             <Icon name="users" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
             <div className="text-left">
-              <div className="text-[12px] font-black text-bone leading-none tabular-nums">{goingCount}</div>
+              <div className="text-[12px] font-black text-ink-primary leading-none tabular-nums">{goingCount}</div>
               <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Going</div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-white/5">
+          <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-line-default/5">
             <Icon name="clock" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
             <div className="text-left">
-              <div className="text-[12px] font-black text-bone leading-none tabular-nums">{pendingCount}</div>
+              <div className="text-[12px] font-black text-ink-primary leading-none tabular-nums">{pendingCount}</div>
               <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Pending</div>
             </div>
           </div>
           {arriveText ? (
-            <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-white/5">
+            <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-line-default/5">
               <Icon name="arrive" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
               <div className="text-left min-w-0">
-                <div className="text-[11px] font-black text-bone leading-none truncate">{arriveText.replace(/^Arrive\s*/i, '')}</div>
+                <div className="text-[11px] font-black text-ink-primary leading-none truncate">{arriveText.replace(/^Arrive\s*/i, '')}</div>
                 <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Arrive</div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-start pl-1 border-l border-white/5 text-charcoal-600 text-[10px]">—</div>
+            <div className="flex items-center justify-start pl-1 border-l border-line-default/5 text-charcoal-600 text-[10px]">—</div>
           )}
-          <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-white/5">
+          <div className="flex items-center gap-1.5 justify-start pl-1 border-l border-line-default/5">
             <Icon name="chat" className="w-3.5 h-3.5 text-brand-primary-soft shrink-0" />
             <div className="text-left">
-              <div className="text-[12px] font-black text-bone leading-none tabular-nums">{eventChatUnread}</div>
+              <div className="text-[12px] font-black text-ink-primary leading-none tabular-nums">{eventChatUnread}</div>
               <div className="text-[8.5px] font-extrabold tracking-widest uppercase text-charcoal-400 mt-0.5">Comments</div>
             </div>
           </div>
@@ -342,7 +342,7 @@ const EventListCard: React.FC<Props> = ({
                 ) : (
                   <span
                     key={i}
-                    className={`w-[22px] h-[22px] rounded-full ring-2 ring-charcoal-900 bg-gradient-to-br from-charcoal-700 to-charcoal-500 ${i > 0 ? '-ml-1.5' : ''}`}
+                    className={`w-[22px] h-[22px] rounded-full ring-2 ring-charcoal-900 bg-gradient-to-br from-surface-raised to-surface-tint ${i > 0 ? '-ml-1.5' : ''}`}
                   />
                 )
               ))}
@@ -359,7 +359,7 @@ const EventListCard: React.FC<Props> = ({
         {(event as any).snackAssignment?.playerName && (
           <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-charcoal-300">
             <span className="text-[9px] font-extrabold tracking-widest uppercase text-charcoal-500">Snacks</span>
-            <span className="font-bold text-bone">{(event as any).snackAssignment.playerName}</span>
+            <span className="font-bold text-ink-primary">{(event as any).snackAssignment.playerName}</span>
           </div>
         )}
       </div>

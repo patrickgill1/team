@@ -142,12 +142,12 @@ const NotificationPreferences: React.FC = () => {
   const platform = Capacitor.getPlatform();
 
   return (
-    <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 shadow-sm overflow-hidden">
+    <div className="bg-surface-elevated rounded-xl ring-1 ring-line-default/10 shadow-sm overflow-hidden">
       {/* Permission state row */}
-      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between gap-3">
+      <div className="px-4 py-3 border-b border-line-default/5 flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-bone">Push notifications</div>
-          <div className="text-xs text-bone/50 mt-0.5">
+          <div className="text-sm font-semibold text-ink-primary">Push notifications</div>
+          <div className="text-xs text-ink-primary/50 mt-0.5">
             {granted ? 'Enabled on this device.' :
              denied  ? `Blocked in ${platform === 'ios' ? 'iOS' : platform === 'android' ? 'Android' : 'browser'} settings — open settings to re-enable.` :
                        'Not enabled yet — turn on to get team messages and updates.'}
@@ -167,18 +167,18 @@ const NotificationPreferences: React.FC = () => {
       {/* Diagnostic — visible to everyone so a parent can confirm
           delivery themselves. The Test button bypasses all filters and
           dumps the raw response. */}
-      <div className="px-4 py-3 border-b border-white/5 bg-charcoal-950/40">
+      <div className="px-4 py-3 border-b border-line-default/5 bg-surface-base/40">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50">Delivery test</div>
-            <div className="text-xs text-bone/70 mt-0.5">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50">Delivery test</div>
+            <div className="text-xs text-ink-primary/70 mt-0.5">
               {diag.tokenCount === 0 ? 'No device tokens registered yet.' : `${diag.tokenCount} device token${diag.tokenCount === 1 ? '' : 's'} on file.`}
             </div>
           </div>
           <button
             onClick={sendTest}
             disabled={diag.sending}
-            className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-white/10 ring-1 ring-white/15 text-bone hover:bg-white/15 disabled:opacity-50"
+            className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-line-default/10 ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/15 disabled:opacity-50"
           >
             {diag.sending ? 'Sending…' : 'Send test'}
           </button>
@@ -206,12 +206,12 @@ const NotificationPreferences: React.FC = () => {
       </div>
 
       {/* Per-category toggles */}
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-line-default/5">
         {CATEGORIES.map(({ key, label, hint }) => (
           <div key={key} className="px-4 py-3 flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <div className={`text-sm font-semibold ${granted ? 'text-bone' : 'text-bone/40'}`}>{label}</div>
-              <div className="text-xs text-bone/50 mt-0.5">{hint}</div>
+              <div className={`text-sm font-semibold ${granted ? 'text-ink-primary' : 'text-ink-primary/40'}`}>{label}</div>
+              <div className="text-xs text-ink-primary/50 mt-0.5">{hint}</div>
             </div>
             <button
               role="switch"
@@ -219,7 +219,7 @@ const NotificationPreferences: React.FC = () => {
               onClick={() => togglePref(key)}
               disabled={saving === key}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                prefs[key] ? 'bg-brand-primary' : 'bg-white/15'
+                prefs[key] ? 'bg-brand-primary' : 'bg-line-default/15'
               } disabled:opacity-50`}
             >
               <span

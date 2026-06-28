@@ -27,12 +27,12 @@ const CATEGORY_LABEL: Record<TicketCategory, string> = {
 const STATUS_CHIP: Record<TicketStatus, string> = {
   open: 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30',
   assigned: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
-  in_progress: 'bg-brand-primary/15 text-bone/85 border-brand-primary-soft/30',
+  in_progress: 'bg-brand-primary/15 text-ink-primary/85 border-brand-primary-soft/30',
   resolved: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
-  closed: 'bg-charcoal-950 text-bone/50 border-white/10',
+  closed: 'bg-surface-base text-ink-primary/50 border-line-default/10',
 };
 const PRIORITY_CHIP: Record<TicketPriority, string> = {
-  low: 'bg-charcoal-950 text-bone/65 border-white/10',
+  low: 'bg-surface-base text-ink-primary/65 border-line-default/10',
   normal: 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30',
   high: 'bg-rose-500/15 text-rose-300 border-rose-400/30',
 };
@@ -159,7 +159,7 @@ const Helpdesk: React.FC = () => {
   }), [tickets, userData?.uid]);
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       <Header
         title="Club Support"
         subtitle={isAdmin ? `${counts.open} open · ${counts.all} total` : 'Ask the club anything — logistics, issues, ideas'}
@@ -167,7 +167,7 @@ const Helpdesk: React.FC = () => {
           <button
             onClick={() => setNewOpen(true)}
             aria-label="New ticket"
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -192,7 +192,7 @@ const Helpdesk: React.FC = () => {
                   className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     statusFilter === k
                       ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30'
-                      : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
+                      : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
                   }`}
                 >
                   {label}
@@ -205,8 +205,8 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setTeamFilter('all')}
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'all'
-                      ? 'bg-charcoal-900 text-white border-slate-900'
-                      : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
+                      ? 'bg-surface-elevated text-white border-slate-900'
+                      : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
                   }`}
                 >
                   All teams
@@ -215,8 +215,8 @@ const Helpdesk: React.FC = () => {
                   onClick={() => setTeamFilter('unassigned')}
                   className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                     teamFilter === 'unassigned'
-                      ? 'bg-charcoal-900 text-white border-slate-900'
-                      : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
+                      ? 'bg-surface-elevated text-white border-slate-900'
+                      : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
                   }`}
                 >
                   General
@@ -227,8 +227,8 @@ const Helpdesk: React.FC = () => {
                     onClick={() => setTeamFilter(t.id)}
                     className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                       teamFilter === t.id
-                        ? 'bg-charcoal-900 text-white border-slate-900'
-                        : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
+                        ? 'bg-surface-elevated text-white border-slate-900'
+                        : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
                     }`}
                   >
                     {t.name}
@@ -247,14 +247,14 @@ const Helpdesk: React.FC = () => {
             subtitle="Tap + to ask a question or submit an issue."
           />
         ) : (
-          <ul className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm divide-y divide-white/5 overflow-hidden">
+          <ul className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm divide-y divide-line-default/5 overflow-hidden">
             {filtered.map(t => (
               <li key={t.id}>
-                <Link to={`/helpdesk/${t.id}`} className="block px-3 py-3 hover:bg-white/[0.05] transition-colors">
+                <Link to={`/helpdesk/${t.id}`} className="block px-3 py-3 hover:bg-line-default/[0.05] transition-colors">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-bone text-sm truncate">{t.subject}</div>
-                      <div className="text-[11px] text-bone/50 mt-0.5">
+                      <div className="font-semibold text-ink-primary text-sm truncate">{t.subject}</div>
+                      <div className="text-[11px] text-ink-primary/50 mt-0.5">
                         {t.createdByName}{t.assignedToName ? ` · → ${t.assignedToName}` : ''} · {formatRel(new Date(t.createdAt))}
                       </div>
                     </div>
@@ -263,11 +263,11 @@ const Helpdesk: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-white/[0.04] text-bone/65 border-white/10">
+                    <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-line-default/[0.04] text-ink-primary/65 border-line-default/10">
                       {CATEGORY_LABEL[t.category]}
                     </span>
                     {isAdmin && (
-                      <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-charcoal-900 text-bone/50 border-white/10">
+                      <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-surface-elevated text-ink-primary/50 border-line-default/10">
                         {t.teamId ? (teams.find(x => x.id === t.teamId)?.name || 'Team') : 'General'}
                       </span>
                     )}
@@ -347,41 +347,41 @@ const NewTicketModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65">New ticket</div>
-          <button onClick={onClose} aria-label="Close" className="text-bone/40 hover:text-bone/85">
+      <div onClick={e => e.stopPropagation()} className="bg-surface-elevated rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="px-4 py-3 border-b border-line-default/5 flex items-center justify-between">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/65">New ticket</div>
+          <button onClick={onClose} aria-label="Close" className="text-ink-primary/40 hover:text-ink-primary/85">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <div className="px-4 py-3 space-y-3 overflow-y-auto flex-1">
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Subject</label>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 mb-1">Subject</label>
             <input
               value={subject}
               onChange={e => setSubject(e.target.value)}
               placeholder="Short summary"
-              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-line-default/10 rounded-lg"
               autoFocus
             />
           </div>
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">What's going on?</label>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 mb-1">What's going on?</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Steps to reproduce, what you expected, etc."
               rows={4}
-              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg resize-none"
+              className="w-full px-3 py-2 text-sm border border-line-default/10 rounded-lg resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Category</label>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 mb-1">Category</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value as any)}
-                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900 text-bone [color-scheme:dark]"
+                className="w-full px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-surface-elevated text-ink-primary [color-scheme:dark]"
               >
                 {(Object.keys(CATEGORY_LABEL) as TicketCategory[]).map(k => (
                   <option key={k} value={k}>{CATEGORY_LABEL[k]}</option>
@@ -389,11 +389,11 @@ const NewTicketModal: React.FC<{
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Priority</label>
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 mb-1">Priority</label>
               <select
                 value={priority}
                 onChange={e => setPriority(e.target.value as any)}
-                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-900 text-bone [color-scheme:dark]"
+                className="w-full px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-surface-elevated text-ink-primary [color-scheme:dark]"
               >
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
@@ -404,7 +404,7 @@ const NewTicketModal: React.FC<{
           <button
             onClick={submit}
             disabled={busy || !subject.trim() || !description.trim()}
-            className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-brand-primary to-charcoal-600 text-white shadow-md shadow-brand-primary/30 disabled:opacity-40"
+            className="w-full text-xs font-extrabold tracking-widest uppercase px-3 py-2.5 rounded-lg bg-gradient-to-br from-brand-primary to-surface-tint text-white shadow-md shadow-brand-primary/30 disabled:opacity-40"
           >
             {busy ? 'Submitting…' : 'Submit ticket'}
           </button>

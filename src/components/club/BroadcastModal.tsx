@@ -124,7 +124,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
     >
       <div className="space-y-4">
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-bone/55 mb-2">Recipients</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/55 mb-2">Recipients</p>
           <div className="grid grid-cols-2 gap-2">
             {[
               { k: 'all', label: 'Everyone' },
@@ -139,7 +139,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
                   type="button"
                   onClick={() => setScope(opt.k)}
                   className={`p-2 rounded-xl text-sm font-semibold ring-1 transition ${
-                    active ? 'ring-brand-primary bg-brand-primary/15 text-bone' : 'ring-white/10 bg-charcoal-950 text-bone/70 hover:bg-white/5'
+                    active ? 'ring-brand-primary bg-brand-primary/15 text-ink-primary' : 'ring-line-default/10 bg-surface-base text-ink-primary/70 hover:bg-line-default/5'
                   }`}
                 >
                   {opt.label}
@@ -157,7 +157,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
                     type="button"
                     onClick={() => toggleTeam(t.id)}
                     className={`text-xs font-semibold px-2.5 py-1 rounded-full ring-1 transition ${
-                      active ? 'bg-brand-primary text-brand-primary-fg ring-brand-primary' : 'bg-charcoal-950 text-bone/70 ring-white/10 hover:bg-white/5'
+                      active ? 'bg-brand-primary text-brand-primary-fg ring-brand-primary' : 'bg-surface-base text-ink-primary/70 ring-line-default/10 hover:bg-line-default/5'
                     }`}
                   >
                     {t.name}
@@ -166,8 +166,8 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
               })}
             </div>
           )}
-          <p className="text-xs text-bone/55 mt-2">
-            Will reach <span className="font-bold text-bone">{recipients.length}</span> {recipients.length === 1 ? 'person' : 'people'}.
+          <p className="text-xs text-ink-primary/55 mt-2">
+            Will reach <span className="font-bold text-ink-primary">{recipients.length}</span> {recipients.length === 1 ? 'person' : 'people'}.
           </p>
         </div>
 
@@ -193,7 +193,7 @@ const BroadcastModal: React.FC<Props> = ({ isOpen, onClose, teams, members }) =>
           />
         </FormField>
 
-        <label className="flex items-center gap-2 text-sm text-bone/85 cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-ink-primary/85 cursor-pointer">
           <input
             type="checkbox"
             checked={sendPush}

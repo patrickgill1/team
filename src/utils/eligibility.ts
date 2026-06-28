@@ -100,6 +100,6 @@ export function eligibilityTone(status: EligibilityStatus): { bg: string; text: 
       return { bg: 'bg-rose-500/15', text: 'text-rose-200', ring: 'ring-rose-400/30', dot: 'bg-rose-400', label: 'Not eligible' };
     case 'unknown':
     default:
-      return { bg: 'bg-white/5', text: 'text-bone/70', ring: 'ring-white/15', dot: 'bg-white/40', label: 'Status unknown' };
+      return { bg: 'bg-line-default/5', text: 'text-ink-primary/70', ring: 'ring-line-default/15', dot: 'bg-line-default/40', label: 'Status unknown' };
   }
 }

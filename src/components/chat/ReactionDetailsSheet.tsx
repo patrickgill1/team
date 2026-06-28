@@ -38,7 +38,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
       'from-brand-primary-soft to-brand-primary',
       'from-violet-400 to-violet-600',
       'from-fuchsia-400 to-pink-600',
-      'from-brand-primary-soft to-charcoal-600',
+      'from-brand-primary-soft to-surface-tint',
       'from-teal-400 to-teal-600',
     ];
     return palette[h % palette.length];
@@ -51,17 +51,17 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-charcoal-900 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
+        className="bg-surface-elevated w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[80vh] flex flex-col overflow-hidden"
       >
-        <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
           <button
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white px-1"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white px-1"
           >
             Close
           </button>
           <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">
-            Reactions <span className="text-bone/50">{totalReactors}</span>
+            Reactions <span className="text-ink-primary/50">{totalReactors}</span>
           </div>
           <span className="w-12" aria-hidden />
         </div>
@@ -71,7 +71,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
             <div key={emoji} className="px-4 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl">{emoji}</span>
-                <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/50">
+                <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50">
                   {grouped[emoji].length}
                 </span>
               </div>
@@ -93,7 +93,7 @@ const ReactionDetailsSheet: React.FC<Props> = ({ message, currentUserId, onToggl
                             {initial}
                           </span>
                         )}
-                        <span className={`text-sm truncate ${isMe ? 'font-bold text-brand-primary' : 'text-bone'}`}>
+                        <span className={`text-sm truncate ${isMe ? 'font-bold text-brand-primary' : 'text-ink-primary'}`}>
                           {isMe ? 'You' : name}
                         </span>
                       </span>

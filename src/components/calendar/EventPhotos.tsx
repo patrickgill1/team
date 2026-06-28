@@ -157,7 +157,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
         >
           <button
             onClick={(e) => { e.stopPropagation(); setLightboxIdx(null); }}
-            className="absolute right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center"
+            className="absolute right-4 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
             style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
             aria-label="Close"
           >
@@ -168,7 +168,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
           {lightboxIdx > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx ?? 0) - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -178,7 +178,7 @@ const EventPhotos: React.FC<Props> = ({ eventId, teamId, canModerate = false }) 
           {lightboxIdx < photos.length - 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx ?? 0) + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

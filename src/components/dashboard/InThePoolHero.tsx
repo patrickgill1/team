@@ -105,7 +105,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
   }, [kids]);
 
   return (
-    <div className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-10 sm:py-14">
+    <div className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 py-10 sm:py-14">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-6">
           <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
@@ -132,9 +132,9 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
         </div>
 
         {loading ? (
-          <div className="bg-white/[0.04] ring-1 ring-white/10 rounded-2xl p-6 text-center text-sm text-slate-300">Loading your registrations…</div>
+          <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center text-sm text-slate-300">Loading your registrations…</div>
         ) : kids.length === 0 ? (
-          <div className="bg-white/[0.04] ring-1 ring-white/10 rounded-2xl p-6 text-center">
+          <div className="bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-2xl p-6 text-center">
             <p className="text-sm text-slate-300 mb-4">We don't see a registration on file under <b className="text-white">{email}</b> yet.</p>
             <Link to="/register" className="inline-block px-5 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary text-white text-sm font-bold">
               Start registration
@@ -164,7 +164,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
               <div className="text-center pt-2">
                 <Link
                   to={`/club/family/${encodeURIComponent(email.toLowerCase())}`}
-                  className="text-xs font-bold text-brand-primary-soft hover:text-bone"
+                  className="text-xs font-bold text-brand-primary-soft hover:text-ink-primary"
                 >
                   See the full timeline →
                 </Link>
@@ -177,7 +177,7 @@ const InThePoolHero: React.FC<Props> = ({ firstName, email }) => {
             pool (have at least one registration). Fresh-signup parents
             with no registrations get a different card above instead. */}
         {overallVibe === 'in_pool' && (
-          <div className="mt-6 bg-white/[0.03] ring-1 ring-white/10 rounded-2xl p-5">
+          <div className="mt-6 bg-line-default/[0.03] ring-1 ring-line-default/10 rounded-2xl p-5">
             <div className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft mb-2">What happens next</div>
             <ul className="space-y-2 text-sm text-slate-300">
               <li className="flex items-start gap-2"><span className="text-brand-primary-soft mt-0.5">①</span> Coaches review the pool every Sunday.</li>

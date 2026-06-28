@@ -54,7 +54,7 @@ const DataGate: React.FC<Props> = ({
     if (!showProgress) return null;
     return (
       <div className="flex items-center justify-center py-6">
-        <div className="h-1 w-32 bg-white/[0.06] overflow-hidden rounded-full">
+        <div className="h-1 w-32 bg-line-default/[0.06] overflow-hidden rounded-full">
           <div className="h-full w-1/3 bg-brand-primary/70 animate-progress-slide" />
         </div>
       </div>
@@ -64,14 +64,14 @@ const DataGate: React.FC<Props> = ({
   if (when === 'error') {
     if (silentError) return null;
     return (
-      <div className="rounded-2xl bg-charcoal-900 ring-1 ring-amber-500/30 p-5 text-center">
-        <p className="text-bone/85 font-semibold mb-1">Couldn&apos;t load this</p>
-        <p className="text-bone/55 text-sm mb-4">{error?.message || 'Something went wrong fetching the data.'}</p>
+      <div className="rounded-2xl bg-surface-elevated ring-1 ring-amber-500/30 p-5 text-center">
+        <p className="text-ink-primary/85 font-semibold mb-1">Couldn&apos;t load this</p>
+        <p className="text-ink-primary/55 text-sm mb-4">{error?.message || 'Something went wrong fetching the data.'}</p>
         {reload && (
           <button
             type="button"
             onClick={reload}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-bone"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary"
           >
             Try again
           </button>

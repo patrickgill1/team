@@ -81,24 +81,24 @@ const Seasons: React.FC = () => {
   };
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm">Club admins only.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-surface-base px-4 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto space-y-4">
         <div>
-          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
-          <h1 className="text-2xl font-black text-bone mt-1">Seasons</h1>
-          <p className="text-sm text-bone/65">
+          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">← Club</Link>
+          <h1 className="text-2xl font-black text-ink-primary mt-1">Seasons</h1>
+          <p className="text-sm text-ink-primary/65">
             Move each season through its lifecycle. Every transition is logged for the audit trail.
           </p>
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : seasons.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center text-sm text-ink-primary/50">
             No seasons exist yet. Create one from the Team management page.
           </div>
         ) : (
@@ -110,12 +110,12 @@ const Seasons: React.FC = () => {
               const isHistoryOpen = openHistoryFor === s.id;
               const history = (s.lifecycleHistory || []).slice().reverse();
               return (
-                <li key={s.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+                <li key={s.id} className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-black text-bone">{s.name}</div>
-                        <div className="text-[11px] text-bone/50 mt-0.5">
+                        <div className="font-black text-ink-primary">{s.name}</div>
+                        <div className="text-[11px] text-ink-primary/50 mt-0.5">
                           {fmt(s.startDate)} → {fmt(s.endDate)}
                         </div>
                       </div>
@@ -144,7 +144,7 @@ const Seasons: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setOpenHistoryFor(isHistoryOpen ? null : s.id)}
-                        className="mt-3 text-[11px] font-bold text-bone/50 hover:text-bone/85"
+                        className="mt-3 text-[11px] font-bold text-ink-primary/50 hover:text-ink-primary/85"
                       >
                         {isHistoryOpen ? 'Hide history' : `History (${history.length})`}
                       </button>
@@ -152,17 +152,17 @@ const Seasons: React.FC = () => {
                   </div>
 
                   {isHistoryOpen && history.length > 0 && (
-                    <ul className="border-t border-white/5 divide-y divide-white/5">
+                    <ul className="border-t border-line-default/5 divide-y divide-line-default/5">
                       {history.map((e, i) => {
                         const ts = toDate(e.at);
                         return (
                           <li key={i} className="px-4 py-2 text-[11px] flex items-start gap-3">
-                            <div className="font-bold text-bone/85 shrink-0 whitespace-nowrap">
+                            <div className="font-bold text-ink-primary/85 shrink-0 whitespace-nowrap">
                               {e.fromState ? `${seasonLifecycleLabel(e.fromState)} → ` : ''}{seasonLifecycleLabel(e.toState)}
                             </div>
-                            <div className="flex-1 min-w-0 text-bone/50">
+                            <div className="flex-1 min-w-0 text-ink-primary/50">
                               {e.byName || 'System'} · {ts.toLocaleDateString()} {ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                              {e.note && <div className="text-bone/85 italic mt-0.5">"{e.note}"</div>}
+                              {e.note && <div className="text-ink-primary/85 italic mt-0.5">"{e.note}"</div>}
                             </div>
                           </li>
                         );

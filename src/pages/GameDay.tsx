@@ -674,14 +674,14 @@ const GameDay: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft border-t-cyan-500" />
       </div>
     );
   }
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center p-4 text-white">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center p-4 text-white">
         <div className="text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center mb-3">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="#0f172a" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
@@ -699,9 +699,9 @@ const GameDay: React.FC = () => {
   const sortedTimeline = [...(game?.timeline || [])].sort((a, b) => b.at - a.at);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-black text-white pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-black text-white pb-32">
       {/* Header / Scoreboard */}
-      <header className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-white/10">
+      <header className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-line-default/10">
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <Link to="/calendar" className="text-xs text-white/60 hover:text-white">← Calendar</Link>
@@ -720,7 +720,7 @@ const GameDay: React.FC = () => {
               <div className="text-5xl font-black tabular-nums">{ourScore}</div>
               {isUserCoach && (
                 <div className="flex justify-center gap-1 mt-1">
-                  <button onClick={() => incScore('our', -1)} className="w-7 h-7 rounded bg-white/10 hover:bg-white/20 text-sm font-bold">−</button>
+                  <button onClick={() => incScore('our', -1)} className="w-7 h-7 rounded bg-line-default/10 hover:bg-line-default/20 text-sm font-bold">−</button>
                   <button onClick={() => incScore('our', 1)} className="w-7 h-7 rounded bg-emerald-600 hover:bg-emerald-500 text-sm font-bold">+</button>
                 </div>
               )}
@@ -735,7 +735,7 @@ const GameDay: React.FC = () => {
               <div className="text-5xl font-black tabular-nums">{oppScore}</div>
               {isUserCoach && (
                 <div className="flex justify-center gap-1 mt-1">
-                  <button onClick={() => incScore('opp', -1)} className="w-7 h-7 rounded bg-white/10 hover:bg-white/20 text-sm font-bold">−</button>
+                  <button onClick={() => incScore('opp', -1)} className="w-7 h-7 rounded bg-line-default/10 hover:bg-line-default/20 text-sm font-bold">−</button>
                   <button onClick={() => incScore('opp', 1)} className="w-7 h-7 rounded bg-rose-600 hover:bg-rose-500 text-sm font-bold">+</button>
                 </div>
               )}
@@ -783,7 +783,7 @@ const GameDay: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs uppercase tracking-wider text-white/40">Formation</h3>
               {isUserCoach && (
-                <div className="inline-flex items-center bg-white/5 ring-1 ring-white/15 rounded-full p-0.5">
+                <div className="inline-flex items-center bg-line-default/5 ring-1 ring-line-default/15 rounded-full p-0.5">
                   {(['7v7', '9v9', '11v11'] as const).map((f) => {
                     const active = (game?.format || '7v7') === f;
                     return (
@@ -827,7 +827,7 @@ const GameDay: React.FC = () => {
         {/* Quick action chips (coaches only) */}
         {isUserCoach && status !== 'final' && (
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-bone/40 mb-2 font-extrabold">Tap to record</h3>
+            <h3 className="text-xs uppercase tracking-wider text-ink-primary/40 mb-2 font-extrabold">Tap to record</h3>
             <div className="grid grid-cols-4 gap-2">
               {(['goal', 'owngoal', 'assist', 'save', 'yellow', 'red', 'sub', 'note'] as StatKind[]).map(k => (
                 <button
@@ -841,10 +841,10 @@ const GameDay: React.FC = () => {
                     setPickerKind(k);
                     setNoteText('');
                   }}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-charcoal-800 ring-1 ring-white/10 hover:ring-brand-primary-soft/50 hover:bg-charcoal-700 active:scale-95 transition"
+                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-surface-input ring-1 ring-line-default/10 hover:ring-brand-primary-soft/50 hover:bg-surface-raised active:scale-95 transition"
                 >
-                  <span className="text-bone/85">{TAP_ICONS[k]}</span>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-bone/75">{KIND_META[k].label}</span>
+                  <span className="text-ink-primary/85">{TAP_ICONS[k]}</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/75">{KIND_META[k].label}</span>
                 </button>
               ))}
             </div>
@@ -853,7 +853,7 @@ const GameDay: React.FC = () => {
 
         {/* Lineup & Subs (coaches only) */}
         {isUserCoach && status !== 'final' && (
-          <section className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3 sm:p-4">
+          <section className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-3 sm:p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs uppercase tracking-wider text-white/60 font-bold">Lineup &amp; Subs</h3>
               <div className="flex items-center gap-2 text-[11px]">
@@ -861,7 +861,7 @@ const GameDay: React.FC = () => {
                 <select
                   value={lineup.shiftSeconds}
                   onChange={e => setShiftSeconds(parseInt(e.target.value, 10))}
-                  className="bg-white/10 ring-1 ring-white/20 rounded px-1.5 py-0.5 text-white text-[11px]"
+                  className="bg-line-default/10 ring-1 ring-line-default/20 rounded px-1.5 py-0.5 text-white text-[11px]"
                 >
                   <option value={180}>3 min</option>
                   <option value={300}>5 min</option>
@@ -870,7 +870,7 @@ const GameDay: React.FC = () => {
                 </select>
                 <button
                   onClick={toggleBell}
-                  className={`px-2 py-0.5 rounded font-semibold ${lineup.bellEnabled ? 'bg-emerald-600/30 text-emerald-200 ring-1 ring-emerald-500/50' : 'bg-white/10 text-white/50 ring-1 ring-white/20'}`}
+                  className={`px-2 py-0.5 rounded font-semibold ${lineup.bellEnabled ? 'bg-emerald-600/30 text-emerald-200 ring-1 ring-emerald-500/50' : 'bg-line-default/10 text-white/50 ring-1 ring-line-default/20'}`}
                   title="Toggle rotation bell"
                 >🔔 {lineup.bellEnabled ? 'On' : 'Off'}</button>
               </div>
@@ -886,9 +886,9 @@ const GameDay: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between text-[11px] text-white/60 mb-1">
                         <span>Next rotation in {formatClock(remaining)}</span>
-                        <button onClick={acknowledgeBell} className="text-brand-primary-soft hover:text-bone">Reset</button>
+                        <button onClick={acknowledgeBell} className="text-brand-primary-soft hover:text-ink-primary">Reset</button>
                       </div>
-                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-line-default/10 rounded-full overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
@@ -951,7 +951,7 @@ const GameDay: React.FC = () => {
                           <button
                             key={pid}
                             onClick={() => subOn(pid)}
-                            className={`w-full flex items-center gap-2 p-1.5 rounded-lg ring-1 text-left ${isNext ? 'bg-amber-500/15 ring-amber-500/50 hover:bg-amber-500/25' : 'bg-white/5 ring-white/10 hover:bg-white/10'}`}
+                            className={`w-full flex items-center gap-2 p-1.5 rounded-lg ring-1 text-left ${isNext ? 'bg-amber-500/15 ring-amber-500/50 hover:bg-amber-500/25' : 'bg-line-default/5 ring-line-default/10 hover:bg-line-default/10'}`}
                             title="Tap to sub ON"
                           >
                             <span className={`w-7 h-7 rounded-full text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 ${isNext ? 'bg-amber-600' : 'bg-slate-600'}`}>
@@ -981,13 +981,13 @@ const GameDay: React.FC = () => {
             Timeline ({sortedTimeline.length})
           </h3>
           {sortedTimeline.length === 0 ? (
-            <div className="text-center py-10 text-white/40 text-sm rounded-xl bg-white/5 ring-1 ring-white/10">
+            <div className="text-center py-10 text-white/40 text-sm rounded-xl bg-line-default/5 ring-1 ring-line-default/10">
               No events yet. {isUserCoach ? 'Tap an action above.' : 'Coaches will record events live.'}
             </div>
           ) : (
             <ul className="space-y-2">
               {sortedTimeline.map(t => (
-                <li key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 ring-1 ring-white/10">
+                <li key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/10">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${KIND_META[t.kind].color}/30`}>
                     {KIND_META[t.kind].emoji}
                   </div>
@@ -1009,7 +1009,7 @@ const GameDay: React.FC = () => {
                         href={t.clipUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-brand-primary-soft hover:text-bone"
+                        className="inline-flex items-center gap-1 mt-1 text-[11px] text-brand-primary-soft hover:text-ink-primary"
                       >
                         🎬 {t.source === 'clip' ? 'Clip credit' : 'Watch clip'}
                       </a>
@@ -1035,9 +1035,9 @@ const GameDay: React.FC = () => {
         {/* Per-player live tally */}
         <section>
           <h3 className="text-xs uppercase tracking-wider text-white/40 mb-2">Live Stat Sheet</h3>
-          <div className="rounded-xl bg-white/5 ring-1 ring-white/10 overflow-hidden">
+          <div className="rounded-xl bg-line-default/5 ring-1 ring-line-default/10 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-white/5 text-white/60 text-[10px] uppercase tracking-wider">
+              <thead className="bg-line-default/5 text-white/60 text-[10px] uppercase tracking-wider">
                 <tr>
                   <th className="text-left px-3 py-2">Player</th>
                   <th className="px-2 py-2">⚽</th>
@@ -1060,7 +1060,7 @@ const GameDay: React.FC = () => {
                   }, { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0 });
                   const hasAny = tally.goals + tally.assists + tally.saves + tally.yellow + tally.red > 0;
                   return (
-                    <tr key={p.id} className={`border-t border-white/5 ${hasAny ? 'text-white' : 'text-white/40'}`}>
+                    <tr key={p.id} className={`border-t border-line-default/5 ${hasAny ? 'text-white' : 'text-white/40'}`}>
                       <td className="px-3 py-2 truncate">
                         {p.jerseyNumber != null ? <span className="text-brand-primary-soft font-bold mr-1">#{p.jerseyNumber}</span> : null}
                         {p.name}
@@ -1082,8 +1082,8 @@ const GameDay: React.FC = () => {
       {/* Player picker modal */}
       {pickerKind && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setPickerKind(null)}>
-          <div className="bg-charcoal-900 ring-1 ring-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+          <div className="bg-surface-elevated ring-1 ring-line-default/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b border-line-default/10 flex items-center justify-between">
               <h3 className="font-bold flex items-center gap-2">
                 <span>{KIND_META[pickerKind].emoji}</span>
                 <span>{KIND_META[pickerKind].label}</span>
@@ -1098,7 +1098,7 @@ const GameDay: React.FC = () => {
                   onChange={e => setNoteText(e.target.value)}
                   placeholder="What happened? (e.g. great defensive stop, weather break)"
                   rows={4}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-line-default/5 border border-line-default/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   autoFocus
                 />
                 <button
@@ -1122,9 +1122,9 @@ const GameDay: React.FC = () => {
                       await addTimelineEntry(pickerKind, { player: p });
                       setPickerKind(null);
                     }}
-                    className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 text-left"
+                    className="flex items-center gap-2 p-2 rounded-lg bg-line-default/5 hover:bg-line-default/10 ring-1 ring-line-default/10 text-left"
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint flex items-center justify-center text-white text-xs font-black flex-shrink-0">
                       {p.jerseyNumber != null ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0)}
                     </div>
                     <div className="min-w-0">

@@ -69,14 +69,14 @@ const VideoStorageCard: React.FC = () => {
   };
 
   return (
-    <div className="bg-charcoal-900 rounded-xl shadow-sm border border-white/10 overflow-hidden">
+    <div className="bg-surface-elevated rounded-xl shadow-sm border border-line-default/10 overflow-hidden">
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-bone font-bold">{VIDEO_TIER_LABEL[tier]}</p>
-            <p className="text-sm text-bone/55 mt-0.5">{VIDEO_TIER_PRICE[tier]}</p>
+            <p className="text-ink-primary font-bold">{VIDEO_TIER_LABEL[tier]}</p>
+            <p className="text-sm text-ink-primary/55 mt-0.5">{VIDEO_TIER_PRICE[tier]}</p>
           </div>
-          <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded-md ${tier === 'free' ? 'bg-white/[0.06] text-bone/55' : 'bg-brand-primary/15 text-brand-primary-soft'}`}>
+          <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded-md ${tier === 'free' ? 'bg-line-default/[0.06] text-ink-primary/55' : 'bg-brand-primary/15 text-brand-primary-soft'}`}>
             {VIDEO_TIER_LABEL[tier]}
           </span>
         </div>
@@ -87,22 +87,22 @@ const VideoStorageCard: React.FC = () => {
           </div>
         )}
         {upgradeStatus === 'cancel' && (
-          <div className="mt-3 rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-3 py-2 text-sm text-bone/65">
+          <div className="mt-3 rounded-lg bg-line-default/[0.04] ring-1 ring-line-default/10 px-3 py-2 text-sm text-ink-primary/65">
             Checkout cancelled. The team is still on the {VIDEO_TIER_LABEL[tier]} tier.
           </div>
         )}
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="bg-white/[0.04] rounded-lg px-3 py-2">
-            <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/40">Clips stored</div>
-            <div className="text-base font-bold text-bone tabular-nums mt-0.5">
-              {clipCount}{tier === 'free' ? <span className="text-bone/40 text-sm font-normal"> / 20</span> : null}
+          <div className="bg-line-default/[0.04] rounded-lg px-3 py-2">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/40">Clips stored</div>
+            <div className="text-base font-bold text-ink-primary tabular-nums mt-0.5">
+              {clipCount}{tier === 'free' ? <span className="text-ink-primary/40 text-sm font-normal"> / 20</span> : null}
             </div>
           </div>
-          <div className="bg-white/[0.04] rounded-lg px-3 py-2">
-            <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/40">Minutes stored</div>
-            <div className="text-base font-bold text-bone tabular-nums mt-0.5">
-              {minutesStored.toFixed(1)}{tier === 'pro' ? <span className="text-bone/40 text-sm font-normal"> / 6000</span> : null}
+          <div className="bg-line-default/[0.04] rounded-lg px-3 py-2">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/40">Minutes stored</div>
+            <div className="text-base font-bold text-ink-primary tabular-nums mt-0.5">
+              {minutesStored.toFixed(1)}{tier === 'pro' ? <span className="text-ink-primary/40 text-sm font-normal"> / 6000</span> : null}
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@ const VideoStorageCard: React.FC = () => {
               type="button"
               onClick={handleManage}
               disabled={busy === 'portal'}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-charcoal-900 text-bone/65 border-white/10 hover:text-bone hover:border-white/20 disabled:opacity-50"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-surface-elevated text-ink-primary/65 border-line-default/10 hover:text-ink-primary hover:border-line-default/20 disabled:opacity-50"
             >
               {busy === 'portal' ? 'Opening portal…' : 'Manage subscription'}
             </button>

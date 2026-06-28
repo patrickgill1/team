@@ -146,10 +146,10 @@ const BulkAddPlayersForm: React.FC<Props> = ({
       {/* Explainer banner so the coach knows what each row will do.
           Patrick: "why is the email optional? they need to be
           invited, or will it share a link, or what?" */}
-      <div className="rounded-md bg-charcoal-950 ring-1 ring-white/10 px-3 py-2.5 mb-4 text-charcoal-300 text-xs leading-relaxed">
-        <span className="text-bone font-bold">With an email:</span> we shoot the parent a link to join. They're in within a minute.
+      <div className="rounded-md bg-surface-base ring-1 ring-line-default/10 px-3 py-2.5 mb-4 text-charcoal-300 text-xs leading-relaxed">
+        <span className="text-ink-primary font-bold">With an email:</span> we shoot the parent a link to join. They're in within a minute.
         <br />
-        <span className="text-bone font-bold">Without:</span> we add the player anyway. Grab a join link from the Team page and send it however you want.
+        <span className="text-ink-primary font-bold">Without:</span> we add the player anyway. Grab a join link from the Team page and send it however you want.
       </div>
 
       <div className="space-y-3">
@@ -157,13 +157,13 @@ const BulkAddPlayersForm: React.FC<Props> = ({
           const hasEmail = emailLooksValid(row.parentEmail);
           const hasName = !!(row.firstName.trim() || row.lastName.trim());
           return (
-            <div key={i} className="relative rounded-lg bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-2">
+            <div key={i} className="relative rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3 space-y-2">
               {rows.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeRow(i)}
                   aria-label="Remove row"
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full text-bone/40 hover:text-bone hover:bg-white/5 flex items-center justify-center transition"
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full text-ink-primary/40 hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
@@ -173,7 +173,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                   type="text"
                   value={row.firstName}
                   onChange={e => updateRow(i, { firstName: e.target.value })}
-                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                  className="w-full rounded-md bg-surface-elevated ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm"
                   placeholder="First name"
                   autoComplete="off"
                 />
@@ -181,7 +181,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                   type="text"
                   value={row.lastName}
                   onChange={e => updateRow(i, { lastName: e.target.value })}
-                  className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                  className="w-full rounded-md bg-surface-elevated ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm"
                   placeholder="Last name"
                   autoComplete="off"
                 />
@@ -190,7 +190,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
                 type="email"
                 value={row.parentEmail}
                 onChange={e => updateRow(i, { parentEmail: e.target.value })}
-                className="w-full rounded-md bg-charcoal-900 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+                className="w-full rounded-md bg-surface-elevated ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm"
                 placeholder="Parent email"
                 autoComplete="off"
               />
@@ -217,7 +217,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
       <button
         type="button"
         onClick={() => setRows(rs => [...rs, { ...BLANK_ROW }])}
-        className="mt-3 w-full px-4 py-2 rounded-md text-bone/75 text-sm font-bold ring-1 ring-white/10 hover:bg-white/5 transition"
+        className="mt-3 w-full px-4 py-2 rounded-md text-ink-primary/75 text-sm font-bold ring-1 ring-line-default/10 hover:bg-line-default/5 transition"
       >
         + Add another
       </button>
@@ -241,7 +241,7 @@ const BulkAddPlayersForm: React.FC<Props> = ({
         <button
           type="button"
           onClick={onSkip}
-          className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition"
+          className="mt-3 w-full px-5 py-3 rounded-md font-bold text-sm ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/5 transition"
         >
           {skipLabel}
         </button>

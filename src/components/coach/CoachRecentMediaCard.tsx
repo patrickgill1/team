@@ -73,11 +73,11 @@ const CoachRecentMediaCard: React.FC = () => {
   if (media.length === 0) return null;
 
   return (
-    <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-4 mt-3 animate-fade-in">
+    <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-4 mt-3 animate-fade-in">
       <div className="flex items-center justify-between mb-2.5">
         <div>
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Recent media</p>
-          <p className="text-sm font-bold text-bone mt-0.5">{media.length} new from your team</p>
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Recent media</p>
+          <p className="text-sm font-bold text-ink-primary mt-0.5">{media.length} new from your team</p>
         </div>
         <Link to="/player-media" className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary-soft">
           See all →
@@ -88,7 +88,7 @@ const CoachRecentMediaCard: React.FC = () => {
           <Link
             key={m.id}
             to="/player-media"
-            className="relative aspect-square rounded-lg overflow-hidden bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/40 transition group"
+            className="relative aspect-square rounded-lg overflow-hidden bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/40 transition group"
             title={m.uploadedByName ? `From ${m.uploadedByName}` : undefined}
           >
             {m.thumb ? (
@@ -100,7 +100,7 @@ const CoachRecentMediaCard: React.FC = () => {
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-bone/40">
+              <div className="absolute inset-0 flex items-center justify-center text-ink-primary/40">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><polyline points="21 15 16 10 5 21" /></svg>
               </div>
             )}

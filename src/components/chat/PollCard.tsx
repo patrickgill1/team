@@ -45,10 +45,10 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
     : totalVoters.size;
 
   const labelColor = ownTheme ? 'text-white/85' : 'text-gray-500';
-  const bgInactive = ownTheme ? 'bg-white/10 ring-white/20' : 'bg-gray-50 ring-gray-200';
+  const bgInactive = ownTheme ? 'bg-line-default/10 ring-line-default/20' : 'bg-gray-50 ring-gray-200';
   const bgActive = ownTheme ? 'bg-white text-brand-primary-dim ring-white' : 'bg-brand-primary-soft ring-brand-primary-soft text-brand-primary-dim';
-  const fillInactive = ownTheme ? 'bg-white/15' : 'bg-brand-primary-soft/60';
-  const fillActive = ownTheme ? 'bg-white/35' : 'bg-brand-primary-soft/80';
+  const fillInactive = ownTheme ? 'bg-line-default/15' : 'bg-brand-primary-soft/60';
+  const fillActive = ownTheme ? 'bg-line-default/35' : 'bg-brand-primary-soft/80';
 
   return (
     <div className={`mt-1 w-full max-w-[340px] rounded-2xl px-3 py-2.5 ${ownTheme ? 'bg-gradient-to-br from-brand-primary to-brand-primary text-white' : 'bg-gray-100 text-gray-900'}`}>
@@ -95,7 +95,7 @@ const PollCard: React.FC<Props> = ({ message, currentUserId, ownTheme, onVote, c
             onClick={(e) => { e.stopPropagation(); setVotersOpen(true); }}
             className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-md transition ${
               ownTheme
-                ? 'bg-white/15 text-white hover:bg-white/25'
+                ? 'bg-line-default/15 text-white hover:bg-line-default/25'
                 : 'bg-brand-primary-soft text-brand-primary ring-1 ring-brand-primary-soft hover:bg-brand-primary-soft'
             }`}
           >

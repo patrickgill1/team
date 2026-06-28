@@ -124,18 +124,18 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
   const visible = filtered ?? (GROUPS.find(g => g.id === activeTab)?.emojis || []);
 
   return (
-    <div className="bg-charcoal-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full overflow-hidden">
+    <div className="bg-surface-elevated rounded-t-2xl sm:rounded-2xl shadow-2xl w-full overflow-hidden">
       {/* Dark navy header to match the rest of the app's branded
           chrome (TeamChat action sheet, Wall composer, etc.). Title
           on the left, search + close on the right. */}
-      <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+      <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
         <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Add Reaction</div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSearchOpen(s => !s)}
             aria-label="Search emoji"
             className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
-              searchOpen ? 'bg-brand-primary/150/20 text-bone' : 'text-bone/40 hover:text-white hover:bg-white/10'
+              searchOpen ? 'bg-brand-primary/150/20 text-ink-primary' : 'text-ink-primary/40 hover:text-white hover:bg-line-default/10'
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-bone/40 hover:text-white hover:bg-white/10"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-ink-primary/40 hover:text-white hover:bg-line-default/10"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -162,7 +162,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search…"
-            className="w-full px-3 py-2 text-sm bg-charcoal-800 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+            className="w-full px-3 py-2 text-sm bg-surface-input border border-line-default/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
         </div>
       )}
@@ -178,7 +178,7 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
               onClick={() => setActiveTab(g.id)}
               aria-label={g.id}
               className={`flex-1 mx-0.5 h-8 rounded-lg text-base flex items-center justify-center transition ${
-                activeTab === g.id ? 'bg-brand-primary/15 ring-1 ring-brand-primary-soft/30' : 'hover:bg-white/[0.05]'
+                activeTab === g.id ? 'bg-brand-primary/15 ring-1 ring-brand-primary-soft/30' : 'hover:bg-line-default/[0.05]'
               }`}
             >
               {g.label}
@@ -192,13 +192,13 @@ const EmojiPicker: React.FC<Props> = ({ onPick, onClose }) => {
           so you don't have to flick through the whole catalog. */}
       <div className="grid grid-cols-6 gap-1.5 p-3 max-h-[60vh] overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {visible.length === 0 ? (
-          <div className="col-span-6 text-center text-sm text-bone/40 py-6">No matches.</div>
+          <div className="col-span-6 text-center text-sm text-ink-primary/40 py-6">No matches.</div>
         ) : (
           visible.map((e, i) => (
             <button
               key={`${e}-${i}`}
               onClick={() => onPick(e)}
-              className="text-3xl py-3 rounded-xl hover:bg-white/[0.08] active:scale-95 transition"
+              className="text-3xl py-3 rounded-xl hover:bg-line-default/[0.08] active:scale-95 transition"
             >
               {e}
             </button>

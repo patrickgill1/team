@@ -152,7 +152,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
               className={`flex-1 px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-widest uppercase ring-1 transition ${
                 kind === k
                   ? 'bg-brand-primary/15 text-brand-primary-soft ring-brand-primary/40'
-                  : 'bg-charcoal-950 text-bone/70 ring-white/10 hover:bg-white/5'
+                  : 'bg-surface-base text-ink-primary/70 ring-line-default/10 hover:bg-line-default/5'
               }`}
             >
               {label}
@@ -162,7 +162,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
 
         {kind === 'parent' ? (
           <>
-            <p className="text-[11px] text-bone/55 leading-snug">
+            <p className="text-[11px] text-ink-primary/55 leading-snug">
               Family members are anchored to a player. They sign up via the share link and automatically inherit access to every team their player is on.
             </p>
             <FormField label="Relationship">
@@ -183,16 +183,16 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
                 placeholder="Type a name…"
                 className={`${fieldInputClass} mb-1.5`}
               />
-              <div className="max-h-44 overflow-y-auto rounded-lg ring-1 ring-white/10">
+              <div className="max-h-44 overflow-y-auto rounded-lg ring-1 ring-line-default/10">
                 {playerMatches.length === 0 ? (
-                  <div className="px-3 py-3 text-sm text-bone/40 text-center">No players match.</div>
+                  <div className="px-3 py-3 text-sm text-ink-primary/40 text-center">No players match.</div>
                 ) : playerMatches.map(p => (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => setSelectedPlayerId(p.id)}
-                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between border-b border-white/[0.04] last:border-b-0 ${
-                      selectedPlayerId === p.id ? 'bg-brand-primary/15 text-brand-primary-soft font-bold' : 'hover:bg-white/5 text-bone'
+                    className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between border-b border-line-default/[0.04] last:border-b-0 ${
+                      selectedPlayerId === p.id ? 'bg-brand-primary/15 text-brand-primary-soft font-bold' : 'hover:bg-line-default/5 text-ink-primary'
                     }`}
                   >
                     <span>{p.name}{p.jerseyNumber != null ? ` · #${p.jerseyNumber}` : ''}</span>
@@ -206,7 +206,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
           </>
         ) : (
           <>
-            <p className="text-[11px] text-bone/55 leading-snug">
+            <p className="text-[11px] text-ink-primary/55 leading-snug">
               Coaches and managers are anchored to a team + role. They sign up via the share link and get added to that team with that role.
             </p>
             <FormField label="Team">
@@ -232,7 +232,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
                     className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-extrabold tracking-widest uppercase ring-1 transition ${
                       staffRole === r
                         ? 'bg-brand-primary/15 text-brand-primary-soft ring-brand-primary/40'
-                        : 'bg-charcoal-950 text-bone/70 ring-white/10 hover:bg-white/5'
+                        : 'bg-surface-base text-ink-primary/70 ring-line-default/10 hover:bg-line-default/5'
                     }`}
                   >
                     {label}
@@ -246,7 +246,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
         {shareUrl && (
           <div className="rounded-lg ring-1 ring-emerald-400/30 bg-emerald-500/10 p-3 space-y-2">
             <div className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-200">Invite link</div>
-            <div className="text-xs font-mono text-bone break-all">{shareUrl}</div>
+            <div className="text-xs font-mono text-ink-primary break-all">{shareUrl}</div>
             <div className="flex gap-2">
               <Button variant="primary" onClick={copy} size="sm" fullWidth>
                 {copied ? 'Copied' : 'Copy link'}
@@ -263,7 +263,7 @@ const InvitePersonModal: React.FC<Props> = ({ clubTeams, clubPlayers, currentUid
                 </Button>
               )}
             </div>
-            <p className="text-[10px] text-bone/55">Link expires in 30 days, good for up to 5 uses.</p>
+            <p className="text-[10px] text-ink-primary/55">Link expires in 30 days, good for up to 5 uses.</p>
           </div>
         )}
       </div>

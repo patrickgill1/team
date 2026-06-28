@@ -57,7 +57,7 @@ const EmailPreferences: React.FC = () => {
   };
 
   return (
-    <div className="bg-charcoal-900 rounded-xl border border-white/10 overflow-hidden divide-y divide-white/5">
+    <div className="bg-surface-elevated rounded-xl border border-line-default/10 overflow-hidden divide-y divide-line-default/5">
       {/* tier 1 — read-only, just to set expectations */}
       <Row
         label="Account + coach messages"
@@ -93,11 +93,11 @@ const Row: React.FC<{
 }> = ({ label, hint, on, busy, readonly, onToggle }) => (
   <div className="flex items-start justify-between gap-3 px-4 py-3">
     <div className="flex-1 min-w-0">
-      <p className="text-sm font-bold text-bone">{label}</p>
-      <p className="text-xs text-bone/55 mt-0.5 leading-snug">{hint}</p>
+      <p className="text-sm font-bold text-ink-primary">{label}</p>
+      <p className="text-xs text-ink-primary/55 mt-0.5 leading-snug">{hint}</p>
     </div>
     {readonly ? (
-      <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full bg-charcoal-800 text-bone/55 ring-1 ring-white/10">
+      <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full bg-surface-input text-ink-primary/55 ring-1 ring-line-default/10">
         Required
       </span>
     ) : (
@@ -106,7 +106,7 @@ const Row: React.FC<{
         onClick={onToggle}
         disabled={!!busy}
         className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition ${
-          on ? 'bg-brand-primary' : 'bg-white/15'
+          on ? 'bg-brand-primary' : 'bg-line-default/15'
         } disabled:opacity-50`}
       >
         <span

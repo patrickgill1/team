@@ -147,18 +147,18 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
           ))}
         </div>
         {/* Center line + circle */}
-        <div className="absolute inset-x-0 top-1/2 border-t border-white/30 pointer-events-none" />
+        <div className="absolute inset-x-0 top-1/2 border-t border-line-default/30 pointer-events-none" />
         <div
-          className="absolute left-1/2 top-1/2 w-[20%] aspect-square rounded-full border border-white/30 pointer-events-none"
+          className="absolute left-1/2 top-1/2 w-[20%] aspect-square rounded-full border border-line-default/30 pointer-events-none"
           style={{ transform: 'translate(-50%, -50%)' }}
         />
         {/* Penalty boxes */}
         <div
-          className="absolute left-1/2 top-0 w-3/5 h-[14%] border-x border-b border-white/30 pointer-events-none"
+          className="absolute left-1/2 top-0 w-3/5 h-[14%] border-x border-b border-line-default/30 pointer-events-none"
           style={{ transform: 'translateX(-50%)' }}
         />
         <div
-          className="absolute left-1/2 bottom-0 w-3/5 h-[14%] border-x border-t border-white/30 pointer-events-none"
+          className="absolute left-1/2 bottom-0 w-3/5 h-[14%] border-x border-t border-line-default/30 pointer-events-none"
           style={{ transform: 'translateX(-50%)' }}
         />
 
@@ -200,12 +200,12 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
                     className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-md pointer-events-none"
                   />
                 ) : (
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-primary-soft to-charcoal-700 text-white font-black flex items-center justify-center ring-2 ring-white shadow-md pointer-events-none">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised text-white font-black flex items-center justify-center ring-2 ring-white shadow-md pointer-events-none">
                     {(p.name || '?').charAt(0)}
                   </div>
                 )}
                 {p.jerseyNumber != null && (
-                  <span className="absolute -bottom-1 -right-1 px-1 rounded bg-charcoal-900 text-white text-[9px] font-black ring-2 ring-white tabular-nums pointer-events-none">
+                  <span className="absolute -bottom-1 -right-1 px-1 rounded bg-surface-elevated text-white text-[9px] font-black ring-2 ring-white tabular-nums pointer-events-none">
                     #{p.jerseyNumber}
                   </span>
                 )}

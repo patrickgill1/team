@@ -199,7 +199,7 @@ function renderRichContent(text: string, ownTheme: boolean): string {
     /(https?:\/\/[^\s<]+)/g,
     `<a href="$1" target="_blank" rel="noopener noreferrer" class="${linkColor} break-all">$1</a>`
   );
-  const mentionColor = ownTheme ? 'bg-white/25 text-white' : 'bg-brand-primary-soft text-brand-primary-dim';
+  const mentionColor = ownTheme ? 'bg-line-default/25 text-white' : 'bg-brand-primary-soft text-brand-primary-dim';
   // @team is a special everyone-ping mention; render it noticeably
   // differently so it's clear at a glance that the whole team got
   // pinged, not just one parent.
@@ -237,20 +237,20 @@ const ActionRow: React.FC<{
     cyan: 'bg-rose-600 text-white',          // reply / view profile / DM (primary action)
     amber: 'bg-amber-500 text-charcoal-950', // pin (warm fill / dark text — POTM pattern)
     rose: 'bg-rose-600 text-white',          // delete (label below also goes rose)
-    slate: 'bg-charcoal-800 text-bone ring-1 ring-white/10', // copy / seen-by / mute (neutral)
+    slate: 'bg-surface-input text-ink-primary ring-1 ring-line-default/10', // copy / seen-by / mute (neutral)
   }[tone];
-  const labelColor = tone === 'rose' ? 'text-rose-300' : 'text-bone';
+  const labelColor = tone === 'rose' ? 'text-rose-300' : 'text-ink-primary';
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-4 py-3 flex items-start gap-3 border-b border-white/5 last:border-b-0 hover:bg-white/[0.04] transition-colors"
+      className="w-full text-left px-4 py-3 flex items-start gap-3 border-b border-line-default/5 last:border-b-0 hover:bg-line-default/[0.04] transition-colors"
     >
       <span className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${chipClass}`}>
         {icon}
       </span>
       <span className="min-w-0 flex-1 pt-0.5">
         <span className={`block text-[15px] font-bold ${labelColor}`}>{label}</span>
-        <span className="block text-[12px] text-bone/55 leading-snug mt-0.5">{description}</span>
+        <span className="block text-[12px] text-ink-primary/55 leading-snug mt-0.5">{description}</span>
       </span>
     </button>
   );
@@ -281,7 +281,7 @@ const senderColor = (name: string): string => {
     'bg-gradient-to-br from-brand-primary-soft to-brand-primary',
     'bg-gradient-to-br from-violet-400 to-violet-600',
     'bg-gradient-to-br from-fuchsia-400 to-pink-600',
-    'bg-gradient-to-br from-brand-primary-soft to-charcoal-600',
+    'bg-gradient-to-br from-brand-primary-soft to-surface-tint',
     'bg-gradient-to-br from-teal-400 to-teal-600',
   ];
   return palette[h % palette.length];
@@ -1022,15 +1022,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           onClick={() => setActionsOpen(false)}
         >
           <div
-            className="bg-charcoal-900 ring-1 ring-white/10 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[84vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+            className="bg-surface-elevated ring-1 ring-line-default/10 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[84vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Branded header — same chrome as UserProfileModal so the
                 two surfaces feel like one design system. */}
-            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0 border-b border-white/5">
+            <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0 border-b border-line-default/5">
               <button
                 onClick={() => setActionsOpen(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-bone/50 hover:text-bone px-1"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-ink-primary px-1"
               >
                 Cancel
               </button>
@@ -1041,17 +1041,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
               {/* Quick-reaction row — kept at the top because reactions are
                   the most-used action by far. Tap "+" for the full picker. */}
-              <div className="px-3 py-3 border-b border-white/5 grid grid-cols-9 gap-0.5">
+              <div className="px-3 py-3 border-b border-line-default/5 grid grid-cols-9 gap-0.5">
                 {['👍','❤️','🔥','⚽','🏆','😂','🙌','👏'].map((e) => (
                   <button
                     key={e}
                     onClick={() => { onToggleReaction(message, e); setActionsOpen(false); }}
-                    className="text-2xl py-1.5 rounded-lg hover:bg-white/[0.08] active:scale-95"
+                    className="text-2xl py-1.5 rounded-lg hover:bg-line-default/[0.08] active:scale-95"
                   >{e}</button>
                 ))}
                 <button
                   onClick={() => { setActionsOpen(false); setEmojiOpen(true); }}
-                  className="text-lg py-1.5 rounded-lg bg-charcoal-800 ring-1 ring-white/10 hover:bg-charcoal-700 text-bone font-bold"
+                  className="text-lg py-1.5 rounded-lg bg-surface-input ring-1 ring-line-default/10 hover:bg-surface-raised text-ink-primary font-bold"
                   aria-label="More emoji"
                 >+</button>
               </div>

@@ -98,7 +98,7 @@ const WallHeaderButton: React.FC = () => {
         onClick={handleOpen}
         aria-label="Posts"
         title="Posts"
-        className="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-white/85 hover:text-white hover:bg-white/10 transition"
+        className="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-white/85 hover:text-white hover:bg-line-default/10 transition"
       >
         {/* Newspaper / feed icon — replaces the megaphone. The
             megaphone ("sound icon") was being read as "audio/volume"
@@ -118,7 +118,7 @@ const WallHeaderButton: React.FC = () => {
 
       {open && createPortal(
         <div
-          className="fixed inset-0 z-50 bg-charcoal-950/85 animate-fade-in"
+          className="fixed inset-0 z-50 bg-surface-base/85 animate-fade-in"
           style={{ left: 0, right: 0, top: 0, bottom: 0, width: '100vw' }}
           onClick={() => setOpen(false)}
         >
@@ -130,11 +130,11 @@ const WallHeaderButton: React.FC = () => {
             // pre-rebrand and read as a 'separate light page' to
             // parents (Patrick 2026-06-21: 'still has a white page,
             // also it is busy').
-            className="absolute top-0 bottom-0 overflow-y-auto bg-charcoal-950 animate-sheet-up overscroll-contain flex flex-col"
+            className="absolute top-0 bottom-0 overflow-y-auto bg-surface-base animate-sheet-up overscroll-contain flex flex-col"
             style={{ left: 0, right: 0, width: '100vw' }}
           >
             <div
-              className="sticky top-0 z-10 bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 flex items-center justify-between border-b border-white/10"
+              className="sticky top-0 z-10 bg-gradient-to-b from-surface-base to-surface-elevated px-4 flex items-center justify-between border-b border-line-default/10"
               style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)', paddingBottom: '0.75rem' }}
             >
               <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ const WallHeaderButton: React.FC = () => {
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close"
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+                  className="w-8 h-8 rounded-full bg-line-default/10 hover:bg-line-default/20 text-white flex items-center justify-center"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -173,8 +173,8 @@ const WallHeaderButton: React.FC = () => {
                   <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/25 flex items-center justify-center text-brand-primary-soft mb-3">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
-                  <p className="text-sm font-semibold text-bone/85">Nothing posted yet</p>
-                  <p className="text-xs text-bone/55 mt-0.5">Coach announcements will land here.</p>
+                  <p className="text-sm font-semibold text-ink-primary/85">Nothing posted yet</p>
+                  <p className="text-xs text-ink-primary/55 mt-0.5">Coach announcements will land here.</p>
                 </div>
               ) : (
                 // Dashboard-density rule: single-line previews, tap to
@@ -183,7 +183,7 @@ const WallHeaderButton: React.FC = () => {
                 // expander, which read as 'reading the wall inside a
                 // drawer' to parents. Now: sender, one-line snippet,
                 // chevron. Wall is the source of truth.
-                <ul className="divide-y divide-white/5">
+                <ul className="divide-y divide-line-default/5">
                   {posts.map(p => (
                     <li key={p.id}>
                       <WallDrawerRow post={p} onNavigate={() => setOpen(false)} />
@@ -199,7 +199,7 @@ const WallHeaderButton: React.FC = () => {
                 a giant white area below the last post — Patrick:
                 "footer bar on the drawer, not the wall page". */}
             <div
-              className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 flex items-center justify-between flex-shrink-0"
+              className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 flex items-center justify-between flex-shrink-0"
               style={{ paddingTop: '0.75rem', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
             >
               <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft/70">
@@ -250,19 +250,19 @@ const WallDrawerRow: React.FC<{ post: WallPost; onNavigate: () => void }> = ({ p
     <Link
       to="/wall"
       onClick={onNavigate}
-      className="block px-4 py-3 hover:bg-white/[0.04] active:bg-white/[0.08] transition-colors"
+      className="block px-4 py-3 hover:bg-line-default/[0.04] active:bg-line-default/[0.08] transition-colors"
     >
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-bold text-bone truncate">{p.senderName}</span>
-            <span className="text-[11px] text-bone/45 shrink-0">{stamp}</span>
+            <span className="text-sm font-bold text-ink-primary truncate">{p.senderName}</span>
+            <span className="text-[11px] text-ink-primary/45 shrink-0">{stamp}</span>
           </div>
-          <p className="text-[13px] text-bone/70 truncate">
+          <p className="text-[13px] text-ink-primary/70 truncate">
             {snippet || '(no text)'}
           </p>
         </div>
-        <svg className="w-4 h-4 text-bone/40 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-ink-primary/40 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </div>

@@ -250,14 +250,14 @@ const ClubOverview: React.FC = () => {
       <div>
         <Header title="Club" subtitle="Restricted area" />
         <div className="max-w-3xl mx-auto p-6">
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-2 text-bone/40">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-2 text-ink-primary/40">
               <rect x="3" y="11" width="18" height="11" rx="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
             </svg>
-            <p className="font-bold text-bone">Club admin only</p>
-            <p className="text-sm text-bone/50 mt-1">
-              Ask your club admin to flip <code className="bg-white/[0.08] px-1 rounded text-xs">isClubAdmin</code> on
+            <p className="font-bold text-ink-primary">Club admin only</p>
+            <p className="text-sm text-ink-primary/50 mt-1">
+              Ask your club admin to flip <code className="bg-line-default/[0.08] px-1 rounded text-xs">isClubAdmin</code> on
               your user record to gain access.
             </p>
           </div>
@@ -267,7 +267,7 @@ const ClubOverview: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       <Header
         title="Club"
         subtitle={`${teams.length} team${teams.length === 1 ? '' : 's'} · ${players.length} player${players.length === 1 ? '' : 's'} · ${users.length} member${users.length === 1 ? '' : 's'}`}
@@ -293,21 +293,21 @@ const ClubOverview: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => navigate('/people')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
+            className="bg-surface-elevated border border-line-default/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
             title="Search every player, parent, and coach — tap a player to open their full admin profile"
           >
             <svg className="w-5 h-5 text-brand-primary mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">People</div>
-            <div className="text-[10px] text-bone/50 mt-0.5">Tap a player → full profile</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85">People</div>
+            <div className="text-[10px] text-ink-primary/50 mt-0.5">Tap a player → full profile</div>
           </button>
           <button
             onClick={() => navigate('/teams')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
+            className="bg-surface-elevated border border-line-default/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
             title="Create a new team, edit team details, or end the season"
           >
             <svg className="w-5 h-5 text-brand-primary mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Teams</div>
-            <div className="text-[10px] text-bone/50 mt-0.5">Edit, archive, roles</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85">Teams</div>
+            <div className="text-[10px] text-ink-primary/50 mt-0.5">Edit, archive, roles</div>
           </button>
           <button
             onClick={() => setBroadcastOpen(true)}
@@ -323,30 +323,30 @@ const ClubOverview: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => navigate('/club/registrations')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
+            className="bg-surface-elevated border border-line-default/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
             title="Everyone who's registered for the season"
           >
             <svg className="w-5 h-5 text-brand-primary mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Registrations</div>
-            <div className="text-[10px] text-bone/50 mt-0.5">Funnel + status</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85">Registrations</div>
+            <div className="text-[10px] text-ink-primary/50 mt-0.5">Funnel + status</div>
           </button>
           <button
             onClick={() => navigate('/club/products')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
+            className="bg-surface-elevated border border-line-default/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
             title="Products + pricing tiers + coupon codes"
           >
             <svg className="w-5 h-5 text-violet-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 7L12 3 4 7v10l8 4 8-4V7z"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="4" y1="7" x2="20" y2="7"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Products</div>
-            <div className="text-[10px] text-bone/50 mt-0.5">Pricing + coupons</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85">Products</div>
+            <div className="text-[10px] text-ink-primary/50 mt-0.5">Pricing + coupons</div>
           </button>
           <button
             onClick={() => navigate('/club/registration-form')}
-            className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
+            className="bg-surface-elevated border border-line-default/10 rounded-xl px-3 py-3 text-left hover:border-brand-primary-soft transition group"
             title="Extra questions on the public registration form"
           >
             <svg className="w-5 h-5 text-amber-600 mb-1" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/85">Form</div>
-            <div className="text-[10px] text-bone/50 mt-0.5">Custom questions</div>
+            <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85">Form</div>
+            <div className="text-[10px] text-ink-primary/50 mt-0.5">Custom questions</div>
           </button>
         </div>
 
@@ -370,7 +370,7 @@ const ClubOverview: React.FC = () => {
               <button
                 key={t.to}
                 onClick={() => navigate(t.to)}
-                className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest text-bone/75 bg-charcoal-900 border border-white/10 transition ${t.accent} hover:text-bone`}
+                className={`shrink-0 inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest text-ink-primary/75 bg-surface-elevated border border-line-default/10 transition ${t.accent} hover:text-ink-primary`}
               >
                 {t.label}
               </button>
@@ -393,7 +393,7 @@ const ClubOverview: React.FC = () => {
               className={`px-3 py-1.5 rounded-md text-[11px] font-extrabold tracking-widest uppercase whitespace-nowrap border ${
                 tab === t.k
                   ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30'
-                  : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
+                  : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
               }`}
             >
               {t.label}
@@ -402,7 +402,7 @@ const ClubOverview: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center text-sm text-ink-primary/50">
             Loading club data…
           </div>
         ) : (
@@ -432,7 +432,7 @@ const ClubOverview: React.FC = () => {
               <PaymentsTab />
             )}
             {tab === 'payments' && !canSeeFinancials && (
-              <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-center text-sm text-bone/60">
+              <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-center text-sm text-ink-primary/60">
                 You don't have access to Payments. Ask the club owner for the 'financials' scope.
               </div>
             )}
@@ -518,27 +518,27 @@ const OverviewTab: React.FC<{
       <li key={t.id}>
         <button
           onClick={() => onTeamClick(t.id)}
-          className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.05] transition"
+          className="w-full text-left flex items-center gap-3 px-5 py-3.5 hover:bg-line-default/[0.05] transition"
         >
-          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary to-charcoal-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
+          <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary to-surface-raised text-white flex items-center justify-center font-black text-lg shadow-sm">
             {(t.name || '?').charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-bone truncate">{t.name || 'Untitled team'}</span>
+              <span className="font-bold text-ink-primary truncate">{t.name || 'Untitled team'}</span>
               {t.ageGroup && (
-                <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/65 bg-line-default/[0.08] px-1.5 py-0.5 rounded">
                   {t.ageGroup}
                 </span>
               )}
             </div>
-            <p className="text-xs text-bone/50 truncate mt-0.5">
+            <p className="text-xs text-ink-primary/50 truncate mt-0.5">
               {s.players} player{s.players === 1 ? '' : 's'}
               {headCoach ? ` · Head coach: ${headCoach}` : ''}
               {s.upcoming > 0 ? ` · ${s.upcoming} upcoming` : ''}
             </p>
           </div>
-          <svg className="w-5 h-5 text-bone/35 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-ink-primary/35 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -550,8 +550,8 @@ const OverviewTab: React.FC<{
     <div className="space-y-3">
       <SearchBar value={search} onChange={setSearch} placeholder="Search teams…" />
       {totalMatching === 0 ? (
-        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-          <div className="p-8 text-center text-sm text-bone/50">
+        <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+          <div className="p-8 text-center text-sm text-ink-primary/50">
             {teams.length === 0 ? 'No teams in your club yet.' : 'No teams match your search.'}
           </div>
         </div>
@@ -561,20 +561,20 @@ const OverviewTab: React.FC<{
           {groups.map((g) => {
             const isCollapsed = !!collapsed[g.key];
             return (
-              <div key={g.key} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+              <div key={g.key} className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => toggle(g.key)}
-                  className="w-full px-5 py-3 border-b border-white/5 flex items-center justify-between gap-3 hover:bg-white/[0.03] transition"
+                  className="w-full px-5 py-3 border-b border-line-default/5 flex items-center justify-between gap-3 hover:bg-line-default/[0.03] transition"
                 >
                   <div className="flex items-center gap-2.5">
-                    <svg className={`w-4 h-4 text-bone/55 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <h2 className="font-bold text-bone">{g.label}</h2>
+                    <svg className={`w-4 h-4 text-ink-primary/55 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <h2 className="font-bold text-ink-primary">{g.label}</h2>
                   </div>
-                  <span className="text-xs text-bone/50">{g.teams.length} team{g.teams.length === 1 ? '' : 's'}</span>
+                  <span className="text-xs text-ink-primary/50">{g.teams.length} team{g.teams.length === 1 ? '' : 's'}</span>
                 </button>
                 {!isCollapsed && (
-                  <ul className="divide-y divide-white/5">
+                  <ul className="divide-y divide-line-default/5">
                     {g.teams.map(renderTeamLi)}
                   </ul>
                 )}
@@ -584,14 +584,14 @@ const OverviewTab: React.FC<{
         </div>
       ) : (
         // Few teams OR active search -> single flat list.
-        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-          <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-            <h2 className="font-bold text-bone">{search.trim() ? 'Matching teams' : 'All teams'}</h2>
-            <span className="text-xs text-bone/50">
+        <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+          <div className="px-5 py-3 border-b border-line-default/5 flex items-center justify-between">
+            <h2 className="font-bold text-ink-primary">{search.trim() ? 'Matching teams' : 'All teams'}</h2>
+            <span className="text-xs text-ink-primary/50">
               {totalMatching === teams.length ? `${teams.length} total` : `${totalMatching} of ${teams.length}`}
             </span>
           </div>
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-line-default/5">
             {groups.flatMap((g) => g.teams).map(renderTeamLi)}
           </ul>
         </div>
@@ -632,15 +632,15 @@ const CalendarTab: React.FC<{
         ))}
       </div>
 
-      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-bone">Upcoming across the club</h2>
-          <span className="text-xs text-bone/50">{upcoming.length} event{upcoming.length === 1 ? '' : 's'}</span>
+      <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-line-default/5 flex items-center justify-between">
+          <h2 className="font-bold text-ink-primary">Upcoming across the club</h2>
+          <span className="text-xs text-ink-primary/50">{upcoming.length} event{upcoming.length === 1 ? '' : 's'}</span>
         </div>
         {upcoming.length === 0 ? (
-          <div className="p-8 text-center text-sm text-bone/50">No upcoming events.</div>
+          <div className="p-8 text-center text-sm text-ink-primary/50">No upcoming events.</div>
         ) : (
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-line-default/5">
             {upcoming.map((ev: any) => {
               const t = teamById.get(ev.teamId);
               return (
@@ -670,17 +670,17 @@ const CalendarTab: React.FC<{
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-bone truncate">{ev.title || 'Event'}</span>
+                      <span className="font-bold text-ink-primary truncate">{ev.title || 'Event'}</span>
                       {t && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-bone/65 bg-white/[0.08] px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/65 bg-line-default/[0.08] px-1.5 py-0.5 rounded">
                           {t.name}
                         </span>
                       )}
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-bone/40">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/40">
                         {ev.type}
                       </span>
                     </div>
-                    <p className="text-xs text-bone/50 truncate mt-0.5">
+                    <p className="text-xs text-ink-primary/50 truncate mt-0.5">
                       {formatDateTime(ev.date)}{ev.location ? ` · ${ev.location}` : ''}
                     </p>
                   </div>
@@ -744,26 +744,26 @@ const StatsTab: React.FC<{
         }))} />
       </div>
 
-      <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/5">
-          <h2 className="text-xs font-extrabold tracking-widest uppercase text-bone/65">Team leaderboard</h2>
-          <p className="text-[11px] text-bone/40 mt-0.5">Ranked by goals scored</p>
+      <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-line-default/5">
+          <h2 className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/65">Team leaderboard</h2>
+          <p className="text-[11px] text-ink-primary/40 mt-0.5">Ranked by goals scored</p>
         </div>
-        <ul className="divide-y divide-white/5">
+        <ul className="divide-y divide-line-default/5">
           {teamLeaders.map((t, i) => {
             const s = teamStats[t.id] || { players: 0, goals: 0, assists: 0 };
             return (
               <li key={t.id} className="px-5 py-3 flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-white/[0.08] text-bone/85 font-bold flex items-center justify-center text-sm">
+                <div className="w-7 h-7 rounded-full bg-line-default/[0.08] text-ink-primary/85 font-bold flex items-center justify-center text-sm">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-bone truncate">{t.name}</p>
-                  <p className="text-xs text-bone/50">{s.players} player{s.players === 1 ? '' : 's'} · {s.assists} assists</p>
+                  <p className="font-bold text-ink-primary truncate">{t.name}</p>
+                  <p className="text-xs text-ink-primary/50">{s.players} player{s.players === 1 ? '' : 's'} · {s.assists} assists</p>
                 </div>
                 <div className="text-right">
                   <p className="font-black text-emerald-300 leading-tight">{s.goals}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-bone/50 font-bold">goals</p>
+                  <p className="text-[10px] uppercase tracking-wider text-ink-primary/50 font-bold">goals</p>
                 </div>
               </li>
             );
@@ -784,7 +784,7 @@ const SearchBar: React.FC<{ value: string; onChange: (v: string) => void; placeh
     value={value}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder}
-    className="w-full bg-charcoal-900 border border-white/15 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft text-[15px]"
+    className="w-full bg-surface-elevated border border-line-default/15 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft text-[15px]"
     style={{ fontSize: '16px' }}
   />
 );
@@ -793,7 +793,7 @@ const FilterChip: React.FC<{ active: boolean; onClick: () => void; children: Rea
   <button
     onClick={onClick}
     className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap ring-1 transition ${
-      active ? 'bg-brand-primary text-white ring-brand-primary' : 'bg-charcoal-900 text-bone/85 ring-white/15 hover:bg-white/[0.05]'
+      active ? 'bg-brand-primary text-white ring-brand-primary' : 'bg-surface-elevated text-ink-primary/85 ring-line-default/15 hover:bg-line-default/[0.05]'
     }`}
   >
     {children}
@@ -836,27 +836,27 @@ const BigStat: React.FC<{ icon: string; label: string; value: number; accent: 'e
 };
 
 const LeaderboardCard: React.FC<{ title: string; rows: { id: string; name: string; sub: string; value: number; photoUrl?: string }[] }> = ({ title, rows }) => (
-  <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
-    <div className="px-4 py-3 border-b border-white/5">
-      <h3 className="text-xs font-extrabold tracking-widest uppercase text-bone/65">{title}</h3>
+  <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden">
+    <div className="px-4 py-3 border-b border-line-default/5">
+      <h3 className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/65">{title}</h3>
     </div>
     {rows.length === 0 ? (
-      <div className="p-6 text-center text-sm text-bone/50">No data yet.</div>
+      <div className="p-6 text-center text-sm text-ink-primary/50">No data yet.</div>
     ) : (
-      <ul className="divide-y divide-white/5">
+      <ul className="divide-y divide-line-default/5">
         {rows.map((r, i) => (
           <li key={r.id}>
-            <Link to={`/player/${r.id}`} className="px-5 py-2.5 flex items-center gap-3 hover:bg-white/[0.05]">
+            <Link to={`/player/${r.id}`} className="px-5 py-2.5 flex items-center gap-3 hover:bg-line-default/[0.05]">
               <div className={`w-7 h-7 rounded-full text-sm font-black flex items-center justify-center ${
-                i === 0 ? 'bg-amber-500/20 text-amber-200' : i === 1 ? 'bg-white/15 text-bone/85' : i === 2 ? 'bg-orange-500/20 text-orange-200' : 'bg-white/[0.08] text-bone/65'
+                i === 0 ? 'bg-amber-500/20 text-amber-200' : i === 1 ? 'bg-line-default/15 text-ink-primary/85' : i === 2 ? 'bg-orange-500/20 text-orange-200' : 'bg-line-default/[0.08] text-ink-primary/65'
               }`}>
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-bone truncate">{r.name}</p>
-                <p className="text-xs text-bone/50 truncate">{r.sub}</p>
+                <p className="font-bold text-ink-primary truncate">{r.name}</p>
+                <p className="text-xs text-ink-primary/50 truncate">{r.sub}</p>
               </div>
-              <div className="font-black text-bone">{r.value}</div>
+              <div className="font-black text-ink-primary">{r.value}</div>
             </Link>
           </li>
         ))}
@@ -956,16 +956,16 @@ const PaymentsTab: React.FC = () => {
         </div>
       )}
       {/* GoalKickr Payments status card */}
-      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+      <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+        <div className="px-5 py-4 border-b border-line-default/5 flex items-center justify-between">
           <div>
-            <h2 className="font-bold text-bone">GoalKickr Payments</h2>
-            <p className="text-[11px] text-bone/50 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ card-processing fee per transaction.</p>
+            <h2 className="font-bold text-ink-primary">GoalKickr Payments</h2>
+            <p className="text-[11px] text-ink-primary/50 mt-0.5">Direct payouts to the club's own bank account. 2.9% + 30¢ card-processing fee per transaction.</p>
           </div>
           <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded ${
             chargesEnabled ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-300'
               : connected ? 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-300'
-              : 'bg-charcoal-950 text-bone/65 ring-1 ring-white/15'
+              : 'bg-surface-base text-ink-primary/65 ring-1 ring-line-default/15'
           }`}>
             {chargesEnabled ? 'Active' : connected ? 'Onboarding' : 'Not connected'}
           </span>
@@ -973,7 +973,7 @@ const PaymentsTab: React.FC = () => {
         <div className="p-5">
           {!connected ? (
             <>
-              <p className="text-sm text-bone/85 mb-3">
+              <p className="text-sm text-ink-primary/85 mb-3">
                 Turn on payments to accept team-fee, tournament-entry, and uniform-order payments
                 directly from parents. Funds settle straight to your bank account — GoalKickr never
                 touches the money.
@@ -982,8 +982,8 @@ const PaymentsTab: React.FC = () => {
                   as application_fee_amount. Pulled from the club doc so
                   the rate is always accurate to what's actually
                   configured for THIS club. */}
-              <div className="mb-3 rounded-lg bg-white/[0.04] ring-1 ring-white/10 p-3 text-[12px] text-bone/85 leading-relaxed">
-                <div className="font-bold text-bone mb-1">What this costs</div>
+              <div className="mb-3 rounded-lg bg-line-default/[0.04] ring-1 ring-line-default/10 p-3 text-[12px] text-ink-primary/85 leading-relaxed">
+                <div className="font-bold text-ink-primary mb-1">What this costs</div>
                 <div>
                   <b>Card-processing fee:</b> 2.9% + 30¢ per transaction (industry-standard rate, deducted before payout).
                 </div>
@@ -1031,10 +1031,10 @@ const PaymentsTab: React.FC = () => {
               </button>
             </>
           ) : (
-            <div className="space-y-2 text-sm text-bone/85">
+            <div className="space-y-2 text-sm text-ink-primary/85">
               <div className="flex items-center justify-between">
                 <span>Payments account ID</span>
-                <code className="text-[11px] text-bone/50">{club.stripeAccountId}</code>
+                <code className="text-[11px] text-ink-primary/50">{club.stripeAccountId}</code>
               </div>
               <div className="flex items-center justify-between">
                 <span>Charges enabled</span>
@@ -1051,16 +1051,16 @@ const PaymentsTab: React.FC = () => {
               {/* Read-only platform fee disclosure for the club.
                   Settable only by the platform owner at /platform/clubs
                   — surfaced here so the club always knows their rate. */}
-              <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/5">
+              <div className="flex items-center justify-between pt-2 mt-1 border-t border-line-default/5">
                 <span>GoalKickr platform fee</span>
-                <span className="font-bold text-bone">
+                <span className="font-bold text-ink-primary">
                   {((club.platformFeeBps ?? 0) / 100).toFixed(2)}%
                 </span>
               </div>
-              <p className="text-[10px] text-bone/50">
+              <p className="text-[10px] text-ink-primary/50">
                 Plus the standard 2.9% + 30¢ card-processing fee per transaction.
               </p>
-              <div className="pt-3 mt-2 border-t border-white/5">
+              <div className="pt-3 mt-2 border-t border-line-default/5">
                 <button
                   type="button"
                   onClick={async () => {
@@ -1105,9 +1105,9 @@ const PaymentsTab: React.FC = () => {
 
       {/* Invoices list — empty for now; lights up when the worker
           can actually create Checkout Sessions. */}
-      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-        <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-bold text-bone">Invoices</h2>
+      <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+        <div className="px-5 py-3 border-b border-line-default/5 flex items-center justify-between">
+          <h2 className="font-bold text-ink-primary">Invoices</h2>
           <button
             type="button"
             disabled={!chargesEnabled}
@@ -1117,7 +1117,7 @@ const PaymentsTab: React.FC = () => {
             + Create
           </button>
         </div>
-        <div className="p-8 text-center text-sm text-bone/50">
+        <div className="p-8 text-center text-sm text-ink-primary/50">
           {connected
             ? 'No invoices yet — create one to see it here.'
             : 'Connect Stripe above to start creating invoices.'}
@@ -1213,12 +1213,12 @@ const ClubSetupChecklist: React.FC<{
   if (dismissed) return null;
 
   return (
-    <div className="bg-gradient-to-br from-brand-primary/15 to-charcoal-900 border border-brand-primary/30 rounded-2xl p-4 sm:p-5">
+    <div className="bg-gradient-to-br from-brand-primary/15 to-surface-elevated border border-brand-primary/30 rounded-2xl p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Welcome to {club.name || 'your club'}</p>
-          <h2 className="text-bone text-lg font-black leading-tight">Set up your club</h2>
-          <p className="text-bone/55 text-xs mt-1">{doneCount} of {items.length} done. Knock these out and you&apos;re ready to invite families.</p>
+          <h2 className="text-ink-primary text-lg font-black leading-tight">Set up your club</h2>
+          <p className="text-ink-primary/55 text-xs mt-1">{doneCount} of {items.length} done. Knock these out and you&apos;re ready to invite families.</p>
         </div>
         <button
           type="button"
@@ -1226,7 +1226,7 @@ const ClubSetupChecklist: React.FC<{
             setDismissed(true);
             try { if (dismissKey) localStorage.setItem(dismissKey, '1'); } catch { /* ignore */ }
           }}
-          className="text-bone/40 hover:text-bone/85 text-xs font-bold tracking-wide"
+          className="text-ink-primary/40 hover:text-ink-primary/85 text-xs font-bold tracking-wide"
         >
           Dismiss
         </button>
@@ -1237,9 +1237,9 @@ const ClubSetupChecklist: React.FC<{
             <button
               type="button"
               onClick={item.go}
-              className="w-full flex items-start gap-3 text-left bg-charcoal-950/50 hover:bg-charcoal-950 ring-1 ring-white/5 hover:ring-brand-primary/30 rounded-xl p-3 transition-colors group"
+              className="w-full flex items-start gap-3 text-left bg-surface-base/50 hover:bg-surface-base ring-1 ring-line-default/5 hover:ring-brand-primary/30 rounded-xl p-3 transition-colors group"
             >
-              <span className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${item.done ? 'bg-emerald-500 border-emerald-500' : 'border-white/25'}`}>
+              <span className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${item.done ? 'bg-emerald-500 border-emerald-500' : 'border-line-default/25'}`}>
                 {item.done && (
                   <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <polyline points="20 6 9 17 4 12" />
@@ -1247,10 +1247,10 @@ const ClubSetupChecklist: React.FC<{
                 )}
               </span>
               <div className="flex-1 min-w-0">
-                <p className={`font-bold text-sm ${item.done ? 'text-bone/55 line-through' : 'text-bone'}`}>{item.label}</p>
-                <p className="text-bone/45 text-xs mt-0.5">{item.hint}</p>
+                <p className={`font-bold text-sm ${item.done ? 'text-ink-primary/55 line-through' : 'text-ink-primary'}`}>{item.label}</p>
+                <p className="text-ink-primary/45 text-xs mt-0.5">{item.hint}</p>
               </div>
-              <svg className={`w-4 h-4 mt-1 flex-shrink-0 ${item.done ? 'text-bone/20' : 'text-bone/40 group-hover:text-brand-primary'}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 mt-1 flex-shrink-0 ${item.done ? 'text-ink-primary/20' : 'text-ink-primary/40 group-hover:text-brand-primary'}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>

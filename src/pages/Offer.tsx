@@ -317,19 +317,19 @@ const Offer: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 py-10">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6">
-          <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
+          <div className="inline-flex p-3 rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur mb-4">
             <Logo size="lg" variant="full" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white">{offer.teamName}</h1>
           <p className="text-slate-300 mt-1">offers <b className="text-white">{offer.playerName}</b> a roster spot</p>
         </div>
 
-        <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-6 sm:p-8 space-y-5">
+        <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl p-6 sm:p-8 space-y-5">
           {offer.videoStreamUid && (
-            <div className="rounded-2xl overflow-hidden ring-1 ring-white/10 bg-black aspect-video">
+            <div className="rounded-2xl overflow-hidden ring-1 ring-line-default/10 bg-black aspect-video">
               <iframe
                 src={streamIframeUrl(offer.videoStreamUid)}
                 allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
@@ -343,7 +343,7 @@ const Offer: React.FC = () => {
             {offer.message}
           </div>
 
-          <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <Detail label="Team" value={offer.teamName} />
             {offer.offerPosition && <Detail label="Position" value={offer.offerPosition} />}
             {typeof offer.offerJerseyNumber === 'number' && <Detail label="Jersey" value={`#${offer.offerJerseyNumber}`} />}
@@ -363,7 +363,7 @@ const Offer: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Sign to finish</div>
-                <h2 className="text-lg font-black text-bone">{waivers.length === 1 ? 'One quick release' : `${waivers.length} releases`} before {offer.playerName} is rostered</h2>
+                <h2 className="text-lg font-black text-ink-primary">{waivers.length === 1 ? 'One quick release' : `${waivers.length} releases`} before {offer.playerName} is rostered</h2>
                 <p className="text-[12px] text-slate-400 mt-1">Tap each to read, then type your name to sign.</p>
               </div>
 
@@ -372,18 +372,18 @@ const Offer: React.FC = () => {
                   const ack = !!waiverAck[w.id];
                   return (
                     <li key={w.id} className={`rounded-2xl ring-1 transition px-4 py-3 ${
-                      ack ? 'bg-emerald-500/10 ring-emerald-400/40' : 'bg-charcoal-950 ring-white/10'
+                      ack ? 'bg-emerald-500/10 ring-emerald-400/40' : 'bg-surface-base ring-line-default/10'
                     }`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="font-bold text-bone">{w.name}</div>
+                          <div className="font-bold text-ink-primary">{w.name}</div>
                           {w.description && (
-                            <p className="text-[12px] text-bone/60 mt-1 leading-snug">{w.description}</p>
+                            <p className="text-[12px] text-ink-primary/60 mt-1 leading-snug">{w.description}</p>
                           )}
                           {w.body && (
                             <details className="mt-2">
                               <summary className="text-[11px] font-bold uppercase tracking-widest text-brand-primary-soft cursor-pointer">Read full text</summary>
-                              <div className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-black/40 ring-1 ring-white/10 px-3 py-2 text-[12px] text-bone/80 whitespace-pre-wrap leading-relaxed">
+                              <div className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-black/40 ring-1 ring-line-default/10 px-3 py-2 text-[12px] text-ink-primary/80 whitespace-pre-wrap leading-relaxed">
                                 {w.body}
                               </div>
                             </details>
@@ -395,7 +395,7 @@ const Offer: React.FC = () => {
                           className={`shrink-0 w-7 h-7 rounded-full ring-1 flex items-center justify-center ${
                             ack
                               ? 'bg-emerald-500 ring-emerald-400 text-white'
-                              : 'bg-charcoal-900 ring-white/20 text-bone/40 hover:ring-emerald-400/60'
+                              : 'bg-surface-elevated ring-line-default/20 text-ink-primary/40 hover:ring-emerald-400/60'
                           }`}
                           aria-pressed={ack}
                           title={ack ? 'Acknowledged' : 'Mark as acknowledged'}
@@ -417,10 +417,10 @@ const Offer: React.FC = () => {
                   value={signedByName}
                   onChange={(e) => setSignedByName(e.target.value)}
                   placeholder="First Last"
-                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-950 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-surface-base text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
-                <p className="text-[10px] text-bone/45 mt-1">This name is bound to each release as your e-signature.</p>
+                <p className="text-[10px] text-ink-primary/45 mt-1">This name is bound to each release as your e-signature.</p>
               </label>
 
               <div className="flex gap-3 pt-1">
@@ -428,7 +428,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={() => { setShowingWaivers(false); setWaiverAck({}); setSignedByName(''); }}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-white/15 text-slate-300 hover:text-white hover:ring-white/30 disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-slate-300 hover:text-white hover:ring-line-default/30 disabled:opacity-50"
                 >
                   Back
                 </button>
@@ -452,7 +452,7 @@ const Offer: React.FC = () => {
                 type="button"
                 onClick={() => setShowingDecline(true)}
                 disabled={submitting}
-                className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-white/15 text-slate-300 hover:text-white hover:ring-white/30 disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-slate-300 hover:text-white hover:ring-line-default/30 disabled:opacity-50"
               >
                 Decline
               </button>
@@ -472,7 +472,7 @@ const Offer: React.FC = () => {
                 onChange={(e) => setDeclineReason(e.target.value)}
                 rows={3}
                 placeholder="Optional — anything you'd like the coach to know."
-                className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-rose-400/60 text-sm"
+                className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-rose-400/60 text-sm"
                 style={{ fontSize: '16px' }}
               />
               <div className="flex gap-3">
@@ -480,7 +480,7 @@ const Offer: React.FC = () => {
                   type="button"
                   onClick={() => setShowingDecline(false)}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-white/15 text-slate-300 hover:text-white hover:ring-white/30"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold ring-1 ring-line-default/15 text-slate-300 hover:text-white hover:ring-line-default/30"
                 >
                   Back
                 </button>
@@ -509,13 +509,13 @@ const Detail: React.FC<{ label: string; value: string }> = ({ label, value }) =>
 );
 
 const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: string }> = ({ tone, title, body }) => (
-  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center p-6">
-    <div className="max-w-md w-full bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-3xl p-8 text-center">
-      <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center p-6">
+    <div className="max-w-md w-full bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-3xl p-8 text-center">
+      <div className="inline-flex p-3 rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur mb-4">
         <Logo size="lg" variant="full" />
       </div>
       <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4 ${
-        tone === 'success' ? 'bg-emerald-500/20 ring-1 ring-emerald-400/40' : tone === 'warning' ? 'bg-amber-500/20 ring-1 ring-amber-400/40' : 'bg-white/5 ring-1 ring-white/10'
+        tone === 'success' ? 'bg-emerald-500/20 ring-1 ring-emerald-400/40' : tone === 'warning' ? 'bg-amber-500/20 ring-1 ring-amber-400/40' : 'bg-line-default/5 ring-1 ring-line-default/10'
       }`}>
         {tone === 'success' ? (
           <svg className="w-6 h-6 text-emerald-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
@@ -527,7 +527,7 @@ const Frame: React.FC<{ tone?: 'success' | 'warning'; title: string; body?: stri
       </div>
       <h1 className="text-xl font-black text-white mb-2">{title}</h1>
       {body && <p className="text-sm text-slate-400 leading-relaxed">{body}</p>}
-      <Link to="/" className="block mt-4 text-brand-primary-soft hover:text-bone text-xs font-bold">Home</Link>
+      <Link to="/" className="block mt-4 text-brand-primary-soft hover:text-ink-primary text-xs font-bold">Home</Link>
     </div>
   </div>
 );

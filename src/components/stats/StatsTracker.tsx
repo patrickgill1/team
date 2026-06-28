@@ -402,7 +402,7 @@ const StatsTracker: React.FC<StatsTrackerProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedPlayer}
-                className="flex-1 bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                className="flex-1 bg-surface-tint hover:bg-surface-raised text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
               >
                 {isSubmitting ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

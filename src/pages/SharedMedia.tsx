@@ -127,11 +127,11 @@ const SharedMedia: React.FC = () => {
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="flex items-center space-x-1.5 bg-charcoal-600 hover:bg-charcoal-700 disabled:bg-charcoal-600/70 disabled:cursor-wait text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center space-x-1.5 bg-surface-tint hover:bg-surface-raised disabled:bg-surface-tint/70 disabled:cursor-wait text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
           >
             {downloading ? (
               <>
-                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                <div className="w-4 h-4 rounded-full border-2 border-line-default/30 border-t-white animate-spin" />
                 <span className="tabular-nums">
                   {downloadPercent > 0 ? `${downloadPercent}%` : 'Saving…'}
                 </span>

@@ -662,7 +662,7 @@ const EventForm: React.FC<EventFormProps> = ({
       case 'game':     return 'border-rose-500 bg-rose-500/15 text-rose-300 ring-2 ring-rose-500/30';
       case 'practice': return 'border-brand-primary bg-brand-primary/15 text-brand-primary-soft ring-2 ring-brand-primary/30';
       case 'event':    return 'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-2 ring-emerald-500/30';
-      default:         return 'border-white/15 bg-charcoal-950 text-bone';
+      default:         return 'border-line-default/15 bg-surface-base text-ink-primary';
     }
   };
 
@@ -686,15 +686,15 @@ const EventForm: React.FC<EventFormProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-charcoal-900 rounded-t-2xl sm:rounded-2xl sm:max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden"
+        className="bg-surface-elevated rounded-t-2xl sm:rounded-2xl sm:max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden"
       >
         {/* Header — same chrome as LocationPickerModal / UserProfileModal /
             ChatActionSheet so the modal family reads as one system. */}
-        <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-bone/50 hover:text-white px-1"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-white px-1"
           >
             Cancel
           </button>
@@ -707,7 +707,7 @@ const EventForm: React.FC<EventFormProps> = ({
         <form ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 space-y-4">
           {/* Event Type — segmented control with monoline SVG icons. */}
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-2">
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-2">
               Type
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -738,7 +738,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   className={`flex flex-col items-center gap-1 py-3 border-2 rounded-xl transition-all ${
                     formData.type === value
                       ? activeClass
-                      : 'border-white/10 bg-charcoal-900 text-bone/60 hover:border-white/15 hover:text-bone'
+                      : 'border-line-default/10 bg-surface-elevated text-ink-primary/60 hover:border-line-default/15 hover:text-ink-primary'
                   }`}
                 >
                   {icon}
@@ -750,15 +750,15 @@ const EventForm: React.FC<EventFormProps> = ({
 
           {/* Event Title */}
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
               Event Title *
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className={`w-full px-3 py-2 bg-charcoal-900 text-bone placeholder:text-bone/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                errors.title ? 'border-rose-300' : 'border-white/10'
+              className={`w-full px-3 py-2 bg-surface-elevated text-ink-primary placeholder:text-ink-primary/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                errors.title ? 'border-rose-300' : 'border-line-default/10'
               }`}
               placeholder={`Enter ${formData.type} title...`}
             />
@@ -774,29 +774,29 @@ const EventForm: React.FC<EventFormProps> = ({
           <div>
             <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-end">
               <div>
-                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
                   Date *
                 </label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className={`w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                    errors.date ? 'border-rose-300' : 'border-white/15'
+                  className={`w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                    errors.date ? 'border-rose-300' : 'border-line-default/15'
                   }`}
                 />
               </div>
-              <div className="w-px h-9 bg-white/15 self-center" aria-hidden />
+              <div className="w-px h-9 bg-line-default/15 self-center" aria-hidden />
               <div>
-                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
                   Start time *
                 </label>
                 <input
                   type="time"
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  className={`w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                    errors.time ? 'border-rose-300' : 'border-white/15'
+                  className={`w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                    errors.time ? 'border-rose-300' : 'border-line-default/15'
                   }`}
                 />
               </div>
@@ -813,14 +813,14 @@ const EventForm: React.FC<EventFormProps> = ({
               range on the event card / detail page so parents know when
               to actually leave. Skip and it just shows the start time. */}
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
-              End time <span className="text-bone/40 font-normal">(optional)</span>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+              End time <span className="text-ink-primary/40 font-normal">(optional)</span>
             </label>
             <input
               type="time"
               value={formData.endTime}
               onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-              className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className="w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             />
           </div>
 
@@ -831,13 +831,13 @@ const EventForm: React.FC<EventFormProps> = ({
               (e.g. local soccer fields not in OSM) since the user can
               always pan + drop the pin manually. */}
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
               Location *
             </label>
 
             {favoriteLocations.length > 0 && (
               <div className="mb-2">
-                <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1">Favorites</div>
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1">Favorites</div>
                 <div className="flex gap-1.5 flex-wrap">
                   {favoriteLocations.map((f) => {
                     const active = f.name === formData.location;
@@ -849,7 +849,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         className={`text-xs font-bold px-2.5 py-1.5 rounded-md border ${
                           active
                             ? 'bg-brand-primary-soft text-brand-primary-dim border-brand-primary-soft'
-                            : 'bg-charcoal-900 text-bone border-white/10 hover:border-brand-primary-soft'
+                            : 'bg-surface-elevated text-ink-primary border-line-default/10 hover:border-brand-primary-soft'
                         }`}
                       >
                         {f.name}
@@ -862,7 +862,7 @@ const EventForm: React.FC<EventFormProps> = ({
 
             {recentLocations.length > 0 && (
               <div className="mb-2">
-                <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1">Recent</div>
+                <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1">Recent</div>
                 <div className="flex gap-1.5 flex-wrap">
                   {recentLocations
                     .filter(r => !favoriteLocations.some(f => f.name.toLowerCase() === r.name.toLowerCase()))
@@ -877,7 +877,7 @@ const EventForm: React.FC<EventFormProps> = ({
                           className={`text-xs px-2.5 py-1.5 rounded-md border ${
                             active
                               ? 'bg-brand-primary-soft text-brand-primary-dim border-brand-primary-soft font-bold'
-                              : 'bg-charcoal-950 text-bone/75 border-white/10 hover:bg-charcoal-900 hover:border-brand-primary-soft'
+                              : 'bg-surface-base text-ink-primary/75 border-line-default/10 hover:bg-surface-elevated hover:border-brand-primary-soft'
                           }`}
                         >
                           {r.name}
@@ -894,19 +894,19 @@ const EventForm: React.FC<EventFormProps> = ({
                 Picked-location card with a small (non-interactive)
                 map thumbnail shows after a choice is made. */}
             {pickedCoords ? (
-              <div className="rounded-xl overflow-hidden border border-white/10 shadow-sm">
+              <div className="rounded-xl overflow-hidden border border-line-default/10 shadow-sm">
                 <iframe
                   title="Picked location"
                   src={osmEmbedUrl(pickedCoords.lat, pickedCoords.lon, 16)}
-                  className="w-full h-32 block bg-charcoal-950 pointer-events-none"
+                  className="w-full h-32 block bg-surface-base pointer-events-none"
                   loading="lazy"
                 />
-                <div className="px-3 py-2.5 bg-charcoal-950 border-t border-white/10">
+                <div className="px-3 py-2.5 bg-surface-base border-t border-line-default/10">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold text-bone break-words">{formData.location}</div>
+                      <div className="text-sm font-bold text-ink-primary break-words">{formData.location}</div>
                       {pickedAddress && (
-                        <div className="text-[11px] text-bone/60 break-words mt-0.5">{pickedAddress}</div>
+                        <div className="text-[11px] text-ink-primary/60 break-words mt-0.5">{pickedAddress}</div>
                       )}
                     </div>
                     <button
@@ -930,7 +930,7 @@ const EventForm: React.FC<EventFormProps> = ({
             ) : (
               <div className="relative">
                 <div className="relative">
-                  <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-bone/50" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-ink-primary/50" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
                   <input
@@ -941,15 +941,15 @@ const EventForm: React.FC<EventFormProps> = ({
                     onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                     placeholder="Search venue or address…"
                     autoComplete="off"
-                    className={`w-full pl-9 pr-16 py-2.5 text-sm bg-charcoal-950 text-bone placeholder:text-bone/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                      errors.location ? 'border-rose-300' : 'border-white/15'
+                    className={`w-full pl-9 pr-16 py-2.5 text-sm bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                      errors.location ? 'border-rose-300' : 'border-line-default/15'
                     }`}
                   />
                   {/* Provider tag — Google when the worker confirms its
                       Places key is configured; otherwise the static
                       provider hierarchy. Updates after the first
                       autocomplete call resolves the worker's status. */}
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-extrabold tracking-widest uppercase text-bone/50 pointer-events-none">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-extrabold tracking-widest uppercase text-ink-primary/50 pointer-events-none">
                     {isGoogleAvailable() === true ? 'Google'
                       : isGoogleAvailable() === false && hasMapbox() ? 'Mapbox'
                       : isGoogleAvailable() === false ? 'OSM'
@@ -958,13 +958,13 @@ const EventForm: React.FC<EventFormProps> = ({
                   </div>
                 </div>
                 {searchOpen && searchQuery.trim().length >= 2 && (searching || searchHits.length > 0 || searched) && (
-                  <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-charcoal-900 rounded-xl shadow-xl ring-1 ring-slate-200 overflow-hidden max-h-80 overflow-y-auto">
+                  <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-surface-elevated rounded-xl shadow-xl ring-1 ring-slate-200 overflow-hidden max-h-80 overflow-y-auto">
                     {searching && searchHits.length === 0 && (
-                      <div className="px-3 py-2 text-xs text-bone/60">Searching…</div>
+                      <div className="px-3 py-2 text-xs text-ink-primary/60">Searching…</div>
                     )}
                     {!searching && searched && searchHits.length === 0 && (
                       <div className="px-3 py-2.5">
-                        <div className="text-xs text-bone mb-1">No matches.</div>
+                        <div className="text-xs text-ink-primary mb-1">No matches.</div>
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery.trim())}`}
                           target="_blank"
@@ -1000,11 +1000,11 @@ const EventForm: React.FC<EventFormProps> = ({
                           setSearched(false);
                           setSearchOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2.5 hover:bg-brand-primary/15 border-b border-white/5 last:border-b-0"
+                        className="w-full text-left px-3 py-2.5 hover:bg-brand-primary/15 border-b border-line-default/5 last:border-b-0"
                       >
-                        <div className="text-sm font-semibold text-bone break-words">{h.label}</div>
+                        <div className="text-sm font-semibold text-ink-primary break-words">{h.label}</div>
                         {h.label !== h.address && (
-                          <div className="text-[11px] text-bone/60 break-words">{h.address}</div>
+                          <div className="text-[11px] text-ink-primary/60 break-words">{h.address}</div>
                         )}
                       </button>
                     ))}
@@ -1020,7 +1020,7 @@ const EventForm: React.FC<EventFormProps> = ({
                     type="button"
                     onClick={() => removeFavorite(formData.location.trim())}
                     disabled={savingFavorite}
-                    className="text-[10px] font-extrabold tracking-widest uppercase text-bone/60 hover:text-rose-600 disabled:opacity-50"
+                    className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 hover:text-rose-600 disabled:opacity-50"
                   >
                     Saved — Remove
                   </button>
@@ -1045,15 +1045,15 @@ const EventForm: React.FC<EventFormProps> = ({
               venues. Useful at complexes like "Little Valley Soccer
               Fields → Field 7". */}
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
-              Field <span className="text-xs text-bone/50 font-normal">(optional)</span>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+              Field <span className="text-xs text-ink-primary/50 font-normal">(optional)</span>
             </label>
             <input
               type="text"
               value={formData.fieldNumber}
               onChange={(e) => setFormData({ ...formData, fieldNumber: e.target.value })}
               placeholder="e.g. Field 7"
-              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className="w-full px-3 py-2 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             />
           </div>
 
@@ -1064,7 +1064,7 @@ const EventForm: React.FC<EventFormProps> = ({
               entirely — better silent than wrong. */}
           {formData.type === 'game' && (
             <div>
-              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+              <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
                 Home or away
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -1073,14 +1073,14 @@ const EventForm: React.FC<EventFormProps> = ({
                   onClick={() => setFormData({ ...formData, homeAway: formData.homeAway === 'home' ? '' : 'home' })}
                   className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg border-2 text-sm font-bold transition ${
                     formData.homeAway === 'home'
-                      ? 'bg-charcoal-950 text-white border-brand-primary/40 ring-2 ring-brand-primary/30'
-                      : 'bg-charcoal-900 text-bone border-white/10 hover:border-white/20'
+                      ? 'bg-surface-base text-white border-brand-primary/40 ring-2 ring-brand-primary/30'
+                      : 'bg-surface-elevated text-ink-primary border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
-                  <span className={`inline-block w-3.5 h-3.5 rounded-sm border ${formData.homeAway === 'home' ? 'bg-charcoal-900 border-white/25' : 'bg-charcoal-900 border-white/15'}`} aria-hidden />
+                  <span className={`inline-block w-3.5 h-3.5 rounded-sm border ${formData.homeAway === 'home' ? 'bg-surface-elevated border-line-default/25' : 'bg-surface-elevated border-line-default/15'}`} aria-hidden />
                   Home
                   {selectedTeam?.homeKitColor && (
-                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-bone/70' : 'text-bone/50'}`}>
+                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'home' ? 'text-ink-primary/70' : 'text-ink-primary/50'}`}>
                       {selectedTeam.homeKitColor}
                     </span>
                   )}
@@ -1090,21 +1090,21 @@ const EventForm: React.FC<EventFormProps> = ({
                   onClick={() => setFormData({ ...formData, homeAway: formData.homeAway === 'away' ? '' : 'away' })}
                   className={`flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg border-2 text-sm font-bold transition ${
                     formData.homeAway === 'away'
-                      ? 'bg-charcoal-900 text-bone border-white/15 ring-2 ring-brand-primary/30 shadow-inner'
-                      : 'bg-charcoal-900 text-bone border-white/10 hover:border-white/20'
+                      ? 'bg-surface-elevated text-ink-primary border-line-default/15 ring-2 ring-brand-primary/30 shadow-inner'
+                      : 'bg-surface-elevated text-ink-primary border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
-                  <span className="inline-block w-3.5 h-3.5 rounded-sm bg-charcoal-900 border border-white/20" aria-hidden />
+                  <span className="inline-block w-3.5 h-3.5 rounded-sm bg-surface-elevated border border-line-default/20" aria-hidden />
                   Away
                   {selectedTeam?.awayKitColor && (
-                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'away' ? 'text-bone/60' : 'text-bone/50'}`}>
+                    <span className={`text-[10px] font-extrabold tracking-widest uppercase ${formData.homeAway === 'away' ? 'text-ink-primary/60' : 'text-ink-primary/50'}`}>
                       {selectedTeam.awayKitColor}
                     </span>
                   )}
                 </button>
               </div>
               {!selectedTeam?.homeKitColor && !selectedTeam?.awayKitColor && (
-                <p className="mt-1.5 text-[11px] text-bone/50">
+                <p className="mt-1.5 text-[11px] text-ink-primary/50">
                   Set your kit colors in Team Settings so parents know what to pack.
                 </p>
               )}
@@ -1115,13 +1115,13 @@ const EventForm: React.FC<EventFormProps> = ({
               practices too. Offsets are stored so they auto-shift if the
               event itself is rescheduled. */}
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
               Arrive early
             </label>
             <select
               value={formData.arriveOffsetMinutes}
               onChange={(e) => setFormData({ ...formData, arriveOffsetMinutes: Number(e.target.value) })}
-              className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className="w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             >
               <option value={0}>No arrive-early time</option>
               <option value={5}>5 minutes early</option>
@@ -1140,19 +1140,19 @@ const EventForm: React.FC<EventFormProps> = ({
               const start = new Date(`${formData.date}T${formData.time}`);
               const arrive = new Date(start.getTime() - formData.arriveOffsetMinutes * 60_000);
               const fmt = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-              return <p className="text-xs text-bone/60 mt-1">Players should arrive by <b>{fmt(arrive)}</b> (event starts {fmt(start)}).</p>;
+              return <p className="text-xs text-ink-primary/60 mt-1">Players should arrive by <b>{fmt(arrive)}</b> (event starts {fmt(start)}).</p>;
             })()}
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
               Description (Optional)
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 resize-none"
+              className="w-full px-3 py-2 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 resize-none"
               rows={3}
               placeholder="Anything else parents should know..."
             />
@@ -1162,13 +1162,13 @@ const EventForm: React.FC<EventFormProps> = ({
           {!editingEvent && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+                <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
                   Repeat
                 </label>
                 <select
                   value={formData.recurrence}
                   onChange={(e) => setFormData({ ...formData, recurrence: e.target.value as any })}
-                  className="w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                  className="w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
                 >
                   <option value="none">Does not repeat</option>
                   <option value="daily">Every day</option>
@@ -1179,7 +1179,7 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
               {formData.recurrence !== 'none' && (
                 <div>
-                  <label className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1.5">
+                  <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
                     Until *
                   </label>
                   <input
@@ -1187,8 +1187,8 @@ const EventForm: React.FC<EventFormProps> = ({
                     value={formData.recurrenceUntil}
                     onChange={(e) => setFormData({ ...formData, recurrenceUntil: e.target.value })}
                     min={formData.date}
-                    className={`w-full px-3 py-2 bg-charcoal-950 text-bone [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
-                      errors.recurrenceUntil ? 'border-rose-300' : 'border-white/15'
+                    className={`w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50 ${
+                      errors.recurrenceUntil ? 'border-rose-300' : 'border-line-default/15'
                     }`}
                   />
                   {errors.recurrenceUntil && <p className="text-red-500 text-xs mt-1">{errors.recurrenceUntil}</p>}
@@ -1214,24 +1214,24 @@ const EventForm: React.FC<EventFormProps> = ({
               same extra-bold tracking-widest section label pattern, and
               proper toggle-row styling. */}
           {!editingEvent && (
-            <div className="border-t border-white/10 pt-5">
-              <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-3">
+            <div className="border-t border-line-default/10 pt-5">
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-3">
                 Also create
               </p>
               <div className="space-y-2.5">
                 {/* Notify team */}
-                <label className="flex items-start gap-3 p-3 rounded-xl border border-white/10 hover:bg-charcoal-950 cursor-pointer transition-colors">
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-line-default/10 hover:bg-surface-base cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={formData.notifyTeam}
                     onChange={(e) => setFormData({ ...formData, notifyTeam: e.target.checked })}
-                    className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-white/15 rounded"
+                    className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-line-default/15 rounded"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-bone">
+                    <p className="text-sm font-semibold text-ink-primary">
                       {editingEvent ? 'Notify team of this change' : 'Notify team'}
                     </p>
-                    <p className="text-xs text-bone/60 mt-0.5">
+                    <p className="text-xs text-ink-primary/60 mt-0.5">
                       {editingEvent
                         ? 'Sends an "Event updated" push to everyone on the team. Use sparingly — typo fixes don\'t need a re-push.'
                         : 'Sends a push notification to everyone on the team when this event is saved.'}
@@ -1241,16 +1241,16 @@ const EventForm: React.FC<EventFormProps> = ({
 
                 {/* Attendance tracking */}
                 {(formData.type === 'practice' || formData.type === 'game') && (
-                  <label className="flex items-start gap-3 p-3 rounded-xl border border-white/10 hover:bg-charcoal-950 cursor-pointer transition-colors">
+                  <label className="flex items-start gap-3 p-3 rounded-xl border border-line-default/10 hover:bg-surface-base cursor-pointer transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.createAttendance}
                       onChange={(e) => setFormData({ ...formData, createAttendance: e.target.checked })}
-                      className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-white/15 rounded"
+                      className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-line-default/15 rounded"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-bone">Attendance tracking</p>
-                      <p className="text-xs text-bone/60 mt-0.5">
+                      <p className="text-sm font-semibold text-ink-primary">Attendance tracking</p>
+                      <p className="text-xs text-ink-primary/60 mt-0.5">
                         Automatically create an attendance event so you can mark who shows up.
                       </p>
                     </div>
@@ -1258,24 +1258,24 @@ const EventForm: React.FC<EventFormProps> = ({
                 )}
 
                 {/* Volunteer opportunities */}
-                <div className="rounded-xl border border-white/10">
-                  <label className="flex items-start gap-3 p-3 hover:bg-charcoal-950 cursor-pointer transition-colors">
+                <div className="rounded-xl border border-line-default/10">
+                  <label className="flex items-start gap-3 p-3 hover:bg-surface-base cursor-pointer transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.createVolunteerOpps}
                       onChange={(e) => setFormData({ ...formData, createVolunteerOpps: e.target.checked })}
-                      className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-white/15 rounded"
+                      className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-line-default/15 rounded"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-bone">Volunteer opportunities</p>
-                      <p className="text-xs text-bone/60 mt-0.5">
+                      <p className="text-sm font-semibold text-ink-primary">Volunteer opportunities</p>
+                      <p className="text-xs text-ink-primary/60 mt-0.5">
                         Lets parents sign up to help with the event.
                       </p>
                     </div>
                   </label>
                   {formData.createVolunteerOpps && (
-                    <div className="border-t border-white/10 p-3 space-y-2">
-                      <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/60">
+                    <div className="border-t border-line-default/10 p-3 space-y-2">
+                      <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">
                         Types needed
                       </p>
                       {[
@@ -1283,16 +1283,16 @@ const EventForm: React.FC<EventFormProps> = ({
                         { value: 'setup', label: 'Setup help', desc: 'Equipment and field preparation' },
                         { value: 'cleanup', label: 'Cleanup', desc: 'Post-event cleanup' },
                       ].map(({ value, label, desc }) => (
-                        <label key={value} className="flex items-start gap-3 p-2 rounded-lg hover:bg-charcoal-900 cursor-pointer transition-colors">
+                        <label key={value} className="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-elevated cursor-pointer transition-colors">
                           <input
                             type="checkbox"
                             checked={formData.volunteerTypes.includes(value)}
                             onChange={(e) => handleVolunteerTypeChange(value, e.target.checked)}
-                            className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-white/15 rounded"
+                            className="mt-0.5 h-4 w-4 text-brand-primary focus:ring-brand-primary/50 border-line-default/15 rounded"
                           />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-bone">{label}</p>
-                            <p className="text-xs text-bone/60">{desc}</p>
+                            <p className="text-sm font-medium text-ink-primary">{label}</p>
+                            <p className="text-xs text-ink-primary/60">{desc}</p>
                           </div>
                         </label>
                       ))}
@@ -1307,18 +1307,18 @@ const EventForm: React.FC<EventFormProps> = ({
               monoline SVG icon system used for the type segmented
               control above. */}
           {formData.title && formData.date && formData.time && formData.location && (
-            <div className="border-t border-white/10 pt-5">
-              <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-2">Preview</p>
-              <div className="bg-charcoal-950 rounded-xl p-4 ring-1 ring-slate-200">
+            <div className="border-t border-line-default/10 pt-5">
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-2">Preview</p>
+              <div className="bg-surface-base rounded-xl p-4 ring-1 ring-slate-200">
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-charcoal-900 ring-1 ring-slate-200 flex items-center justify-center text-bone">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-surface-elevated ring-1 ring-slate-200 flex items-center justify-center text-ink-primary">
                     <EventTypeIcon type={formData.type} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-semibold text-bone truncate">{formData.title}</h4>
-                    <div className="text-sm text-bone/75 space-y-1 mt-1">
+                    <h4 className="font-semibold text-ink-primary truncate">{formData.title}</h4>
+                    <div className="text-sm text-ink-primary/75 space-y-1 mt-1">
                       <div className="flex items-center gap-1.5">
-                        <svg className="w-4 h-4 flex-shrink-0 text-bone/50" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 flex-shrink-0 text-ink-primary/50" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           <rect x="3" y="5" width="18" height="16" rx="2" />
                           <line x1="8" y1="3" x2="8" y2="7" />
                           <line x1="16" y1="3" x2="16" y2="7" />
@@ -1327,7 +1327,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         <span>{new Date(`${formData.date}T${formData.time}`).toLocaleDateString()} at {formData.time}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <svg className="w-4 h-4 flex-shrink-0 text-bone/50" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 flex-shrink-0 text-ink-primary/50" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                           <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <circle cx="12" cy="11" r="3" />
                         </svg>
@@ -1335,7 +1335,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       </div>
                     </div>
                     {formData.description && (
-                      <p className="text-sm text-bone/75 mt-2">{formData.description}</p>
+                      <p className="text-sm text-ink-primary/75 mt-2">{formData.description}</p>
                     )}
                     {weather && (
                       <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/30 text-brand-primary-soft text-xs font-semibold">
@@ -1346,9 +1346,9 @@ const EventForm: React.FC<EventFormProps> = ({
                     )}
 
                     {!editingEvent && (formData.createAttendance || formData.createVolunteerOpps) && (
-                      <div className="mt-3 pt-2 border-t border-white/10">
-                        <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/60 mb-1">Will also create</p>
-                        <ul className="text-xs text-bone/75 space-y-1">
+                      <div className="mt-3 pt-2 border-t border-line-default/10">
+                        <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1">Will also create</p>
+                        <ul className="text-xs text-ink-primary/75 space-y-1">
                           {formData.createAttendance && <li>• Attendance tracking event</li>}
                           {formData.createVolunteerOpps && formData.volunteerTypes.map((type) => (
                             <li key={type}>• {type.charAt(0).toUpperCase() + type.slice(1)} volunteer opportunity</li>
@@ -1375,16 +1375,16 @@ const EventForm: React.FC<EventFormProps> = ({
 
         {/* Sticky footer — primary CTA always reachable without scroll.
             Cancel is in the header (mobile bottom-sheet pattern). */}
-        <div className="flex-shrink-0 border-t border-white/10 px-4 py-3 bg-charcoal-900">
+        <div className="flex-shrink-0 border-t border-line-default/10 px-4 py-3 bg-surface-elevated">
           <button
             type="button"
             onClick={() => formRef.current?.requestSubmit()}
             disabled={isSubmitting}
-            className="w-full bg-gradient-to-br from-brand-primary to-charcoal-600 hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-brand-primary/30 transition disabled:opacity-50 flex items-center justify-center"
+            className="w-full bg-gradient-to-br from-brand-primary to-surface-tint hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md shadow-brand-primary/30 transition disabled:opacity-50 flex items-center justify-center"
           >
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">
-                <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" aria-hidden="true" />
+                <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-line-default/30 border-t-white" aria-hidden="true" />
                 <span>{editingEvent ? 'Saving…' : 'Creating…'}</span>
               </span>
             ) : (

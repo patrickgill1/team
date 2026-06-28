@@ -132,8 +132,8 @@ const SeasonWizard: React.FC = () => {
   if (!isClubAdmin) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
-        <p className="text-bone/85 font-semibold mb-1">Admin only</p>
-        <p className="text-bone/55 text-sm mb-4">The season wizard is for club admins.</p>
+        <p className="text-ink-primary/85 font-semibold mb-1">Admin only</p>
+        <p className="text-ink-primary/55 text-sm mb-4">The season wizard is for club admins.</p>
         <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
       </div>
     );
@@ -206,10 +206,10 @@ const SeasonWizard: React.FC = () => {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <div className="mb-5 sm:mb-7">
         <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</p>
-        <h1 className="font-display text-2xl sm:text-3xl font-black text-bone mt-1">
+        <h1 className="font-display text-2xl sm:text-3xl font-black text-ink-primary mt-1">
           {isNew ? 'New season' : (season?.name || 'Season')}
         </h1>
-        <p className="text-sm text-bone/65 mt-1.5">
+        <p className="text-sm text-ink-primary/65 mt-1.5">
           Build the season step by step. Each step writes to the same season record; you can leave and come back at any point.
         </p>
       </div>
@@ -232,10 +232,10 @@ const SeasonWizard: React.FC = () => {
                 key={step.key}
                 className={`rounded-2xl ring-1 transition-colors ${
                   isActive
-                    ? 'bg-charcoal-900 ring-brand-primary/40'
+                    ? 'bg-surface-elevated ring-brand-primary/40'
                     : done
-                      ? 'bg-charcoal-900 ring-emerald-400/25'
-                      : 'bg-charcoal-900 ring-white/10'
+                      ? 'bg-surface-elevated ring-emerald-400/25'
+                      : 'bg-surface-elevated ring-line-default/10'
                 }`}
               >
                 <button
@@ -250,7 +250,7 @@ const SeasonWizard: React.FC = () => {
                         ? 'bg-emerald-500 ring-emerald-400 text-charcoal-950'
                         : isActive
                           ? 'bg-brand-primary ring-brand-primary-soft text-white'
-                          : 'bg-charcoal-950 ring-white/15 text-bone/50'
+                          : 'bg-surface-base ring-line-default/15 text-ink-primary/50'
                     }`}
                   >
                     {done ? (
@@ -259,25 +259,25 @@ const SeasonWizard: React.FC = () => {
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[15px] font-black text-bone">{step.title}</span>
+                      <span className="text-[15px] font-black text-ink-primary">{step.title}</span>
                       {isStub && (
-                        <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-bone/5 ring-1 ring-white/10 text-bone/55">Coming next</span>
+                        <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-bone/5 ring-1 ring-line-default/10 text-ink-primary/55">Coming next</span>
                       )}
                     </div>
-                    <p className="text-[12.5px] text-bone/60 leading-snug mt-0.5">{step.hint}</p>
+                    <p className="text-[12.5px] text-ink-primary/60 leading-snug mt-0.5">{step.hint}</p>
                   </div>
                 </button>
 
                 {isActive && step.key === 'plan' && (
-                  <div className="px-4 pb-4 pt-1 border-t border-white/5 space-y-3 animate-fade-in">
+                  <div className="px-4 pb-4 pt-1 border-t border-line-default/5 space-y-3 animate-fade-in">
                     <div>
-                      <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Season name</label>
+                      <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Season name</label>
                       <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Fall 2026 / Spring 2027 / 2027-28 ECNL"
-                        className="w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone placeholder:text-bone/35 focus:outline-none focus:ring-brand-primary-soft/50"
+                        className="w-full bg-surface-base ring-1 ring-line-default/10 rounded-lg px-3 py-2.5 text-sm text-ink-primary placeholder:text-ink-primary/35 focus:outline-none focus:ring-brand-primary-soft/50"
                       />
                     </div>
                     {/* Date inputs constrained to a max width so the native
@@ -290,27 +290,27 @@ const SeasonWizard: React.FC = () => {
                         intrinsic width. */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="min-w-0">
-                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Start date</label>
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Start date</label>
                         <input
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
-                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-brand-primary-soft/50"
+                          className="block w-full max-w-full bg-surface-base ring-1 ring-line-default/10 rounded-lg px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:ring-brand-primary-soft/50"
                         />
                       </div>
                       <div className="min-w-0">
-                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">End date</label>
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">End date</label>
                         <input
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
-                          className="block w-full max-w-full bg-charcoal-950 ring-1 ring-white/10 rounded-lg px-3 py-2.5 text-sm text-bone focus:outline-none focus:ring-brand-primary-soft/50"
+                          className="block w-full max-w-full bg-surface-base ring-1 ring-line-default/10 rounded-lg px-3 py-2.5 text-sm text-ink-primary focus:outline-none focus:ring-brand-primary-soft/50"
                         />
                       </div>
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-bone/55">Age groups</label>
+                        <label className="block text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55">Age groups</label>
                         <button
                           type="button"
                           onClick={() => {
@@ -335,7 +335,7 @@ const SeasonWizard: React.FC = () => {
                               className={`text-[12px] font-extrabold tracking-wide px-2.5 py-1 rounded-full transition-colors ring-1 ${
                                 on
                                   ? 'bg-brand-primary ring-brand-primary-soft text-white'
-                                  : 'bg-charcoal-950 ring-white/10 text-bone/65 hover:bg-white/5 hover:text-bone'
+                                  : 'bg-surface-base ring-line-default/10 text-ink-primary/65 hover:bg-line-default/5 hover:text-ink-primary'
                               }`}
                             >
                               {ag}
@@ -343,7 +343,7 @@ const SeasonWizard: React.FC = () => {
                           );
                         })}
                       </div>
-                      <p className="text-[11px] text-bone/45 mt-2">
+                      <p className="text-[11px] text-ink-primary/45 mt-2">
                         {selectedAgeGroups.length === 0
                           ? 'Tap to select. Each age group gets its own coach assignment + tryout date downstream.'
                           : `${selectedAgeGroups.length} selected. Each will get its own coach assignment + tryout date downstream.`}
@@ -363,8 +363,8 @@ const SeasonWizard: React.FC = () => {
                 )}
 
                 {isActive && step.key !== 'plan' && (
-                  <div className="px-4 pb-4 pt-1 border-t border-white/5 animate-fade-in">
-                    <div className="text-[12.5px] text-bone/60 italic">
+                  <div className="px-4 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
+                    <div className="text-[12.5px] text-ink-primary/60 italic">
                       Coming in the next batch. The data model for this step is already defined; the UI is being built next.
                     </div>
                   </div>

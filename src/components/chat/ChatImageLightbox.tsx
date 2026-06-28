@@ -100,7 +100,7 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
           type="button"
           onClick={(e) => { e.stopPropagation(); onClose(); }}
           aria-label="Close"
-          className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
+          className="w-9 h-9 rounded-full bg-line-default/10 hover:bg-line-default/20 flex items-center justify-center"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -132,7 +132,7 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
               type="button"
               onClick={(e) => { e.stopPropagation(); setIndex(i => Math.max(i - 1, 0)); }}
               disabled={index === 0}
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 flex items-center justify-center"
+              className="w-9 h-9 rounded-full bg-line-default/10 hover:bg-line-default/20 disabled:opacity-30 flex items-center justify-center"
               aria-label="Previous"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
@@ -141,7 +141,7 @@ const ChatImageLightbox: React.FC<Props> = ({ images, startIndex, onClose }) => 
               type="button"
               onClick={(e) => { e.stopPropagation(); setIndex(i => Math.min(i + 1, images.length - 1)); }}
               disabled={index === images.length - 1}
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 flex items-center justify-center"
+              className="w-9 h-9 rounded-full bg-line-default/10 hover:bg-line-default/20 disabled:opacity-30 flex items-center justify-center"
               aria-label="Next"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>

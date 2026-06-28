@@ -69,13 +69,13 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black ring-1 ring-brand-primary/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
+        className="bg-gradient-to-br from-surface-elevated via-surface-base to-black ring-1 ring-brand-primary/15 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-white"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative overflow-hidden p-6 border-b border-brand-primary/15">
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-brand-primary/15 rounded-full blur-3xl pointer-events-none" />
           <div className="relative">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               Invite ready
             </div>
@@ -89,9 +89,9 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-3">
+          <div className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-white/50 mb-1">Share link</p>
-            <p className="text-sm font-mono break-all text-bone">{url}</p>
+            <p className="text-sm font-mono break-all text-ink-primary">{url}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -103,7 +103,7 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
             </button>
             <button
               onClick={handleSms}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/15 ring-1 ring-white/20 text-white font-semibold text-sm hover:bg-white/25 transition backdrop-blur"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-line-default/15 ring-1 ring-line-default/20 text-white font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
             >
               💬 Text
             </button>
@@ -112,13 +112,13 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
           {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
             <button
               onClick={handleNativeShare}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 ring-1 ring-white/15 text-white font-semibold text-sm hover:bg-white/20 transition"
+              className="w-full px-4 py-3 rounded-xl bg-line-default/10 ring-1 ring-line-default/15 text-white font-semibold text-sm hover:bg-line-default/20 transition"
             >
               ⤴ Share…
             </button>
           )}
 
-          <div className="pt-2 border-t border-white/10 text-xs text-white/55 space-y-0.5">
+          <div className="pt-2 border-t border-line-default/10 text-xs text-white/55 space-y-0.5">
             <p>Expires {invite.expiresAt instanceof Date ? invite.expiresAt.toLocaleDateString() : new Date(invite.expiresAt).toLocaleDateString()}</p>
             <p>{invite.maxUses == null ? 'Unlimited uses' : `${(invite as any).usedCount || 0} of ${invite.maxUses} uses`}</p>
           </div>

@@ -91,15 +91,15 @@ const WidgetSetupCard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-charcoal-900 rounded-xl border border-white/10 p-4 text-bone/50 text-sm">
+      <div className="bg-surface-elevated rounded-xl border border-line-default/10 p-4 text-ink-primary/50 text-sm">
         Loading widget setup...
       </div>
     );
   }
 
   return (
-    <div className="bg-charcoal-900 rounded-xl border border-white/10 overflow-hidden">
-      <div className="p-4 border-b border-white/5">
+    <div className="bg-surface-elevated rounded-xl border border-line-default/10 overflow-hidden">
+      <div className="p-4 border-b border-line-default/5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-brand-primary-soft flex items-center justify-center flex-shrink-0">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand-primary">
@@ -110,15 +110,15 @@ const WidgetSetupCard: React.FC = () => {
             </svg>
           </div>
           <div className="min-w-0">
-            <h3 className="text-bone font-bold text-base leading-tight">Home-screen widget</h3>
-            <p className="text-bone/55 text-xs leading-snug">Player photo, streak, and next event on your phone's home screen.</p>
+            <h3 className="text-ink-primary font-bold text-base leading-tight">Home-screen widget</h3>
+            <p className="text-ink-primary/55 text-xs leading-snug">Player photo, streak, and next event on your phone's home screen.</p>
           </div>
         </div>
       </div>
 
       {!token ? (
         <div className="p-4 space-y-3">
-          <p className="text-bone/70 text-sm leading-relaxed">
+          <p className="text-ink-primary/70 text-sm leading-relaxed">
             Generate a one-time setup code, then paste it into the widget when you add it to your home screen.
           </p>
           <button
@@ -133,15 +133,15 @@ const WidgetSetupCard: React.FC = () => {
       ) : (
         <div className="p-4 space-y-3">
           <div>
-            <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/45 mb-1.5">Your setup code</p>
+            <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/45 mb-1.5">Your setup code</p>
             <div className="flex items-stretch gap-2">
-              <div className="flex-1 bg-charcoal-950 border border-white/10 rounded-lg px-3 py-2.5 font-mono text-sm text-bone break-all select-all">
+              <div className="flex-1 bg-surface-base border border-line-default/10 rounded-lg px-3 py-2.5 font-mono text-sm text-ink-primary break-all select-all">
                 {token}
               </div>
               <button
                 type="button"
                 onClick={copy}
-                className="px-3 rounded-lg bg-white/10 hover:bg-white/15 text-bone font-bold text-xs flex-shrink-0"
+                className="px-3 rounded-lg bg-line-default/10 hover:bg-line-default/15 text-ink-primary font-bold text-xs flex-shrink-0"
               >
                 {copied ? 'Copied' : 'Copy'}
               </button>
@@ -157,12 +157,12 @@ const WidgetSetupCard: React.FC = () => {
           </button>
 
           {showInstructions && (
-            <ol className="text-bone/65 text-xs leading-relaxed space-y-1.5 pl-4 list-decimal">
+            <ol className="text-ink-primary/65 text-xs leading-relaxed space-y-1.5 pl-4 list-decimal">
               <li>On your iPhone home screen, long-press an empty area.</li>
-              <li>Tap the <span className="text-bone font-semibold">+</span> in the top-left.</li>
-              <li>Search for <span className="text-bone font-semibold">GoalKickr</span> and add the Player widget.</li>
-              <li>Long-press the new widget, tap <span className="text-bone font-semibold">Edit Widget</span>.</li>
-              <li>Paste the code above into the <span className="text-bone font-semibold">Setup code</span> field.</li>
+              <li>Tap the <span className="text-ink-primary font-semibold">+</span> in the top-left.</li>
+              <li>Search for <span className="text-ink-primary font-semibold">GoalKickr</span> and add the Player widget.</li>
+              <li>Long-press the new widget, tap <span className="text-ink-primary font-semibold">Edit Widget</span>.</li>
+              <li>Paste the code above into the <span className="text-ink-primary font-semibold">Setup code</span> field.</li>
             </ol>
           )}
 
@@ -170,7 +170,7 @@ const WidgetSetupCard: React.FC = () => {
             type="button"
             onClick={rotate}
             disabled={busy}
-            className="text-bone/45 hover:text-bone text-xs underline disabled:opacity-50"
+            className="text-ink-primary/45 hover:text-ink-primary text-xs underline disabled:opacity-50"
           >
             Replace setup code
           </button>

@@ -27,7 +27,7 @@ const STATUS_TONES: Record<StatusKey, { bg: string; text: string; ring: string; 
   offer_sent: { bg: 'bg-violet-500/20', text: 'text-violet-200', ring: 'ring-violet-300', label: 'Offer sent' },
   accepted: { bg: 'bg-emerald-500/20', text: 'text-emerald-100', ring: 'ring-emerald-400', label: 'Accepted' },
   declined: { bg: 'bg-rose-500/20', text: 'text-rose-800', ring: 'ring-rose-300', label: 'Declined' },
-  withdrawn: { bg: 'bg-charcoal-950', text: 'text-bone/85', ring: 'ring-white/15', label: 'Withdrawn' },
+  withdrawn: { bg: 'bg-surface-base', text: 'text-ink-primary/85', ring: 'ring-line-default/15', label: 'Withdrawn' },
 };
 
 const Registrations: React.FC = () => {
@@ -210,27 +210,27 @@ const Registrations: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center p-6 text-center">
         <div className="max-w-md">
-          <p className="text-sm font-bold text-bone/85">Club admin access only</p>
-          <p className="text-xs text-bone/50 mt-1">Registrations are visible to club administrators.</p>
+          <p className="text-sm font-bold text-ink-primary/85">Club admin access only</p>
+          <p className="text-xs text-ink-primary/50 mt-1">Registrations are visible to club administrators.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
+    <div className="min-h-screen bg-surface-base">
+      <section className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 sm:px-6 py-5 border-b border-brand-primary/10">
         <div className="max-w-6xl mx-auto">
-          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-bone mb-2">
+          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Registrations</h1>
-              <p className="text-sm text-bone/40 mt-0.5">
+              <p className="text-sm text-ink-primary/40 mt-0.5">
                 Everyone who's signed up for the season — pending, paid, in tryouts, on a team.
               </p>
             </div>
@@ -257,20 +257,20 @@ const Registrations: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 p-3 flex flex-wrap items-center gap-2">
-          <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+        <div className="bg-surface-elevated rounded-xl ring-1 ring-line-default/10 p-3 flex flex-wrap items-center gap-2">
+          <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="text-sm border border-line-default/15 rounded-lg px-3 py-2">
             <option value="all">All seasons</option>
             {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="text-sm border border-line-default/15 rounded-lg px-3 py-2">
             <option value="all">All statuses</option>
             {(Object.keys(STATUS_TONES) as StatusKey[]).map(s => <option key={s} value={s}>{STATUS_TONES[s].label}</option>)}
           </select>
-          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm border border-line-default/15 rounded-lg px-3 py-2">
             <option value="all">All ages</option>
             {ageGroups.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm border border-white/15 rounded-lg px-3 py-2">
+          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm border border-line-default/15 rounded-lg px-3 py-2">
             <option value="all">All genders</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
@@ -281,51 +281,51 @@ const Registrations: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by player or parent…"
-            className="flex-1 min-w-[180px] text-sm border border-white/15 rounded-lg px-3 py-2"
+            className="flex-1 min-w-[180px] text-sm border border-line-default/15 rounded-lg px-3 py-2"
           />
           <button
             type="button"
             onClick={selected.size === visible.length && visible.length > 0 ? clearSelection : selectAllVisible}
-            className="ml-auto text-[11px] font-bold text-bone/65 hover:text-brand-primary-soft"
+            className="ml-auto text-[11px] font-bold text-ink-primary/65 hover:text-brand-primary-soft"
           >
             {selected.size === visible.length && visible.length > 0 ? 'Clear all' : 'Select all'}
           </button>
-          <span className="text-xs text-bone/50">{visible.length} of {registrations.length}</span>
+          <span className="text-xs text-ink-primary/50">{visible.length} of {registrations.length}</span>
         </div>
 
         {/* Table */}
-        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-sm text-bone/50">Loading…</div>
+            <div className="p-8 text-center text-sm text-ink-primary/50">Loading…</div>
           ) : visible.length === 0 ? (
             <div className="p-10 text-center">
-              <p className="text-sm font-bold text-bone/85">No registrations match.</p>
-              <p className="text-xs text-bone/50 mt-1">
+              <p className="text-sm font-bold text-ink-primary/85">No registrations match.</p>
+              <p className="text-xs text-ink-primary/50 mt-1">
                 {registrations.length === 0
                   ? 'Once parents start submitting at /register, they show up here.'
                   : 'Try a different filter combination.'}
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-white/5">
+            <ul className="divide-y divide-line-default/5">
               {visible.map(r => {
                 const tone = STATUS_TONES[r.status] || STATUS_TONES.pending_payment;
                 return (
-                  <li key={r.id} className="px-4 py-3 hover:bg-white/[0.05]">
+                  <li key={r.id} className="px-4 py-3 hover:bg-line-default/[0.05]">
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         checked={selected.has(r.id)}
                         onChange={() => toggleSelect(r.id)}
-                        className="mt-1 w-4 h-4 rounded border-white/15 text-brand-primary focus:ring-brand-primary"
+                        className="mt-1 w-4 h-4 rounded border-line-default/15 text-brand-primary focus:ring-brand-primary"
                         title="Select for bulk action"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-sm font-bold text-bone">
+                          <span className="text-sm font-bold text-ink-primary">
                             {r.player.firstName} {r.player.lastName}
                           </span>
-                          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 bg-charcoal-950 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 bg-surface-base px-1.5 py-0.5 rounded">
                             {r.player.ageGroup}
                           </span>
                           {r.player.playedBefore && (
@@ -335,11 +335,11 @@ const Registrations: React.FC = () => {
                             {tone.label}
                           </span>
                         </div>
-                        <div className="text-xs text-bone/65 mb-0.5">
+                        <div className="text-xs text-ink-primary/65 mb-0.5">
                           {r.player.gender} · DOB {r.player.dateOfBirth}
                           {r.player.preferredPosition ? ` · ${r.player.preferredPosition}` : ''}
                         </div>
-                        <div className="text-xs text-bone/50 truncate">
+                        <div className="text-xs text-ink-primary/50 truncate">
                           {r.parents.map(p => `${p.firstName} ${p.lastName} · ${p.email}`).join(' · ')}
                         </div>
                         {r.player.medicalNotes && (
@@ -352,15 +352,15 @@ const Registrations: React.FC = () => {
                               const display = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val);
                               if (!display.trim()) return null;
                               return (
-                                <span key={qid} className="text-[10px] px-2 py-0.5 rounded bg-charcoal-950 ring-1 ring-white/10 text-bone/85">
-                                  <span className="text-bone/50">{label}:</span>{' '}
+                                <span key={qid} className="text-[10px] px-2 py-0.5 rounded bg-surface-base ring-1 ring-line-default/10 text-ink-primary/85">
+                                  <span className="text-ink-primary/50">{label}:</span>{' '}
                                   <span className="font-bold">{display}</span>
                                 </span>
                               );
                             })}
                           </div>
                         )}
-                        <div className="mt-2 flex items-center gap-2 text-[11px] text-bone/50">
+                        <div className="mt-2 flex items-center gap-2 text-[11px] text-ink-primary/50">
                           <span>${((r.amountPaidCents ?? r.registrationFeeCents ?? 0) / 100).toFixed(2)}</span>
                           {r.pricingTierLabel && <span className="text-brand-primary-soft font-bold">· {r.pricingTierLabel}</span>}
                           {r.couponCode && <span className="text-violet-300 font-bold">· {r.couponCode}</span>}
@@ -382,7 +382,7 @@ const Registrations: React.FC = () => {
                       {r.parents?.[0]?.email && (
                         <Link
                           to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`}
-                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white/[0.04] text-bone/85 ring-1 ring-white/10 hover:bg-white/[0.08]"
+                          className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-line-default/[0.04] text-ink-primary/85 ring-1 ring-line-default/10 hover:bg-line-default/[0.08]"
                         >
                           Family
                         </Link>
@@ -398,7 +398,7 @@ const Registrations: React.FC = () => {
                         </button>
                       )}
                       {r.status !== 'withdrawn' && r.status !== 'declined' && r.status !== 'accepted' && (
-                        <button onClick={() => handleStatusChange(r, 'withdrawn')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white/[0.04] text-bone/65 ring-1 ring-white/10 hover:bg-white/[0.08]">
+                        <button onClick={() => handleStatusChange(r, 'withdrawn')} className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-line-default/[0.04] text-ink-primary/65 ring-1 ring-line-default/10 hover:bg-line-default/[0.08]">
                           Withdraw
                         </button>
                       )}
@@ -411,9 +411,9 @@ const Registrations: React.FC = () => {
         </div>
       </div>
       {selected.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-charcoal-900 text-white rounded-2xl shadow-2xl ring-1 ring-brand-primary/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-surface-elevated text-white rounded-2xl shadow-2xl ring-1 ring-brand-primary/20 px-3 py-2 flex items-center gap-2 max-w-[95vw] overflow-x-auto">
           <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft px-2">{selected.size} selected</span>
-          <span className="text-bone/85">|</span>
+          <span className="text-ink-primary/85">|</span>
           <button
             type="button"
             disabled={bulkRunning}
@@ -434,7 +434,7 @@ const Registrations: React.FC = () => {
             type="button"
             disabled={bulkRunning}
             onClick={() => handleBulkStatus('withdrawn')}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-charcoal-700 hover:bg-charcoal-600 disabled:opacity-50"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-surface-raised hover:bg-surface-tint disabled:opacity-50"
           >
             Withdraw
           </button>
@@ -449,7 +449,7 @@ const Registrations: React.FC = () => {
           <button
             type="button"
             onClick={clearSelection}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded text-bone/35 hover:text-white"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded text-ink-primary/35 hover:text-white"
           >
             Clear
           </button>
@@ -494,7 +494,7 @@ const Tile: React.FC<{ label: string; value: number; tone: 'amber' | 'emerald' |
     amber: 'bg-amber-500/15 ring-amber-400/30 text-amber-900',
     emerald: 'bg-emerald-500/15 ring-emerald-400/30 text-emerald-100',
     cyan: 'bg-brand-primary/15 ring-brand-primary-soft/30 text-brand-primary-soft',
-    slate: 'bg-charcoal-900 ring-white/10 text-bone',
+    slate: 'bg-surface-elevated ring-line-default/10 text-ink-primary',
   } as const;
   return (
     <div className={`rounded-xl ring-1 px-4 py-3 ${tones[tone]}`}>

@@ -46,21 +46,21 @@ const OfferTemplates: React.FC = () => {
   useEffect(() => { void reload(); }, [allowed, clubId]);
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Coaches + club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm">Coaches + club admins only.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-surface-base px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Header — stacks title block above the action button on
             mobile so neither wraps awkwardly into the other. Mirrors
             the Forms / Tasks header pattern for consistency. */}
         <div>
-          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
+          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">← Club</Link>
           <div className="mt-1 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-black text-bone">Offer templates</h1>
-              <p className="text-sm text-bone/65 mt-1 max-w-prose">
+              <h1 className="text-2xl font-black text-ink-primary">Offer templates</h1>
+              <p className="text-sm text-ink-primary/65 mt-1 max-w-prose">
                 Reusable message bodies for the Send Offer flow. Scope by team + position so the right templates surface for the right candidates.
               </p>
             </div>
@@ -76,10 +76,10 @@ const OfferTemplates: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : templates.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center">
-            <p className="text-sm text-bone/65 mb-3">No templates yet. Build one and the SendOffer modal will offer it as a quick-pick.</p>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center">
+            <p className="text-sm text-ink-primary/65 mb-3">No templates yet. Build one and the SendOffer modal will offer it as a quick-pick.</p>
             <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500/150 text-white text-sm font-bold">
               Create template
             </button>
@@ -91,21 +91,21 @@ const OfferTemplates: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditing(t)}
-                  className="w-full text-left bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-violet-400 p-4 transition"
+                  className="w-full text-left bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 hover:ring-violet-400 p-4 transition"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-bold text-bone">{t.name}</div>
-                      <div className="text-[11px] text-bone/50 mt-0.5">
+                      <div className="font-bold text-ink-primary">{t.name}</div>
+                      <div className="text-[11px] text-ink-primary/50 mt-0.5">
                         {teams.find(x => x.id === t.teamId)?.name || 'Any team'}
                         {t.position ? ` · ${t.position}` : ' · Any position'}
                       </div>
                     </div>
                     {!t.isActive && (
-                      <span className="text-[10px] font-extrabold tracking-widest uppercase bg-charcoal-950 text-bone/50 ring-1 ring-white/15 px-1.5 py-0.5 rounded shrink-0">Archived</span>
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase bg-surface-base text-ink-primary/50 ring-1 ring-line-default/15 px-1.5 py-0.5 rounded shrink-0">Archived</span>
                     )}
                   </div>
-                  <p className="text-xs text-bone/65 mt-2 line-clamp-3 whitespace-pre-wrap">{t.message}</p>
+                  <p className="text-xs text-ink-primary/65 mt-2 line-clamp-3 whitespace-pre-wrap">{t.message}</p>
                 </button>
               </li>
             ))}
@@ -189,36 +189,36 @@ const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userDat
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-charcoal-900 w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
-        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-black text-bone">{isNew ? 'New template' : 'Edit template'}</h2>
-          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
+      <div className="bg-surface-elevated w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+        <div className="px-5 py-4 border-b border-line-default/5 flex items-center justify-between">
+          <h2 className="font-black text-ink-primary">{isNew ? 'New template' : 'Edit template'}</h2>
+          <button type="button" onClick={onClose} className="text-ink-primary/40 hover:text-ink-primary/85 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="U10 Forward — Welcome Aboard" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="U10 Forward — Welcome Aboard" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to team (optional)</span>
-              <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope to team (optional)</span>
+              <select value={teamId} onChange={(e) => setTeamId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm">
                 <option value="">Any team</option>
                 {teams.map(t => <option key={t.id} value={t.id}>{t.name}{t.ageGroup ? ` (${t.ageGroup})` : ''}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to position (optional)</span>
-              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm" />
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope to position (optional)</span>
+              <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Forward" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm" />
             </label>
           </div>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Message body</span>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-violet-400 text-sm leading-relaxed" />
-            <p className="text-[10px] text-bone/50 mt-1">Plain text. The coach can still edit this after picking the template.</p>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Message body</span>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-violet-400 text-sm leading-relaxed" />
+            <p className="text-[10px] text-ink-primary/50 mt-1">Plain text. The coach can still edit this after picking the template.</p>
           </label>
 
           {/* Required waivers — bundled with the offer at send time and
@@ -227,9 +227,9 @@ const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userDat
               has to sign. Families who accept this offer get a
               "sign these to finish" step before status → accepted. */}
           <div>
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Required waivers <span className="text-bone/40 font-normal normal-case tracking-normal">(signed at acceptance)</span></span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Required waivers <span className="text-ink-primary/40 font-normal normal-case tracking-normal">(signed at acceptance)</span></span>
             {forms.length === 0 ? (
-              <p className="text-[12px] text-bone/55 rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2">
+              <p className="text-[12px] text-ink-primary/55 rounded-lg bg-surface-base ring-1 ring-line-default/10 px-3 py-2">
                 No form definitions in this club yet. Create them at <Link to="/club/forms" className="text-brand-primary-soft hover:text-brand-primary-soft underline">Club → Forms</Link>, then come back to attach.
               </p>
             ) : (
@@ -244,11 +244,11 @@ const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userDat
                         className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg ring-1 transition text-left text-sm ${
                           on
                             ? 'bg-violet-500/15 ring-violet-400/40 text-violet-100'
-                            : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                            : 'bg-surface-base ring-line-default/10 text-ink-primary hover:bg-line-default/5'
                         }`}
                       >
                         <span className="flex items-center gap-2 min-w-0">
-                          <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-violet-600 border-violet-600 text-white' : 'border-white/25'}`}>
+                          <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-violet-600 border-violet-600 text-white' : 'border-line-default/25'}`}>
                             {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                           </span>
                           <span className="truncate font-semibold">{f.name}</span>
@@ -264,7 +264,7 @@ const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userDat
             )}
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-bone/85">
+          <label className="flex items-center gap-2 text-sm text-ink-primary/85">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
             Active (uncheck to archive without deleting)
           </label>
@@ -272,8 +272,8 @@ const Editor: React.FC<EditorProps> = ({ template, teams, forms, clubId, userDat
           {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
         </div>
 
-        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
+        <div className="px-5 py-3 border-t border-line-default/5 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/65 hover:text-ink-primary">Cancel</button>
           <button
             type="button"
             disabled={!canSave}

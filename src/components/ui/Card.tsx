@@ -8,10 +8,10 @@ import React from 'react';
  * collapse to one.
  *
  * Variants ↓
- *   default — bg-charcoal-900, ring-white/10 (the standard dark card)
- *   raised  — bg-charcoal-900, ring-white/10, shadow (use for elevated
+ *   default — bg-surface-elevated, ring-line-default/10 (the standard dark card)
+ *   raised  — bg-surface-elevated, ring-line-default/10, shadow (use for elevated
  *             surfaces like modals, the dashboard hero)
- *   subtle  — bg-white/[0.04], ring-white/5 (background filler, hint
+ *   subtle  — bg-line-default/[0.04], ring-line-default/5 (background filler, hint
  *             cards, secondary panels)
  *   accent  — gradient crimson tint + ring (for promotional surfaces:
  *             SubscribeBanner, upgrade nudges)
@@ -49,11 +49,11 @@ interface Props {
 }
 
 const VARIANTS: Record<CardVariant, string> = {
-  default: 'bg-charcoal-900 ring-1 ring-white/10',
-  raised:  'bg-charcoal-900 ring-1 ring-white/10 shadow-xl shadow-black/30',
-  subtle:  'bg-white/[0.04] ring-1 ring-white/5',
+  default: 'bg-surface-elevated ring-1 ring-line-default/10',
+  raised:  'bg-surface-elevated ring-1 ring-line-default/10 shadow-xl shadow-black/30',
+  subtle:  'bg-line-default/[0.04] ring-1 ring-line-default/5',
   accent:
-    'bg-gradient-to-br from-brand-primary-deep/40 via-charcoal-900 to-charcoal-900 ' +
+    'bg-gradient-to-br from-brand-primary-deep/40 via-surface-elevated to-surface-elevated ' +
     'ring-1 ring-brand-primary/40',
 };
 
@@ -78,7 +78,7 @@ const Card: React.FC<Props> = ({
   const wrapper = [
     'rounded-2xl overflow-hidden',
     VARIANTS[variant],
-    interactive ? 'cursor-pointer hover:ring-white/20 transition-shadow active:scale-[0.998]' : '',
+    interactive ? 'cursor-pointer hover:ring-line-default/20 transition-shadow active:scale-[0.998]' : '',
     className || '',
   ].filter(Boolean).join(' ');
 
@@ -87,7 +87,7 @@ const Card: React.FC<Props> = ({
   return (
     <div className={wrapper} onClick={interactive ? onClick : undefined} role={interactive ? 'button' : undefined}>
       {hasHeader && (
-        <div className="px-5 py-4 border-b border-white/5 flex items-start justify-between gap-3">
+        <div className="px-5 py-4 border-b border-line-default/5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             {kicker && (
               <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">
@@ -95,7 +95,7 @@ const Card: React.FC<Props> = ({
               </p>
             )}
             {title && (
-              <h2 className="text-bone font-bold leading-tight">{title}</h2>
+              <h2 className="text-ink-primary font-bold leading-tight">{title}</h2>
             )}
           </div>
           {actions && <div className="shrink-0">{actions}</div>}

@@ -127,7 +127,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
       >
         {/* Branded navy header — same chrome as the new chat action sheet
             so the two surfaces feel like siblings. */}
-        <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
+        <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between">
           <button
             onClick={onClose}
             className="text-[11px] font-extrabold tracking-widest uppercase text-slate-400 hover:text-white px-1"
@@ -152,7 +152,7 @@ const UserProfileModal: React.FC<Props> = ({ uid, onClose, onStartDm }) => {
                 {profile.photoURL ? (
                   <img src={profile.photoURL} alt={profile.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-brand-primary-soft" />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white text-xl font-extrabold flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white text-xl font-extrabold flex items-center justify-center">
                     {initials}
                   </div>
                 )}

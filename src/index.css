@@ -44,6 +44,7 @@
   --surface-input:    31 32 36;
   --surface-overlay:  13 13 16;
   --surface-raised:   52 53 58;
+  --surface-tint:     72 73 78;
 
   --ink-primary:   245 243 238;
   --ink-secondary: 245 243 238;
@@ -62,6 +63,7 @@ html[data-theme="light"] {
   --surface-input:    241 245 249;
   --surface-overlay:  255 255 255;
   --surface-raised:   226 232 240;
+  --surface-tint:     203 213 225;
 
   --ink-primary:   15 23 42;
   --ink-secondary: 71 85 105;

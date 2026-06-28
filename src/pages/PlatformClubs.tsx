@@ -91,9 +91,9 @@ const PlatformClubs: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">
+      <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm">
         <div className="text-center">
-          <div className="text-2xl font-black text-bone mb-2">Restricted</div>
+          <div className="text-2xl font-black text-ink-primary mb-2">Restricted</div>
           <p>Platform owner only. This page sets the per-club platform fee — it's intentionally invisible to club admins.</p>
         </div>
       </div>
@@ -106,14 +106,14 @@ const PlatformClubs: React.FC = () => {
   const defaultDirty = Math.round(Number(defaultBps || 0)) !== defaultBpsSaved;
 
   return (
-    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-surface-base px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
         <div>
-          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Back</Link>
-          <h1 className="text-2xl font-black text-bone mt-1">Platform · Clubs</h1>
-          <p className="text-sm text-bone/65">
+          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">← Back</Link>
+          <h1 className="text-2xl font-black text-ink-primary mt-1">Platform · Clubs</h1>
+          <p className="text-sm text-ink-primary/65">
             Per-club GoalKickr platform fee. Stored as basis points (100 = 1%) and applied as the
-            <code className="text-[11px] bg-charcoal-950 px-1.5 py-0.5 rounded mx-1">application_fee_amount</code>
+            <code className="text-[11px] bg-surface-base px-1.5 py-0.5 rounded mx-1">application_fee_amount</code>
             on every checkout. Defaults to 0 (club keeps everything minus the standard card-processing fee).
           </p>
           <p className="text-[11px] text-amber-300 mt-2">
@@ -122,32 +122,32 @@ const PlatformClubs: React.FC = () => {
         </div>
 
         {/* Total revenue */}
-        <div className="bg-gradient-to-br from-emerald-500/10 via-charcoal-900 to-charcoal-900 rounded-2xl ring-1 ring-emerald-500/30 p-5">
+        <div className="bg-gradient-to-br from-emerald-500/10 via-surface-elevated to-surface-elevated rounded-2xl ring-1 ring-emerald-500/30 p-5">
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300 mb-1">Platform revenue · lifetime</p>
           <div className="flex items-baseline gap-3 flex-wrap">
-            <div className="text-3xl font-black text-bone tabular-nums">{fmtMoney(totalEarnedCents)}</div>
-            <div className="text-sm text-bone/55">
+            <div className="text-3xl font-black text-ink-primary tabular-nums">{fmtMoney(totalEarnedCents)}</div>
+            <div className="text-sm text-ink-primary/55">
               {totalPayments.toLocaleString()} payment{totalPayments === 1 ? '' : 's'} across {earningClubs} club{earningClubs === 1 ? '' : 's'}
             </div>
           </div>
           {totalEarnedCents === 0 && (
-            <p className="text-[11px] text-bone/40 mt-2">No earnings yet. Set a default fee below and earnings will start accruing on the next paid registration.</p>
+            <p className="text-[11px] text-ink-primary/40 mt-2">No earnings yet. Set a default fee below and earnings will start accruing on the next paid registration.</p>
           )}
         </div>
 
         {/* Default for new clubs */}
-        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-5">
+        <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-5">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
-              <h2 className="font-bold text-bone">Default for new clubs</h2>
-              <p className="text-[11px] text-bone/55 mt-0.5">
-                Applied to clubs that haven't been set explicitly. The worker stamps this onto the club's <code className="text-[10px] bg-charcoal-950 px-1 rounded">platformFeeBps</code> field on their first paid registration.
+              <h2 className="font-bold text-ink-primary">Default for new clubs</h2>
+              <p className="text-[11px] text-ink-primary/55 mt-0.5">
+                Applied to clubs that haven't been set explicitly. The worker stamps this onto the club's <code className="text-[10px] bg-surface-base px-1 rounded">platformFeeBps</code> field on their first paid registration.
               </p>
             </div>
           </div>
           <div className="flex items-end gap-2">
             <label className="flex-1">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">
                 Default platform fee (basis points)
               </span>
               <input
@@ -156,9 +156,9 @@ const PlatformClubs: React.FC = () => {
                 max={10000}
                 value={defaultBps}
                 onChange={(e) => setDefaultBps(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm bg-charcoal-950 text-bone"
+                className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm bg-surface-base text-ink-primary"
               />
-              <p className="text-[10px] text-bone/50 mt-1">
+              <p className="text-[10px] text-ink-primary/50 mt-1">
                 {Math.round(Number(defaultBps || 0)) === 0
                   ? 'No default — new clubs start at 0%.'
                   : `${(Number(defaultBps) / 100).toFixed(2)}% — on a $300 registration that's ${fmtMoney((300 * Number(defaultBps)) / 100)}.`}
@@ -176,9 +176,9 @@ const PlatformClubs: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : clubs.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">No clubs in the project.</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center text-sm text-ink-primary/50">No clubs in the project.</div>
         ) : (
           <ul className="space-y-2">
             {clubs.map(c => {
@@ -188,16 +188,16 @@ const PlatformClubs: React.FC = () => {
               const earned = c.platformFeeCentsCollected || 0;
               const payments = c.platformFeePaymentsCount || 0;
               return (
-                <li key={c.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4">
+                <li key={c.id} className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-4">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div>
-                      <div className="font-black text-bone">{c.name}</div>
-                      <div className="text-[11px] text-bone/50 mt-0.5">
+                      <div className="font-black text-ink-primary">{c.name}</div>
+                      <div className="text-[11px] text-ink-primary/50 mt-0.5">
                         {c.id}
                         {' · '}
                         {connected
                           ? <span className="text-emerald-300 font-bold">Payments on</span>
-                          : <span className="text-bone/40">Payments off</span>}
+                          : <span className="text-ink-primary/40">Payments off</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -207,7 +207,7 @@ const PlatformClubs: React.FC = () => {
                         </span>
                       )}
                       {c.platformFeeBpsAppliedFromDefault && (
-                        <span className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-charcoal-950 text-bone/55 ring-1 ring-white/10" title="This club's fee was filled from the platform default at first payment.">
+                        <span className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-surface-base text-ink-primary/55 ring-1 ring-line-default/10" title="This club's fee was filled from the platform default at first payment.">
                           From default
                         </span>
                       )}
@@ -215,17 +215,17 @@ const PlatformClubs: React.FC = () => {
                   </div>
 
                   {/* Earnings */}
-                  <div className="mb-3 bg-white/[0.04] rounded-lg px-3 py-2 flex items-baseline justify-between">
-                    <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/40">Earned</span>
-                    <span className="text-sm font-bold text-bone tabular-nums">
+                  <div className="mb-3 bg-line-default/[0.04] rounded-lg px-3 py-2 flex items-baseline justify-between">
+                    <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/40">Earned</span>
+                    <span className="text-sm font-bold text-ink-primary tabular-nums">
                       {fmtMoney(earned)}
-                      {payments > 0 && <span className="text-bone/40 font-normal text-xs"> · {payments} payment{payments === 1 ? '' : 's'}</span>}
+                      {payments > 0 && <span className="text-ink-primary/40 font-normal text-xs"> · {payments} payment{payments === 1 ? '' : 's'}</span>}
                     </span>
                   </div>
 
                   <div className="flex items-end gap-2">
                     <label className="flex-1">
-                      <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">
+                      <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">
                         Platform fee (basis points)
                       </span>
                       <input
@@ -234,9 +234,9 @@ const PlatformClubs: React.FC = () => {
                         max={10000}
                         value={drafts[c.id] ?? ''}
                         onChange={(e) => setDrafts(prev => ({ ...prev, [c.id]: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm bg-charcoal-950 text-bone"
+                        className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm bg-surface-base text-ink-primary"
                       />
-                      <p className="text-[10px] text-bone/50 mt-1">
+                      <p className="text-[10px] text-ink-primary/50 mt-1">
                         {bps === 0
                           ? 'No platform fee — club keeps everything'
                           : `${(bps / 100).toFixed(2)}% — on a $300 registration, GoalKickr nets ${fmtMoney((300 * bps) / 100)}`}

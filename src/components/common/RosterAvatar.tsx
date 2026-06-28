@@ -29,7 +29,7 @@ const PALETTE = [
   'from-brand-primary-soft to-brand-primary',
   'from-violet-400 to-violet-600',
   'from-fuchsia-400 to-pink-600',
-  'from-brand-primary-soft to-charcoal-600',
+  'from-brand-primary-soft to-surface-tint',
   'from-sky-400 to-sky-600',
 ];
 

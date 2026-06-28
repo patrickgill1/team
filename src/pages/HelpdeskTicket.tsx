@@ -13,9 +13,9 @@ const STATUS_OPTIONS: TicketStatus[] = ['open', 'assigned', 'in_progress', 'reso
 const STATUS_CHIP: Record<TicketStatus, string> = {
   open: 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30',
   assigned: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
-  in_progress: 'bg-brand-primary/15 text-bone/85 border-brand-primary-soft/30',
+  in_progress: 'bg-brand-primary/15 text-ink-primary/85 border-brand-primary-soft/30',
   resolved: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
-  closed: 'bg-charcoal-950 text-bone/50 border-white/10',
+  closed: 'bg-surface-base text-ink-primary/50 border-line-default/10',
 };
 
 function formatRel(d: Date): string {
@@ -229,7 +229,7 @@ const HelpdeskTicketPage: React.FC = () => {
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center p-8">
         <Link to="/helpdesk" className="text-brand-primary font-semibold text-sm">← Back to tickets</Link>
       </div>
     );
@@ -238,13 +238,13 @@ const HelpdeskTicketPage: React.FC = () => {
   const canChangeStatus = isAdmin || ticket.createdBy === userData?.uid;
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       {/* Custom navy header so we can fit the back button + status pill */}
-      <header className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-b border-brand-primary/10 px-4 sm:px-6 pt-4 pb-5">
+      <header className="bg-gradient-to-b from-surface-base to-surface-elevated border-b border-brand-primary/10 px-4 sm:px-6 pt-4 pb-5">
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-bone/35 hover:text-white text-xs font-extrabold tracking-widest uppercase mb-3"
+            className="inline-flex items-center gap-1.5 text-ink-primary/35 hover:text-white text-xs font-extrabold tracking-widest uppercase mb-3"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Back
@@ -255,7 +255,7 @@ const HelpdeskTicketPage: React.FC = () => {
               {ticket.status.replace('_', ' ')}
             </span>
           </div>
-          <p className="mt-1 text-xs text-bone/40">
+          <p className="mt-1 text-xs text-ink-primary/40">
             {ticket.createdByName} · {formatRel(new Date(ticket.createdAt))}
             {ticket.assignedToName ? ` · assigned to ${ticket.assignedToName}` : ''}
           </p>
@@ -264,16 +264,16 @@ const HelpdeskTicketPage: React.FC = () => {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 space-y-3">
         {/* Description */}
-        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-2">Description</div>
-          <p className="text-sm text-bone/85 whitespace-pre-wrap">{ticket.description}</p>
+        <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/65 mb-2">Description</div>
+          <p className="text-sm text-ink-primary/85 whitespace-pre-wrap">{ticket.description}</p>
         </div>
 
         {/* Assignee (admin only) */}
         {isAdmin && (
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-3">
+          <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50">Assigned to</div>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50">Assigned to</div>
               <button
                 onClick={() => setShowAssignPicker(s => !s)}
                 disabled={assigning}
@@ -282,11 +282,11 @@ const HelpdeskTicketPage: React.FC = () => {
                 {showAssignPicker ? 'Cancel' : (ticket.assignedTo ? 'Change' : 'Assign')}
               </button>
             </div>
-            <div className="text-sm text-bone/90">
-              {ticket.assignedToName || <span className="italic text-bone/40">Unassigned</span>}
+            <div className="text-sm text-ink-primary/90">
+              {ticket.assignedToName || <span className="italic text-ink-primary/40">Unassigned</span>}
             </div>
             {showAssignPicker && (
-              <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
+              <div className="mt-2 pt-2 border-t border-line-default/5 space-y-1">
                 {admins.map(a => (
                   <button
                     key={a.id}
@@ -294,8 +294,8 @@ const HelpdeskTicketPage: React.FC = () => {
                     disabled={assigning || a.id === ticket.assignedTo}
                     className={`w-full text-left text-sm px-2 py-1.5 rounded-md ${
                       a.id === ticket.assignedTo
-                        ? 'bg-charcoal-950 text-bone/40 cursor-default'
-                        : 'hover:bg-brand-primary/15 text-bone/90'
+                        ? 'bg-surface-base text-ink-primary/40 cursor-default'
+                        : 'hover:bg-brand-primary/15 text-ink-primary/90'
                     } disabled:opacity-60`}
                   >
                     {a.name}{a.id === userData?.uid ? ' (me)' : ''}
@@ -317,8 +317,8 @@ const HelpdeskTicketPage: React.FC = () => {
 
         {/* Status changer (admin or creator) */}
         {canChangeStatus && (
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-3">
-            <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-2">Change status</div>
+          <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-3">
+            <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 mb-2">Change status</div>
             <div className="flex flex-wrap gap-1">
               {STATUS_OPTIONS.map(s => (
                 <button
@@ -327,7 +327,7 @@ const HelpdeskTicketPage: React.FC = () => {
                   onClick={() => changeStatus(s)}
                   className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded-md border ${
                     s === ticket.status
-                      ? 'bg-charcoal-950 text-bone/40 border-white/10 cursor-default'
+                      ? 'bg-surface-base text-ink-primary/40 border-line-default/10 cursor-default'
                       : `${STATUS_CHIP[s]} hover:opacity-80`
                   } disabled:opacity-50`}
                 >
@@ -339,24 +339,24 @@ const HelpdeskTicketPage: React.FC = () => {
         )}
 
         {/* Comments */}
-        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65 mb-2">
-            Replies <span className="text-bone/40 font-bold">{comments.length}</span>
+        <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/65 mb-2">
+            Replies <span className="text-ink-primary/40 font-bold">{comments.length}</span>
           </div>
           {comments.length === 0 ? (
-            <p className="text-sm text-bone/50 mb-3">No replies yet.</p>
+            <p className="text-sm text-ink-primary/50 mb-3">No replies yet.</p>
           ) : (
             <ul className="space-y-2 mb-3">
               {comments.map(c => (
-                <li key={c.id} className={`rounded-lg p-2.5 ${c.statusChange ? 'bg-white/[0.04] border border-white/10' : 'bg-charcoal-900 border border-white/5'}`}>
-                  <div className="text-[11px] text-bone/50 mb-1">
-                    <span className="font-semibold text-bone/85">{c.authorName}</span>
+                <li key={c.id} className={`rounded-lg p-2.5 ${c.statusChange ? 'bg-line-default/[0.04] border border-line-default/10' : 'bg-surface-elevated border border-line-default/5'}`}>
+                  <div className="text-[11px] text-ink-primary/50 mb-1">
+                    <span className="font-semibold text-ink-primary/85">{c.authorName}</span>
                     {c.authorRole === 'admin' && (
                       <span className="ml-1.5 text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-300 border border-violet-400/30">Admin</span>
                     )}
                     <span className="ml-1.5">{formatRel(c.createdAt)}</span>
                   </div>
-                  <div className="text-sm text-bone/90 whitespace-pre-wrap">{c.content}</div>
+                  <div className="text-sm text-ink-primary/90 whitespace-pre-wrap">{c.content}</div>
                 </li>
               ))}
             </ul>
@@ -372,7 +372,7 @@ const HelpdeskTicketPage: React.FC = () => {
                 }}
                 rows={2}
                 placeholder="Add a reply…"
-                className="flex-1 px-3 py-2 text-sm border border-white/10 rounded-lg resize-none"
+                className="flex-1 px-3 py-2 text-sm border border-line-default/10 rounded-lg resize-none"
               />
               <button
                 onClick={post}
@@ -381,7 +381,7 @@ const HelpdeskTicketPage: React.FC = () => {
               >Send</button>
             </div>
           ) : (
-            <p className="text-xs text-bone/40">Sign in to reply.</p>
+            <p className="text-xs text-ink-primary/40">Sign in to reply.</p>
           )}
         </div>
       </div>

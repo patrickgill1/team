@@ -72,11 +72,11 @@ const Forms: React.FC = () => {
   useEffect(() => { void reload(); }, [allowed, clubId]);
 
   if (!allowed) {
-    return <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">Club admins only.</div>;
+    return <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm">Club admins only.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-surface-base px-4 py-6 sm:py-10">
       <div className="max-w-3xl mx-auto space-y-4">
         {/* Header — title block sits above the action button on mobile
             so neither competes for horizontal room. On desktop the
@@ -84,11 +84,11 @@ const Forms: React.FC = () => {
             the button forced "+ New form" to wrap onto 3 lines and
             squeezed the description text into a thin column. */}
         <div>
-          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Club</Link>
+          <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">← Club</Link>
           <div className="mt-1 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-black text-bone">Forms</h1>
-              <p className="text-sm text-bone/65 mt-1 max-w-prose">
+              <h1 className="text-2xl font-black text-ink-primary">Forms</h1>
+              <p className="text-sm text-ink-primary/65 mt-1 max-w-prose">
                 Waivers, releases, consents, order forms. Each shows up on every player's checklist; admins mark signed as they come in.
               </p>
             </div>
@@ -104,10 +104,10 @@ const Forms: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : forms.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center">
-            <p className="text-sm text-bone/65 mb-3">No forms yet. Player Waiver and Medical Release are usually the first two.</p>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center">
+            <p className="text-sm text-ink-primary/65 mb-3">No forms yet. Player Waiver and Medical Release are usually the first two.</p>
             <button type="button" onClick={() => setCreating(true)} className="px-3 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 text-white text-sm font-bold">
               Create form
             </button>
@@ -115,33 +115,33 @@ const Forms: React.FC = () => {
         ) : (
           <ul className="space-y-2">
             {forms.map(f => (
-              <li key={f.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-brand-primary-soft/40 p-4 transition">
+              <li key={f.id} className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 hover:ring-brand-primary-soft/40 p-4 transition">
                 <button type="button" onClick={() => setEditing(f)} className="w-full text-left">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-bold text-bone">{f.name}</div>
-                      {f.description && <p className="text-[11px] text-bone/50 mt-0.5">{f.description}</p>}
+                      <div className="font-bold text-ink-primary">{f.name}</div>
+                      {f.description && <p className="text-[11px] text-ink-primary/50 mt-0.5">{f.description}</p>}
                       <div className="mt-2 flex items-center gap-1.5 flex-wrap text-[10px]">
                         {f.required && <span className="font-extrabold tracking-widest uppercase bg-rose-500/15 text-rose-300 ring-1 ring-rose-200 px-1.5 py-0.5 rounded">Required</span>}
-                        {!f.isActive && <span className="font-extrabold tracking-widest uppercase bg-charcoal-950 text-bone/50 ring-1 ring-white/15 px-1.5 py-0.5 rounded">Archived</span>}
+                        {!f.isActive && <span className="font-extrabold tracking-widest uppercase bg-surface-base text-ink-primary/50 ring-1 ring-line-default/15 px-1.5 py-0.5 rounded">Archived</span>}
                         {f.seasonId && <span className="font-extrabold tracking-widest uppercase bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">{seasons.find(s => s.id === f.seasonId)?.name || 'Season scoped'}</span>}
                         {(f.ageGroups || []).length > 0 && <span className="font-extrabold tracking-widest uppercase bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">{(f.ageGroups || []).join(', ')}</span>}
                       </div>
                     </div>
                   </div>
                 </button>
-                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-end gap-2">
+                <div className="mt-3 pt-3 border-t border-line-default/5 flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setSendingFor(f)}
-                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-brand-primary-soft/40 hover:text-bone"
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-surface-base ring-1 ring-line-default/10 text-ink-primary/85 hover:ring-brand-primary-soft/40 hover:text-ink-primary"
                   >
                     Send reminder
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditing(f)}
-                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-charcoal-950 ring-1 ring-white/10 text-bone/85 hover:ring-brand-primary-soft/40 hover:text-bone"
+                    className="text-[10px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-surface-base ring-1 ring-line-default/10 text-ink-primary/85 hover:ring-brand-primary-soft/40 hover:text-ink-primary"
                   >
                     Edit
                   </button>
@@ -267,55 +267,55 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-charcoal-900 w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
-        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-black text-bone">{isNew ? 'New form' : 'Edit form'}</h2>
-          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
+      <div className="bg-surface-elevated w-full sm:max-w-xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+        <div className="px-5 py-4 border-b border-line-default/5 flex items-center justify-between">
+          <h2 className="font-black text-ink-primary">{isNew ? 'New form' : 'Edit form'}</h2>
+          <button type="button" onClick={onClose} className="text-ink-primary/40 hover:text-ink-primary/85 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player Waiver" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Short description (optional)</span>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Short description (optional)</span>
+            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Standard liability waiver — required before first practice" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </label>
 
           <label className="block">
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Body text (terms / instructions, optional)</span>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed" />
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Body text (terms / instructions, optional)</span>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm leading-relaxed" />
           </label>
 
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to season (optional)</span>
-              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope to season (optional)</span>
+              <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 <option value="">Every season</option>
                 {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Display order</span>
-              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Display order</span>
+              <input type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </label>
           </div>
 
           <div>
-            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Scope to age groups (optional)</span>
+            <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Scope to age groups (optional)</span>
             <div className="flex flex-wrap gap-1.5">
               {AGE_GROUP_OPTIONS.map(ag => {
                 const on = ageGroups.includes(ag);
                 return (
-                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-brand-primary text-white ring-brand-primary' : 'bg-charcoal-900 text-bone/65 ring-white/10 hover:ring-brand-primary-soft'}`}>{ag}</button>
+                  <button key={ag} type="button" onClick={() => setAgeGroups(on ? ageGroups.filter(x => x !== ag) : [...ageGroups, ag])} className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${on ? 'bg-brand-primary text-white ring-brand-primary' : 'bg-surface-elevated text-ink-primary/65 ring-line-default/10 hover:ring-brand-primary-soft'}`}>{ag}</button>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-bone/85">
+          <div className="flex items-center gap-4 text-sm text-ink-primary/85">
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
               Required
@@ -333,13 +333,13 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
               joining a roster. */}
           {questions.length > 0 && (
             <div>
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">
-                Allocate to event <span className="text-bone/40 font-normal normal-case tracking-normal">(optional — tournament / camp signups)</span>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">
+                Allocate to event <span className="text-ink-primary/40 font-normal normal-case tracking-normal">(optional — tournament / camp signups)</span>
               </span>
               <select
                 value={allocateToEventId}
                 onChange={(e) => setAllocateToEventId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-charcoal-950 text-bone ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+                className="w-full px-3 py-2 rounded-lg bg-surface-base text-ink-primary ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
               >
                 <option value="">— None (just collect answers) —</option>
                 {upcomingEvents.map(ev => (
@@ -349,7 +349,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
                 ))}
               </select>
               {upcomingEvents.length === 0 && (
-                <p className="text-[11px] text-bone/45 mt-1">No upcoming events on the calendar — create one first, then come back to attach.</p>
+                <p className="text-[11px] text-ink-primary/45 mt-1">No upcoming events on the calendar — create one first, then come back to attach.</p>
               )}
             </div>
           )}
@@ -362,31 +362,31 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
               size / meal pref AND captures a liability signature. */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65">
-                Questions <span className="text-bone/40 font-normal normal-case tracking-normal">(optional — adds a fill-out step before signing)</span>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65">
+                Questions <span className="text-ink-primary/40 font-normal normal-case tracking-normal">(optional — adds a fill-out step before signing)</span>
               </span>
               <button type="button" onClick={addQuestion} className="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md bg-brand-primary hover:bg-brand-primary text-white">+ Question</button>
             </div>
             {questions.length === 0 ? (
-              <p className="text-[11px] text-bone/45 rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2">
+              <p className="text-[11px] text-ink-primary/45 rounded-lg bg-surface-base ring-1 ring-line-default/10 px-3 py-2">
                 Signature-only form. Add a question to turn this into a tournament / camp signup or info-gathering form.
               </p>
             ) : (
               <ul className="space-y-2">
                 {questions.map((q, i) => (
-                  <li key={q.id} className="rounded-lg bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-2">
+                  <li key={q.id} className="rounded-lg bg-surface-base ring-1 ring-line-default/10 p-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/45 shrink-0">Q{i + 1}</span>
+                      <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/45 shrink-0">Q{i + 1}</span>
                       <input
                         value={q.label}
                         onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
                         placeholder="Question label"
-                        className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-sm"
+                        className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-sm"
                       />
-                      <button type="button" disabled={i === 0} onClick={() => moveQuestion(q.id, -1)} className="text-bone/50 hover:text-bone disabled:opacity-30 px-1" title="Move up" aria-label="Move up">
+                      <button type="button" disabled={i === 0} onClick={() => moveQuestion(q.id, -1)} className="text-ink-primary/50 hover:text-ink-primary disabled:opacity-30 px-1" title="Move up" aria-label="Move up">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
                       </button>
-                      <button type="button" disabled={i === questions.length - 1} onClick={() => moveQuestion(q.id, 1)} className="text-bone/50 hover:text-bone disabled:opacity-30 px-1" title="Move down" aria-label="Move down">
+                      <button type="button" disabled={i === questions.length - 1} onClick={() => moveQuestion(q.id, 1)} className="text-ink-primary/50 hover:text-ink-primary disabled:opacity-30 px-1" title="Move down" aria-label="Move down">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
                       </button>
                       <button type="button" onClick={() => removeQuestion(q.id)} className="text-rose-300 hover:text-rose-200 px-1" title="Delete" aria-label="Delete">
@@ -397,7 +397,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
                       <select
                         value={q.type}
                         onChange={(e) => updateQuestion(q.id, { type: e.target.value as any })}
-                        className="px-2 py-1.5 rounded-md bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-sm"
+                        className="px-2 py-1.5 rounded-md bg-surface-elevated text-ink-primary ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-sm"
                       >
                         <option value="text">Short text</option>
                         <option value="textarea">Long text</option>
@@ -405,7 +405,7 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
                         <option value="yes_no">Yes / No</option>
                         <option value="number">Number</option>
                       </select>
-                      <label className="flex items-center gap-2 text-[12px] text-bone/85">
+                      <label className="flex items-center gap-2 text-[12px] text-ink-primary/85">
                         <input type="checkbox" checked={!!q.required} onChange={(e) => updateQuestion(q.id, { required: e.target.checked })} />
                         Required
                       </label>
@@ -415,14 +415,14 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
                         value={(q.options || []).join(', ')}
                         onChange={(e) => updateQuestion(q.id, { options: e.target.value.split(',').map(o => o.trim()).filter(Boolean) })}
                         placeholder="Comma-separated options: Youth Small, Youth Medium, Youth Large"
-                        className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-[12px]"
+                        className="w-full px-2 py-1.5 rounded-md bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-[12px]"
                       />
                     )}
                     <input
                       value={q.help || ''}
                       onChange={(e) => updateQuestion(q.id, { help: e.target.value || undefined })}
                       placeholder="Helper text (optional)"
-                      className="w-full px-2 py-1.5 rounded-md bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-[12px]"
+                      className="w-full px-2 py-1.5 rounded-md bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40 text-[12px]"
                     />
                   </li>
                 ))}
@@ -433,8 +433,8 @@ const Editor: React.FC<EditorProps> = ({ form, seasons, upcomingEvents, clubId, 
           {error && <div className="rounded-lg bg-rose-500/15 ring-1 ring-rose-300 px-3 py-2 text-sm text-rose-300">{error}</div>}
         </div>
 
-        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
+        <div className="px-5 py-3 border-t border-line-default/5 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/65 hover:text-ink-primary">Cancel</button>
           <button type="button" disabled={!canSave} onClick={handleSave} className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/150 disabled:opacity-50 text-white text-sm font-bold">
             {saving ? 'Saving…' : isNew ? 'Create form' : 'Save changes'}
           </button>
@@ -567,10 +567,10 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 ring-1 ring-white/10 w-full sm:max-w-md sm:rounded-2xl overflow-hidden flex flex-col">
-        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-          <h3 className="text-base font-black text-bone">Send signing reminder</h3>
-          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
+      <div onClick={e => e.stopPropagation()} className="bg-surface-elevated ring-1 ring-line-default/10 w-full sm:max-w-md sm:rounded-2xl overflow-hidden flex flex-col">
+        <div className="px-5 py-4 border-b border-line-default/5 flex items-center justify-between">
+          <h3 className="text-base font-black text-ink-primary">Send signing reminder</h3>
+          <button type="button" onClick={onClose} className="text-ink-primary/40 hover:text-ink-primary/85 text-2xl leading-none">×</button>
         </div>
 
         {sent ? (
@@ -578,8 +578,8 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
             <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/30 text-emerald-300 flex items-center justify-center">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <p className="text-sm font-bold text-bone">Reminder sent.</p>
-            <p className="text-[12px] text-bone/60">
+            <p className="text-sm font-bold text-ink-primary">Reminder sent.</p>
+            <p className="text-[12px] text-ink-primary/60">
               {sent.recipients === 0
                 ? 'No unsigned families in this scope.'
                 : `Pushed to ${sent.recipients} parent${sent.recipients === 1 ? '' : 's'} who still needs to sign.`}
@@ -591,12 +591,12 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
         ) : (
           <div className="p-5 space-y-4">
             <div>
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Form</span>
-              <div className="text-sm font-bold text-bone">{form.name}</div>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Form</span>
+              <div className="text-sm font-bold text-ink-primary">{form.name}</div>
             </div>
 
             <div>
-              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">Send to</span>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">Send to</span>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -604,7 +604,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                   className={`px-3 py-2 rounded-lg ring-1 text-sm font-semibold ${
                     scope === 'club'
                       ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
-                      : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                      : 'bg-surface-base ring-line-default/10 text-ink-primary hover:bg-line-default/5'
                   }`}
                 >
                   Whole club
@@ -615,7 +615,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                   className={`px-3 py-2 rounded-lg ring-1 text-sm font-semibold ${
                     scope === 'team'
                       ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
-                      : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                      : 'bg-surface-base ring-line-default/10 text-ink-primary hover:bg-line-default/5'
                   }`}
                 >
                   One team
@@ -625,7 +625,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
                 <select
                   value={teamId}
                   onChange={(e) => setTeamId(e.target.value)}
-                  className="mt-2 w-full px-3 py-2 text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
+                  className="mt-2 w-full px-3 py-2 text-sm bg-surface-base text-ink-primary border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
                 >
                   <option value="">— Pick a team —</option>
                   {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -633,7 +633,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
               )}
             </div>
 
-            <div className="rounded-lg bg-charcoal-950 ring-1 ring-white/10 px-3 py-2.5 text-[12px] text-bone/75">
+            <div className="rounded-lg bg-surface-base ring-1 ring-line-default/10 px-3 py-2.5 text-[12px] text-ink-primary/75">
               {computing
                 ? 'Counting unsigned families…'
                 : unsignedCount === null
@@ -644,7 +644,7 @@ const SendReminderModal: React.FC<SendReminderProps> = ({ form, clubId, onClose 
             </div>
 
             <div className="flex items-center justify-end gap-2">
-              <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
+              <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/65 hover:text-ink-primary">Cancel</button>
               <button
                 type="button"
                 disabled={sending || (scope === 'team' && !teamId) || unsignedCount === 0}

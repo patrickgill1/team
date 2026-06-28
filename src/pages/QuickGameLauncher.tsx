@@ -16,14 +16,14 @@ const QuickGameLauncher: React.FC = () => {
 
   if (!isCoach(userData?.role || '')) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base text-white flex items-center justify-center p-6">
         <div className="text-center">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 mx-auto mb-3 text-white/40">
             <rect x="3" y="11" width="18" height="11" rx="2" />
             <path d="M7 11V7a5 5 0 0110 0v4" />
           </svg>
           <p className="text-white/70">Coaches only — kickoff is a coach-side action.</p>
-          <Link to="/dashboard" className="mt-4 inline-block text-brand-primary-soft hover:text-bone text-sm">← Team HQ</Link>
+          <Link to="/dashboard" className="mt-4 inline-block text-brand-primary-soft hover:text-ink-primary text-sm">← Team HQ</Link>
         </div>
       </div>
     );
@@ -59,14 +59,14 @@ const QuickGameLauncher: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 text-white">
-      <header className="px-4 py-4 border-b border-white/10 flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base text-white">
+      <header className="px-4 py-4 border-b border-line-default/10 flex items-center justify-between">
         <Link to="/dashboard" className="text-white/60 hover:text-white text-sm">← Back</Link>
         <h1 className="text-lg font-bold">⚡ Quick Game</h1>
         <div className="w-12" />
       </header>
       <main className="max-w-md mx-auto px-4 pt-8 space-y-5">
-        <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-5 space-y-4">
+        <div className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-5 space-y-4">
           <p className="text-sm text-white/70">
             Start Game Day right now without putting it on the calendar. Useful for scrimmages, friendlies, or anything you forgot to schedule.
           </p>
@@ -80,7 +80,7 @@ const QuickGameLauncher: React.FC = () => {
               value={opponent}
               onChange={e => setOpponent(e.target.value)}
               placeholder="e.g. Lightning FC"
-              className="mt-1 w-full px-3 py-2 bg-white/10 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="mt-1 w-full px-3 py-2 bg-line-default/10 border border-line-default/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
               autoFocus
             />
           </div>
@@ -91,7 +91,7 @@ const QuickGameLauncher: React.FC = () => {
                 <button
                   key={v}
                   onClick={() => setHomeAway(v)}
-                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-brand-primary ring-brand-primary-soft text-white' : 'bg-white/5 ring-white/10 text-white/70 hover:bg-white/10'}`}
+                  className={`py-2 rounded-lg text-sm font-semibold ring-1 ${homeAway === v ? 'bg-brand-primary ring-brand-primary-soft text-white' : 'bg-line-default/5 ring-line-default/10 text-white/70 hover:bg-line-default/10'}`}
                 >{v === 'home' ? '🏠 Home' : '✈️ Away'}</button>
               ))}
             </div>

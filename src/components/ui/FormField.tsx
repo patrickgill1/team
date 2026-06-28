@@ -19,7 +19,7 @@ import React from 'react';
  *
  * For consistent input styling, use `fieldInputClass` (exported
  * below) on the inner input. Drops the dozens of one-off
- * `className="mt-1 w-full rounded-md bg-charcoal-950 ring-1..."`
+ * `className="mt-1 w-full rounded-md bg-surface-base ring-1..."`
  * declarations.
  */
 
@@ -41,9 +41,9 @@ interface Props {
 /** Shared input className. Apply to any <input>/<textarea>/<select>
  *  inside a FormField for the canonical look + focus state. */
 export const fieldInputClass =
-  'mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 ' +
+  'mt-1 w-full rounded-md bg-surface-base ring-1 ring-line-default/10 ' +
   'focus:ring-2 focus:ring-brand-primary focus:outline-none ' +
-  'px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm ' +
+  'px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm ' +
   'disabled:opacity-50 disabled:cursor-not-allowed';
 
 const FormField: React.FC<Props> = ({
@@ -59,14 +59,14 @@ const FormField: React.FC<Props> = ({
     {(label || hint) && (
       <div className="mb-0.5">
         {label && (
-          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">
+          <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">
             {label}
             {required && <span className="text-brand-primary-soft ml-0.5" aria-hidden>*</span>}
-            {optional && <span className="text-bone/35 ml-1.5 normal-case font-normal tracking-normal">(optional)</span>}
+            {optional && <span className="text-ink-primary/35 ml-1.5 normal-case font-normal tracking-normal">(optional)</span>}
           </span>
         )}
         {hint && (
-          <p className="text-[11px] text-bone/45 leading-snug mt-0.5">{hint}</p>
+          <p className="text-[11px] text-ink-primary/45 leading-snug mt-0.5">{hint}</p>
         )}
       </div>
     )}

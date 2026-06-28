@@ -40,7 +40,7 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
   }
 
   return (
-    <div className="px-3.5 py-3 bg-gradient-to-b from-charcoal-950 to-charcoal-800 border-y border-brand-primary/10">
+    <div className="px-3.5 py-3 bg-gradient-to-b from-surface-base to-surface-input border-y border-brand-primary/10">
       <div className="grid grid-cols-7 gap-1">
         {days.map((d, i) => {
           const key = ymd(d);
@@ -51,8 +51,8 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
           const cls = isToday
             ? `${base} bg-brand-primary/15 border-brand-primary-soft/50 ring-1 ring-brand-primary-soft/20`
             : has
-            ? `${base} bg-charcoal-950/60 border-slate-700/50`
-            : `${base} bg-charcoal-950/40 border-slate-800/50`;
+            ? `${base} bg-surface-base/60 border-slate-700/50`
+            : `${base} bg-surface-base/40 border-slate-800/50`;
           return (
             <button
               key={key}

@@ -112,12 +112,12 @@ const InstallAppBanner: React.FC = () => {
   const ctaButtonLabel = isAndroidBeta ? 'Join beta' : 'Install';
 
   return (
-    <div className="lg:hidden bg-gradient-to-r from-brand-primary to-charcoal-700 text-white shadow">
+    <div className="lg:hidden bg-gradient-to-r from-brand-primary to-surface-raised text-white shadow">
       <div className="max-w-7xl mx-auto px-3 py-2 flex items-center gap-3">
         <img
           src="/images/logo.png"
           alt="GoalKickr"
-          className="w-9 h-9 rounded-xl bg-white/10 ring-1 ring-white/20 p-1 shrink-0"
+          className="w-9 h-9 rounded-xl bg-line-default/10 ring-1 ring-line-default/20 p-1 shrink-0"
         />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold leading-tight truncate">{ctaTitle}</p>
@@ -128,7 +128,7 @@ const InstallAppBanner: React.FC = () => {
           target="_blank"
           rel="noopener noreferrer"
           onClick={onInstall}
-          className="shrink-0 inline-flex items-center gap-1.5 bg-white text-charcoal-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-white/90 transition"
+          className="shrink-0 inline-flex items-center gap-1.5 bg-white text-charcoal-800 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-line-default/90 transition"
         >
           <span>{ctaButtonLabel}</span>
         </a>
@@ -136,7 +136,7 @@ const InstallAppBanner: React.FC = () => {
           onClick={dismiss}
           aria-label="Dismiss"
           title={`Hide for 14 days (${storeLabel})`}
-          className="shrink-0 -mr-1 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
+          className="shrink-0 -mr-1 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-line-default/10 transition"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

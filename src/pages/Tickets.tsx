@@ -83,12 +83,12 @@ const Tickets: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-charcoal-950 pb-20">
+    <div className="min-h-screen bg-surface-base pb-20">
       <div className="max-w-3xl mx-auto px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
         <header className="mb-5 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Support</p>
-            <h1 className="text-2xl font-black text-bone">Tickets</h1>
+            <h1 className="text-2xl font-black text-ink-primary">Tickets</h1>
           </div>
           <Button variant="primary" onClick={() => startNew()}>New ticket</Button>
         </header>
@@ -113,7 +113,7 @@ const Tickets: React.FC = () => {
           </Section>
         )}
 
-        <p className="text-bone/45 text-xs mt-8 text-center">
+        <p className="text-ink-primary/45 text-xs mt-8 text-center">
           Need help fast? <button onClick={() => startNew('platform')} className="text-brand-primary hover:underline">Email GoalKickr support</button>
         </p>
       </div>
@@ -132,11 +132,11 @@ const Section: React.FC<{ title: string; hint?: string; empty: string; children:
   return (
     <section className="mb-6">
       <div className="mb-2">
-        <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55">{title}</h2>
-        {hint && <p className="text-bone/45 text-xs mt-0.5">{hint}</p>}
+        <h2 className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55">{title}</h2>
+        {hint && <p className="text-ink-primary/45 text-xs mt-0.5">{hint}</p>}
       </div>
       {arr.length === 0 ? (
-        <p className="bg-charcoal-900 border border-white/5 rounded-2xl px-4 py-6 text-bone/45 text-sm text-center">{empty}</p>
+        <p className="bg-surface-elevated border border-line-default/5 rounded-2xl px-4 py-6 text-ink-primary/45 text-sm text-center">{empty}</p>
       ) : (
         <ul className="space-y-2">{children}</ul>
       )}
@@ -152,17 +152,17 @@ const TicketRow: React.FC<{ t: Ticket }> = ({ t }) => {
     <li>
       <Link
         to={`/tickets/${t.id}`}
-        className="block bg-charcoal-900 border border-white/5 hover:border-white/15 rounded-2xl p-3 transition-colors"
+        className="block bg-surface-elevated border border-line-default/5 hover:border-line-default/15 rounded-2xl p-3 transition-colors"
       >
         <div className="flex items-baseline gap-2">
           <StatusBadge status={t.status} />
           {t.scope === 'platform' && (
             <span className="text-[10px] font-black tracking-widest uppercase text-brand-primary-soft">GoalKickr</span>
           )}
-          <span className="text-bone font-bold text-sm truncate flex-1">{t.subject || '(no subject)'}</span>
-          <span className="text-bone/45 text-xs whitespace-nowrap">{when}</span>
+          <span className="text-ink-primary font-bold text-sm truncate flex-1">{t.subject || '(no subject)'}</span>
+          <span className="text-ink-primary/45 text-xs whitespace-nowrap">{when}</span>
         </div>
-        <p className="text-bone/55 text-xs mt-1 line-clamp-1">{(t as any).bodyPreview || ''}</p>
+        <p className="text-ink-primary/55 text-xs mt-1 line-clamp-1">{(t as any).bodyPreview || ''}</p>
       </Link>
     </li>
   );
@@ -173,7 +173,7 @@ const StatusBadge: React.FC<{ status: TicketStatus }> = ({ status }) => {
     open:      'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
     pending:   'bg-amber-500/15 text-amber-300 border-amber-500/30',
     resolved:  'bg-sky-500/15 text-sky-300 border-sky-500/30',
-    closed:    'bg-charcoal-700 text-bone/55 border-white/10',
+    closed:    'bg-surface-raised text-ink-primary/55 border-line-default/10',
   };
   return (
     <span className={`text-[10px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded border ${styles[status]}`}>
@@ -183,7 +183,7 @@ const StatusBadge: React.FC<{ status: TicketStatus }> = ({ status }) => {
 };
 
 const Loading: React.FC = () => (
-  <p className="bg-charcoal-900 border border-white/5 rounded-2xl px-4 py-6 text-bone/45 text-sm text-center">Loading...</p>
+  <p className="bg-surface-elevated border border-line-default/5 rounded-2xl px-4 py-6 text-ink-primary/45 text-sm text-center">Loading...</p>
 );
 
 function fmtRelative(ms: number): string {

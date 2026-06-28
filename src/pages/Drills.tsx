@@ -196,21 +196,21 @@ const Drills: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center p-6 text-center">
         <div className="max-w-md">
-          <p className="text-sm font-bold text-bone/85">Coach access only</p>
-          <p className="text-xs text-bone/50 mt-1">Drills are coach-side. Parents see drills assigned via a player's plan.</p>
+          <p className="text-sm font-bold text-ink-primary/85">Coach access only</p>
+          <p className="text-xs text-ink-primary/50 mt-1">Drills are coach-side. Parents see drills assigned via a player's plan.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       {/* Tight one-line header. No breadcrumb (bottom nav handles
           movement), no marketing subtitle. Title left + primary action
           right is enough. */}
-      <section className="bg-charcoal-900 px-4 sm:px-6 py-3 border-b border-white/5">
+      <section className="bg-surface-elevated px-4 sm:px-6 py-3 border-b border-line-default/5">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           <h1 className="text-lg sm:text-xl font-black text-white leading-tight">Training Ground</h1>
           <button
@@ -231,7 +231,7 @@ const Drills: React.FC = () => {
             same line. */}
         {browseLibrary && (
           <>
-            <div className="inline-flex p-1 bg-charcoal-900 ring-1 ring-white/10 rounded-lg w-full">
+            <div className="inline-flex p-1 bg-surface-elevated ring-1 ring-line-default/10 rounded-lg w-full">
               {([
                 { k: 'mine' as const,    label: 'My drills' },
                 { k: 'library' as const, label: 'Library' },
@@ -242,7 +242,7 @@ const Drills: React.FC = () => {
                   className={`flex-1 px-3 py-1.5 rounded-md text-xs font-extrabold tracking-widest uppercase whitespace-nowrap transition ${
                     tab === t.k
                       ? 'bg-brand-primary text-white shadow-sm'
-                      : 'text-bone/55 hover:text-bone'
+                      : 'text-ink-primary/55 hover:text-ink-primary'
                   }`}
                 >
                   {t.label}
@@ -251,7 +251,7 @@ const Drills: React.FC = () => {
             </div>
             {tab === 'library' && (
               <div className="flex items-center justify-end gap-3 text-[10px] font-extrabold tracking-widest uppercase">
-                <span className="text-bone/40">Sort</span>
+                <span className="text-ink-primary/40">Sort</span>
                 {([
                   { k: 'top' as const,      label: 'Top' },
                   { k: 'featured' as const, label: 'Featured' },
@@ -263,7 +263,7 @@ const Drills: React.FC = () => {
                     className={`whitespace-nowrap transition ${
                       librarySort === s.k
                         ? 'text-brand-primary-soft'
-                        : 'text-bone/45 hover:text-bone'
+                        : 'text-ink-primary/45 hover:text-ink-primary'
                     }`}
                   >
                     {s.label}
@@ -276,7 +276,7 @@ const Drills: React.FC = () => {
 
         {/* Search — the single biggest discovery win. */}
         <div className="relative">
-          <svg className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <svg className="absolute inset-y-0 left-3 my-auto w-4 h-4 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -284,13 +284,13 @@ const Drills: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name or focus…"
-            className="w-full bg-charcoal-900 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+            className="w-full bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-2 my-auto w-6 h-6 rounded-full text-bone/40 hover:text-bone hover:bg-white/5 flex items-center justify-center"
+              className="absolute inset-y-0 right-2 my-auto w-6 h-6 rounded-full text-ink-primary/40 hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center"
               aria-label="Clear search"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -313,7 +313,7 @@ const Drills: React.FC = () => {
               className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold tracking-widest uppercase transition ${
                 filterUseCase === c.k
                   ? 'bg-brand-primary text-white shadow-sm'
-                  : 'bg-charcoal-900 text-bone/55 ring-1 ring-white/10 hover:text-bone'
+                  : 'bg-surface-elevated text-ink-primary/55 ring-1 ring-line-default/10 hover:text-ink-primary'
               }`}
             >
               {c.label}
@@ -327,7 +327,7 @@ const Drills: React.FC = () => {
           <select
             value={filterTopic}
             onChange={(e) => setFilterTopic(e.target.value as any)}
-            className="bg-charcoal-900 text-bone [color-scheme:dark] border border-white/15 rounded-lg px-3 py-2 text-sm"
+            className="bg-surface-elevated text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg px-3 py-2 text-sm"
           >
             <option value="all">All topics</option>
             {TOPICS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -335,11 +335,11 @@ const Drills: React.FC = () => {
           <select
             value={filterAge as string}
             onChange={(e) => setFilterAge(e.target.value as any)}
-            className="bg-charcoal-900 text-bone [color-scheme:dark] border border-white/15 rounded-lg px-3 py-2 text-sm"
+            className="bg-surface-elevated text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg px-3 py-2 text-sm"
           >
             {AGE_BANDS.map(a => <option key={a.value as string} value={a.value as string}>{a.label}</option>)}
           </select>
-          <span className="ml-auto text-xs text-bone/50">
+          <span className="ml-auto text-xs text-ink-primary/50">
             {tab === 'library' ? libraryDrills.length : visible.length} drill{(tab === 'library' ? libraryDrills.length : visible.length) === 1 ? '' : 's'}
           </span>
         </div>
@@ -347,11 +347,11 @@ const Drills: React.FC = () => {
         {/* Library tab grid */}
         {tab === 'library' && (
           libraryLoading ? (
-            <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">Loading library…</div>
+            <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center text-sm text-ink-primary/50">Loading library…</div>
           ) : libraryDrills.length === 0 ? (
-            <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-10 text-center">
-              <p className="text-sm font-bold text-bone/85">No shared drills match these filters.</p>
-              <p className="text-xs text-bone/50 mt-1">Loosen the filters or be the first to share one — flip a drill in My drills.</p>
+            <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-10 text-center">
+              <p className="text-sm font-bold text-ink-primary/85">No shared drills match these filters.</p>
+              <p className="text-xs text-ink-primary/50 mt-1">Loosen the filters or be the first to share one — flip a drill in My drills.</p>
             </div>
           ) : (
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -373,11 +373,11 @@ const Drills: React.FC = () => {
 
         {/* My drills grid (existing) */}
         {tab === 'mine' && (loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center text-sm text-ink-primary/50">Loading…</div>
         ) : visible.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-10 text-center">
-            <p className="text-sm font-bold text-bone/85">Library's empty.</p>
-            <p className="text-xs text-bone/50 mt-1 mb-4">Build one yourself, or have AI draft one from a topic.</p>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-10 text-center">
+            <p className="text-sm font-bold text-ink-primary/85">Library's empty.</p>
+            <p className="text-xs text-ink-primary/50 mt-1 mb-4">Build one yourself, or have AI draft one from a topic.</p>
             <button
               onClick={() => { setEditing(null); setCreateOpen(true); }}
               className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-xs font-extrabold tracking-widest uppercase shadow-sm"
@@ -388,7 +388,7 @@ const Drills: React.FC = () => {
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {visible.map(d => (
-              <li key={d.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-brand-primary-soft overflow-hidden transition-shadow hover:shadow-md flex flex-col">
+              <li key={d.id} className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 hover:ring-brand-primary-soft overflow-hidden transition-shadow hover:shadow-md flex flex-col">
                 {/* Card body opens the editor — clickable surface for
                     reviewing / editing the drill. */}
                 <button
@@ -397,7 +397,7 @@ const Drills: React.FC = () => {
                   className="w-full text-left flex-1"
                 >
                   {d.streamUid && (
-                    <div className="aspect-video w-full bg-white/15 relative">
+                    <div className="aspect-video w-full bg-line-default/15 relative">
                       <img
                         src={streamThumbnailUrl(d.streamUid, { height: 240 })}
                         alt=""
@@ -424,12 +424,12 @@ const Drills: React.FC = () => {
                       <span className="text-[10px] font-extrabold tracking-widest uppercase text-violet-300 bg-violet-500/15 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">AI</span>
                     )}
                     {d.ageBand && d.ageBand !== 'all' && (
-                      <span className="text-[10px] font-bold text-bone/50 ml-auto">{d.ageBand}</span>
+                      <span className="text-[10px] font-bold text-ink-primary/50 ml-auto">{d.ageBand}</span>
                     )}
                   </div>
-                  <h3 className="text-base font-bold text-bone mb-1 line-clamp-2">{d.title}</h3>
-                  {d.focus && <p className="text-xs text-bone/65 line-clamp-2">{d.focus}</p>}
-                  <div className="mt-3 flex items-center gap-2 text-[11px] text-bone/50">
+                  <h3 className="text-base font-bold text-ink-primary mb-1 line-clamp-2">{d.title}</h3>
+                  {d.focus && <p className="text-xs text-ink-primary/65 line-clamp-2">{d.focus}</p>}
+                  <div className="mt-3 flex items-center gap-2 text-[11px] text-ink-primary/50">
                     {d.durationMinutes != null && <span>{d.durationMinutes} min</span>}
                     {d.videoLinks && d.videoLinks.length > 0 && <span>· {d.videoLinks.length} video{d.videoLinks.length === 1 ? '' : 's'}</span>}
                     {d.streamUid && <span>· video</span>}
@@ -444,7 +444,7 @@ const Drills: React.FC = () => {
                 <div className="px-4 pb-4">
                   <Link
                     to={`/development?seedDrill=${d.id}`}
-                    className="block w-full text-center px-3 py-2 rounded-lg bg-white/5 hover:bg-brand-primary/20 ring-1 ring-white/10 hover:ring-brand-primary-soft/40 text-[11px] font-extrabold tracking-widest uppercase text-bone/85 hover:text-brand-primary-soft transition"
+                    className="block w-full text-center px-3 py-2 rounded-lg bg-line-default/5 hover:bg-brand-primary/20 ring-1 ring-line-default/10 hover:ring-brand-primary-soft/40 text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/85 hover:text-brand-primary-soft transition"
                   >
                     Add to a Plan
                   </Link>
@@ -608,10 +608,10 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-charcoal-900 w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-bone">{isNew ? 'New drill' : 'Edit drill'}</h3>
-          <button onClick={onClose} className="text-bone/40 hover:text-bone/85">
+      <div className="bg-surface-elevated w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-line-default/10 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-ink-primary">{isNew ? 'New drill' : 'Edit drill'}</h3>
+          <button onClick={onClose} className="text-ink-primary/40 hover:text-ink-primary/85">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -626,7 +626,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 placeholder='e.g. "first touch under pressure, 10 min, U10"'
-                className="flex-1 px-3 py-2 text-sm border border-violet-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/40 bg-charcoal-900"
+                className="flex-1 px-3 py-2 text-sm border border-violet-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/40 bg-surface-elevated"
               />
               <button
                 type="button"
@@ -647,17 +647,17 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Half-turn receive"
-              className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+              className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             />
           </Field>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Field label="Topic">
-              <select value={topic} onChange={(e) => setTopic(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg">
+              <select value={topic} onChange={(e) => setTopic(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg">
                 {TOPICS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </Field>
             <Field label="Category">
-              <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg">
+              <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg">
                 <option value="technical">Technical</option>
                 <option value="tactical">Tactical</option>
                 <option value="physical">Physical</option>
@@ -665,7 +665,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               </select>
             </Field>
             <Field label="Age band">
-              <select value={ageBand as string} onChange={(e) => setAgeBand(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg">
+              <select value={ageBand as string} onChange={(e) => setAgeBand(e.target.value as any)} className="w-full px-3 py-2 text-sm bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg">
                 {AGE_BANDS.map(a => <option key={a.value as string} value={a.value as string}>{a.label}</option>)}
               </select>
             </Field>
@@ -688,7 +688,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                   className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold tracking-widest uppercase transition ${
                     useCase === c.k
                       ? 'bg-brand-primary text-white shadow-sm'
-                      : 'bg-charcoal-900 text-bone/55 ring-1 ring-white/10 hover:text-bone'
+                      : 'bg-surface-elevated text-ink-primary/55 ring-1 ring-line-default/10 hover:text-ink-primary'
                   }`}
                 >
                   {c.label}
@@ -702,7 +702,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               onChange={(e) => setSetup(e.target.value)}
               rows={2}
               placeholder="2 cones 5 yds apart, 1 ball per player."
-              className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg"
             />
           </Field>
           <Field label="Instructions (step-by-step)">
@@ -711,7 +711,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               onChange={(e) => setInstructions(e.target.value)}
               rows={4}
               placeholder="Player checks shoulder, opens hips to the side they want to receive, first touch into space."
-              className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg"
             />
           </Field>
           <Field label="Coaching focus / key point">
@@ -720,7 +720,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               value={focus}
               onChange={(e) => setFocus(e.target.value)}
               placeholder="Check shoulder BEFORE the ball arrives."
-              className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg"
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
@@ -730,7 +730,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
                 min={1}
-                className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg"
+                className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg"
               />
             </Field>
             <Field label="Add YouTube link">
@@ -739,7 +739,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://youtu.be/…"
-                className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg"
+                className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg"
               />
             </Field>
           </div>
@@ -747,7 +747,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
               phone recording, downloaded clip, etc.). Lands in
               Cloudflare Stream same as Player Media uploads. */}
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-bone/65 mb-1">
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-ink-primary/65 mb-1">
               Upload a reference video {drill?.streamUid && '(replace)'}
             </label>
             {stagedStreamUid ? (
@@ -771,8 +771,8 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
                 </div>
               </div>
             ) : (
-              <label className="block rounded-lg border-2 border-dashed border-white/15 p-3 text-center cursor-pointer hover:bg-white/[0.05]">
-                <span className="text-xs text-bone/65">
+              <label className="block rounded-lg border-2 border-dashed border-line-default/15 p-3 text-center cursor-pointer hover:bg-line-default/[0.05]">
+                <span className="text-xs text-ink-primary/65">
                   Tap to pick a video from camera roll (works with downloaded TikToks)
                 </span>
                 <input
@@ -799,8 +799,8 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
 
           {drill?.videoLinks && drill.videoLinks.length > 0 && (
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-bone/65 mb-1">Existing videos</label>
-              <ul className="text-xs text-bone/65 space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-ink-primary/65 mb-1">Existing videos</label>
+              <ul className="text-xs text-ink-primary/65 space-y-1">
                 {drill.videoLinks.map(v => (
                   <li key={v.id} className="truncate">{v.title || v.url}</li>
                 ))}
@@ -818,8 +818,8 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-white/10 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-bold text-bone/85 hover:bg-white/[0.08] rounded-lg">Cancel</button>
+        <div className="px-5 py-3 border-t border-line-default/10 flex items-center justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-bold text-ink-primary/85 hover:bg-line-default/[0.08] rounded-lg">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving || uploading || !title.trim()}
@@ -836,7 +836,7 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div>
-    <label className="block text-[10px] font-bold uppercase tracking-widest text-bone/65 mb-1">{label}</label>
+    <label className="block text-[10px] font-bold uppercase tracking-widest text-ink-primary/65 mb-1">{label}</label>
     {children}
   </div>
 );
@@ -893,11 +893,11 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
     }
   };
   return (
-    <div className="bg-charcoal-800 rounded-xl ring-1 ring-white/10 px-4 py-3">
+    <div className="bg-surface-input rounded-xl ring-1 ring-line-default/10 px-4 py-3">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-bone">Share to library</p>
-          <p className="text-xs text-bone/55 mt-0.5 leading-snug">
+          <p className="text-sm font-bold text-ink-primary">Share to library</p>
+          <p className="text-xs text-ink-primary/55 mt-0.5 leading-snug">
             {clubAllowsSharing
               ? 'Let other coaches across GoalKickr find, rate, and save this drill. You can unshare anytime.'
               : (shared
@@ -912,7 +912,7 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
           className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition disabled:opacity-50 ${
             shared
               ? 'bg-brand-primary text-white'
-              : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+              : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/15 hover:bg-line-default/[0.1]'
           }`}
         >
           {busy ? '…' : shared ? 'Shared' : 'Off'}
@@ -986,7 +986,7 @@ const ReportLibraryDrillButton: React.FC<{
       className={`shrink-0 px-2.5 py-2 rounded-lg text-xs font-bold transition ring-1 ${
         done
           ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30'
-          : 'bg-charcoal-800 text-bone/55 ring-white/10 hover:text-bone hover:bg-charcoal-700'
+          : 'bg-surface-input text-ink-primary/55 ring-line-default/10 hover:text-ink-primary hover:bg-surface-raised'
       } disabled:opacity-60`}
     >
       {busy ? '…' : done ? '✓' : '⚑'}
@@ -1016,9 +1016,9 @@ const LibraryCard: React.FC<{
   const featured = isFeatured(drill);
 
   return (
-    <li className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+    <li className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
       {drill.streamUid && (
-        <div className="aspect-video w-full bg-white/10 relative">
+        <div className="aspect-video w-full bg-line-default/10 relative">
           <img
             src={streamThumbnailUrl(drill.streamUid, { height: 240 })}
             alt=""
@@ -1034,24 +1034,24 @@ const LibraryCard: React.FC<{
             {TOPICS.find(t => t.value === drill.topic)?.label || drill.topic}
           </span>
           {drill.ageBand && drill.ageBand !== 'all' && (
-            <span className="text-[10px] font-bold text-bone/50">{drill.ageBand}</span>
+            <span className="text-[10px] font-bold text-ink-primary/50">{drill.ageBand}</span>
           )}
           {featured && (
             <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 bg-amber-500/15 ring-1 ring-amber-300/30 px-1.5 py-0.5 rounded">Featured</span>
           )}
         </div>
-        <h3 className="text-base font-bold text-bone mb-1 line-clamp-2">{drill.title}</h3>
-        {drill.focus && <p className="text-xs text-bone/65 line-clamp-2">{drill.focus}</p>}
-        {drill.description && !drill.focus && <p className="text-xs text-bone/65 line-clamp-2">{drill.description}</p>}
+        <h3 className="text-base font-bold text-ink-primary mb-1 line-clamp-2">{drill.title}</h3>
+        {drill.focus && <p className="text-xs text-ink-primary/65 line-clamp-2">{drill.focus}</p>}
+        {drill.description && !drill.focus && <p className="text-xs text-ink-primary/65 line-clamp-2">{drill.description}</p>}
 
-        <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-bone/55">
+        <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-ink-primary/55">
           <div className="flex items-center gap-2">
             <span title={`Average ${avg.toFixed(1)} from ${count} ${count === 1 ? 'rating' : 'ratings'}`}>
-              ★ {count > 0 ? avg.toFixed(1) : '—'} <span className="text-bone/35">({count})</span>
+              ★ {count > 0 ? avg.toFixed(1) : '—'} <span className="text-ink-primary/35">({count})</span>
             </span>
             {saveCount > 0 && <span>· saved {saveCount}×</span>}
           </div>
-          <span className="text-bone/35 truncate">by {drill.createdByName || 'Coach'}</span>
+          <span className="text-ink-primary/35 truncate">by {drill.createdByName || 'Coach'}</span>
         </div>
 
         {/* Star row — five buttons. Filled if user's vote >= n. */}
@@ -1063,7 +1063,7 @@ const LibraryCard: React.FC<{
                 key={n}
                 type="button"
                 onClick={() => onRate(n as 1 | 2 | 3 | 4 | 5)}
-                className={`text-lg leading-none transition ${active ? 'text-amber-300' : 'text-bone/25 hover:text-bone/55'}`}
+                className={`text-lg leading-none transition ${active ? 'text-amber-300' : 'text-ink-primary/25 hover:text-ink-primary/55'}`}
                 title={`Rate ${n} star${n === 1 ? '' : 's'}`}
               >
                 ★
@@ -1071,7 +1071,7 @@ const LibraryCard: React.FC<{
             );
           })}
           {myStars !== undefined && (
-            <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-bone/45">
+            <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-ink-primary/45">
               your rating
             </span>
           )}

@@ -266,22 +266,22 @@ const Tryouts: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">
+      <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm">
         Coaches + club admins only.
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
-      <section className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 sm:px-6 py-5 border-b border-brand-primary/10">
+    <div className="min-h-screen bg-surface-base">
+      <section className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 sm:px-6 py-5 border-b border-brand-primary/10">
         <div className="max-w-6xl mx-auto">
-          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-bone mb-2">
+          <Link to="/club" className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary mb-2">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Club
           </Link>
           <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Tryout pool</h1>
-          <p className="text-sm text-bone/40 mt-0.5">
+          <p className="text-sm text-ink-primary/40 mt-0.5">
             Coach view. Favorites, holds, ratings, and notes are visible to all coaches.
           </p>
         </div>
@@ -294,27 +294,27 @@ const Tryouts: React.FC = () => {
         {/* Filters — all controls dark-mode by default. Selects + input
             were inheriting system white/black via no explicit bg/text,
             producing the light-mode pill row Patrick called out. */}
-        <div className="bg-charcoal-900 rounded-xl ring-1 ring-white/10 p-3 flex flex-wrap items-center gap-2">
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
+        <div className="bg-surface-elevated rounded-xl ring-1 ring-line-default/10 p-3 flex flex-wrap items-center gap-2">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-surface-base text-ink-primary border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
+          <select value={filterAge} onChange={(e) => setFilterAge(e.target.value)} className="text-sm bg-surface-base text-ink-primary border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             <option value="all">All ages</option>
             {ageGroups.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
+          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="text-sm bg-surface-base text-ink-primary border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             <option value="all">All genders</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
           {positions.length > 0 && (
-            <select value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
+            <select value={filterPosition} onChange={(e) => setFilterPosition(e.target.value)} className="text-sm bg-surface-base text-ink-primary border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
               <option value="all">All positions</option>
               {positions.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           )}
-          <select value={filterReturning} onChange={(e) => setFilterReturning(e.target.value as any)} className="text-sm bg-charcoal-950 text-bone border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
+          <select value={filterReturning} onChange={(e) => setFilterReturning(e.target.value as any)} className="text-sm bg-surface-base text-ink-primary border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40">
             <option value="all">New + returning</option>
             <option value="returning">Returning only</option>
             <option value="new">New only</option>
@@ -325,7 +325,7 @@ const Tryouts: React.FC = () => {
             className={`text-sm font-bold rounded-lg px-3 py-2 ring-1 ${
               showFavoritesOnly
                 ? 'bg-rose-500 text-white ring-rose-400'
-                : 'bg-charcoal-950 text-bone/85 ring-white/15 hover:ring-rose-400'
+                : 'bg-surface-base text-ink-primary/85 ring-line-default/15 hover:ring-rose-400'
             }`}
             title="Show only candidates you've favorited"
           >
@@ -337,7 +337,7 @@ const Tryouts: React.FC = () => {
             className={`text-sm font-bold rounded-lg px-3 py-2 ring-1 ${
               showNeedsAttention
                 ? 'bg-amber-500 text-charcoal-950 ring-amber-400'
-                : 'bg-charcoal-950 text-bone/85 ring-white/15 hover:ring-amber-400'
+                : 'bg-surface-base text-ink-primary/85 ring-line-default/15 hover:ring-amber-400'
             }`}
             title="Candidates 3+ days in the pool with NO favorites, NO hold, and NO offer — gameplanning surface for admins"
           >
@@ -348,22 +348,22 @@ const Tryouts: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by player or parent…"
-            className="flex-1 min-w-[180px] text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
+            className="flex-1 min-w-[180px] text-sm bg-surface-base text-ink-primary placeholder-bone/40 border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/40"
           />
-          <span className="ml-auto text-xs text-bone/50">{visible.length} of {registrations.length}</span>
+          <span className="ml-auto text-xs text-ink-primary/50">{visible.length} of {registrations.length}</span>
         </div>
 
         {/* Table */}
-        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+        <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-sm text-bone/50">Loading…</div>
+            <div className="p-8 text-center text-sm text-ink-primary/50">Loading…</div>
           ) : visible.length === 0 ? (
             <div className="p-10 text-center">
-              <p className="text-sm font-bold text-bone/85">Nothing matches.</p>
-              <p className="text-xs text-bone/50 mt-1">Try clearing filters.</p>
+              <p className="text-sm font-bold text-ink-primary/85">Nothing matches.</p>
+              <p className="text-xs text-ink-primary/50 mt-1">Try clearing filters.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-white/5">
+            <ul className="divide-y divide-line-default/5">
               {visible.map(r => (
                 <CandidateRow
                   key={r.id}
@@ -429,7 +429,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
   useEffect(() => { setNoteDraft(my?.note || ''); }, [my?.note]);
 
   return (
-    <li className="px-4 py-3 hover:bg-white/[0.05]">
+    <li className="px-4 py-3 hover:bg-line-default/[0.05]">
       <div className="flex items-start gap-3">
         <button
           type="button"
@@ -437,7 +437,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           className={`shrink-0 mt-0.5 w-8 h-8 rounded-full flex items-center justify-center ring-1 transition ${
             my?.favorite
               ? 'bg-rose-500/150 ring-rose-500 text-white'
-              : 'bg-charcoal-900 ring-white/10 text-bone/40 hover:ring-rose-400 hover:text-rose-300'
+              : 'bg-surface-elevated ring-line-default/10 text-ink-primary/40 hover:ring-rose-400 hover:text-rose-300'
           }`}
           title={my?.favorite ? 'Unfavorite' : 'Favorite'}
         >
@@ -445,10 +445,10 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className="text-sm font-bold text-bone">
+            <span className="text-sm font-bold text-ink-primary">
               {r.player.firstName} {r.player.lastName}
             </span>
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 bg-charcoal-950 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 bg-surface-base px-1.5 py-0.5 rounded">
               {r.player.ageGroup}
             </span>
             {r.player.playedBefore && (
@@ -467,7 +467,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
               </span>
             )}
           </div>
-          <div className="text-xs text-bone/65">
+          <div className="text-xs text-ink-primary/65">
             {r.player.gender} · {r.player.preferredPosition || '—'} · status: <span className="font-bold">{r.status}</span>
           </div>
           {otherFavorites.length > 0 && (
@@ -488,7 +488,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
               key={n}
               type="button"
               onClick={() => onRate(n)}
-              className={`text-base ${(my?.rating ?? 0) >= n ? 'text-amber-500' : 'text-bone/35 hover:text-amber-400'}`}
+              className={`text-base ${(my?.rating ?? 0) >= n ? 'text-amber-500' : 'text-ink-primary/35 hover:text-amber-400'}`}
               title={`Rate ${n} star${n === 1 ? '' : 's'}`}
             >
               ★
@@ -509,7 +509,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
         {r.parents?.[0]?.email && (
           <Link
             to={`/club/family/${encodeURIComponent(r.parents[0].email.toLowerCase())}`}
-            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-white/[0.04] text-bone/85 ring-1 ring-white/10 hover:bg-white/[0.08]"
+            className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded bg-line-default/[0.04] text-ink-primary/85 ring-1 ring-line-default/10 hover:bg-line-default/[0.08]"
           >
             Family
           </Link>
@@ -530,7 +530,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded ring-1 inline-flex items-center gap-1 ${
             (r as any).tryoutAttended
               ? 'bg-emerald-500 text-white ring-emerald-400'
-              : 'bg-charcoal-900 text-emerald-300 ring-emerald-300/60 hover:bg-emerald-500/15'
+              : 'bg-surface-elevated text-emerald-300 ring-emerald-300/60 hover:bg-emerald-500/15'
           }`}
           title={(r as any).tryoutAttended ? 'Mark NOT attended' : 'Mark attended tryouts — fills funnel stage 2'}
         >
@@ -547,8 +547,8 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
             heldByMe
               ? 'bg-amber-500/150 text-white ring-amber-500'
               : heldByOther
-                ? 'bg-charcoal-950 text-bone/40 ring-white/10 cursor-not-allowed'
-                : 'bg-charcoal-900 text-amber-300 ring-amber-300 hover:bg-amber-500/15'
+                ? 'bg-surface-base text-ink-primary/40 ring-line-default/10 cursor-not-allowed'
+                : 'bg-surface-elevated text-amber-300 ring-amber-300 hover:bg-amber-500/15'
           }`}
         >
           {heldByMe ? 'Release hold' : 'Place hold'}
@@ -570,7 +570,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
             onChange={(e) => setNoteDraft(e.target.value)}
             rows={3}
             placeholder="Scouting notes — visible to all coaches"
-            className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
+            className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm"
           />
           <div className="flex items-center justify-end gap-2 mt-1">
             <button
@@ -589,7 +589,7 @@ const CandidateRow: React.FC<RowProps> = ({ registration: r, myUid, isOpen, onTo
           {allCoachStates.filter(s => s.note && s.uid !== myUid).length > 0 && (
             <div className="mt-2 space-y-1.5">
               {allCoachStates.filter(s => s.note && s.uid !== myUid).map(s => (
-                <div key={s.uid} className="text-[11px] text-bone/85 bg-white/[0.04] ring-1 ring-white/10 rounded p-2">
+                <div key={s.uid} className="text-[11px] text-ink-primary/85 bg-line-default/[0.04] ring-1 ring-line-default/10 rounded p-2">
                   <span className="font-bold">{s.coachName}:</span> {s.note}
                 </div>
               ))}
@@ -609,13 +609,13 @@ const ActivityStrip: React.FC<{ activities: Activity[] }> = ({ activities }) => 
     .slice(0, 6);
   if (recent.length === 0) return null;
   return (
-    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 px-3 py-2">
-      <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 mb-1">Coach activity</div>
+    <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 px-3 py-2">
+      <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 mb-1">Coach activity</div>
       <ul className="flex flex-wrap gap-1.5">
         {recent.map(a => (
-          <li key={a.id} className="text-[11px] text-bone/85 bg-white/[0.04] ring-1 ring-white/10 rounded px-2 py-1">
+          <li key={a.id} className="text-[11px] text-ink-primary/85 bg-line-default/[0.04] ring-1 ring-line-default/10 rounded px-2 py-1">
             <span className="font-bold">{a.actorName || 'Coach'}</span> {verbFor(a.kind)}{' '}
-            <span className="text-bone/50">{a.payload?.playerName || ''}</span>
+            <span className="text-ink-primary/50">{a.payload?.playerName || ''}</span>
             {a.payload?.rating && <span className="ml-1 text-amber-600">{a.payload.rating}★</span>}
           </li>
         ))}

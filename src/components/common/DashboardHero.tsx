@@ -35,13 +35,13 @@ function sceneFor(hour: number): SceneSpec {
   // Night/dusk were /85, which smothered the stadium scene — dropped
   // to /55 with a darker stop at the bottom edge to keep the
   // greeting/event copy legible.
-  if (hour < 5.5) return { phase: 'night',      gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-charcoal-950/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-charcoal-900/55 via-indigo-950/40 to-charcoal-800/55',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
-  if (hour < 10)  return { phase: 'morning',    gradient: 'from-charcoal-900/55 via-charcoal-800/40 to-charcoal-700/50',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
-  if (hour < 16)  return { phase: 'midday',     gradient: 'from-charcoal-900/45 via-charcoal-800/30 to-charcoal-700/45',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
-  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-brand-primary-dim/35',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
-  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-charcoal-800/55',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
-  return            { phase: 'night',      gradient: 'from-charcoal-950/55 via-charcoal-900/40 to-charcoal-950/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  if (hour < 5.5) return { phase: 'night',      gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-base/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  if (hour < 7)   return { phase: 'predawn',    gradient: 'from-surface-elevated/55 via-indigo-950/40 to-surface-input/55',         stars: true,  moon: false, bgImage: '/images/hero/night.jpg' };
+  if (hour < 10)  return { phase: 'morning',    gradient: 'from-surface-elevated/55 via-surface-input/40 to-surface-raised/50',          stars: false, moon: false, bgImage: '/images/hero/morning.jpg' };
+  if (hour < 16)  return { phase: 'midday',     gradient: 'from-surface-elevated/45 via-surface-input/30 to-surface-raised/45',          stars: false, moon: false, bgImage: '/images/hero/noon.jpg' };
+  if (hour < 19)  return { phase: 'sunset',     gradient: 'from-surface-base/55 via-surface-elevated/40 to-brand-primary-dim/35',           stars: false, moon: false, bgImage: '/images/hero/sunset.jpg' };
+  if (hour < 22)  return { phase: 'dusk',       gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-input/55',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
+  return            { phase: 'night',      gradient: 'from-surface-base/55 via-surface-elevated/40 to-surface-base/65',          stars: true,  moon: true,  bgImage: '/images/hero/night.jpg' };
 }
 
 interface Props {
@@ -97,7 +97,7 @@ const DashboardHero: React.FC<Props> = ({
       // proportionally fills the screen — on a 1784px tall monitor
       // the stadium photo was rendering as a thin strip with empty
       // dark space below the cards. Mobile keeps its natural height.
-      className="relative overflow-hidden bg-charcoal-950 min-h-[300px] sm:min-h-[320px] lg:min-h-[420px] xl:min-h-[480px]"
+      className="relative overflow-hidden bg-surface-base min-h-[300px] sm:min-h-[320px] lg:min-h-[420px] xl:min-h-[480px]"
       aria-label={`${greeting}, ${firstName}`}
     >
       {/* Time-of-day stadium photo behind the gradient. img errors are
@@ -122,7 +122,7 @@ const DashboardHero: React.FC<Props> = ({
           the same surface family, not a separate dark layer. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-charcoal-950/50 to-transparent pointer-events-none"
+        className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-surface-base/50 to-transparent pointer-events-none"
       />
       {/* Soft fade from the bottom of the hero into the page bg
           (slate-950) so the transition into the dashboard content
@@ -131,7 +131,7 @@ const DashboardHero: React.FC<Props> = ({
           harsh on the transition to the profile card". */}
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-charcoal-950 pointer-events-none"
+        className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-surface-base pointer-events-none"
       />
       {/* (Painted stars / moon / pitch-perspective SVG removed — the
           real time-of-day stadium photo behind the gradient already
@@ -159,7 +159,7 @@ const DashboardHero: React.FC<Props> = ({
             <Link
               to={`/events/${nextEvent.id}`}
               aria-label={`${nextEvent.title} on ${eventMonth} ${eventDay} ${eventDow}`}
-              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-charcoal-900/55 ring-1 ring-brand-primary-soft/40 shadow-lg shadow-brand-primary/10"
+              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-surface-elevated/55 ring-1 ring-brand-primary-soft/40 shadow-lg shadow-brand-primary/10"
             >
               <span className="text-[10px] font-bold tracking-wider text-brand-primary-soft">{eventMonth}</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{eventDay}</span>
@@ -230,7 +230,7 @@ const DashboardHero: React.FC<Props> = ({
             <Link
               to="/players"
               aria-label={`${playerCount} players on roster`}
-              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-charcoal-900/55 ring-1 ring-brand-primary-soft/40 shadow-lg shadow-brand-primary/10"
+              className="flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-2xl bg-surface-elevated/55 ring-1 ring-brand-primary-soft/40 shadow-lg shadow-brand-primary/10"
             >
               <span className="text-2xl sm:text-3xl font-extrabold text-white leading-none">{playerCount}</span>
               <span className="text-[9px] font-semibold tracking-wider text-slate-300 mt-1">ROSTER</span>

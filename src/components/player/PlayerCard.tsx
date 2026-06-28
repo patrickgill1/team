@@ -39,7 +39,7 @@ const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cy
     accent === 'amber' ? 'text-amber-300' :
     'text-violet-300';
   return (
-    <div className="rounded-lg bg-white/5 border border-white/10 p-2 text-center overflow-hidden">
+    <div className="rounded-lg bg-line-default/5 border border-line-default/10 p-2 text-center overflow-hidden">
       <div className={`text-xl sm:text-2xl font-black ${ring}`}>{value}</div>
       {/* tracking-tight + leading-none so the label fits even on the narrowest
           card width; 'ASSISTS' was clipping to 'ASSIS' on the previous
@@ -136,7 +136,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-charcoal-900 to-charcoal-800 p-4 sm:p-5 text-white shadow-md border border-brand-primary/10">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-surface-elevated to-surface-input p-4 sm:p-5 text-white shadow-md border border-brand-primary/10">
         {/* Faint cyan accent — keeps a hint of "card has personality"
             without the bubbly blur-blob look. */}
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
@@ -146,7 +146,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="absolute top-3 right-3 z-10 flex space-x-1">
             <button
               onClick={() => onEdit && onEdit(player)}
-              className="p-2 bg-white/10 hover:bg-white/20 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+              className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-white backdrop-blur transition-colors"
               title="Edit Player"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,7 +155,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 bg-white/10 hover:bg-amber-500/40 ring-1 ring-white/15 rounded-full text-white backdrop-blur transition-colors"
+              className="p-2 bg-line-default/10 hover:bg-amber-500/40 ring-1 ring-line-default/15 rounded-full text-white backdrop-blur transition-colors"
               title="Archive player (preserves stats; can be restored)"
             >
               {/* Archive box icon (less alarming than a trash can) */}
@@ -169,7 +169,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         <div className="relative">
           {/* Position pill */}
           {player.position && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/20 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
               <span className={`w-2 h-2 rounded-full ${positionDot(player.position)}`} />
               {player.position}
             </div>
@@ -202,7 +202,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               )}
               {player.profilePhotoUrl ? (
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 shadow-lg ${
-                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-white/25'
+                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-line-default/25'
                 }`}>
                   <img
                     src={player.profilePhotoUrl}
@@ -211,8 +211,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                   />
                 </div>
               ) : (
-                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/10 ring-2 shadow-lg flex items-center justify-center backdrop-blur ${
-                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-white/25'
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-line-default/10 ring-2 shadow-lg flex items-center justify-center backdrop-blur ${
+                  (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-line-default/25'
                 }`}>
                   <span className="text-2xl font-black text-white">
                     {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
@@ -283,7 +283,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               <button
                 onClick={handleInviteParent}
                 disabled={generatingInvite}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-brand-primary-soft/20 ring-1 ring-brand-primary-soft/40 text-bone hover:bg-brand-primary-soft/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-brand-primary-soft/20 ring-1 ring-brand-primary-soft/40 text-ink-primary hover:bg-brand-primary-soft/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
                 title="Generate a one-tap link to share with a parent"
               >
                 {generatingInvite ? '…' : '✉ Invite Parent'}
@@ -295,7 +295,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold backdrop-blur transition ${
                   isMyChild
                     ? 'bg-emerald-400/20 ring-1 ring-emerald-300/40 text-emerald-200 hover:bg-emerald-400/30'
-                    : 'bg-white/15 ring-1 ring-white/20 text-white hover:bg-white/25'
+                    : 'bg-line-default/15 ring-1 ring-line-default/20 text-white hover:bg-line-default/25'
                 }`}
                 title={isMyChild ? 'Unlink as my child' : 'Link as my child'}
               >
@@ -305,7 +305,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             {!isUserCoach && showActions && (
               <button
                 onClick={() => onEdit && onEdit(player)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 ring-1 ring-white/20 text-white font-semibold text-sm hover:bg-white/25 transition backdrop-blur"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/15 ring-1 ring-line-default/20 text-white font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
               >
                 Update Stats
               </button>
@@ -314,7 +314,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
           {/* Coach-only footer info */}
           {isUserCoach && (player.medicalInfo || (player.emergencyContacts && player.emergencyContacts.length > 0)) && (
-            <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+            <div className="mt-4 pt-4 border-t border-line-default/10 space-y-3">
               {player.medicalInfo && (
                 <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-300/30 p-3 backdrop-blur">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-rose-200 mb-1">Medical Info</p>
@@ -323,7 +323,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               )}
 
               {player.emergencyContacts && player.emergencyContacts.length > 0 && (
-                <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3 backdrop-blur">
+                <div className="rounded-xl bg-line-default/5 ring-1 ring-line-default/10 p-3 backdrop-blur">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">Emergency Contacts</p>
                   <div className="space-y-1.5">
                     {player.emergencyContacts.map((contact, index) => (
@@ -333,7 +333,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                         {contact.isPrimary && <span className="text-brand-primary-soft ml-1">• Primary</span>}
                         <a
                           href={`tel:${contact.phoneNumber}`}
-                          className="block text-brand-primary-soft hover:text-bone underline-offset-2 hover:underline"
+                          className="block text-brand-primary-soft hover:text-ink-primary underline-offset-2 hover:underline"
                         >
                           {contact.phoneNumber}
                         </a>

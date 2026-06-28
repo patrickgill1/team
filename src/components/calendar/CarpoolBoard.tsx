@@ -71,7 +71,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
   const requests = posts.filter(p => p.type === 'request');
 
   return (
-    <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+    <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
           <Icon name="car" className="w-3 h-3 text-brand-primary" />
@@ -97,7 +97,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
 
       {/* Add form */}
       {adding && (
-        <div className="mb-3 p-3 rounded-lg bg-charcoal-800 ring-1 ring-white/10 space-y-2">
+        <div className="mb-3 p-3 rounded-lg bg-surface-input ring-1 ring-line-default/10 space-y-2">
           <div className="text-[11px] font-bold text-charcoal-200">
             {adding === 'offer' ? 'Offer a ride' : 'Request a ride'}
           </div>
@@ -110,7 +110,7 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
                 onChange={(e) => setSeats(e.target.value)}
                 min={1}
                 max={9}
-                className="w-16 px-2 py-1 border border-white/10 rounded text-sm text-center"
+                className="w-16 px-2 py-1 border border-line-default/10 rounded text-sm text-center"
               />
             </div>
           )}
@@ -118,13 +118,13 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder={adding === 'offer' ? 'Driving from (e.g. West side)' : 'Need ride from (e.g. North end)'}
-            className="w-full px-2 py-1.5 border border-white/10 rounded text-sm"
+            className="w-full px-2 py-1.5 border border-line-default/10 rounded text-sm"
           />
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Optional note"
-            className="w-full px-2 py-1.5 border border-white/10 rounded text-sm"
+            className="w-full px-2 py-1.5 border border-line-default/10 rounded text-sm"
           />
           <div className="flex gap-2 justify-end">
             <button

@@ -80,19 +80,19 @@ const TierOption: React.FC<{
     onClick={onClick}
     className={`w-full text-left rounded-xl p-4 transition ${
       highlight
-        ? 'bg-gradient-to-br from-brand-primary-deep/30 to-charcoal-900 ring-2 ring-brand-primary/40 hover:ring-brand-primary/60'
-        : 'bg-charcoal-950 ring-1 ring-white/10 hover:ring-white/30'
+        ? 'bg-gradient-to-br from-brand-primary-deep/30 to-surface-elevated ring-2 ring-brand-primary/40 hover:ring-brand-primary/60'
+        : 'bg-surface-base ring-1 ring-line-default/10 hover:ring-line-default/30'
     }`}
   >
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <p className={`text-[10px] font-extrabold tracking-widest uppercase mb-1 ${highlight ? 'text-brand-primary-soft' : 'text-bone/60'}`}>
+        <p className={`text-[10px] font-extrabold tracking-widest uppercase mb-1 ${highlight ? 'text-brand-primary-soft' : 'text-ink-primary/60'}`}>
           {kicker}
         </p>
-        <p className="text-bone font-bold text-base leading-tight">{title}</p>
+        <p className="text-ink-primary font-bold text-base leading-tight">{title}</p>
         <p className="text-charcoal-300 text-xs mt-1 leading-snug">{note}</p>
       </div>
-      <div className="shrink-0 text-bone text-sm font-black tabular-nums">{price}</div>
+      <div className="shrink-0 text-ink-primary text-sm font-black tabular-nums">{price}</div>
     </div>
   </button>
 );

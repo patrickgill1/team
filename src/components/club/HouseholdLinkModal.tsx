@@ -157,12 +157,12 @@ const HouseholdLinkModal: React.FC<Props> = ({ clubId, currentEmail, currentHous
       }
     >
       <div className="space-y-4">
-        <p className="text-xs text-bone/60 leading-snug">
+        <p className="text-xs text-ink-primary/60 leading-snug">
           Use this when two parents in the same family used different emails. Their kids, registrations, payments, and timeline all roll up under one household.
         </p>
         {currentHousehold && (currentHousehold.parentEmails || []).length > 0 && (
-          <div className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-3 py-2 text-[11px] text-bone/75">
-            Already linked: <b className="text-bone">{currentHousehold.parentEmails.join(', ')}</b>
+          <div className="rounded-lg bg-line-default/[0.04] ring-1 ring-line-default/10 px-3 py-2 text-[11px] text-ink-primary/75">
+            Already linked: <b className="text-ink-primary">{currentHousehold.parentEmails.join(', ')}</b>
           </div>
         )}
         <FormField label="Other parent's email">

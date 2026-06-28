@@ -60,26 +60,26 @@ const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose, teamId }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-charcoal-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
+        className="bg-surface-elevated w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-5 py-3 flex items-center justify-between">
+        <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-5 py-3 flex items-center justify-between">
           <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Video storage</p>
           <button
             type="button"
             onClick={onClose}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white"
           >
             Close
           </button>
         </div>
         <div className="p-5">
-          <h2 className="text-lg font-black text-bone leading-tight">{title}</h2>
+          <h2 className="text-lg font-black text-ink-primary leading-tight">{title}</h2>
           {quota.currentLabel && (
-            <p className="text-sm text-bone/55 mt-1">{quota.currentLabel}</p>
+            <p className="text-sm text-ink-primary/55 mt-1">{quota.currentLabel}</p>
           )}
-          <p className="mt-4 text-sm text-bone/85 leading-relaxed">{explain}</p>
+          <p className="mt-4 text-sm text-ink-primary/85 leading-relaxed">{explain}</p>
 
           <div className="mt-5 space-y-2">
             <TierRow
@@ -118,14 +118,14 @@ const VideoQuotaModal: React.FC<Props> = ({ open, quota, onClose, teamId }) => {
             </p>
           )}
 
-          <p className="mt-5 text-bone/55 text-xs leading-relaxed">
+          <p className="mt-5 text-ink-primary/55 text-xs leading-relaxed">
             Subscriptions are per-team and billed monthly. Manage or cancel anytime from the team settings page.
           </p>
 
           <button
             type="button"
             onClick={onClose}
-            className="w-full mt-5 px-4 py-2.5 rounded-lg bg-charcoal-800 hover:bg-charcoal-700 ring-1 ring-white/10 text-bone text-xs font-extrabold tracking-widest uppercase"
+            className="w-full mt-5 px-4 py-2.5 rounded-lg bg-surface-input hover:bg-surface-raised ring-1 ring-line-default/10 text-ink-primary text-xs font-extrabold tracking-widest uppercase"
           >
             Not now
           </button>
@@ -146,17 +146,17 @@ const TierRow: React.FC<{
   busy?: boolean;
   disabled?: boolean;
 }> = ({ label, price, perks, active, comingSoon, ctaLabel, onCta, busy, disabled }) => (
-  <div className={`rounded-xl p-3 ring-1 ${active ? 'bg-brand-primary/10 ring-brand-primary/30' : 'bg-charcoal-950 ring-white/10'}`}>
+  <div className={`rounded-xl p-3 ring-1 ${active ? 'bg-brand-primary/10 ring-brand-primary/30' : 'bg-surface-base ring-line-default/10'}`}>
     <div className="flex items-center justify-between gap-2">
-      <span className="text-bone font-bold text-sm">{label}</span>
-      <span className="text-bone/85 text-sm font-bold tabular-nums">{price}</span>
+      <span className="text-ink-primary font-bold text-sm">{label}</span>
+      <span className="text-ink-primary/85 text-sm font-bold tabular-nums">{price}</span>
     </div>
-    <p className="text-bone/55 text-xs mt-0.5">{perks}</p>
+    <p className="text-ink-primary/55 text-xs mt-0.5">{perks}</p>
     {active && (
       <p className="text-brand-primary-soft text-[10px] font-extrabold tracking-widest uppercase mt-1.5">Your team is on this tier</p>
     )}
     {comingSoon && !active && (
-      <p className="text-bone/40 text-[10px] font-extrabold tracking-widest uppercase mt-1.5">Coming soon</p>
+      <p className="text-ink-primary/40 text-[10px] font-extrabold tracking-widest uppercase mt-1.5">Coming soon</p>
     )}
     {ctaLabel && !active && onCta && (
       <button

@@ -255,12 +255,12 @@ const SimpleAuth: React.FC = () => {
         {/* Logo and Header Section */}
         <div className="text-center">
           <div className="mb-5 sm:mb-6 flex justify-center">
-            <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur-md p-3">
+            <div className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur-md p-3">
               <Logo size="lg" variant="full" />
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 ring-1 ring-white/10 backdrop-blur-md mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur-md mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-primary-soft animate-pulse" />
             <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-brand-primary-soft/90">
               {mode === 'login' && 'Member Access'}
@@ -279,7 +279,7 @@ const SimpleAuth: React.FC = () => {
         </div>
 
         {/* Form Container - dark glass */}
-        <div className="relative rounded-3xl bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
+        <div className="relative rounded-3xl bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
           <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-brand-primary-soft/60 to-transparent" />
           {/* Form padding optimized for mobile */}
           <div className="p-6 sm:p-8">
@@ -288,14 +288,14 @@ const SimpleAuth: React.FC = () => {
                 first decision so a brand-new user doesn't have to
                 figure out which mode they're in. Active pill is
                 crimson; inactive is muted. One tap to switch. */}
-            <div className="mb-6 grid grid-cols-2 gap-1 p-1 rounded-2xl bg-white/[0.04] ring-1 ring-white/10">
+            <div className="mb-6 grid grid-cols-2 gap-1 p-1 rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10">
               <button
                 type="button"
                 onClick={() => switchMode('register')}
                 className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
                   mode === 'register'
                     ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40'
-                    : 'text-white/65 hover:text-white hover:bg-white/[0.04]'
+                    : 'text-white/65 hover:text-white hover:bg-line-default/[0.04]'
                 }`}
               >
                 Sign Up
@@ -306,7 +306,7 @@ const SimpleAuth: React.FC = () => {
                 className={`py-2.5 rounded-xl font-bold text-sm transition-all ${
                   mode === 'login'
                     ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40'
-                    : 'text-white/65 hover:text-white hover:bg-white/[0.04]'
+                    : 'text-white/65 hover:text-white hover:bg-line-default/[0.04]'
                 }`}
               >
                 Sign In
@@ -341,7 +341,7 @@ const SimpleAuth: React.FC = () => {
                     }
                   }}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-black hover:bg-charcoal-900 ring-1 ring-white/15 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-black hover:bg-surface-elevated ring-1 ring-line-default/15 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-line-default/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="white">
                     <path d="M17.05 20.28c-.98.95-2.05.86-3.08.43-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.43C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
@@ -359,7 +359,7 @@ const SimpleAuth: React.FC = () => {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-white/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center px-4 py-3.5 rounded-xl bg-white hover:bg-slate-50 ring-1 ring-line-default/40 shadow-lg shadow-black/30 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -392,10 +392,10 @@ const SimpleAuth: React.FC = () => {
                 {/* Divider */}
                 <div className="relative mb-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10" />
+                    <div className="w-full border-t border-line-default/10" />
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-charcoal-950/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
+                    <span className="px-3 bg-surface-base/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
                   </div>
                 </div>
               </>
@@ -412,8 +412,8 @@ const SimpleAuth: React.FC = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
+                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                   }`}
                   placeholder="you@example.com"
                   disabled={isSubmitting}
@@ -432,8 +432,8 @@ const SimpleAuth: React.FC = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
+                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                   }`}
                   placeholder={mode === 'login' ? '••••••••' : 'At least 6 characters'}
                   disabled={isSubmitting}
@@ -453,8 +453,8 @@ const SimpleAuth: React.FC = () => {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
+                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                     }`}
                     placeholder="Repeat your password"
                     disabled={isSubmitting}
@@ -475,8 +475,8 @@ const SimpleAuth: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full px-4 py-3.5 rounded-xl bg-white/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-white/10 focus:ring-brand-primary-soft/60 focus:bg-white/[0.07]'
+                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                     }`}
                     placeholder="Enter your full name"
                     disabled={isSubmitting}
@@ -566,7 +566,7 @@ const SimpleAuth: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => switchMode('register')}
-                      className="font-semibold text-brand-primary-soft hover:text-bone transition-colors duration-200"
+                      className="font-semibold text-brand-primary-soft hover:text-ink-primary transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Join your team
@@ -580,7 +580,7 @@ const SimpleAuth: React.FC = () => {
                     <button 
                       type="button"
                       onClick={() => switchMode('login')}
-                      className="font-semibold text-brand-primary-soft hover:text-bone transition-colors duration-200"
+                      className="font-semibold text-brand-primary-soft hover:text-ink-primary transition-colors duration-200"
                       disabled={isSubmitting}
                     >
                       Sign in

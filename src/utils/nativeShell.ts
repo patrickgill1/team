@@ -41,7 +41,7 @@ export async function initNativeShell(): Promise<void> {
     // separate strip above the WebView whose color it can't actually
     // control on iOS 14+ — Patrick saw it persist regardless of
     // setBackgroundColor calls. With overlay=true the navigation
-    // header (which has bg-charcoal-950 + safe-top padding) paints
+    // header (which has bg-surface-base + safe-top padding) paints
     // the strip cleanly in brand color. (Android uses a separate
     // mechanism — styles.xml + MainActivity.java's GK_CHARCOAL
     // setBackgroundColor calls on root + decor + webview.)

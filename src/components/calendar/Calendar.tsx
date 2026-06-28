@@ -519,7 +519,7 @@ const Calendar: React.FC<CalendarProps> = ({
         >
           <div className={`text-xs font-semibold mb-1 inline-flex items-center justify-center ${
             isToday
-              ? 'w-6 h-6 rounded-full bg-charcoal-600 text-white shadow-sm'
+              ? 'w-6 h-6 rounded-full bg-surface-tint text-white shadow-sm'
               : isPast ? 'text-slate-400' : 'text-slate-700'
           }`}>
             {day}
@@ -553,7 +553,7 @@ const Calendar: React.FC<CalendarProps> = ({
     return (
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 overflow-hidden">
         {/* Calendar Header */}
-        <div className="bg-gradient-to-r from-charcoal-700 via-charcoal-600 to-charcoal-700 px-5 sm:px-6 py-4">
+        <div className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised px-5 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -561,7 +561,7 @@ const Calendar: React.FC<CalendarProps> = ({
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => navigateMonth('prev')}
-                className="p-2 hover:bg-white/15 active:bg-white/25 text-white rounded-lg transition-colors"
+                className="p-2 hover:bg-line-default/15 active:bg-line-default/25 text-white rounded-lg transition-colors"
                 aria-label="Previous month"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,13 +570,13 @@ const Calendar: React.FC<CalendarProps> = ({
               </button>
               <button
                 onClick={() => setCurrentDate(new Date())}
-                className="px-3 py-1.5 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-lg transition-colors backdrop-blur-sm"
+                className="px-3 py-1.5 text-xs font-semibold bg-line-default/15 hover:bg-line-default/25 text-white rounded-lg transition-colors backdrop-blur-sm"
               >
                 Today
               </button>
               <button
                 onClick={() => navigateMonth('next')}
-                className="p-2 hover:bg-white/15 active:bg-white/25 text-white rounded-lg transition-colors"
+                className="p-2 hover:bg-line-default/15 active:bg-line-default/25 text-white rounded-lg transition-colors"
                 aria-label="Next month"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -694,7 +694,7 @@ const Calendar: React.FC<CalendarProps> = ({
             for new event. No subtitle (we don't need to say what
             events are). Lives in the navy band so the page reads
             as one continuous surface. */}
-        <div className="bg-charcoal-950 px-4 pt-4 pb-3 flex items-center justify-between">
+        <div className="bg-surface-base px-4 pt-4 pb-3 flex items-center justify-between">
           <h1 className="text-2xl font-black text-white tracking-tight">The Schedule</h1>
           {isUserCoach && (
             <div className="flex items-center gap-2">
@@ -702,7 +702,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 onClick={() => setIsImportOpen(true)}
                 aria-label="Import schedule"
                 title="Import schedule from Ollie / GotSoccer / .ics"
-                className="w-9 h-9 rounded-full bg-white/10 ring-1 ring-white/15 text-white flex items-center justify-center hover:bg-white/15"
+                className="w-9 h-9 rounded-full bg-line-default/10 ring-1 ring-line-default/15 text-white flex items-center justify-center hover:bg-line-default/15"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -718,7 +718,7 @@ const Calendar: React.FC<CalendarProps> = ({
                   setIsEventFormOpen(true);
                 }}
                 aria-label="Add event"
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -730,7 +730,7 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
 
         {/* Pill filters — same navy continues */}
-        <div className="bg-charcoal-950 px-3.5 pb-2.5 flex gap-1.5 overflow-x-auto">
+        <div className="bg-surface-base px-3.5 pb-2.5 flex gap-1.5 overflow-x-auto">
           {pillFilters.map(({ key, label }) => (
             <button
               key={key}
@@ -738,7 +738,7 @@ const Calendar: React.FC<CalendarProps> = ({
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 listTab === key
                   ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/40'
-                  : 'bg-charcoal-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
+                  : 'bg-surface-input/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
               }`}
             >
               {label}
@@ -768,10 +768,10 @@ const Calendar: React.FC<CalendarProps> = ({
             stop) so the charcoal-900 cards above always read as
             visibly lifted blocks instead of blending into the
             container as scroll position moves under them. */}
-        <div className="bg-charcoal-950 px-3 py-4 space-y-4 min-h-[200px]">
+        <div className="bg-surface-base px-3 py-4 space-y-4 min-h-[200px]">
           {showing.length === 0 ? (
-            <div className="bg-charcoal-900/60 rounded-xl ring-1 ring-white/10 p-8 text-center backdrop-blur-sm">
-              <p className="text-bone/70 font-medium text-sm">
+            <div className="bg-surface-elevated/60 rounded-xl ring-1 ring-line-default/10 p-8 text-center backdrop-blur-sm">
+              <p className="text-ink-primary/70 font-medium text-sm">
                 {listTab === 'past' ? 'Nothing in the books yet.' : 'Calendar is wide open.'}
               </p>
               {listTab !== 'past' && isUserCoach && (
@@ -916,11 +916,11 @@ interface EventCardProps {
 const eventColors = (type: string) => {
   switch (type) {
     case 'game':
-      return { stripe: 'bg-charcoal-700', stripeText: 'text-white', pill: 'bg-charcoal-700/10 text-charcoal-800' };
+      return { stripe: 'bg-surface-raised', stripeText: 'text-white', pill: 'bg-surface-raised/10 text-charcoal-800' };
     case 'practice':
       return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
     case 'event':
-      return { stripe: 'bg-charcoal-700', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
+      return { stripe: 'bg-surface-raised', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
     default:
       return { stripe: 'bg-brand-primary', stripeText: 'text-white', pill: 'bg-brand-primary-soft text-charcoal-800' };
   }
@@ -1436,7 +1436,7 @@ const RsvpBar: React.FC<{
                                 <img src={photo} alt={e.name} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                                   onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-surface-raised flex items-center justify-center text-white text-xs font-bold shrink-0">
                                   {(e.name || '?').charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -1634,7 +1634,7 @@ const CarpoolBar: React.FC<{
               />
               <button
                 onClick={submit}
-                className="w-full px-2 py-1.5 bg-charcoal-600 hover:bg-charcoal-700 text-white text-xs font-semibold rounded"
+                className="w-full px-2 py-1.5 bg-surface-tint hover:bg-surface-raised text-white text-xs font-semibold rounded"
               >Post</button>
             </div>
           )}

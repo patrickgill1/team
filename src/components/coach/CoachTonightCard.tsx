@@ -116,14 +116,14 @@ const CoachTonightCard: React.FC = () => {
       : { label: 'Open event', href: `/event/${event.id}` };
 
   return (
-    <article className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 overflow-hidden animate-fade-in">
+    <article className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 overflow-hidden animate-fade-in">
       <div className="px-4 py-3 sm:px-5 sm:py-4">
         <div className="flex items-center justify-between gap-2 mb-1">
           <p className={`text-[10px] font-extrabold tracking-widest uppercase ${eyebrowTint}`}>{eyebrow}</p>
-          <p className="text-[11px] font-bold text-bone/55 tabular-nums">{countdown}</p>
+          <p className="text-[11px] font-bold text-ink-primary/55 tabular-nums">{countdown}</p>
         </div>
-        <h3 className="text-lg font-black text-bone leading-tight">{headline}</h3>
-        <p className="text-xs text-bone/55 mt-0.5">
+        <h3 className="text-lg font-black text-ink-primary leading-tight">{headline}</h3>
+        <p className="text-xs text-ink-primary/55 mt-0.5">
           {event.date.toLocaleString(undefined, { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
           {(event as any).location ? ` · ${(event as any).location}` : ''}
         </p>
@@ -138,7 +138,7 @@ const CoachTonightCard: React.FC = () => {
           </Link>
           <Link
             to={`/event/${event.id}`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-bone/85 hover:text-bone font-semibold rounded-md text-[12px] tracking-wide ring-1 ring-white/15 hover:ring-bone/40 hover:bg-white/5 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-ink-primary/85 hover:text-ink-primary font-semibold rounded-md text-[12px] tracking-wide ring-1 ring-line-default/15 hover:ring-bone/40 hover:bg-line-default/5 transition-colors"
           >
             View RSVPs
           </Link>

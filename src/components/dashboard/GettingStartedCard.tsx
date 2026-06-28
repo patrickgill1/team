@@ -144,12 +144,12 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const firstUndoneIdx = steps.findIndex(s => !s.done);
 
   return (
-    <div className="relative rounded-2xl bg-gradient-to-br from-charcoal-900 via-charcoal-900 to-brand-primary-deep/30 ring-1 ring-brand-primary/30 p-4 sm:p-5 overflow-hidden shadow-xl">
+    <div className="relative rounded-2xl bg-gradient-to-br from-surface-elevated via-surface-elevated to-brand-primary-deep/30 ring-1 ring-brand-primary/30 p-4 sm:p-5 overflow-hidden shadow-xl">
       <button
         type="button"
         onClick={handleDismiss}
         aria-label="Dismiss"
-        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full text-bone/50 hover:text-bone hover:bg-white/5 flex items-center justify-center transition"
+        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full text-ink-primary/50 hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
@@ -159,7 +159,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Getting started
           </p>
-          <p className="text-bone font-bold leading-tight">
+          <p className="text-ink-primary font-bold leading-tight">
             {completedCount === 0
               ? "Let's set up your team."
               : completedCount === steps.length - 1
@@ -167,13 +167,13 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                 : `${completedCount} of ${steps.length} done.`}
           </p>
         </div>
-        <div className="shrink-0 text-bone/70 text-sm font-extrabold tabular-nums leading-none pt-1 mr-2">
-          {completedCount}<span className="text-bone/40 mx-0.5">/</span>{steps.length}
+        <div className="shrink-0 text-ink-primary/70 text-sm font-extrabold tabular-nums leading-none pt-1 mr-2">
+          {completedCount}<span className="text-ink-primary/40 mx-0.5">/</span>{steps.length}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-5">
+      <div className="h-1.5 rounded-full bg-line-default/5 overflow-hidden mb-5">
         <div
           className="h-full rounded-full bg-gradient-to-r from-brand-primary to-amber-400 transition-all"
           style={{ width: `${(completedCount / steps.length) * 100}%` }}
@@ -191,15 +191,15 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                 s.done
                   ? 'bg-emerald-500/5 ring-1 ring-emerald-500/15'
                   : isNext
-                    ? 'bg-charcoal-950 ring-1 ring-brand-primary/30'
-                    : 'bg-charcoal-950/60 ring-1 ring-white/5'
+                    ? 'bg-surface-base ring-1 ring-brand-primary/30'
+                    : 'bg-surface-base/60 ring-1 ring-line-default/5'
               }`}
             >
               <div className="flex items-center gap-3">
                 <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ring-1 ${
                   s.done
                     ? 'bg-emerald-500/20 ring-emerald-400/40 text-emerald-300'
-                    : 'bg-white/5 ring-white/15 text-bone/40'
+                    : 'bg-line-default/5 ring-line-default/15 text-ink-primary/40'
                 }`}>
                   {s.done ? (
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
@@ -207,7 +207,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                     <span className="text-[10px] font-extrabold">{i + 1}</span>
                   )}
                 </span>
-                <span className={`flex-1 text-sm font-bold leading-tight ${s.done ? 'text-bone/55 line-through decoration-emerald-400/40' : isNext ? 'text-bone' : 'text-bone/70'}`}>
+                <span className={`flex-1 text-sm font-bold leading-tight ${s.done ? 'text-ink-primary/55 line-through decoration-emerald-400/40' : isNext ? 'text-ink-primary' : 'text-ink-primary/70'}`}>
                   {s.label}
                 </span>
                 {!s.done && (
@@ -220,7 +220,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                     className={`shrink-0 w-[120px] px-3 py-1.5 rounded-md font-bold text-xs transition text-center ${
                       isNext
                         ? 'bg-brand-primary hover:bg-brand-primary text-white shadow-lg shadow-brand-primary-dim/40 ring-1 ring-brand-primary-soft/20'
-                        : 'bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 text-bone'
+                        : 'bg-surface-input ring-1 ring-line-default/10 hover:ring-line-default/25 text-ink-primary'
                     }`}
                   >
                     {s.cta}
@@ -238,7 +238,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
                   to be out-of-app (which it is — opens Safari). */}
               {isTrial && !s.done && (
                 <>
-                  <p className="mt-3 pt-3 border-t border-white/5 text-bone/55 text-[11px]">
+                  <p className="mt-3 pt-3 border-t border-line-default/5 text-ink-primary/55 text-[11px]">
                     After your free week, pick what fits:
                   </p>
                   <div className="mt-2 grid grid-cols-3 gap-2">
@@ -312,19 +312,19 @@ const PricingTier: React.FC<{
     className={`rounded-md px-2 py-2 text-center ring-1 transition active:scale-[0.98] ${
       highlight
         ? 'bg-amber-500/5 ring-amber-500/20 hover:bg-amber-500/10 hover:ring-amber-500/40'
-        : 'bg-charcoal-900 ring-white/5 hover:bg-charcoal-800 hover:ring-white/15'
+        : 'bg-surface-elevated ring-line-default/5 hover:bg-surface-input hover:ring-line-default/15'
     }`}
   >
     <p className={`text-[9px] font-extrabold tracking-widest uppercase ${
-      highlight ? 'text-amber-300' : 'text-bone/60'
+      highlight ? 'text-amber-300' : 'text-ink-primary/60'
     }`}>
       {name}
     </p>
-    <p className="text-bone font-black text-base leading-none mt-1 tabular-nums">
-      {price}<span className="text-bone/50 text-[10px] font-bold">{period}</span>
+    <p className="text-ink-primary font-black text-base leading-none mt-1 tabular-nums">
+      {price}<span className="text-ink-primary/50 text-[10px] font-bold">{period}</span>
     </p>
     {note && (
-      <p className="text-bone/40 text-[9px] mt-0.5 font-bold">{note}</p>
+      <p className="text-ink-primary/40 text-[9px] mt-0.5 font-bold">{note}</p>
     )}
   </button>
 );

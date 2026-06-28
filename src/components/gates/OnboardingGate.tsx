@@ -190,14 +190,14 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-start justify-center px-4 pt-[calc(env(safe-area-inset-top)+4rem)] pb-10">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base flex items-start justify-center px-4 pt-[calc(env(safe-area-inset-top)+4rem)] pb-10">
       <div className="w-full max-w-sm space-y-5">
         {mode === 'menu' && (
           <>
             <div className="text-center">
               <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-2">Welcome</p>
-              <h1 className="text-3xl font-black text-bone leading-tight">What's next?</h1>
-              <p className="text-bone/60 text-sm mt-2">Signed in as <span className="text-bone/80 font-mono text-xs">{userEmail}</span></p>
+              <h1 className="text-3xl font-black text-ink-primary leading-tight">What's next?</h1>
+              <p className="text-ink-primary/60 text-sm mt-2">Signed in as <span className="text-ink-primary/80 font-mono text-xs">{userEmail}</span></p>
             </div>
             <ActionCard
               title="Enter invite code"
@@ -217,7 +217,7 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
             <button
               type="button"
               onClick={onSignOut}
-              className="w-full text-center text-bone/40 hover:text-bone/70 text-sm font-semibold pt-2"
+              className="w-full text-center text-ink-primary/40 hover:text-ink-primary/70 text-sm font-semibold pt-2"
             >
               Sign out
             </button>
@@ -227,13 +227,13 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
         {mode === 'invite' && (
           <FormShell title="Enter invite code" back={() => setMode('menu')} error={error}>
             <label className="block">
-              <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">Code</span>
+              <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5 block">Code</span>
               <input
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="Paste your invite code"
-                className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30"
+                className="w-full bg-surface-elevated border border-line-default/10 rounded-lg px-3 py-3 text-ink-primary placeholder:text-ink-primary/30"
                 autoFocus
               />
             </label>
@@ -246,17 +246,17 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
         {mode === 'team' && (
           <FormShell title="Start a team" back={() => setMode('menu')} error={error}>
             <label className="block">
-              <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">Team name</span>
+              <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5 block">Team name</span>
               <input
                 type="text"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="e.g. Eagles U12"
-                className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30"
+                className="w-full bg-surface-elevated border border-line-default/10 rounded-lg px-3 py-3 text-ink-primary placeholder:text-ink-primary/30"
                 autoFocus
               />
             </label>
-            <p className="text-xs text-bone/55 leading-relaxed">
+            <p className="text-xs text-ink-primary/55 leading-relaxed">
               You'll be set as head coach. You can fill in age group, season, and roster from Settings later.
             </p>
             <Button variant="primary" onClick={handleCreateTeam} disabled={busy || !teamName.trim()} fullWidth>
@@ -268,13 +268,13 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
         {mode === 'club' && (
           <FormShell title="Start a club" back={() => setMode('menu')} error={error}>
             <label className="block">
-              <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">Club name</span>
+              <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5 block">Club name</span>
               <input
                 type="text"
                 value={clubName}
                 onChange={(e) => setClubName(e.target.value)}
                 placeholder="e.g. Riverside Soccer Club"
-                className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30"
+                className="w-full bg-surface-elevated border border-line-default/10 rounded-lg px-3 py-3 text-ink-primary placeholder:text-ink-primary/30"
                 autoFocus
               />
             </label>
@@ -284,7 +284,7 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
                 a coach role they don't want. Toggling on reveals
                 the team name field and creates this user as head
                 coach of that team. */}
-            <div className="bg-charcoal-900/60 border border-white/10 rounded-xl p-3.5">
+            <div className="bg-surface-elevated/60 border border-line-default/10 rounded-xl p-3.5">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -293,27 +293,27 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
                   className="mt-1"
                 />
                 <div className="flex-1">
-                  <p className="text-bone text-sm font-bold">I'll also coach a team myself</p>
-                  <p className="text-bone/55 text-xs mt-0.5 leading-snug">
+                  <p className="text-ink-primary text-sm font-bold">I'll also coach a team myself</p>
+                  <p className="text-ink-primary/55 text-xs mt-0.5 leading-snug">
                     Leave off if you're a director, registrar, or treasurer who runs the club but doesn't coach. You can invite head coaches and add teams from the club page after setup.
                   </p>
                 </div>
               </label>
               {clubIAlsoCoach && (
                 <label className="block mt-3">
-                  <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">Your team name</span>
+                  <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5 block">Your team name</span>
                   <input
                     type="text"
                     value={clubFirstTeam}
                     onChange={(e) => setClubFirstTeam(e.target.value)}
                     placeholder="e.g. U12 Boys"
-                    className="w-full bg-charcoal-950 border border-white/10 rounded-lg px-3 py-2.5 text-bone placeholder:text-bone/30"
+                    className="w-full bg-surface-base border border-line-default/10 rounded-lg px-3 py-2.5 text-ink-primary placeholder:text-ink-primary/30"
                   />
                 </label>
               )}
             </div>
 
-            <p className="text-xs text-bone/55 leading-relaxed">
+            <p className="text-xs text-ink-primary/55 leading-relaxed">
               You'll be set as club owner. {clubIAlsoCoach
                 ? 'Plus head coach of the team above.'
                 : "After signup, you'll land on the club page where you can invite coaches, add teams, set up payments, and customize branding."}
@@ -337,14 +337,14 @@ const ActionCard: React.FC<{ title: string; hint: string; onClick: () => void }>
   <button
     type="button"
     onClick={onClick}
-    className="w-full text-left bg-charcoal-900 hover:bg-charcoal-900/80 border border-white/10 hover:border-brand-primary/40 rounded-2xl p-4 transition-colors group"
+    className="w-full text-left bg-surface-elevated hover:bg-surface-elevated/80 border border-line-default/10 hover:border-brand-primary/40 rounded-2xl p-4 transition-colors group"
   >
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="text-bone font-bold text-base leading-tight">{title}</p>
-        <p className="text-bone/55 text-xs mt-1 leading-snug">{hint}</p>
+        <p className="text-ink-primary font-bold text-base leading-tight">{title}</p>
+        <p className="text-ink-primary/55 text-xs mt-1 leading-snug">{hint}</p>
       </div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-5 h-5 text-bone/40 group-hover:text-brand-primary flex-shrink-0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-5 h-5 text-ink-primary/40 group-hover:text-brand-primary flex-shrink-0">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
       </svg>
     </div>
@@ -356,14 +356,14 @@ const FormShell: React.FC<{ title: string; back: () => void; error: string | nul
     <button
       type="button"
       onClick={back}
-      className="flex items-center gap-1.5 text-bone/55 hover:text-bone text-xs font-bold tracking-wide"
+      className="flex items-center gap-1.5 text-ink-primary/55 hover:text-ink-primary text-xs font-bold tracking-wide"
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
       </svg>
       Back
     </button>
-    <h2 className="text-2xl font-black text-bone">{title}</h2>
+    <h2 className="text-2xl font-black text-ink-primary">{title}</h2>
     <div className="space-y-4">{children}</div>
     {error && (
       <p className="text-rose-300 text-xs bg-rose-500/10 border border-rose-500/30 rounded-lg p-3">{error}</p>

@@ -91,8 +91,8 @@ const AdminTeams: React.FC = () => {
   if (!isClubAdmin) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 text-center">
-        <p className="text-bone/85 font-semibold mb-1">Admin only</p>
-        <p className="text-bone/55 text-sm mb-4">This page is for club admins.</p>
+        <p className="text-ink-primary/85 font-semibold mb-1">Admin only</p>
+        <p className="text-ink-primary/55 text-sm mb-4">This page is for club admins.</p>
         <Link to="/dashboard" className="text-brand-primary-soft font-bold text-sm hover:text-brand-primary-soft">← Back to dashboard</Link>
       </div>
     );
@@ -102,8 +102,8 @@ const AdminTeams: React.FC = () => {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative">
       <div className="mb-5 sm:mb-7">
         <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</p>
-        <h1 className="font-display text-2xl sm:text-3xl font-black text-bone mt-1">Team activation</h1>
-        <p className="text-sm text-bone/65 mt-1.5">
+        <h1 className="font-display text-2xl sm:text-3xl font-black text-ink-primary mt-1">Team activation</h1>
+        <p className="text-sm text-ink-primary/65 mt-1.5">
           Drive every team through the five activation stages. Stamp manually until the Sports Affinity API is wired; some stages auto-fill from existing data.
         </p>
       </div>
@@ -116,9 +116,9 @@ const AdminTeams: React.FC = () => {
 
       <div className={`transition-opacity duration-300 ease-out ${loaded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {teams.length === 0 && loaded ? (
-          <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-10 text-center">
-            <p className="text-bone/85 font-semibold mb-1">No active teams yet</p>
-            <p className="text-bone/50 text-sm">Teams appear here once you create them in the club tools.</p>
+          <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-10 text-center">
+            <p className="text-ink-primary/85 font-semibold mb-1">No active teams yet</p>
+            <p className="text-ink-primary/50 text-sm">Teams appear here once you create them in the club tools.</p>
           </div>
         ) : (
           <ul className="space-y-3 animate-fade-in">
@@ -128,34 +128,34 @@ const AdminTeams: React.FC = () => {
               const isActivated = !!progress.activated?.completedAt;
               const isExpanded = expandedTeamId === team.id;
               return (
-                <li key={team.id} className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 overflow-hidden">
+                <li key={team.id} className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setExpandedTeamId(isExpanded ? null : team.id)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/[0.03] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-line-default/[0.03] transition-colors text-left"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[15px] font-black text-bone truncate">{team.name}</span>
+                        <span className="text-[15px] font-black text-ink-primary truncate">{team.name}</span>
                         {isActivated ? (
                           <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30">Activated</span>
                         ) : (
                           <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30">Pending</span>
                         )}
                       </div>
-                      <div className="text-[12px] text-bone/55 truncate">
+                      <div className="text-[12px] text-ink-primary/55 truncate">
                         {team.ageGroup || '—'}{team.season ? ` · ${team.season}` : ''}{team.league ? ` · ${team.league}` : ''}
                       </div>
                     </div>
-                    <div className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 tabular-nums shrink-0">
+                    <div className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 tabular-nums shrink-0">
                       {doneCount} / {STAGE_ORDER.length}
                     </div>
-                    <svg className={`w-4 h-4 text-bone/40 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <svg className={`w-4 h-4 text-ink-primary/40 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <polyline points="6 9 12 15 18 9" />
                     </svg>
                   </button>
                   {isExpanded && (
-                    <div className="px-3 pb-4 pt-1 border-t border-white/5 animate-fade-in">
+                    <div className="px-3 pb-4 pt-1 border-t border-line-default/5 animate-fade-in">
                       <TeamFunnelStepper
                         teamId={team.id}
                         progress={(team as any).funnelProgress}

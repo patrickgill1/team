@@ -101,12 +101,12 @@ const RefundModal: React.FC<Props> = ({ registration, actorUid, actorName, onClo
       }
     >
       <div className="space-y-4">
-        <div className="rounded-xl bg-white/[0.04] ring-1 ring-white/10 p-3 text-sm space-y-1">
-          <div className="flex items-center justify-between"><span className="text-bone/55">Original total</span><span className="font-bold text-bone">${(originalCents / 100).toFixed(2)}</span></div>
+        <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3 text-sm space-y-1">
+          <div className="flex items-center justify-between"><span className="text-ink-primary/55">Original total</span><span className="font-bold text-ink-primary">${(originalCents / 100).toFixed(2)}</span></div>
           {alreadyRefunded > 0 && (
-            <div className="flex items-center justify-between"><span className="text-bone/55">Already refunded</span><span className="font-bold text-rose-300">-${(alreadyRefunded / 100).toFixed(2)}</span></div>
+            <div className="flex items-center justify-between"><span className="text-ink-primary/55">Already refunded</span><span className="font-bold text-rose-300">-${(alreadyRefunded / 100).toFixed(2)}</span></div>
           )}
-          <div className="flex items-center justify-between pt-1 border-t border-white/10"><span className="font-bold text-bone">Remaining refundable</span><span className="font-black text-bone tabular-nums">${(remainingCents / 100).toFixed(2)}</span></div>
+          <div className="flex items-center justify-between pt-1 border-t border-line-default/10"><span className="font-bold text-ink-primary">Remaining refundable</span><span className="font-black text-ink-primary tabular-nums">${(remainingCents / 100).toFixed(2)}</span></div>
         </div>
 
         <FormField
@@ -114,7 +114,7 @@ const RefundModal: React.FC<Props> = ({ registration, actorUid, actorName, onClo
           error={!validAmount && requestedCents > remainingCents ? "Can't exceed remaining refundable." : null}
         >
           <div className="flex items-center gap-1">
-            <span className="text-bone/55 text-sm">$</span>
+            <span className="text-ink-primary/55 text-sm">$</span>
             <input
               type="number"
               step="0.01"

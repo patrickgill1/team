@@ -104,11 +104,11 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
             className={`p-3 rounded-xl text-left ring-1 transition ${
               mode === 'move'
                 ? 'ring-brand-primary-soft/60 bg-brand-primary/15 shadow-sm'
-                : 'ring-white/10 bg-charcoal-950 hover:bg-white/5'
+                : 'ring-line-default/10 bg-surface-base hover:bg-line-default/5'
             }`}
           >
-            <p className="font-bold text-bone text-sm">Transfer</p>
-            <p className="text-xs text-bone/50 mt-0.5">Move to a new team (removes from old)</p>
+            <p className="font-bold text-ink-primary text-sm">Transfer</p>
+            <p className="text-xs text-ink-primary/50 mt-0.5">Move to a new team (removes from old)</p>
           </button>
           <button
             type="button"
@@ -116,24 +116,24 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
             className={`p-3 rounded-xl text-left ring-1 transition ${
               mode === 'share'
                 ? 'ring-emerald-400/60 bg-emerald-500/15 shadow-sm'
-                : 'ring-white/10 bg-charcoal-950 hover:bg-white/5'
+                : 'ring-line-default/10 bg-surface-base hover:bg-line-default/5'
             }`}
           >
-            <p className="font-bold text-bone text-sm">Share</p>
-            <p className="text-xs text-bone/50 mt-0.5">Roster on a 2nd team (keep both)</p>
+            <p className="font-bold text-ink-primary text-sm">Share</p>
+            <p className="text-xs text-ink-primary/50 mt-0.5">Roster on a 2nd team (keep both)</p>
           </button>
         </div>
 
         {/* Current teams */}
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-bone/55 mb-1.5">Currently on</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/55 mb-1.5">Currently on</p>
           <div className="flex flex-wrap gap-1.5">
             {currentTeamIds.length === 0 ? (
-              <span className="text-sm text-bone/50">No team yet.</span>
+              <span className="text-sm text-ink-primary/50">No team yet.</span>
             ) : currentTeamIds.map((id) => {
               const t = teams.find((x) => x.id === id);
               return (
-                <span key={id} className="text-xs font-semibold bg-white/5 text-bone px-2 py-1 rounded-md ring-1 ring-white/10">
+                <span key={id} className="text-xs font-semibold bg-line-default/5 text-ink-primary px-2 py-1 rounded-md ring-1 ring-line-default/10">
                   {t?.name || id}
                 </span>
               );

@@ -64,7 +64,7 @@ function rsvpAvatarColor(name: string): string {
     'from-brand-primary-soft to-brand-primary',
     'from-violet-400 to-violet-600',
     'from-fuchsia-400 to-pink-600',
-    'from-brand-primary-soft to-charcoal-600',
+    'from-brand-primary-soft to-surface-tint',
     'from-teal-400 to-teal-600',
   ];
   return palette[h % palette.length];
@@ -743,7 +743,7 @@ const EventDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-primary-soft/30 border-t-cyan-500" />
       </div>
     );
@@ -751,7 +751,7 @@ const EventDetail: React.FC = () => {
 
   if (!event || !eventDate) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex flex-col items-center justify-center p-8 text-center">
+      <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center p-8 text-center">
         <p className="text-charcoal-400 mb-4">Event not found.</p>
         <Link to="/calendar" className="text-brand-primary font-semibold">← Back to events</Link>
       </div>
@@ -760,7 +760,7 @@ const EventDetail: React.FC = () => {
 
   const typeColors: Record<string, { stripe: string; chip: string }> = {
     game: { stripe: 'from-rose-500 to-orange-500', chip: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
-    practice: { stripe: 'from-brand-primary to-charcoal-600', chip: 'bg-brand-primary/10 text-brand-primary-soft border-brand-primary/30' },
+    practice: { stripe: 'from-brand-primary to-surface-tint', chip: 'bg-brand-primary/10 text-brand-primary-soft border-brand-primary/30' },
     event: { stripe: 'from-purple-500 to-pink-500', chip: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
   };
   const colors = typeColors[event.type] || typeColors.event;
@@ -769,15 +769,15 @@ const EventDetail: React.FC = () => {
     countdown?.variant === 'live'
       ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
       : countdown?.variant === 'past'
-      ? 'bg-white/[0.04]0/10 border-slate-500/20 text-bone/50'
-      : 'bg-brand-primary/10 border-brand-primary/25 text-bone/85';
+      ? 'bg-line-default/[0.04]0/10 border-slate-500/20 text-ink-primary/50'
+      : 'bg-brand-primary/10 border-brand-primary/25 text-ink-primary/85';
   const pulseClass =
     countdown?.variant === 'live' ? 'bg-rose-500'
-    : countdown?.variant === 'past' ? 'bg-white/[0.04]0'
+    : countdown?.variant === 'past' ? 'bg-line-default/[0.04]0'
     : 'bg-brand-primary-soft animate-pulse';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base">
       {/* HERO — cinematic full-bleed treatment per v9 mockup. Ball-in-
           net photo lives on the right edge with a left-to-right
           gradient that fades it to near-black behind the copy, so the
@@ -785,7 +785,7 @@ const EventDetail: React.FC = () => {
           flattening the image. Same hero on every event by design
           ('feel free to push back' → 'yeah, i agree. same photo for
           every event'). */}
-      <section className="relative overflow-hidden bg-charcoal-950 border-b border-brand-primary/10">
+      <section className="relative overflow-hidden bg-surface-base border-b border-brand-primary/10">
         {/* Background photo, right-anchored. object-right keeps the
             soccer ball in the visible portion when the section is
             wide; on phone widths the gradient eats the left half
@@ -803,13 +803,13 @@ const EventDetail: React.FC = () => {
             presence and isn't washed flat. */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-r from-charcoal-950 via-charcoal-950/85 to-charcoal-950/30"
+          className="absolute inset-0 bg-gradient-to-r from-surface-base via-surface-base/85 to-surface-base/30"
         />
         {/* Bottom fade into the page so the hero doesn't sit on a
             hard horizon line. */}
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-charcoal-900 pointer-events-none"
+          className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-surface-elevated pointer-events-none"
         />
 
         <div className="relative px-4 sm:px-6 pt-4 pb-6">
@@ -818,7 +818,7 @@ const EventDetail: React.FC = () => {
           <div className="flex items-center justify-between mb-5">
             <button
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur ring-1 ring-white/15 text-white flex items-center justify-center hover:bg-white/15"
+              className="w-9 h-9 rounded-full bg-line-default/10 backdrop-blur ring-1 ring-line-default/15 text-white flex items-center justify-center hover:bg-line-default/15"
               aria-label="Back"
             >
               <Icon name="arrow-left" className="w-4 h-4" />
@@ -832,7 +832,7 @@ const EventDetail: React.FC = () => {
             {isUserCoach ? (
               <button
                 onClick={() => setIsEditOpen(true)}
-                className="w-9 h-9 rounded-full bg-white/10 backdrop-blur ring-1 ring-white/15 text-white flex items-center justify-center hover:bg-white/15"
+                className="w-9 h-9 rounded-full bg-line-default/10 backdrop-blur ring-1 ring-line-default/15 text-white flex items-center justify-center hover:bg-line-default/15"
                 aria-label="Edit event"
               >
                 <Icon name="edit" className="w-4 h-4" />
@@ -849,7 +849,7 @@ const EventDetail: React.FC = () => {
             <span className="inline-block text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft">
               {event.type}
             </span>
-            <h1 className="mt-1 text-3xl sm:text-4xl font-black text-bone leading-[1.05] tracking-tight">
+            <h1 className="mt-1 text-3xl sm:text-4xl font-black text-ink-primary leading-[1.05] tracking-tight">
               {event.title}
             </h1>
             <p className="mt-3 text-[13.5px] text-charcoal-200 flex items-center gap-1.5 flex-wrap">
@@ -857,7 +857,7 @@ const EventDetail: React.FC = () => {
                 <Icon name="cal" className="w-3.5 h-3.5 text-brand-primary-soft" />
                 {eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
-              <span className="text-bone/50">·</span>
+              <span className="text-ink-primary/50">·</span>
               <span className="inline-flex items-center gap-1.5">
                 <Icon name="clock" className="w-3.5 h-3.5 text-brand-primary-soft" />
                 {formatTimeRange(eventDate, eventEnd)}
@@ -923,23 +923,23 @@ const EventDetail: React.FC = () => {
       {isUserCoach && roster.length > 0 && (() => {
         const goingCount = Object.values(((event as any).playerRsvps || {})).filter((r: any) => r?.status === 'going').length;
         return (
-          <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden">
+          <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 overflow-hidden">
             <button
               type="button"
               onClick={() => setAttendanceOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-white/[0.05] text-left"
+              className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-line-default/[0.05] text-left"
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <Icon name="check" className="w-3 h-3 text-brand-primary shrink-0" />
                 <span className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400">Mark attendance</span>
-                <span className="text-[10px] text-bone/50 font-bold ml-1 truncate">
+                <span className="text-[10px] text-ink-primary/50 font-bold ml-1 truncate">
                   · {goingCount} going · {roster.length} on roster
                 </span>
               </div>
-              <svg className={`w-4 h-4 text-bone/50 shrink-0 transition-transform ${attendanceOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
+              <svg className={`w-4 h-4 text-ink-primary/50 shrink-0 transition-transform ${attendanceOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
             </button>
             {attendanceOpen && (
-              <ul className="divide-y divide-white/10 px-4 sm:px-6 pb-3">
+              <ul className="divide-y divide-line-default/10 px-4 sm:px-6 pb-3">
                 {roster.map(p => {
                   const current = ((event as any).playerRsvps || {})[p.id]?.status as RsvpStatus | undefined;
                   const btn = (status: RsvpStatus, label: string, active: string) => (
@@ -950,7 +950,7 @@ const EventDetail: React.FC = () => {
                       className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
                         current === status
                           ? `${active} text-white border-transparent shadow-sm`
-                          : 'bg-charcoal-900 text-charcoal-400 border-white/10 hover:border-white/15'
+                          : 'bg-surface-elevated text-charcoal-400 border-line-default/10 hover:border-line-default/15'
                       }`}
                     >
                       {label}
@@ -958,8 +958,8 @@ const EventDetail: React.FC = () => {
                   );
                   return (
                     <li key={p.id} className="flex items-center gap-2 py-1.5">
-                      <RosterAvatar name={p.name} photoUrl={p.photoURL} size={28} className="ring-1 ring-white/10" />
-                      <div className="flex-1 min-w-0 text-sm font-semibold text-bone truncate" title={p.name}>{p.name}</div>
+                      <RosterAvatar name={p.name} photoUrl={p.photoURL} size={28} className="ring-1 ring-line-default/10" />
+                      <div className="flex-1 min-w-0 text-sm font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {btn('going', 'Present', 'bg-emerald-600')}
                         {btn('maybe', 'Maybe', 'bg-amber-500')}
@@ -975,7 +975,7 @@ const EventDetail: React.FC = () => {
       })()}
 
       {myLinkedPlayers.length > 0 && (
-        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-2 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-brand-primary" />
             RSVP for your {myLinkedPlayers.length > 1 ? 'players' : 'player'}
@@ -990,7 +990,7 @@ const EventDetail: React.FC = () => {
                   className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
                     current === status
                       ? `${active} text-white border-transparent shadow-sm`
-                      : 'bg-charcoal-800 text-charcoal-200 border-white/10 hover:border-white/20'
+                      : 'bg-surface-input text-charcoal-200 border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
                   {label}
@@ -998,7 +998,7 @@ const EventDetail: React.FC = () => {
               );
               return (
                 <div key={p.id} className="flex items-center gap-2">
-                  <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-bone truncate" title={p.name}>{p.name}</div>
+                  <div className="w-20 sm:w-28 shrink-0 text-xs font-semibold text-ink-primary truncate" title={p.name}>{p.name}</div>
                   <div className="flex-1 flex gap-1.5">
                     {btn('going', 'Going', 'bg-emerald-600')}
                     {btn('maybe', 'Maybe', 'bg-amber-500')}
@@ -1018,12 +1018,12 @@ const EventDetail: React.FC = () => {
           headcount. Patrick 2026-06-21: 'i want to clean up the
           header' (moved off the dashboard hero into here). */}
       {isUserCoach && myLinkedPlayers.length > 0 && (
-        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-2 flex items-center gap-1.5">
             <Icon name="check" className="w-3 h-3 text-brand-primary" />
             Coach attendance
           </div>
-          <p className="text-[12px] text-bone/60 leading-snug mb-3">
+          <p className="text-[12px] text-ink-primary/60 leading-snug mb-3">
             Separate from your kid&apos;s RSVP above — mark whether you&apos;ll be there as coach.
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -1043,7 +1043,7 @@ const EventDetail: React.FC = () => {
                   className={`text-[12px] font-extrabold tracking-wider uppercase px-3 py-2.5 rounded-lg ring-1 transition-colors ${
                     active
                       ? toneActive
-                      : 'bg-charcoal-800 ring-white/10 text-bone/75 hover:bg-charcoal-700'
+                      : 'bg-surface-input ring-line-default/10 text-ink-primary/75 hover:bg-surface-raised'
                   }`}
                 >
                   {label}
@@ -1058,7 +1058,7 @@ const EventDetail: React.FC = () => {
           removed 2026-06-24 when the public RSVP page was killed
           (everyone's expected to be on the app now). */}
       {isUserCoach && (
-      <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid grid-cols-1 gap-2">
+      <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4 grid grid-cols-1 gap-2">
         {event.isCancelled ? (
           <button
             onClick={handleRestore}
@@ -1085,16 +1085,16 @@ const EventDetail: React.FC = () => {
       {event.type === 'game' && (event as any).homeAway && (
         <section className={`px-4 sm:px-6 py-3 ${
           (event as any).homeAway === 'home'
-            ? 'bg-charcoal-900 ring-1 ring-charcoal-700 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
-            : 'bg-charcoal-900 ring-1 ring-white/10/80 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
+            ? 'bg-surface-elevated ring-1 ring-charcoal-700 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
+            : 'bg-surface-elevated ring-1 ring-line-default/10/80 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
         }`}>
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {/* Jersey swatch doubles as the icon. */}
               <span className={`inline-block w-9 h-9 rounded-md border-2 flex-shrink-0 ${
                 (event as any).homeAway === 'home'
-                  ? 'bg-charcoal-900 border-slate-600'
-                  : 'bg-charcoal-900 border-white/15'
+                  ? 'bg-surface-elevated border-slate-600'
+                  : 'bg-surface-elevated border-line-default/15'
               }`} aria-hidden />
               <div>
                 <div className={`text-xs font-extrabold tracking-widest uppercase ${
@@ -1103,7 +1103,7 @@ const EventDetail: React.FC = () => {
                   {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
                 </div>
                 <div className={`text-[11px] mt-0.5 ${
-                  (event as any).homeAway === 'home' ? 'text-bone/50' : 'text-bone/50'
+                  (event as any).homeAway === 'home' ? 'text-ink-primary/50' : 'text-ink-primary/50'
                 }`}>
                   Wear your <span className="font-bold">{(event as any).homeAway === 'home' ? 'black' : 'white'}</span> jersey
                 </div>
@@ -1111,8 +1111,8 @@ const EventDetail: React.FC = () => {
             </div>
             <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
               (event as any).homeAway === 'home'
-                ? 'bg-brand-primary/15 text-bone border-brand-primary/30'
-                : 'bg-charcoal-950 text-charcoal-400 border-white/10'
+                ? 'bg-brand-primary/15 text-ink-primary border-brand-primary/30'
+                : 'bg-surface-base text-charcoal-400 border-line-default/10'
             }`}>
               {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
             </span>
@@ -1121,7 +1121,7 @@ const EventDetail: React.FC = () => {
       )}
 
       {/* RSVPS */}
-      <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+      <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-brand-primary" />
@@ -1144,8 +1144,8 @@ const EventDetail: React.FC = () => {
             <div className="text-2xl font-black text-rose-300 leading-none">{buckets.cant.length}</div>
             <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">CAN'T</div>
           </div>
-          <div className="relative overflow-hidden rounded-lg bg-charcoal-800 ring-1 ring-white/10 px-3 py-2.5">
-            <span className="absolute inset-x-0 top-0 h-0.5 bg-white/40" />
+          <div className="relative overflow-hidden rounded-lg bg-surface-input ring-1 ring-line-default/10 px-3 py-2.5">
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-line-default/40" />
             <div className="text-2xl font-black text-charcoal-200 leading-none">{buckets.pending}</div>
             <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">PENDING</div>
           </div>
@@ -1167,14 +1167,14 @@ const EventDetail: React.FC = () => {
           </div>
         )}
         {buckets.going.length > 0 && (
-          <ul className="mt-3 divide-y divide-white/10">
+          <ul className="mt-3 divide-y divide-line-default/10">
             {buckets.going.map((p: any, i) => {
               const photo = photoForEntry(p);
               return (
               <li key={`go-${i}`} className="py-1.5">
                 <div className="flex items-center gap-2.5">
-                  <RosterAvatar name={p.name} photoUrl={photo} size={28} className="ring-1 ring-white/10" />
-                  <span className="text-sm font-semibold text-bone flex-1 truncate">{p.name}</span>
+                  <RosterAvatar name={p.name} photoUrl={photo} size={28} className="ring-1 ring-line-default/10" />
+                  <span className="text-sm font-semibold text-ink-primary flex-1 truncate">{p.name}</span>
                   {p.kind === 'guest' && isUserCoach && roster.length > 0 && (
                     <button
                       onClick={() => setMergingToken(mergingToken === p.guestToken ? null : p.guestToken)}
@@ -1192,7 +1192,7 @@ const EventDetail: React.FC = () => {
                       ? { label: 'ROSTER', cls: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/40' }
                       : p.kind === 'staff'
                         ? { label: 'STAFF',  cls: 'bg-brand-primary/15 text-brand-primary-soft ring-brand-primary-soft/40' }
-                        : { label: 'GUEST',  cls: 'bg-charcoal-800 text-charcoal-300 ring-white/10' };
+                        : { label: 'GUEST',  cls: 'bg-surface-input text-charcoal-300 ring-line-default/10' };
                     return (
                       <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded ring-1 ${badge.cls}`}>
                         {badge.label}
@@ -1230,7 +1230,7 @@ const EventDetail: React.FC = () => {
                     </div>
                     <button
                       onClick={() => setMergingToken(null)}
-                      className="mt-1 w-full text-center text-[11px] font-bold text-bone/50 py-1 hover:text-charcoal-200"
+                      className="mt-1 w-full text-center text-[11px] font-bold text-ink-primary/50 py-1 hover:text-charcoal-200"
                     >
                       Cancel
                     </button>
@@ -1245,7 +1245,7 @@ const EventDetail: React.FC = () => {
 
       {/* WEATHER */}
       {weather && (
-        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
               <Icon name="cloud" className="w-3 h-3 text-brand-primary" />
@@ -1255,10 +1255,10 @@ const EventDetail: React.FC = () => {
           <div className="flex items-center gap-3">
             <span className="text-3xl" aria-hidden>{weather.icon}</span>
             <div>
-              <div className="text-xl font-black text-bone leading-none">
-                {weather.tempMaxF}° <span className="text-bone/50 font-semibold text-sm">/ {weather.tempMinF}°</span>
+              <div className="text-xl font-black text-ink-primary leading-none">
+                {weather.tempMaxF}° <span className="text-ink-primary/50 font-semibold text-sm">/ {weather.tempMinF}°</span>
               </div>
-              <div className="text-[11px] text-bone/50 mt-1 tracking-wide uppercase">
+              <div className="text-[11px] text-ink-primary/50 mt-1 tracking-wide uppercase">
                 {weather.label}
                 {weather.precipChance >= 20 && ` · ${weather.precipChance}% rain`}
               </div>
@@ -1271,7 +1271,7 @@ const EventDetail: React.FC = () => {
           team chat). Writes to the eventComments collection — anyone
           on this event can read + post here without flooding the
           team chat firehose. */}
-      <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+      <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
         <EventDiscussion
           eventId={event.id}
           teamId={event.teamId}
@@ -1290,35 +1290,35 @@ const EventDetail: React.FC = () => {
           row expands to show the answers. Only renders when at least
           one signup exists (no zero-state visual clutter). */}
       {isUserCoach && signups.length > 0 && (
-        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 px-4 sm:px-5 py-4 mb-4 mx-3 sm:mx-0">
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 px-4 sm:px-5 py-4 mb-4 mx-3 sm:mx-0">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Form signups</div>
-              <h2 className="text-base font-black text-bone leading-tight">
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Form signups</div>
+              <h2 className="text-base font-black text-ink-primary leading-tight">
                 {signups.length} {signups.length === 1 ? 'submission' : 'submissions'}
               </h2>
             </div>
           </div>
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-line-default/5">
             {signups.map(s => (
               <li key={s.id} className="py-2.5">
                 <details>
                   <summary className="flex items-center justify-between gap-3 cursor-pointer list-none">
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-bone truncate">
+                      <div className="text-sm font-bold text-ink-primary truncate">
                         {s.submittedByName || 'Parent'} · {s.formName}
                       </div>
-                      <div className="text-[11px] text-bone/50">
+                      <div className="text-[11px] text-ink-primary/50">
                         {s.submittedAt ? s.submittedAt.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
                       </div>
                     </div>
-                    <svg className="w-4 h-4 text-bone/50 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                    <svg className="w-4 h-4 text-ink-primary/50 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
                   </summary>
                   <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
                     {Object.keys(s.answers).map(qid => (
                       <div key={qid} className="min-w-0">
-                        <dt className="text-bone/50 truncate">{s.answerLabels[qid] || qid}</dt>
-                        <dd className="text-bone font-semibold truncate">{String(s.answers[qid] ?? '—')}</dd>
+                        <dt className="text-ink-primary/50 truncate">{s.answerLabels[qid] || qid}</dt>
+                        <dd className="text-ink-primary font-semibold truncate">{String(s.answers[qid] ?? '—')}</dd>
                       </div>
                     ))}
                   </dl>
@@ -1469,7 +1469,7 @@ const EventDetail: React.FC = () => {
 
       {/* DESCRIPTION */}
       {event.description && (
-        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-1.5">
             About
           </div>
@@ -1483,7 +1483,7 @@ const EventDetail: React.FC = () => {
           Maps" so users always have an escape hatch to their preferred
           maps app. */}
       {(event as any).locationCoords?.lat && (
-        <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-1.5">
             <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400">Map</div>
             <a
@@ -1500,16 +1500,16 @@ const EventDetail: React.FC = () => {
               Open in Maps →
             </a>
           </div>
-          <div className="rounded-xl overflow-hidden border border-white/10">
+          <div className="rounded-xl overflow-hidden border border-line-default/10">
             <iframe
               title="Event location"
               src={osmEmbedUrl((event as any).locationCoords.lat, (event as any).locationCoords.lon, 16)}
-              className="w-full h-44 block bg-charcoal-950"
+              className="w-full h-44 block bg-surface-base"
               loading="lazy"
             />
           </div>
           {(event as any).locationAddress && (
-            <p className="mt-1.5 text-[11px] text-bone/50">{(event as any).locationAddress}</p>
+            <p className="mt-1.5 text-[11px] text-ink-primary/50">{(event as any).locationAddress}</p>
           )}
         </section>
       )}
@@ -1562,7 +1562,7 @@ const PackingListSection: React.FC<{
   if (list.length === 0 && !isCoach) return null;
 
   return (
-    <section className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+    <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
           <svg className="w-3 h-3 text-brand-primary" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -1575,7 +1575,7 @@ const PackingListSection: React.FC<{
         )}
         {editing && (
           <div className="flex gap-2">
-            <button onClick={() => setEditing(false)} className="text-[11px] font-bold tracking-wide text-bone/50">Cancel</button>
+            <button onClick={() => setEditing(false)} className="text-[11px] font-bold tracking-wide text-ink-primary/50">Cancel</button>
             <button onClick={saveEdits} className="text-[11px] font-extrabold tracking-widest uppercase text-emerald-600">Save</button>
           </div>
         )}
@@ -1592,7 +1592,7 @@ const PackingListSection: React.FC<{
                   copy[i] = e.target.value;
                   setDraftLabels(copy);
                 }}
-                className="flex-1 px-3 py-1.5 border border-white/10 rounded-md text-sm"
+                className="flex-1 px-3 py-1.5 border border-line-default/10 rounded-md text-sm"
                 placeholder="e.g. Cleats"
               />
               <button
@@ -1612,7 +1612,7 @@ const PackingListSection: React.FC<{
                   e.preventDefault();
                 }
               }}
-              className="flex-1 px-3 py-1.5 border border-white/10 rounded-md text-sm"
+              className="flex-1 px-3 py-1.5 border border-line-default/10 rounded-md text-sm"
               placeholder="Add an item — press Enter"
             />
             <button
@@ -1627,7 +1627,7 @@ const PackingListSection: React.FC<{
           </div>
         </div>
       ) : list.length === 0 ? (
-        <p className="text-sm text-bone/50">No packing list set yet.</p>
+        <p className="text-sm text-ink-primary/50">No packing list set yet.</p>
       ) : (
         <ul className="space-y-1.5">
           {list.map((item: any) => {
@@ -1640,13 +1640,13 @@ const PackingListSection: React.FC<{
                   className="w-full flex items-center gap-2.5 py-1 text-left disabled:cursor-not-allowed"
                 >
                   <span className={`w-[18px] h-[18px] rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                    isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/15'
+                    isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-line-default/15'
                   }`}>
                     {isChecked && (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                     )}
                   </span>
-                  <span className={`text-sm ${isChecked ? 'line-through text-bone/50' : 'text-charcoal-200'}`}>
+                  <span className={`text-sm ${isChecked ? 'line-through text-ink-primary/50' : 'text-charcoal-200'}`}>
                     {item.label}
                   </span>
                 </button>

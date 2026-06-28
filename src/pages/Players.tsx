@@ -53,7 +53,7 @@ const Players: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base">
       <Header title={VOCAB.squad} subtitle="Cards, contact info, and who's on the bench" />
       <ImportPlayersModal
         isOpen={importOpen}
@@ -78,7 +78,7 @@ const Players: React.FC = () => {
               placeholder="Search by name or #…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-9 py-2.5 text-sm bg-white/[0.04] ring-1 ring-white/10 text-white placeholder-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              className="w-full pl-9 pr-9 py-2.5 text-sm bg-line-default/[0.04] ring-1 ring-line-default/10 text-white placeholder-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
             />
             {searchTerm && (
               <button
@@ -97,10 +97,10 @@ const Players: React.FC = () => {
             <select
               value={positionFilter}
               onChange={(e) => setPositionFilter(e.target.value)}
-              className="appearance-none bg-white/[0.04] ring-1 ring-white/10 text-white rounded-xl pl-3 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              className="appearance-none bg-line-default/[0.04] ring-1 ring-line-default/10 text-white rounded-xl pl-3 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
             >
-              <option value="" className="bg-charcoal-900">All positions</option>
-              {positions.map(p => <option key={p} value={p} className="bg-charcoal-900">{p}</option>)}
+              <option value="" className="bg-surface-elevated">All positions</option>
+              {positions.map(p => <option key={p} value={p} className="bg-surface-elevated">{p}</option>)}
             </select>
             <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <polyline points="6 9 12 15 18 9" />
@@ -109,7 +109,7 @@ const Players: React.FC = () => {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2.5 text-white/70 hover:text-white bg-white/[0.04] ring-1 ring-white/10 rounded-xl"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2.5 text-white/70 hover:text-white bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-xl"
             >
               Clear
             </button>
@@ -125,7 +125,7 @@ const Players: React.FC = () => {
           <div className="pt-2 pb-1 flex justify-center">
             <button
               onClick={() => setImportOpen(true)}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-brand-primary-soft/80 hover:text-bone"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2 text-brand-primary-soft/80 hover:text-ink-primary"
             >
               Import roster from CSV
             </button>

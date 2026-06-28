@@ -169,14 +169,14 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
           {result.inviteUrl ? (
             <div className="rounded-lg ring-1 ring-brand-primary/30 bg-brand-primary/10 p-3 space-y-2">
               <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Parent invite link</div>
-              <div className="text-xs font-mono text-bone break-all">{result.inviteUrl}</div>
+              <div className="text-xs font-mono text-ink-primary break-all">{result.inviteUrl}</div>
               <Button variant="primary" onClick={copy} fullWidth size="sm">
                 {copied ? 'Copied' : 'Copy link'}
               </Button>
-              <p className="text-[10px] text-bone/50">Send this to {parentEmail.trim() || 'the parent'}. Link expires in 30 days.</p>
+              <p className="text-[10px] text-ink-primary/50">Send this to {parentEmail.trim() || 'the parent'}. Link expires in 30 days.</p>
             </div>
           ) : (
-            <p className="text-[11px] text-bone/50">No parent invite generated. You can send one anytime via the + Invite button.</p>
+            <p className="text-[11px] text-ink-primary/50">No parent invite generated. You can send one anytime via the + Invite button.</p>
           )}
         </div>
       ) : (
@@ -223,11 +223,11 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                     type="button"
                     onClick={() => toggleTeam(t.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg ring-1 text-sm ${
-                      on ? 'bg-brand-primary/15 ring-brand-primary/40 text-brand-primary-soft' : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                      on ? 'bg-brand-primary/15 ring-brand-primary/40 text-brand-primary-soft' : 'bg-surface-base ring-line-default/10 text-ink-primary hover:bg-line-default/5'
                     }`}
                   >
                     <span className="font-semibold">{t.name}</span>
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-brand-primary-fg' : 'border-white/20'}`}>
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-brand-primary-fg' : 'border-line-default/20'}`}>
                       {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                     </span>
                   </button>
@@ -240,7 +240,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
               self-signup invite (the player IS the user; no parent
               layer). UI labels in the app flip from 'your kid' to
               'you' once they accept. */}
-          <label className="flex items-start gap-2 p-3 rounded-lg ring-1 ring-white/10 bg-charcoal-950 cursor-pointer">
+          <label className="flex items-start gap-2 p-3 rounded-lg ring-1 ring-line-default/10 bg-surface-base cursor-pointer">
             <input
               type="checkbox"
               checked={isAdultPlayer}
@@ -248,14 +248,14 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
               className="mt-0.5 accent-brand-primary"
             />
             <div className="flex-1">
-              <div className="text-xs font-bold text-bone">Adult player (no parent)</div>
-              <div className="text-[10px] text-bone/55 mt-0.5">
+              <div className="text-xs font-bold text-ink-primary">Adult player (no parent)</div>
+              <div className="text-[10px] text-ink-primary/55 mt-0.5">
                 Pickup leagues, over-35s, adult rec teams. The invite goes to the player themself; they sign up and manage their own profile.
               </div>
             </div>
           </label>
 
-          <div className="rounded-lg ring-1 ring-white/10 p-3 space-y-2 bg-charcoal-950">
+          <div className="rounded-lg ring-1 ring-line-default/10 p-3 space-y-2 bg-surface-base">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -263,7 +263,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                 onChange={e => setGenerateInvite(e.target.checked)}
                 className="accent-brand-primary"
               />
-              <span className="text-xs font-bold text-bone">
+              <span className="text-xs font-bold text-ink-primary">
                 {isAdultPlayer ? 'Also generate a player invite link' : 'Also generate a parent invite link'}
               </span>
             </label>
@@ -276,7 +276,7 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
                   placeholder={isAdultPlayer ? 'player@example.com (optional — for your records)' : 'parent@example.com (optional — for your records)'}
                   className={fieldInputClass}
                 />
-                <p className="text-[10px] text-bone/50">
+                <p className="text-[10px] text-ink-primary/50">
                   You'll get a share link to text or email {isAdultPlayer ? 'the player' : 'the parent'}. No automatic email is sent.
                 </p>
               </>

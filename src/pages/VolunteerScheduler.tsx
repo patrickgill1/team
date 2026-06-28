@@ -262,13 +262,13 @@ const VolunteerScheduler: React.FC = () => {
   const getTypeColor = (type: string) => {
     const colors = {
       snacks: 'bg-emerald-500/15 text-emerald-300',
-      setup: 'bg-brand-primary/15 text-bone/85',
+      setup: 'bg-brand-primary/15 text-ink-primary/85',
       cleanup: 'bg-brand-primary/15 text-brand-primary-soft',
-      transportation: 'bg-charcoal-700/10 text-charcoal-800',
+      transportation: 'bg-surface-raised/10 text-charcoal-800',
       equipment: 'bg-brand-primary/20 text-charcoal-800',
-      other: 'bg-white/[0.08] text-bone/85'
+      other: 'bg-line-default/[0.08] text-ink-primary/85'
     };
-    return colors[type as keyof typeof colors] || 'bg-white/[0.08] text-bone/85';
+    return colors[type as keyof typeof colors] || 'bg-line-default/[0.08] text-ink-primary/85';
   };
 
   const isUserSignedUp = (opportunity: VolunteerOpportunity) => {
@@ -289,14 +289,14 @@ const VolunteerScheduler: React.FC = () => {
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center space-y-3">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft/30 border-t-cyan-500" />
-          <span className="text-sm text-bone/40 font-medium">Loading...</span>
+          <span className="text-sm text-ink-primary/40 font-medium">Loading...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       <Header title="Volunteers" subtitle="Sign up to help — snacks, setup, transport, and more" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex justify-end">
@@ -313,7 +313,7 @@ const VolunteerScheduler: React.FC = () => {
         {upcomingEvents.length === 0 && (
           <div className="mb-6 p-4 bg-brand-primary/15 border border-brand-primary-soft/30 rounded-2xl">
             <div className="flex items-start gap-3">
-              <AppIcon name="info" className="w-5 h-5 text-bone/85 mt-0.5" />
+              <AppIcon name="info" className="w-5 h-5 text-ink-primary/85 mt-0.5" />
               <div>
                 <p className="text-charcoal-900 font-medium">No upcoming events found</p>
                 <p className="text-charcoal-800/80 text-sm">
@@ -334,7 +334,7 @@ const VolunteerScheduler: React.FC = () => {
         {/* Calendar Events with Volunteer Needs */}
         {upcomingEvents.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-bone mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-ink-primary mb-4 flex items-center gap-2">
               <AppIcon name="calendar" className="w-5 h-5 text-brand-primary-soft" />
               <span>Upcoming events</span>
             </h2>
@@ -345,17 +345,17 @@ const VolunteerScheduler: React.FC = () => {
                 const filledSlots = eventOpps.reduce((sum, opp) => sum + opp.slotsBooked.length, 0);
                 
                 return (
-                  <div key={event.id} className="bg-charcoal-900 rounded-lg border border-white/10 p-4">
+                  <div key={event.id} className="bg-surface-elevated rounded-lg border border-line-default/10 p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="font-semibold text-bone">{event.title}</h3>
-                        <p className="text-sm text-bone/65">{formatDateTime(event.date)}</p>
-                        <p className="text-sm text-bone/50">{event.location}</p>
+                        <h3 className="font-semibold text-ink-primary">{event.title}</h3>
+                        <p className="text-sm text-ink-primary/65">{formatDateTime(event.date)}</p>
+                        <p className="text-sm text-ink-primary/50">{event.location}</p>
                       </div>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        event.type === 'game' ? 'bg-charcoal-700/10 text-charcoal-800' :
+                        event.type === 'game' ? 'bg-surface-raised/10 text-charcoal-800' :
                         event.type === 'practice' ? 'bg-brand-primary/20 text-charcoal-800' :
-                        'bg-brand-primary/15 text-bone/85'
+                        'bg-brand-primary/15 text-ink-primary/85'
                       }`}>
                         {event.type}
                       </span>
@@ -364,7 +364,7 @@ const VolunteerScheduler: React.FC = () => {
                     {eventOpps.length > 0 ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-bone/65">Volunteer needs:</span>
+                          <span className="text-ink-primary/65">Volunteer needs:</span>
                           <span className={`font-medium ${
                             filledSlots >= totalSlots ? 'text-emerald-600' : 'text-orange-600'
                           }`}>
@@ -372,9 +372,9 @@ const VolunteerScheduler: React.FC = () => {
                           </span>
                         </div>
                         {eventOpps.map(opp => (
-                          <div key={opp.id} className="text-xs text-bone/65 flex items-center justify-between">
+                          <div key={opp.id} className="text-xs text-ink-primary/65 flex items-center justify-between">
                             <span className="inline-flex items-center gap-1.5">
-                              <AppIcon name={getTypeIcon(opp.type)} className="w-3.5 h-3.5 text-bone/50" />
+                              <AppIcon name={getTypeIcon(opp.type)} className="w-3.5 h-3.5 text-ink-primary/50" />
                               <span>{opp.title}</span>
                             </span>
                             <span>{opp.slotsBooked.length}/{opp.slotsNeeded}</span>
@@ -382,7 +382,7 @@ const VolunteerScheduler: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-bone/50">No volunteer needs yet</p>
+                      <p className="text-sm text-ink-primary/50">No volunteer needs yet</p>
                     )}
                   </div>
                 );
@@ -401,7 +401,7 @@ const VolunteerScheduler: React.FC = () => {
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                   filterType === type
                     ? 'bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30'
-                    : 'bg-white/[0.08] text-bone/85 hover:bg-white/[0.08]'
+                    : 'bg-line-default/[0.08] text-ink-primary/85 hover:bg-line-default/[0.08]'
                 }`}
               >
                 {type !== 'all' && <AppIcon name={getTypeIcon(type)} className="w-3.5 h-3.5" />}
@@ -420,9 +420,9 @@ const VolunteerScheduler: React.FC = () => {
             const linkedEvent = calendarEvents.find(e => e.id === opportunity.calendarEventId);
 
             return (
-              <div key={opportunity.id} className="card-modern border border-white/10 overflow-hidden">
+              <div key={opportunity.id} className="card-modern border border-line-default/10 overflow-hidden">
                 {/* Header */}
-                <div className="p-4 border-b border-white/10">
+                <div className="p-4 border-b border-line-default/10">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
@@ -436,9 +436,9 @@ const VolunteerScheduler: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <h3 className="text-lg font-semibold text-bone">{opportunity.title}</h3>
+                      <h3 className="text-lg font-semibold text-ink-primary">{opportunity.title}</h3>
                       {opportunity.description && (
-                        <p className="text-sm text-bone/65 mt-1">{opportunity.description}</p>
+                        <p className="text-sm text-ink-primary/65 mt-1">{opportunity.description}</p>
                       )}
                     </div>
                   </div>
@@ -446,14 +446,14 @@ const VolunteerScheduler: React.FC = () => {
 
                 {/* Details */}
                 <div className="p-4 space-y-3">
-                  <div className="flex items-center space-x-2 text-sm text-bone/65">
+                  <div className="flex items-center space-x-2 text-sm text-ink-primary/65">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <span>{formatDateTime(opportunity.date)}</span>
                   </div>
 
-                  <div className="flex items-center space-x-2 text-sm text-bone/65">
+                  <div className="flex items-center space-x-2 text-sm text-ink-primary/65">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -471,23 +471,23 @@ const VolunteerScheduler: React.FC = () => {
                   )}
 
                   <div className="flex items-center space-x-2 text-sm">
-                    <svg className="w-4 h-4 text-bone/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-ink-primary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    <span className={slotsRemaining > 0 ? 'text-bone/65' : 'text-rose-300'}>
+                    <span className={slotsRemaining > 0 ? 'text-ink-primary/65' : 'text-rose-300'}>
                       {slotsRemaining} of {opportunity.slotsNeeded} spots available
                     </span>
                   </div>
 
                   {/* Volunteers */}
                   {opportunity.slotsBooked.length > 0 && (
-                    <div className="pt-3 border-t border-white/10">
-                      <h4 className="text-sm font-medium text-bone/85 mb-2">Volunteers:</h4>
+                    <div className="pt-3 border-t border-line-default/10">
+                      <h4 className="text-sm font-medium text-ink-primary/85 mb-2">Volunteers:</h4>
                       <div className="space-y-1">
                         {opportunity.slotsBooked.map((slot, index) => (
-                          <div key={index} className="text-sm text-bone/65">
+                          <div key={index} className="text-sm text-ink-primary/65">
                             • {slot.volunteerName}
-                            {slot.notes && <span className="text-bone/40"> - {slot.notes}</span>}
+                            {slot.notes && <span className="text-ink-primary/40"> - {slot.notes}</span>}
                           </div>
                         ))}
                       </div>
@@ -496,7 +496,7 @@ const VolunteerScheduler: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="p-4 border-t border-white/10">
+                <div className="p-4 border-t border-line-default/10">
                   {isSignedUp ? (
                     <button
                       onClick={() => handleWithdraw(opportunity.id)}
@@ -510,7 +510,7 @@ const VolunteerScheduler: React.FC = () => {
                       disabled={isFull}
                       className={`w-full font-medium py-2 px-4 rounded-lg transition duration-200 ${
                         isFull
-                          ? 'bg-white/[0.08] text-bone/40 cursor-not-allowed'
+                          ? 'bg-line-default/[0.08] text-ink-primary/40 cursor-not-allowed'
                           : 'bg-brand-primary hover:bg-brand-primary text-white'
                       }`}
                     >
@@ -526,13 +526,13 @@ const VolunteerScheduler: React.FC = () => {
         {/* Empty State */}
         {filteredOpportunities.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-bone/40 mb-4">
+            <div className="text-ink-primary/40 mb-4">
               <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-bone mb-2">No volunteer opportunities</h3>
-            <p className="text-bone/65">Create volunteer needs for your team events</p>
+            <h3 className="text-lg font-medium text-ink-primary mb-2">No volunteer opportunities</h3>
+            <p className="text-ink-primary/65">Create volunteer needs for your team events</p>
           </div>
         )}
       </div>
@@ -540,16 +540,16 @@ const VolunteerScheduler: React.FC = () => {
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-charcoal-900 rounded-lg max-w-md w-full p-6">
-            <h2 className="text-xl font-semibold text-bone mb-4">Add Volunteer Need</h2>
+          <div className="bg-surface-elevated rounded-lg max-w-md w-full p-6">
+            <h2 className="text-xl font-semibold text-ink-primary mb-4">Add Volunteer Need</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-bone/85 mb-1">For which event?</label>
+                <label className="block text-sm font-medium text-ink-primary/85 mb-1">For which event?</label>
                 <select
                   value={selectedEvent}
                   onChange={(e) => setSelectedEvent(e.target.value)}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="">Select an event...</option>
                   {upcomingEvents.map(event => (
@@ -561,7 +561,7 @@ const VolunteerScheduler: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-bone/85 mb-1">Type of help needed</label>
+                <label className="block text-sm font-medium text-ink-primary/85 mb-1">Type of help needed</label>
                 <select
                   value={newOpportunity.type}
                   onChange={(e) => {
@@ -574,7 +574,7 @@ const VolunteerScheduler: React.FC = () => {
                       timeOffset: typeInfo.defaultOffset
                     });
                   }}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="snacks">Snacks & Drinks</option>
                   <option value="setup">Setup Help</option>
@@ -587,37 +587,37 @@ const VolunteerScheduler: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-bone/85 mb-1">Volunteers needed</label>
+                  <label className="block text-sm font-medium text-ink-primary/85 mb-1">Volunteers needed</label>
                   <input
                     type="number"
                     min="1"
                     value={newOpportunity.slotsNeeded}
                     onChange={(e) => setNewOpportunity({...newOpportunity, slotsNeeded: parseInt(e.target.value) || 1})}
-                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-bone/85 mb-1">Time offset (minutes)</label>
+                  <label className="block text-sm font-medium text-ink-primary/85 mb-1">Time offset (minutes)</label>
                   <input
                     type="number"
                     value={newOpportunity.timeOffset}
                     onChange={(e) => setNewOpportunity({...newOpportunity, timeOffset: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="0"
                   />
-                  <p className="text-xs text-bone/50 mt-1">
+                  <p className="text-xs text-ink-primary/50 mt-1">
                     Negative = before event, Positive = after event
                   </p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-bone/85 mb-1">Description (optional)</label>
+                <label className="block text-sm font-medium text-ink-primary/85 mb-1">Description (optional)</label>
                 <textarea
                   value={newOpportunity.description}
                   onChange={(e) => setNewOpportunity({...newOpportunity, description: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   placeholder={getTypeInfo(newOpportunity.type).defaultDescription}
                 />
               </div>
@@ -626,7 +626,7 @@ const VolunteerScheduler: React.FC = () => {
             <div className="flex space-x-3 pt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-bone/90 font-medium py-2 px-4 rounded-lg transition duration-200"
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-ink-primary/90 font-medium py-2 px-4 rounded-lg transition duration-200"
               >
                 Cancel
               </button>

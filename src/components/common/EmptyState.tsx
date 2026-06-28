@@ -30,7 +30,7 @@ interface Props {
 const EmptyState: React.FC<Props> = ({ icon, title, description, cta, tone = 'light', compact }) => {
   const isDark = tone === 'dark';
   const wrapper = isDark
-    ? 'bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-2xl'
+    ? 'bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl'
     : 'bg-white rounded-2xl shadow-sm ring-1 ring-gray-100';
   const pad = compact ? 'px-5 py-6' : 'px-6 py-10';
   const titleClass = isDark ? 'text-white' : 'text-slate-900';

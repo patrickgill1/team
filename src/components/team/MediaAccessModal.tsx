@@ -182,9 +182,9 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
     >
       <div className="space-y-2">
         {loading ? (
-          <p className="text-sm text-bone/55 text-center py-6">Loading parents…</p>
+          <p className="text-sm text-ink-primary/55 text-center py-6">Loading parents…</p>
         ) : parents.length === 0 ? (
-          <p className="text-sm text-bone/55 text-center py-6">No parents linked to players on this team yet.</p>
+          <p className="text-sm text-ink-primary/55 text-center py-6">No parents linked to players on this team yet.</p>
         ) : (
           parents.map((p) => {
             const isOn = granted.has(p.uid);
@@ -192,16 +192,16 @@ const MediaAccessModal: React.FC<Props> = ({ isOpen, onClose, teamId }) => {
               <label
                 key={p.uid}
                 className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 cursor-pointer ring-1 transition ${
-                  isOn ? 'bg-brand-primary/15 ring-brand-primary/40' : 'bg-charcoal-950 ring-white/10 hover:bg-white/5'
+                  isOn ? 'bg-brand-primary/15 ring-brand-primary/40' : 'bg-surface-base ring-line-default/10 hover:bg-line-default/5'
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-bone truncate">{p.name}</p>
+                  <p className="text-sm font-semibold text-ink-primary truncate">{p.name}</p>
                   {p.childNames.length > 0 && (
-                    <p className="text-[11px] text-bone/55 truncate">Parent of {p.childNames.join(', ')}</p>
+                    <p className="text-[11px] text-ink-primary/55 truncate">Parent of {p.childNames.join(', ')}</p>
                   )}
                   {p.email && (
-                    <p className="text-[11px] text-bone/40 truncate">{p.email}</p>
+                    <p className="text-[11px] text-ink-primary/40 truncate">{p.email}</p>
                   )}
                 </div>
                 <input

@@ -157,7 +157,7 @@ const Highlights: React.FC = () => {
           {(playerFilter !== 'all' || tagFilter !== 'all') && (
             <button
               onClick={() => { setPlayerFilter('all'); setTagFilter('all'); }}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm"
+              className="px-4 py-2 bg-line-default/10 hover:bg-line-default/20 rounded-lg text-sm"
             >
               Clear filters
             </button>
@@ -179,7 +179,7 @@ const Highlights: React.FC = () => {
           <select
             value={playerFilter}
             onChange={e => setPlayerFilter(e.target.value)}
-            className="bg-black/60 backdrop-blur border border-white/20 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-white/50"
+            className="bg-black/60 backdrop-blur border border-line-default/20 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-line-default/50"
           >
             <option value="all" className="text-black">All players</option>
             {players
@@ -194,7 +194,7 @@ const Highlights: React.FC = () => {
           <select
             value={tagFilter}
             onChange={e => setTagFilter(e.target.value)}
-            className="bg-black/60 backdrop-blur border border-white/20 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-white/50"
+            className="bg-black/60 backdrop-blur border border-line-default/20 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-line-default/50"
           >
             <option value="all" className="text-black">All tags</option>
             {ACTIVITY_TAGS.map(t => (
@@ -268,7 +268,7 @@ const Highlights: React.FC = () => {
                 <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
                   <button
                     onClick={() => setMuted(m => !m)}
-                    className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-white/20 backdrop-blur flex items-center justify-center"
+                    className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-line-default/20 backdrop-blur flex items-center justify-center"
                     aria-label={muted ? 'Unmute' : 'Mute'}
                   >
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -281,7 +281,7 @@ const Highlights: React.FC = () => {
                   </button>
                   <button
                     onClick={() => share(clip)}
-                    className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-white/20 backdrop-blur flex items-center justify-center"
+                    className="w-10 h-10 rounded-full bg-black/55 hover:bg-black/75 ring-1 ring-line-default/20 backdrop-blur flex items-center justify-center"
                     aria-label="Share"
                   >
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -294,20 +294,20 @@ const Highlights: React.FC = () => {
                   position, and a visible "Next clip" CTA so families
                   who've never seen a TikTok-style reel know the
                   vertical scroll is the navigation. */}
-              <div className="flex-[2] min-h-0 bg-charcoal-950 border-t border-white/10 overflow-y-auto">
+              <div className="flex-[2] min-h-0 bg-surface-base border-t border-line-default/10 overflow-y-auto">
                 <div className="max-w-xl mx-auto px-5 py-4">
                   <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">
                     Clip {i + 1} of {filtered.length}
-                    {clip.createdAt && <span className="text-bone/50 font-bold ml-1">· {formatDate(clip.createdAt)}</span>}
+                    {clip.createdAt && <span className="text-ink-primary/50 font-bold ml-1">· {formatDate(clip.createdAt)}</span>}
                   </div>
-                  <h2 className="text-xl font-black text-bone leading-tight">{clip.playerName}</h2>
+                  <h2 className="text-xl font-black text-ink-primary leading-tight">{clip.playerName}</h2>
                   {clip.caption && (
-                    <p className="text-sm text-bone/85 leading-snug mt-2">{clip.caption}</p>
+                    <p className="text-sm text-ink-primary/85 leading-snug mt-2">{clip.caption}</p>
                   )}
                   {clip.tags && clip.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {clip.tags.slice(0, 6).map(t => (
-                        <span key={t} className="px-2 py-0.5 bg-white/10 ring-1 ring-white/15 rounded-full text-[11px] font-bold text-bone/85">
+                        <span key={t} className="px-2 py-0.5 bg-line-default/10 ring-1 ring-line-default/15 rounded-full text-[11px] font-bold text-ink-primary/85">
                           {t}
                         </span>
                       ))}
@@ -318,7 +318,7 @@ const Highlights: React.FC = () => {
                     <button
                       type="button"
                       onClick={goNext}
-                      className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase text-bone/65 hover:text-bone"
+                      className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/65 hover:text-ink-primary"
                     >
                       Next clip
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
@@ -333,7 +333,7 @@ const Highlights: React.FC = () => {
                   there's a clip below this one. */}
               {i < filtered.length - 1 && (
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                  <div className="px-3 py-1.5 rounded-full bg-black/60 ring-1 ring-white/15 backdrop-blur text-white text-[10px] font-extrabold tracking-widest uppercase flex items-center gap-1.5 animate-bounce">
+                  <div className="px-3 py-1.5 rounded-full bg-black/60 ring-1 ring-line-default/15 backdrop-blur text-white text-[10px] font-extrabold tracking-widest uppercase flex items-center gap-1.5 animate-bounce">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
                     Swipe up
                   </div>

@@ -87,6 +87,7 @@ module.exports = {
           input:    'rgb(var(--surface-input) / <alpha-value>)',
           overlay:  'rgb(var(--surface-overlay) / <alpha-value>)',
           raised:   'rgb(var(--surface-raised) / <alpha-value>)',
+          tint:     'rgb(var(--surface-tint) / <alpha-value>)',
         },
         ink: {
           primary:   'rgb(var(--ink-primary) / <alpha-value>)',

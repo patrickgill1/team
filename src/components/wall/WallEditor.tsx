@@ -58,7 +58,7 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
       attributes: {
         // Min height so the editor feels like a real composer, not a
         // single-line input. Outer container handles scroll/overflow.
-        class: 'tiptap-wall focus:outline-none min-h-[200px] px-4 py-4 text-bone text-[15.5px] leading-relaxed',
+        class: 'tiptap-wall focus:outline-none min-h-[200px] px-4 py-4 text-ink-primary text-[15.5px] leading-relaxed',
       },
       handlePaste(view, event) {
         const items = event.clipboardData?.items;
@@ -145,7 +145,7 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
   return (
     <div className="flex flex-col">
       {/* Toolbar — sticky to the top of the composer scroll area. */}
-      <div className="sticky top-0 z-10 bg-charcoal-900 border-b border-white/5 px-2 py-1.5 flex items-center gap-0.5 flex-wrap">
+      <div className="sticky top-0 z-10 bg-surface-elevated border-b border-line-default/5 px-2 py-1.5 flex items-center gap-0.5 flex-wrap">
         <ToolGroup>
           <ToolBtn label="H1" active={editor.isActive('heading', { level: 1 })}
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} />
@@ -182,7 +182,7 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
             className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition text-xs font-bold cursor-pointer ${
               imgUploading
                 ? 'bg-brand-primary/20 text-brand-primary-soft'
-                : 'text-bone/70 hover:bg-white/[0.06] hover:text-bone'
+                : 'text-ink-primary/70 hover:bg-line-default/[0.06] hover:text-ink-primary'
             }`}
           >
             {imgUploading ? <SpinnerIcon /> : <ImageIcon />}
@@ -203,7 +203,7 @@ export default function WallEditor({ value, onChange, placeholder, uploadImage, 
           <button
             type="button"
             onClick={() => setImgError(null)}
-            className="text-bone/60 hover:text-bone text-[11px] font-bold uppercase tracking-widest"
+            className="text-ink-primary/60 hover:text-ink-primary text-[11px] font-bold uppercase tracking-widest"
           >
             Dismiss
           </button>
@@ -224,7 +224,7 @@ const SpinnerIcon = () => (
 
 function ToolGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-0.5 px-1 border-r border-white/5 last:border-r-0">
+    <div className="flex items-center gap-0.5 px-1 border-r border-line-default/5 last:border-r-0">
       {children}
     </div>
   );
@@ -245,7 +245,7 @@ function ToolBtn({ label, icon, title, active, onClick }: {
       className={`inline-flex items-center justify-center w-8 h-8 rounded-md transition text-xs font-bold ${
         active
           ? 'bg-brand-primary/20 text-brand-primary-soft'
-          : 'text-bone/70 hover:bg-white/[0.06] hover:text-bone'
+          : 'text-ink-primary/70 hover:bg-line-default/[0.06] hover:text-ink-primary'
       }`}
     >
       {icon || label}

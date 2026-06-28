@@ -110,17 +110,17 @@ const Stats: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4"></div>
-          <p className="text-bone/65">Loading team statistics...</p>
+          <p className="text-ink-primary/65">Loading team statistics...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       <Header title={VOCAB.teamPulse} subtitle="Who's playing, scoring, and showing up." />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
@@ -143,15 +143,15 @@ const Stats: React.FC = () => {
         )}
 
         {/* Tab Navigation */}
-        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm">
-          <div className="border-b border-white/5">
+        <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm">
+          <div className="border-b border-line-default/5">
             <nav className="flex gap-1 px-3 pt-2">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`px-3 py-2 rounded-t-md text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition-colors ${
                   activeTab === 'overview'
                     ? 'border-brand-primary text-brand-primary-soft'
-                    : 'border-transparent text-bone/50 hover:text-bone/90'
+                    : 'border-transparent text-ink-primary/50 hover:text-ink-primary/90'
                 }`}
               >
                 Overview
@@ -163,7 +163,7 @@ const Stats: React.FC = () => {
                   className={`px-3 py-2 rounded-t-md text-[11px] font-extrabold tracking-widest uppercase border-b-2 transition-colors ${
                     activeTab === 'track'
                       ? 'border-brand-primary text-brand-primary-soft'
-                      : 'border-transparent text-bone/50 hover:text-bone/90'
+                      : 'border-transparent text-ink-primary/50 hover:text-ink-primary/90'
                   }`}
                 >
                   Track
@@ -192,8 +192,8 @@ const Stats: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-bone">Record Player Statistics</h3>
-                    <p className="text-sm text-bone/65">
+                    <h3 className="text-lg font-semibold text-ink-primary">Record Player Statistics</h3>
+                    <p className="text-sm text-ink-primary/65">
                       Track goals, assists, saves, and key plays during games
                     </p>
                   </div>
@@ -212,13 +212,13 @@ const Stats: React.FC = () => {
 
                 {players.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="text-bone/40 mb-4">
+                    <div className="text-ink-primary/40 mb-4">
                       <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-medium text-bone mb-2">No squad yet</h3>
-                    <p className="text-bone/65 mb-4">
+                    <h3 className="text-lg font-medium text-ink-primary mb-2">No squad yet</h3>
+                    <p className="text-ink-primary/65 mb-4">
                       Build your squad first. Stats follow once players are in.
                     </p>
                     <button
@@ -233,7 +233,7 @@ const Stats: React.FC = () => {
                     {players.map(player => (
                       <div
                         key={player.id}
-                        className="bg-charcoal-900 border border-white/10 rounded-lg p-4 hover:border-brand-primary-soft/40 hover:shadow-md transition-all duration-200"
+                        className="bg-surface-elevated border border-line-default/10 rounded-lg p-4 hover:border-brand-primary-soft/40 hover:shadow-md transition-all duration-200"
                       >
                         <div
                           onClick={() => {
@@ -247,8 +247,8 @@ const Stats: React.FC = () => {
                               <span className="text-lg font-bold text-brand-primary">#{player.jerseyNumber}</span>
                             </div>
                             <div>
-                              <h4 className="font-semibold text-bone">{player.name}</h4>
-                              <p className="text-sm text-bone/65">{player.position}</p>
+                              <h4 className="font-semibold text-ink-primary">{player.name}</h4>
+                              <p className="text-sm text-ink-primary/65">{player.position}</p>
                             </div>
                           </div>
 
@@ -260,22 +260,22 @@ const Stats: React.FC = () => {
                               <div className="grid grid-cols-3 gap-2 text-center">
                                 <div>
                                   <div className="text-lg font-bold text-brand-primary">{s.goals || 0}</div>
-                                  <div className="text-xs text-bone/65">Goals</div>
+                                  <div className="text-xs text-ink-primary/65">Goals</div>
                                 </div>
                                 <div>
                                   <div className="text-lg font-bold text-emerald-600">{s.assists || 0}</div>
-                                  <div className="text-xs text-bone/65">Assists</div>
+                                  <div className="text-xs text-ink-primary/65">Assists</div>
                                 </div>
                                 <div>
-                                  <div className="text-lg font-bold text-bone/85">{s.saves || 0}</div>
-                                  <div className="text-xs text-bone/65">Saves</div>
+                                  <div className="text-lg font-bold text-ink-primary/85">{s.saves || 0}</div>
+                                  <div className="text-xs text-ink-primary/65">Saves</div>
                                 </div>
                               </div>
                             );
                           })()}
                         </div>
 
-                        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                        <div className="mt-3 pt-3 border-t border-line-default/10 flex items-center justify-between gap-2">
                           <button
                             onClick={() => {
                               setSelectedPlayerId(player.id);
@@ -290,7 +290,7 @@ const Stats: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setAdjustingPlayerId(player.id)}
-                            className="flex-1 inline-flex items-center justify-center text-bone/85 text-sm font-medium hover:text-charcoal-800"
+                            className="flex-1 inline-flex items-center justify-center text-ink-primary/85 text-sm font-medium hover:text-charcoal-800"
                             title="Fix a stat mistake"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -460,16 +460,16 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
       {/* Scope + per-player filter (for parents) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-bone">Team Performance</h3>
-          <p className="text-sm text-bone/65">Players, goals, games, and clips at a glance.</p>
+          <h3 className="text-lg font-semibold text-ink-primary">Team Performance</h3>
+          <p className="text-sm text-ink-primary/65">Players, goals, games, and clips at a glance.</p>
         </div>
         <div className="flex items-center gap-2">
           {activeSeason && (
-            <div className="inline-flex items-center rounded-full bg-white/[0.08] ring-1 ring-white/10 p-0.5">
+            <div className="inline-flex items-center rounded-full bg-line-default/[0.08] ring-1 ring-line-default/10 p-0.5">
               <button
                 onClick={() => setStatsScope('current')}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                  statsScope === 'current' ? 'bg-brand-primary text-white shadow-sm' : 'text-bone/65 hover:text-bone'
+                  statsScope === 'current' ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
                 }`}
               >
                 This Season
@@ -477,7 +477,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
               <button
                 onClick={() => setStatsScope('lifetime')}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                  statsScope === 'lifetime' ? 'bg-brand-primary text-white shadow-sm' : 'text-bone/65 hover:text-bone'
+                  statsScope === 'lifetime' ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
                 }`}
               >
                 Overall
@@ -488,7 +488,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
             <select
               value={selectedPlayerId}
               onChange={(e) => setSelectedPlayerId(e.target.value)}
-              className="px-3 py-2 border border-white/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="px-3 py-2 border border-line-default/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
               style={{ fontSize: '16px' }}
               title="Drill into one player's full breakdown"
             >
@@ -504,12 +504,12 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
       </div>
 
       {players.length === 0 && !loadError ? (
-        <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 text-center py-12">
-          <div className="text-bone/40 mb-3 flex justify-center">
+        <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 text-center py-12">
+          <div className="text-ink-primary/40 mb-3 flex justify-center">
             <AppIcon name="players" className="w-12 h-12" />
           </div>
-          <h3 className="text-lg font-medium text-bone mb-1">Squad's empty</h3>
-          <p className="text-bone/65 mb-4">Build the squad first. Stats come once players are in.</p>
+          <h3 className="text-lg font-medium text-ink-primary mb-1">Squad's empty</h3>
+          <p className="text-ink-primary/65 mb-4">Build the squad first. Stats come once players are in.</p>
           <button
             onClick={() => window.location.href = '/players'}
             className="bg-brand-primary hover:bg-brand-primary text-white font-medium py-2 px-4 rounded-lg transition"
@@ -528,7 +528,7 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
       ) : (
         <>
           {/* Quick stats row — 4 tiles. Brand-tinted (no purple/orange) */}
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-3 sm:p-4">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-3 sm:p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <QuickStat icon="players" tint="cyan" value={players.length} label="Players" />
               <QuickStat icon="soccer" tint="emerald" value={totalGoals} label="Goals" />
@@ -538,9 +538,9 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
           </div>
 
           {/* Top Performers */}
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-4 sm:p-5">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-bold text-bone">Top Performers</h3>
+              <h3 className="text-base sm:text-lg font-bold text-ink-primary">Top Performers</h3>
             </div>
             {topScorer || topAssister || topSaver ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -555,20 +555,20 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
                 )}
               </div>
             ) : (
-              <p className="text-sm text-bone/50 text-center py-6">No stats recorded yet — record some goals and assists to populate this.</p>
+              <p className="text-sm text-ink-primary/50 text-center py-6">No stats recorded yet — record some goals and assists to populate this.</p>
             )}
           </div>
 
           {/* All Players Stats — sortable */}
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
             <div className="px-4 sm:px-5 py-4 flex items-center justify-between gap-3">
-              <h3 className="text-base sm:text-lg font-bold text-bone">All Players Stats</h3>
-              <label className="inline-flex items-center gap-2 text-xs text-bone/50">
+              <h3 className="text-base sm:text-lg font-bold text-ink-primary">All Players Stats</h3>
+              <label className="inline-flex items-center gap-2 text-xs text-ink-primary/50">
                 <span className="font-semibold uppercase tracking-wide">Sort by</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="px-2 py-1 border border-white/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="px-2 py-1 border border-line-default/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   style={{ fontSize: '16px' }}
                 >
                   <option value="goals">Goals</option>
@@ -580,27 +580,27 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-white/[0.04] border-y border-white/10">
-                  <tr className="text-[11px] uppercase tracking-wider text-bone/50">
+                <thead className="bg-line-default/[0.04] border-y border-line-default/10">
+                  <tr className="text-[11px] uppercase tracking-wider text-ink-primary/50">
                     <th className="text-left font-semibold py-2.5 pl-4 sm:pl-5 pr-2 w-8">#</th>
                     <th className="text-left font-semibold py-2.5 pr-2">Player</th>
                     <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='goals' ? 'text-emerald-300' : ''}`}>G</th>
                     <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='assists' ? 'text-brand-primary-soft' : ''}`}>A</th>
-                    <th className={`text-center font-semibold py-2.5 px-2 w-16 ${sortBy==='saves' ? 'text-bone/85' : ''}`}>Saves</th>
-                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='gamesPlayed' ? 'text-bone/85' : ''}`}>Apps</th>
+                    <th className={`text-center font-semibold py-2.5 px-2 w-16 ${sortBy==='saves' ? 'text-ink-primary/85' : ''}`}>Saves</th>
+                    <th className={`text-center font-semibold py-2.5 px-2 w-12 ${sortBy==='gamesPlayed' ? 'text-ink-primary/85' : ''}`}>Apps</th>
                     <th className="py-2.5 w-8" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-line-default/5">
                   {sortedRows.map((row, idx) => (
-                    <tr key={row.p.id} className="hover:bg-white/[0.05] transition">
-                      <td className="py-3 pl-4 sm:pl-5 pr-2 text-bone/40 text-xs font-semibold">{idx + 1}</td>
+                    <tr key={row.p.id} className="hover:bg-line-default/[0.05] transition">
+                      <td className="py-3 pl-4 sm:pl-5 pr-2 text-ink-primary/40 text-xs font-semibold">{idx + 1}</td>
                       <td className="py-3 pr-2">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <PlayerAvatar player={row.p} />
                           <div className="min-w-0">
-                            <p className="font-semibold text-bone truncate">{row.p.name}</p>
-                            <p className="text-xs text-bone/50 truncate">
+                            <p className="font-semibold text-ink-primary truncate">{row.p.name}</p>
+                            <p className="text-xs text-ink-primary/50 truncate">
                               {row.p.jerseyNumber != null ? `#${row.p.jerseyNumber} · ` : ''}{row.p.position || 'Player'}
                             </p>
                           </div>
@@ -609,9 +609,9 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
                       <StatCell value={row.goals} max={maxGoals} color="emerald" />
                       <StatCell value={row.assists} max={maxAssists} color="cyan" />
                       <StatCell value={row.saves} max={maxSaves} color="navy" />
-                      <td className="py-3 px-2 text-center text-bone/85 font-semibold">{row.gamesPlayed}</td>
+                      <td className="py-3 px-2 text-center text-ink-primary/85 font-semibold">{row.gamesPlayed}</td>
                       <td className="py-3 pr-3 text-right">
-                        <a href={`/player/${row.p.id}`} className="text-bone/35 hover:text-brand-primary">
+                        <a href={`/player/${row.p.id}`} className="text-ink-primary/35 hover:text-brand-primary">
                           <AppIcon name="arrow-right" className="w-4 h-4 inline" />
                         </a>
                       </td>
@@ -620,8 +620,8 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
                 </tbody>
               </table>
             </div>
-            <div className="px-4 sm:px-5 py-3 border-t border-white/5 bg-white/[0.04] flex items-center justify-between text-sm">
-              <span className="inline-flex items-center gap-2 text-bone/65">
+            <div className="px-4 sm:px-5 py-3 border-t border-line-default/5 bg-line-default/[0.04] flex items-center justify-between text-sm">
+              <span className="inline-flex items-center gap-2 text-ink-primary/65">
                 <AppIcon name="stats" className="w-4 h-4 text-brand-primary-soft" />
                 <span>View full breakdown for any player</span>
               </span>
@@ -644,8 +644,8 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
 const TINT: Record<string, { box: string; icon: string; value: string }> = {
   cyan:    { box: 'bg-brand-primary/15',           icon: 'text-brand-primary-soft',    value: 'text-brand-primary-soft'    },
   emerald: { box: 'bg-emerald-500/15',        icon: 'text-emerald-300', value: 'text-emerald-300' },
-  navy:    { box: 'bg-charcoal-700/10',       icon: 'text-bone/85',    value: 'text-bone/85'    },
-  fire:    { box: 'bg-brand-primary/15',           icon: 'text-bone/85',    value: 'text-bone/85'    },
+  navy:    { box: 'bg-surface-raised/10',       icon: 'text-ink-primary/85',    value: 'text-ink-primary/85'    },
+  fire:    { box: 'bg-brand-primary/15',           icon: 'text-ink-primary/85',    value: 'text-ink-primary/85'    },
 };
 
 const QuickStat: React.FC<{ icon: any; tint: 'cyan' | 'emerald' | 'navy' | 'fire'; value: number; label: string }> = ({
@@ -658,8 +658,8 @@ const QuickStat: React.FC<{ icon: any; tint: 'cyan' | 'emerald' | 'navy' | 'fire
         <AppIcon name={icon} className="w-5 h-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-2xl font-bold text-bone leading-tight">{value}</p>
-        <p className="text-[11px] uppercase tracking-wide text-bone/50 font-semibold">{label}</p>
+        <p className="text-2xl font-bold text-ink-primary leading-tight">{value}</p>
+        <p className="text-[11px] uppercase tracking-wide text-ink-primary/50 font-semibold">{label}</p>
       </div>
     </div>
   );
@@ -667,7 +667,7 @@ const QuickStat: React.FC<{ icon: any; tint: 'cyan' | 'emerald' | 'navy' | 'fire
 
 const RANK_STYLES: Record<number, { card: string; ribbon: string; pill: string; stat: string }> = {
   1: { card: 'bg-brand-primary/15 ring-brand-primary-soft/30',         ribbon: 'bg-amber-400 text-amber-950',   pill: 'bg-amber-400 text-amber-950',   stat: 'text-emerald-300' },
-  2: { card: 'bg-emerald-500/15 ring-emerald-400/30',   ribbon: 'bg-gray-300 text-bone/90',     pill: 'bg-emerald-500/150 text-white',     stat: 'text-emerald-300' },
+  2: { card: 'bg-emerald-500/15 ring-emerald-400/30',   ribbon: 'bg-gray-300 text-ink-primary/90',     pill: 'bg-emerald-500/150 text-white',     stat: 'text-emerald-300' },
   3: { card: 'bg-brand-primary/15 ring-brand-primary-soft/30',         ribbon: 'bg-orange-300 text-orange-950', pill: 'bg-brand-primary text-white',        stat: 'text-brand-primary-soft'    },
 };
 
@@ -696,8 +696,8 @@ const PerformerCard: React.FC<{
           </span>
           <PlayerAvatar player={player} large />
         </div>
-        <p className="mt-2 font-bold text-bone truncate w-full">{player.name}</p>
-        <p className="text-xs text-bone/65">{statLabel}</p>
+        <p className="mt-2 font-bold text-ink-primary truncate w-full">{player.name}</p>
+        <p className="text-xs text-ink-primary/65">{statLabel}</p>
         <p className={`mt-0.5 text-sm font-bold ${styles.stat}`}>
           {value} {statName}
         </p>
@@ -724,20 +724,20 @@ const StatCell: React.FC<{ value: number; max: number; color: 'emerald' | 'cyan'
   const text = {
     emerald: 'text-emerald-300',
     cyan: 'text-brand-primary-soft',
-    navy: 'text-bone/85',
-    fire: 'text-bone/85',
+    navy: 'text-ink-primary/85',
+    fire: 'text-ink-primary/85',
   }[color];
   const bar = {
     emerald: 'bg-emerald-500/150',
     cyan: 'bg-brand-primary/150',
-    navy: 'bg-charcoal-700',
+    navy: 'bg-surface-raised',
     fire: 'bg-brand-primary/150',
   }[color];
   return (
     <td className="py-3 px-2">
       <div className="flex flex-col items-center gap-1 min-w-[2.5rem]">
-        <span className={`text-base font-bold tabular-nums ${value > 0 ? text : 'text-bone/35'}`}>{value}</span>
-        <div className="h-[3px] w-full rounded-full bg-white/[0.08] overflow-hidden">
+        <span className={`text-base font-bold tabular-nums ${value > 0 ? text : 'text-ink-primary/35'}`}>{value}</span>
+        <div className="h-[3px] w-full rounded-full bg-line-default/[0.08] overflow-hidden">
           <div className={`h-full ${bar}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
@@ -759,8 +759,8 @@ interface AdjustStatsModalProps {
 const STAT_FIELDS: { key: keyof Player['stats']; label: string; icon: 'soccer' | 'highlight' | 'check' | 'trophy' | 'flag' | 'shield'; tint: string }[] = [
   { key: 'goals',       label: 'Goals',     icon: 'soccer',    tint: 'text-emerald-300' },
   { key: 'assists',     label: 'Assists',   icon: 'highlight', tint: 'text-brand-primary-soft' },
-  { key: 'saves',       label: 'Saves',     icon: 'check',     tint: 'text-bone/85' },
-  { key: 'gamesPlayed', label: 'Games',     icon: 'trophy',    tint: 'text-bone/85' },
+  { key: 'saves',       label: 'Saves',     icon: 'check',     tint: 'text-ink-primary/85' },
+  { key: 'gamesPlayed', label: 'Games',     icon: 'trophy',    tint: 'text-ink-primary/85' },
   { key: 'yellowCards', label: 'Yellow',    icon: 'flag',      tint: 'text-yellow-700' },
   { key: 'redCards',    label: 'Red',       icon: 'shield',    tint: 'text-rose-300' },
 ];
@@ -795,14 +795,14 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-brand-primary-soft to-white sticky top-0">
+        <div className="px-6 py-4 border-b border-line-default/5 flex items-center justify-between bg-gradient-to-r from-brand-primary-soft to-white sticky top-0">
           <div>
-            <h3 className="text-lg font-bold text-bone">Fix Stats</h3>
-            <p className="text-xs text-bone/50">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
+            <h3 className="text-lg font-bold text-ink-primary">Fix Stats</h3>
+            <p className="text-xs text-ink-primary/50">{player.name}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/[0.08] text-bone/50" aria-label="Close">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-line-default/[0.08] text-ink-primary/50" aria-label="Close">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -811,34 +811,34 @@ const AdjustStatsModal: React.FC<AdjustStatsModalProps> = ({ player, onClose, on
 
         {/* Body */}
         <div className="p-6 space-y-3">
-          <p className="text-xs text-bone/50 mb-2">
+          <p className="text-xs text-ink-primary/50 mb-2">
             Set the correct totals for this player. Adjustments are saved as a correction record so per-team stats stay accurate (including for players on multiple teams).
           </p>
           {STAT_FIELDS.map(f => (
-            <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04]">
-              <div className={`w-9 h-9 rounded-lg bg-charcoal-900 ring-1 ring-white/10 flex items-center justify-center ${f.tint}`}>
+            <div key={String(f.key)} className="flex items-center gap-3 p-3 rounded-xl bg-line-default/[0.04]">
+              <div className={`w-9 h-9 rounded-lg bg-surface-elevated ring-1 ring-line-default/10 flex items-center justify-center ${f.tint}`}>
                 <AppIcon name={f.icon} className="w-5 h-5" />
               </div>
               <div className="flex-1">
                 <p className={`text-sm font-bold ${f.tint}`}>{f.label}</p>
-                <p className="text-[11px] text-bone/50">Currently {(cur as any)[f.key] || 0}</p>
+                <p className="text-[11px] text-ink-primary/50">Currently {(cur as any)[f.key] || 0}</p>
               </div>
-              <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-charcoal-900 ring-1 ring-white/10 text-lg font-bold text-bone/65 hover:bg-white/[0.08]">−</button>
+              <button onClick={() => set(String(f.key), values[f.key] - 1)} className="w-9 h-9 rounded-full bg-surface-elevated ring-1 ring-line-default/10 text-lg font-bold text-ink-primary/65 hover:bg-line-default/[0.08]">−</button>
               <input
                 type="number"
                 min={0}
                 value={values[f.key]}
                 onChange={e => set(String(f.key), parseInt(e.target.value || '0', 10))}
-                className="w-16 text-center font-bold text-bone border border-white/10 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+                className="w-16 text-center font-bold text-ink-primary border border-line-default/10 rounded-lg py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
               />
-              <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-charcoal-900 ring-1 ring-white/10 text-lg font-bold text-bone/65 hover:bg-white/[0.08]">+</button>
+              <button onClick={() => set(String(f.key), values[f.key] + 1)} className="w-9 h-9 rounded-full bg-surface-elevated ring-1 ring-line-default/10 text-lg font-bold text-ink-primary/65 hover:bg-line-default/[0.08]">+</button>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/5 flex justify-end gap-2 bg-white/[0.04] sticky bottom-0">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-bone/85 hover:bg-white/[0.08]" disabled={saving}>
+        <div className="px-6 py-4 border-t border-line-default/5 flex justify-end gap-2 bg-line-default/[0.04] sticky bottom-0">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-semibold text-ink-primary/85 hover:bg-line-default/[0.08]" disabled={saving}>
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-brand-primary hover:bg-brand-primary disabled:opacity-50">

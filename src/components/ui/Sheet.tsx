@@ -129,7 +129,7 @@ const Sheet: React.FC<Props> = ({
     >
       <div
         className={[
-          'bg-charcoal-900 ring-1 ring-white/10 shadow-2xl flex flex-col w-full',
+          'bg-surface-elevated ring-1 ring-line-default/10 shadow-2xl flex flex-col w-full',
           'animate-sheet-up sm:animate-pop-in',
           SIZE_CLASS[size],
           PANEL_CLASS[position],
@@ -146,7 +146,7 @@ const Sheet: React.FC<Props> = ({
                 </p>
               )}
               {title && (
-                <h3 className="text-bone text-lg sm:text-xl font-bold leading-tight">{title}</h3>
+                <h3 className="text-ink-primary text-lg sm:text-xl font-bold leading-tight">{title}</h3>
               )}
               {subtitle && (
                 <p className="text-charcoal-300 text-sm mt-2 leading-snug">{subtitle}</p>
@@ -157,7 +157,7 @@ const Sheet: React.FC<Props> = ({
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="shrink-0 -mt-1 -mr-1 w-8 h-8 rounded-full text-bone/55 hover:text-bone hover:bg-white/5 flex items-center justify-center transition"
+                className="shrink-0 -mt-1 -mr-1 w-8 h-8 rounded-full text-ink-primary/55 hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -173,7 +173,7 @@ const Sheet: React.FC<Props> = ({
         </div>
 
         {footer && (
-          <div className="px-5 sm:px-6 py-4 border-t border-white/5 flex items-center justify-end gap-2 flex-wrap">
+          <div className="px-5 sm:px-6 py-4 border-t border-line-default/5 flex items-center justify-end gap-2 flex-wrap">
             {footer}
           </div>
         )}

@@ -68,12 +68,12 @@ const AuthImpersonate: React.FC = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-charcoal-950 text-bone px-6">
+    <div className="min-h-screen flex items-center justify-center bg-surface-base text-ink-primary px-6">
       <div className="max-w-md w-full text-center">
         {error ? (
           <>
             <p className="text-rose-300 font-bold mb-2">Couldn't sign in</p>
-            <p className="text-bone/65 text-sm">{error}</p>
+            <p className="text-ink-primary/65 text-sm">{error}</p>
             <button
               type="button"
               onClick={() => { window.location.href = '/'; }}
@@ -84,9 +84,9 @@ const AuthImpersonate: React.FC = () => {
           </>
         ) : (
           <>
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white mb-3" aria-hidden />
-            <p className="text-bone font-bold">Signing in as the user…</p>
-            <p className="text-bone/55 text-sm mt-1">Audit-logged on the admin portal.</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-line-default/20 border-t-white mb-3" aria-hidden />
+            <p className="text-ink-primary font-bold">Signing in as the user…</p>
+            <p className="text-ink-primary/55 text-sm mt-1">Audit-logged on the admin portal.</p>
           </>
         )}
       </div>

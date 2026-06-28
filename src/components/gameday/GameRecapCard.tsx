@@ -147,13 +147,13 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
   };
 
   return (
-    <section className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${tone} text-white shadow-2xl ring-1 ring-white/10`}>
-      <div className="absolute -top-16 -right-16 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-10 w-56 h-56 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+    <section className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${tone} text-white shadow-2xl ring-1 ring-line-default/10`}>
+      <div className="absolute -top-16 -right-16 w-48 h-48 bg-line-default/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-10 w-56 h-56 bg-line-default/5 rounded-full blur-3xl pointer-events-none" />
       <div className="relative p-5 sm:p-6">
         {/* Header row */}
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/15 ring-1 ring-white/20">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-line-default/15 ring-1 ring-line-default/20">
             Final
           </span>
           <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
@@ -201,7 +201,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
 
         {/* MVP */}
         {mvp && mvp.goals + mvp.assists > 0 && (
-          <div className="mb-4 flex items-center gap-3 p-3 rounded-2xl bg-white/10 ring-1 ring-white/15">
+          <div className="mb-4 flex items-center gap-3 p-3 rounded-2xl bg-line-default/10 ring-1 ring-line-default/15">
             <div className="relative flex-shrink-0">
               {mvp.photoUrl ? (
                 <img src={mvp.photoUrl} alt={mvp.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-amber-300" />
@@ -249,7 +249,7 @@ const GameRecapCard: React.FC<Props> = ({ event, game, teamName, players, onPost
           {onPostToChat && (
             <button
               onClick={() => onPostToChat(shareText)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 ring-1 ring-white/20 font-bold text-sm active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/15 hover:bg-line-default/25 ring-1 ring-line-default/20 font-bold text-sm active:scale-95"
             >
               💬 Post to chat
             </button>

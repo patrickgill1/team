@@ -41,10 +41,10 @@ const ClubBranding: React.FC = () => {
 
   if (!isClubAdmin(userData)) {
     return (
-      <div className="min-h-screen bg-charcoal-950 text-bone p-6">
+      <div className="min-h-screen bg-surface-base text-ink-primary p-6">
         <Header title="Branding" />
-        <div className="max-w-md mx-auto mt-10 bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6">
-          <p className="text-bone/80">Only club admins can change branding.</p>
+        <div className="max-w-md mx-auto mt-10 bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6">
+          <p className="text-ink-primary/80">Only club admins can change branding.</p>
           <Link to="/club" className="mt-4 inline-block text-brand-primary-soft text-sm font-bold">← Back to club</Link>
         </div>
       </div>
@@ -52,13 +52,13 @@ const ClubBranding: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 text-bone pb-20">
+    <div className="min-h-screen bg-surface-base text-ink-primary pb-20">
       <Header title="Branding" subtitle={club?.name || 'Club'} />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : !club ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/80">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/80">
             No active club found.
           </div>
         ) : (
@@ -71,21 +71,21 @@ const ClubBranding: React.FC = () => {
                 would appear to a new family. Only the surfaces that
                 read brandColor/logoUrl render the club brand; the
                 rest of the app stays on the GoalKickr palette. */}
-            <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/5">
-                <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Preview</p>
-                <h2 className="text-bone font-bold">How parents see your invite</h2>
+            <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+              <div className="px-5 py-4 border-b border-line-default/5">
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Preview</p>
+                <h2 className="text-ink-primary font-bold">How parents see your invite</h2>
               </div>
               <div className="p-5">
                 <div
-                  className="rounded-xl ring-1 ring-white/10 bg-charcoal-950 p-5 flex items-center gap-4"
+                  className="rounded-xl ring-1 ring-line-default/10 bg-surface-base p-5 flex items-center gap-4"
                   style={{ boxShadow: `inset 0 2px 0 ${club.brandColor || '#DC2626'}` }}
                 >
                   {club.logoUrl ? (
                     <img
                       src={club.logoUrl}
                       alt={club.name}
-                      className="w-14 h-14 rounded-lg object-contain bg-white/5 ring-1 ring-white/10"
+                      className="w-14 h-14 rounded-lg object-contain bg-line-default/5 ring-1 ring-line-default/10"
                     />
                   ) : (
                     <div
@@ -96,8 +96,8 @@ const ClubBranding: React.FC = () => {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="text-bone font-bold leading-tight">{club.name || 'Your club'}</p>
-                    <p className="text-bone/60 text-xs mt-1">A coach invited your family to join.</p>
+                    <p className="text-ink-primary font-bold leading-tight">{club.name || 'Your club'}</p>
+                    <p className="text-ink-primary/60 text-xs mt-1">A coach invited your family to join.</p>
                     <button
                       type="button"
                       className="mt-3 inline-flex items-center px-3 py-1.5 rounded-md text-white font-bold text-xs"
@@ -113,7 +113,7 @@ const ClubBranding: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/club')}
-              className="text-bone/60 text-sm hover:text-bone"
+              className="text-ink-primary/60 text-sm hover:text-ink-primary"
             >
               ← Back to club
             </button>

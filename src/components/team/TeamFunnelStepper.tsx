@@ -114,19 +114,19 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
   };
 
   return (
-    <div className="rounded-2xl bg-charcoal-900 ring-1 ring-white/10 p-3 sm:p-5">
+    <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-3 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50">
+          <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50">
             Team activation
           </div>
-          <div className="text-sm font-bold text-bone">
+          <div className="text-sm font-bold text-ink-primary">
             {isComplete ? (
               <span className="text-emerald-300">Activated</span>
             ) : (
               <>
-                <span className="text-bone/85">{doneCount} / {STAGES.length}</span>
-                <span className="text-bone/50 font-normal">  ·  next: {STAGES.find((s) => s.key === nextPendingKey)?.label}</span>
+                <span className="text-ink-primary/85">{doneCount} / {STAGES.length}</span>
+                <span className="text-ink-primary/50 font-normal">  ·  next: {STAGES.find((s) => s.key === nextPendingKey)?.label}</span>
               </>
             )}
           </div>
@@ -144,7 +144,7 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
                 <div
                   aria-hidden
                   className={`absolute top-3 sm:top-4 left-1/2 right-[-50%] h-0.5 ${
-                    done ? 'bg-brand-primary' : 'bg-white/10'
+                    done ? 'bg-brand-primary' : 'bg-line-default/10'
                   }`}
                 />
               )}
@@ -159,8 +159,8 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
                     done
                       ? 'bg-brand-primary ring-brand-primary text-white'
                       : isNext
-                        ? 'bg-charcoal-950 ring-brand-primary-soft text-brand-primary-soft'
-                        : 'bg-charcoal-950 ring-white/15 text-bone/40'
+                        ? 'bg-surface-base ring-brand-primary-soft text-brand-primary-soft'
+                        : 'bg-surface-base ring-line-default/15 text-ink-primary/40'
                   } ${canEdit ? 'group-hover:ring-bone/60' : ''}`}
                 >
                   {done ? (
@@ -172,7 +172,7 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
                   )}
                 </span>
                 <span className={`text-[8px] sm:text-[10px] font-extrabold tracking-wider sm:tracking-widest uppercase text-center leading-tight px-0.5 ${
-                  done ? 'text-bone/85' : isNext ? 'text-brand-primary-soft' : 'text-bone/50'
+                  done ? 'text-ink-primary/85' : isNext ? 'text-brand-primary-soft' : 'text-ink-primary/50'
                 }`}>
                   {stage.short}
                 </span>
@@ -187,20 +187,20 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
         const done = isDone(stage.key);
         const completedAt = toDate(progress?.[stage.key]?.completedAt);
         return (
-          <div className="mt-4 rounded-xl bg-charcoal-950 ring-1 ring-white/10 p-4">
+          <div className="mt-4 rounded-xl bg-surface-base ring-1 ring-line-default/10 p-4">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="min-w-0">
-                <div className="text-sm font-black text-bone">{stage.label}</div>
-                <div className="text-xs text-bone/65 mt-0.5">{stage.hint}</div>
+                <div className="text-sm font-black text-ink-primary">{stage.label}</div>
+                <div className="text-xs text-ink-primary/65 mt-0.5">{stage.hint}</div>
                 {stage.autoNote && (
-                  <div className="text-[11px] text-bone/45 mt-1 italic">{stage.autoNote}</div>
+                  <div className="text-[11px] text-ink-primary/45 mt-1 italic">{stage.autoNote}</div>
                 )}
               </div>
               <button
                 type="button"
                 aria-label="Close"
                 onClick={() => setOpenStage(null)}
-                className="p-1 text-bone/50 hover:text-bone -mr-1"
+                className="p-1 text-ink-primary/50 hover:text-ink-primary -mr-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
@@ -216,7 +216,7 @@ const TeamFunnelStepper: React.FC<Props> = ({ teamId, progress, canEdit = false,
                   type="button"
                   disabled={saving}
                   onClick={() => undoDone(stage.key)}
-                  className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-white/5 ring-1 ring-white/10 text-bone/80 hover:bg-white/10 disabled:opacity-50"
+                  className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md bg-line-default/5 ring-1 ring-line-default/10 text-ink-primary/80 hover:bg-line-default/10 disabled:opacity-50"
                 >
                   {saving ? 'Undoing…' : 'Undo'}
                 </button>

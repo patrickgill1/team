@@ -149,7 +149,7 @@ const Walkthrough: React.FC<Props> = ({ open, onClose }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10000] bg-charcoal-950 flex flex-col animate-fade-in"
+      className="fixed inset-0 z-[10000] bg-surface-base flex flex-col animate-fade-in"
       ref={containerRef}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
@@ -159,7 +159,7 @@ const Walkthrough: React.FC<Props> = ({ open, onClose }) => {
         <button
           type="button"
           onClick={handleDone}
-          className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 hover:text-bone px-3 py-2"
+          className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 hover:text-ink-primary px-3 py-2"
         >
           Skip
         </button>
@@ -171,10 +171,10 @@ const Walkthrough: React.FC<Props> = ({ open, onClose }) => {
         <p className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-2">
           {slide.kicker}
         </p>
-        <h2 className="text-3xl sm:text-4xl font-black text-bone leading-tight max-w-md">
+        <h2 className="text-3xl sm:text-4xl font-black text-ink-primary leading-tight max-w-md">
           {slide.title}
         </h2>
-        <p className="text-bone/65 text-base sm:text-lg mt-4 max-w-md leading-relaxed">
+        <p className="text-ink-primary/65 text-base sm:text-lg mt-4 max-w-md leading-relaxed">
           {slide.body}
         </p>
       </div>
@@ -189,7 +189,7 @@ const Walkthrough: React.FC<Props> = ({ open, onClose }) => {
               onClick={() => setIndex(i)}
               aria-label={`Slide ${i + 1}`}
               className={`h-1.5 rounded-full transition-all ${
-                i === index ? 'w-6 bg-brand-primary' : 'w-1.5 bg-white/20'
+                i === index ? 'w-6 bg-brand-primary' : 'w-1.5 bg-line-default/20'
               }`}
             />
           ))}

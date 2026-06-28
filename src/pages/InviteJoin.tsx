@@ -35,8 +35,8 @@ const Spinner: React.FC = () => (
 );
 
 const Page: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-start justify-center p-4 pt-12 pb-16">
-    <div className="bg-charcoal-900/60 backdrop-blur ring-1 ring-white/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-white">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-start justify-center p-4 pt-12 pb-16">
+    <div className="bg-surface-elevated/60 backdrop-blur ring-1 ring-line-default/10 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden text-white">
       {children}
     </div>
   </div>
@@ -263,7 +263,7 @@ const InviteJoin: React.FC = () => {
           <div className="text-5xl mb-3">😕</div>
           <h1 className="text-xl font-bold">Invite unavailable</h1>
           <p className="text-white/70 text-sm mt-2">{error}</p>
-          <Link to="/auth" className="mt-6 inline-block px-4 py-2 rounded-full bg-white/10 ring-1 ring-white/20 text-sm font-semibold">Go to sign-in</Link>
+          <Link to="/auth" className="mt-6 inline-block px-4 py-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-sm font-semibold">Go to sign-in</Link>
         </div>
       </Page>
     );
@@ -299,9 +299,9 @@ const InviteJoin: React.FC = () => {
     <>
       <div className="flex items-center gap-4 mb-3">
         {player.profilePhotoUrl ? (
-          <img src={player.profilePhotoUrl} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-white/25" />
+          <img src={player.profilePhotoUrl} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-line-default/25" />
         ) : (
-          <div className="w-16 h-16 rounded-full bg-white/10 ring-2 ring-white/25 flex items-center justify-center text-2xl font-black">
+          <div className="w-16 h-16 rounded-full bg-line-default/10 ring-2 ring-line-default/25 flex items-center justify-center text-2xl font-black">
             {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0)}
           </div>
         )}
@@ -338,7 +338,7 @@ const InviteJoin: React.FC = () => {
           FC" signal before they see the team-specific hero. */}
       {clubBrand && (clubBrand.logoUrl || clubBrand.brandColor) && (
         <div
-          className="flex items-center gap-3 px-5 py-3 border-b border-white/10"
+          className="flex items-center gap-3 px-5 py-3 border-b border-line-default/10"
           style={{
             backgroundColor: '#0d0d10',
             boxShadow: clubBrand.brandColor ? `inset 0 -2px 0 ${clubBrand.brandColor}` : undefined,
@@ -348,7 +348,7 @@ const InviteJoin: React.FC = () => {
             <img
               src={clubBrand.logoUrl}
               alt={clubBrand.name}
-              className="w-9 h-9 rounded-md object-contain bg-white/5 ring-1 ring-white/10"
+              className="w-9 h-9 rounded-md object-contain bg-line-default/5 ring-1 ring-line-default/10"
             />
           ) : (
             <div
@@ -360,14 +360,14 @@ const InviteJoin: React.FC = () => {
           )}
           <div className="min-w-0">
             <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/55">Invited by</p>
-            <p className="text-bone font-bold text-sm leading-tight truncate">{clubBrand.name || 'your club'}</p>
+            <p className="text-ink-primary font-bold text-sm leading-tight truncate">{clubBrand.name || 'your club'}</p>
           </div>
         </div>
       )}
 
       {/* Hero */}
       <div
-        className="relative overflow-hidden bg-gradient-to-br from-charcoal-900 via-charcoal-950 to-black p-6 border-b border-brand-primary/10"
+        className="relative overflow-hidden bg-gradient-to-br from-surface-elevated via-surface-base to-black p-6 border-b border-brand-primary/10"
         style={clubBrand?.brandColor ? { borderBottomColor: `${clubBrand.brandColor}33` } : undefined}
       >
         <div
@@ -417,23 +417,23 @@ const InviteJoin: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-white/40">
-            <div className="flex-1 h-px bg-white/10" />
+            <div className="flex-1 h-px bg-line-default/10" />
             <span>or with email</span>
-            <div className="flex-1 h-px bg-white/10" />
+            <div className="flex-1 h-px bg-line-default/10" />
           </div>
 
           <div className="flex gap-2 mb-2">
             <button
               type="button"
               onClick={() => setMode('sign-up')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-up' ? 'bg-white text-slate-900' : 'bg-white/10 text-white/70'}`}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-up' ? 'bg-white text-slate-900' : 'bg-line-default/10 text-white/70'}`}
             >
               Create account
             </button>
             <button
               type="button"
               onClick={() => setMode('sign-in')}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-in' ? 'bg-white text-slate-900' : 'bg-white/10 text-white/70'}`}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${mode === 'sign-in' ? 'bg-white text-slate-900' : 'bg-line-default/10 text-white/70'}`}
             >
               I already have one
             </button>
@@ -446,7 +446,7 @@ const InviteJoin: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
             />
           )}
           <input
@@ -456,7 +456,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
-            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+            className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
           <input
             type="password"
@@ -465,7 +465,7 @@ const InviteJoin: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-            className="w-full px-4 py-3 rounded-xl bg-white/5 ring-1 ring-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+            className="w-full px-4 py-3 rounded-xl bg-line-default/5 ring-1 ring-line-default/15 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
           />
 
           {error && <p className="text-rose-300 text-sm">{error}</p>}
@@ -481,7 +481,7 @@ const InviteJoin: React.FC = () => {
       )}
 
       {/* Footer */}
-      <div className="border-t border-white/10 px-6 py-3 text-center text-[11px] text-white/40 font-semibold tracking-wider uppercase">
+      <div className="border-t border-line-default/10 px-6 py-3 text-center text-[11px] text-white/40 font-semibold tracking-wider uppercase">
         GoalKickr
       </div>
     </Page>

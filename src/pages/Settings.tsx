@@ -238,18 +238,18 @@ const Settings: React.FC = () => {
   const userInitial = (userData?.name || userData?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-charcoal-950 pb-12">
+    <div className="min-h-screen bg-surface-base pb-12">
       {/* Page title row — sits below the global AppLayout top bar, no
           second dark header. */}
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-2 flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-bone/65 hover:text-bone text-sm font-semibold"
+          className="inline-flex items-center gap-1.5 text-ink-primary/65 hover:text-ink-primary text-sm font-semibold"
         >
           <AppIcon name="arrow-right" className="w-4 h-4 rotate-180" />
           <span>Back</span>
         </button>
-        <h1 className="text-base font-bold text-bone">Settings</h1>
+        <h1 className="text-base font-bold text-ink-primary">Settings</h1>
         <div className="w-14" />
       </div>
 
@@ -257,7 +257,7 @@ const Settings: React.FC = () => {
         {/* ── MY ACCOUNT ─────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-2xl font-bold text-bone">My Account</h2>
+            <h2 className="text-2xl font-bold text-ink-primary">My Account</h2>
             {!editingProfile && (
               <button
                 onClick={() => setEditingProfile(true)}
@@ -269,7 +269,7 @@ const Settings: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
+          <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
             <div className="flex items-start gap-4">
               {/* Avatar */}
               <button
@@ -282,14 +282,14 @@ const Settings: React.FC = () => {
                   <img
                     src={userData.photoURL}
                     alt={userData.name}
-                    className="w-20 h-20 rounded-full object-cover ring-2 ring-white/10"
+                    className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/10"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary flex items-center justify-center text-white text-2xl font-bold ring-2 ring-white/10">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary to-brand-primary flex items-center justify-center text-white text-2xl font-bold ring-2 ring-line-default/10">
                     {userInitial}
                   </div>
                 )}
-                <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-charcoal-900 ring-1 ring-white/10 shadow-sm flex items-center justify-center text-bone/85 group-hover:bg-white/[0.05]">
+                <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-surface-elevated ring-1 ring-line-default/10 shadow-sm flex items-center justify-center text-ink-primary/85 group-hover:bg-line-default/[0.05]">
                   <AppIcon name="edit" className="w-3.5 h-3.5" />
                 </div>
                 {uploadingPhoto && (
@@ -311,22 +311,22 @@ const Settings: React.FC = () => {
                 {editingProfile ? (
                   <div className="space-y-2">
                     <div>
-                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-bone/50 mb-1">Name</label>
+                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-ink-primary/50 mb-1">Name</label>
                       <input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        className="w-full border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-bone/50 mb-1">Phone</label>
+                      <label className="block text-[11px] font-semibold uppercase tracking-wide text-ink-primary/50 mb-1">Phone</label>
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="(555) 555-5555"
-                        className="w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                        className="w-full border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-primary"
                         style={{ fontSize: '16px' }}
                       />
                     </div>
@@ -338,7 +338,7 @@ const Settings: React.FC = () => {
                           setPhone(userData?.phoneNumber || '');
                         }}
                         disabled={savingProfile}
-                        className="px-3 py-1.5 text-sm font-semibold text-bone/85 disabled:opacity-50"
+                        className="px-3 py-1.5 text-sm font-semibold text-ink-primary/85 disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -353,12 +353,12 @@ const Settings: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-lg font-bold text-bone truncate">{userData?.name || 'Your Name'}</h3>
-                    <p className="text-sm text-bone/65 truncate">{userData?.email}</p>
+                    <h3 className="text-lg font-bold text-ink-primary truncate">{userData?.name || 'Your Name'}</h3>
+                    <p className="text-sm text-ink-primary/65 truncate">{userData?.email}</p>
                     {userData?.phoneNumber && (
-                      <p className="text-sm text-bone/65">{userData.phoneNumber}</p>
+                      <p className="text-sm text-ink-primary/65">{userData.phoneNumber}</p>
                     )}
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-bone/40 mt-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-primary/40 mt-1">
                       {roleLabel(userData?.role, userData?.coachLevel, userData?.isClubAdmin)}
                     </p>
                   </>
@@ -371,7 +371,7 @@ const Settings: React.FC = () => {
         {/* ── MY PLAYERS PROFILES ───────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
-            <h2 className="text-2xl font-bold text-bone">My Squad</h2>
+            <h2 className="text-2xl font-bold text-ink-primary">My Squad</h2>
             {isCoach(userData?.role || '') && (
               <Link
                 to="/players?add=1"
@@ -383,11 +383,11 @@ const Settings: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
+          <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
             {loadingPlayers ? (
-              <p className="text-sm text-bone/50 text-center py-4">Loading…</p>
+              <p className="text-sm text-ink-primary/50 text-center py-4">Loading…</p>
             ) : linkedPlayers.length === 0 ? (
-              <p className="text-sm text-bone/50 text-center py-4">
+              <p className="text-sm text-ink-primary/50 text-center py-4">
                 You're not linked to a player yet. {isCoach(userData?.role || '') ? 'Create a team and add players first.' : 'Ask your coach to send you a link with your child\'s name on it.'}
               </p>
             ) : (
@@ -396,22 +396,22 @@ const Settings: React.FC = () => {
                   <Link
                     key={p.id}
                     to={`/player/${p.id}`}
-                    className="flex flex-col items-center text-center rounded-xl ring-1 ring-white/10 hover:ring-brand-primary-soft hover:shadow-sm p-3 transition"
+                    className="flex flex-col items-center text-center rounded-xl ring-1 ring-line-default/10 hover:ring-brand-primary-soft hover:shadow-sm p-3 transition"
                   >
                     {p.profilePhotoUrl ? (
                       <img
                         src={p.profilePhotoUrl}
                         alt={p.name}
-                        className="w-20 h-20 rounded-full object-cover ring-2 ring-white/10"
+                        className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/10"
                       />
                     ) : (
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-charcoal-900 to-charcoal-700 flex items-center justify-center text-white text-xl font-bold ring-2 ring-white/10">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-surface-elevated to-surface-raised flex items-center justify-center text-white text-xl font-bold ring-2 ring-line-default/10">
                         {(p.name || '?').charAt(0)}
                       </div>
                     )}
-                    <p className="mt-2 text-sm font-bold text-bone truncate w-full">{p.name}</p>
+                    <p className="mt-2 text-sm font-bold text-ink-primary truncate w-full">{p.name}</p>
                     {p.teamNames && p.teamNames.length > 0 && (
-                      <p className="text-[11px] text-bone/50 truncate w-full">{p.teamNames.join(' · ')}</p>
+                      <p className="text-[11px] text-ink-primary/50 truncate w-full">{p.teamNames.join(' · ')}</p>
                     )}
                   </Link>
                 ))}
@@ -422,48 +422,48 @@ const Settings: React.FC = () => {
 
         {/* ── SUBSCRIPTION ──────────────────────────────────────── */}
         <section>
-          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Subscription</h2>
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Subscription</h2>
           <SubscriptionCard />
         </section>
 
         {/* ── MANAGE ACCOUNT ────────────────────────────────────── */}
         <section>
-          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Notifications</h2>
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Notifications</h2>
           <NotificationPreferences />
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Email</h2>
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Email</h2>
           <EmailPreferences />
         </section>
 
         {isCoach(userData?.role || '') && (
           <section>
-            <h2 className="text-2xl font-bold text-bone mb-2 px-1">Training Ground</h2>
+            <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Training Ground</h2>
             <DrillLibraryToggle />
           </section>
         )}
 
         {isTeamStaff(userData?.role || '') && (
           <section>
-            <h2 className="text-2xl font-bold text-bone mb-2 px-1">Video</h2>
+            <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Video</h2>
             <VideoStorageCard />
           </section>
         )}
 
         <section>
-          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Appearance</h2>
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Appearance</h2>
           <ThemeToggleCard />
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Widget</h2>
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Widget</h2>
           <WidgetSetupCard />
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Help</h2>
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Help</h2>
+          <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden divide-y divide-line-default/5">
             <SettingsRow
               icon="lifebuoy"
               label="My tickets"
@@ -474,8 +474,8 @@ const Settings: React.FC = () => {
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-bone mb-2 px-1">Manage Account</h2>
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Manage Account</h2>
+          <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden divide-y divide-line-default/5">
             <SettingsRow
               icon="calendar"
               label="Calendar Syncing (Google, Apple, etc)"
@@ -527,18 +527,18 @@ const Settings: React.FC = () => {
 
         {/* ── DANGER ────────────────────────────────────────────── */}
         <section>
-          <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden divide-y divide-white/5">
+          <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden divide-y divide-line-default/5">
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.05] transition"
+              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-line-default/[0.05] transition"
             >
               <span className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-lg bg-white/[0.08] text-bone/65 flex items-center justify-center">
+                <span className="w-9 h-9 rounded-lg bg-line-default/[0.08] text-ink-primary/65 flex items-center justify-center">
                   <AppIcon name="logout" className="w-5 h-5" />
                 </span>
-                <span className="text-base font-semibold text-bone">Sign Out</span>
+                <span className="text-base font-semibold text-ink-primary">Sign Out</span>
               </span>
-              <AppIcon name="arrow-right" className="w-4 h-4 text-bone/35" />
+              <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/35" />
             </button>
             <button
               onClick={() => { setShowDelete(true); setDeleteText(''); setDeleteError(null); }}
@@ -563,11 +563,11 @@ const Settings: React.FC = () => {
           onClick={() => !deletingAccount && setShowDelete(false)}
         >
           <div
-            className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-sm p-5"
+            className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-sm p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-bold text-bone">Delete your account?</h3>
-            <p className="text-sm text-bone/65 mt-2">
+            <h3 className="text-lg font-bold text-ink-primary">Delete your account?</h3>
+            <p className="text-sm text-ink-primary/65 mt-2">
               This permanently removes your profile and access. Player records you've created stay on the team.
               Type <b>delete</b> to confirm.
             </p>
@@ -575,7 +575,7 @@ const Settings: React.FC = () => {
               value={deleteText}
               onChange={(e) => setDeleteText(e.target.value)}
               placeholder="delete"
-              className="mt-3 w-full border border-white/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="mt-3 w-full border border-line-default/15 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-rose-500"
               style={{ fontSize: '16px' }}
               disabled={deletingAccount}
             />
@@ -584,7 +584,7 @@ const Settings: React.FC = () => {
               <button
                 onClick={() => setShowDelete(false)}
                 disabled={deletingAccount}
-                className="px-4 py-2 text-sm font-semibold text-bone/85 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-semibold text-ink-primary/85 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -613,18 +613,18 @@ const SettingsRow: React.FC<{
   <button
     onClick={onClick}
     disabled={busy}
-    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/[0.05] transition disabled:opacity-60 text-left"
+    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-line-default/[0.05] transition disabled:opacity-60 text-left"
   >
     <span className="flex items-center gap-3 min-w-0">
       <span className="w-9 h-9 rounded-lg bg-brand-primary/15 text-brand-primary-soft flex items-center justify-center shrink-0">
         <AppIcon name={icon} className="w-5 h-5" />
       </span>
       <span className="min-w-0">
-        <span className="block text-base font-semibold text-bone truncate">{label}</span>
-        {hint && <span className="block text-xs text-bone/50 truncate">{hint}</span>}
+        <span className="block text-base font-semibold text-ink-primary truncate">{label}</span>
+        {hint && <span className="block text-xs text-ink-primary/50 truncate">{hint}</span>}
       </span>
     </span>
-    <AppIcon name="arrow-right" className="w-4 h-4 text-bone/35 shrink-0" />
+    <AppIcon name="arrow-right" className="w-4 h-4 text-ink-primary/35 shrink-0" />
   </button>
 );
 
@@ -657,10 +657,10 @@ const DrillLibraryToggle: React.FC = () => {
     }
   };
   return (
-    <div className="bg-charcoal-900 rounded-xl border border-white/10 px-4 py-4 flex items-start gap-3">
+    <div className="bg-surface-elevated rounded-xl border border-line-default/10 px-4 py-4 flex items-start gap-3">
       <div className="flex-1">
-        <p className="text-bone font-bold text-sm">Browse the shared library</p>
-        <p className="text-bone/55 text-xs mt-0.5 leading-snug">
+        <p className="text-ink-primary font-bold text-sm">Browse the shared library</p>
+        <p className="text-ink-primary/55 text-xs mt-0.5 leading-snug">
           Show the cross-club catalog tab in your drills page. Other coaches' shared drills appear there with ratings.
         </p>
       </div>
@@ -669,7 +669,7 @@ const DrillLibraryToggle: React.FC = () => {
         onClick={flip}
         disabled={busy}
         className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
-          browse ? 'bg-brand-primary text-white' : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+          browse ? 'bg-brand-primary text-white' : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/15 hover:bg-line-default/[0.1]'
         }`}
       >
         {busy ? '…' : browse ? 'On' : 'Off'}
@@ -686,7 +686,7 @@ const ThemeToggleCard: React.FC = () => {
     { key: 'light',  label: 'Light',  hint: 'Always light' },
   ];
   return (
-    <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm overflow-hidden">
+    <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm overflow-hidden">
       <div className="p-4">
         <div className="grid grid-cols-3 gap-2">
           {options.map(o => {
@@ -698,18 +698,18 @@ const ThemeToggleCard: React.FC = () => {
                 onClick={() => setMode(o.key)}
                 className={`rounded-xl px-3 py-3 text-center transition ring-1 ${
                   active
-                    ? 'bg-brand-primary/15 ring-brand-primary text-bone'
-                    : 'bg-charcoal-950 ring-white/10 text-bone/65 hover:text-bone hover:ring-white/20'
+                    ? 'bg-brand-primary/15 ring-brand-primary text-ink-primary'
+                    : 'bg-surface-base ring-line-default/10 text-ink-primary/65 hover:text-ink-primary hover:ring-line-default/20'
                 }`}
               >
                 <div className="text-sm font-bold">{o.label}</div>
-                <div className="text-[10px] mt-0.5 text-bone/55">{o.hint}</div>
+                <div className="text-[10px] mt-0.5 text-ink-primary/55">{o.hint}</div>
               </button>
             );
           })}
         </div>
-        <p className="text-[11px] text-bone/40 mt-3 leading-relaxed">
-          Currently rendering: <span className="text-bone/70 font-bold">{resolved}</span>. Light mode is being rolled out gradually; some screens still render dark until their cards migrate to the new theme tokens.
+        <p className="text-[11px] text-ink-primary/40 mt-3 leading-relaxed">
+          Currently rendering: <span className="text-ink-primary/70 font-bold">{resolved}</span>. Light mode is being rolled out gradually; some screens still render dark until their cards migrate to the new theme tokens.
         </p>
       </div>
     </div>

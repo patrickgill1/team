@@ -158,14 +158,14 @@ const SubscriptionCard: React.FC = () => {
       onClick={() => !emailSaving && setEmailIntent(null)}
     >
       <div
-        className="bg-charcoal-900 ring-1 ring-white/10 rounded-2xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
+        className="bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div>
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1.5">
             One quick thing
           </p>
-          <h3 className="text-bone text-lg font-bold leading-tight">
+          <h3 className="text-ink-primary text-lg font-bold leading-tight">
             What email should we put on the receipt?
           </h3>
           <p className="text-charcoal-300 text-sm mt-2">
@@ -182,7 +182,7 @@ const SubscriptionCard: React.FC = () => {
             value={emailDraft}
             onChange={e => setEmailDraft(e.target.value)}
             placeholder="you@example.com"
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500"
+            className="mt-1 w-full rounded-md bg-surface-base ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500"
             onKeyDown={e => { if (e.key === 'Enter' && !emailSaving) handleEmailConfirm(); }}
           />
         </label>
@@ -196,7 +196,7 @@ const SubscriptionCard: React.FC = () => {
             type="button"
             onClick={() => setEmailIntent(null)}
             disabled={emailSaving}
-            className="px-4 py-2.5 rounded-md font-bold text-sm ring-1 ring-white/15 text-bone hover:bg-white/5 transition disabled:opacity-50"
+            className="px-4 py-2.5 rounded-md font-bold text-sm ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/5 transition disabled:opacity-50"
           >
             Cancel
           </button>
@@ -215,7 +215,7 @@ const SubscriptionCard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4">
+      <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
         <p className="text-charcoal-400 text-sm">Loading subscription…</p>
       </div>
     );
@@ -228,9 +228,9 @@ const SubscriptionCard: React.FC = () => {
   if (!subscription || !isActive && subscription?.status !== 'past_due') {
     return (
       <>
-        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4 space-y-3">
+        <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4 space-y-3">
           <div>
-            <p className="text-bone font-bold">Coach with GoalKickr</p>
+            <p className="text-ink-primary font-bold">Coach with GoalKickr</p>
             <p className="text-charcoal-300 text-sm mt-1">
               You&apos;re using GoalKickr for free. Coaches unlock the full toolkit (chat, RSVPs, gameday, dev plans) with a Team plan starting at $9.99/mo.
               {!isAppleDevice() && ' Founding Coach pricing locks in $4.99/mo forever.'}
@@ -263,10 +263,10 @@ const SubscriptionCard: React.FC = () => {
 
   return (
     <>
-    <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-4 space-y-3">
+    <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-bone font-bold">{tierLabel}</p>
+          <p className="text-ink-primary font-bold">{tierLabel}</p>
           <p className="text-charcoal-300 text-sm mt-1">
             {tierPrice}
             {willCancelAtPeriodEnd && renewsAt && ` · ends ${renewsAt}`}
@@ -306,12 +306,12 @@ const SubscriptionCard: React.FC = () => {
         <button
           type="button"
           onClick={handleUpgrade}
-          className="w-full text-left rounded-lg bg-gradient-to-br from-brand-primary-deep/40 to-charcoal-900 ring-1 ring-brand-primary/40 hover:ring-brand-primary/60 transition px-3 py-2.5"
+          className="w-full text-left rounded-lg bg-gradient-to-br from-brand-primary-deep/40 to-surface-elevated ring-1 ring-brand-primary/40 hover:ring-brand-primary/60 transition px-3 py-2.5"
         >
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Running multiple teams?
           </p>
-          <p className="text-bone text-sm font-bold leading-tight">
+          <p className="text-ink-primary text-sm font-bold leading-tight">
             Upgrade to Club at goalkickr.com →
           </p>
           <p className="text-charcoal-300 text-[11px] mt-1 leading-snug">
@@ -323,12 +323,12 @@ const SubscriptionCard: React.FC = () => {
         <button
           type="button"
           onClick={handleUpgrade}
-          className="w-full text-left rounded-lg bg-gradient-to-br from-brand-primary-deep/40 to-charcoal-900 ring-1 ring-brand-primary/40 hover:ring-brand-primary/60 transition px-3 py-2.5"
+          className="w-full text-left rounded-lg bg-gradient-to-br from-brand-primary-deep/40 to-surface-elevated ring-1 ring-brand-primary/40 hover:ring-brand-primary/60 transition px-3 py-2.5"
         >
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Need integrations?
           </p>
-          <p className="text-bone text-sm font-bold leading-tight">
+          <p className="text-ink-primary text-sm font-bold leading-tight">
             Upgrade to Club Pro at goalkickr.com →
           </p>
           <p className="text-charcoal-300 text-[11px] mt-1 leading-snug">

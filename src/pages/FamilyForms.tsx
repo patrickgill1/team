@@ -215,42 +215,42 @@ const FamilyForms: React.FC = () => {
 
   if (!userData) {
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center p-6 text-bone/60 text-sm">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center p-6 text-ink-primary/60 text-sm">
         Sign in to see your family's pending forms.
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-surface-base px-4 py-6 sm:py-10">
       <div className="max-w-2xl mx-auto space-y-4">
         <div>
-          <Link to="/dashboard" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">← Home</Link>
-          <h1 className="text-2xl font-black text-bone mt-1">Pending forms</h1>
-          <p className="text-sm text-bone/60 mt-1 max-w-prose">
+          <Link to="/dashboard" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">← Home</Link>
+          <h1 className="text-2xl font-black text-ink-primary mt-1">Pending forms</h1>
+          <p className="text-sm text-ink-primary/60 mt-1 max-w-prose">
             Waivers, releases, and consents the club needs you to sign before your player is fully cleared to play.
           </p>
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center text-sm text-ink-primary/50">Loading…</div>
         ) : groups.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-emerald-400/30 p-8 text-center">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-emerald-400/30 p-8 text-center">
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/30 text-emerald-300 flex items-center justify-center">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <p className="text-sm font-bold text-bone">All caught up.</p>
-            <p className="text-xs text-bone/55 mt-1">Every required form is signed.</p>
+            <p className="text-sm font-bold text-ink-primary">All caught up.</p>
+            <p className="text-xs text-ink-primary/55 mt-1">Every required form is signed.</p>
           </div>
         ) : (
           <ul className="space-y-4">
             {groups.map(({ player, forms }) => (
-              <li key={player.id} className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-                <header className="px-4 py-3 border-b border-white/5 bg-charcoal-950/50">
-                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50">Player</div>
-                  <div className="text-base font-black text-bone leading-tight">{player.name}</div>
+              <li key={player.id} className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+                <header className="px-4 py-3 border-b border-line-default/5 bg-surface-base/50">
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50">Player</div>
+                  <div className="text-base font-black text-ink-primary leading-tight">{player.name}</div>
                 </header>
-                <ul className="divide-y divide-white/5">
+                <ul className="divide-y divide-line-default/5">
                   {forms.map(form => {
                     const openHere = signing?.playerId === player.id && signing.formId === form.id;
                     const hasQuestions = Array.isArray(form.questions) && form.questions.length > 0;
@@ -269,16 +269,16 @@ const FamilyForms: React.FC = () => {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-bone truncate">{form.name}</span>
+                              <span className="font-bold text-ink-primary truncate">{form.name}</span>
                               {form.required && (
                                 <span className="text-[9px] font-extrabold tracking-widest uppercase text-rose-300 bg-rose-500/10 ring-1 ring-rose-400/30 px-1.5 py-0.5 rounded">Required</span>
                               )}
                               {hasQuestions && (
-                                <span className="text-[9px] font-extrabold tracking-widest uppercase text-bone/70 bg-white/10 ring-1 ring-white/15 px-1.5 py-0.5 rounded">{(form.questions || []).length} question{(form.questions || []).length === 1 ? '' : 's'}</span>
+                                <span className="text-[9px] font-extrabold tracking-widest uppercase text-ink-primary/70 bg-line-default/10 ring-1 ring-line-default/15 px-1.5 py-0.5 rounded">{(form.questions || []).length} question{(form.questions || []).length === 1 ? '' : 's'}</span>
                               )}
                             </div>
                             {form.description && (
-                              <p className="text-[12px] text-bone/60 mt-1 leading-snug">{form.description}</p>
+                              <p className="text-[12px] text-ink-primary/60 mt-1 leading-snug">{form.description}</p>
                             )}
                           </div>
                           {!openHere && (
@@ -292,9 +292,9 @@ const FamilyForms: React.FC = () => {
                           )}
                         </div>
                         {openHere && (
-                          <div className="mt-3 rounded-xl bg-charcoal-950 ring-1 ring-white/10 p-3 space-y-3">
+                          <div className="mt-3 rounded-xl bg-surface-base ring-1 ring-line-default/10 p-3 space-y-3">
                             {form.body && (
-                              <div className="max-h-56 overflow-y-auto rounded-lg bg-black/40 ring-1 ring-white/10 px-3 py-2 text-[12px] text-bone/85 whitespace-pre-wrap leading-relaxed">
+                              <div className="max-h-56 overflow-y-auto rounded-lg bg-black/40 ring-1 ring-line-default/10 px-3 py-2 text-[12px] text-ink-primary/85 whitespace-pre-wrap leading-relaxed">
                                 {form.body}
                               </div>
                             )}
@@ -309,27 +309,27 @@ const FamilyForms: React.FC = () => {
                             )}
                             {hasBody && (
                               <label className="block">
-                                <span className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Type your full name to sign</span>
+                                <span className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Type your full name to sign</span>
                                 <input
                                   type="text"
                                   value={signedByName}
                                   onChange={(e) => setSignedByName(e.target.value)}
                                   placeholder="First Last"
-                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                                   style={{ fontSize: '16px' }}
                                 />
-                                <p className="text-[10px] text-bone/45 mt-1">Recorded as your e-signature for this release.</p>
+                                <p className="text-[10px] text-ink-primary/45 mt-1">Recorded as your e-signature for this release.</p>
                               </label>
                             )}
                             {!hasBody && hasQuestions && (
                               <label className="block">
-                                <span className="block text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-1">Your name <span className="text-bone/40 normal-case tracking-normal">(optional, for the audit log)</span></span>
+                                <span className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Your name <span className="text-ink-primary/40 normal-case tracking-normal">(optional, for the audit log)</span></span>
                                 <input
                                   type="text"
                                   value={signedByName}
                                   onChange={(e) => setSignedByName(e.target.value)}
                                   placeholder="First Last"
-                                  className="w-full px-3 py-2.5 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                                  className="w-full px-3 py-2.5 rounded-lg bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                                   style={{ fontSize: '16px' }}
                                 />
                               </label>
@@ -338,7 +338,7 @@ const FamilyForms: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => { setSigning(null); setSignedByName(''); setAnswers({}); }}
-                                className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone"
+                                className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/65 hover:text-ink-primary"
                               >
                                 Cancel
                               </button>
@@ -377,13 +377,13 @@ const QuestionInput: React.FC<{
   onChange: (v: string | number | boolean) => void;
 }> = ({ question, value, onChange }) => {
   const labelEl = (
-    <span className="block text-[11px] font-semibold uppercase tracking-wider text-bone/65 mb-1">
+    <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink-primary/65 mb-1">
       {question.label}
       {question.required && <span className="text-rose-300 ml-0.5">*</span>}
     </span>
   );
   const help = question.help ? (
-    <p className="text-[11px] text-bone/45 mt-1">{question.help}</p>
+    <p className="text-[11px] text-ink-primary/45 mt-1">{question.help}</p>
   ) : null;
 
   switch (question.type) {
@@ -396,7 +396,7 @@ const QuestionInput: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             rows={3}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -410,7 +410,7 @@ const QuestionInput: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-surface-elevated text-ink-primary ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
           >
             <option value="">— Select —</option>
             {(question.options || []).map(o => (
@@ -435,7 +435,7 @@ const QuestionInput: React.FC<{
                   className={`flex-1 py-2 rounded-lg text-sm font-bold ring-1 transition ${
                     selected
                       ? 'bg-brand-primary text-white ring-brand-primary'
-                      : 'bg-charcoal-900 text-bone/80 ring-white/10 hover:ring-brand-primary-soft/40'
+                      : 'bg-surface-elevated text-ink-primary/80 ring-line-default/10 hover:ring-brand-primary-soft/40'
                   }`}
                 >
                   {opt}
@@ -455,7 +455,7 @@ const QuestionInput: React.FC<{
             value={value == null ? '' : String(value)}
             onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -471,7 +471,7 @@ const QuestionInput: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={!!question.required}
-            className="w-full px-3 py-2 rounded-lg bg-charcoal-900 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-surface-elevated text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}

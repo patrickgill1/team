@@ -80,43 +80,43 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
   };
 
   return (
-    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/5">
+    <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
+      <div className="px-5 py-4 border-b border-line-default/5">
         <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Team Store</p>
-        <h2 className="text-bone font-bold">External gear shop link</h2>
-        <p className="text-bone/55 text-xs mt-1 leading-snug">
+        <h2 className="text-ink-primary font-bold">External gear shop link</h2>
+        <p className="text-ink-primary/55 text-xs mt-1 leading-snug">
           Point this at your retailer (gotsoccer, Soccer.com, your own site). The Team Store tab appears in every team&apos;s nav once a URL is set. Leave blank to hide the tab.
         </p>
       </div>
       <div className="p-5 space-y-3">
         <label className="block">
-          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Store URL</span>
+          <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Store URL</span>
           <input
             type="url"
             value={storeUrl}
             onChange={(e) => setStoreUrl(e.target.value)}
             placeholder="https://team.wegotsoccer.com/yourclub"
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+            className="mt-1 w-full rounded-md bg-surface-base ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm"
           />
         </label>
         <label className="block">
-          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Discount code (optional)</span>
+          <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Discount code (optional)</span>
           <input
             type="text"
             value={discountCode}
             onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
             placeholder="FIREFCREWARDS"
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm font-mono tracking-wider"
+            className="mt-1 w-full rounded-md bg-surface-base ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm font-mono tracking-wider"
           />
         </label>
         <label className="block">
-          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Page subtitle (optional)</span>
+          <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Page subtitle (optional)</span>
           <input
             type="text"
             value={storeLabel}
             onChange={(e) => setStoreLabel(e.target.value)}
             placeholder="Official gear, member pricing."
-            className="mt-1 w-full rounded-md bg-charcoal-950 ring-1 ring-white/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-bone placeholder-charcoal-500 text-sm"
+            className="mt-1 w-full rounded-md bg-surface-base ring-1 ring-line-default/10 focus:ring-brand-primary focus:outline-none px-3 py-2.5 text-ink-primary placeholder-charcoal-500 text-sm"
           />
         </label>
         {error && (
@@ -129,7 +129,7 @@ const ClubStoreCard: React.FC<Props> = ({ club }) => {
             type="button"
             onClick={handleClear}
             disabled={saving || (!club.storeUrl && !storeUrl)}
-            className="text-[11px] font-extrabold tracking-widest uppercase text-bone/45 hover:text-brand-primary-soft disabled:opacity-30"
+            className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/45 hover:text-brand-primary-soft disabled:opacity-30"
           >
             Remove store
           </button>

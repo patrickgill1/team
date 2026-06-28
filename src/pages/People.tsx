@@ -68,7 +68,7 @@ const ROLE_LABEL: Record<Role, string> = {
 //   player = bone outline (neutral; most rows are players, so leave
 //                          them quiet so coaches/admins stand out)
 const ROLE_CHIP: Record<Role, string> = {
-  player: 'bg-charcoal-800 text-bone/80 border-white/15',
+  player: 'bg-surface-input text-ink-primary/80 border-line-default/15',
   parent: 'bg-emerald-600 text-white border-emerald-700',
   coach: 'bg-amber-400 text-charcoal-950 border-amber-500',
   team_manager: 'bg-sky-600 text-white border-sky-700',
@@ -269,11 +269,11 @@ const People: React.FC = () => {
 
   if (!canViewDirectory) {
     return (
-      <div className="min-h-screen bg-charcoal-950">
+      <div className="min-h-screen bg-surface-base">
         <Header title="People" />
         <div className="max-w-md mx-auto px-4 py-12 text-center">
-          <p className="text-bone/85 font-semibold mb-1">This area is for coaches.</p>
-          <p className="text-bone/50 text-sm">
+          <p className="text-ink-primary/85 font-semibold mb-1">This area is for coaches.</p>
+          <p className="text-ink-primary/50 text-sm">
             The People directory holds contact info for everyone in the club, so it's
             limited to coaches, team managers, and club admins.
           </p>
@@ -283,7 +283,7 @@ const People: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       <Header
         title="People"
         subtitle={people.length ? `${people.length} in your club` : undefined}
@@ -293,7 +293,7 @@ const People: React.FC = () => {
               onClick={() => setInvitesPanelOpen(true)}
               aria-label="Active invites"
               title="Active invites"
-              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center hover:bg-white/20"
+              className="w-9 h-9 rounded-full bg-line-default/10 border border-line-default/20 text-white flex items-center justify-center hover:bg-line-default/20"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -303,7 +303,7 @@ const People: React.FC = () => {
             <button
               onClick={() => setChooserOpen(true)}
               aria-label="Add someone"
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 hover:from-brand-primary-soft hover:to-brand-primary"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -316,23 +316,23 @@ const People: React.FC = () => {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
         {/* Search + team filter */}
-        <div className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm p-3 flex flex-col sm:flex-row gap-2">
+        <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-3 flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
-            <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or kid's name…"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-charcoal-950 text-bone placeholder-bone/40 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-surface-base text-ink-primary placeholder-bone/40 border border-line-default/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             />
           </div>
           {teams.length > 1 && (
             <select
               value={teamFilter}
               onChange={(e) => setTeamFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-white/10 rounded-lg bg-charcoal-950 text-bone"
+              className="px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-surface-base text-ink-primary"
             >
               <option value="all">All teams</option>
               {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -343,7 +343,7 @@ const People: React.FC = () => {
         {/* Coach-only header: Select toggle for bulk actions */}
         {isUserCoach && people.length > 0 && (
           <div className="flex items-center justify-between -mb-1">
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/40">
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/40">
               {filtered.length} match{filtered.length === 1 ? '' : 'es'}
             </span>
             <button
@@ -351,7 +351,7 @@ const People: React.FC = () => {
               className={`text-[11px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-md border ${
                 selectMode
                   ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30'
-                  : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
+                  : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
               }`}
             >
               {selectMode ? 'Done' : 'Select'}
@@ -375,10 +375,10 @@ const People: React.FC = () => {
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 roleFilter === k
                   ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30'
-                  : 'bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90'
+                  : 'bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90'
               }`}
             >
-              {label} <span className={roleFilter === k ? 'text-brand-primary' : 'text-bone/40'}>{counts[k as any]}</span>
+              {label} <span className={roleFilter === k ? 'text-brand-primary' : 'text-ink-primary/40'}>{counts[k as any]}</span>
             </button>
           ))}
         </div>
@@ -389,7 +389,7 @@ const People: React.FC = () => {
         ) : filtered.length === 0 ? (
           <EmptyState title="No one matches" />
         ) : (
-          <ul className="bg-charcoal-900 rounded-xl border border-white/10 shadow-sm divide-y divide-white/5 overflow-hidden">
+          <ul className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm divide-y divide-line-default/5 overflow-hidden">
             {filtered.map(p => {
               const key = `${p.type}-${p.id}`;
               const initial = (p.name || '?').charAt(0).toUpperCase();
@@ -408,12 +408,12 @@ const People: React.FC = () => {
               };
               const RowInner = (
                 <li
-                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-brand-primary/15' : 'hover:bg-white/[0.05]'}`}
+                  className={`px-3 py-2.5 flex items-center gap-2.5 transition-colors ${isSelected ? 'bg-brand-primary/15' : 'hover:bg-line-default/[0.05]'}`}
                   onClick={selectMode ? (e) => { e.preventDefault(); toggleSelect(); } : undefined}
                 >
                   {selectMode && (
                     <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-brand-primary border-brand-primary text-white' : 'border-white/15'
+                      isSelected ? 'bg-brand-primary border-brand-primary text-white' : 'border-line-default/15'
                     }`}>
                       {isSelected && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                     </span>
@@ -425,17 +425,17 @@ const People: React.FC = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-bone truncate">{p.name}</span>
+                      <span className="text-sm font-semibold text-ink-primary truncate">{p.name}</span>
                       <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded border ${ROLE_CHIP[p.role]}`}>
                         {p.role === 'parent' ? RELATIONSHIP_LABELS[p.relationship || 'parent'] : ROLE_LABEL[p.role]}
                       </span>
                       {!p.isActive && (
-                        <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-charcoal-950 text-bone/40 border-white/10">
+                        <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded border bg-surface-base text-ink-primary/40 border-line-default/10">
                           Inactive
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-bone/50 truncate mt-0.5">
+                    <div className="text-[11px] text-ink-primary/50 truncate mt-0.5">
                       {p.role === 'parent' && p.childNames && p.childNames.length
                         ? `Kid${p.childNames.length === 1 ? '' : 's'}: ${p.childNames.join(', ')}`
                         : p.email || (p.teamIds.length ? p.teamIds.map(t => teamNameById[t] || '').filter(Boolean).join(' · ') : '')}
@@ -444,12 +444,12 @@ const People: React.FC = () => {
                   {!selectMode && p.teamIds.length > 0 && (
                     <div className="hidden sm:flex flex-wrap gap-1 justify-end max-w-[200px]">
                       {p.teamIds.slice(0, 2).map(tid => (
-                        <span key={tid} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-charcoal-950 text-bone/65 border border-white/10">
+                        <span key={tid} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-base text-ink-primary/65 border border-line-default/10">
                           {teamNameById[tid] || tid.slice(0, 6)}
                         </span>
                       ))}
                       {p.teamIds.length > 2 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-charcoal-950 text-bone/65 border border-white/10">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-base text-ink-primary/65 border border-line-default/10">
                           +{p.teamIds.length - 2}
                         </span>
                       )}
@@ -472,7 +472,7 @@ const People: React.FC = () => {
                       // equivalent for users yet.
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setManaging(p); }}
-                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-charcoal-900 text-bone/50 border-white/10 hover:text-bone/90 flex-shrink-0"
+                        className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border bg-surface-elevated text-ink-primary/50 border-line-default/10 hover:text-ink-primary/90 flex-shrink-0"
                       >
                         Manage
                       </button>
@@ -490,7 +490,7 @@ const People: React.FC = () => {
         )}
 
         {!isUserCoach && people.length > 0 && (
-          <p className="text-[11px] text-bone/40 text-center py-2">
+          <p className="text-[11px] text-ink-primary/40 text-center py-2">
             Viewing your club's people. Coaches can add or remove members.
           </p>
         )}
@@ -501,14 +501,14 @@ const People: React.FC = () => {
           aren't covered. On desktop the nav is a side rail so bottom-0
           is fine. safe-bottom keeps it clear of the home indicator. */}
       {selectMode && selectedIds.size > 0 && (
-        <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-charcoal-950 border-t border-brand-primary/20 px-4 py-3 flex items-center gap-3">
+        <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-surface-base border-t border-brand-primary/20 px-4 py-3 flex items-center gap-3">
           <span className="text-xs font-extrabold tracking-widest uppercase text-white flex-shrink-0">
             {selectedIds.size} selected
           </span>
           <select
             value={bulkTarget}
             onChange={(e) => setBulkTarget(e.target.value)}
-            className="flex-1 bg-charcoal-900 border border-slate-700 text-white text-sm rounded-lg px-2 py-1.5"
+            className="flex-1 bg-surface-elevated border border-slate-700 text-white text-sm rounded-lg px-2 py-1.5"
           >
             <option value="">Add to squad…</option>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -543,7 +543,7 @@ const People: React.FC = () => {
           </button>
           <button
             onClick={() => { setSelectMode(false); setSelectedIds(new Set()); setBulkTarget(''); }}
-            className="text-bone/40 hover:text-white text-xs font-extrabold tracking-widest uppercase"
+            className="text-ink-primary/40 hover:text-white text-xs font-extrabold tracking-widest uppercase"
           >
             Cancel
           </button>
@@ -553,9 +553,9 @@ const People: React.FC = () => {
       {/* + chooser sheet — pick what kind of thing you're adding */}
       {chooserOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4" onClick={() => setChooserOpen(false)}>
-          <div onClick={e => e.stopPropagation()} className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/5">
-              <div className="text-xs font-extrabold tracking-widest uppercase text-bone/65">Add</div>
+          <div onClick={e => e.stopPropagation()} className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+            <div className="px-4 py-3 border-b border-line-default/5">
+              <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/65">Add</div>
             </div>
             <button
               onClick={() => {
@@ -563,31 +563,31 @@ const People: React.FC = () => {
                 if (trialGated) { setTrialGateOpen(true); return; }
                 setAddPlayerOpen(true);
               }}
-              className="w-full text-left px-4 py-3 hover:bg-white/[0.05] border-b border-white/5 flex items-center gap-3"
+              className="w-full text-left px-4 py-3 hover:bg-line-default/[0.05] border-b border-line-default/5 flex items-center gap-3"
             >
               <span className="w-8 h-8 rounded-lg bg-brand-primary/15 text-brand-primary flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </span>
               <div className="flex-1">
-                <div className="text-sm font-bold text-bone">Add to Squad</div>
-                <div className="text-[11px] text-bone/50">New player on the squad, with an optional invite to their family.</div>
+                <div className="text-sm font-bold text-ink-primary">Add to Squad</div>
+                <div className="text-[11px] text-ink-primary/50">New player on the squad, with an optional invite to their family.</div>
               </div>
             </button>
             <button
               onClick={() => { setChooserOpen(false); setInviteOpen(true); }}
-              className="w-full text-left px-4 py-3 hover:bg-white/[0.05] border-b border-white/5 flex items-center gap-3"
+              className="w-full text-left px-4 py-3 hover:bg-line-default/[0.05] border-b border-line-default/5 flex items-center gap-3"
             >
               <span className="w-8 h-8 rounded-lg bg-violet-500/15 text-violet-600 flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
               </span>
               <div className="flex-1">
-                <div className="text-sm font-bold text-bone">Bring Someone In</div>
-                <div className="text-[11px] text-bone/50">A family for an existing player, or another coach / manager.</div>
+                <div className="text-sm font-bold text-ink-primary">Bring Someone In</div>
+                <div className="text-[11px] text-ink-primary/50">A family for an existing player, or another coach / manager.</div>
               </div>
             </button>
             <button
               onClick={() => setChooserOpen(false)}
-              className="w-full text-center px-4 py-2.5 text-xs font-bold tracking-wide text-bone/50 hover:bg-white/[0.05]"
+              className="w-full text-center px-4 py-2.5 text-xs font-bold tracking-wide text-ink-primary/50 hover:bg-line-default/[0.05]"
             >
               Cancel
             </button>
@@ -767,7 +767,7 @@ const ManagePersonModal: React.FC<{
       }
     >
       <div>
-        <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">Teams</div>
+        <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-2">Teams</div>
         <div className="space-y-1">
           {teams.map(t => {
             const on = draft.has(t.id);
@@ -777,11 +777,11 @@ const ManagePersonModal: React.FC<{
                 type="button"
                 onClick={() => toggle(t.id)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg ring-1 text-sm transition ${
-                  on ? 'bg-brand-primary/15 ring-brand-primary/40 text-brand-primary-soft' : 'bg-charcoal-950 ring-white/10 text-bone hover:bg-white/5'
+                  on ? 'bg-brand-primary/15 ring-brand-primary/40 text-brand-primary-soft' : 'bg-surface-base ring-line-default/10 text-ink-primary hover:bg-line-default/5'
                 }`}
               >
                 <span className="font-semibold">{t.name}</span>
-                <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-brand-primary-fg' : 'border-white/20'}`}>
+                <span className={`w-4 h-4 rounded border flex items-center justify-center ${on ? 'bg-brand-primary border-brand-primary text-brand-primary-fg' : 'border-line-default/20'}`}>
                   {on && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
                 </span>
               </button>

@@ -237,7 +237,7 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         /* Individual Player Stats */
         <div className="space-y-6">
           {/* Player Header */}
-          <div className="bg-gradient-to-r from-brand-primary to-charcoal-600 rounded-lg p-6 text-white">
+          <div className="bg-gradient-to-r from-brand-primary to-surface-tint rounded-lg p-6 text-white">
             <div className="flex items-center space-x-4">
               <div className="bg-white bg-opacity-20 rounded-full w-16 h-16 flex items-center justify-center">
                 <span className="text-2xl font-bold">#{selectedPlayerData.jerseyNumber}</span>

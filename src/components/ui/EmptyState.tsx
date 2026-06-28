@@ -34,8 +34,8 @@ interface Props {
 }
 
 const WRAPPER_CLASS: Record<EmptyStateVariant, string> = {
-  subtle: 'bg-charcoal-900 ring-1 ring-white/10 rounded-2xl p-8 sm:p-10 text-center',
-  error:  'bg-charcoal-900 ring-1 ring-amber-500/30 rounded-2xl p-6 text-center',
+  subtle: 'bg-surface-elevated ring-1 ring-line-default/10 rounded-2xl p-8 sm:p-10 text-center',
+  error:  'bg-surface-elevated ring-1 ring-amber-500/30 rounded-2xl p-6 text-center',
   inline: 'p-6 text-center',
 };
 
@@ -50,13 +50,13 @@ const EmptyState: React.FC<Props> = ({
 }) => (
   <div className={`${WRAPPER_CLASS[variant]} ${className || ''}`}>
     {icon && (
-      <div className="flex items-center justify-center mb-3 text-bone/45">
+      <div className="flex items-center justify-center mb-3 text-ink-primary/45">
         {icon}
       </div>
     )}
-    <p className="text-bone/85 font-bold mb-1">{title}</p>
+    <p className="text-ink-primary/85 font-bold mb-1">{title}</p>
     {subtitle && (
-      <p className="text-bone/55 text-sm leading-snug max-w-sm mx-auto">{subtitle}</p>
+      <p className="text-ink-primary/55 text-sm leading-snug max-w-sm mx-auto">{subtitle}</p>
     )}
     {(action || secondary) && (
       <div className="mt-5 flex items-center justify-center gap-2 flex-wrap">

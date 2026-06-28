@@ -9,7 +9,7 @@ const APP_DOMAIN = 'goalkickr.com';
 const PrivacyPolicy: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
-      <header className="bg-gradient-to-r from-charcoal-700 via-charcoal-600 to-charcoal-700 text-white">
+      <header className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised text-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           <Link to="/" className="text-sm text-white/70 hover:text-white inline-flex items-center gap-1">
             ← Back to {APP_NAME}

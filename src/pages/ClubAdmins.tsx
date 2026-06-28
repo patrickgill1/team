@@ -143,7 +143,7 @@ const ClubAdmins: React.FC = () => {
 
   if (!clubId) {
     return (
-      <div className="min-h-screen bg-charcoal-950">
+      <div className="min-h-screen bg-surface-base">
         <Header title="Club admins" backTo="/settings" />
         <EmptyState variant="subtle" title="No club" body="Start or join a club to manage admins." />
       </div>
@@ -152,7 +152,7 @@ const ClubAdmins: React.FC = () => {
 
   if (!canManage) {
     return (
-      <div className="min-h-screen bg-charcoal-950">
+      <div className="min-h-screen bg-surface-base">
         <Header title="Club admins" backTo="/settings" />
         <EmptyState variant="subtle" title="Not allowed" body="Only the club owner or admins with the 'admins' scope can manage this." />
       </div>
@@ -160,7 +160,7 @@ const ClubAdmins: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 pb-20">
+    <div className="min-h-screen bg-surface-base pb-20">
       <Header title="Club admins" backTo="/settings" />
       <div className="max-w-3xl mx-auto px-4 mt-4 space-y-5">
         {/* Club-level kill switch for the shared drill library.
@@ -172,9 +172,9 @@ const ClubAdmins: React.FC = () => {
           <ClubDrillSharingToggle clubId={club.id} initialValue={club.allowDrillSharing !== false} />
         )}
 
-        <div className="bg-charcoal-900 border border-white/10 rounded-2xl p-4">
-          <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5">Add admin</p>
-          <p className="text-bone/55 text-xs mb-3 leading-snug">
+        <div className="bg-surface-elevated border border-line-default/10 rounded-2xl p-4">
+          <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">Add admin</p>
+          <p className="text-ink-primary/55 text-xs mb-3 leading-snug">
             Grant scoped access to a user. They'll be added with director-style permissions minus financials and admin management — edit the row after to fine-tune.
           </p>
           <div className="flex gap-2">
@@ -183,7 +183,7 @@ const ClubAdmins: React.FC = () => {
               value={addingEmail}
               onChange={(e) => setAddingEmail(e.target.value)}
               placeholder="email@example.com"
-              className="flex-1 bg-charcoal-950 border border-white/10 rounded-lg px-3 py-2.5 text-bone placeholder:text-bone/30 text-sm"
+              className="flex-1 bg-surface-base border border-line-default/10 rounded-lg px-3 py-2.5 text-ink-primary placeholder:text-ink-primary/30 text-sm"
             />
             <Button variant="primary" onClick={handleAdd} disabled={adding || !addingEmail.trim()}>
               {adding ? 'Adding...' : 'Add'}
@@ -195,32 +195,32 @@ const ClubAdmins: React.FC = () => {
         </div>
 
         <div>
-          <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">
+          <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-2">
             Admins ({rows.length})
           </p>
           {loading ? (
-            <p className="text-bone/45 text-sm">Loading...</p>
+            <p className="text-ink-primary/45 text-sm">Loading...</p>
           ) : (
             <ul className="space-y-2">
               {rows.map((r) => (
-                <li key={r.uid} className="bg-charcoal-900 border border-white/5 rounded-2xl p-3">
+                <li key={r.uid} className="bg-surface-elevated border border-line-default/5 rounded-2xl p-3">
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-bone font-bold truncate">{r.name}</p>
+                        <p className="text-ink-primary font-bold truncate">{r.name}</p>
                         {r.isOwner && (
                           <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-primary/15 text-brand-primary border border-brand-primary/30">Owner</span>
                         )}
                       </div>
-                      <p className="text-bone/45 font-mono text-[11px] truncate">{r.email}</p>
+                      <p className="text-ink-primary/45 font-mono text-[11px] truncate">{r.email}</p>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {r.scopes.map((s) => (
-                          <span key={s} className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-charcoal-800 text-bone/75 border border-white/10">
+                          <span key={s} className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface-input text-ink-primary/75 border border-line-default/10">
                             {CLUB_SCOPE_LABELS[s]?.label || s}
                           </span>
                         ))}
                         {r.scopes.length === 0 && (
-                          <span className="text-bone/45 text-xs italic">No scopes</span>
+                          <span className="text-ink-primary/45 text-xs italic">No scopes</span>
                         )}
                       </div>
                     </div>
@@ -228,7 +228,7 @@ const ClubAdmins: React.FC = () => {
                       <div className="flex flex-col gap-1">
                         <button
                           onClick={() => setEditingUid(r.uid)}
-                          className="text-bone/65 hover:text-bone text-xs font-bold px-2 py-1 rounded bg-charcoal-800 hover:bg-charcoal-700"
+                          className="text-ink-primary/65 hover:text-ink-primary text-xs font-bold px-2 py-1 rounded bg-surface-input hover:bg-surface-raised"
                         >
                           Edit
                         </button>
@@ -312,15 +312,15 @@ const EditScopesSheet: React.FC<{
                   type="button"
                   onClick={() => toggle(s)}
                   className={`w-full text-left flex items-start gap-3 p-3 rounded-xl border transition-colors ${
-                    active ? 'bg-brand-primary/10 border-brand-primary/40' : 'bg-charcoal-900 border-white/10 hover:border-white/20'
+                    active ? 'bg-brand-primary/10 border-brand-primary/40' : 'bg-surface-elevated border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
-                  <div className={`mt-0.5 w-4 h-4 rounded border ${active ? 'bg-brand-primary border-brand-primary' : 'border-white/30'} flex-shrink-0 flex items-center justify-center`}>
-                    {active && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-3 h-3 text-bone"><path d="M5 13l4 4L19 7" /></svg>}
+                  <div className={`mt-0.5 w-4 h-4 rounded border ${active ? 'bg-brand-primary border-brand-primary' : 'border-line-default/30'} flex-shrink-0 flex items-center justify-center`}>
+                    {active && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-3 h-3 text-ink-primary"><path d="M5 13l4 4L19 7" /></svg>}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-bone font-bold text-sm">{def.label}</p>
-                    <p className="text-bone/55 text-xs">{def.hint}</p>
+                    <p className="text-ink-primary font-bold text-sm">{def.label}</p>
+                    <p className="text-ink-primary/55 text-xs">{def.hint}</p>
                   </div>
                 </button>
               </li>
@@ -356,12 +356,12 @@ const ClubDrillSharingToggle: React.FC<{ clubId: string; initialValue: boolean }
     }
   };
   return (
-    <div className="bg-charcoal-900 border border-white/10 rounded-2xl p-4">
+    <div className="bg-surface-elevated border border-line-default/10 rounded-2xl p-4">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5">Drill library</p>
-          <p className="text-bone font-bold text-sm">Allow coaches to share drills publicly</p>
-          <p className="text-bone/55 text-xs mt-0.5 leading-snug">
+          <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5">Drill library</p>
+          <p className="text-ink-primary font-bold text-sm">Allow coaches to share drills publicly</p>
+          <p className="text-ink-primary/55 text-xs mt-0.5 leading-snug">
             When ON, your coaches can flip drills into the cross-club catalog so anyone in GoalKickr can save them. Already-shared drills stay shared even if this is turned off.
           </p>
         </div>
@@ -370,7 +370,7 @@ const ClubDrillSharingToggle: React.FC<{ clubId: string; initialValue: boolean }
           onClick={flip}
           disabled={busy}
           className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
-            allow ? 'bg-brand-primary text-white' : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+            allow ? 'bg-brand-primary text-white' : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/15 hover:bg-line-default/[0.1]'
           }`}
         >
           {busy ? '…' : allow ? 'On' : 'Off'}
@@ -387,7 +387,7 @@ const PresetChip: React.FC<{ label: string; onClick: () => void }> = ({ label, o
   <button
     type="button"
     onClick={onClick}
-    className="text-xs font-bold px-3 py-1.5 rounded-full bg-charcoal-800 hover:bg-charcoal-700 text-bone/75 hover:text-bone"
+    className="text-xs font-bold px-3 py-1.5 rounded-full bg-surface-input hover:bg-surface-raised text-ink-primary/75 hover:text-ink-primary"
   >
     {label}
   </button>

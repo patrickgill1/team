@@ -82,7 +82,7 @@ const PublicGame: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary-soft border-t-cyan-500" />
       </div>
     );
@@ -90,7 +90,7 @@ const PublicGame: React.FC = () => {
 
   if (error || !game) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-5xl mb-4">⚽</div>
           <h1 className="text-xl font-bold text-white mb-2">Game Not Found</h1>
@@ -108,14 +108,14 @@ const PublicGame: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-black text-white">
       {/* Ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-primary/20 rounded-full blur-3xl" />
         <div className="absolute -top-20 right-0 w-96 h-96 bg-violet-500/15 rounded-full blur-3xl" />
       </div>
 
-      <header className="relative z-10 border-b border-white/10 backdrop-blur-sm bg-black/30">
+      <header className="relative z-10 border-b border-line-default/10 backdrop-blur-sm bg-black/30">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
             <span className="font-bold tracking-tight">GoalKickr</span>
@@ -125,7 +125,7 @@ const PublicGame: React.FC = () => {
       </header>
 
       <main className="relative z-10 max-w-5xl mx-auto px-4 py-6">
-        <div className="aspect-video w-full bg-black rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
+        <div className="aspect-video w-full bg-black rounded-xl overflow-hidden ring-1 ring-line-default/10 shadow-2xl">
           {game.streamUid ? (
             <StreamPlayer
               uid={game.streamUid}
@@ -165,7 +165,7 @@ const PublicGame: React.FC = () => {
               <span className={`text-xs font-bold px-2 py-0.5 rounded ${
                 game.result.startsWith('W') ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30'
                   : game.result.startsWith('L') ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/30'
-                  : 'bg-white/10 text-white/80 ring-1 ring-white/20'
+                  : 'bg-line-default/10 text-white/80 ring-1 ring-line-default/20'
               }`}>
                 {game.result}
               </span>
@@ -203,11 +203,11 @@ const PublicGame: React.FC = () => {
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-white/10 hover:bg-white/15 disabled:bg-white/10 disabled:cursor-wait text-white text-sm font-medium rounded-lg ring-1 ring-white/15 transition-colors"
+                className="inline-flex items-center space-x-1.5 px-4 py-2 bg-line-default/10 hover:bg-line-default/15 disabled:bg-line-default/10 disabled:cursor-wait text-white text-sm font-medium rounded-lg ring-1 ring-line-default/15 transition-colors"
               >
                 {downloading ? (
                   <>
-                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    <div className="w-4 h-4 rounded-full border-2 border-line-default/30 border-t-white animate-spin" />
                     <span className="tabular-nums">{downloadPercent > 0 ? `${downloadPercent}%` : 'Saving…'}</span>
                   </>
                 ) : (

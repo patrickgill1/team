@@ -120,7 +120,7 @@ const AdminCockpit: React.FC = () => {
         </div>
       )}
       <div className={`transition-opacity duration-300 ease-out ${loaded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="rounded-2xl bg-gradient-to-br from-charcoal-900 to-charcoal-800/60 ring-1 ring-brand-primary/20 px-3 py-3 sm:px-4 sm:py-3.5 shadow-lg shadow-brand-primary-deep/30">
+        <div className="rounded-2xl bg-gradient-to-br from-surface-elevated to-surface-input/60 ring-1 ring-brand-primary/20 px-3 py-3 sm:px-4 sm:py-3.5 shadow-lg shadow-brand-primary-deep/30">
           <div className="flex items-center gap-2 mb-2.5">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -128,7 +128,7 @@ const AdminCockpit: React.FC = () => {
               </svg>
             </span>
             <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Club admin</span>
-            <span className="text-[10px] font-bold tracking-wide text-bone/50">what needs your attention</span>
+            <span className="text-[10px] font-bold tracking-wide text-ink-primary/50">what needs your attention</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {chips.map((chip) => {
@@ -136,7 +136,7 @@ const AdminCockpit: React.FC = () => {
                 ? 'bg-brand-primary ring-brand-primary-soft/40 text-white hover:bg-brand-primary font-bold'
                 : chip.emphasize
                   ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft hover:bg-brand-primary/25'
-                  : 'bg-charcoal-950 ring-white/10 text-bone/85 hover:bg-white/5';
+                  : 'bg-surface-base ring-line-default/10 text-ink-primary/85 hover:bg-line-default/5';
               return (
                 <Link
                   key={chip.label}
@@ -146,7 +146,7 @@ const AdminCockpit: React.FC = () => {
                   {chip.cta ? (
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   ) : chip.count !== undefined ? (
-                    <span className={`tabular-nums font-extrabold ${chip.emphasize ? 'text-brand-primary-soft' : 'text-bone'}`}>
+                    <span className={`tabular-nums font-extrabold ${chip.emphasize ? 'text-brand-primary-soft' : 'text-ink-primary'}`}>
                       {chip.count}
                     </span>
                   ) : null}
@@ -166,7 +166,7 @@ const AdminCockpit: React.FC = () => {
           <div className="mt-3 grid grid-cols-4 gap-1.5">
             <Link
               to="/events"
-              className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone"
+              className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary"
             >
               <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
@@ -175,7 +175,7 @@ const AdminCockpit: React.FC = () => {
             </Link>
             <Link
               to="/club/forms"
-              className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone"
+              className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary"
             >
               <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="13" y2="17" />
@@ -184,7 +184,7 @@ const AdminCockpit: React.FC = () => {
             </Link>
             <Link
               to="/surveys"
-              className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone"
+              className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary"
             >
               <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
@@ -193,7 +193,7 @@ const AdminCockpit: React.FC = () => {
             </Link>
             <Link
               to="/club?broadcast=open"
-              className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone"
+              className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary"
             >
               <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M3 11h4l5-4v10l-5-4H3z" /><path d="M16 8a4 4 0 0 1 0 8" />

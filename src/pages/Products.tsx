@@ -67,7 +67,7 @@ const Products: React.FC = () => {
 
   if (!allowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm">
+      <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm">
         Club admins only.
       </div>
     );
@@ -75,25 +75,25 @@ const Products: React.FC = () => {
 
   if (!clubId && !clubIdLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 text-bone/65 text-sm text-center">
+      <div className="min-h-screen flex items-center justify-center p-8 text-ink-primary/65 text-sm text-center">
         <div className="max-w-md">
           <p className="font-bold mb-1">Couldn't find your club.</p>
-          <p className="text-xs">Set <code className="text-[11px] bg-charcoal-950 px-1 rounded">clubId</code> on your user doc in Firestore, or join a team in this club first.</p>
+          <p className="text-xs">Set <code className="text-[11px] bg-surface-base px-1 rounded">clubId</code> on your user doc in Firestore, or join a team in this club first.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-950 px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-surface-base px-4 py-6 sm:py-10">
       <div className="max-w-5xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-bone/50 hover:text-bone/85">
+            <Link to="/club" className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50 hover:text-ink-primary/85">
               ← Club
             </Link>
-            <h1 className="text-2xl font-black text-bone mt-1">Products</h1>
-            <p className="text-sm text-bone/65">
+            <h1 className="text-2xl font-black text-ink-primary mt-1">Products</h1>
+            <p className="text-sm text-ink-primary/65">
               Anything chargeable — registration fees, tournament entry, merch.
               Each product owns its pricing schedule and coupon codes.
             </p>
@@ -108,10 +108,10 @@ const Products: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-6 text-sm text-bone/50">Loading…</div>
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-6 text-sm text-ink-primary/50">Loading…</div>
         ) : products.length === 0 ? (
-          <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-8 text-center">
-            <p className="text-sm text-bone/65 mb-3">
+          <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-8 text-center">
+            <p className="text-sm text-ink-primary/65 mb-3">
               No products yet. Create your first one — registration fees are the usual starter.
             </p>
             <button
@@ -161,27 +161,27 @@ const ProductCard: React.FC<{ product: Product; seasonName?: string; onEdit: () 
     <button
       type="button"
       onClick={onEdit}
-      className="text-left bg-charcoal-900 rounded-2xl ring-1 ring-white/10 hover:ring-brand-primary-soft p-4 transition"
+      className="text-left bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 hover:ring-brand-primary-soft p-4 transition"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50">
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50">
               {product.type}
             </span>
             {!product.isActive && (
-              <span className="text-[10px] font-extrabold tracking-widest uppercase bg-charcoal-950 text-bone/50 ring-1 ring-white/15 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase bg-surface-base text-ink-primary/50 ring-1 ring-line-default/15 px-1.5 py-0.5 rounded">
                 Archived
               </span>
             )}
           </div>
-          <h3 className="font-black text-bone truncate">{product.name}</h3>
+          <h3 className="font-black text-ink-primary truncate">{product.name}</h3>
           {seasonName && (
-            <p className="text-[11px] text-bone/50 mt-0.5">{seasonName}</p>
+            <p className="text-[11px] text-ink-primary/50 mt-0.5">{seasonName}</p>
           )}
         </div>
         <div className="text-right shrink-0">
-          <div className="font-black text-bone">${(quote.totalCents / 100).toFixed(2)}</div>
+          <div className="font-black text-ink-primary">${(quote.totalCents / 100).toFixed(2)}</div>
           {activeTier && (
             <div className="text-[10px] font-extrabold uppercase tracking-widest text-brand-primary-soft">
               {activeTier.label}
@@ -189,11 +189,11 @@ const ProductCard: React.FC<{ product: Product; seasonName?: string; onEdit: () 
           )}
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2 flex-wrap text-[11px] text-bone/65">
-        <span className="px-2 py-0.5 rounded bg-charcoal-950 ring-1 ring-white/10">
+      <div className="mt-3 flex items-center gap-2 flex-wrap text-[11px] text-ink-primary/65">
+        <span className="px-2 py-0.5 rounded bg-surface-base ring-1 ring-line-default/10">
           {(product.pricingTiers || []).length} tier{(product.pricingTiers || []).length === 1 ? '' : 's'}
         </span>
-        <span className="px-2 py-0.5 rounded bg-charcoal-950 ring-1 ring-white/10">
+        <span className="px-2 py-0.5 rounded bg-surface-base ring-1 ring-line-default/10">
           {couponCount} coupon{couponCount === 1 ? '' : 's'}
         </span>
         {(product.metadata?.ageGroups || []).length > 0 && (
@@ -349,40 +349,40 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-6 overflow-y-auto">
-      <div className="bg-charcoal-900 w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
-        <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-black text-bone">{isNew ? 'New product' : 'Edit product'}</h2>
-          <button type="button" onClick={onClose} className="text-bone/40 hover:text-bone/85 text-2xl leading-none">×</button>
+      <div className="bg-surface-elevated w-full sm:max-w-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[100vh]">
+        <div className="px-5 py-4 border-b border-line-default/5 flex items-center justify-between">
+          <h2 className="font-black text-ink-primary">{isNew ? 'New product' : 'Edit product'}</h2>
+          <button type="button" onClick={onClose} className="text-ink-primary/40 hover:text-ink-primary/85 text-2xl leading-none">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <FieldRow>
             <Field label="Name" required>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spring 2026 Registration" className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spring 2026 Registration" className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
             </Field>
             <Field label="Type">
-              <select value={type} onChange={(e) => setType(e.target.value as Product['type'])} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+              <select value={type} onChange={(e) => setType(e.target.value as Product['type'])} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                 {PRODUCT_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
           </FieldRow>
 
           <Field label="Description (optional)">
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
           </Field>
 
           {type === 'registration' && (
             <>
               <FieldRow>
                 <Field label="Season">
-                  <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
+                  <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm">
                     <option value="">— None (applies to any season) —</option>
                     {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </Field>
                 <Field label="Stripe processing surcharge (basis points)">
-                  <input type="number" min={0} max={1000} value={surchargeBps} onChange={(e) => setSurchargeBps(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
-                  <p className="text-[10px] text-bone/50 mt-1">100 = 1%. Stripe's flat take is ~290bps. Leave 0 to absorb fees.</p>
+                  <input type="number" min={0} max={1000} value={surchargeBps} onChange={(e) => setSurchargeBps(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm" />
+                  <p className="text-[10px] text-ink-primary/50 mt-1">100 = 1%. Stripe's flat take is ~290bps. Leave 0 to absorb fees.</p>
                 </Field>
               </FieldRow>
 
@@ -398,7 +398,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                         className={`px-2.5 py-1 rounded text-[11px] font-bold ring-1 ${
                           on
                             ? 'bg-brand-primary text-white ring-brand-primary'
-                            : 'bg-charcoal-900 text-bone/65 ring-white/10 hover:ring-brand-primary-soft'
+                            : 'bg-surface-elevated text-ink-primary/65 ring-line-default/10 hover:ring-brand-primary-soft'
                         }`}
                       >
                         {ag}
@@ -413,7 +413,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
           {/* Pricing tiers */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-bone/85">Pricing tiers</h3>
+              <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-ink-primary/85">Pricing tiers</h3>
               <button
                 type="button"
                 onClick={() => setTiers([...tiers, blankTier()])}
@@ -424,16 +424,16 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
             </div>
             <div className="space-y-2">
               {tiers.map((t, i) => (
-                <div key={t.id} className="bg-white/[0.04] rounded-xl ring-1 ring-white/10 p-3 space-y-2">
+                <div key={t.id} className="bg-line-default/[0.04] rounded-xl ring-1 ring-line-default/10 p-3 space-y-2">
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <input
                       value={t.label}
                       onChange={(e) => updateTier(i, { label: e.target.value })}
                       placeholder="Early Bird"
-                      className="col-span-2 px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                      className="col-span-2 px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                     />
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-bone/50">$</span>
+                      <span className="text-xs text-ink-primary/50">$</span>
                       <input
                         type="number"
                         min={0}
@@ -441,24 +441,24 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                         onChange={(e) => updateTier(i, { priceCents: Math.round(Number(e.target.value) * 100) })}
                         placeholder="0.00"
                         step="0.01"
-                        className="w-full px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                        className="w-full px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                       />
                     </div>
                     <input
                       type="date"
                       value={toDateInput(t.startsAt)}
                       onChange={(e) => updateTier(i, { startsAt: e.target.value ? new Date(e.target.value) : null })}
-                      className="px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                      className="px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                     />
                     <input
                       type="date"
                       value={toDateInput(t.endsAt)}
                       onChange={(e) => updateTier(i, { endsAt: e.target.value ? new Date(e.target.value) : null })}
-                      className="px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                      className="px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                     />
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
-                    <label className="flex items-center gap-1.5 text-bone/65">
+                    <label className="flex items-center gap-1.5 text-ink-primary/65">
                       <input
                         type="checkbox"
                         checked={!!t.isDefault}
@@ -484,7 +484,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
           {/* Coupons */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-bone/85">Coupon codes</h3>
+              <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-ink-primary/85">Coupon codes</h3>
               <button
                 type="button"
                 onClick={() => setCoupons([...coupons, blankCoupon()])}
@@ -494,20 +494,20 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
               </button>
             </div>
             {coupons.length === 0 ? (
-              <p className="text-[11px] text-bone/50">None. Add one above to offer a promo code at checkout.</p>
+              <p className="text-[11px] text-ink-primary/50">None. Add one above to offer a promo code at checkout.</p>
             ) : (
               <div className="space-y-2">
                 {coupons.map((c, i) => (
-                  <div key={c.id} className="bg-white/[0.04] rounded-xl ring-1 ring-white/10 p-3 space-y-2">
+                  <div key={c.id} className="bg-line-default/[0.04] rounded-xl ring-1 ring-line-default/10 p-3 space-y-2">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <input
                         value={c.code}
                         onChange={(e) => updateCoupon(i, { code: e.target.value.toUpperCase() })}
                         placeholder="EARLYBIRD"
-                        className="px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm uppercase tracking-wider font-bold"
+                        className="px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm uppercase tracking-wider font-bold"
                       />
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-bone/50">$</span>
+                        <span className="text-xs text-ink-primary/50">$</span>
                         <input
                           type="number"
                           min={0}
@@ -515,7 +515,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                           onChange={(e) => updateCoupon(i, { discountCents: Math.round(Number(e.target.value) * 100), discountPercent: undefined })}
                           placeholder="0.00"
                           step="0.01"
-                          className="w-full px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                          className="w-full px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                         />
                       </div>
                       <div className="flex items-center gap-1">
@@ -526,9 +526,9 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                           value={c.discountPercent ?? ''}
                           onChange={(e) => updateCoupon(i, { discountPercent: e.target.value ? Number(e.target.value) : undefined, discountCents: undefined })}
                           placeholder="%"
-                          className="w-full px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                          className="w-full px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                         />
-                        <span className="text-xs text-bone/50">%</span>
+                        <span className="text-xs text-ink-primary/50">%</span>
                       </div>
                       <input
                         type="number"
@@ -536,7 +536,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                         value={c.maxUses ?? ''}
                         onChange={(e) => updateCoupon(i, { maxUses: e.target.value ? Number(e.target.value) : null })}
                         placeholder="Max uses"
-                        className="px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                        className="px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                       />
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
@@ -544,15 +544,15 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                         type="date"
                         value={toDateInput(c.expiresAt)}
                         onChange={(e) => updateCoupon(i, { expiresAt: e.target.value ? new Date(e.target.value) : null })}
-                        className="px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                        className="px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                       />
                       <input
                         value={c.note || ''}
                         onChange={(e) => updateCoupon(i, { note: e.target.value })}
                         placeholder="Note (admin only)"
-                        className="px-2.5 py-1.5 rounded-md ring-1 ring-white/10 text-sm"
+                        className="px-2.5 py-1.5 rounded-md ring-1 ring-line-default/10 text-sm"
                       />
-                      <div className="flex items-center justify-between text-[11px] text-bone/65">
+                      <div className="flex items-center justify-between text-[11px] text-ink-primary/65">
                         <label className="flex items-center gap-1.5">
                           <input
                             type="checkbox"
@@ -561,7 +561,7 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
                           />
                           Active
                         </label>
-                        <span className="text-bone/40">Used {c.usesCount ?? 0}×</span>
+                        <span className="text-ink-primary/40">Used {c.usesCount ?? 0}×</span>
                         <button
                           type="button"
                           onClick={() => setCoupons(coupons.filter((_, idx) => idx !== i))}
@@ -584,15 +584,15 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
               <span className="text-[11px] text-brand-primary-soft">{livePreview.tier?.label || 'No active tier'}</span>
             </div>
             <div className="mt-1 flex items-baseline justify-between">
-              <span className="font-black text-bone">${(livePreview.totalCents / 100).toFixed(2)}</span>
-              <span className="text-[11px] text-bone/65">
+              <span className="font-black text-ink-primary">${(livePreview.totalCents / 100).toFixed(2)}</span>
+              <span className="text-[11px] text-ink-primary/65">
                 base ${(livePreview.baseCents / 100).toFixed(2)}
                 {livePreview.surchargeCents > 0 && ` + $${(livePreview.surchargeCents / 100).toFixed(2)} fees`}
               </span>
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-bone/85">
+          <label className="flex items-center gap-2 text-sm text-ink-primary/85">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
             Active (uncheck to archive without deleting)
           </label>
@@ -602,8 +602,8 @@ const ProductEditor: React.FC<EditorProps> = ({ product, clubId, userData, seaso
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-bone/65 hover:text-bone">Cancel</button>
+        <div className="px-5 py-3 border-t border-line-default/5 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-sm font-bold text-ink-primary/65 hover:text-ink-primary">Cancel</button>
           <button
             type="button"
             disabled={!canSave}
@@ -626,7 +626,7 @@ const FieldRow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const Field: React.FC<{ label: string; required?: boolean; children: React.ReactNode }> = ({ label, required, children }) => (
   <label className="block">
-    <span className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1">
+    <span className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1">
       {label}{required && <span className="text-rose-300 ml-0.5">*</span>}
     </span>
     {children}

@@ -92,7 +92,7 @@ const AuthAction: React.FC = () => {
   const openAppUrl = window.location.origin || 'https://firefc.app';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base flex items-center justify-center px-4">
       <div className="w-full max-w-sm text-center">
         <div className="mb-6 flex justify-center">
           <div className="w-12 h-12 rounded-2xl bg-brand-primary/15 ring-1 ring-brand-primary/30 flex items-center justify-center">
@@ -105,15 +105,15 @@ const AuthAction: React.FC = () => {
 
         {status === 'loading' && (
           <>
-            <h1 className="text-2xl font-black text-bone mb-2">One moment…</h1>
-            <p className="text-bone/55 text-sm">Verifying your link.</p>
+            <h1 className="text-2xl font-black text-ink-primary mb-2">One moment…</h1>
+            <p className="text-ink-primary/55 text-sm">Verifying your link.</p>
           </>
         )}
 
         {status === 'success' && mode === 'verifyEmail' && (
           <>
-            <h1 className="text-2xl font-black text-bone mb-2">Email verified.</h1>
-            <p className="text-bone/65 text-sm mb-6">
+            <h1 className="text-2xl font-black text-ink-primary mb-2">Email verified.</h1>
+            <p className="text-ink-primary/65 text-sm mb-6">
               You're all set. Head back to the app — your account is ready.
             </p>
             <a
@@ -127,8 +127,8 @@ const AuthAction: React.FC = () => {
 
         {status === 'success' && mode === 'resetPassword' && (
           <>
-            <h1 className="text-2xl font-black text-bone mb-2">Password updated.</h1>
-            <p className="text-bone/65 text-sm mb-6">
+            <h1 className="text-2xl font-black text-ink-primary mb-2">Password updated.</h1>
+            <p className="text-ink-primary/65 text-sm mb-6">
               Sign in with your new password.
             </p>
             <a
@@ -142,23 +142,23 @@ const AuthAction: React.FC = () => {
 
         {status === 'success' && mode === 'recoverEmail' && (
           <>
-            <h1 className="text-2xl font-black text-bone mb-2">Email change reverted.</h1>
-            <p className="text-bone/65 text-sm mb-6">Your account email is back to the previous address.</p>
+            <h1 className="text-2xl font-black text-ink-primary mb-2">Email change reverted.</h1>
+            <p className="text-ink-primary/65 text-sm mb-6">Your account email is back to the previous address.</p>
             <a href={openAppUrl} className="inline-block bg-brand-primary text-white font-bold px-6 py-3 rounded-xl">Open GoalKickr</a>
           </>
         )}
 
         {status === 'awaiting-password' && (
           <>
-            <h1 className="text-2xl font-black text-bone mb-2">Set a new password.</h1>
-            <p className="text-bone/55 text-sm mb-5">For <span className="text-bone font-mono text-xs">{emailForReset}</span></p>
+            <h1 className="text-2xl font-black text-ink-primary mb-2">Set a new password.</h1>
+            <p className="text-ink-primary/55 text-sm mb-5">For <span className="text-ink-primary font-mono text-xs">{emailForReset}</span></p>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="New password (8+ chars)"
               autoComplete="new-password"
-              className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30 focus:outline-none focus:border-brand-primary"
+              className="w-full bg-surface-elevated border border-line-default/10 rounded-lg px-3 py-3 text-ink-primary placeholder:text-ink-primary/30 focus:outline-none focus:border-brand-primary"
             />
             <button
               onClick={handleResetPassword}
@@ -175,8 +175,8 @@ const AuthAction: React.FC = () => {
 
         {status === 'error' && (
           <>
-            <h1 className="text-2xl font-black text-bone mb-2">Something's not right.</h1>
-            <p className="text-bone/65 text-sm mb-6">{error}</p>
+            <h1 className="text-2xl font-black text-ink-primary mb-2">Something's not right.</h1>
+            <p className="text-ink-primary/65 text-sm mb-6">{error}</p>
             <Link to="/auth" className="inline-block bg-brand-primary text-white font-bold px-6 py-3 rounded-xl">
               Open GoalKickr
             </Link>

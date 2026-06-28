@@ -50,10 +50,10 @@ const VARIANTS: Record<ButtonVariant, string> = {
     'bg-brand-primary hover:bg-brand-primary-hov text-brand-primary-fg shadow-lg shadow-brand-primary-dim/30 ' +
     'disabled:bg-brand-primary-dim disabled:text-white/55 disabled:shadow-none',
   outline:
-    'bg-transparent ring-1 ring-white/15 text-bone hover:bg-white/5 hover:ring-white/30 ' +
+    'bg-transparent ring-1 ring-line-default/15 text-ink-primary hover:bg-line-default/5 hover:ring-line-default/30 ' +
     'disabled:opacity-40',
   ghost:
-    'bg-transparent text-bone/70 hover:text-bone hover:bg-white/5 ' +
+    'bg-transparent text-ink-primary/70 hover:text-ink-primary hover:bg-line-default/5 ' +
     'disabled:opacity-40',
   danger:
     'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/30 ' +

@@ -88,7 +88,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
   };
 
   return (
-    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+    <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400">
           Snacks
@@ -106,7 +106,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
       {!editing ? (
         assignment ? (
           <div>
-            <div className="text-sm text-bone font-semibold">{assignment.playerName}</div>
+            <div className="text-sm text-ink-primary font-semibold">{assignment.playerName}</div>
             {assignment.notes && (
               <div className="mt-0.5 text-xs text-charcoal-500 whitespace-pre-wrap">{assignment.notes}</div>
             )}
@@ -120,7 +120,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             <select
               value={pickerId}
               onChange={e => setPickerId(e.target.value)}
-              className="flex-1 px-3 py-2 text-sm border border-white/10 rounded-lg bg-white"
+              className="flex-1 px-3 py-2 text-sm border border-line-default/10 rounded-lg bg-white"
             >
               <option value="">Pick a player…</option>
               {roster.map(r => (
@@ -131,7 +131,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
               onClick={suggestNextUp}
               disabled={suggesting}
               title="Suggest a player who hasn't been assigned recently"
-              className="px-3 text-[10px] font-extrabold tracking-widest uppercase rounded-lg border border-white/10 text-charcoal-400 hover:bg-slate-50 disabled:opacity-50"
+              className="px-3 text-[10px] font-extrabold tracking-widest uppercase rounded-lg border border-line-default/10 text-charcoal-400 hover:bg-slate-50 disabled:opacity-50"
             >
               {suggesting ? '…' : 'Suggest'}
             </button>
@@ -141,7 +141,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             onChange={e => setNotes(e.target.value)}
             rows={2}
             placeholder="Optional notes (e.g. fruit + water, nut-free)"
-            className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg resize-none"
+            className="w-full px-3 py-2 text-sm border border-line-default/10 rounded-lg resize-none"
           />
           <div className="flex items-center gap-2">
             <button
@@ -154,7 +154,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
             <button
               onClick={() => setEditing(false)}
               disabled={saving}
-              className="text-[11px] font-bold uppercase tracking-wider px-2 py-1.5 text-charcoal-500 hover:text-bone"
+              className="text-[11px] font-bold uppercase tracking-wider px-2 py-1.5 text-charcoal-500 hover:text-ink-primary"
             >
               Cancel
             </button>

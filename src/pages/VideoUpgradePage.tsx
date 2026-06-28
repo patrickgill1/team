@@ -26,13 +26,13 @@ const VideoUpgradePage: React.FC = () => {
   if (!allowed) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-black text-bone mb-2">Coach only</h1>
-        <p className="text-bone/55 text-sm">
+        <h1 className="text-2xl font-black text-ink-primary mb-2">Coach only</h1>
+        <p className="text-ink-primary/55 text-sm">
           Video tier upgrades are managed by the team's coach or team manager.
         </p>
         <button
           onClick={() => navigate(-1)}
-          className="mt-6 text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-charcoal-900 text-bone/65 border-white/10"
+          className="mt-6 text-[11px] font-extrabold tracking-widest uppercase px-3 py-1.5 rounded-md border bg-surface-elevated text-ink-primary/65 border-line-default/10"
         >
           Go back
         </button>
@@ -76,19 +76,19 @@ const VideoUpgradePage: React.FC = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 hover:text-bone"
+          className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 hover:text-ink-primary"
         >
           ← Back
         </button>
       </div>
 
-      <div className="bg-gradient-to-br from-amber-500/15 via-charcoal-900 to-charcoal-900 rounded-2xl border border-amber-500/30 p-6 sm:p-8 mb-6">
+      <div className="bg-gradient-to-br from-amber-500/15 via-surface-elevated to-surface-elevated rounded-2xl border border-amber-500/30 p-6 sm:p-8 mb-6">
         <p className="text-[11px] font-extrabold tracking-widest uppercase text-amber-300 mb-2">Full Game Film</p>
-        <h1 className="text-3xl sm:text-4xl font-black text-bone leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-black text-ink-primary leading-tight">
           Upload full matches. Share clips. No 60-second cap.
         </h1>
-        <p className="text-bone/70 mt-3 leading-relaxed">
-          Free teams get 20 highlight clips of up to 60 seconds each — perfect for game moments. Upgrade {team?.name ? <span className="text-bone font-bold">{team.name}</span> : 'your team'} when you want to host full games, run a film room, and skip the YouTube grind.
+        <p className="text-ink-primary/70 mt-3 leading-relaxed">
+          Free teams get 20 highlight clips of up to 60 seconds each — perfect for game moments. Upgrade {team?.name ? <span className="text-ink-primary font-bold">{team.name}</span> : 'your team'} when you want to host full games, run a film room, and skip the YouTube grind.
         </p>
       </div>
 
@@ -124,9 +124,9 @@ const VideoUpgradePage: React.FC = () => {
         />
       </div>
 
-      <div className="bg-charcoal-900 rounded-xl border border-white/10 p-6">
-        <h2 className="text-lg font-black text-bone mb-3">Why not just YouTube?</h2>
-        <ul className="text-sm text-bone/70 space-y-2 leading-relaxed">
+      <div className="bg-surface-elevated rounded-xl border border-line-default/10 p-6">
+        <h2 className="text-lg font-black text-ink-primary mb-3">Why not just YouTube?</h2>
+        <ul className="text-sm text-ink-primary/70 space-y-2 leading-relaxed">
           <li>· One-tap upload right from the same screen as your highlights — no separate channel to manage.</li>
           <li>· Clips share via the same parent / player links the rest of the app uses.</li>
           <li>· No ads on playback, no copyright strikes, no algorithmic recommendations playing other teams' content after yours.</li>
@@ -139,13 +139,13 @@ const VideoUpgradePage: React.FC = () => {
           type="button"
           onClick={handleManage}
           disabled={busy === 'portal'}
-          className="mt-6 w-full px-5 py-3.5 rounded-xl bg-charcoal-900 ring-1 ring-white/15 hover:bg-white/[0.06] text-bone text-sm font-extrabold tracking-widest uppercase disabled:opacity-60"
+          className="mt-6 w-full px-5 py-3.5 rounded-xl bg-surface-elevated ring-1 ring-line-default/15 hover:bg-line-default/[0.06] text-ink-primary text-sm font-extrabold tracking-widest uppercase disabled:opacity-60"
         >
           {busy === 'portal' ? 'Opening portal…' : 'Manage subscription'}
         </button>
       )}
       {tier === 'free' && !proSkuConfigured && !addonSkuConfigured && (
-        <p className="mt-6 text-bone/55 text-xs text-center">
+        <p className="mt-6 text-ink-primary/55 text-xs text-center">
           Upgrades aren't live yet — email <a className="text-brand-primary-soft" href="mailto:patrick.gill@goalkickr.com">patrick.gill@goalkickr.com</a> for early access.
         </p>
       )}
@@ -176,25 +176,25 @@ const TierCard: React.FC<{
       ? 'bg-brand-primary/10 ring-brand-primary/40'
       : highlight
         ? 'bg-amber-500/5 ring-amber-500/30'
-        : 'bg-charcoal-900 ring-white/10'
+        : 'bg-surface-elevated ring-line-default/10'
   }`}>
     <div className="flex items-center justify-between gap-3 mb-2">
       <div className="flex items-center gap-2">
-        <span className="text-bone font-bold">{label}</span>
+        <span className="text-ink-primary font-bold">{label}</span>
         {current && (
           <span className="text-[10px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary-soft">
             Your tier
           </span>
         )}
         {comingSoon && !current && (
-          <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/40">
+          <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/40">
             Coming soon
           </span>
         )}
       </div>
-      <span className="text-bone/85 font-bold text-sm tabular-nums">{price}</span>
+      <span className="text-ink-primary/85 font-bold text-sm tabular-nums">{price}</span>
     </div>
-    <ul className="text-xs text-bone/65 space-y-1 leading-relaxed">
+    <ul className="text-xs text-ink-primary/65 space-y-1 leading-relaxed">
       {perks.map((p, i) => <li key={i}>· {p}</li>)}
     </ul>
     {ctaLabel && onCta && !current && (

@@ -215,7 +215,7 @@ const PlayerJoin: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-brand-primary-soft to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-charcoal-600 mx-auto mb-4"></div>
-          <p className="text-bone/65">Loading player profile...</p>
+          <p className="text-ink-primary/65">Loading player profile...</p>
         </div>
       </div>
     );
@@ -224,13 +224,13 @@ const PlayerJoin: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-brand-primary-soft to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-charcoal-900 rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <div className="bg-surface-elevated rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <div className="text-5xl mb-4">⚠️</div>
-          <h1 className="text-xl font-bold text-bone mb-2">Invalid Invite Link</h1>
+          <h1 className="text-xl font-bold text-ink-primary mb-2">Invalid Invite Link</h1>
           <p className="text-rose-300 bg-rose-500/15 p-3 rounded-lg text-sm">{error}</p>
           <button
             onClick={() => navigate('/')}
-            className="mt-4 text-bone/65 hover:text-charcoal-800 text-sm underline"
+            className="mt-4 text-ink-primary/65 hover:text-charcoal-800 text-sm underline"
           >
             Go to homepage
           </button>
@@ -242,9 +242,9 @@ const PlayerJoin: React.FC = () => {
   // Player loaded, now show the appropriate state
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-primary-soft to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-charcoal-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+      <div className="bg-surface-elevated rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         {/* Player header */}
-        <div className="bg-gradient-to-r from-charcoal-600 to-indigo-600 p-6 text-white text-center">
+        <div className="bg-gradient-to-r from-surface-tint to-indigo-600 p-6 text-white text-center">
           {player?.profilePhotoUrl ? (
             <img
               src={player.profilePhotoUrl}
@@ -252,14 +252,14 @@ const PlayerJoin: React.FC = () => {
               className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-4 border-white shadow-lg"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-charcoal-900 bg-opacity-20 flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg">
+            <div className="w-20 h-20 rounded-full bg-surface-elevated bg-opacity-20 flex items-center justify-center mx-auto mb-3 border-4 border-white shadow-lg">
               <span className="text-white font-bold text-3xl">
                 {player?.name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
           <h1 className="text-2xl font-bold">{player?.name}</h1>
-          {player?.position && <p className="text-bone">{player.position}</p>}
+          {player?.position && <p className="text-ink-primary">{player.position}</p>}
           {player?.jerseyNumber && <p className="text-brand-primary-soft text-sm">#{player.jerseyNumber}</p>}
         </div>
 
@@ -268,17 +268,17 @@ const PlayerJoin: React.FC = () => {
           {(linked || alreadyLinked) && (
             <div className="text-center">
               <div className="text-5xl mb-3">{linked ? '🎉' : '✅'}</div>
-              <h2 className="text-xl font-bold text-bone mb-1">
+              <h2 className="text-xl font-bold text-ink-primary mb-1">
                 {linked ? "You're all set!" : 'Already linked!'}
               </h2>
-              <p className="text-bone/65 text-sm mb-4">
+              <p className="text-ink-primary/65 text-sm mb-4">
                 {linked
                   ? `Your account is now linked to ${player?.name}'s profile. You can vote in Player of the Match polls and stay connected with the team.`
                   : `Your account is already linked to ${player?.name}'s profile.`}
               </p>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="w-full bg-charcoal-600 hover:bg-charcoal-700 text-white font-bold py-3 rounded-xl transition-colors"
+                className="w-full bg-surface-tint hover:bg-surface-raised text-white font-bold py-3 rounded-xl transition-colors"
               >
                 Go to Team Dashboard →
               </button>
@@ -289,17 +289,17 @@ const PlayerJoin: React.FC = () => {
           {linking && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-charcoal-600 mx-auto mb-3"></div>
-              <p className="text-bone/65">Linking your account...</p>
+              <p className="text-ink-primary/65">Linking your account...</p>
             </div>
           )}
 
           {/* Not logged in — show auth */}
           {!currentUser && !linking && !linked && !alreadyLinked && (
             <div>
-              <h2 className="text-lg font-bold text-bone mb-1">
+              <h2 className="text-lg font-bold text-ink-primary mb-1">
                 {authMode === 'login' ? 'Sign in to claim this profile' : 'Create an account'}
               </h2>
-              <p className="text-bone/50 text-sm mb-4">
+              <p className="text-ink-primary/50 text-sm mb-4">
                 {authMode === 'login'
                   ? `Sign in to link your account to ${player?.name}'s profile.`
                   : `Create a free account to link to ${player?.name}'s profile and join the team.`}
@@ -309,7 +309,7 @@ const PlayerJoin: React.FC = () => {
               <button
                 onClick={handleGoogleSignIn}
                 disabled={authSubmitting}
-                className="w-full flex items-center justify-center gap-3 border border-white/15 rounded-xl py-2.5 px-4 hover:bg-white/[0.05] transition-colors mb-3 font-medium text-bone/85 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 border border-line-default/15 rounded-xl py-2.5 px-4 hover:bg-line-default/[0.05] transition-colors mb-3 font-medium text-ink-primary/85 disabled:opacity-50"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -321,9 +321,9 @@ const PlayerJoin: React.FC = () => {
               </button>
 
               <div className="flex items-center my-3">
-                <div className="flex-1 h-px bg-white/15"></div>
-                <span className="px-3 text-bone/40 text-xs">or</span>
-                <div className="flex-1 h-px bg-white/15"></div>
+                <div className="flex-1 h-px bg-line-default/15"></div>
+                <span className="px-3 text-ink-primary/40 text-xs">or</span>
+                <div className="flex-1 h-px bg-line-default/15"></div>
               </div>
 
               <form onSubmit={handleEmailAuth} className="space-y-3">
@@ -333,7 +333,7 @@ const PlayerJoin: React.FC = () => {
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="Your full name"
-                    className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+                    className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
                   />
                 )}
                 <input
@@ -341,14 +341,14 @@ const PlayerJoin: React.FC = () => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="Email address"
-                  className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+                  className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
                 />
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder={authMode === 'register' ? 'Create a password (min 6 chars)' : 'Password'}
-                  className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+                  className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
                 />
 
                 {authError && (
@@ -358,7 +358,7 @@ const PlayerJoin: React.FC = () => {
                 <button
                   type="submit"
                   disabled={authSubmitting}
-                  className="w-full bg-charcoal-600 hover:bg-charcoal-700 text-white font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                  className="w-full bg-surface-tint hover:bg-surface-raised text-white font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50"
                 >
                   {authSubmitting
                     ? 'Please wait...'
@@ -368,18 +368,18 @@ const PlayerJoin: React.FC = () => {
                 </button>
               </form>
 
-              <p className="text-center text-sm text-bone/50 mt-4">
+              <p className="text-center text-sm text-ink-primary/50 mt-4">
                 {authMode === 'login' ? (
                   <>
                     Don't have an account?{' '}
-                    <button onClick={() => { setAuthMode('register'); setAuthError(null); }} className="text-bone/65 font-medium hover:underline">
+                    <button onClick={() => { setAuthMode('register'); setAuthError(null); }} className="text-ink-primary/65 font-medium hover:underline">
                       Sign up
                     </button>
                   </>
                 ) : (
                   <>
                     Already have an account?{' '}
-                    <button onClick={() => { setAuthMode('login'); setAuthError(null); }} className="text-bone/65 font-medium hover:underline">
+                    <button onClick={() => { setAuthMode('login'); setAuthError(null); }} className="text-ink-primary/65 font-medium hover:underline">
                       Sign in
                     </button>
                   </>
@@ -392,7 +392,7 @@ const PlayerJoin: React.FC = () => {
           {currentUser && !linking && !linked && !alreadyLinked && player && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-charcoal-600 mx-auto mb-3"></div>
-              <p className="text-bone/65 text-sm">Linking your account to {player.name}'s profile...</p>
+              <p className="text-ink-primary/65 text-sm">Linking your account to {player.name}'s profile...</p>
             </div>
           )}
         </div>

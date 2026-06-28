@@ -302,7 +302,7 @@ const Navigation: React.FC = () => {
   return (
     <>
       {/* ===== DESKTOP SIDEBAR ===== */}
-      <aside className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 z-40 transition-all duration-300 ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} bg-charcoal-950`}>
+      <aside className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 z-40 transition-all duration-300 ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} bg-surface-base`}>
         {/* Logo + Collapse Toggle */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
           <Link to="/dashboard" className="flex items-center space-x-3">
@@ -313,7 +313,7 @@ const Navigation: React.FC = () => {
           </Link>
           <button
             onClick={toggleSidebar}
-            className="text-brand-primary-soft hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+            className="text-brand-primary-soft hover:text-white p-1 rounded-lg hover:bg-line-default/10 transition-colors"
           >
             <svg className={`w-5 h-5 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -328,10 +328,10 @@ const Navigation: React.FC = () => {
               <select
                 value={selectedTeamId}
                 onChange={e => setSelectedTeamId(e.target.value)}
-                className="w-full text-sm bg-white/10 text-bone border border-white/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary-soft focus:border-transparent"
+                className="w-full text-sm bg-line-default/10 text-ink-primary border border-line-default/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary-soft focus:border-transparent"
               >
                 {teams.map(t => (
-                  <option key={t.id} value={t.id} className="bg-charcoal-950 text-white">
+                  <option key={t.id} value={t.id} className="bg-surface-base text-white">
                     {(t as any).isActive === false ? `${t.name} (archived)` : t.name}
                   </option>
                 ))}
@@ -358,7 +358,7 @@ const Navigation: React.FC = () => {
               className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive(item.path)
                   ? 'bg-brand-primary/20 text-brand-primary-soft shadow-lg shadow-brand-primary/10'
-                  : 'text-brand-primary-soft hover:bg-white/5 hover:text-white'
+                  : 'text-brand-primary-soft hover:bg-line-default/5 hover:text-white'
               }`}
             >
               <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
@@ -372,7 +372,7 @@ const Navigation: React.FC = () => {
               Apps
             </div>
           )}
-          {sidebarCollapsed && <div className="border-t border-white/10 my-3" />}
+          {sidebarCollapsed && <div className="border-t border-line-default/10 my-3" />}
           {appItems.map(item => (
             <Link
               key={item.path}
@@ -381,7 +381,7 @@ const Navigation: React.FC = () => {
               className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive(item.path)
                   ? 'bg-brand-primary/20 text-brand-primary-soft shadow-lg shadow-brand-primary/10'
-                  : 'text-brand-primary-soft hover:bg-white/5 hover:text-white'
+                  : 'text-brand-primary-soft hover:bg-line-default/5 hover:text-white'
               }`}
             >
               <AppIcon name={item.icon as any} className="w-5 h-5 flex-shrink-0" strokeWidth={1.75} />
@@ -391,7 +391,7 @@ const Navigation: React.FC = () => {
         </nav>
 
         {/* Invite + User at bottom */}
-        <div className="p-3 border-t border-white/10 space-y-2">
+        <div className="p-3 border-t border-line-default/10 space-y-2">
           {isUserCoach && (
             <Link
               to="/people"
@@ -461,8 +461,8 @@ const Navigation: React.FC = () => {
           the NextEventPoster card BELOW the chrome — so there's no
           "let the photo bleed through" tension. Chrome reads as
           iOS chrome, end of debate. */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 safe-top bg-charcoal-800">
-        <div className="flex items-center gap-2 px-3 h-14 bg-charcoal-800">
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 safe-top bg-surface-input">
+        <div className="flex items-center gap-2 px-3 h-14 bg-surface-input">
           {/* Brand — GoalKickr wordmark in bone. Replaces the 32px
               badge image that read as washed-out at small sizes on
               the dark nav. */}
@@ -484,12 +484,12 @@ const Navigation: React.FC = () => {
               separates brand from team context. */}
           {selectedTeam && (
             <>
-              <span className="h-5 w-px bg-white/15 shrink-0" aria-hidden />
+              <span className="h-5 w-px bg-line-default/15 shrink-0" aria-hidden />
               {teams.length > 1 ? (
                 <button
                   type="button"
                   onClick={() => setTeamSwitcherOpen(true)}
-                  className="min-w-0 inline-flex items-center gap-1 text-bone/85 hover:text-bone transition"
+                  className="min-w-0 inline-flex items-center gap-1 text-ink-primary/85 hover:text-ink-primary transition"
                   aria-label="Switch team"
                 >
                   <span className="font-semibold text-sm truncate max-w-[140px]">{selectedTeam.name}</span>
@@ -498,7 +498,7 @@ const Navigation: React.FC = () => {
                   </svg>
                 </button>
               ) : (
-                <span className="min-w-0 font-semibold text-sm text-bone/85 truncate max-w-[140px]">{selectedTeam.name}</span>
+                <span className="min-w-0 font-semibold text-sm text-ink-primary/85 truncate max-w-[140px]">{selectedTeam.name}</span>
               )}
             </>
           )}
@@ -510,7 +510,7 @@ const Navigation: React.FC = () => {
               type="button"
               onClick={() => setIsProfileSheetOpen(true)}
               aria-label="Profile menu"
-              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-brand-primary-soft to-brand-primary-soft ring-1 ring-white/20 hover:ring-white/40 transition"
+              className="h-8 w-8 rounded-full overflow-hidden flex items-center justify-center text-charcoal-950 font-bold text-xs bg-gradient-to-br from-brand-primary-soft to-brand-primary-soft ring-1 ring-line-default/20 hover:ring-line-default/40 transition"
             >
               {userData?.photoURL ? (
                 <img src={userData.photoURL} alt="" className="w-full h-full object-cover" />
@@ -532,22 +532,22 @@ const Navigation: React.FC = () => {
           onClick={() => setTeamSwitcherOpen(false)}
         >
           <div
-            className="bg-charcoal-900 w-full rounded-b-2xl shadow-2xl overflow-hidden animate-sheet-down"
+            className="bg-surface-elevated w-full rounded-b-2xl shadow-2xl overflow-hidden animate-sheet-down"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
+            <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between">
               <span className="w-12" aria-hidden />
               <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Switch team</div>
               <button
                 type="button"
                 onClick={() => setTeamSwitcherOpen(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-charcoal-400 hover:text-bone"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-charcoal-400 hover:text-ink-primary"
               >
                 Close
               </button>
             </div>
-            <ul className="divide-y divide-white/5 max-h-[60vh] overflow-y-auto">
+            <ul className="divide-y divide-line-default/5 max-h-[60vh] overflow-y-auto">
               {teams.map(t => {
                 const isCurrent = t.id === selectedTeamId;
                 const isArchived = (t as any).isActive === false;
@@ -559,14 +559,14 @@ const Navigation: React.FC = () => {
                         setSelectedTeamId(t.id);
                         setTeamSwitcherOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-white/5 active:bg-white/10 transition-colors ${
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-line-default/5 active:bg-line-default/10 transition-colors ${
                         isCurrent ? 'bg-brand-primary/10' : ''
                       } ${isArchived && !isCurrent ? 'opacity-55' : ''}`}
                     >
-                      <span className={`text-[15px] font-bold truncate flex items-center gap-2 ${isCurrent ? 'text-brand-primary-soft' : 'text-bone'}`}>
+                      <span className={`text-[15px] font-bold truncate flex items-center gap-2 ${isCurrent ? 'text-brand-primary-soft' : 'text-ink-primary'}`}>
                         {t.name}
                         {isArchived && (
-                          <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-white/[0.08] text-bone/55 ring-1 ring-white/10">Archived</span>
+                          <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-line-default/[0.08] text-ink-primary/55 ring-1 ring-line-default/10">Archived</span>
                         )}
                       </span>
                       {isCurrent && (
@@ -586,7 +586,7 @@ const Navigation: React.FC = () => {
       {/* ===== MOBILE BOTTOM TAB BAR ===== */}
       {!inChatConversation && (
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-gradient-to-b from-charcoal-950 to-charcoal-900 border-t border-white/10"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-gradient-to-b from-surface-base to-surface-elevated border-t border-line-default/10"
         // Use HALF the safe-area inset as bottom padding (instead of
         // the full inset) so the tab icons sit close to the home
         // indicator instead of floating above a tall empty strip.
@@ -637,16 +637,16 @@ const Navigation: React.FC = () => {
         <div className="lg:hidden fixed inset-0 z-50">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-charcoal-950/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-surface-base/60 backdrop-blur-sm"
             onClick={() => setIsMoreOpen(false)}
           />
           {/* Sheet — dark navy now that the app picked the dark lane.
               Matches dashboard + bottom nav so there's no light-sheet
               flash when tapping More. */}
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-b from-charcoal-950 to-charcoal-900 rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up safe-bottom">
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-b from-surface-base to-surface-elevated rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up safe-bottom">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="w-10 h-1 rounded-full bg-line-default/20" />
             </div>
 
             {/* Header */}
@@ -660,7 +660,7 @@ const Navigation: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsMoreOpen(false)}
-                className="p-2 rounded-full hover:bg-white/10 text-white/55"
+                className="p-2 rounded-full hover:bg-line-default/10 text-white/55"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -674,10 +674,10 @@ const Navigation: React.FC = () => {
                 <select
                   value={selectedTeamId}
                   onChange={e => setSelectedTeamId(e.target.value)}
-                  className="w-full text-sm border border-white/10 rounded-xl px-3 py-2.5 bg-white/5 text-white focus:ring-2 focus:ring-brand-primary-soft"
+                  className="w-full text-sm border border-line-default/10 rounded-xl px-3 py-2.5 bg-line-default/5 text-white focus:ring-2 focus:ring-brand-primary-soft"
                 >
                   {teams.map(t => (
-                    <option key={t.id} value={t.id} className="bg-charcoal-900">
+                    <option key={t.id} value={t.id} className="bg-surface-elevated">
                       {(t as any).isActive === false ? `${t.name} (archived)` : t.name}
                     </option>
                   ))}
@@ -695,7 +695,7 @@ const Navigation: React.FC = () => {
                   <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2 px-2">
                     {section.label}
                   </div>
-                  <div className="bg-white/[0.04] rounded-2xl ring-1 ring-white/10 overflow-hidden divide-y divide-white/5">
+                  <div className="bg-line-default/[0.04] rounded-2xl ring-1 ring-line-default/10 overflow-hidden divide-y divide-line-default/5">
                     {section.items.map((item) => {
                       const active = isActive(item.path);
                       return (
@@ -703,10 +703,10 @@ const Navigation: React.FC = () => {
                           key={item.path}
                           to={item.path}
                           onClick={() => setIsMoreOpen(false)}
-                          className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-brand-primary/15' : 'hover:bg-white/5'}`}
+                          className={`flex items-center justify-between px-4 py-3 transition ${active ? 'bg-brand-primary/15' : 'hover:bg-line-default/5'}`}
                         >
                           <span className="flex items-center gap-3 min-w-0">
-                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-brand-primary/25 text-bone' : 'bg-brand-primary/10 text-brand-primary-soft'}`}>
+                            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-brand-primary/25 text-ink-primary' : 'bg-brand-primary/10 text-brand-primary-soft'}`}>
                               <AppIcon name={item.icon as any} className="w-5 h-5" />
                             </span>
                             <span className={`text-[15px] font-semibold truncate ${active ? 'text-brand-primary-soft' : 'text-white'}`}>{item.name}</span>
@@ -724,11 +724,11 @@ const Navigation: React.FC = () => {
                 <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2 px-2">
                   Account
                 </div>
-                <div className="bg-white/[0.04] rounded-2xl ring-1 ring-white/10 overflow-hidden divide-y divide-white/5">
+                <div className="bg-line-default/[0.04] rounded-2xl ring-1 ring-line-default/10 overflow-hidden divide-y divide-line-default/5">
                   <Link
                     to="/helpdesk"
                     onClick={() => setIsMoreOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
+                    className="flex items-center justify-between px-4 py-3 hover:bg-line-default/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
                       <span className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary-soft flex items-center justify-center shrink-0">
@@ -741,7 +741,7 @@ const Navigation: React.FC = () => {
                   <Link
                     to="/settings"
                     onClick={() => setIsMoreOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-white/5 transition"
+                    className="flex items-center justify-between px-4 py-3 hover:bg-line-default/5 transition"
                   >
                     <span className="flex items-center gap-3 min-w-0">
                       <span className="w-9 h-9 rounded-lg bg-brand-primary/10 text-brand-primary-soft flex items-center justify-center shrink-0">
@@ -753,10 +753,10 @@ const Navigation: React.FC = () => {
                   </Link>
                   <button
                     onClick={() => { handleLogout(); setIsMoreOpen(false); }}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition text-left"
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-line-default/5 transition text-left"
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span className="w-9 h-9 rounded-lg bg-white/10 text-white/70 flex items-center justify-center shrink-0">
+                      <span className="w-9 h-9 rounded-lg bg-line-default/10 text-white/70 flex items-center justify-center shrink-0">
                         <AppIcon name="logout" className="w-5 h-5" />
                       </span>
                       <span className="text-[15px] font-semibold text-white">Sign Out</span>

@@ -107,19 +107,19 @@ const CoachTeamHealthCard: React.FC = () => {
   return (
     <Link
       to="/development"
-      className="block rounded-2xl bg-charcoal-900 ring-1 ring-white/10 hover:ring-brand-primary/30 transition group animate-fade-in"
+      className="block rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition group animate-fade-in"
     >
       <div className="px-4 py-3 sm:px-5 sm:py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55">Team health · this week</p>
-            <p className="text-[15px] font-black text-bone mt-0.5">
+            <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Team health · this week</p>
+            <p className="text-[15px] font-black text-ink-primary mt-0.5">
               <span className={`tabular-nums ${ratioTint}`}>{stats.onStreak}</span>
-              <span className="text-bone/70 font-bold"> of {stats.total}</span>
-              <span className="text-bone/55 font-normal text-sm"> on streak</span>
+              <span className="text-ink-primary/70 font-bold"> of {stats.total}</span>
+              <span className="text-ink-primary/55 font-normal text-sm"> on streak</span>
             </p>
           </div>
-          <svg className="w-4 h-4 text-bone/40 group-hover:text-brand-primary-soft transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+          <svg className="w-4 h-4 text-ink-primary/40 group-hover:text-brand-primary-soft transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
         </div>
 
         {stats.slackers.length > 0 && (
@@ -127,14 +127,14 @@ const CoachTeamHealthCard: React.FC = () => {
             {stats.slackers.map((p) => (
               <span
                 key={p.id}
-                className="inline-flex items-center gap-1 rounded-full bg-bone/5 ring-1 ring-white/10 px-2 py-0.5 text-[11px] font-semibold text-bone/75"
+                className="inline-flex items-center gap-1 rounded-full bg-bone/5 ring-1 ring-line-default/10 px-2 py-0.5 text-[11px] font-semibold text-ink-primary/75"
               >
                 <span className="w-1 h-1 rounded-full bg-bone/30" aria-hidden />
                 {p.name.split(' ')[0]}
               </span>
             ))}
             {stats.total - stats.onStreak > stats.slackers.length && (
-              <span className="inline-flex items-center text-[11px] font-bold text-bone/45 px-1">
+              <span className="inline-flex items-center text-[11px] font-bold text-ink-primary/45 px-1">
                 +{stats.total - stats.onStreak - stats.slackers.length} more
               </span>
             )}

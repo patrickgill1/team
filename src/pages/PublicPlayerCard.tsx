@@ -142,17 +142,17 @@ const PublicPlayerCard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary/30 border-t-brand-primary" />
       </div>
     );
   }
   if (error || !player) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base flex items-center justify-center p-6 text-center">
         <div className="max-w-sm">
-          <h1 className="text-xl font-black text-bone mb-1">{error || 'Card unavailable'}</h1>
-          <p className="text-sm text-bone/55">The link may have expired or sharing may have been turned off.</p>
+          <h1 className="text-xl font-black text-ink-primary mb-1">{error || 'Card unavailable'}</h1>
+          <p className="text-sm text-ink-primary/55">The link may have expired or sharing may have been turned off.</p>
           <Link to="/" className="inline-block mt-6 px-4 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold tracking-widest uppercase">Open GoalKickr</Link>
         </div>
       </div>
@@ -163,10 +163,10 @@ const PublicPlayerCard: React.FC = () => {
   const initial = (player.name || '?').trim().charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-900 to-charcoal-950 text-bone">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base text-ink-primary">
       {/* Brand chrome — small kicker on dark band so the page reads
           as a real branded share, not a leak of the app shell. */}
-      <header className="bg-charcoal-950/70 border-b border-white/5 px-4 sm:px-6 py-3 text-center">
+      <header className="bg-surface-base/70 border-b border-line-default/5 px-4 sm:px-6 py-3 text-center">
         <p className="text-[10px] font-extrabold tracking-[0.3em] text-brand-primary-soft uppercase">GoalKickr · Player Card</p>
       </header>
 
@@ -185,7 +185,7 @@ const PublicPlayerCard: React.FC = () => {
                 className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover ring-4 ring-brand-primary-soft/60 shadow-2xl shadow-brand-primary/30"
               />
             ) : (
-              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-charcoal-900 ring-4 ring-brand-primary-soft/60 shadow-2xl flex items-center justify-center">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-surface-elevated ring-4 ring-brand-primary-soft/60 shadow-2xl flex items-center justify-center">
                 <span className="text-5xl font-black text-brand-primary">{initial}</span>
               </div>
             )}
@@ -201,7 +201,7 @@ const PublicPlayerCard: React.FC = () => {
               <span className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-2 py-1 rounded">{positionLabel}</span>
             )}
             {teamName && (
-              <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/80 bg-white/5 ring-1 ring-white/10 px-2 py-1 rounded">{teamName}</span>
+              <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/80 bg-line-default/5 ring-1 ring-line-default/10 px-2 py-1 rounded">{teamName}</span>
             )}
           </div>
           <p className="mt-6 text-[11px] font-extrabold tracking-[0.3em] text-brand-primary-soft/70 uppercase">Every Player Deserves a Shot</p>
@@ -214,7 +214,7 @@ const PublicPlayerCard: React.FC = () => {
           entirely). */}
       {player.stats && (player.stats.gamesPlayed > 0 || player.stats.goals > 0 || player.stats.assists > 0 || player.stats.minutesPlayed > 0) && (
         <section className="max-w-2xl mx-auto px-4 sm:px-6 pb-6">
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">Career stats</p>
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-2">Career stats</p>
           <div className="grid grid-cols-4 gap-2">
             <StatTile label="Games" value={player.stats.gamesPlayed} />
             <StatTile label="Goals" value={player.stats.goals} />
@@ -228,10 +228,10 @@ const PublicPlayerCard: React.FC = () => {
           since this is the headline brag. Hidden when zero. */}
       {potmCount > 0 && (
         <section className="max-w-2xl mx-auto px-4 sm:px-6 pb-6">
-          <div className="bg-gradient-to-br from-amber-500/20 to-charcoal-900 border border-amber-400/30 rounded-2xl p-5 text-center">
+          <div className="bg-gradient-to-br from-amber-500/20 to-surface-elevated border border-amber-400/30 rounded-2xl p-5 text-center">
             <p className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 mb-1">Player of the Match</p>
-            <p className="text-4xl font-black tabular-nums text-bone">{potmCount}</p>
-            <p className="text-bone/55 text-xs mt-1">{potmCount === 1 ? 'time' : 'times'}</p>
+            <p className="text-4xl font-black tabular-nums text-ink-primary">{potmCount}</p>
+            <p className="text-ink-primary/55 text-xs mt-1">{potmCount === 1 ? 'time' : 'times'}</p>
           </div>
         </section>
       )}
@@ -242,7 +242,7 @@ const PublicPlayerCard: React.FC = () => {
           source URL so the recruiter can still see SOMETHING. */}
       {highlights.length > 0 && (
         <section className="max-w-2xl mx-auto px-4 sm:px-6 pb-10">
-          <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">Highlights</p>
+          <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-2">Highlights</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {highlights.map((h) => (
               <HighlightTile key={h.id} h={h} />
@@ -251,8 +251,8 @@ const PublicPlayerCard: React.FC = () => {
         </section>
       )}
 
-      <footer className="border-t border-white/5 px-4 sm:px-6 py-6 text-center">
-        <p className="text-bone/45 text-xs">Shared from GoalKickr</p>
+      <footer className="border-t border-line-default/5 px-4 sm:px-6 py-6 text-center">
+        <p className="text-ink-primary/45 text-xs">Shared from GoalKickr</p>
         <Link to="/" className="inline-block mt-3 text-brand-primary text-xs font-extrabold tracking-widest uppercase hover:text-brand-primary-soft">Open the app</Link>
       </footer>
     </div>
@@ -262,9 +262,9 @@ const PublicPlayerCard: React.FC = () => {
 // Small numeric tile for the career-stats row. Uses tabular-nums
 // so the four columns align even when values are different widths.
 const StatTile: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="bg-charcoal-900 border border-white/10 rounded-xl px-3 py-3 text-center">
-    <p className="text-2xl font-black tabular-nums text-bone leading-none">{value}</p>
-    <p className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mt-1.5">{label}</p>
+  <div className="bg-surface-elevated border border-line-default/10 rounded-xl px-3 py-3 text-center">
+    <p className="text-2xl font-black tabular-nums text-ink-primary leading-none">{value}</p>
+    <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mt-1.5">{label}</p>
   </div>
 );
 
@@ -279,13 +279,13 @@ const HighlightTile: React.FC<{ h: PublicHighlight }> = ({ h }) => {
           src={h.url}
           alt={h.caption || ''}
           loading="lazy"
-          className="w-full aspect-video object-cover bg-charcoal-950"
+          className="w-full aspect-video object-cover bg-surface-base"
         />
       );
     }
     if (h.streamUid) {
       return (
-        <div className="aspect-video bg-charcoal-950">
+        <div className="aspect-video bg-surface-base">
           <iframe
             src={streamIframeUrl(h.streamUid)}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
@@ -299,7 +299,7 @@ const HighlightTile: React.FC<{ h: PublicHighlight }> = ({ h }) => {
     }
     if (h.source === 'youtube' && h.embedUrl) {
       return (
-        <div className="aspect-video bg-charcoal-950">
+        <div className="aspect-video bg-surface-base">
           <iframe
             src={h.embedUrl}
             allow="accelerometer; encrypted-media; picture-in-picture"
@@ -316,19 +316,19 @@ const HighlightTile: React.FC<{ h: PublicHighlight }> = ({ h }) => {
     return (
       <a href={h.url} target="_blank" rel="noopener noreferrer" className="block">
         {h.thumbnailUrl ? (
-          <img src={h.thumbnailUrl} alt={h.caption || 'Highlight'} loading="lazy" className="w-full aspect-video object-cover bg-charcoal-950" />
+          <img src={h.thumbnailUrl} alt={h.caption || 'Highlight'} loading="lazy" className="w-full aspect-video object-cover bg-surface-base" />
         ) : (
-          <div className="aspect-video bg-charcoal-950 flex items-center justify-center text-bone/55 text-xs font-bold">Open clip</div>
+          <div className="aspect-video bg-surface-base flex items-center justify-center text-ink-primary/55 text-xs font-bold">Open clip</div>
         )}
       </a>
     );
   };
 
   return (
-    <div className="rounded-xl overflow-hidden bg-charcoal-900 border border-white/10">
+    <div className="rounded-xl overflow-hidden bg-surface-elevated border border-line-default/10">
       {renderMedia()}
       {h.caption && (
-        <p className="px-3 py-2 text-xs text-bone/75 line-clamp-2">{h.caption}</p>
+        <p className="px-3 py-2 text-xs text-ink-primary/75 line-clamp-2">{h.caption}</p>
       )}
     </div>
   );

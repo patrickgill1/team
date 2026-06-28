@@ -74,10 +74,10 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-10 sm:py-16">
+    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 py-10 sm:py-16">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
+          <div className="inline-flex p-3 rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur mb-4">
             <Logo size="lg" variant="full" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight">
@@ -89,7 +89,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
           </p>
         </div>
 
-        <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
+        <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl p-6 sm:p-8 space-y-4">
           {mode === 'choose' && (
             <>
               <button
@@ -110,7 +110,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                 type="button"
                 onClick={handleApple}
                 disabled={busy}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-black text-white ring-1 ring-white/20 hover:bg-charcoal-900 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl font-bold text-sm bg-black text-white ring-1 ring-line-default/20 hover:bg-surface-elevated disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01M12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25"/>
@@ -118,9 +118,9 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                 Continue with Apple
               </button>
               <div className="flex items-center gap-3 my-2">
-                <div className="flex-1 h-px bg-white/10" />
+                <div className="flex-1 h-px bg-line-default/10" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">or</span>
-                <div className="flex-1 h-px bg-white/10" />
+                <div className="flex-1 h-px bg-line-default/10" />
               </div>
               <button
                 type="button"
@@ -132,7 +132,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
               <button
                 type="button"
                 onClick={() => setMode('email-signin')}
-                className="w-full py-2 text-xs font-bold text-brand-primary-soft hover:text-bone"
+                className="w-full py-2 text-xs font-bold text-brand-primary-soft hover:text-ink-primary"
               >
                 Already have an account? Sign in
               </button>
@@ -148,7 +148,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Carter"
-                    className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                    className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                     style={{ fontSize: '16px' }}
                   />
                 </label>
@@ -160,7 +160,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="jane@example.com"
-                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
               </label>
@@ -171,7 +171,7 @@ const RegisterAuthGate: React.FC<Props> = ({ onAuthed }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={mode === 'email-signup' ? 'At least 6 characters' : 'Your password'}
-                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+                  className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
                   style={{ fontSize: '16px' }}
                 />
               </label>

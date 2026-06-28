@@ -817,7 +817,7 @@ const PlayerDevelopment: React.FC = () => {
       case 'tactical': return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'physical': return 'bg-orange-100 text-orange-300 border-orange-400/30';
       case 'mental': return 'bg-green-100 text-emerald-300 border-green-200';
-      default: return 'bg-white/[0.08] text-bone/85 border-white/10';
+      default: return 'bg-line-default/[0.08] text-ink-primary/85 border-line-default/10';
     }
   };
 
@@ -924,19 +924,19 @@ const PlayerDevelopment: React.FC = () => {
   if (loading) return <DataGate when="loading" />;
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       <Header title="Player Pathway" subtitle="Personalized growth plans for every player on the squad." />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Coach View / Parent View toggle — only renders for users who
             wear both hats (Patrick coaches Hunter's U10 team). Other
             users land on their natural view and don't see the chip. */}
         {isUserCoach && hasLinkedPlayers && (
-          <div className="mb-3 inline-flex rounded-xl bg-charcoal-900 ring-1 ring-white/10 shadow-sm p-0.5">
+          <div className="mb-3 inline-flex rounded-xl bg-surface-elevated ring-1 ring-line-default/10 shadow-sm p-0.5">
             <button
               type="button"
               onClick={() => setViewMode('coach')}
               className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
-                viewMode === 'coach' ? 'bg-brand-primary text-white shadow' : 'text-bone/50 hover:text-bone'
+                viewMode === 'coach' ? 'bg-brand-primary text-white shadow' : 'text-ink-primary/50 hover:text-ink-primary'
               }`}
             >
               Coach View
@@ -945,7 +945,7 @@ const PlayerDevelopment: React.FC = () => {
               type="button"
               onClick={() => { setViewMode('parent'); setSelectedPlayerId('all'); }}
               className={`px-4 py-1.5 rounded-lg text-xs font-extrabold tracking-widest uppercase transition ${
-                viewMode === 'parent' ? 'bg-brand-primary text-white shadow' : 'text-bone/50 hover:text-bone'
+                viewMode === 'parent' ? 'bg-brand-primary text-white shadow' : 'text-ink-primary/50 hover:text-ink-primary'
               }`}
             >
               My {myLinkedPlayers.length > 1 ? 'kids' : 'kid'}
@@ -956,13 +956,13 @@ const PlayerDevelopment: React.FC = () => {
         {/* Filter + New Plan */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-bone/50">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-primary/50">
               <AppIcon name="players" className="w-4 h-4" />
             </span>
             <select
               value={selectedPlayerId}
               onChange={e => setSelectedPlayerId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-charcoal-900 border border-white/10 rounded-xl text-sm font-medium text-bone shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="w-full pl-9 pr-3 py-2.5 bg-surface-elevated border border-line-default/10 rounded-xl text-sm font-medium text-ink-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
               style={{ fontSize: '16px' }}
             >
               <option value="all">{effectiveView === 'coach' ? 'All Players' : (myLinkedPlayers.length > 1 ? 'All My Children' : myLinkedPlayers[0]?.name || 'My child')}</option>
@@ -1001,7 +1001,7 @@ const PlayerDevelopment: React.FC = () => {
         {/* Active Plans */}
         {activePlans.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-bone mb-4">Active Plans</h2>
+            <h2 className="text-xl font-bold text-ink-primary mb-4">Active Plans</h2>
             <div className="space-y-4">
               {activePlans.map(plan => (
                 <PlanCard
@@ -1039,7 +1039,7 @@ const PlayerDevelopment: React.FC = () => {
         {/* Completed Plans */}
         {completedPlans.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-bone mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-ink-primary mb-4 flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-300 flex items-center justify-center">
                 <AppIcon name="check" className="w-4 h-4" />
               </span>
@@ -1079,12 +1079,12 @@ const PlayerDevelopment: React.FC = () => {
         )}
 
         {visiblePlans.length === 0 && (
-          <div className="text-center py-12 bg-charcoal-900 rounded-2xl border border-white/10">
-            <div className="mb-3 flex justify-center text-bone/35">
+          <div className="text-center py-12 bg-surface-elevated rounded-2xl border border-line-default/10">
+            <div className="mb-3 flex justify-center text-ink-primary/35">
               <AppIcon name="clipboard" className="w-12 h-12" />
             </div>
-            <h3 className="text-lg font-medium text-bone">No development plans yet</h3>
-            <p className="text-bone/65 mt-2">
+            <h3 className="text-lg font-medium text-ink-primary">No development plans yet</h3>
+            <p className="text-ink-primary/65 mt-2">
               {isUserCoach
                 ? "Create individual development plans to track each player's growth."
                 : "Your coach hasn't created any development plans yet."}
@@ -1095,9 +1095,9 @@ const PlayerDevelopment: React.FC = () => {
         {/* Create Plan Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-6">
-            <div className="bg-charcoal-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="bg-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col">
               {/* Sticky header */}
-              <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+              <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between flex-shrink-0">
                 <div>
                   {/* When the modal opens from a "Set a Challenge"
                       tap on a drill card, the first goal carries the
@@ -1107,26 +1107,26 @@ const PlayerDevelopment: React.FC = () => {
                     const seedDrill = !editingPlanId
                       ? planGoals.find(g => (g as any).drillId && drillsById[(g as any).drillId])
                       : null;
-                    if (editingPlanId) return <h2 className="text-base font-bold text-bone">Edit plan</h2>;
+                    if (editingPlanId) return <h2 className="text-base font-bold text-ink-primary">Edit plan</h2>;
                     if (seedDrill) {
                       const drill = drillsById[(seedDrill as any).drillId];
                       return (
                         <>
                           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">Add to a Plan</p>
-                          <h2 className="text-base font-bold text-bone">{drill.title}</h2>
+                          <h2 className="text-base font-bold text-ink-primary">{drill.title}</h2>
                         </>
                       );
                     }
-                    return <h2 className="text-base font-bold text-bone">New development plan</h2>;
+                    return <h2 className="text-base font-bold text-ink-primary">New development plan</h2>;
                   })()}
                   {!editingPlanId && bulkPlayerIds.length > 0 && (
-                    <p className="text-[11px] text-bone/50 mt-0.5">{bulkPlayerIds.length} player{bulkPlayerIds.length === 1 ? '' : 's'} · {planGoals.filter(g => g.title.trim()).length || 0} goal{planGoals.filter(g => g.title.trim()).length === 1 ? '' : 's'}</p>
+                    <p className="text-[11px] text-ink-primary/50 mt-0.5">{bulkPlayerIds.length} player{bulkPlayerIds.length === 1 ? '' : 's'} · {planGoals.filter(g => g.title.trim()).length || 0} goal{planGoals.filter(g => g.title.trim()).length === 1 ? '' : 's'}</p>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(false); }}
-                  className="text-bone/40 hover:text-bone/85"
+                  className="text-ink-primary/40 hover:text-ink-primary/85"
                   aria-label="Close"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1137,7 +1137,7 @@ const PlayerDevelopment: React.FC = () => {
                   {/* Players — compact chips, multi-select, with quick all/clear */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[10px] font-extrabold uppercase tracking-widest text-bone/65">
+                      <label className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65">
                         {editingPlanId ? 'Player' : `Players${bulkPlayerIds.length > 0 ? ` · ${bulkPlayerIds.length}` : ''}`}
                       </label>
                       {!editingPlanId && (
@@ -1147,11 +1147,11 @@ const PlayerDevelopment: React.FC = () => {
                             onClick={() => { setBulkPlayerIds(players.map(p => p.id)); setPlanPlayerId(''); }}
                             className="text-brand-primary-soft hover:text-brand-primary-soft font-bold"
                           >All</button>
-                          <span className="text-bone/35">·</span>
+                          <span className="text-ink-primary/35">·</span>
                           <button
                             type="button"
                             onClick={() => { setBulkPlayerIds([]); setPlanPlayerId(''); }}
-                            className="text-bone/50 hover:text-bone/90 font-bold"
+                            className="text-ink-primary/50 hover:text-ink-primary/90 font-bold"
                           >Clear</button>
                         </div>
                       )}
@@ -1161,7 +1161,7 @@ const PlayerDevelopment: React.FC = () => {
                         value={planPlayerId}
                         onChange={e => setPlanPlayerId(e.target.value)}
                         disabled
-                        className="w-full px-3 py-2 text-sm border border-white/15 rounded-lg disabled:bg-white/[0.04] disabled:text-bone/50"
+                        className="w-full px-3 py-2 text-sm border border-line-default/15 rounded-lg disabled:bg-line-default/[0.04] disabled:text-ink-primary/50"
                       >
                         {players.map(p => (
                           <option key={p.id} value={p.id}>{p.name}{p.jerseyNumber != null ? ` (#${p.jerseyNumber})` : ''}</option>
@@ -1169,9 +1169,9 @@ const PlayerDevelopment: React.FC = () => {
                       </select>
                     ) : (
                       <>
-                        <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-2 border border-white/10 rounded-lg bg-white/[0.04]">
+                        <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-2 border border-line-default/10 rounded-lg bg-line-default/[0.04]">
                           {players.length === 0 && (
-                            <div className="w-full text-center text-xs text-bone/50 py-3">Squad's empty.</div>
+                            <div className="w-full text-center text-xs text-ink-primary/50 py-3">Squad's empty.</div>
                           )}
                           {players.map(p => {
                             const checked = bulkPlayerIds.includes(p.id);
@@ -1189,7 +1189,7 @@ const PlayerDevelopment: React.FC = () => {
                                 title={p.name}
                                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${checked
                                   ? 'bg-brand-primary text-white shadow-sm'
-                                  : 'bg-charcoal-900 text-bone/85 ring-1 ring-white/15 hover:ring-brand-primary-soft'}`}
+                                  : 'bg-surface-elevated text-ink-primary/85 ring-1 ring-line-default/15 hover:ring-brand-primary-soft'}`}
                               >
                                 {label}
                               </button>
@@ -1205,22 +1205,22 @@ const PlayerDevelopment: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1.5">Plan title</label>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1.5">Plan title</label>
                     <input
                       type="text"
                       value={planTitle}
                       onChange={e => setPlanTitle(e.target.value)}
-                      className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                      className="w-full px-3 py-2 text-sm bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                       placeholder="e.g. Ball Control Mastery"
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1.5">Category</label>
+                      <label className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1.5">Category</label>
                       <select
                         value={planCategory}
                         onChange={e => setPlanCategory(e.target.value as DevelopmentPlan['category'])}
-                        className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone [color-scheme:dark] border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                        className="w-full px-3 py-2 text-sm bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                       >
                         <option value="technical">Technical: ball, passing, shooting</option>
                         <option value="tactical">Tactical: positioning, awareness</option>
@@ -1229,12 +1229,12 @@ const PlayerDevelopment: React.FC = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-extrabold uppercase tracking-widest text-bone/65 mb-1.5">Description <span className="text-bone/40 normal-case tracking-normal">(optional)</span></label>
+                      <label className="block text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65 mb-1.5">Description <span className="text-ink-primary/40 normal-case tracking-normal">(optional)</span></label>
                       <input
                         type="text"
                         value={planDescription}
                         onChange={e => setPlanDescription(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                        className="w-full px-3 py-2 text-sm bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
                         placeholder="What this plan focuses on…"
                       />
                     </div>
@@ -1243,7 +1243,7 @@ const PlayerDevelopment: React.FC = () => {
                   {/* Goals */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-[10px] font-extrabold uppercase tracking-widest text-bone/65">Goals</label>
+                      <label className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/65">Goals</label>
                       <button
                         type="button"
                         onClick={() => setDrillPickerOpen(true)}
@@ -1256,42 +1256,42 @@ const PlayerDevelopment: React.FC = () => {
                     </div>
                     <div className="space-y-3">
                       {planGoals.map((goal, index) => (
-                        <div key={goal.id} className="flex items-start space-x-2 bg-white/[0.04] p-3 rounded-lg">
-                          <span className="text-sm font-medium text-bone/40 mt-2">{index + 1}.</span>
+                        <div key={goal.id} className="flex items-start space-x-2 bg-line-default/[0.04] p-3 rounded-lg">
+                          <span className="text-sm font-medium text-ink-primary/40 mt-2">{index + 1}.</span>
                           <div className="flex-1 space-y-2">
                             <input
                               type="text"
                               value={goal.title}
                               onChange={e => updateGoalField(index, 'title', e.target.value)}
-                              className="w-full px-3 py-2 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/15 rounded-lg focus:ring-2 focus:ring-brand-primary text-sm font-medium"
+                              className="w-full px-3 py-2 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/15 rounded-lg focus:ring-2 focus:ring-brand-primary text-sm font-medium"
                               placeholder="Title (e.g. Pass Weight Drill, Distance Control)"
                             />
                             <input
                               type="text"
                               value={(goal as any).duration || ''}
                               onChange={e => updateGoalField(index, 'duration', e.target.value)}
-                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              className="w-full px-2 py-1 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded text-xs"
                               placeholder="Duration (e.g. 10-15 min)"
                             />
                             <textarea
                               value={(goal as any).setup || ''}
                               onChange={e => updateGoalField(index, 'setup', e.target.value)}
                               rows={2}
-                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              className="w-full px-2 py-1 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded text-xs"
                               placeholder="Setup: e.g. Place 3 cones in a line at 10, 20, and 25 yards"
                             />
                             <textarea
                               value={(goal as any).instructions || ''}
                               onChange={e => updateGoalField(index, 'instructions', e.target.value)}
                               rows={3}
-                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              className="w-full px-2 py-1 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded text-xs"
                               placeholder="Instructions: step-by-step what to do"
                             />
                             <textarea
                               value={(goal as any).focus || ''}
                               onChange={e => updateGoalField(index, 'focus', e.target.value)}
                               rows={2}
-                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              className="w-full px-2 py-1 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded text-xs"
                               placeholder="Focus: the key coaching point"
                             />
                             <input
@@ -1299,15 +1299,15 @@ const PlayerDevelopment: React.FC = () => {
                               min={0}
                               value={(goal as any).targetMinutes ?? ''}
                               onChange={e => updateGoalField(index, 'targetMinutes', e.target.value === '' ? undefined : Number(e.target.value))}
-                              className="w-full px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                              className="w-full px-2 py-1 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded text-xs"
                               placeholder="Practice minutes target (optional, e.g. 60)"
                             />
                             {/* YouTube link picker */}
                             <div className="space-y-1">
                               {(goal.videoLinks || []).map((link, li) => (
-                                <div key={link.id} className="flex items-center gap-2 px-2 py-1 bg-charcoal-900 border border-white/10 rounded text-xs">
+                                <div key={link.id} className="flex items-center gap-2 px-2 py-1 bg-surface-elevated border border-line-default/10 rounded text-xs">
                                   <svg className="w-3 h-3 text-rose-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M9 10l5 3-5 3z" fill="currentColor"/></svg>
-                                  <span className="flex-1 truncate text-bone/85">{link.title || link.url}</span>
+                                  <span className="flex-1 truncate text-ink-primary/85">{link.title || link.url}</span>
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1317,7 +1317,7 @@ const PlayerDevelopment: React.FC = () => {
                                       (updated[index] as any).videoLinks = links;
                                       setPlanGoals(updated);
                                     }}
-                                    className="text-bone/40 hover:text-rose-300"
+                                    className="text-ink-primary/40 hover:text-rose-300"
                                     aria-label="Remove"
                                   >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1328,7 +1328,7 @@ const PlayerDevelopment: React.FC = () => {
                                 <input
                                   type="url"
                                   placeholder="YouTube URL (optional)"
-                                  className="flex-1 px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                                  className="flex-1 px-2 py-1 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded text-xs"
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
@@ -1354,7 +1354,7 @@ const PlayerDevelopment: React.FC = () => {
                                   type="text"
                                   data-link-title="1"
                                   placeholder="Title"
-                                  className="w-24 px-2 py-1 bg-charcoal-950 text-bone placeholder:text-bone/40 border border-white/10 rounded text-xs"
+                                  className="w-24 px-2 py-1 bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded text-xs"
                                 />
                                 <button
                                   type="button"
@@ -1408,11 +1408,11 @@ const PlayerDevelopment: React.FC = () => {
 
               </div>
               {/* Sticky footer */}
-              <div className="px-5 py-3 border-t border-white/10 flex items-center justify-end gap-2 flex-shrink-0">
+              <div className="px-5 py-3 border-t border-line-default/10 flex items-center justify-end gap-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => { resetCreateForm(); setEditingPlanId(null); setShowCreateModal(false); }}
-                  className="px-4 py-2 text-sm font-bold text-bone/85 hover:bg-white/[0.08] rounded-lg"
+                  className="px-4 py-2 text-sm font-bold text-ink-primary/85 hover:bg-line-default/[0.08] rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1447,8 +1447,8 @@ const PlayerDevelopment: React.FC = () => {
 const DEV_TILE_TINT: Record<string, { box: string; icon: string; value: string }> = {
   cyan:    { box: 'bg-brand-primary/15',     icon: 'text-brand-primary-soft',    value: 'text-brand-primary-soft'    },
   emerald: { box: 'bg-emerald-500/15',  icon: 'text-emerald-300', value: 'text-emerald-300' },
-  navy:    { box: 'bg-charcoal-700/10', icon: 'text-bone/85',    value: 'text-bone/85'    },
-  fire:    { box: 'bg-brand-primary/15',     icon: 'text-bone/85',    value: 'text-bone/85'    },
+  navy:    { box: 'bg-surface-raised/10', icon: 'text-ink-primary/85',    value: 'text-ink-primary/85'    },
+  fire:    { box: 'bg-brand-primary/15',     icon: 'text-ink-primary/85',    value: 'text-ink-primary/85'    },
 };
 
 const DevTile: React.FC<{
@@ -1460,13 +1460,13 @@ const DevTile: React.FC<{
 }> = ({ icon, tint, value, label, badge }) => {
   const t = DEV_TILE_TINT[tint];
   return (
-    <div className="bg-charcoal-900 rounded-2xl shadow-sm ring-1 ring-white/10 p-4 flex items-center gap-3">
+    <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10 p-4 flex items-center gap-3">
       <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${t.box} ${t.icon}`}>
         <AppIcon name={icon} className="w-5 h-5" />
       </span>
       <div className="flex-1 min-w-0">
         <p className={`text-2xl font-bold ${t.value} leading-tight tabular-nums`}>{value}</p>
-        <p className="text-xs text-bone/65 truncate">{label}</p>
+        <p className="text-xs text-ink-primary/65 truncate">{label}</p>
       </div>
       {badge && (
         <span className="px-2 py-1 rounded-full bg-brand-primary/20 text-charcoal-800 text-[11px] font-bold whitespace-nowrap">
@@ -1522,11 +1522,11 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
     setDraft('');
   };
   return (
-    <div className="mt-4 border-t border-white/5 pt-4">
+    <div className="mt-4 border-t border-line-default/5 pt-4">
       <div className="flex items-center gap-2 mb-2">
-        <svg className="w-4 h-4 text-bone/50" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/65">
-          Comments {sorted.length > 0 && <span className="text-bone/40">· {sorted.length}</span>}
+        <svg className="w-4 h-4 text-ink-primary/50" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/65">
+          Comments {sorted.length > 0 && <span className="text-ink-primary/40">· {sorted.length}</span>}
         </span>
       </div>
       {sorted.length > 0 && (
@@ -1535,15 +1535,15 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
             const t = (c.createdAt as any)?.toDate?.() || new Date(c.createdAt);
             const isCoachAuthor = c.authorRole === 'coach' || c.authorRole === 'team_manager';
             return (
-              <li key={c.id} className="rounded-lg bg-white/[0.04] ring-1 ring-white/10 px-3 py-2">
+              <li key={c.id} className="rounded-lg bg-line-default/[0.04] ring-1 ring-line-default/10 px-3 py-2">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-xs font-bold text-bone/90">{c.authorName}</span>
+                  <span className="text-xs font-bold text-ink-primary/90">{c.authorName}</span>
                   {isCoachAuthor && (
                     <span className="text-[9px] font-extrabold tracking-widest uppercase text-brand-primary-soft bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 px-1 py-0.5 rounded">Coach</span>
                   )}
-                  <span className="ml-auto text-[10px] text-bone/40">{t.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                  <span className="ml-auto text-[10px] text-ink-primary/40">{t.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
-                <p className="text-sm text-bone/85 whitespace-pre-wrap">{c.text}</p>
+                <p className="text-sm text-ink-primary/85 whitespace-pre-wrap">{c.text}</p>
               </li>
             );
           })}
@@ -1556,7 +1556,7 @@ const PlanComments: React.FC<{ comments: PlanComment[]; onAdd: (text: string) =>
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || true)) handleSubmit(); }}
           placeholder="Question, update, or note…"
-          className="flex-1 min-w-0 px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+          className="flex-1 min-w-0 px-3 py-2 text-sm border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
         />
         <button
           type="button"
@@ -1609,11 +1609,11 @@ const PlanCard: React.FC<PlanCardProps> = ({
   const playerInitial = (plan.playerName || '?').charAt(0).toUpperCase();
 
   return (
-    <div className={`bg-charcoal-900 rounded-2xl shadow-sm border overflow-hidden ${isExpanded ? 'border-brand-primary-soft/40 ring-2 ring-brand-primary-soft' : 'border-white/10'}`}>
+    <div className={`bg-surface-elevated rounded-2xl shadow-sm border overflow-hidden ${isExpanded ? 'border-brand-primary-soft/40 ring-2 ring-brand-primary-soft' : 'border-line-default/10'}`}>
       {/* Header — player avatar + name + title, with two horizontal
           progress bars beneath. Matches the Ollie reference card. */}
       <div
-        className="p-4 cursor-pointer hover:bg-white/[0.05] transition-colors"
+        className="p-4 cursor-pointer hover:bg-line-default/[0.05] transition-colors"
         onClick={onToggleExpand}
       >
         <div className="flex items-start gap-3">
@@ -1627,20 +1627,20 @@ const PlanCard: React.FC<PlanCardProps> = ({
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-charcoal-700 text-white flex items-center justify-center font-bold text-base ring-2 ring-brand-primary-soft">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-surface-raised text-white flex items-center justify-center font-bold text-base ring-2 ring-brand-primary-soft">
                 {playerInitial}
               </div>
             )}
-            <span className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-charcoal-900 shadow ring-1 ring-white/10 flex items-center justify-center ${getCategoryColor(plan.category).split(' ')[1]}`} title={plan.category}>
+            <span className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-elevated shadow ring-1 ring-line-default/10 flex items-center justify-center ${getCategoryColor(plan.category).split(' ')[1]}`} title={plan.category}>
               <AppIcon name={getCategoryIcon(plan.category)} className="w-3 h-3" />
             </span>
           </div>
 
           {/* Title + name + pills */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-bone leading-tight">{plan.title}</h3>
+            <h3 className="font-bold text-ink-primary leading-tight">{plan.title}</h3>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              <span className="text-sm text-bone/65">{plan.playerName}</span>
+              <span className="text-sm text-ink-primary/65">{plan.playerName}</span>
               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${getCategoryColor(plan.category)}`}>
                 {plan.category}
               </span>
@@ -1661,7 +1661,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
           </div>
 
           <button
-            className="text-bone/40 hover:text-bone/85 p-1.5 rounded-lg hover:bg-white/[0.08] shrink-0"
+            className="text-ink-primary/40 hover:text-ink-primary/85 p-1.5 rounded-lg hover:bg-line-default/[0.08] shrink-0"
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
             onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
           >
@@ -1674,17 +1674,17 @@ const PlanCard: React.FC<PlanCardProps> = ({
         {/* Practice activity summary — single bar based on the player's
             session count. Replaces the dual player-progress / coach-
             verified bars (verification flow removed). */}
-        <div className="mt-4 pt-4 border-t border-white/5">
+        <div className="mt-4 pt-4 border-t border-line-default/5">
           {(() => {
             const totalSessions = plan.goals.reduce((s, g) => s + (g.practiceLog?.length || 0), 0);
             return (
               <div className="text-[11px] flex items-center justify-between">
-                <span className="text-bone/50 font-semibold">Sessions logged</span>
+                <span className="text-ink-primary/50 font-semibold">Sessions logged</span>
                 <span className="text-brand-primary-soft font-bold tabular-nums">{totalSessions}</span>
               </div>
             );
           })()}
-          <div className="mt-2 text-[11px] text-bone/50 flex items-center gap-3 justify-center">
+          <div className="mt-2 text-[11px] text-ink-primary/50 flex items-center gap-3 justify-center">
             {totalLoggedMinutes > 0 && (
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/150" />
@@ -1697,13 +1697,13 @@ const PlanCard: React.FC<PlanCardProps> = ({
 
       {/* Expanded Goals */}
       {isExpanded && (
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-line-default/10 p-4">
           {plan.description && (
             <div className="mb-4 flex items-start gap-3">
               <span className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center shrink-0 mt-0.5">
                 <AppIcon name="highlight" className="w-4 h-4" />
               </span>
-              <p className="text-sm text-bone/85 flex-1">{plan.description}</p>
+              <p className="text-sm text-ink-primary/85 flex-1">{plan.description}</p>
             </div>
           )}
 
@@ -1723,14 +1723,14 @@ const PlanCard: React.FC<PlanCardProps> = ({
                     {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} practiced
                   </span>
                 </span>
-                <span className="text-bone/50">{totalEntries} session{totalEntries !== 1 ? 's' : ''} logged</span>
+                <span className="text-ink-primary/50">{totalEntries} session{totalEntries !== 1 ? 's' : ''} logged</span>
               </div>
             );
           })()}
 
           <div className="space-y-3">
             {plan.goals.sort((a, b) => a.order - b.order).map((goal) => (
-              <div key={goal.id} className="p-3 rounded-lg border bg-charcoal-900 border-white/10">
+              <div key={goal.id} className="p-3 rounded-lg border bg-surface-elevated border-line-default/10">
                 <div className="flex items-start space-x-3">
                   {/* Coach-verification UI removed (Patrick: "I want to
                       set the plan for them, but have them work on it,
@@ -1744,7 +1744,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
 
                   <div className="flex-1">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="font-medium text-sm text-bone">
+                      <span className="font-medium text-sm text-ink-primary">
                         {goal.title}
                         {(() => {
                           const goalMins = (goal.practiceLog || []).reduce((s, l) => s + (l.minutes || 0), 0);
@@ -1752,13 +1752,13 @@ const PlanCard: React.FC<PlanCardProps> = ({
                             const pct = Math.min(100, Math.round((goalMins / goal.targetMinutes) * 100));
                             const done = pct >= 100;
                             return (
-                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-emerald-500/20 text-emerald-300' : 'bg-brand-primary/20 text-bone/85'}`}>
+                              <span className={`ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${done ? 'bg-emerald-500/20 text-emerald-300' : 'bg-brand-primary/20 text-ink-primary/85'}`}>
                                 {goalMins}/{goal.targetMinutes} min
                               </span>
                             );
                           }
                           if (goalMins > 0) {
-                            return <span className="ml-2 text-[10px] font-semibold text-bone/85">{goalMins} min</span>;
+                            return <span className="ml-2 text-[10px] font-semibold text-ink-primary/85">{goalMins} min</span>;
                           }
                           return null;
                         })()}
@@ -1767,35 +1767,35 @@ const PlanCard: React.FC<PlanCardProps> = ({
                           coach-verification flow. */}
                     </div>
                     {goal.description && (
-                      <p className="text-xs text-bone/50 mt-1">{goal.description}</p>
+                      <p className="text-xs text-ink-primary/50 mt-1">{goal.description}</p>
                     )}
                     {(goal.duration || goal.setup || goal.instructions || goal.focus) && (
-                      <div className="mt-2 bg-white/[0.04] border border-white/10 rounded-lg p-3 space-y-2">
+                      <div className="mt-2 bg-line-default/[0.04] border border-line-default/10 rounded-lg p-3 space-y-2">
                         {goal.duration && (
-                          <div className="inline-flex items-center gap-1.5 text-xs bg-charcoal-900 text-bone/85 px-2 py-0.5 rounded-full ring-1 ring-white/10">
-                            <AppIcon name="clock" className="w-3.5 h-3.5 text-bone/40" />
+                          <div className="inline-flex items-center gap-1.5 text-xs bg-surface-elevated text-ink-primary/85 px-2 py-0.5 rounded-full ring-1 ring-line-default/10">
+                            <AppIcon name="clock" className="w-3.5 h-3.5 text-ink-primary/40" />
                             <span className="font-semibold">{goal.duration}</span>
                           </div>
                         )}
                         {goal.setup && (
                           <div>
                             <div className="text-[11px] font-bold uppercase tracking-wide text-brand-primary">Setup</div>
-                            <p className="text-xs text-bone/85 whitespace-pre-line mt-0.5">{goal.setup}</p>
+                            <p className="text-xs text-ink-primary/85 whitespace-pre-line mt-0.5">{goal.setup}</p>
                           </div>
                         )}
                         {goal.instructions && (
                           <div>
                             <div className="text-[11px] font-bold uppercase tracking-wide text-brand-primary">Instructions</div>
-                            <p className="text-xs text-bone/85 whitespace-pre-line mt-0.5">{goal.instructions}</p>
+                            <p className="text-xs text-ink-primary/85 whitespace-pre-line mt-0.5">{goal.instructions}</p>
                           </div>
                         )}
                         {goal.focus && (
                           <div className="bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 rounded-lg p-2">
-                            <div className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-bone/85">
+                            <div className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-ink-primary/85">
                               <AppIcon name="trophy" className="w-3 h-3" />
                               <span>Focus</span>
                             </div>
-                            <p className="text-xs text-bone/85 whitespace-pre-line mt-0.5">{goal.focus}</p>
+                            <p className="text-xs text-ink-primary/85 whitespace-pre-line mt-0.5">{goal.focus}</p>
                           </div>
                         )}
                       </div>
@@ -1803,7 +1803,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                     {goal.notes && (
                       <p className="text-xs text-brand-primary mt-1 italic">Coach note: {goal.notes}</p>
                     )}
-                    <div className="flex items-center space-x-3 mt-1 text-xs text-bone/40">
+                    <div className="flex items-center space-x-3 mt-1 text-xs text-ink-primary/40">
                       {goal.playerCompleted && (
                         <span className="inline-flex items-center gap-1">
                           <AppIcon name="check" className="w-3 h-3" />
@@ -1829,11 +1829,11 @@ const PlanCard: React.FC<PlanCardProps> = ({
                       if (!streamUid) return null;
                       return (
                         <div className="mt-3">
-                          <p className="text-xs font-semibold text-bone/50 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
-                            <AppIcon name="film" className="w-3.5 h-3.5 text-bone/40" />
+                          <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
+                            <AppIcon name="film" className="w-3.5 h-3.5 text-ink-primary/40" />
                             <span>Demo video</span>
                           </p>
-                          <div className="aspect-video w-full rounded-lg overflow-hidden bg-black ring-1 ring-white/10">
+                          <div className="aspect-video w-full rounded-lg overflow-hidden bg-black ring-1 ring-line-default/10">
                             <iframe
                               src={streamIframeUrl(streamUid)}
                               title={`${goal.title} — demo`}
@@ -1852,8 +1852,8 @@ const PlanCard: React.FC<PlanCardProps> = ({
                       <div className="mt-3">
                         {goal.videoLinks && goal.videoLinks.length > 0 && (
                           <>
-                            <p className="text-xs font-semibold text-bone/50 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
-                              <AppIcon name="film" className="w-3.5 h-3.5 text-bone/40" />
+                            <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide mb-1.5 inline-flex items-center gap-1.5">
+                              <AppIcon name="film" className="w-3.5 h-3.5 text-ink-primary/40" />
                               <span>Watch & Learn</span>
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -1863,7 +1863,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                     href={link.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="block w-40 rounded-lg overflow-hidden border border-white/10 bg-black hover:ring-2 hover:ring-red-400 transition-all"
+                                    className="block w-40 rounded-lg overflow-hidden border border-line-default/10 bg-black hover:ring-2 hover:ring-red-400 transition-all"
                                   >
                                     {link.youtubeId ? (
                                       <div className="relative aspect-video bg-black">
@@ -1880,12 +1880,12 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="aspect-video bg-gradient-to-br from-brand-primary to-charcoal-700 flex items-center justify-center text-white text-xs px-2 text-center">
+                                      <div className="aspect-video bg-gradient-to-br from-brand-primary to-surface-raised flex items-center justify-center text-white text-xs px-2 text-center">
                                         Open link
                                       </div>
                                     )}
-                                    <div className="px-2 py-1.5 bg-charcoal-900">
-                                      <p className="text-xs font-medium text-bone/90 line-clamp-2 leading-snug">
+                                    <div className="px-2 py-1.5 bg-surface-elevated">
+                                      <p className="text-xs font-medium text-ink-primary/90 line-clamp-2 leading-snug">
                                         {link.title || (link.youtubeId ? 'YouTube tutorial' : link.url)}
                                       </p>
                                     </div>
@@ -1916,7 +1916,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   value={linkUrl}
                                   onChange={e => setLinkUrl(e.target.value)}
                                   placeholder="Paste YouTube link (https://youtu.be/...)"
-                                  className="w-full px-2 py-1.5 text-xs border border-white/15 rounded focus:ring-2 focus:ring-brand-primary"
+                                  className="w-full px-2 py-1.5 text-xs border border-line-default/15 rounded focus:ring-2 focus:ring-brand-primary"
                                   autoFocus
                                 />
                                 <input
@@ -1924,12 +1924,12 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   value={linkTitle}
                                   onChange={e => setLinkTitle(e.target.value)}
                                   placeholder="Optional title (e.g. 'Inside-of-foot pass technique')"
-                                  className="w-full px-2 py-1.5 text-xs border border-white/15 rounded focus:ring-2 focus:ring-brand-primary"
+                                  className="w-full px-2 py-1.5 text-xs border border-line-default/15 rounded focus:ring-2 focus:ring-brand-primary"
                                 />
                                 <div className="flex justify-end space-x-2">
                                   <button
                                     onClick={() => { setLinkGoalId(null); setLinkUrl(''); setLinkTitle(''); }}
-                                    className="text-xs text-bone/50 hover:text-bone/85 px-2 py-1"
+                                    className="text-xs text-ink-primary/50 hover:text-ink-primary/85 px-2 py-1"
                                   >
                                     Cancel
                                   </button>
@@ -1972,7 +1972,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                           {logs.length > 0 && (
                             <div className="mt-2 space-y-1">
                               <div className="flex items-center justify-between">
-                                <p className="text-xs font-semibold text-bone/50 uppercase tracking-wide">Practice Log</p>
+                                <p className="text-xs font-semibold text-ink-primary/50 uppercase tracking-wide">Practice Log</p>
                                 {totalMins > 0 && (
                                   <span className="text-xs font-medium text-brand-primary bg-brand-primary/15 px-2 py-0.5 rounded-full">
                                     ⏱️ {hours > 0 ? `${hours}h ${mins}m` : `${mins}m`} total
@@ -2002,13 +2002,13 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   return null;
                                 })();
                                 return (
-                                <div key={entry.id} className="text-xs text-bone/65 bg-charcoal-900 rounded px-2 py-1 border border-white/5">
-                                  <span className="text-bone/40">
+                                <div key={entry.id} className="text-xs text-ink-primary/65 bg-surface-elevated rounded px-2 py-1 border border-line-default/5">
+                                  <span className="text-ink-primary/40">
                                     {parsed ? parsed.toLocaleDateString() : 'Date unknown'}
                                   </span>
                                   {entry.minutes && <span className="text-brand-primary font-medium ml-1">({entry.minutes} min)</span>}
                                   {' — '}{entry.note}
-                                  {entry.loggedByName && <span className="text-bone/40 ml-1">— {entry.loggedByName}</span>}
+                                  {entry.loggedByName && <span className="text-ink-primary/40 ml-1">— {entry.loggedByName}</span>}
                                 </div>
                                 );
                               })}
@@ -2023,7 +2023,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                               {showAllLogs === goal.id && logs.length > 3 && (
                                 <button
                                   onClick={() => setShowAllLogs(null)}
-                                  className="text-xs text-bone/50 hover:text-bone/85"
+                                  className="text-xs text-ink-primary/50 hover:text-ink-primary/85"
                                 >
                                   Show less
                                 </button>
@@ -2073,7 +2073,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                 {loggedToday ? (
                                   <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-4 text-white shadow-md">
                                     <div className="flex items-center gap-3">
-                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center">
+                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-line-default/20 ring-2 ring-line-default/30 flex items-center justify-center">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                                       </span>
                                       <div className="flex-1 min-w-0">
@@ -2088,15 +2088,15 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => onQuickDidIt(goal.id)}
-                                    className="w-full rounded-xl bg-gradient-to-br from-brand-primary via-brand-primary to-charcoal-900 hover:from-brand-primary-soft hover:via-brand-primary hover:to-charcoal-800 text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
+                                    className="w-full rounded-xl bg-gradient-to-br from-brand-primary via-brand-primary to-surface-elevated hover:from-brand-primary-soft hover:via-brand-primary hover:to-surface-input text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
                                   >
                                     <div className="flex items-center justify-center gap-3">
-                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-line-default/20 ring-2 ring-line-default/30 flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                                       </span>
                                       <span className="text-lg font-black tracking-wide uppercase">I did it</span>
                                       {streak > 0 && (
-                                        <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
+                                        <span className="text-xs font-bold bg-line-default/20 px-2 py-0.5 rounded-full">
                                           {streak}-day streak — don't break it
                                         </span>
                                       )}
@@ -2156,7 +2156,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
                 </button>
                 <button
                   onClick={onArchive}
-                  className="text-sm text-bone/50 hover:text-bone/85 px-3 py-1 rounded-lg hover:bg-white/[0.08]"
+                  className="text-sm text-ink-primary/50 hover:text-ink-primary/85 px-3 py-1 rounded-lg hover:bg-line-default/[0.08]"
                 >
                   Archive
                 </button>
@@ -2164,7 +2164,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
             )}
           </div>
 
-          <div className="mt-3 text-xs text-bone/40">
+          <div className="mt-3 text-xs text-ink-primary/40">
             Created by {plan.createdByName} • {plan.createdAt ? formatDate(plan.createdAt) : ''}
           </div>
         </div>

@@ -26,7 +26,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
   const positionLabel = getPlayerPositionsLabel(player) || (player as any).position;
 
   return (
-    <section className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black overflow-hidden">
+    <section className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-black overflow-hidden">
       {/* Atmospheric glow + faint pitch silhouette */}
       <div className="absolute inset-0 pointer-events-none opacity-30">
         <div className="absolute -top-32 -right-20 w-[480px] h-[480px] rounded-full bg-brand-primary/15 blur-3xl" />
@@ -39,7 +39,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           <button
             type="button"
             onClick={onBack}
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 ring-1 ring-white/15 backdrop-blur flex items-center justify-center text-white"
+            className="w-10 h-10 rounded-full bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 backdrop-blur flex items-center justify-center text-white"
             aria-label="Back"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
@@ -49,7 +49,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           <button
             type="button"
             onClick={onEdit}
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 ring-1 ring-white/15 backdrop-blur flex items-center justify-center text-white"
+            className="w-10 h-10 rounded-full bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 backdrop-blur flex items-center justify-center text-white"
             aria-label="Edit profile"
             title="Edit profile"
           >
@@ -71,7 +71,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
               }`}
             />
           ) : (
-            <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-white/10 ring-4 shadow-2xl flex items-center justify-center backdrop-blur ${
+            <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-line-default/10 ring-4 shadow-2xl flex items-center justify-center backdrop-blur ${
               isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-brand-primary-soft/70'
             }`}>
               <span className="text-4xl sm:text-5xl font-black text-white">
@@ -123,7 +123,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
 };
 
 const Pill: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
-  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur text-[11px] font-bold">
+  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur text-[11px] font-bold">
     <span className="text-brand-primary-soft">{icon}</span>
     <span>{label}</span>
   </span>

@@ -81,7 +81,7 @@ const NewTicketSheet: React.FC<Props> = ({ open, onClose, forceScope, onCreated 
       <div className="space-y-4">
         {!forceScope && (
           <div>
-            <p className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">Who should see this?</p>
+            <p className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-2">Who should see this?</p>
             <div className="grid grid-cols-2 gap-2">
               <ScopeCard
                 active={scope === 'club'}
@@ -101,27 +101,27 @@ const NewTicketSheet: React.FC<Props> = ({ open, onClose, forceScope, onCreated 
         )}
 
         <label className="block">
-          <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">Subject</span>
+          <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5 block">Subject</span>
           <input
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             maxLength={200}
             placeholder="Short summary"
-            className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30 focus:outline-none focus:border-brand-primary"
+            className="w-full bg-surface-elevated border border-line-default/10 rounded-lg px-3 py-3 text-ink-primary placeholder:text-ink-primary/30 focus:outline-none focus:border-brand-primary"
           />
         </label>
         <label className="block">
-          <span className="text-[11px] font-extrabold tracking-widest uppercase text-bone/55 mb-1.5 block">Details</span>
+          <span className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1.5 block">Details</span>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={6}
             maxLength={4000}
             placeholder="Tell us what's going on. The more detail, the faster the fix."
-            className="w-full bg-charcoal-900 border border-white/10 rounded-lg px-3 py-3 text-bone placeholder:text-bone/30 focus:outline-none focus:border-brand-primary resize-none"
+            className="w-full bg-surface-elevated border border-line-default/10 rounded-lg px-3 py-3 text-ink-primary placeholder:text-ink-primary/30 focus:outline-none focus:border-brand-primary resize-none"
           />
-          <p className="text-right text-bone/30 text-[10px] mt-1">{body.length}/4000</p>
+          <p className="text-right text-ink-primary/30 text-[10px] mt-1">{body.length}/4000</p>
         </label>
         {error && <p className="text-rose-300 text-xs bg-rose-500/10 border border-rose-500/30 rounded-lg p-2">{error}</p>}
         <Button variant="primary" onClick={handleSubmit} disabled={busy || !subject.trim() || !body.trim()} fullWidth>
@@ -140,11 +140,11 @@ const ScopeCard: React.FC<{ active: boolean; disabled?: boolean; title: string; 
     className={`text-left p-3 rounded-lg border transition-colors disabled:opacity-40 ${
       active
         ? 'border-brand-primary bg-brand-primary/10'
-        : 'border-white/10 bg-charcoal-900 hover:border-white/20'
+        : 'border-line-default/10 bg-surface-elevated hover:border-line-default/20'
     }`}
   >
-    <p className={`font-bold text-sm ${active ? 'text-bone' : 'text-bone/85'}`}>{title}</p>
-    <p className="text-[11px] text-bone/55 mt-0.5 leading-snug">{hint}</p>
+    <p className={`font-bold text-sm ${active ? 'text-ink-primary' : 'text-ink-primary/85'}`}>{title}</p>
+    <p className="text-[11px] text-ink-primary/55 mt-0.5 leading-snug">{hint}</p>
   </button>
 );
 

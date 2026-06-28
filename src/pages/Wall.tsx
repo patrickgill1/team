@@ -152,7 +152,7 @@ const Wall: React.FC = () => {
     result: { text: 'text-emerald-300', bg: 'bg-emerald-500/15', ring: 'ring-emerald-400/30' },
     spotlight: { text: 'text-amber-300', bg: 'bg-amber-500/15', ring: 'ring-amber-400/30' },
     practice: { text: 'text-violet-300', bg: 'bg-violet-500/15', ring: 'ring-violet-400/30' },
-    system: { text: 'text-bone/85', bg: 'bg-white/[0.08]', ring: 'ring-white/10' },
+    system: { text: 'text-ink-primary/85', bg: 'bg-line-default/[0.08]', ring: 'ring-line-default/10' },
   };
   const CATEGORY_LABEL: Record<WallCategory, string> = {
     announcement: 'News',
@@ -1018,12 +1018,12 @@ const Wall: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-charcoal-950">
+    <div className="min-h-screen bg-surface-base">
       {/* Compact mobile header — no big hero strip eating screen real
           estate. Title row + pill filter on a single sticky stack. */}
-      <section className="bg-charcoal-950 px-4 sm:px-6 py-3 border-b border-white/5">
+      <section className="bg-surface-base px-4 sm:px-6 py-3 border-b border-line-default/5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link to="/dashboard" aria-label="Back" className="inline-flex items-center justify-center w-8 h-8 rounded-full text-brand-primary-soft hover:bg-white/10">
+          <Link to="/dashboard" aria-label="Back" className="inline-flex items-center justify-center w-8 h-8 rounded-full text-brand-primary-soft hover:bg-line-default/10">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </Link>
           <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
@@ -1039,7 +1039,7 @@ const Wall: React.FC = () => {
           new-post button HERE (instead of a floating FAB) avoids the
           right-edge collision with each post's kebab and keeps the
           CTA always-visible without overlaying content. */}
-      <div className="sticky top-0 z-20 bg-charcoal-950/95 backdrop-blur-md border-b border-white/10">
+      <div className="sticky top-0 z-20 bg-surface-base/95 backdrop-blur-md border-b border-line-default/10">
         <div className="max-w-2xl mx-auto px-3 py-2 flex items-center gap-1.5">
           <div className="flex-1 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
             {CATEGORIES.map(c => (
@@ -1049,8 +1049,8 @@ const Wall: React.FC = () => {
                 onClick={() => setActiveCategory(c.id)}
                 className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
                   activeCategory === c.id
-                    ? 'bg-charcoal-950 text-white'
-                    : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/10 hover:bg-white/[0.1]'
+                    ? 'bg-surface-base text-white'
+                    : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/10 hover:bg-line-default/[0.1]'
                 }`}
               >
                 {c.label}
@@ -1079,19 +1079,19 @@ const Wall: React.FC = () => {
       <div className="max-w-2xl mx-auto px-0 sm:px-4 py-3 space-y-3">
         {canPost && composerOpen && (
           <div
-            className="fixed inset-0 z-40 bg-charcoal-950/80 animate-fade-in flex items-end sm:items-center justify-center sm:p-4"
+            className="fixed inset-0 z-40 bg-surface-base/80 animate-fade-in flex items-end sm:items-center justify-center sm:p-4"
             onClick={closeComposer}
           >
             <div
-              className="bg-charcoal-900 w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              className="bg-surface-elevated w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
+              <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
                 <button
                   type="button"
                   onClick={closeComposer}
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white"
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white"
                 >
                   Cancel
                 </button>
@@ -1119,7 +1119,7 @@ const Wall: React.FC = () => {
                   className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest transition ${
                     composerCategory === cat
                       ? `${CATEGORY_TONE[cat].bg} ${CATEGORY_TONE[cat].text} ring-1 ${CATEGORY_TONE[cat].ring}`
-                      : 'text-bone/50 ring-1 ring-white/10 hover:bg-white/[0.05]'
+                      : 'text-ink-primary/50 ring-1 ring-line-default/10 hover:bg-line-default/[0.05]'
                   }`}
                 >
                   {CATEGORY_LABEL[cat]}
@@ -1153,7 +1153,7 @@ const Wall: React.FC = () => {
                      → the normal editor (toggle + question + options).
                   3. Edit mode + 'remove' chosen → confirmation card
                      with an undo link before save commits. */}
-              <div className="mt-4 rounded-xl ring-1 ring-white/10 bg-white/[0.04] px-3 py-3">
+              <div className="mt-4 rounded-xl ring-1 ring-line-default/10 bg-line-default/[0.04] px-3 py-3">
                 {existingPoll && !removeExistingPoll ? (
                   <>
                     <div className="flex items-center justify-between">
@@ -1163,7 +1163,7 @@ const Wall: React.FC = () => {
                           <rect x="10" y="7" width="4" height="14" rx="1" />
                           <rect x="17" y="3" width="4" height="18" rx="1" />
                         </svg>
-                        <span className="text-[12px] font-extrabold uppercase tracking-widest text-bone/85">Poll attached</span>
+                        <span className="text-[12px] font-extrabold uppercase tracking-widest text-ink-primary/85">Poll attached</span>
                       </div>
                       <button
                         type="button"
@@ -1173,16 +1173,16 @@ const Wall: React.FC = () => {
                         Remove poll
                       </button>
                     </div>
-                    <p className="mt-2 text-[12px] text-bone/50 leading-relaxed">
+                    <p className="mt-2 text-[12px] text-ink-primary/50 leading-relaxed">
                       The poll and its votes stay attached when you save. Editing the poll question or options isn't supported — remove and re-create the post if you need to change them.
                     </p>
-                    <div className="mt-3 rounded-lg bg-charcoal-800 ring-1 ring-white/10 px-3 py-2.5">
-                      <p className="font-bold text-[13.5px] text-bone leading-snug">{existingPoll.question}</p>
+                    <div className="mt-3 rounded-lg bg-surface-input ring-1 ring-line-default/10 px-3 py-2.5">
+                      <p className="font-bold text-[13.5px] text-ink-primary leading-snug">{existingPoll.question}</p>
                       <ul className="mt-2 space-y-1">
                         {existingPoll.options.map(o => (
-                          <li key={o.id} className="text-[12.5px] text-bone/85 flex items-start justify-between gap-3">
+                          <li key={o.id} className="text-[12.5px] text-ink-primary/85 flex items-start justify-between gap-3">
                             <span className="break-words min-w-0">{o.text}</span>
-                            <span className="shrink-0 text-bone/40 tabular-nums">{o.voters.length}</span>
+                            <span className="shrink-0 text-ink-primary/40 tabular-nums">{o.voters.length}</span>
                           </li>
                         ))}
                       </ul>
@@ -1192,7 +1192,7 @@ const Wall: React.FC = () => {
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[13px] font-bold text-rose-300">Poll will be removed on save</p>
-                      <p className="text-[12px] text-bone/50 mt-0.5 leading-snug">All votes will be lost. This can't be undone after you save.</p>
+                      <p className="text-[12px] text-ink-primary/50 mt-0.5 leading-snug">All votes will be lost. This can't be undone after you save.</p>
                     </div>
                     <button
                       type="button"
@@ -1211,7 +1211,7 @@ const Wall: React.FC = () => {
                       <rect x="10" y="7" width="4" height="14" rx="1" />
                       <rect x="17" y="3" width="4" height="18" rx="1" />
                     </svg>
-                    <span className="text-[12px] font-extrabold uppercase tracking-widest text-bone/85">Poll</span>
+                    <span className="text-[12px] font-extrabold uppercase tracking-widest text-ink-primary/85">Poll</span>
                   </div>
                   <button
                     type="button"
@@ -1219,7 +1219,7 @@ const Wall: React.FC = () => {
                     className={`text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
                       pollOn
                         ? 'bg-brand-primary text-white hover:bg-brand-primary/150'
-                        : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+                        : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/15 hover:bg-line-default/[0.1]'
                     }`}
                   >
                     {pollOn ? 'On' : 'Add a poll'}
@@ -1232,7 +1232,7 @@ const Wall: React.FC = () => {
                       value={pollQuestion}
                       onChange={(e) => setPollQuestion(e.target.value)}
                       placeholder="Question (e.g. What practice day works best?)"
-                      className="w-full px-3 py-2 rounded-lg ring-1 ring-white/15 focus:ring-2 focus:ring-brand-primary-soft text-[15px] bg-charcoal-800 text-bone placeholder:text-bone/30"
+                      className="w-full px-3 py-2 rounded-lg ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-[15px] bg-surface-input text-ink-primary placeholder:text-ink-primary/30"
                       style={{ fontSize: '16px' }}
                     />
                     {pollOptions.map((opt, i) => (
@@ -1242,7 +1242,7 @@ const Wall: React.FC = () => {
                           value={opt}
                           onChange={(e) => setPollOptions(prev => prev.map((p, idx) => idx === i ? e.target.value : p))}
                           placeholder={`Option ${i + 1}`}
-                          className="flex-1 px-3 py-2 rounded-lg ring-1 ring-white/15 focus:ring-2 focus:ring-brand-primary-soft text-[14.5px] bg-charcoal-800 text-bone placeholder:text-bone/30"
+                          className="flex-1 px-3 py-2 rounded-lg ring-1 ring-line-default/15 focus:ring-2 focus:ring-brand-primary-soft text-[14.5px] bg-surface-input text-ink-primary placeholder:text-ink-primary/30"
                           style={{ fontSize: '16px' }}
                         />
                         {pollOptions.length > 2 && (
@@ -1250,7 +1250,7 @@ const Wall: React.FC = () => {
                             type="button"
                             onClick={() => setPollOptions(prev => prev.filter((_, idx) => idx !== i))}
                             aria-label="Remove option"
-                            className="w-8 h-8 rounded-full text-bone/40 hover:text-rose-400 hover:bg-rose-500/150/15 flex items-center justify-center"
+                            className="w-8 h-8 rounded-full text-ink-primary/40 hover:text-rose-400 hover:bg-rose-500/150/15 flex items-center justify-center"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                           </button>
@@ -1278,7 +1278,7 @@ const Wall: React.FC = () => {
                   app. Hidden during edits since edits don't
                   re-send. */}
               {!editingPostId && (
-                <div className="mt-2 rounded-2xl ring-1 ring-white/10 bg-charcoal-900/70 px-4 py-3">
+                <div className="mt-2 rounded-2xl ring-1 ring-line-default/10 bg-surface-elevated/70 px-4 py-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       <svg className="w-4 h-4 text-brand-primary-soft shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -1286,8 +1286,8 @@ const Wall: React.FC = () => {
                         <path d="M3 7l9 6 9-6" />
                       </svg>
                       <div className="min-w-0">
-                        <p className="text-[12px] font-extrabold uppercase tracking-widest text-bone/85">Also email</p>
-                        <p className="text-[11px] text-bone/55 leading-snug truncate">
+                        <p className="text-[12px] font-extrabold uppercase tracking-widest text-ink-primary/85">Also email</p>
+                        <p className="text-[11px] text-ink-primary/55 leading-snug truncate">
                           {pollOn ? 'Email with a Vote button linking back here.' : 'Email parents who miss app pushes.'}
                         </p>
                       </div>
@@ -1298,7 +1298,7 @@ const Wall: React.FC = () => {
                       className={`shrink-0 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full transition ${
                         emailBlast
                           ? 'bg-brand-primary text-white'
-                          : 'bg-white/[0.06] text-bone/65 ring-1 ring-white/15 hover:bg-white/[0.1]'
+                          : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/15 hover:bg-line-default/[0.1]'
                       }`}
                     >
                       {emailBlast ? 'On' : 'Off'}
@@ -1314,9 +1314,9 @@ const Wall: React.FC = () => {
               )}
             </div>
 
-            <div className="px-4 sm:px-6 py-2.5 border-t border-white/5 bg-white/[0.03] flex items-center gap-3 text-[11px] text-bone/50">
+            <div className="px-4 sm:px-6 py-2.5 border-t border-line-default/5 bg-line-default/[0.03] flex items-center gap-3 text-[11px] text-ink-primary/50">
               {draftStatus === 'saved' && composer.trim() && (
-                <span className="inline-flex items-center gap-1 text-bone/40">
+                <span className="inline-flex items-center gap-1 text-ink-primary/40">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
                   Draft saved
                 </span>
@@ -1325,7 +1325,7 @@ const Wall: React.FC = () => {
                 <button
                   type="button"
                   onClick={discardDraft}
-                  className="text-bone/40 hover:text-rose-400 underline underline-offset-2"
+                  className="text-ink-primary/40 hover:text-rose-400 underline underline-offset-2"
                 >
                   Discard
                 </button>
@@ -1398,8 +1398,8 @@ const Wall: React.FC = () => {
                 <li
                   key={p.id}
                   data-post-id={p.id}
-                  className={`bg-charcoal-900 sm:rounded-2xl overflow-hidden shadow-sm ${
-                    isPinnedTop ? 'ring-2 ring-amber-300' : 'ring-1 ring-white/10'
+                  className={`bg-surface-elevated sm:rounded-2xl overflow-hidden shadow-sm ${
+                    isPinnedTop ? 'ring-2 ring-amber-300' : 'ring-1 ring-line-default/10'
                   }`}
                 >
                   {/* Card header — avatar, name + role, time, category
@@ -1418,7 +1418,7 @@ const Wall: React.FC = () => {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[15px] font-bold text-bone truncate">{p.senderName}</span>
+                        <span className="text-[15px] font-bold text-ink-primary truncate">{p.senderName}</span>
                         {p.senderRole === 'coach' && (
                           <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-primary-soft bg-brand-primary/150/15 ring-1 ring-brand-primary-soft/30 px-1.5 py-0.5 rounded">Coach</span>
                         )}
@@ -1426,10 +1426,10 @@ const Wall: React.FC = () => {
                           <span className="text-[9px] font-extrabold uppercase tracking-widest text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">Player</span>
                         )}
                       </div>
-                      <div className="text-[12px] text-bone/50 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <div className="text-[12px] text-ink-primary/50 mt-0.5 flex items-center gap-1.5 flex-wrap">
                         <span>{p.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                         {p.editedAt && (
-                          <span className="italic text-bone/40">· edited</span>
+                          <span className="italic text-ink-primary/40">· edited</span>
                         )}
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest ${tone.bg} ${tone.text} ring-1 ${tone.ring}`}>
                           {CATEGORY_LABEL[cat]}
@@ -1445,7 +1445,7 @@ const Wall: React.FC = () => {
                   </div>
 
                   {p.content && (
-                    <article className="px-4 pb-3 text-bone/90 break-words text-[15.5px] leading-relaxed">
+                    <article className="px-4 pb-3 text-ink-primary/90 break-words text-[15.5px] leading-relaxed">
                       {(p as any).contentFormat === 'tiptap-html' ? (
                         <div
                           className="tiptap-rendered"
@@ -1479,18 +1479,18 @@ const Wall: React.FC = () => {
                         src={p.attachments[0].url}
                         alt={p.attachments[0].name || 'attachment'}
                         loading="lazy"
-                        className="block w-full max-h-[520px] object-cover bg-charcoal-800"
+                        className="block w-full max-h-[520px] object-cover bg-surface-input"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                       />
                     ) : (
-                      <div className="grid grid-cols-2 gap-0.5 bg-charcoal-800">
+                      <div className="grid grid-cols-2 gap-0.5 bg-surface-input">
                         {p.attachments.slice(0, 4).map((a, i) => (
                           <img
                             key={i}
                             src={a.url}
                             alt={a.name || 'attachment'}
                             loading="lazy"
-                            className="block w-full h-44 sm:h-52 object-cover bg-charcoal-800"
+                            className="block w-full h-44 sm:h-52 object-cover bg-surface-input"
                             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                           />
                         ))}
@@ -1505,7 +1505,7 @@ const Wall: React.FC = () => {
                       end of this row so it's grouped with the rest of
                       the engagement signals. */}
                   {(reactionEntries.length > 0 || (commentCounts[p.id] || 0) > 0 || (canSeeSeen && seenCount > 0)) && (
-                    <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-bone/50">
+                    <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-ink-primary/50">
                       {reactionEntries.map(([emoji, info]) => (
                         <button
                           key={emoji}
@@ -1514,7 +1514,7 @@ const Wall: React.FC = () => {
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] ring-1 transition ${
                             info.mine
                               ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
-                              : 'bg-white/[0.04] ring-white/10 text-bone/85 hover:bg-white/[0.08]'
+                              : 'bg-line-default/[0.04] ring-line-default/10 text-ink-primary/85 hover:bg-line-default/[0.08]'
                           }`}
                         >
                           <span className="text-sm leading-none">{emoji}</span>
@@ -1538,7 +1538,7 @@ const Wall: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setViewersPostId(p.id)}
-                          className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-bone/55 hover:text-brand-primary-soft transition-colors ${(commentCounts[p.id] || 0) > 0 ? '' : 'ml-auto'}`}
+                          className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-ink-primary/55 hover:text-brand-primary-soft transition-colors ${(commentCounts[p.id] || 0) > 0 ? '' : 'ml-auto'}`}
                           title="See who's viewed this post"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -1556,12 +1556,12 @@ const Wall: React.FC = () => {
                       composer modal). Gives each card a polished
                       "front page" feel rather than the flat white
                       Slack-ish look. */}
-                  <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-2 py-1 flex items-center justify-around">
+                  <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-2 py-1 flex items-center justify-around">
                     <button
                       type="button"
                       onClick={() => setReactingPostId(p.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest transition active:scale-95 ${
-                        myLike ? 'text-rose-300' : 'text-bone/80 hover:text-white'
+                        myLike ? 'text-rose-300' : 'text-ink-primary/80 hover:text-white'
                       }`}
                     >
                       <svg className="w-5 h-5" fill={myLike ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -1572,7 +1572,7 @@ const Wall: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => toggleExpand(p.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest text-bone/80 hover:text-white active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest text-ink-primary/80 hover:text-white active:scale-95"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -1583,7 +1583,7 @@ const Wall: React.FC = () => {
                       type="button"
                       onClick={() => shareToWeb(p)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest active:scale-95 ${
-                        (p as any).isPublic ? 'text-emerald-300 hover:text-emerald-200' : 'text-bone/80 hover:text-white'
+                        (p as any).isPublic ? 'text-emerald-300 hover:text-emerald-200' : 'text-ink-primary/80 hover:text-white'
                       }`}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -1594,7 +1594,7 @@ const Wall: React.FC = () => {
                         type="button"
                         onClick={() => setManagePostId(p.id)}
                         aria-label="Manage post"
-                        className="w-10 py-2 flex items-center justify-center rounded-lg text-bone/60 hover:text-white active:scale-95"
+                        className="w-10 py-2 flex items-center justify-center rounded-lg text-ink-primary/60 hover:text-white active:scale-95"
                       >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>
                       </button>
@@ -1605,19 +1605,19 @@ const Wall: React.FC = () => {
                       so engagement feels alive. Tap "View all" or any
                       comment to expand the full thread + composer. */}
                   {previewComments.length > 0 && !expanded[p.id] && (
-                    <div className="px-4 pb-3 border-t border-white/5 pt-2 space-y-1.5">
+                    <div className="px-4 pb-3 border-t border-line-default/5 pt-2 space-y-1.5">
                       {hiddenCount > 0 && (
                         <button
                           type="button"
                           onClick={() => toggleExpand(p.id)}
-                          className="text-[12px] text-bone/50 hover:text-brand-primary-soft font-semibold"
+                          className="text-[12px] text-ink-primary/50 hover:text-brand-primary-soft font-semibold"
                         >
                           View all {commentCounts[p.id]} comments
                         </button>
                       )}
                       {previewComments.map(c => (
-                        <div key={c.id} className="text-[13.5px] text-bone/90 leading-snug">
-                          <span className="font-bold text-bone">{c.senderName}</span>{' '}
+                        <div key={c.id} className="text-[13.5px] text-ink-primary/90 leading-snug">
+                          <span className="font-bold text-ink-primary">{c.senderName}</span>{' '}
                           <span className="break-words">{c.content}</span>
                         </div>
                       ))}
@@ -1625,7 +1625,7 @@ const Wall: React.FC = () => {
                   )}
 
                   {expanded[p.id] && (
-                    <div id={`wall-comments-${p.id}`} className="border-t border-white/5 bg-white/[0.04] px-4 py-3 space-y-3">
+                    <div id={`wall-comments-${p.id}`} className="border-t border-line-default/5 bg-line-default/[0.04] px-4 py-3 space-y-3">
                       {commentsForPost.length > 0 && (
                         <ul className="space-y-2.5">
                           {commentsForPost.map(c => (
@@ -1637,20 +1637,20 @@ const Wall: React.FC = () => {
                                 variant="parent"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="rounded-2xl bg-charcoal-800 ring-1 ring-white/10 px-3 py-2">
+                                <div className="rounded-2xl bg-surface-input ring-1 ring-line-default/10 px-3 py-2">
                                   <div className="flex items-baseline gap-2">
-                                    <span className="text-[13px] font-bold text-bone">{c.senderName}</span>
-                                    <span className="text-[10px] text-bone/40">
+                                    <span className="text-[13px] font-bold text-ink-primary">{c.senderName}</span>
+                                    <span className="text-[10px] text-ink-primary/40">
                                       {c.timestamp.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                     </span>
                                   </div>
-                                  <p className="text-[14px] text-bone/90 whitespace-pre-wrap break-words mt-0.5">{c.content}</p>
+                                  <p className="text-[14px] text-ink-primary/90 whitespace-pre-wrap break-words mt-0.5">{c.content}</p>
                                 </div>
                                 {(c.senderId === userData?.uid || canManage) && (
                                   <button
                                     type="button"
                                     onClick={() => deleteComment(c)}
-                                    className="mt-1 text-[10px] text-bone/40 hover:text-rose-400 underline underline-offset-2"
+                                    className="mt-1 text-[10px] text-ink-primary/40 hover:text-rose-400 underline underline-offset-2"
                                   >
                                     Delete
                                   </button>
@@ -1674,7 +1674,7 @@ const Wall: React.FC = () => {
                               onChange={(e) => setCommentDrafts(prev => ({ ...prev, [p.id]: e.target.value }))}
                               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void submitComment(p.id); } }}
                               placeholder="Write a comment…"
-                              className="flex-1 px-3 py-2 rounded-full ring-1 ring-white/10 focus:ring-2 focus:ring-brand-primary-soft text-sm bg-charcoal-800 text-bone placeholder:text-bone/30"
+                              className="flex-1 px-3 py-2 rounded-full ring-1 ring-line-default/10 focus:ring-2 focus:ring-brand-primary-soft text-sm bg-surface-input text-ink-primary placeholder:text-ink-primary/30"
                               style={{ fontSize: '16px' }}
                             />
                             <button
@@ -1737,11 +1737,11 @@ const Wall: React.FC = () => {
             onClick={() => setReactorsPostId(null)}
           >
             <div
-              className="bg-charcoal-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              className="bg-surface-elevated w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
-                <button onClick={() => setReactorsPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white">
+              <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
+                <button onClick={() => setReactorsPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white">
                   Close
                 </button>
                 <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">
@@ -1751,19 +1751,19 @@ const Wall: React.FC = () => {
               </div>
               <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 {emojis.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-bone/50">No reactions yet.</div>
+                  <div className="px-4 py-8 text-center text-sm text-ink-primary/50">No reactions yet.</div>
                 ) : (
                   emojis.map(emoji => (
-                    <div key={emoji} className="border-b border-white/5 last:border-b-0">
-                      <div className="px-4 py-2 bg-white/[0.04] flex items-center justify-between">
+                    <div key={emoji} className="border-b border-line-default/5 last:border-b-0">
+                      <div className="px-4 py-2 bg-line-default/[0.04] flex items-center justify-between">
                         <span className="text-base">{emoji}</span>
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-bone/50">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/50">
                           {grouped[emoji].length}
                         </span>
                       </div>
                       <ul>
                         {grouped[emoji].map(r => (
-                          <li key={r.uid} className="px-4 py-2 text-[14px] text-bone/90 border-b border-slate-50 last:border-b-0">
+                          <li key={r.uid} className="px-4 py-2 text-[14px] text-ink-primary/90 border-b border-slate-50 last:border-b-0">
                             {r.name}
                           </li>
                         ))}
@@ -1820,11 +1820,11 @@ const Wall: React.FC = () => {
             onClick={() => setViewersPostId(null)}
           >
             <div
-              className="bg-charcoal-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              className="bg-surface-elevated w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between flex-shrink-0">
-                <button onClick={() => setViewersPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white">
+              <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
+                <button onClick={() => setViewersPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white">
                   Close
                 </button>
                 <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">
@@ -1834,17 +1834,17 @@ const Wall: React.FC = () => {
               </div>
               <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 {uids.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-bone/50">No views yet.</div>
+                  <div className="px-4 py-8 text-center text-sm text-ink-primary/50">No views yet.</div>
                 ) : (
                   <ul>
                     {uids.map((uid) => {
                       const ts = viewedBy[uid];
                       const ms = ts?.toMillis ? ts.toMillis() : (ts instanceof Date ? ts.getTime() : null);
                       return (
-                        <li key={uid} className="px-4 py-2.5 text-[14px] text-bone/90 border-b border-white/5 last:border-b-0 flex items-center justify-between gap-2">
+                        <li key={uid} className="px-4 py-2.5 text-[14px] text-ink-primary/90 border-b border-line-default/5 last:border-b-0 flex items-center justify-between gap-2">
                           <span className="truncate">{nameFor(uid)}</span>
                           {ms && (
-                            <span className="text-[11px] text-bone/45 shrink-0 tabular-nums">
+                            <span className="text-[11px] text-ink-primary/45 shrink-0 tabular-nums">
                               {new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                             </span>
                           )}
@@ -1873,17 +1873,17 @@ const Wall: React.FC = () => {
             onClick={() => setManagePostId(null)}
           >
             <div
-              className="bg-charcoal-900 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
+              className="bg-surface-elevated w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-sheet-up sm:animate-pop-in"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-b from-charcoal-950 to-charcoal-900 px-4 py-3 flex items-center justify-between">
+              <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between">
                 <span className="w-12" aria-hidden />
                 <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">Manage post</div>
                 <button
                   type="button"
                   onClick={() => setManagePostId(null)}
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-bone/40 hover:text-white"
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white"
                 >
                   Close
                 </button>
@@ -1893,31 +1893,31 @@ const Wall: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { void togglePinTop(target); setManagePostId(null); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.05] active:bg-white/[0.1]"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
                   >
                     <svg className="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <line x1="12" y1="17" x2="12" y2="22" />
                       <path d="M5 17h14l-1.5-3.5L17 5H7l-.5 8.5L5 17z" />
                     </svg>
-                    <span className="text-[15px] font-bold text-bone">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
+                    <span className="text-[15px] font-bold text-ink-primary">{isPinned ? 'Unpin from top' : 'Pin to top'}</span>
                   </button>
                 </li>
                 <li>
                   <button
                     type="button"
                     onClick={() => { setManagePostId(null); void emailExistingPost(target); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.05] active:bg-white/[0.1]"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
                   >
                     <svg className="w-5 h-5 text-sky-300 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                       <polyline points="22,6 12,13 2,6" />
                     </svg>
                     <div className="flex-1">
-                      <span className="text-[15px] font-bold text-bone block">
+                      <span className="text-[15px] font-bold text-ink-primary block">
                         {target.emailedAt ? 'Resend email' : 'Email to team'}
                       </span>
                       {target.emailedAt && (
-                        <span className="text-[11px] text-bone/55 block mt-0.5">
+                        <span className="text-[11px] text-ink-primary/55 block mt-0.5">
                           Last sent {fmtRelativeShort(target.emailedAt)}
                         </span>
                       )}
@@ -1928,13 +1928,13 @@ const Wall: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => openEdit(target)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.05] active:bg-white/[0.1]"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-line-default/[0.05] active:bg-line-default/[0.1]"
                   >
                     <svg className="w-5 h-5 text-brand-primary-soft shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 20h9" />
                       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
                     </svg>
-                    <span className="text-[15px] font-bold text-bone">Edit post</span>
+                    <span className="text-[15px] font-bold text-ink-primary">Edit post</span>
                   </button>
                 </li>
                 <li>
@@ -1978,14 +1978,14 @@ const PostAvatar: React.FC<{
   variant?: 'coach' | 'parent';
 }> = ({ photoUrl, name, size = 'md', variant = 'parent' }) => {
   const sz = size === 'sm' ? 'w-8 h-8 text-[11px]' : 'w-10 h-10 text-[15px]';
-  const ring = variant === 'coach' ? 'ring-brand-primary-soft/30' : 'ring-white/10';
+  const ring = variant === 'coach' ? 'ring-brand-primary-soft/30' : 'ring-line-default/10';
   if (photoUrl) {
     return (
       <img
         src={photoUrl}
         alt={name || ''}
         loading="lazy"
-        className={`${sz} rounded-full object-cover shrink-0 ring-1 ${ring} bg-white/[0.1]`}
+        className={`${sz} rounded-full object-cover shrink-0 ring-1 ${ring} bg-line-default/[0.1]`}
         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
       />
     );
@@ -1995,7 +1995,7 @@ const PostAvatar: React.FC<{
       className={`${sz} rounded-full flex items-center justify-center font-extrabold shrink-0 ring-1 ${
         variant === 'coach'
           ? 'bg-brand-primary-soft text-brand-primary-soft ring-brand-primary-soft/30'
-          : 'bg-white/[0.08] text-bone/85 ring-white/10'
+          : 'bg-line-default/[0.08] text-ink-primary/85 ring-line-default/10'
       }`}
     >
       {(name || '?').charAt(0).toUpperCase()}
@@ -2006,7 +2006,7 @@ const PostAvatar: React.FC<{
 // ── Toolbar building blocks ────────────────────────────────────
 
 const ToolGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="inline-flex items-center border-r border-white/10 last:border-r-0 pr-1 mr-1 last:pr-0 last:mr-0">
+  <div className="inline-flex items-center border-r border-line-default/10 last:border-r-0 pr-1 mr-1 last:pr-0 last:mr-0">
     {children}
   </div>
 );
@@ -2017,7 +2017,7 @@ const ToolbarBtn: React.FC<{ title: string; onClick: () => void; icon: React.Rea
     onClick={onClick}
     title={title}
     aria-label={title}
-    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-bone/85 hover:bg-white/[0.08] active:bg-white/[0.12] transition"
+    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-ink-primary/85 hover:bg-line-default/[0.08] active:bg-line-default/[0.12] transition"
   >
     {icon}
   </button>
@@ -2137,7 +2137,7 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
     const text = quoteBuffer.join('\n');
     quoteBuffer = [];
     blocks.push(
-      <blockquote key={keyPrefix} className="my-4 pl-4 border-l-4 border-brand-primary-soft text-bone/65 italic whitespace-pre-wrap">
+      <blockquote key={keyPrefix} className="my-4 pl-4 border-l-4 border-brand-primary-soft text-ink-primary/65 italic whitespace-pre-wrap">
         {renderInline(text)}
       </blockquote>
     );
@@ -2158,7 +2158,7 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
           src={imgMatch[2]}
           alt={imgMatch[1] || ''}
           loading="lazy"
-          className="block my-3 rounded-xl w-full max-h-[520px] object-cover ring-1 ring-white/10"
+          className="block my-3 rounded-xl w-full max-h-[520px] object-cover ring-1 ring-line-default/10"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       );
@@ -2167,7 +2167,7 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
     // Horizontal rule
     if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
       flushAll(`hr-${i}`);
-      blocks.push(<hr key={`hr-${i}`} className="my-5 border-t border-white/10" />);
+      blocks.push(<hr key={`hr-${i}`} className="my-5 border-t border-line-default/10" />);
       return;
     }
     // Headings
@@ -2176,9 +2176,9 @@ export const RichContent: React.FC<{ text: string }> = ({ text }) => {
       flushAll(`h-${i}`);
       const level = headingMatch[1].length;
       const inner = renderInline(headingMatch[2]);
-      if (level === 1) blocks.push(<h2 key={`h-${i}`} className="text-2xl sm:text-3xl font-black text-bone leading-tight mt-5 mb-3 first:mt-0">{inner}</h2>);
-      else if (level === 2) blocks.push(<h3 key={`h-${i}`} className="text-xl sm:text-2xl font-extrabold text-bone leading-snug mt-5 mb-2 first:mt-0">{inner}</h3>);
-      else blocks.push(<h4 key={`h-${i}`} className="text-base sm:text-lg font-extrabold text-bone uppercase tracking-wide mt-4 mb-2 first:mt-0">{inner}</h4>);
+      if (level === 1) blocks.push(<h2 key={`h-${i}`} className="text-2xl sm:text-3xl font-black text-ink-primary leading-tight mt-5 mb-3 first:mt-0">{inner}</h2>);
+      else if (level === 2) blocks.push(<h3 key={`h-${i}`} className="text-xl sm:text-2xl font-extrabold text-ink-primary leading-snug mt-5 mb-2 first:mt-0">{inner}</h3>);
+      else blocks.push(<h4 key={`h-${i}`} className="text-base sm:text-lg font-extrabold text-ink-primary uppercase tracking-wide mt-4 mb-2 first:mt-0">{inner}</h4>);
       return;
     }
     // Blockquote
@@ -2252,7 +2252,7 @@ function renderInline(text: string): React.ReactNode {
     if (text[i] === '`') {
       const end = text.indexOf('`', i + 1);
       if (end !== -1) {
-        out.push(<code key={key++} className="px-1 py-0.5 rounded bg-white/[0.08] text-bone/85 text-[13px] font-mono">{text.slice(i + 1, end)}</code>);
+        out.push(<code key={key++} className="px-1 py-0.5 rounded bg-line-default/[0.08] text-ink-primary/85 text-[13px] font-mono">{text.slice(i + 1, end)}</code>);
         i = end + 1;
         continue;
       }

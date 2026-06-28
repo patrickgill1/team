@@ -97,12 +97,12 @@ const HelpdeskTicketPage = React.lazy(() => import('./pages/HelpdeskTicket'));
 // (same dark navy bg) and shows the app mark with a subtle bouncing
 // three-dot indicator below so the user knows something's happening.
 const PageSpinner = () => (
-  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center">
     <div className="flex flex-col items-center gap-6 animate-fade-in">
       <img
         src="/images/logo.png"
         alt=""
-        className="w-24 h-24 rounded-2xl shadow-2xl shadow-brand-primary/20 ring-1 ring-white/10 splash-breathe"
+        className="w-24 h-24 rounded-2xl shadow-2xl shadow-brand-primary/20 ring-1 ring-line-default/10 splash-breathe"
       />
       <div className="flex items-center gap-1.5">
         <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '0ms' }} />
@@ -187,7 +187,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary/30 border-t-cyan-400" />
         </div>
@@ -476,11 +476,11 @@ function App() {
                     fallback={(
                       <div className="min-h-[60vh] flex items-center justify-center p-6">
                         <div className="text-center max-w-sm">
-                          <p className="text-bone/85 font-bold mb-1">Reconnecting chat…</p>
-                          <p className="text-bone/55 text-sm mb-4">Your messages are safe. Pull to refresh, or wait a moment.</p>
+                          <p className="text-ink-primary/85 font-bold mb-1">Reconnecting chat…</p>
+                          <p className="text-ink-primary/55 text-sm mb-4">Your messages are safe. Pull to refresh, or wait a moment.</p>
                           <button
                             onClick={() => window.location.reload()}
-                            className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-bone"
+                            className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary"
                           >
                             Tap to refresh
                           </button>
@@ -944,7 +944,7 @@ const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
       className="fixed left-0 right-0 z-[9998] pointer-events-none"
       style={{ top: 'env(safe-area-inset-top)' }}
     >
-      <div className="mx-3 mt-1 rounded-full bg-charcoal-900/85 ring-1 ring-brand-primary-soft/20 backdrop-blur-md shadow-lg shadow-brand-primary/10 overflow-hidden">
+      <div className="mx-3 mt-1 rounded-full bg-surface-elevated/85 ring-1 ring-brand-primary-soft/20 backdrop-blur-md shadow-lg shadow-brand-primary/10 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-1.5">
           <span className="relative flex h-2 w-2">
             <span className="absolute inset-0 rounded-full bg-brand-primary-soft animate-ping opacity-75" />
@@ -954,7 +954,7 @@ const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
             Updating · {Math.max(1, Math.floor(percent))}%
           </span>
         </div>
-        <div className="h-0.5 bg-white/5">
+        <div className="h-0.5 bg-line-default/5">
           <div
             className="h-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 transition-[width] duration-300 ease-out"
             style={{ width: `${Math.max(2, Math.floor(percent))}%` }}
@@ -981,7 +981,7 @@ const UpdateReadyPill: React.FC = () => {
       className="fixed left-0 right-0 z-[9998] pointer-events-none"
       style={{ top: 'env(safe-area-inset-top)' }}
     >
-      <div className="mx-3 mt-1 rounded-full bg-charcoal-900/90 ring-1 ring-emerald-400/30 backdrop-blur-md shadow-lg shadow-emerald-500/15 pointer-events-auto">
+      <div className="mx-3 mt-1 rounded-full bg-surface-elevated/90 ring-1 ring-emerald-400/30 backdrop-blur-md shadow-lg shadow-emerald-500/15 pointer-events-auto">
         <div className="flex items-center gap-2 px-3 py-2">
           <span className="relative flex h-2 w-2">
             <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
@@ -1015,17 +1015,17 @@ const UpdatingSplash: React.FC = () => {
   return (
     <div
       aria-hidden
-      className="fixed inset-0 z-[9999] bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex flex-col items-center justify-center animate-fade-in"
+      className="fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-black flex flex-col items-center justify-center animate-fade-in"
     >
       <div className="flex flex-col items-center gap-6">
         <img
           src="/images/logo.png"
           alt=""
-          className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-white/10 splash-breathe"
+          className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
         />
         <div className="flex flex-col items-center gap-3">
           <p className="text-white/85 text-sm font-semibold tracking-wide">Updating…</p>
-          <div className="w-44 h-1 rounded-full bg-white/10 overflow-hidden">
+          <div className="w-44 h-1 rounded-full bg-line-default/10 overflow-hidden">
             <div className="h-full w-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 animate-shimmer-bar" />
           </div>
         </div>
@@ -1079,14 +1079,14 @@ const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center px-8 transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center px-8 transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       style={{ transitionDuration: '400ms' }}
     >
       <div className="flex flex-col items-center gap-6 max-w-md">
         <img
           src="/images/logo.png"
           alt=""
-          className="w-20 h-20 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-white/10 splash-breathe"
+          className="w-20 h-20 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
         />
         <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-brand-primary-soft/70">
           {KIND_LABEL[item.kind]}
@@ -1163,14 +1163,14 @@ const BrandedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center transition-opacity ${fading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       style={{ transitionDuration: '400ms' }}
     >
       <div className="flex flex-col items-center gap-6">
         <img
           src="/images/logo.png"
           alt=""
-          className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-white/10 splash-breathe"
+          className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
         />
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '0ms' }} />

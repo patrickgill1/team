@@ -330,11 +330,11 @@ const CoachAccordionBar: React.FC = () => {
   // text color change between states. Keeps the visual chrome
   // consistent so the eye only learns one shape, then watches the dot
   // for attention cues.
-  const collapsedBarClass = 'bg-charcoal-950/35 backdrop-blur-md';
+  const collapsedBarClass = 'bg-surface-base/35 backdrop-blur-md';
   const dotClass = hasItems
     ? `${top!.dot} animate-pulse`
     : 'bg-bone/30';
-  const textClass = hasItems ? top!.text : 'text-bone/70';
+  const textClass = hasItems ? top!.text : 'text-ink-primary/70';
 
   return (
     // Wrapper mirrors NextEventPoster's outer section (px-3 sm:px-4,
@@ -368,7 +368,7 @@ const CoachAccordionBar: React.FC = () => {
         // flush against the button with rounded-b-2xl matching the
         // bar's bottom-corner radius. Glassy charcoal so the photo
         // tints through, consistent with the bar.
-        <div className="bg-charcoal-950/55 backdrop-blur-md rounded-b-2xl animate-fade-in">
+        <div className="bg-surface-base/55 backdrop-blur-md rounded-b-2xl animate-fade-in">
           <div className="px-4 py-3 space-y-3">
             {hasItems && (
               <ul className="flex flex-wrap gap-1.5">
@@ -412,16 +412,16 @@ const CoachAccordionBar: React.FC = () => {
                       <Link
                         to="/chat"
                         onClick={() => setExpanded(false)}
-                        className="flex items-center gap-2.5 px-1 py-1.5 rounded-md hover:bg-white/[0.04] transition"
+                        className="flex items-center gap-2.5 px-1 py-1.5 rounded-md hover:bg-line-default/[0.04] transition"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-[12.5px] font-bold text-bone truncate">{p.senderName}</span>
-                            <span className="text-[10px] text-bone/40 shrink-0">{ago}</span>
+                            <span className="text-[12.5px] font-bold text-ink-primary truncate">{p.senderName}</span>
+                            <span className="text-[10px] text-ink-primary/40 shrink-0">{ago}</span>
                           </div>
-                          <p className="text-[11.5px] text-bone/65 truncate">{p.snippet}</p>
+                          <p className="text-[11.5px] text-ink-primary/65 truncate">{p.snippet}</p>
                         </div>
-                        <svg className="w-3 h-3 text-bone/35 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+                        <svg className="w-3 h-3 text-ink-primary/35 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
                       </Link>
                     </li>
                   );
@@ -431,19 +431,19 @@ const CoachAccordionBar: React.FC = () => {
 
             {/* Quick action 2x4 — what coaches do daily */}
             <div className="grid grid-cols-4 gap-1.5">
-              <Link to="/events" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+              <Link to="/events" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary">
                 <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                 <span className="text-[10px] font-bold">Event</span>
               </Link>
-              <Link to="/chat" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+              <Link to="/chat" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary">
                 <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
                 <span className="text-[10px] font-bold">Message</span>
               </Link>
-              <Link to="/wall" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+              <Link to="/wall" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary">
                 <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><line x1="7" y1="9" x2="17" y2="9" /><line x1="7" y1="13" x2="17" y2="13" /><line x1="7" y1="17" x2="13" y2="17" /></svg>
                 <span className="text-[10px] font-bold">Post</span>
               </Link>
-              <Link to="/coach" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-charcoal-950 ring-1 ring-white/10 hover:ring-brand-primary/30 transition py-2 text-bone/85 hover:text-bone">
+              <Link to="/coach" onClick={() => setExpanded(false)} className="flex flex-col items-center gap-0.5 rounded-lg bg-surface-base ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition py-2 text-ink-primary/85 hover:text-ink-primary">
                 <svg className="w-4 h-4 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>
                 <span className="text-[10px] font-bold">Cockpit</span>
               </Link>

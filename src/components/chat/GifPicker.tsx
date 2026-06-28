@@ -47,18 +47,18 @@ const GifPicker: React.FC<Props> = ({ isOpen, onClose, onPick }) => {
       onClick={onClose}
     >
       <div
-        className="bg-charcoal-900 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col"
+        className="bg-surface-elevated w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col"
         style={{ maxHeight: '85vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
-          <span className="font-bold text-bone">GIFs</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-bone/40">
+        <div className="px-4 py-3 border-b border-line-default/5 flex items-center gap-2">
+          <span className="font-bold text-ink-primary">GIFs</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-primary/40">
             Powered by {process.env.REACT_APP_TENOR_API_KEY ? 'Tenor' : 'GIPHY'}
           </span>
           <button
             onClick={onClose}
-            className="ml-auto p-1.5 rounded-lg hover:bg-white/[0.08] text-bone/50"
+            className="ml-auto p-1.5 rounded-lg hover:bg-line-default/[0.08] text-ink-primary/50"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,35 +68,35 @@ const GifPicker: React.FC<Props> = ({ isOpen, onClose, onPick }) => {
         </div>
 
         {!tenorEnabled() ? (
-          <div className="p-6 text-center text-sm text-bone/50">
-            GIF search is offline. (Add <code className="bg-charcoal-800 px-1 rounded text-xs">REACT_APP_TENOR_API_KEY</code> or <code className="bg-charcoal-800 px-1 rounded text-xs">REACT_APP_GIPHY_API_KEY</code> to enable.)
+          <div className="p-6 text-center text-sm text-ink-primary/50">
+            GIF search is offline. (Add <code className="bg-surface-input px-1 rounded text-xs">REACT_APP_TENOR_API_KEY</code> or <code className="bg-surface-input px-1 rounded text-xs">REACT_APP_GIPHY_API_KEY</code> to enable.)
           </div>
         ) : (
           <>
-            <div className="p-3 border-b border-white/5">
+            <div className="p-3 border-b border-line-default/5">
               <input
                 autoFocus
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search GIFs (e.g. goal, high five, celebrate)"
-                className="w-full bg-charcoal-800 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft text-[15px]"
+                className="w-full bg-surface-input rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft text-[15px]"
                 style={{ fontSize: '16px' }}
               />
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
               {loading && results.length === 0 ? (
-                <div className="p-6 text-center text-sm text-bone/40">Loading…</div>
+                <div className="p-6 text-center text-sm text-ink-primary/40">Loading…</div>
               ) : results.length === 0 ? (
-                <div className="p-6 text-center text-sm text-bone/40">No GIFs found.</div>
+                <div className="p-6 text-center text-sm text-ink-primary/40">No GIFs found.</div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                   {results.map((g) => (
                     <button
                       key={g.id}
                       onClick={() => { onPick(g); onClose(); }}
-                      className="relative overflow-hidden rounded-lg bg-charcoal-800 hover:opacity-80 transition-opacity active:scale-95"
+                      className="relative overflow-hidden rounded-lg bg-surface-input hover:opacity-80 transition-opacity active:scale-95"
                       style={{ aspectRatio: `${g.width} / ${g.height}` }}
                       title={g.description}
                     >

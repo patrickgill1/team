@@ -129,7 +129,7 @@ const SwipeableThreadRow: React.FC<Props> = ({ children, onPinToggle, isPinned, 
           transform: `translateX(${dx}px)`,
           transition: settling ? 'transform 220ms cubic-bezier(0.32, 0.72, 0, 1)' : undefined,
         }}
-        className="bg-charcoal-900 relative z-10"
+        className="bg-surface-elevated relative z-10"
       >
         {children}
       </div>

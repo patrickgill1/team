@@ -80,12 +80,12 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
   const currentColor = club?.brandColor || '#DC2626';
 
   return (
-    <div className="bg-charcoal-900 rounded-2xl ring-1 ring-white/10 p-5 sm:p-6">
+    <div className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Branding</p>
-          <h2 className="text-bone font-bold text-lg">Club logo + color</h2>
-          <p className="text-bone/60 text-xs mt-1">Shows on the parent invite page and your club&apos;s public surfaces.</p>
+          <h2 className="text-ink-primary font-bold text-lg">Club logo + color</h2>
+          <p className="text-ink-primary/60 text-xs mt-1">Shows on the parent invite page and your club&apos;s public surfaces.</p>
         </div>
         {savedAt && Date.now() - savedAt < 3000 && (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-300">
@@ -97,13 +97,13 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
 
       <div className="flex items-center gap-4 mb-5">
         <div
-          className="w-16 h-16 rounded-xl bg-charcoal-950 ring-1 ring-white/10 overflow-hidden flex items-center justify-center"
+          className="w-16 h-16 rounded-xl bg-surface-base ring-1 ring-line-default/10 overflow-hidden flex items-center justify-center"
           style={{ boxShadow: `0 0 0 2px ${currentColor}` }}
         >
           {club?.logoUrl ? (
             <img src={club.logoUrl} alt={`${club.name || 'Club'} logo`} className="w-full h-full object-contain" />
           ) : (
-            <span className="text-bone/30 text-xs font-bold">No logo</span>
+            <span className="text-ink-primary/30 text-xs font-bold">No logo</span>
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -111,11 +111,11 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="px-4 py-2 rounded-md font-bold text-sm bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 transition disabled:opacity-60"
+            className="px-4 py-2 rounded-md font-bold text-sm bg-surface-input ring-1 ring-line-default/10 hover:ring-line-default/25 transition disabled:opacity-60"
           >
             {uploading ? 'Uploading…' : club?.logoUrl ? 'Replace logo' : 'Upload logo'}
           </button>
-          <p className="text-bone/40 text-[11px] mt-2">PNG or SVG, max 2MB. Square works best.</p>
+          <p className="text-ink-primary/40 text-[11px] mt-2">PNG or SVG, max 2MB. Square works best.</p>
           <input
             ref={fileRef}
             type="file"
@@ -127,7 +127,7 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
       </div>
 
       <div>
-        <p className="text-bone/70 text-[11px] font-bold uppercase tracking-widest mb-2">Brand color</p>
+        <p className="text-ink-primary/70 text-[11px] font-bold uppercase tracking-widest mb-2">Brand color</p>
         <div className="flex flex-wrap gap-2">
           {PRESET_COLORS.map(c => {
             const selected = currentColor.toLowerCase() === c.hex.toLowerCase();
@@ -139,12 +139,12 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
                 disabled={saving}
                 title={c.label}
                 aria-label={c.label}
-                className={`w-9 h-9 rounded-full transition ${selected ? 'ring-2 ring-bone scale-110' : 'ring-1 ring-white/15 hover:ring-white/40'}`}
+                className={`w-9 h-9 rounded-full transition ${selected ? 'ring-2 ring-bone scale-110' : 'ring-1 ring-line-default/15 hover:ring-line-default/40'}`}
                 style={{ backgroundColor: c.hex }}
               />
             );
           })}
-          <label className="inline-flex items-center gap-2 px-3 h-9 rounded-md bg-charcoal-800 ring-1 ring-white/10 hover:ring-white/25 cursor-pointer transition">
+          <label className="inline-flex items-center gap-2 px-3 h-9 rounded-md bg-surface-input ring-1 ring-line-default/10 hover:ring-line-default/25 cursor-pointer transition">
             <input
               type="color"
               value={currentColor}
@@ -152,7 +152,7 @@ const ClubBrandingCard: React.FC<Props> = ({ club }) => {
               className="w-5 h-5 rounded cursor-pointer bg-transparent border-0 p-0"
               aria-label="Custom color"
             />
-            <span className="text-bone/70 text-xs">Custom</span>
+            <span className="text-ink-primary/70 text-xs">Custom</span>
           </label>
         </div>
       </div>

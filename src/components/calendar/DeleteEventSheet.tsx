@@ -89,7 +89,7 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
       }
     >
       <div className="space-y-3">
-        <label className="flex items-start gap-3 rounded-xl ring-1 ring-white/10 px-3 py-2.5 bg-white/[0.04] cursor-pointer">
+        <label className="flex items-start gap-3 rounded-xl ring-1 ring-line-default/10 px-3 py-2.5 bg-line-default/[0.04] cursor-pointer">
           <input
             type="checkbox"
             className="mt-1 w-4 h-4 accent-brand-primary"
@@ -97,8 +97,8 @@ const DeleteEventSheet: React.FC<Props> = ({ event, onClose, onDeleted }) => {
             onChange={(e) => setAlertTeam(e.target.checked)}
           />
           <span className="flex-1">
-            <span className="block text-[14px] font-bold text-bone">Alert the team</span>
-            <span className="block text-[12px] text-bone/55 mt-0.5">
+            <span className="block text-[14px] font-bold text-ink-primary">Alert the team</span>
+            <span className="block text-[12px] text-ink-primary/55 mt-0.5">
               Push notification to everyone who RSVPed. Turn off for silent cleanup (duplicate event, test entry, etc.).
             </span>
           </span>

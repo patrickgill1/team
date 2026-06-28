@@ -48,12 +48,12 @@ const SubscribeBanner: React.FC = () => {
   };
 
   return (
-    <div className="relative rounded-2xl bg-gradient-to-br from-brand-primary-deep/40 via-charcoal-900 to-charcoal-900 ring-1 ring-brand-primary/40 p-4 sm:p-5 overflow-hidden">
+    <div className="relative rounded-2xl bg-gradient-to-br from-brand-primary-deep/40 via-surface-elevated to-surface-elevated ring-1 ring-brand-primary/40 p-4 sm:p-5 overflow-hidden">
       <button
         type="button"
         onClick={handleDismiss}
         aria-label="Dismiss"
-        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full text-bone/50 hover:text-bone hover:bg-white/5 flex items-center justify-center transition"
+        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full text-ink-primary/50 hover:text-ink-primary hover:bg-line-default/5 flex items-center justify-center transition"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
@@ -69,7 +69,7 @@ const SubscribeBanner: React.FC = () => {
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
             Free version
           </p>
-          <p className="text-bone font-bold leading-tight">
+          <p className="text-ink-primary font-bold leading-tight">
             Start your 7-day free trial.
           </p>
           <p className="text-charcoal-300 text-sm mt-1.5 leading-snug">

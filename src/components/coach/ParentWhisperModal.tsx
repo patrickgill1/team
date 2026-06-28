@@ -145,14 +145,14 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
       <div className="space-y-4">
         {/* Quick presets */}
         <div>
-          <div className="text-[10px] font-extrabold uppercase tracking-widest text-bone/55 mb-2">Quick start</div>
+          <div className="text-[10px] font-extrabold uppercase tracking-widest text-ink-primary/55 mb-2">Quick start</div>
           <div className="flex flex-wrap gap-2">
             {presetMessages.map((p, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setMessage(p)}
-                className="text-xs px-2.5 py-1.5 rounded-lg bg-brand-primary/15 hover:bg-brand-primary/25 text-bone ring-1 ring-brand-primary-soft/30"
+                className="text-xs px-2.5 py-1.5 rounded-lg bg-brand-primary/15 hover:bg-brand-primary/25 text-ink-primary ring-1 ring-brand-primary-soft/30"
               >
                 {p.slice(0, 32)}…
               </button>
@@ -173,7 +173,7 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
         </FormField>
 
         {newestPlan && (
-          <label className="flex items-start gap-2 p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.06] cursor-pointer ring-1 ring-white/10">
+          <label className="flex items-start gap-2 p-3 rounded-xl bg-line-default/[0.04] hover:bg-line-default/[0.06] cursor-pointer ring-1 ring-line-default/10">
             <input
               type="checkbox"
               checked={includePlan}
@@ -181,8 +181,8 @@ const ParentWhisperModal: React.FC<Props> = ({ isOpen, onClose, player, recentMe
               className="mt-0.5 h-4 w-4 accent-brand-primary"
             />
             <div className="text-sm">
-              <div className="font-semibold text-bone">Mention current dev plan</div>
-              <div className="text-xs text-bone/55 mt-0.5">"{newestPlan.title}"</div>
+              <div className="font-semibold text-ink-primary">Mention current dev plan</div>
+              <div className="text-xs text-ink-primary/55 mt-0.5">"{newestPlan.title}"</div>
             </div>
           </label>
         )}

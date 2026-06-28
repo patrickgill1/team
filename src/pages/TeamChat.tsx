@@ -2204,7 +2204,7 @@ const TeamChat: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white/[0.04]">
+      <div className="h-screen flex items-center justify-center bg-line-default/[0.04]">
         <DataGate when="loading" />
       </div>
     );
@@ -2238,15 +2238,15 @@ const TeamChat: React.FC = () => {
       onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); }}
     >
       <div
-        className="bg-charcoal-900 rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col"
+        className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md max-h-full flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-charcoal-900 to-charcoal-800">
+        <div className="px-6 py-4 border-b border-line-default/10 flex items-center justify-between bg-gradient-to-r from-surface-elevated to-surface-input">
           <div>
-            <h3 className="text-lg font-bold text-bone">
+            <h3 className="text-lg font-bold text-ink-primary">
               {selectedDmUids.size <= 1 ? 'New chat' : `New group · ${selectedDmUids.size + 1} people`}
             </h3>
-            <p className="text-xs text-bone/50">
+            <p className="text-xs text-ink-primary/50">
               {selectedDmUids.size === 0
                 ? 'Pick one person for a DM, or several for a group chat.'
                 : selectedDmUids.size === 1
@@ -2256,7 +2256,7 @@ const TeamChat: React.FC = () => {
           </div>
           <button
             onClick={() => { setIsDMPickerOpen(false); setDmSearch(''); setSelectedDmUids(new Set()); }}
-            className="p-2 rounded-lg hover:bg-white/[0.08] text-bone/50"
+            className="p-2 rounded-lg hover:bg-line-default/[0.08] text-ink-primary/50"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2264,20 +2264,20 @@ const TeamChat: React.FC = () => {
             </svg>
           </button>
         </div>
-        <div className="p-4 border-b border-white/5">
+        <div className="p-4 border-b border-line-default/5">
           <input
             type="text"
             value={dmSearch}
             onChange={e => setDmSearch(e.target.value)}
             placeholder="Search by name or player..."
-            className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-base"
+            className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-base"
             style={{ fontSize: '16px' }}
             autoFocus
           />
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {dmCandidates.length === 0 ? (
-            <div className="p-6 text-center text-sm text-bone/50">
+            <div className="p-6 text-center text-sm text-ink-primary/50">
               {teamMembers.length <= 1
                 ? 'No other members on this team yet.'
                 : 'No matches for that search.'}
@@ -2294,15 +2294,15 @@ const TeamChat: React.FC = () => {
                     checked ? 'bg-violet-500/20 ring-1 ring-violet-300' : 'hover:bg-violet-500/15'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-charcoal-600' : 'bg-emerald-600'}`}>
+                  <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-base font-bold ${m.role === 'coach' ? 'bg-surface-tint' : 'bg-emerald-600'}`}>
                     {m.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-bone truncate">{m.name}</p>
+                    <p className="font-semibold text-ink-primary truncate">{m.name}</p>
                     {m.childNames && m.childNames.length > 0 ? (
-                      <p className="text-xs text-bone/50 truncate">{m.childNames.join(', ')}</p>
+                      <p className="text-xs text-ink-primary/50 truncate">{m.childNames.join(', ')}</p>
                     ) : (
-                      <p className="text-xs text-bone/50 capitalize">{m.role || 'member'}</p>
+                      <p className="text-xs text-ink-primary/50 capitalize">{m.role || 'member'}</p>
                     )}
                   </div>
                   {/* Checkbox-style indicator on the right. */}
@@ -2310,7 +2310,7 @@ const TeamChat: React.FC = () => {
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                       checked
                         ? 'bg-violet-600 border-violet-600 text-white'
-                        : 'border-white/15 bg-charcoal-900'
+                        : 'border-line-default/15 bg-surface-elevated'
                     }`}
                     aria-hidden
                   >
@@ -2328,7 +2328,7 @@ const TeamChat: React.FC = () => {
 
         {/* Footer with Start button. Disabled when no one is selected;
             label adapts to "Send DM" / "Create group". */}
-        <div className="px-4 py-3 border-t border-white/5 bg-charcoal-900">
+        <div className="px-4 py-3 border-t border-line-default/5 bg-surface-elevated">
           <button
             type="button"
             onClick={startSelectedChat}
@@ -2336,7 +2336,7 @@ const TeamChat: React.FC = () => {
             className="w-full bg-gradient-to-br from-brand-primary to-brand-primary hover:from-brand-primary-soft hover:to-brand-primary text-white text-xs font-extrabold tracking-widest uppercase py-3 px-4 rounded-xl shadow-md transition disabled:opacity-40 flex items-center justify-center"
           >
             {dmStarting !== null ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/40 border-t-white" />
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-line-default/40 border-t-white" />
             ) : selectedDmUids.size <= 1 ? (
               'Send direct message'
             ) : (
@@ -2359,7 +2359,7 @@ const TeamChat: React.FC = () => {
     >
       <button
         onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
-        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center"
+        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white flex items-center justify-center"
         style={{ top: 'calc(1rem + env(safe-area-inset-top))' }}
         aria-label="Close"
       >
@@ -2389,7 +2389,7 @@ const TeamChat: React.FC = () => {
           the steady-state DOM. This pins it to white regardless. */}
       <div
         aria-hidden
-        className="fixed inset-x-0 bottom-0 bg-charcoal-900 pointer-events-none"
+        className="fixed inset-x-0 bottom-0 bg-surface-elevated pointer-events-none"
         style={{ height: '40vh', zIndex: 1 }}
       />
       {/* Fixed-position layout pinned between top header + bottom tab bar.
@@ -2401,12 +2401,12 @@ const TeamChat: React.FC = () => {
           height explicitly from winHeight (which DOES reflect the
           keyboard) and skip `bottom`. */}
       <div
-        // bg-charcoal-900 (not gray-50). Both child views already paint their
+        // bg-surface-elevated (not gray-50). Both child views already paint their
         // own bg-white, so the container color is only visible behind
         // the iOS keyboard's slightly-rounded top corners. Gray bled
         // through there as two little gray quarter-circles next to the
         // composer; white makes the seam disappear.
-        className="fixed inset-x-0 flex flex-col bg-charcoal-900 z-10 overflow-hidden"
+        className="fixed inset-x-0 flex flex-col bg-surface-elevated z-10 overflow-hidden"
         style={{
           // Chrome height = env(safe-area-inset-top) + h-14 since the
           // AppDelegate native strip was removed (v3.2.42) and the
@@ -2429,12 +2429,12 @@ const TeamChat: React.FC = () => {
       >
         {currentView === 'threads' ? (
           // THREADS LIST VIEW
-          <div className="flex-1 min-h-0 flex flex-col bg-charcoal-900">
+          <div className="flex-1 min-h-0 flex flex-col bg-surface-elevated">
             {/* Header — dark navy chrome to match the app's chrome-
                 vs-content lane (Wall pills, action sheets, etc.).
                 The threads list below stays light; only this top
                 strip is dark, framing the search + filter controls. */}
-            <div className="p-4 border-b border-white/10 bg-gradient-to-b from-charcoal-950 to-charcoal-900">
+            <div className="p-4 border-b border-line-default/10 bg-gradient-to-b from-surface-base to-surface-elevated">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">Messages</h2>
                 <div className="flex items-center gap-2">
@@ -2447,7 +2447,7 @@ const TeamChat: React.FC = () => {
                       while the DM action stays available. */}
                   <button
                     onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
-                    className="bg-charcoal-800 ring-1 ring-white/10 hover:bg-charcoal-700 hover:ring-brand-primary-soft/40 text-bone p-2.5 rounded-lg transition-colors"
+                    className="bg-surface-input ring-1 ring-line-default/10 hover:bg-surface-raised hover:ring-brand-primary-soft/40 text-ink-primary p-2.5 rounded-lg transition-colors"
                     title="Direct message"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2476,7 +2476,7 @@ const TeamChat: React.FC = () => {
                     placeholder="Search threads..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white/10 ring-1 ring-white/15 text-white placeholder-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft text-base"
+                    className="w-full pl-10 pr-4 py-3 bg-line-default/10 ring-1 ring-line-default/15 text-white placeholder-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary-soft text-base"
                     style={{ fontSize: '16px' }}
                   />
                   <svg className="w-5 h-5 text-white/50 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2488,7 +2488,7 @@ const TeamChat: React.FC = () => {
                   onClick={() => setGlobalSearchOpen(true)}
                   title="Search every chat for a word or phrase"
                   aria-label="Search every chat"
-                  className="px-3 rounded-lg bg-brand-primary/20 ring-1 ring-brand-primary-soft/40 text-bone text-[11px] font-extrabold uppercase tracking-widest hover:bg-brand-primary/30"
+                  className="px-3 rounded-lg bg-brand-primary/20 ring-1 ring-brand-primary-soft/40 text-ink-primary text-[11px] font-extrabold uppercase tracking-widest hover:bg-brand-primary/30"
                 >
                   Search all
                 </button>
@@ -2518,7 +2518,7 @@ const TeamChat: React.FC = () => {
                     className={`px-3 py-2 text-sm rounded-full transition-colors whitespace-nowrap ${
                       filterTag === key
                         ? 'bg-brand-primary text-white font-semibold'
-                        : 'bg-white/10 text-white/75 hover:bg-white/15'
+                        : 'bg-line-default/10 text-white/75 hover:bg-line-default/15'
                     }`}
                   >
                     {label}
@@ -2561,7 +2561,7 @@ const TeamChat: React.FC = () => {
                   // starts, so muscle memory works ("Taylor's the green
                   // one"). Channels stay crimson + groups stay violet so
                   // a glance still tells you what kind of thread it is.
-                  // Previously this used bg-white/[0.04]0 — a typo'd
+                  // Previously this used bg-line-default/[0.04]0 — a typo'd
                   // Tailwind class that produced zero CSS, leaving the
                   // initial floating with no circle.
                   const dmAvatarBg = (): string => {
@@ -2598,7 +2598,7 @@ const TeamChat: React.FC = () => {
                     onMouseEnter={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id)); }}
                     onTouchStart={() => { void import('../utils/chatPrewarm').then(({ prewarmThread }) => prewarmThread(thread.id)); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') showChatView(thread); }}
-                    className="w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/[0.05] active:bg-white/[0.08] transition-colors flex items-start gap-3 cursor-pointer"
+                    className="w-full text-left px-4 py-3 border-b border-line-default/5 hover:bg-line-default/[0.05] active:bg-line-default/[0.08] transition-colors flex items-start gap-3 cursor-pointer"
                   >
                     {threadPhotoUrl ? (
                       <img
@@ -2625,7 +2625,7 @@ const TeamChat: React.FC = () => {
                         {unread && (
                           <span aria-hidden className="w-2 h-2 rounded-full bg-brand-primary flex-shrink-0" />
                         )}
-                        <span className={`truncate text-[15px] ${unread ? 'font-extrabold text-bone' : 'font-semibold text-bone'}`}>{displayTitle}</span>
+                        <span className={`truncate text-[15px] ${unread ? 'font-extrabold text-ink-primary' : 'font-semibold text-ink-primary'}`}>{displayTitle}</span>
                         {/* Team chip — only shows when the user is on
                             multiple teams AND the thread is actually
                             team-scoped. DMs and groups aren't tied to a
@@ -2636,7 +2636,7 @@ const TeamChat: React.FC = () => {
                           && Object.keys(teamNameById).length > 1
                           && thread.teamId
                           && teamNameById[thread.teamId] && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-charcoal-950 text-bone/65 ring-1 ring-white/10 flex-shrink-0">
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-base text-ink-primary/65 ring-1 ring-line-default/10 flex-shrink-0">
                             {teamNameById[thread.teamId]}
                           </span>
                         )}
@@ -2656,7 +2656,7 @@ const TeamChat: React.FC = () => {
                           </span>
                         )}
                         {isThreadMuted(thread) && (
-                          <svg className="w-3.5 h-3.5 text-bone/40 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-label="Muted">
+                          <svg className="w-3.5 h-3.5 text-ink-primary/40 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-label="Muted">
                             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
                             <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
@@ -2670,15 +2670,15 @@ const TeamChat: React.FC = () => {
                           </span>
                         )}
                         {isDM && (
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-charcoal-800 text-bone/80 ring-1 ring-white/15 flex-shrink-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-surface-input text-ink-primary/80 ring-1 ring-line-default/15 flex-shrink-0">
                             DM
                           </span>
                         )}
-                        <span className="ml-auto text-[11px] text-bone/40 font-medium flex-shrink-0 pl-2">{ago}</span>
+                        <span className="ml-auto text-[11px] text-ink-primary/40 font-medium flex-shrink-0 pl-2">{ago}</span>
                       </div>
-                      <div className="text-sm text-bone/50 truncate">
+                      <div className="text-sm text-ink-primary/50 truncate">
                         {thread.lastMessage?.senderName && (
-                          <span className="font-medium text-bone/85">{thread.lastMessage.senderName}: </span>
+                          <span className="font-medium text-ink-primary/85">{thread.lastMessage.senderName}: </span>
                         )}
                         {preview}
                       </div>
@@ -2715,11 +2715,11 @@ const TeamChat: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => toggleSection(section.id)}
-                          className="w-full px-4 py-2 flex items-center justify-between bg-white/[0.04] border-b border-white/10 hover:bg-white/[0.08]"
+                          className="w-full px-4 py-2 flex items-center justify-between bg-line-default/[0.04] border-b border-line-default/10 hover:bg-line-default/[0.08]"
                         >
-                          <span className="flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase text-bone/65">
+                          <span className="flex items-center gap-2 text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/65">
                             {section.label}
-                            <span className="text-bone/40">{section.threads.length}</span>
+                            <span className="text-ink-primary/40">{section.threads.length}</span>
                             {sectionUnread > 0 && (
                               <span className="px-1.5 py-0.5 rounded-full bg-brand-primary text-white text-[9px] font-extrabold">
                                 {sectionUnread} new
@@ -2727,7 +2727,7 @@ const TeamChat: React.FC = () => {
                             )}
                           </span>
                           <svg
-                            className={`w-3.5 h-3.5 text-bone/40 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+                            className={`w-3.5 h-3.5 text-ink-primary/40 transition-transform ${collapsed ? '-rotate-90' : ''}`}
                             fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
                           >
                             <polyline points="6 9 12 15 18 9" />
@@ -2743,13 +2743,13 @@ const TeamChat: React.FC = () => {
 
               {filteredThreads.length === 0 && (
                 <div className="p-10 text-center">
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/[0.08] flex items-center justify-center">
-                    <svg className="w-8 h-8 text-bone/40" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-line-default/[0.08] flex items-center justify-center">
+                    <svg className="w-8 h-8 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                     </svg>
                   </div>
-                  <p className="text-bone/85 font-semibold mb-1">No conversations yet</p>
-                  <p className="text-bone/50 text-sm mb-4">Start a chat with a teammate or create a new team thread.</p>
+                  <p className="text-ink-primary/85 font-semibold mb-1">No conversations yet</p>
+                  <p className="text-ink-primary/50 text-sm mb-4">Start a chat with a teammate or create a new team thread.</p>
                   <div className="flex justify-center gap-2">
                     <button
                       onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
@@ -2774,24 +2774,24 @@ const TeamChat: React.FC = () => {
         ) : (
           // CHAT VIEW
           selectedThread && (
-            <div className={`flex-1 min-h-0 flex flex-col bg-charcoal-900 ${
+            <div className={`flex-1 min-h-0 flex flex-col bg-surface-elevated ${
               chatSlideDir === 'in' ? 'animate-slide-in-right' : ''
             }`}>
               {/* Chat Header with Back Button */}
-              <div className="bg-charcoal-900 border-b border-white/10 p-4">
+              <div className="bg-surface-elevated border-b border-line-default/10 p-4">
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={showThreadsList}
-                    className="flex items-center justify-center w-10 h-10 bg-white/[0.08] hover:bg-white/[0.1] rounded-full transition-colors flex-shrink-0"
+                    className="flex items-center justify-center w-10 h-10 bg-line-default/[0.08] hover:bg-line-default/[0.1] rounded-full transition-colors flex-shrink-0"
                   >
-                    <svg className="w-6 h-6 text-bone/85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-ink-primary/85" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <h1 className="text-lg font-semibold text-bone truncate">{getThreadDisplayTitle(selectedThread)}</h1>
+                      <h1 className="text-lg font-semibold text-ink-primary truncate">{getThreadDisplayTitle(selectedThread)}</h1>
                       {isThreadPinned(selectedThread) && (
                         <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -2806,7 +2806,7 @@ const TeamChat: React.FC = () => {
                   <button
                     onClick={() => toggleMuteThread(selectedThread)}
                     className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors flex-shrink-0 ${
-                      isThreadMuted(selectedThread) ? 'bg-amber-500/20 text-amber-300' : 'text-bone/40 hover:text-bone/85 hover:bg-white/[0.05]'
+                      isThreadMuted(selectedThread) ? 'bg-amber-500/20 text-amber-300' : 'text-ink-primary/40 hover:text-ink-primary/85 hover:bg-line-default/[0.05]'
                     }`}
                     aria-label={isThreadMuted(selectedThread) ? 'Unmute notifications' : 'Mute notifications'}
                     title={isThreadMuted(selectedThread) ? 'Notifications muted — tap to unmute' : 'Mute notifications'}
@@ -2834,7 +2834,7 @@ const TeamChat: React.FC = () => {
                       if (threadSearchOpen) setThreadSearchQuery('');
                     }}
                     className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors flex-shrink-0 ${
-                      threadSearchOpen ? 'bg-brand-primary/20 text-brand-primary-soft' : 'text-bone/40 hover:text-bone/85 hover:bg-white/[0.05]'
+                      threadSearchOpen ? 'bg-brand-primary/20 text-brand-primary-soft' : 'text-ink-primary/40 hover:text-ink-primary/85 hover:bg-line-default/[0.05]'
                     }`}
                     aria-label="Search messages"
                     title="Search messages"
@@ -2856,7 +2856,7 @@ const TeamChat: React.FC = () => {
                   })() && (
                     <button
                       onClick={() => deleteThread(selectedThread)}
-                      className="flex items-center justify-center w-10 h-10 text-bone/40 hover:text-rose-300 hover:bg-rose-500/15 rounded-full transition-colors flex-shrink-0"
+                      className="flex items-center justify-center w-10 h-10 text-ink-primary/40 hover:text-rose-300 hover:bg-rose-500/15 rounded-full transition-colors flex-shrink-0"
                       aria-label="Delete chat"
                       title="Delete chat"
                     >
@@ -2869,7 +2869,7 @@ const TeamChat: React.FC = () => {
 
                 {threadSearchOpen && (
                   <div className="mt-2 relative">
-                    <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-bone/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-ink-primary/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
                     <input
@@ -2877,7 +2877,7 @@ const TeamChat: React.FC = () => {
                       value={threadSearchQuery}
                       onChange={(e) => setThreadSearchQuery(e.target.value)}
                       placeholder="Search this conversation…"
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-line-default/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
                     />
                   </div>
                 )}
@@ -2915,9 +2915,9 @@ const TeamChat: React.FC = () => {
                             }, 1500);
                           }
                         }}
-                        className="text-xs bg-charcoal-900 ring-1 ring-amber-400/30 rounded-full px-2.5 py-1 flex-shrink-0 max-w-[220px] truncate text-bone/85 hover:bg-amber-500/20"
+                        className="text-xs bg-surface-elevated ring-1 ring-amber-400/30 rounded-full px-2.5 py-1 flex-shrink-0 max-w-[220px] truncate text-ink-primary/85 hover:bg-amber-500/20"
                       >
-                        <span className="font-semibold text-bone">{p.senderName.split(' ')[0]}:</span>{' '}
+                        <span className="font-semibold text-ink-primary">{p.senderName.split(' ')[0]}:</span>{' '}
                         {(p.content || (p.attachments?.length ? 'Photo' : 'message')).slice(0, 60)}
                       </button>
                     ))}
@@ -2933,7 +2933,7 @@ const TeamChat: React.FC = () => {
               <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto px-3 py-3 bg-charcoal-900"
+                className="flex-1 min-h-0 overflow-y-auto px-3 py-3 bg-surface-elevated"
                 style={{
                   overscrollBehavior: 'contain',
                   // Disable browser's automatic scroll anchoring —
@@ -2954,13 +2954,13 @@ const TeamChat: React.FC = () => {
                     fire on every update. */}
                 <div key={selectedThread?.id || 'no-thread'} className="space-y-1 animate-fade-in">
                 {threadSearchQuery.trim() && visibleMessages.length === 0 && (
-                  <div className="text-center text-sm text-bone/50 py-6">
+                  <div className="text-center text-sm text-ink-primary/50 py-6">
                     No messages match "{threadSearchQuery.trim()}".
                   </div>
                 )}
                 {loadingOlder && (
                   <div className="flex justify-center py-2">
-                    <div className="w-5 h-5 rounded-full border-2 border-white/10 border-t-cyan-500 animate-spin" />
+                    <div className="w-5 h-5 rounded-full border-2 border-line-default/10 border-t-cyan-500 animate-spin" />
                   </div>
                 )}
                 {/* Loading silence: render NOTHING while the first
@@ -2984,14 +2984,14 @@ const TeamChat: React.FC = () => {
                     <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft flex items-center justify-center text-brand-primary mb-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                     </div>
-                    <p className="text-sm font-semibold text-bone/85">
+                    <p className="text-sm font-semibold text-ink-primary/85">
                       {(selectedThread as any)?.isDM ? `Say hi to ${getThreadDisplayTitle(selectedThread).split(' ')[0]}` : 'No messages yet'}
                     </p>
-                    <p className="text-xs text-bone/50 mt-1">Type a message below to start the conversation.</p>
+                    <p className="text-xs text-ink-primary/50 mt-1">Type a message below to start the conversation.</p>
                   </div>
                 )}
                 {threadSearchQuery.trim() && visibleMessages.length > 0 && (
-                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 text-center mb-1">
+                  <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 text-center mb-1">
                     {visibleMessages.length} match{visibleMessages.length === 1 ? '' : 'es'}
                   </div>
                 )}
@@ -3016,11 +3016,11 @@ const TeamChat: React.FC = () => {
                     <React.Fragment key={message.id}>
                     {showDayDivider && (
                       <div className="flex items-center gap-3 my-2">
-                        <div className="flex-1 h-px bg-white/15" />
-                        <span className="text-[10px] font-extrabold tracking-widest uppercase text-bone/50 px-2">
+                        <div className="flex-1 h-px bg-line-default/15" />
+                        <span className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 px-2">
                           {formatDayDivider(msgDate)}
                         </span>
-                        <div className="flex-1 h-px bg-white/15" />
+                        <div className="flex-1 h-px bg-line-default/15" />
                       </div>
                     )}
                     <div id={`msg-${message.id}`} className={`transition-shadow ${
@@ -3029,7 +3029,7 @@ const TeamChat: React.FC = () => {
                     <SilentErrorBoundary
                       label="message-bubble"
                       fallback={(
-                        <div className="text-[11px] text-bone/35 italic px-3 py-1.5">
+                        <div className="text-[11px] text-ink-primary/35 italic px-3 py-1.5">
                           (couldn&apos;t render this message)
                         </div>
                       )}
@@ -3115,7 +3115,7 @@ const TeamChat: React.FC = () => {
                   keyboard is open, the keyboard itself sits above the home
                   indicator so no extra padding needed. */}
               {typingMembers.length > 0 && (
-                <div className="px-4 pt-1.5 pb-0.5 flex items-center gap-2 text-[11px] text-bone/50">
+                <div className="px-4 pt-1.5 pb-0.5 flex items-center gap-2 text-[11px] text-ink-primary/50">
                   <div className="flex -space-x-1.5">
                     {typingMembers.slice(0, 3).map((m) => (
                       m.photoURL ? (
@@ -3135,9 +3135,9 @@ const TeamChat: React.FC = () => {
                       : `${typingMembers.length} people are typing`}
                   </span>
                   <span className="inline-flex gap-0.5 items-center">
-                    <span className="w-1 h-1 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1 h-1 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '120ms' }} />
-                    <span className="w-1 h-1 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '240ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-line-default/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-line-default/40 animate-bounce" style={{ animationDelay: '120ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-line-default/40 animate-bounce" style={{ animationDelay: '240ms' }} />
                   </span>
                 </div>
               )}
@@ -3146,7 +3146,7 @@ const TeamChat: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { scrollToBottom(true); setUnreadWhileScrolledUp(0); }}
-                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-charcoal-900 text-white text-xs font-bold shadow-lg hover:bg-charcoal-800 transition animate-fade-in"
+                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-elevated text-white text-xs font-bold shadow-lg hover:bg-surface-input transition animate-fade-in"
                   >
                     {unreadWhileScrolledUp > 0 ? `${unreadWhileScrolledUp} new ` : ''}
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
@@ -3173,13 +3173,13 @@ const TeamChat: React.FC = () => {
         {/* Create Thread Modal */}
         {isCreatingThread && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-charcoal-900 rounded-lg shadow-lg w-full max-w-md max-h-screen overflow-y-auto">
+            <div className="bg-surface-elevated rounded-lg shadow-lg w-full max-w-md max-h-screen overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-bone">Create New Thread</h3>
+                  <h3 className="text-lg font-medium text-ink-primary">Create New Thread</h3>
                   <button
                     onClick={() => setIsCreatingThread(false)}
-                    className="text-bone/40 hover:text-bone/65"
+                    className="text-ink-primary/40 hover:text-ink-primary/65"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -3189,28 +3189,28 @@ const TeamChat: React.FC = () => {
                 
                 <div className="space-y-1">
                   <div>
-                    <label className="block text-sm font-medium text-bone/85 mb-1">
+                    <label className="block text-sm font-medium text-ink-primary/85 mb-1">
                       Thread Title
                     </label>
                     <input
                       type="text"
                       value={newThread.title}
                       onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
+                      className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                       placeholder="Enter thread title..."
                       style={{ fontSize: '16px' }}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-bone/85 mb-1">
+                    <label className="block text-sm font-medium text-ink-primary/85 mb-1">
                       Description (Optional)
                     </label>
                     <textarea
                       value={newThread.description}
                       onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
-                      className="w-full border border-white/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
+                      className="w-full border border-line-default/15 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base"
                       placeholder="What's this thread about?"
                       style={{ fontSize: '16px' }}
                     />
@@ -3223,7 +3223,7 @@ const TeamChat: React.FC = () => {
                       surface simple: team chat, club chats, DMs.  */}
                   {isUserClubAdmin && (
                     <div>
-                      <label className="block text-sm font-medium text-bone/85 mb-1">
+                      <label className="block text-sm font-medium text-ink-primary/85 mb-1">
                         Visible to
                       </label>
                       <div className="grid grid-cols-2 gap-2">
@@ -3239,11 +3239,11 @@ const TeamChat: React.FC = () => {
                               type="button"
                               onClick={() => setNewThread(prev => ({ ...prev, scope: opt.k }))}
                               className={`text-left p-2.5 rounded-xl ring-1 transition ${
-                                active ? 'ring-brand-primary bg-brand-primary/15/60' : 'ring-white/10 bg-charcoal-900 hover:bg-white/[0.05]'
+                                active ? 'ring-brand-primary bg-brand-primary/15/60' : 'ring-line-default/10 bg-surface-elevated hover:bg-line-default/[0.05]'
                               }`}
                             >
-                              <p className="font-semibold text-bone text-sm">{opt.label}</p>
-                              <p className="text-[11px] text-bone/50">{opt.desc}</p>
+                              <p className="font-semibold text-ink-primary text-sm">{opt.label}</p>
+                              <p className="text-[11px] text-ink-primary/50">{opt.desc}</p>
                             </button>
                           );
                         })}
@@ -3258,9 +3258,9 @@ const TeamChat: React.FC = () => {
                         id="isPrivate"
                         checked={newThread.isPrivate}
                         onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                        className="rounded border-white/15 text-brand-primary focus:ring-brand-primary w-4 h-4"
+                        className="rounded border-line-default/15 text-brand-primary focus:ring-brand-primary w-4 h-4"
                       />
-                      <label htmlFor="isPrivate" className="ml-2 text-sm text-bone/85">
+                      <label htmlFor="isPrivate" className="ml-2 text-sm text-ink-primary/85">
                         Coach-only thread
                       </label>
                     </div>
@@ -3270,14 +3270,14 @@ const TeamChat: React.FC = () => {
                 <div className="flex space-x-3 mt-6">
                   <button
                     onClick={() => setIsCreatingThread(false)}
-                    className="flex-1 px-4 py-2.5 text-bone/85 border border-white/15 rounded-lg hover:bg-white/[0.05] transition-colors font-medium"
+                    className="flex-1 px-4 py-2.5 text-ink-primary/85 border border-line-default/15 rounded-lg hover:bg-line-default/[0.05] transition-colors font-medium"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={createThread}
                     disabled={!newThread.title.trim()}
-                    className="flex-1 px-4 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-white/40 transition-colors font-medium"
+                    className="flex-1 px-4 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-line-default/40 transition-colors font-medium"
                   >
                     Create
                   </button>
@@ -3311,17 +3311,17 @@ const TeamChat: React.FC = () => {
   // the remaining width; height fills the viewport (no top/bottom nav on
   // desktop). dvh so URL-bar chrome doesn't shift the layout.
   return (
-    <div className="flex bg-white/[0.04]" style={{ height: '100dvh' }}>
+    <div className="flex bg-line-default/[0.04]" style={{ height: '100dvh' }}>
       {/* Desktop Sidebar */}
-      <div className="w-80 bg-charcoal-900 border-r border-white/10 flex flex-col">
+      <div className="w-80 bg-surface-elevated border-r border-line-default/10 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 border-b border-line-default/10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-bone">Messages</h2>
+            <h2 className="text-lg font-semibold text-ink-primary">Messages</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setIsDMPickerOpen(true); setSelectedDmUids(new Set()); }}
-                className="bg-charcoal-800 ring-1 ring-white/10 hover:bg-charcoal-700 hover:ring-brand-primary-soft/40 text-bone p-2 rounded-lg transition-colors"
+                className="bg-surface-input ring-1 ring-line-default/10 hover:bg-surface-raised hover:ring-brand-primary-soft/40 text-ink-primary p-2 rounded-lg transition-colors"
                 title="Direct message"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3348,9 +3348,9 @@ const TeamChat: React.FC = () => {
               placeholder="Search threads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="w-full pl-10 pr-4 py-2 border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
             />
-            <svg className="w-4 h-4 text-bone/40 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-ink-primary/40 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -3368,7 +3368,7 @@ const TeamChat: React.FC = () => {
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   filterTag === key
                     ? 'bg-brand-primary/15 text-brand-primary-soft font-medium'
-                    : 'bg-white/[0.08] text-bone/65 hover:bg-white/[0.1]'
+                    : 'bg-line-default/[0.08] text-ink-primary/65 hover:bg-line-default/[0.1]'
                 }`}
               >
                 {label}
@@ -3383,14 +3383,14 @@ const TeamChat: React.FC = () => {
             <div
               key={thread.id}
               onClick={() => setSelectedThread(thread)}
-              className={`p-4 border-b border-white/5 cursor-pointer hover:bg-white/[0.05] transition-colors ${
+              className={`p-4 border-b border-line-default/5 cursor-pointer hover:bg-line-default/[0.05] transition-colors ${
                 selectedThread?.id === thread.id ? 'bg-brand-primary/15 border-l-4 border-l-blue-600' : ''
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <h3 className="font-medium text-bone truncate">{getThreadDisplayTitle(thread)}</h3>
+                    <h3 className="font-medium text-ink-primary truncate">{getThreadDisplayTitle(thread)}</h3>
                     {isThreadPinned(thread) && (
                       <svg className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -3404,18 +3404,18 @@ const TeamChat: React.FC = () => {
                   </div>
                   
                   {thread.description && (
-                    <p className="text-sm text-bone/65 truncate mb-2">{thread.description}</p>
+                    <p className="text-sm text-ink-primary/65 truncate mb-2">{thread.description}</p>
                   )}
                   
                   {thread.lastMessage && (
-                    <p className="text-xs text-bone/50 truncate mb-2">
+                    <p className="text-xs text-ink-primary/50 truncate mb-2">
                       <span className="font-medium">{thread.lastMessage.senderName}:</span> {thread.lastMessage.content}
                     </p>
                   )}
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-bone/50">{thread.messageCount || 0} messages</span>
-                    <span className="text-xs text-bone/50">{formatTime(thread.lastActivity)}</span>
+                    <span className="text-xs text-ink-primary/50">{thread.messageCount || 0} messages</span>
+                    <span className="text-xs text-ink-primary/50">{formatTime(thread.lastActivity)}</span>
                   </div>
                 </div>
                 
@@ -3426,7 +3426,7 @@ const TeamChat: React.FC = () => {
                   }}
                   title={isThreadPinned(thread) ? 'Unpin chat' : 'Pin chat'}
                   className={`ml-2 p-1 rounded transition-colors ${
-                    isThreadPinned(thread) ? 'text-yellow-500 hover:text-yellow-600' : 'text-bone/40 hover:text-bone/65'
+                    isThreadPinned(thread) ? 'text-yellow-500 hover:text-yellow-600' : 'text-ink-primary/40 hover:text-ink-primary/65'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3444,11 +3444,11 @@ const TeamChat: React.FC = () => {
         {selectedThread ? (
           <>
             {/* Desktop Chat Header */}
-            <div className="bg-charcoal-900 border-b border-white/10 p-4">
+            <div className="bg-surface-elevated border-b border-line-default/10 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h1 className="text-xl font-semibold text-bone">{getThreadDisplayTitle(selectedThread)}</h1>
+                    <h1 className="text-xl font-semibold text-ink-primary">{getThreadDisplayTitle(selectedThread)}</h1>
                     {isThreadPinned(selectedThread) && (
                       <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -3459,7 +3459,7 @@ const TeamChat: React.FC = () => {
                     )}
                   </div>
                   {selectedThread.description && (
-                    <p className="text-sm text-bone/65 mt-1">{selectedThread.description}</p>
+                    <p className="text-sm text-ink-primary/65 mt-1">{selectedThread.description}</p>
                   )}
                 </div>
                 
@@ -3476,7 +3476,7 @@ const TeamChat: React.FC = () => {
                   })() && (
                     <button
                       onClick={() => deleteThread(selectedThread)}
-                      className="flex items-center justify-center w-9 h-9 text-bone/40 hover:text-rose-300 hover:bg-rose-500/15 rounded-full transition-colors"
+                      className="flex items-center justify-center w-9 h-9 text-ink-primary/40 hover:text-rose-300 hover:bg-rose-500/15 rounded-full transition-colors"
                       aria-label="Delete chat"
                       title="Delete chat"
                     >
@@ -3509,7 +3509,7 @@ const TeamChat: React.FC = () => {
                   <SilentErrorBoundary
                     label="message-bubble"
                     fallback={(
-                      <div className="text-[11px] text-bone/35 italic px-3 py-1.5">
+                      <div className="text-[11px] text-ink-primary/35 italic px-3 py-1.5">
                         (couldn&apos;t render this message)
                       </div>
                     )}
@@ -3574,7 +3574,7 @@ const TeamChat: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { scrollToBottom(true); setUnreadWhileScrolledUp(0); }}
-                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-charcoal-900 text-white text-xs font-bold shadow-lg hover:bg-charcoal-800 transition animate-fade-in"
+                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-elevated text-white text-xs font-bold shadow-lg hover:bg-surface-input transition animate-fade-in"
                   >
                     {unreadWhileScrolledUp > 0 ? `${unreadWhileScrolledUp} new ` : ''}
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" /></svg>
@@ -3598,11 +3598,11 @@ const TeamChat: React.FC = () => {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <svg className="w-16 h-16 text-bone/35 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-16 h-16 text-ink-primary/35 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <h3 className="text-lg font-medium text-bone mb-2">Select a thread to start chatting</h3>
-              <p className="text-bone/50">Choose a thread from the sidebar or create a new one</p>
+              <h3 className="text-lg font-medium text-ink-primary mb-2">Select a thread to start chatting</h3>
+              <p className="text-ink-primary/50">Choose a thread from the sidebar or create a new one</p>
             </div>
           </div>
         )}
@@ -3611,13 +3611,13 @@ const TeamChat: React.FC = () => {
       {/* Desktop Create Thread Modal */}
       {isCreatingThread && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-charcoal-900 rounded-lg shadow-lg w-full max-w-md">
+          <div className="bg-surface-elevated rounded-lg shadow-lg w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-bone">Create New Thread</h3>
+                <h3 className="text-lg font-medium text-ink-primary">Create New Thread</h3>
                 <button
                   onClick={() => setIsCreatingThread(false)}
-                  className="text-bone/40 hover:text-bone/65"
+                  className="text-ink-primary/40 hover:text-ink-primary/65"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -3627,34 +3627,34 @@ const TeamChat: React.FC = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-bone/85 mb-1">
+                  <label className="block text-sm font-medium text-ink-primary/85 mb-1">
                     Thread Title
                   </label>
                   <input
                     type="text"
                     value={newThread.title}
                     onChange={(e) => setNewThread(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="Enter thread title..."
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-bone/85 mb-1">
+                  <label className="block text-sm font-medium text-ink-primary/85 mb-1">
                     Description (Optional)
                   </label>
                   <textarea
                     value={newThread.description}
                     onChange={(e) => setNewThread(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
-                    className="w-full border border-white/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full border border-line-default/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     placeholder="What's this thread about?"
                   />
                 </div>
 
                 {isUserClubAdmin && (
                   <div>
-                    <label className="block text-sm font-medium text-bone/85 mb-1">Visible to</label>
+                    <label className="block text-sm font-medium text-ink-primary/85 mb-1">Visible to</label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { k: 'team' as const, label: 'This team', desc: 'Just your selected team' },
@@ -3669,11 +3669,11 @@ const TeamChat: React.FC = () => {
                             type="button"
                             onClick={() => setNewThread(prev => ({ ...prev, scope: opt.k }))}
                             className={`text-left p-2.5 rounded-xl ring-1 transition ${
-                              active ? 'ring-brand-primary bg-brand-primary/15/60' : 'ring-white/10 bg-charcoal-900 hover:bg-white/[0.05]'
+                              active ? 'ring-brand-primary bg-brand-primary/15/60' : 'ring-line-default/10 bg-surface-elevated hover:bg-line-default/[0.05]'
                             }`}
                           >
-                            <p className="font-semibold text-bone text-sm">{opt.label}</p>
-                            <p className="text-[11px] text-bone/50">{opt.desc}</p>
+                            <p className="font-semibold text-ink-primary text-sm">{opt.label}</p>
+                            <p className="text-[11px] text-ink-primary/50">{opt.desc}</p>
                           </button>
                         );
                       })}
@@ -3688,9 +3688,9 @@ const TeamChat: React.FC = () => {
                       id="isPrivate"
                       checked={newThread.isPrivate}
                       onChange={(e) => setNewThread(prev => ({ ...prev, isPrivate: e.target.checked }))}
-                      className="rounded border-white/15 text-brand-primary focus:ring-brand-primary"
+                      className="rounded border-line-default/15 text-brand-primary focus:ring-brand-primary"
                     />
-                    <label htmlFor="isPrivate" className="ml-2 text-sm text-bone/85">
+                    <label htmlFor="isPrivate" className="ml-2 text-sm text-ink-primary/85">
                       Coach-only thread
                     </label>
                   </div>
@@ -3700,14 +3700,14 @@ const TeamChat: React.FC = () => {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={() => setIsCreatingThread(false)}
-                  className="px-4 py-2 text-bone/85 border border-white/15 rounded-lg hover:bg-white/[0.05] transition-colors"
+                  className="px-4 py-2 text-ink-primary/85 border border-line-default/15 rounded-lg hover:bg-line-default/[0.05] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={createThread}
                   disabled={!newThread.title.trim()}
-                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-white/40 transition-colors"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary disabled:bg-line-default/40 transition-colors"
                 >
                   Create Thread
                 </button>

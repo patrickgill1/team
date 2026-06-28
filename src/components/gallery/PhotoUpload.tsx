@@ -344,7 +344,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-charcoal-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-surface-tint h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress.progress}%` }}
                 ></div>
               </div>
@@ -365,7 +365,7 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({
               <button
                 onClick={handleUpload}
                 disabled={isUploading || uploadLoading || selectedFiles.length === 0}
-                className="flex-1 bg-charcoal-600 hover:bg-charcoal-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                className="flex-1 bg-surface-tint hover:bg-surface-raised text-white font-medium py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 flex items-center justify-center"
               >
                 {(isUploading || uploadLoading) ? (
                   <>

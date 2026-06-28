@@ -97,7 +97,7 @@ const NextEventPoster: React.FC<Props> = ({
     return (
       <section className="px-3 sm:px-4 pt-3">
         <article
-          className="relative overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/40 min-h-[300px] sm:min-h-[340px] flex flex-col"
+          className="relative overflow-hidden rounded-2xl ring-1 ring-line-default/10 shadow-2xl shadow-black/40 min-h-[300px] sm:min-h-[340px] flex flex-col"
         >
           <img
             src={scene.bgImage}
@@ -117,7 +117,7 @@ const NextEventPoster: React.FC<Props> = ({
             <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-brand-primary-soft">
               {isCoach ? 'Welcome' : 'Hi'}
             </p>
-            <p className="mt-1 text-sm text-bone/80">{greeting}, {firstName}</p>
+            <p className="mt-1 text-sm text-ink-primary/80">{greeting}, {firstName}</p>
           </div>
 
           <div className="flex-1" />
@@ -125,10 +125,10 @@ const NextEventPoster: React.FC<Props> = ({
           {/* Body: copy + roster chip + CTA */}
           <div className="relative px-5 pb-5 sm:pb-6 space-y-3">
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-bone tracking-tight leading-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-ink-primary tracking-tight leading-tight">
                 {isCoach ? "Let's get your team going." : 'No upcoming events yet.'}
               </h1>
-              <p className="mt-1 text-sm text-bone/75">
+              <p className="mt-1 text-sm text-ink-primary/75">
                 {isCoach
                   ? 'Add players, schedule a practice, invite parents. Then your dashboard fills in.'
                   : 'Check back soon for your next game or practice.'}
@@ -139,10 +139,10 @@ const NextEventPoster: React.FC<Props> = ({
               <Link
                 to="/people"
                 aria-label={`${playerCount} ${playerCount === 1 ? 'player' : 'players'} on roster`}
-                className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-black/40 ring-1 ring-white/15 backdrop-blur-sm"
+                className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-black/40 ring-1 ring-line-default/15 backdrop-blur-sm"
               >
                 <span className="text-xl font-extrabold text-white leading-none tabular-nums">{playerCount}</span>
-                <span className="text-[9px] font-bold tracking-widest text-bone/70 mt-1">ROSTER</span>
+                <span className="text-[9px] font-bold tracking-widest text-ink-primary/70 mt-1">ROSTER</span>
               </Link>
               {isCoach && (
                 <Link
@@ -162,7 +162,7 @@ const NextEventPoster: React.FC<Props> = ({
   return (
     <section className="px-3 sm:px-4 pt-3">
       <article
-        className="relative overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/40 min-h-[440px] sm:min-h-[480px] flex flex-col"
+        className="relative overflow-hidden rounded-2xl ring-1 ring-line-default/10 shadow-2xl shadow-black/40 min-h-[440px] sm:min-h-[480px] flex flex-col"
         aria-label={`Next up: ${nextEvent.title} on ${eventMonth} ${eventDay}`}
       >
         {/* Time-of-day photo as the poster bg. Object-cover so the
@@ -188,12 +188,12 @@ const NextEventPoster: React.FC<Props> = ({
         <div className="relative flex items-start justify-between px-5 pt-5 sm:pt-6">
           <div>
             <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-brand-primary-soft">Next Up</p>
-            <p className="mt-1 text-sm text-bone/80">{greeting}, {firstName}</p>
+            <p className="mt-1 text-sm text-ink-primary/80">{greeting}, {firstName}</p>
           </div>
           {weather && (
-            <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-black/35 ring-1 ring-white/10 px-2.5 py-1 backdrop-blur-sm">
+            <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-black/35 ring-1 ring-line-default/10 px-2.5 py-1 backdrop-blur-sm">
               <span aria-hidden className="text-base leading-none">{weather.icon}</span>
-              <span className="text-[12px] font-bold text-bone tabular-nums">{weather.tempMaxF}°/{weather.tempMinF}°</span>
+              <span className="text-[12px] font-bold text-ink-primary tabular-nums">{weather.tempMaxF}°/{weather.tempMinF}°</span>
             </div>
           )}
         </div>
@@ -207,20 +207,20 @@ const NextEventPoster: React.FC<Props> = ({
             <Link
               to={`/events/${nextEvent.id}`}
               aria-label={`${nextEvent.title} on ${eventMonth} ${eventDay} ${eventDow}`}
-              className="shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-2xl bg-black/45 ring-1 ring-white/15 backdrop-blur-md"
+              className="shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-2xl bg-black/45 ring-1 ring-line-default/15 backdrop-blur-md"
             >
               <span className="text-[10px] font-extrabold tracking-widest text-brand-primary-soft">{eventMonth}</span>
               <span className="text-3xl sm:text-[34px] font-black text-white leading-none">{eventDay}</span>
-              <span className="text-[9px] font-bold tracking-widest text-bone/70 mt-0.5">{eventDow}</span>
+              <span className="text-[9px] font-bold tracking-widest text-ink-primary/70 mt-0.5">{eventDow}</span>
             </Link>
             <div className="min-w-0 flex-1">
               <Link to={`/events/${nextEvent.id}`} className="block">
                 <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight drop-shadow-md truncate">
                   {nextEvent.title}
                 </h2>
-                <p className="mt-1 text-sm sm:text-base text-bone/85 truncate">{whenText}</p>
+                <p className="mt-1 text-sm sm:text-base text-ink-primary/85 truncate">{whenText}</p>
                 {location && (
-                  <p className="mt-0.5 text-xs sm:text-sm text-bone/65 truncate">
+                  <p className="mt-0.5 text-xs sm:text-sm text-ink-primary/65 truncate">
                     <span aria-hidden className="mr-1">·</span>{location}
                   </p>
                 )}
@@ -258,12 +258,12 @@ const NextEventPoster: React.FC<Props> = ({
               path, which is what 95% of users actually tap. */}
 
           {/* Going / pending tally line. Quiet, just-the-facts. */}
-          <p className="mt-3 text-center text-[12px] text-bone/65">
-            <span className="font-bold text-bone">{goingCount}</span> going
+          <p className="mt-3 text-center text-[12px] text-ink-primary/65">
+            <span className="font-bold text-ink-primary">{goingCount}</span> going
             {pendingCount > 0 && (
               <>
                 {' · '}
-                <span className="font-bold text-bone">{pendingCount}</span> pending
+                <span className="font-bold text-ink-primary">{pendingCount}</span> pending
               </>
             )}
           </p>
@@ -285,7 +285,7 @@ function RsvpButton({ tone, active, label, onClick }: {
     maybe: 'bg-amber-400 text-charcoal-950 ring-1 ring-amber-300/60 shadow-lg shadow-amber-500/30',
     no:    'bg-rose-500 text-white ring-1 ring-rose-300/60 shadow-lg shadow-rose-500/30',
   };
-  const inactiveStyles = 'bg-black/40 text-bone/85 ring-1 ring-white/15 backdrop-blur-md hover:bg-black/55';
+  const inactiveStyles = 'bg-black/40 text-ink-primary/85 ring-1 ring-line-default/15 backdrop-blur-md hover:bg-black/55';
   return (
     <button
       type="button"

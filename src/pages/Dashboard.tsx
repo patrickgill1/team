@@ -802,7 +802,7 @@ const Dashboard: React.FC = () => {
   const eventEmoji = (t: string) => t === 'game' ? '⚽' : t === 'practice' ? '🏃' : '📅';
   const eventGradient = (t: string) =>
     t === 'game' ? 'from-rose-500 to-orange-500'
-      : t === 'practice' ? 'from-brand-primary to-charcoal-600'
+      : t === 'practice' ? 'from-brand-primary to-surface-tint'
       : 'from-violet-500 to-fuchsia-500';
 
   // Atomic-render gate: render nothing for the first ~400ms of the
@@ -843,14 +843,14 @@ const Dashboard: React.FC = () => {
     // loading state while TeamContext catches up rather than rendering
     // any other team's data.
     return (
-      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center text-charcoal-400 text-sm">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center text-charcoal-400 text-sm">
         Loading your team…
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950">
+    <div className="relative min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base">
       <EmailVerifyBanner />
       {/* Stadium hero — navy scene with floodlights that toggle on
           at dusk/night, a faint pitch silhouette, and the day's
@@ -971,7 +971,7 @@ const Dashboard: React.FC = () => {
           return (
             <Link
               to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-              className="block group relative overflow-hidden rounded-2xl bg-charcoal-900 ring-1 ring-white/5 hover:ring-brand-primary/40 transition shadow-lg"
+              className="block group relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/5 hover:ring-brand-primary/40 transition shadow-lg"
             >
               <div className="absolute -top-12 -right-12 w-40 h-40 bg-brand-primary/10 blur-3xl pointer-events-none" aria-hidden />
 
@@ -984,7 +984,7 @@ const Dashboard: React.FC = () => {
                       <span className="text-charcoal-500"> · </span>
                       <span className="text-charcoal-300 normal-case tracking-normal font-bold">{tonightGoal.planTitle}</span>
                     </div>
-                    <div className="text-[13.5px] text-bone leading-snug mt-1 line-clamp-2">
+                    <div className="text-[13.5px] text-ink-primary leading-snug mt-1 line-clamp-2">
                       {tonightGoal.focus || tonightGoal.goalTitle}
                     </div>
                   </div>
@@ -1015,7 +1015,7 @@ const Dashboard: React.FC = () => {
                     ))}
                   </div>
                   <div className="flex-1 text-[11px] text-charcoal-400 truncate">
-                    <span className="text-bone font-bold tabular-nums">{loggedCount}</span> of 6 days
+                    <span className="text-ink-primary font-bold tabular-nums">{loggedCount}</span> of 6 days
                   </div>
                   <svg
                     className="w-4 h-4 text-charcoal-500 group-hover:text-brand-primary-soft transition-colors flex-shrink-0"
@@ -1058,13 +1058,13 @@ const Dashboard: React.FC = () => {
             dashboard still sees announcements coaches posted in chat.
             Tap a card → deep-links into the chat tab on that thread. */}
         {wallPosts.length > 0 && (
-          <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
-            <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+          <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
+            <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <svg className="w-4 h-4 text-bone/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
+                <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
                 Announcements
               </h3>
-              <Link to="/wall" className="text-bone/60 text-sm font-semibold hover:text-bone">View all</Link>
+              <Link to="/wall" className="text-ink-primary/60 text-sm font-semibold hover:text-ink-primary">View all</Link>
             </div>
             {/* Single-row preview per announcement: sender, date, and
                 one-line content snippet. Patrick: "show only a title
@@ -1072,7 +1072,7 @@ const Dashboard: React.FC = () => {
                 images, and replies live on /wall — tap to expand.
                 Plain-text strip on content so markdown markers like
                 ** or # don't leak into the preview. */}
-            <ul className="divide-y divide-white/5">
+            <ul className="divide-y divide-line-default/5">
               {wallPosts.map(p => {
                 // Strip BOTH HTML tags (TipTap-emitted posts) AND
                 // markdown special chars (legacy posts) before
@@ -1097,7 +1097,7 @@ const Dashboard: React.FC = () => {
                   <li key={p.id}>
                     <Link
                       to="/wall"
-                      className="flex items-center gap-2 px-5 py-2.5 hover:bg-white/[0.04] transition-colors"
+                      className="flex items-center gap-2 px-5 py-2.5 hover:bg-line-default/[0.04] transition-colors"
                     >
                       <span className="text-xs font-semibold text-white shrink-0">{p.senderName}</span>
                       <span className="text-[11px] text-white/40 shrink-0">
@@ -1181,7 +1181,7 @@ const NextEventHero: React.FC<{
   const fullDate = `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`;
   const tileGradient =
     event.type === 'game' ? 'from-rose-500 to-orange-600' :
-    event.type === 'practice' ? 'from-brand-primary to-charcoal-600' :
+    event.type === 'practice' ? 'from-brand-primary to-surface-tint' :
     'from-violet-500 to-fuchsia-600';
   return (
     <section
@@ -1313,7 +1313,7 @@ const NextEventHero: React.FC<{
 };
 
 const AttendancePill: React.FC<{ label: string; value: number; dim?: boolean }> = ({ label, value, dim }) => (
-  <div className={`rounded-xl px-3 py-2 text-center ${dim ? 'bg-white/5 ring-1 ring-white/10' : 'bg-white/15 ring-1 ring-white/20'}`}>
+  <div className={`rounded-xl px-3 py-2 text-center ${dim ? 'bg-line-default/5 ring-1 ring-line-default/10' : 'bg-line-default/15 ring-1 ring-line-default/20'}`}>
     <div className="text-xl font-black leading-tight">{value}</div>
     <div className="text-[10px] uppercase tracking-wider font-bold text-white/80">{label}</div>
   </div>
@@ -1321,13 +1321,13 @@ const AttendancePill: React.FC<{ label: string; value: number; dim?: boolean }> 
 
 const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhotoMap?: Record<string, string> }> = ({ chats, userUid, userPhotoMap }) => {
   return (
-    <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
-      <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+    <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
+      <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-bone/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+          <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           Recent chats
         </h3>
-        <Link to="/chat" className="text-bone/60 text-sm font-semibold hover:text-bone">View all</Link>
+        <Link to="/chat" className="text-ink-primary/60 text-sm font-semibold hover:text-ink-primary">View all</Link>
       </div>
       {chats.length === 0 ? (
         <div className="p-5 text-center">
@@ -1360,7 +1360,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
               <Link
                 key={thread.id}
                 to={`/chat?thread=${thread.id}`}
-                className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] ring-1 ring-white/10 transition"
+                className="flex items-start gap-2.5 p-2.5 rounded-xl bg-line-default/[0.04] hover:bg-line-default/[0.08] active:bg-line-default/[0.12] ring-1 ring-line-default/10 transition"
               >
                 {dmPhotoUrl ? (
                   <img
@@ -1445,7 +1445,7 @@ const MyPlayerCard: React.FC<{
   // profile on the dashboard in gold when they get POTM."
   const cardBg = isPotm
     ? 'bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-500 ring-4 ring-amber-300/80 shadow-2xl shadow-amber-500/50'
-    : `bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ${brandAccent.ring}`;
+    : `bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ${brandAccent.ring}`;
   const accentText = isPotm ? 'text-amber-50' : 'text-white/70';
   const subText = isPotm ? 'text-amber-100/80' : 'text-white/60';
   return (
@@ -1507,11 +1507,11 @@ const MyPlayerCard: React.FC<{
             <img
               src={p.profilePhotoUrl}
               alt={player.name}
-              className={`w-20 h-20 rounded-full object-cover shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}
+              className={`w-20 h-20 rounded-full object-cover shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-line-default/20'}`}
               loading="lazy"
             />
           ) : (
-            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-charcoal-700 flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-white/20'}`}>
+            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-line-default/20'}`}>
               {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
           )}
@@ -1554,7 +1554,7 @@ const MyPlayerCard: React.FC<{
               the big banner at the top of the card. Removed. */}
           <div className="flex items-center gap-1.5 mb-2">
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${
-              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-white/10 text-white/85'
+              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-white/85'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
               {position}
@@ -1639,17 +1639,17 @@ const TeamPulseCard: React.FC<{
   const ts: any = topScorer;
   const ta: any = topAssister;
   return (
-    <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-2xl ring-1 ring-white/10 overflow-hidden shadow-lg">
-      <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+    <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
+      <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
         <h3 className="font-bold text-white flex items-center gap-2">
-          <svg className="w-4 h-4 text-bone/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
             <line x1="6" y1="20" x2="6" y2="14" />
           </svg>
           Team pulse
         </h3>
-        <Link to="/stats" className="text-bone/60 text-sm font-semibold hover:text-bone">Season stats</Link>
+        <Link to="/stats" className="text-ink-primary/60 text-sm font-semibold hover:text-ink-primary">Season stats</Link>
       </div>
 
       {/* Live game tracker entry point — coach can start a session
@@ -1678,7 +1678,7 @@ const TeamPulseCard: React.FC<{
       {(topScorer || topAssister) && (
         <div className="p-4 grid grid-cols-2 gap-3">
           {topScorer && (
-            <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-white/[0.05] transition">
+            <Link to={`/player/${topScorer.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-line-default/[0.05] transition">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-amber-300 to-yellow-500 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ts.profilePhotoUrl ? (
                   <img src={ts.profilePhotoUrl} alt={topScorer.name} className="w-full h-full object-cover" />
@@ -1687,7 +1687,7 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-bone/60">Top scorer</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60">Top scorer</p>
                 <p className="font-bold text-white text-sm truncate">{topScorer.name}</p>
                 <p className="text-xs text-emerald-300 font-bold">
                   <span className="font-black">{topScorer.stats?.goals || 0}</span>{' '}
@@ -1697,8 +1697,8 @@ const TeamPulseCard: React.FC<{
             </Link>
           )}
           {topAssister && topAssister.id !== topScorer?.id && (
-            <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-white/[0.05] transition">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-brand-primary to-charcoal-700 flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
+            <Link to={`/player/${topAssister.id}`} className="flex items-center gap-2.5 -m-1 p-1 rounded-xl hover:bg-line-default/[0.05] transition">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-brand-primary to-surface-raised flex items-center justify-center text-white font-black shadow-sm flex-shrink-0">
                 {ta.profilePhotoUrl ? (
                   <img src={ta.profilePhotoUrl} alt={topAssister.name} className="w-full h-full object-cover" />
                 ) : (
@@ -1706,7 +1706,7 @@ const TeamPulseCard: React.FC<{
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-bone/60">Top assister</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60">Top assister</p>
                 <p className="font-bold text-white text-sm truncate">{topAssister.name}</p>
                 <p className="text-xs text-brand-primary-soft font-bold">
                   <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
@@ -1764,7 +1764,7 @@ const FeaturedHighlight: React.FC<{ clip: any }> = ({ clip }) => {
       {/* Center play button */}
       {clip.type === 'video' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-brand-primary/95 ring-2 ring-white/80 shadow-2xl flex items-center justify-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-brand-primary/95 ring-2 ring-line-default/80 shadow-2xl flex items-center justify-center">
             <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
@@ -1811,7 +1811,7 @@ const DashTile: React.FC<{
   return (
     <Link
       to={to}
-      className="relative bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 ring-1 ring-white/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-white/20 hover:bg-white/[0.03] active:scale-[0.97] transition shadow"
+      className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ring-line-default/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-line-default/20 hover:bg-line-default/[0.03] active:scale-[0.97] transition shadow"
     >
       <span className="text-brand-primary-soft">{icon}</span>
       <span className="text-[11px] font-bold uppercase tracking-widest text-white/85">{label}</span>
@@ -1829,8 +1829,8 @@ const FooterStat: React.FC<{
   value: number;
   icon?: React.ReactNode;
   tint?: string;
-}> = ({ label, value, icon, tint = 'bg-white/10 text-bone' }) => (
-  <div className="bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 rounded-xl ring-1 ring-white/10 px-3 py-2.5 flex items-center gap-2.5 shadow">
+}> = ({ label, value, icon, tint = 'bg-line-default/10 text-ink-primary' }) => (
+  <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-xl ring-1 ring-line-default/10 px-3 py-2.5 flex items-center gap-2.5 shadow">
     {icon && (
       <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tint}`}>
         {icon}
@@ -1838,7 +1838,7 @@ const FooterStat: React.FC<{
     )}
     <div className="min-w-0">
       <div className="text-xl font-black text-white leading-none">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider font-bold text-bone/70 mt-0.5">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider font-bold text-ink-primary/70 mt-0.5">{label}</div>
     </div>
   </div>
 );

@@ -35,7 +35,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // see a color flash transitioning from splash → spinner → app.
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-charcoal-950 via-charcoal-800 to-charcoal-950 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex flex-col items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-primary/30 border-t-cyan-400" />
         <p
           className={`text-xs font-semibold tracking-wide text-white/60 transition-opacity duration-500 ${

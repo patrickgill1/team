@@ -35,9 +35,9 @@ export const RegisterCancel: React.FC = () => {
 };
 
 const Frame: React.FC<{ tone: 'success' | 'warning'; title: string; body: string; regId: string | null }> = ({ tone, title, body, regId }) => (
-  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center p-6">
-    <div className="max-w-md w-full bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-3xl p-8 text-center">
-      <div className="inline-flex p-3 rounded-2xl bg-white/5 ring-1 ring-white/10 backdrop-blur mb-4">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center p-6">
+    <div className="max-w-md w-full bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-3xl p-8 text-center">
+      <div className="inline-flex p-3 rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur mb-4">
         <Logo size="lg" variant="full" />
       </div>
       <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4 ${
@@ -54,7 +54,7 @@ const Frame: React.FC<{ tone: 'success' | 'warning'; title: string; body: string
       {regId && (
         <p className="text-[10px] text-slate-600 mb-3">Ref: {regId}</p>
       )}
-      <Link to="/register" className="inline-block text-brand-primary-soft hover:text-bone text-sm font-bold">
+      <Link to="/register" className="inline-block text-brand-primary-soft hover:text-ink-primary text-sm font-bold">
         Back to registration
       </Link>
     </div>

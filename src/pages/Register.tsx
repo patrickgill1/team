@@ -572,7 +572,7 @@ const RegisterForm: React.FC = () => {
   const familyFirst = userData?.name?.split(' ')[0] || 'family';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black px-4 py-6 sm:py-10">
+    <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black px-4 py-6 sm:py-10">
       <div className="max-w-2xl mx-auto">
         {/* Progress dots — always visible so parents know where they
             are. On step 1 (splash) we hide them to keep the entry card
@@ -586,7 +586,7 @@ const RegisterForm: React.FC = () => {
                 className={`h-1.5 rounded-full transition-all ${
                   step === s ? 'bg-brand-primary w-10' :
                   step > s   ? 'bg-brand-primary/40 w-6' :
-                               'bg-white/10 w-6'
+                               'bg-line-default/10 w-6'
                 }`}
               />
             ))}
@@ -595,12 +595,12 @@ const RegisterForm: React.FC = () => {
 
         {/* ─── STEP 1: SPLASH ─────────────────────────────────────── */}
         {step === 1 && (
-          <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl overflow-hidden">
+          <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl overflow-hidden">
             {/* Hero band — club logo lives here. Falls back to the
                 GoalKickr mark when the club has no logoUrl. */}
-            <div className="relative bg-gradient-to-br from-brand-primary/30 via-brand-primary-dim/20 to-charcoal-950 px-6 pt-8 pb-5">
+            <div className="relative bg-gradient-to-br from-brand-primary/30 via-brand-primary-dim/20 to-surface-base px-6 pt-8 pb-5">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-xl bg-charcoal-950 ring-1 ring-white/15 overflow-hidden flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 rounded-xl bg-surface-base ring-1 ring-line-default/15 overflow-hidden flex items-center justify-center shrink-0">
                   {clubShell?.logoUrl ? (
                     <img src={clubShell.logoUrl} alt={clubName} className="w-full h-full object-cover" />
                   ) : (
@@ -609,14 +609,14 @@ const RegisterForm: React.FC = () => {
                 </div>
                 <div className="min-w-0">
                   <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft/85">Registration</div>
-                  <h1 className="text-xl sm:text-2xl font-black text-bone leading-tight truncate">{season.name}</h1>
+                  <h1 className="text-xl sm:text-2xl font-black text-ink-primary leading-tight truncate">{season.name}</h1>
                 </div>
               </div>
             </div>
 
             <div className="px-6 py-5 space-y-5">
               <div>
-                <p className="text-[13px] text-bone/70 leading-relaxed">
+                <p className="text-[13px] text-ink-primary/70 leading-relaxed">
                   Welcome{userData?.name ? `, ${familyFirst}` : ''}. Signing up for {season.name} with {clubName} takes about 3 minutes — answer a few questions, then check out.
                 </p>
               </div>
@@ -628,7 +628,7 @@ const RegisterForm: React.FC = () => {
                   Open
                 </span>
                 {questionCount > 0 && (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 ring-1 ring-white/15 text-bone/80 text-[11px] font-extrabold tracking-widest uppercase">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-line-default/5 ring-1 ring-line-default/15 text-ink-primary/80 text-[11px] font-extrabold tracking-widest uppercase">
                     {questionCount} question{questionCount === 1 ? '' : 's'}
                   </span>
                 )}
@@ -662,11 +662,11 @@ const RegisterForm: React.FC = () => {
 
         {/* ─── STEP 2: FORM ───────────────────────────────────────── */}
         {step === 2 && (
-          <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-5 sm:p-8 space-y-6">
+          <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl p-5 sm:p-8 space-y-6">
             <header>
               <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft/85 mb-1">Step 2 of 3</div>
-              <h2 className="text-2xl font-black text-bone">Tell us about your player</h2>
-              <p className="text-[13px] text-bone/65 mt-1">Required fields are marked with an asterisk.</p>
+              <h2 className="text-2xl font-black text-ink-primary">Tell us about your player</h2>
+              <p className="text-[13px] text-ink-primary/65 mt-1">Required fields are marked with an asterisk.</p>
             </header>
 
             <Section title="Player">
@@ -695,7 +695,7 @@ const RegisterForm: React.FC = () => {
 
             <Section title={parents.length > 1 ? 'Parents / guardians' : 'Parent / guardian'}>
               {parents.map((p, i) => (
-                <div key={i} className={i > 0 ? 'pt-4 border-t border-white/10' : ''}>
+                <div key={i} className={i > 0 ? 'pt-4 border-t border-line-default/10' : ''}>
                   <Row>
                     <Input label="First name" value={p.firstName} onChange={(v) => updateParent(i, { firstName: v })} required={i === 0} />
                     <Input label="Last name" value={p.lastName} onChange={(v) => updateParent(i, { lastName: v })} required={i === 0} />
@@ -730,7 +730,7 @@ const RegisterForm: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setParents([...parents, { firstName: '', lastName: '', email: '', phone: '', relationship: 'father' }])}
-                  className="text-sm font-bold text-brand-primary-soft hover:text-bone"
+                  className="text-sm font-bold text-brand-primary-soft hover:text-ink-primary"
                 >
                   + Add another parent / guardian
                 </button>
@@ -766,28 +766,28 @@ const RegisterForm: React.FC = () => {
 
         {/* ─── STEP 3: CART ───────────────────────────────────────── */}
         {step === 3 && (
-          <div className="bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-5 sm:p-8 space-y-5">
+          <div className="bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 rounded-3xl p-5 sm:p-8 space-y-5">
             <header>
               <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft/85 mb-1">Step 3 of 3</div>
-              <h2 className="text-2xl font-black text-bone">Your cart</h2>
-              <p className="text-[13px] text-bone/65 mt-1">{firstName || 'Your player'} — {season.name}</p>
+              <h2 className="text-2xl font-black text-ink-primary">Your cart</h2>
+              <p className="text-[13px] text-ink-primary/65 mt-1">{firstName || 'Your player'} — {season.name}</p>
             </header>
 
             {/* Line item */}
-            <div className="rounded-2xl bg-charcoal-950 ring-1 ring-white/10 p-4">
+            <div className="rounded-2xl bg-surface-base ring-1 ring-line-default/10 p-4">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-lg bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-black text-bone truncate">
+                  <div className="text-sm font-black text-ink-primary truncate">
                     {activeProduct?.name || 'Registration'}
                   </div>
-                  <div className="text-[12px] text-bone/60 mt-0.5">
+                  <div className="text-[12px] text-ink-primary/60 mt-0.5">
                     {ageGroup} · {gender}
                   </div>
                 </div>
-                <div className="text-sm font-black text-bone shrink-0">
+                <div className="text-sm font-black text-ink-primary shrink-0">
                   ${(baseFee / 100).toFixed(2)}
                 </div>
               </div>
@@ -796,17 +796,17 @@ const RegisterForm: React.FC = () => {
             {/* Payment method — single option for now, mirror the 360Player
                 visual so parents recognize the pattern. */}
             <div>
-              <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">How would you like to pay?</h3>
+              <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-2">How would you like to pay?</h3>
               <div className="rounded-2xl ring-2 ring-brand-primary-soft/60 bg-brand-primary/10 px-4 py-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <span className="w-5 h-5 rounded-full bg-brand-primary text-white flex items-center justify-center">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                   </span>
-                  <span className="text-sm font-bold text-bone">One time</span>
+                  <span className="text-sm font-bold text-ink-primary">One time</span>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-black text-bone">Total ${(effectiveFee / 100).toFixed(2)}</div>
-                  <div className="text-[11px] text-bone/55">Due today ${(effectiveFee / 100).toFixed(2)}</div>
+                  <div className="text-sm font-black text-ink-primary">Total ${(effectiveFee / 100).toFixed(2)}</div>
+                  <div className="text-[11px] text-ink-primary/55">Due today ${(effectiveFee / 100).toFixed(2)}</div>
                 </div>
               </div>
             </div>
@@ -814,14 +814,14 @@ const RegisterForm: React.FC = () => {
             {/* Discount code */}
             {activeProduct && (activeProduct.coupons || []).length > 0 && (
               <div>
-                <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-2">Discount code</h3>
+                <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-2">Discount code</h3>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     placeholder="EARLYBIRD"
-                    className="flex-1 px-3 py-2.5 rounded-lg bg-charcoal-950 text-bone placeholder-bone/40 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm uppercase tracking-wider"
+                    className="flex-1 px-3 py-2.5 rounded-lg bg-surface-base text-ink-primary placeholder-bone/40 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm uppercase tracking-wider"
                     style={{ fontSize: '16px' }}
                   />
                   {quote.couponCode && (
@@ -837,12 +837,12 @@ const RegisterForm: React.FC = () => {
             )}
 
             {/* Order summary */}
-            <div className="rounded-2xl bg-charcoal-950 ring-1 ring-white/10 p-4">
-              <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-bone/55 mb-3">Order summary</h3>
+            <div className="rounded-2xl bg-surface-base ring-1 ring-line-default/10 p-4">
+              <h3 className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-3">Order summary</h3>
               <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-bone/75">1x {activeProduct?.name || 'Registration'}</span>
-                  <span className="text-bone font-semibold">${(baseFee / 100).toFixed(2)}</span>
+                  <span className="text-ink-primary/75">1x {activeProduct?.name || 'Registration'}</span>
+                  <span className="text-ink-primary font-semibold">${(baseFee / 100).toFixed(2)}</span>
                 </div>
                 {quote.discountCents > 0 && (
                   <div className="flex items-center justify-between">
@@ -852,17 +852,17 @@ const RegisterForm: React.FC = () => {
                 )}
                 {quote.surchargeCents > 0 && (
                   <div className="flex items-center justify-between text-[12px]">
-                    <span className="text-bone/55">Processing</span>
-                    <span className="text-bone/65">${(quote.surchargeCents / 100).toFixed(2)}</span>
+                    <span className="text-ink-primary/55">Processing</span>
+                    <span className="text-ink-primary/65">${(quote.surchargeCents / 100).toFixed(2)}</span>
                   </div>
                 )}
               </div>
-              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
-                <span className="text-sm font-bold text-bone">Due today</span>
-                <span className="text-base font-black text-bone">${(effectiveFee / 100).toFixed(2)}</span>
+              <div className="mt-3 pt-3 border-t border-line-default/10 flex items-center justify-between">
+                <span className="text-sm font-bold text-ink-primary">Due today</span>
+                <span className="text-base font-black text-ink-primary">${(effectiveFee / 100).toFixed(2)}</span>
               </div>
               {quote.surchargeCents > 0 && (
-                <p className="text-[10px] text-bone/45 mt-1 text-right">incl. service fee</p>
+                <p className="text-[10px] text-ink-primary/45 mt-1 text-right">incl. service fee</p>
               )}
             </div>
 
@@ -905,7 +905,7 @@ const BackButton: React.FC<{ onClick: () => void; disabled?: boolean }> = ({ onC
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-1.5 px-4 py-3.5 rounded-xl bg-white/5 ring-1 ring-white/10 text-bone/85 hover:bg-white/10 disabled:opacity-50 text-sm font-bold"
+    className="inline-flex items-center gap-1.5 px-4 py-3.5 rounded-xl bg-line-default/5 ring-1 ring-line-default/10 text-ink-primary/85 hover:bg-line-default/10 disabled:opacity-50 text-sm font-bold"
   >
     <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     Back
@@ -948,7 +948,7 @@ const Input: React.FC<{ label: string; value: string; onChange: (v: string) => v
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
       style={{ fontSize: '16px' }}
     />
   </label>
@@ -962,7 +962,7 @@ const TextArea: React.FC<{ label: string; value: string; onChange: (v: string) =
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={3}
-      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
       style={{ fontSize: '16px' }}
     />
   </label>
@@ -976,10 +976,10 @@ const Select: React.FC<{ label: string; value: string; onChange: (v: string) => 
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+      className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
       style={{ fontSize: '16px' }}
     >
-      {options.map(o => <option key={o.value} value={o.value} className="bg-charcoal-900">{o.label}</option>)}
+      {options.map(o => <option key={o.value} value={o.value} className="bg-surface-elevated">{o.label}</option>)}
     </select>
   </label>
 );
@@ -1011,7 +1011,7 @@ const CustomQuestion: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             rows={3}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -1025,12 +1025,12 @@ const CustomQuestion: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           >
-            <option value="" className="bg-charcoal-900">— Select —</option>
+            <option value="" className="bg-surface-elevated">— Select —</option>
             {(question.options || []).map(o => (
-              <option key={o} value={o} className="bg-charcoal-900">{o}</option>
+              <option key={o} value={o} className="bg-surface-elevated">{o}</option>
             ))}
           </select>
           {help}
@@ -1051,7 +1051,7 @@ const CustomQuestion: React.FC<{
                   className={`flex-1 py-2 rounded-lg text-sm font-bold ring-1 transition ${
                     selected
                       ? 'bg-brand-primary text-white ring-brand-primary'
-                      : 'bg-white/5 text-slate-300 ring-white/10 hover:ring-brand-primary-soft/40'
+                      : 'bg-line-default/5 text-slate-300 ring-line-default/10 hover:ring-brand-primary-soft/40'
                   }`}
                 >
                   {opt}
@@ -1071,7 +1071,7 @@ const CustomQuestion: React.FC<{
             value={value == null ? '' : String(value)}
             onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -1087,7 +1087,7 @@ const CustomQuestion: React.FC<{
             value={(value as string) || ''}
             onChange={(e) => onChange(e.target.value)}
             required={required}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/5 text-white placeholder-slate-500 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-line-default/5 text-white placeholder-slate-500 ring-1 ring-line-default/10 focus:outline-none focus:ring-2 focus:ring-brand-primary-soft/60 text-sm"
             style={{ fontSize: '16px' }}
           />
           {help}
@@ -1102,17 +1102,17 @@ const Checkbox: React.FC<{ label: string; checked: boolean; onChange: (v: boolea
       type="checkbox"
       checked={checked}
       onChange={(e) => onChange(e.target.checked)}
-      className="w-4 h-4 rounded bg-white/10 border-white/20 text-brand-primary"
+      className="w-4 h-4 rounded bg-line-default/10 border-line-default/20 text-brand-primary"
     />
     <span className="text-sm text-slate-300">{label}</span>
   </label>
 );
 
 const CenterMessage: React.FC<{ title: string; body?: string; success?: boolean }> = ({ title, body, success }) => (
-  <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-black flex items-center justify-center p-6">
-    <div className="max-w-md w-full bg-white/[0.04] backdrop-blur ring-1 ring-white/10 rounded-3xl p-8 text-center">
+  <div className="min-h-screen bg-gradient-to-br from-surface-base via-surface-elevated to-black flex items-center justify-center p-6">
+    <div className="max-w-md w-full bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-3xl p-8 text-center">
       <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4 ${
-        success ? 'bg-emerald-500/20 ring-1 ring-emerald-400/40' : 'bg-white/5 ring-1 ring-white/10'
+        success ? 'bg-emerald-500/20 ring-1 ring-emerald-400/40' : 'bg-line-default/5 ring-1 ring-line-default/10'
       }`}>
         {success ? (
           <svg className="w-6 h-6 text-emerald-300" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>

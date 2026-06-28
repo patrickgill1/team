@@ -288,7 +288,7 @@ const PlayerList: React.FC<PlayerListProps> = ({ searchTerm = '', positionFilter
             </button>
             <button
               onClick={() => { setEditingPlayer(null); setIsAddPlayerOpen(true); }}
-              className="bg-gradient-to-br from-brand-primary to-charcoal-600 text-white text-xs font-extrabold tracking-widest uppercase py-1.5 px-3 rounded-md shadow-sm hover:from-brand-primary-soft hover:to-brand-primary flex items-center gap-1.5"
+              className="bg-gradient-to-br from-brand-primary to-surface-tint text-white text-xs font-extrabold tracking-widest uppercase py-1.5 px-3 rounded-md shadow-sm hover:from-brand-primary-soft hover:to-brand-primary flex items-center gap-1.5"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/>

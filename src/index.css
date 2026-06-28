@@ -39,37 +39,37 @@
 
      Each value is an R G B triplet for Tailwind <alpha-value> support
      (lets `bg-surface-elevated/80` resolve correctly). */
-  --surface-base:     13 13 16;     /* page background (was charcoal-950) */
-  --surface-elevated: 21 22 26;     /* cards, panels (was charcoal-900) */
-  --surface-input:    31 32 36;     /* input fields, deeper recesses (was charcoal-800) */
-  --surface-overlay:  13 13 16;     /* modals, sheets — same as base in dark */
-  --surface-raised:   52 53 58;     /* hovers, pressed states (was charcoal-700) */
+  --surface-base:     13 13 16;
+  --surface-elevated: 21 22 26;
+  --surface-input:    31 32 36;
+  --surface-overlay:  13 13 16;
+  --surface-raised:   52 53 58;
 
-  --ink-primary:   245 243 238;     /* primary text (was bone) */
-  --ink-secondary: 245 243 238;     /* secondary text (alpha-modified at usage: text-ink-secondary/65) */
-  --ink-muted:     245 243 238;     /* muted text (usage typically /40 or /50) */
-  --ink-inverse:   13 13 16;        /* text on brand-primary fill (was charcoal-950) */
+  --ink-primary:   245 243 238;
+  --ink-secondary: 245 243 238;
+  --ink-muted:     245 243 238;
+  --ink-inverse:   13 13 16;
 
-  --line-default: 255 255 255;      /* borders (usage typically /10) */
-  --line-strong:  255 255 255;      /* stronger borders (usage typically /20) */
+  --line-default: 255 255 255;
+  --line-strong:  255 255 255;
 }
 
 /* Light mode — swaps the semantic tokens. Components that still use
-   literal charcoal-*/bone classes stay dark until migrated. */
+   literal dark classes stay dark until migrated. */
 html[data-theme="light"] {
-  --surface-base:     255 255 255;  /* white page background */
-  --surface-elevated: 248 250 252;  /* slate-50 cards */
-  --surface-input:    241 245 249;  /* slate-100 input fields */
-  --surface-overlay:  255 255 255;  /* white modals */
-  --surface-raised:   226 232 240;  /* slate-200 hovers */
+  --surface-base:     255 255 255;
+  --surface-elevated: 248 250 252;
+  --surface-input:    241 245 249;
+  --surface-overlay:  255 255 255;
+  --surface-raised:   226 232 240;
 
-  --ink-primary:   15 23 42;        /* slate-900 */
-  --ink-secondary: 71 85 105;       /* slate-600 */
-  --ink-muted:     100 116 139;     /* slate-500 */
-  --ink-inverse:   255 255 255;     /* white on brand-primary fill */
+  --ink-primary:   15 23 42;
+  --ink-secondary: 71 85 105;
+  --ink-muted:     100 116 139;
+  --ink-inverse:   255 255 255;
 
-  --line-default: 15 23 42;         /* slate-900 (usage at /10) */
-  --line-strong:  15 23 42;         /* slate-900 (usage at /20) */
+  --line-default: 15 23 42;
+  --line-strong:  15 23 42;
 }
 
 * {

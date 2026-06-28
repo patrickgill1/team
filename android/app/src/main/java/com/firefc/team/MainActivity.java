@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.getcapacitor.BridgeActivity;
+import com.firefc.team.widget.WidgetBridgePlugin;
 
 public class MainActivity extends BridgeActivity {
     // GoalKickr brand dark (charcoal-950 = #0d0d10). Mirrors the
@@ -25,6 +26,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Register custom Capacitor plugins. Must happen BEFORE
+        // super.onCreate so the plugin is available the moment
+        // the Bridge starts initializing the JS context. Each
+        // additional plugin gets its own registerPlugin line.
+        registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
         // Defensive safe-area handling. Android 15 forces apps into
         // edge-to-edge; the theme attribute opts us out, but Samsung

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
+import WidgetBridge from '../../utils/widgetBridge';
 
 /**
  * Widget setup card. Generates and displays a long-lived widget
@@ -36,6 +37,16 @@ const WidgetSetupCard: React.FC = () => {
 
   const uid = userData?.uid || currentUser?.uid;
 
+  // Pushes the token into the native widget bridge so the home-screen
+  // widget's configure activity (Android) can auto-pick it up and skip
+  // the paste UI. Web/iOS fall back to no-op for now — iOS needs App
+  // Group entitlements before its bridge can light up; users on iOS
+  // copy/paste manually until that ships.
+  const syncToNativeBridge = async (next: string) => {
+    try { await WidgetBridge.setToken({ token: next }); }
+    catch { /* fire-and-forget */ }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -44,12 +55,20 @@ const WidgetSetupCard: React.FC = () => {
         // Trust userData first; fall back to a doc read if it
         // hasn't loaded the field yet (older sessions).
         if (typeof userData?.widgetToken === 'string') {
-          if (!cancelled) { setToken(userData.widgetToken); setLoading(false); }
+          if (!cancelled) {
+            setToken(userData.widgetToken);
+            setLoading(false);
+            void syncToNativeBridge(userData.widgetToken);
+          }
           return;
         }
         const snap = await getDoc(doc(db, 'users', uid));
         const t = snap.exists() ? (snap.data() as any).widgetToken : null;
-        if (!cancelled) { setToken(typeof t === 'string' ? t : null); setLoading(false); }
+        if (!cancelled) {
+          setToken(typeof t === 'string' ? t : null);
+          setLoading(false);
+          if (typeof t === 'string' && t) void syncToNativeBridge(t);
+        }
       } catch {
         if (!cancelled) setLoading(false);
       }
@@ -65,6 +84,7 @@ const WidgetSetupCard: React.FC = () => {
       await updateDoc(doc(db, 'users', uid), { widgetToken: t });
       setToken(t);
       setShowInstructions(true);
+      void syncToNativeBridge(t);
     } finally { setBusy(false); }
   };
 
@@ -77,6 +97,7 @@ const WidgetSetupCard: React.FC = () => {
       await updateDoc(doc(db, 'users', uid), { widgetToken: t });
       setToken(t);
       setCopied(false);
+      void syncToNativeBridge(t);
     } finally { setBusy(false); }
   };
 

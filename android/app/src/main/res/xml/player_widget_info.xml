@@ -10,7 +10,7 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:previewLayout="@layout/widget_player_medium"
-    android:resizeMode="horizontal"
+    android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen"
     android:widgetFeatures="reconfigurable" />

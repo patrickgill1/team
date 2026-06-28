@@ -109,8 +109,11 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Divider -->
-    <View
+    <!-- Divider. RemoteViews can't inflate a bare <View> — Android
+         widget host crashes with "Can't load widget" — so we use
+         a 1dp-tall TextView as a hairline. TextView IS on the
+         supported-roots list. -->
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="10dp"

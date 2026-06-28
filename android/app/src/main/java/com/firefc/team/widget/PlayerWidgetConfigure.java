@@ -47,13 +47,37 @@ public class PlayerWidgetConfigure extends Activity {
             return;
         }
 
-        // Hydrate any existing code (for reconfigure flow).
-        final EditText input = findViewById(R.id.widget_setup_input);
-        SharedPreferences prefs = getSharedPreferences(
+        // Auto-config path: if WidgetBridgePlugin wrote a global token
+        // when the user generated theirs in Settings -> Widget, skip
+        // the paste UI entirely and save it to this widget instance.
+        // Falls through to the manual paste path if no global token
+        // exists yet (e.g. user added the widget before opening
+        // Settings -> Widget once).
+        final SharedPreferences prefs = getSharedPreferences(
             PlayerWidgetProvider.PREFS_NAME, 0);
-        String existing = prefs.getString(
+        final String widgetSpecific = prefs.getString(
             PlayerWidgetProvider.PREF_PREFIX_KEY + appWidgetId, "");
-        if (!existing.isEmpty()) input.setText(existing);
+        final String globalToken = prefs.getString(
+            WidgetBridgePlugin.GLOBAL_TOKEN_KEY, "");
+
+        if (widgetSpecific.isEmpty() && !globalToken.isEmpty()) {
+            // Auto-save and finish — no UI shown to the user.
+            prefs.edit()
+                .putString(PlayerWidgetProvider.PREF_PREFIX_KEY + appWidgetId, globalToken)
+                .apply();
+            AppWidgetManager mgr = AppWidgetManager.getInstance(this);
+            PlayerWidgetProvider.updateAppWidget(this, mgr, appWidgetId);
+            Intent result = new Intent();
+            result.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+            setResult(RESULT_OK, result);
+            finish();
+            return;
+        }
+
+        // Manual paste path. Hydrate the existing widget-specific code
+        // (for reconfigure flow) or leave blank.
+        final EditText input = findViewById(R.id.widget_setup_input);
+        if (!widgetSpecific.isEmpty()) input.setText(widgetSpecific);
 
         Button save = findViewById(R.id.widget_setup_save);
         save.setOnClickListener(new View.OnClickListener() {

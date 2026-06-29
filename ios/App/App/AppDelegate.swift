@@ -12,14 +12,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Capacitor Firebase plugins (Auth, Messaging) can find their config.
         FirebaseApp.configure()
 
-        // Force-load custom Capacitor plugin classes. Swift classes
-        // annotated with @objc are only registered with the Objective-C
-        // runtime when they're referenced; Capacitor's plugin discovery
-        // depends on that runtime to find CAPPlugin subclasses. Touching
-        // .self here is enough to trigger the load. Avoids needing a
-        // separate ObjC .m registration shim per plugin.
-        _ = WidgetBridgePlugin.self
-
         // Window + root view controller backgrounds painted with a
         // theme-aware baseline ONLY. Capacitor's StatusBar plugin
         // runs in overlay mode (see nativeShell.ts) so the WebView

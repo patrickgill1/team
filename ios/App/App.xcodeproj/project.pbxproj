@@ -22,6 +22,7 @@
 		B867160A2FEE4AEF0083F8F3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B86716092FEE4AEF0083F8F3 /* SwiftUI.framework */; };
 		B867161B2FEE4AF00083F8F3 /* PlayerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B86716062FEE4AEF0083F8F3 /* PlayerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B867164A2FF1C9A10083F8F3 /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B86716492FF1C9A10083F8F3 /* WidgetBridgePlugin.swift */; };
+		B867165F2FF1FD4A0083F8F3 /* WidgetBridgePlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = B867165E2FF1FD490083F8F3 /* WidgetBridgePlugin.m */; };
 		B8962CF22FDBE7DA00531815 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		B8962CF62FDBE7DA00531815 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		B8962CF72FDBE7DA00531815 /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
@@ -378,6 +379,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				B867164A2FF1C9A10083F8F3 /* WidgetBridgePlugin.swift in Sources */,
+				B867165F2FF1FD4A0083F8F3 /* WidgetBridgePlugin.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

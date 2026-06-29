@@ -22,7 +22,7 @@
 		B867160A2FEE4AEF0083F8F3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B86716092FEE4AEF0083F8F3 /* SwiftUI.framework */; };
 		B867161B2FEE4AF00083F8F3 /* PlayerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B86716062FEE4AEF0083F8F3 /* PlayerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B867164A2FF1C9A10083F8F3 /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B86716492FF1C9A10083F8F3 /* WidgetBridgePlugin.swift */; };
-		B867165F2FF1FD4A0083F8F3 /* WidgetBridgePlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = B867165E2FF1FD490083F8F3 /* WidgetBridgePlugin.m */; };
+		B867165F2FF1FD4A0083F8F3 /* WidgetBridgePlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = B82CB54F2FF2073500EE68D7 /* WidgetBridgePlugin.m */; };
 		B8962CF22FDBE7DA00531815 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		B8962CF62FDBE7DA00531815 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		B8962CF72FDBE7DA00531815 /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
@@ -72,12 +72,12 @@
 		7A5C06F02D5E3AEAF31B4286 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_App.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1A2C3D4E5F60718293A4B5D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B82CB54F2FF2073500EE68D7 /* WidgetBridgePlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WidgetBridgePlugin.m; sourceTree = "<group>"; };
 		B86716062FEE4AEF0083F8F3 /* PlayerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlayerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B86716072FEE4AEF0083F8F3 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		B86716092FEE4AEF0083F8F3 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		B86716482FF1C3F40083F8F3 /* PlayerWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlayerWidgetExtension.entitlements; sourceTree = "<group>"; };
 		B86716492FF1C9A10083F8F3 /* WidgetBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridgePlugin.swift; sourceTree = "<group>"; };
-		B867165E2FF1FD490083F8F3 /* WidgetBridgePlugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = WidgetBridgePlugin.m; path = App/WidgetBridgePlugin.m; sourceTree = "<group>"; };
 		B8962D022FDBE7DA00531815 /* App copy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "App copy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8962D032FDBE7DA00531815 /* App copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "App copy-Info.plist"; path = "/Users/patrickgill/dev/team/ios/App/App copy-Info.plist"; sourceTree = "<absolute>"; };
 		C210082811C6067786A13087 /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
@@ -140,7 +140,6 @@
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
-				B867165E2FF1FD490083F8F3 /* WidgetBridgePlugin.m */,
 				B86716482FF1C3F40083F8F3 /* PlayerWidgetExtension.entitlements */,
 				504EC3061FED79650016851F /* App */,
 				B867160B2FEE4AEF0083F8F3 /* PlayerWidget */,
@@ -164,6 +163,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				B82CB54F2FF2073500EE68D7 /* WidgetBridgePlugin.m */,
 				B86716492FF1C9A10083F8F3 /* WidgetBridgePlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,

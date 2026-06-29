@@ -25,15 +25,12 @@ import WidgetKit
 public let APP_GROUP_ID = "group.com.goalkickr.widget"
 public let WIDGET_TOKEN_KEY = "global_token"
 
+// Inherits CAPPlugin only — registration is handled by the
+// CAP_PLUGIN macro in WidgetBridgePlugin.m. If the class also
+// conformed to CAPBridgedPlugin, Capacitor 7 would expect the
+// auto-discovery path and might ignore the .m macro entirely.
 @objc(WidgetBridgePlugin)
-public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
-    public let identifier = "WidgetBridgePlugin"
-    public let jsName = "WidgetBridge"
-    public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "setToken", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getToken", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clearToken", returnType: CAPPluginReturnPromise),
-    ]
+public class WidgetBridgePlugin: CAPPlugin {
 
     private func defaults() -> UserDefaults? {
         return UserDefaults(suiteName: APP_GROUP_ID)

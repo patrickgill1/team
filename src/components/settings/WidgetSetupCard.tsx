@@ -4,6 +4,7 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import WidgetBridge from '../../utils/widgetBridge';
+import { isOwner } from '../../utils/helpers';
 
 /**
  * Widget setup card. Generates and displays a long-lived widget
@@ -218,6 +219,67 @@ const WidgetSetupCard: React.FC = () => {
           </button>
         </div>
       )}
+      {isOwner(userData) && <WidgetBridgeDiagnostics token={token} />}
+    </div>
+  );
+};
+
+// Owner-only diagnostic panel. Surfaces every link in the chain so we
+// can see at a glance which step is failing: Firestore token, JS bridge
+// reachability, write+read roundtrip. Hidden from non-owners.
+const WidgetBridgeDiagnostics: React.FC<{ token: string | null }> = ({ token }) => {
+  const [bridgeReadback, setBridgeReadback] = React.useState<string>('(not yet checked)');
+  const [bridgeWriteResult, setBridgeWriteResult] = React.useState<string>('(not yet attempted)');
+  const [busy, setBusy] = React.useState(false);
+
+  const runCheck = async () => {
+    setBusy(true);
+    setBridgeWriteResult('writing...');
+    try {
+      const probe = `diag_${Date.now().toString(36)}`;
+      await WidgetBridge.setToken({ token: probe });
+      setBridgeWriteResult(`write ok (probe="${probe}")`);
+    } catch (e: any) {
+      setBridgeWriteResult(`write FAILED: ${String(e?.message || e)}`);
+      setBusy(false);
+      return;
+    }
+    setBridgeReadback('reading...');
+    try {
+      const r = await WidgetBridge.getToken();
+      setBridgeReadback(`read ok (token="${r.token || '(empty)'}")`);
+    } catch (e: any) {
+      setBridgeReadback(`read FAILED: ${String(e?.message || e)}`);
+    }
+    // Restore the real token after the probe so we don't break the widget
+    if (token) {
+      try { await WidgetBridge.setToken({ token }); } catch { /* ignore */ }
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="mt-4 border-t border-line-default/5 px-4 pt-3 pb-4">
+      <p className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 mb-2">Owner diagnostic</p>
+      <div className="space-y-1 font-mono text-[11px] text-ink-primary/70">
+        <div>Firestore token: <span className="text-ink-primary">{token ? `${token.slice(0, 8)}... (${token.length} chars)` : '(none)'}</span></div>
+        <div>Bridge write: <span className="text-ink-primary">{bridgeWriteResult}</span></div>
+        <div>Bridge read-back: <span className="text-ink-primary">{bridgeReadback}</span></div>
+      </div>
+      <button
+        type="button"
+        onClick={runCheck}
+        disabled={busy}
+        className="mt-3 px-3 py-1.5 rounded-md bg-amber-500 text-charcoal-950 text-xs font-extrabold tracking-widest uppercase disabled:opacity-50"
+      >
+        {busy ? 'Running…' : 'Run bridge check'}
+      </button>
+      <p className="mt-2 text-[10px] text-ink-primary/45 leading-relaxed">
+        Tap Run, then read the three lines above. If write/read both say "ok"
+        the JS side is fine and the issue is in the widget extension or App
+        Group. If they fail with an error, the JS-to-native call isn't
+        landing — usually means the Capacitor plugin isn't registered.
+      </p>
     </div>
   );
 };

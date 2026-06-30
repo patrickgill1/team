@@ -1,6 +1,6 @@
 // Vercel serverless function — returns an iCalendar (.ics) feed for a
 // team's upcoming events. Parents subscribe in Apple/Google Calendar
-// via:  webcal://firefc.app/api/calendar/<teamId>
+// via:  webcal://app.goalkickr.com/api/calendar/<teamId>
 //
 // Reads through Firestore's REST API. Events are publicly readable
 // per the firestore.rules ("allow read: if true" on /events), so we
@@ -104,10 +104,10 @@ export default async function handler(req, res) {
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Fire FC//Team Calendar//EN',
+      'PRODID:-//GoalKickr//Team Calendar//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      `X-WR-CALNAME:Fire FC team schedule`,
+      `X-WR-CALNAME:GoalKickr team schedule`,
       `X-WR-TIMEZONE:UTC`,
     ];
     for (const ev of events) {
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       if (ev.homeAway) descParts.push(`Home/Away: ${ev.homeAway}`);
       if (ev.description) descParts.push(ev.description);
       lines.push('BEGIN:VEVENT');
-      lines.push(`UID:${ev.id}@firefc.app`);
+      lines.push(`UID:${ev.id}@app.goalkickr.com`);
       lines.push(`DTSTAMP:${fmt(now)}`);
       lines.push(`DTSTART:${fmt(start)}`);
       lines.push(`DTEND:${fmt(end)}`);

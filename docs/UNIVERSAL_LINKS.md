@@ -1,35 +1,33 @@
-# Universal Links / App Links — open firefc.app URLs in the native app
+# Universal Links / App Links
 
-When this is set up, any link to `firefc.app` in an email, push notification,
-text message, or web link auto-opens the app if installed; falls back to web
-in the browser otherwise. iOS calls this **Universal Links**, Android calls
-it **App Links**.
+GoalKickr uses a split-domain setup:
 
-The Capacitor `appUrlOpen` listener that routes incoming URLs into
-react-router is already wired in `src/utils/nativeShell.ts` — once the
-platform-side setup below is done, the rest just works.
+- `goalkickr.com` is the marketing, pricing, and billing site.
+- `app.goalkickr.com` is the product app: auth actions, invites, shares, dashboards, registrations, offers, surveys, votes, wall posts, media, and calendar feeds.
+- `api.goalkickr.com` is the worker/API origin.
 
-## iOS
+Native deep links should claim app routes only. Do not claim `goalkickr.com` for the native app unless the marketing site intentionally moves app routes back to the apex.
 
-### 1. Find your Apple Team ID
+The Capacitor `appUrlOpen` listener that routes incoming URLs into React Router is already wired in `src/utils/nativeShell.ts`. Once the platform-side setup below is done, app links strip the host and push the path into the app.
 
-- Open Xcode → select the `App` target → **Signing & Capabilities** tab.
-- The Team ID is shown next to your name (10-character alphanumeric, e.g.
-  `ABC123DEF`).
-- Alternatively: https://developer.apple.com/account → **Membership** →
-  Team ID.
+## iOS Universal Links
 
-### 2. Patch the AASA file
+### AASA File
 
-The file lives at `public/.well-known/apple-app-site-association`. Open it
-and replace `REPLACE_WITH_APPLE_TEAM_ID` with your Team ID. Final shape:
+The file lives at `public/.well-known/apple-app-site-association` and should be served from:
+
+```text
+https://app.goalkickr.com/.well-known/apple-app-site-association
+```
+
+Current shape:
 
 ```json
 {
   "applinks": {
     "details": [
       {
-        "appIDs": ["ABC123DEF.com.firefc.team"],
+        "appIDs": ["CK894D6SS9.com.firefc.team"],
         "components": [{ "/": "/*" }]
       }
     ]
@@ -37,107 +35,145 @@ and replace `REPLACE_WITH_APPLE_TEAM_ID` with your Team ID. Final shape:
 }
 ```
 
-`{"/": "/*"}` claims every path on `firefc.app`. If you ever want to keep a
-specific path web-only (e.g. a marketing page), add another component with
-`"exclude": true`.
+`vercel.json` sets the content type to `application/json`, which Apple requires.
 
-### 3. Push to Vercel
+### Associated Domains
 
-Commit + push. Vercel serves it at `https://firefc.app/.well-known/apple-app-site-association`
-with `Content-Type: application/json` (the `vercel.json` headers rule handles
-that — Apple rejects the file if served as `application/octet-stream`).
+In Xcode, the `App` target needs Associated Domains entries for the app host:
 
-Verify with:
-```bash
-curl -I https://firefc.app/.well-known/apple-app-site-association
-# → HTTP/2 200 ; content-type: application/json
+```text
+applinks:app.goalkickr.com
+applinks:app.goalkickr.com?mode=developer
 ```
 
-### 4. Enable Associated Domains in Xcode
+Keep legacy domains only if you also serve valid AASA files there and want already-shared old links to open the app directly:
 
-- Xcode → `App` target → **Signing & Capabilities** → **+ Capability**
-  (button near the top) → **Associated Domains**.
-- A new section appears with a `+` button. Add: `applinks:firefc.app`
-- (Optional during testing) add a second entry: `applinks:firefc.app?mode=developer`
-  — this skips Apple's CDN cache so you don't have to wait an hour for AASA
-  changes to propagate during initial setup.
+```text
+applinks:firefc.app
+applinks:goalkickr.app
+```
 
-This change modifies `App.entitlements`. Commit that file too.
+This is a native entitlement change, so it requires a TestFlight/App Store binary. Capgo cannot ship entitlement changes.
 
-### 5. Rebuild + reinstall on device
+### Verify
 
 ```bash
-npm run build && npx cap sync ios
+curl -I https://app.goalkickr.com/.well-known/apple-app-site-association
 ```
 
-Then Run from Xcode on a physical device (Universal Links don't work in the
-simulator). First launch on the device triggers iOS to fetch the AASA file
-in the background. Wait ~30 seconds after first launch.
+Expected: HTTP 200 and `content-type: application/json`.
 
-### 6. Test
+After installing the native build on a physical device, send yourself a link like:
 
-- Send yourself a text or email containing `https://firefc.app/development`
-- Tap the link. The app should open directly to the development page
-  instead of Safari.
-- If it opens Safari, see Troubleshooting below.
-
-## Android (do this later)
-
-Equivalent setup, different file:
-
-### 1. Get the SHA-256 of your release signing key
-
-```bash
-keytool -list -v -keystore android/app/release.keystore -alias <your-alias>
+```text
+https://app.goalkickr.com/settings
 ```
 
-Copy the `SHA256:` line (40-character colon-separated).
+Tap it from Messages or Mail. The app should open to `/settings`.
 
-### 2. Create `public/.well-known/assetlinks.json`
+## Android App Links
 
-```json
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.firefc.team",
-    "sha256_cert_fingerprints": ["SHA256:..."]
-  }
-}]
-```
-
-### 3. Add intent filters to `android/app/src/main/AndroidManifest.xml`
-
-Inside the main `<activity>` tag:
+The Android manifest declares verified app-link hosts on `MainActivity`:
 
 ```xml
 <intent-filter android:autoVerify="true">
-  <action android:name="android.intent.action.VIEW" />
-  <category android:name="android.intent.category.DEFAULT" />
-  <category android:name="android.intent.category.BROWSABLE" />
-  <data android:scheme="https"
-        android:host="firefc.app" />
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="https" android:host="app.goalkickr.com" />
+    <data android:scheme="https" android:host="goalkickr.app" />
+    <data android:scheme="https" android:host="firefc.app" />
 </intent-filter>
 ```
 
-### 4. Rebuild + verify
+To complete production verification, create `public/.well-known/assetlinks.json` after copying the SHA-256 certificate fingerprint from Google Play Console:
 
-`npx cap sync android`, rebuild the AAB, install. Google verifies the
-`assetlinks.json` on first install — links should open in the app immediately
-after.
+Google Play Console -> GoalKickr -> Setup -> App integrity -> App signing key certificate -> SHA-256 certificate fingerprint.
+
+Then add:
+
+```json
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.firefc.team",
+      "sha256_cert_fingerprints": [
+        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256"
+      ]
+    }
+  }
+]
+```
+
+Do not guess this fingerprint. A debug fingerprint will not verify production installs unless it is included alongside the Play App Signing fingerprint for a dev-only build.
+
+Verify after deploy:
+
+```bash
+curl https://app.goalkickr.com/.well-known/assetlinks.json
+```
+
+Then install the signed Android build and test:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "https://app.goalkickr.com/settings" com.firefc.team
+```
+
+## Backend Link Sources
+
+Use these origins consistently:
+
+- App links and auth action links: `https://app.goalkickr.com`
+- Marketing and billing pages: `https://goalkickr.com`
+- Worker routes: `https://api.goalkickr.com`
+
+Important environment values:
+
+```text
+APP_ORIGIN=https://app.goalkickr.com
+API_ORIGIN=https://api.goalkickr.com
+REACT_APP_GOALKICKR_SITE=https://goalkickr.com
+REACT_APP_NOTIFY_URL=https://api.goalkickr.com
+```
+
+Firebase Functions default `APP_ORIGIN` is `https://app.goalkickr.com` for push/deep-link URLs.
+
+Cloudflare Worker `APP_ORIGIN` is `https://app.goalkickr.com` for app navigation in emails, Stripe redirects, billing portal returns, registrations, offers, and drips. `API_ORIGIN` is `https://api.goalkickr.com` for worker-hosted unsubscribe and tracking-pixel URLs.
+
+## Stripe Settings
+
+Stripe must know the app-return URLs exactly.
+
+Connect OAuth redirect URI:
+
+```text
+https://app.goalkickr.com/club?stripe_connected=1
+```
+
+Default Checkout returns generated by the worker:
+
+```text
+https://app.goalkickr.com/signup/success?session_id={CHECKOUT_SESSION_ID}
+https://app.goalkickr.com/signup
+https://app.goalkickr.com/register/success?registrationId=...
+https://app.goalkickr.com/register/cancel?registrationId=...
+https://app.goalkickr.com/teams?video_upgrade=ok&team=...
+https://app.goalkickr.com/teams?video_upgrade=cancel&team=...
+```
+
+Default Customer Portal return URL:
+
+```text
+https://app.goalkickr.com/settings
+```
+
+The marketing site may still start Checkout from `goalkickr.com/signup`; if it wants a marketing success page, it must pass explicit `successUrl` and `cancelUrl` in the request. Otherwise, the worker returns users to the app domain.
 
 ## Troubleshooting
 
-- **Link still opens Safari, not the app**: AASA cache. Either wait ~1 hour
-  for Apple's CDN, or in Xcode add `applinks:firefc.app?mode=developer` to
-  Associated Domains, then long-press the link in Notes to verify ("Open in
-  'Fire FC'" should appear in the menu).
-- **AASA file 404s**: confirm the file exists at
-  `public/.well-known/apple-app-site-association` (no `.json` extension —
-  Apple rejects it with the extension) and that Vercel has redeployed.
-- **`curl -I` shows `content-type: application/octet-stream`**: the
-  `vercel.json` headers rule isn't matching. Check the source pattern.
-- **App opens but lands on the wrong page**: check the `appUrlOpen` listener
-  in `src/utils/nativeShell.ts` — it strips the host and pushes the path to
-  react-router. If your URL has a redirect (`firefc.app/r/abc`), expand the
-  path → route map there.
+- Link opens browser instead of app on iOS: reinstall the native build after Associated Domains changes, wait for AASA fetch, and test from Messages/Mail instead of typing into Safari.
+- Link opens browser instead of app on Android: verify `assetlinks.json` has the Play App Signing SHA-256, then reinstall the signed build.
+- App opens but lands on the wrong route: check `src/utils/nativeShell.ts`; it strips the host and pushes `pathname + search + hash` into React Router.
+- AASA or assetlinks 404s: confirm the files exist under `public/.well-known/` and Vercel has deployed the current app project.

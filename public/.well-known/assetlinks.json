@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.firefc.team",
+      "sha256_cert_fingerprints": [
+        "70:3C:CA:D1:55:52:68:CA:ED:85:37:8C:92:F4:95:8D:04:51:5E:0C:E0:9C:1D:6A:87:E9:6E:6C:37:9F:0C:9B"
+      ]
+    }
+  }
+]

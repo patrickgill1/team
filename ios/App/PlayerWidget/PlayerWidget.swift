@@ -25,8 +25,17 @@ struct PlayerSnapshot: Codable {
     let nextEventTitle: String?
     let nextEventType: String?
     let nextEventDateMs: Double?
+    let nextEventArriveByMs: Double?
+    let nextEventArriveOffsetMinutes: Int?
     let nextEventLocation: String?
+    let nextEventDevelopmentFocus: String?
     let nextEventRsvp: String?    // "going" | "maybe" | "no" | nil
+    let nextEventNeedsRsvp: Bool?
+    let postEventFeedbackEventId: String?
+    let postEventFeedbackTitle: String?
+    let postEventFeedbackDateMs: Double?
+    let postEventFeedbackFocus: String?
+    let needsPostEventFeedback: Bool?
     let lastResultTitle: String?
     let lastResultScore: String?
     let lastResultDateMs: Double?
@@ -43,8 +52,17 @@ struct PlayerSnapshot: Codable {
         nextEventTitle: "Practice",
         nextEventType: "practice",
         nextEventDateMs: Date().addingTimeInterval(60 * 60 * 24).timeIntervalSince1970 * 1000,
+        nextEventArriveByMs: Date().addingTimeInterval(60 * 60 * 23.5).timeIntervalSince1970 * 1000,
+        nextEventArriveOffsetMinutes: 30,
         nextEventLocation: "West Field",
+        nextEventDevelopmentFocus: "First touch",
         nextEventRsvp: "going",
+        nextEventNeedsRsvp: false,
+        postEventFeedbackEventId: nil,
+        postEventFeedbackTitle: nil,
+        postEventFeedbackDateMs: nil,
+        postEventFeedbackFocus: nil,
+        needsPostEventFeedback: true,
         lastResultTitle: "vs Spartans",
         lastResultScore: "W 3-1",
         lastResultDateMs: Date().addingTimeInterval(-60 * 60 * 48).timeIntervalSince1970 * 1000,
@@ -58,11 +76,32 @@ private struct SnapshotResponse: Codable {
     let snapshot: PlayerSnapshot?
 }
 
+private struct SnapshotErrorResponse: Codable {
+    let ok: Bool?
+    let error: String?
+}
+
 // MARK: - Networking
 
 private let WIDGET_ENDPOINT = "https://api.goalkickr.com/widget/snapshot"
 private let APP_GROUP_ID = "group.com.goalkickr.widget"
 private let WIDGET_TOKEN_KEY = "global_token"
+
+private func widgetRequest(setupCode: String, includeTokenQuery: Bool) -> URLRequest {
+    let nonce = Int(Date().timeIntervalSince1970)
+    var components = URLComponents(string: WIDGET_ENDPOINT)!
+    var queryItems = [URLQueryItem(name: "t", value: String(nonce))]
+    if includeTokenQuery {
+        queryItems.append(URLQueryItem(name: "token", value: setupCode))
+    }
+    components.queryItems = queryItems
+    var req = URLRequest(url: components.url!)
+    req.httpMethod = "GET"
+    req.setValue("Bearer \(setupCode)", forHTTPHeaderField: "Authorization")
+    req.cachePolicy = .reloadIgnoringLocalCacheData
+    req.timeoutInterval = 20
+    return req
+}
 
 // Resolve the effective setup code with this priority:
 //   1. ConfigurationAppIntent.setupCode if the user manually pasted one
@@ -83,18 +122,27 @@ private func fetchSnapshot(setupCode: String) async -> (PlayerSnapshot?, String?
     // widget extensions are aggressive about caching responses to
     // save battery, and a stale 'no events' payload can hang
     // around for hours otherwise.
-    let nonce = Int(Date().timeIntervalSince1970)
-    var req = URLRequest(url: URL(string: "\(WIDGET_ENDPOINT)?t=\(nonce)")!)
-    req.httpMethod = "GET"
-    req.setValue("Bearer \(setupCode)", forHTTPHeaderField: "Authorization")
-    req.cachePolicy = .reloadIgnoringLocalCacheData
-    req.timeoutInterval = 20
     do {
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        if status == 401 { return (nil, "invalid-code") }
-        if status != 200 { return (nil, "server") }
-        let decoded = try JSONDecoder().decode(SnapshotResponse.self, from: data)
+        var (data, resp) = try await URLSession.shared.data(for: widgetRequest(setupCode: setupCode, includeTokenQuery: false))
+        var status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        var serverError = (try? JSONDecoder().decode(SnapshotErrorResponse.self, from: data).error) ?? ""
+
+        if status == 401 && serverError == "missing-token" {
+            (data, resp) = try await URLSession.shared.data(for: widgetRequest(setupCode: setupCode, includeTokenQuery: true))
+            status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            serverError = (try? JSONDecoder().decode(SnapshotErrorResponse.self, from: data).error) ?? ""
+        }
+
+        if status == 401 { return (nil, serverError == "missing-token" ? "needs-setup" : "invalid-code") }
+        if status == 404 { return (nil, serverError.isEmpty ? "not-found" : serverError) }
+        if status != 200 { return (nil, serverError.isEmpty ? "server" : serverError) }
+
+        let decoded: SnapshotResponse
+        do {
+            decoded = try JSONDecoder().decode(SnapshotResponse.self, from: data)
+        } catch {
+            return (nil, "decode")
+        }
         if !decoded.ok { return (nil, decoded.error ?? "server") }
         return (decoded.snapshot, nil)
     } catch {
@@ -354,11 +402,25 @@ private struct RsvpPill: View {
     }
 }
 
+private struct FeedbackPrompt: View {
+    var body: some View {
+        Text("How'd it go?")
+            .font(.system(size: 9, weight: .black))
+            .kerning(0.3)
+            .foregroundColor(.brand)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1.5)
+            .background(Capsule().fill(Color.brand.opacity(0.16)))
+            .overlay(Capsule().stroke(Color.brand.opacity(0.38), lineWidth: 1))
+    }
+}
+
 private struct UpcomingRow: View {
     let snap: PlayerSnapshot
     var body: some View {
         if let title = snap.nextEventTitle, let ms = snap.nextEventDateMs {
-            let date = Date(timeIntervalSince1970: ms / 1000)
+            let date = Date(timeIntervalSince1970: (snap.nextEventArriveByMs ?? ms) / 1000)
+            let isArrival = (snap.nextEventArriveOffsetMinutes ?? 0) > 0
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: iconFor(type: snap.nextEventType))
                     .font(.system(size: 12, weight: .bold))
@@ -370,15 +432,52 @@ private struct UpcomingRow: View {
                         .foregroundColor(.bone)
                         .lineLimit(1)
                     HStack(spacing: 5) {
-                        Text(date, style: .relative)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.boneSoft)
-                        if let rsvp = snap.nextEventRsvp {
-                            RsvpPill(status: rsvp)
+                        if isArrival {
+                            Text("Arrive")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                            Text(date, style: .relative)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.boneSoft)
                         } else {
+                            Text(date, style: .relative)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                        }
+                        if let focus = snap.nextEventDevelopmentFocus, !focus.isEmpty {
+                            Text("·")
+                                .font(.system(size: 10, weight: .heavy))
+                                .foregroundColor(.boneDim)
+                            Text(focus)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                                .lineLimit(1)
+                        }
+                        if snap.nextEventNeedsRsvp == true {
                             RsvpPrompt()
+                        } else if snap.needsPostEventFeedback == true {
+                            FeedbackPrompt()
+                        } else if let rsvp = snap.nextEventRsvp {
+                            RsvpPill(status: rsvp)
                         }
                     }
+                }
+                Spacer(minLength: 0)
+            }
+        } else if snap.needsPostEventFeedback == true, let title = snap.postEventFeedbackTitle {
+            HStack(spacing: 8) {
+                Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.brand)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("How did it go?")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.bone)
+                        .lineLimit(1)
+                    Text(title)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.boneSoft)
+                            .lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
@@ -444,16 +543,37 @@ struct NeedsSetupView: View {
 
 struct ErrorView: View {
     let code: String
+
+    private var title: String {
+        switch code {
+        case "invalid-code": return "Code\nexpired"
+        case "needs-setup": return "Tap to\nset up"
+        case "no-player": return "No\nplayer"
+        case "decode": return "Update\nneeded"
+        case "server", "firestore-not-configured": return "Server\nerror"
+        default: return "Offline"
+        }
+    }
+
+    private var message: String {
+        switch code {
+        case "invalid-code": return "Open app, copy new code, paste here."
+        case "needs-setup": return "Open app once, then edit the widget."
+        case "no-player": return "Open the app and pick a player."
+        case "decode": return "The widget response changed. Rebuild the app."
+        case "server", "firestore-not-configured": return "Trying again automatically."
+        default: return "Trying again automatically."
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             BrandKicker()
             Spacer(minLength: 0)
-            Text(code == "invalid-code" ? "Code\nexpired" : "Offline")
+            Text(title)
                 .font(.system(size: 22, weight: .black))
                 .foregroundColor(.bone)
-            Text(code == "invalid-code"
-                 ? "Open app, copy new code, paste here."
-                 : "Trying again automatically.")
+            Text(message)
                 .font(.system(size: 10))
                 .foregroundColor(.boneSoft)
                 .lineLimit(3)
@@ -577,7 +697,8 @@ private struct UpcomingCard: View {
 
     var body: some View {
         if let title = snap.nextEventTitle, let ms = snap.nextEventDateMs {
-            let date = Date(timeIntervalSince1970: ms / 1000)
+            let date = Date(timeIntervalSince1970: (snap.nextEventArriveByMs ?? ms) / 1000)
+            let isArrival = (snap.nextEventArriveOffsetMinutes ?? 0) > 0
             HStack(alignment: .center, spacing: 10) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -593,11 +714,30 @@ private struct UpcomingCard: View {
                         .foregroundColor(.bone)
                         .lineLimit(1)
                     HStack(spacing: 5) {
-                        Text(date, style: .relative)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.boneSoft)
-                            .lineLimit(1)
-                        if let loc = snap.nextEventLocation, !loc.isEmpty {
+                        if isArrival {
+                            Text("Arrive")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                                .lineLimit(1)
+                            Text(date, style: .relative)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                                .lineLimit(1)
+                        } else {
+                            Text(date, style: .relative)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                                .lineLimit(1)
+                        }
+                        if let focus = snap.nextEventDevelopmentFocus, !focus.isEmpty {
+                            Text("·")
+                                .font(.system(size: 11, weight: .heavy))
+                                .foregroundColor(.boneDim)
+                            Text(focus)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.boneSoft)
+                                .lineLimit(1)
+                        } else if let loc = snap.nextEventLocation, !loc.isEmpty {
                             Text("·")
                                 .font(.system(size: 11, weight: .heavy))
                                 .foregroundColor(.boneDim)
@@ -609,11 +749,36 @@ private struct UpcomingCard: View {
                     }
                 }
                 Spacer(minLength: 4)
-                if let rsvp = snap.nextEventRsvp {
-                    RsvpPill(status: rsvp)
-                } else {
+                if snap.nextEventNeedsRsvp == true {
                     RsvpPrompt()
+                } else if snap.needsPostEventFeedback == true {
+                    FeedbackPrompt()
+                } else if let rsvp = snap.nextEventRsvp {
+                    RsvpPill(status: rsvp)
                 }
+            }
+        } else if snap.needsPostEventFeedback == true, let title = snap.postEventFeedbackTitle {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.brand.opacity(0.18))
+                    Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(.brand)
+                }
+                .frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("How did it go?")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.bone)
+                        .lineLimit(1)
+                    Text(snap.postEventFeedbackFocus ?? title)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.boneSoft)
+                            .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                FeedbackPrompt()
             }
         } else if let title = snap.lastResultTitle, let score = snap.lastResultScore {
             HStack(spacing: 10) {

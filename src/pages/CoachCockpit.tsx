@@ -117,6 +117,43 @@ const CoachCockpit: React.FC = () => {
 
   const certDoneCount = certStatus.filter((c) => c.done).length;
   const certTotal = certStatus.length;
+  const nextEventType = String((nextEvent as any)?.type || '').toLowerCase();
+  const nextEventIsGame = ['game', 'scrimmage', 'tournament'].includes(nextEventType);
+  const coachFlow = nextEvent
+    ? [
+        {
+          label: nextEventIsGame ? 'Open Game Day mode' : 'Review event details',
+          hint: nextEventIsGame ? 'Score, lineup, rotation bell, and recap.' : 'RSVPs, notes, location, and discussion.',
+          to: nextEventIsGame ? `/game-day/${nextEvent.id}` : `/events/${nextEvent.id}`,
+          accent: nextEventIsGame ? 'bg-brand-primary text-white' : 'bg-amber-500 text-charcoal-950',
+        },
+        {
+          label: 'Check RSVPs',
+          hint: 'See who is in, maybe, out, or still pending.',
+          to: `/events/${nextEvent.id}`,
+          accent: 'bg-emerald-500 text-charcoal-950',
+        },
+        {
+          label: 'Message the team',
+          hint: 'Send the update parents are probably waiting for.',
+          to: '/chat',
+          accent: 'bg-sky-500 text-charcoal-950',
+        },
+      ]
+    : [
+        {
+          label: 'Schedule the next event',
+          hint: 'Add the practice, game, or meeting parents need next.',
+          to: '/calendar',
+          accent: 'bg-amber-500 text-charcoal-950',
+        },
+        {
+          label: 'Post a team update',
+          hint: 'Keep families oriented even when the calendar is quiet.',
+          to: '/wall',
+          accent: 'bg-brand-primary text-white',
+        },
+      ];
 
   return (
     <div className="min-h-screen bg-surface-base">
@@ -135,7 +172,7 @@ const CoachCockpit: React.FC = () => {
           {/* Next event mini */}
           {nextEvent ? (
             <Link
-              to={`/event/${nextEvent.id}`}
+              to={`/events/${nextEvent.id}`}
               className="block rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4"
             >
               <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Next up</p>
@@ -148,14 +185,44 @@ const CoachCockpit: React.FC = () => {
           ) : (
             <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-4">
               <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55 mb-1">Next up</p>
-              <p className="text-sm text-ink-primary/70">Nothing scheduled. <Link to="/events" className="text-brand-primary-soft font-bold hover:text-brand-primary-soft">Create an event →</Link></p>
+              <p className="text-sm text-ink-primary/70">Nothing scheduled. <Link to="/calendar" className="text-brand-primary-soft font-bold hover:text-brand-primary-soft">Create an event →</Link></p>
             </div>
           )}
+
+          <section className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-4 mt-3">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">Coach flow</p>
+                <h2 className="text-base font-black text-ink-primary leading-tight mt-0.5">
+                  {nextEvent ? 'Your next useful taps' : 'Get the week moving'}
+                </h2>
+              </div>
+              <span className="text-[11px] font-bold text-ink-primary/45 tabular-nums">{coachFlow.length} steps</span>
+            </div>
+            <div className="space-y-2">
+              {coachFlow.map((item, idx) => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className="group flex items-center gap-3 rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 hover:ring-brand-primary/30 p-3 transition"
+                >
+                  <span className={`w-7 h-7 rounded-full ${item.accent} flex items-center justify-center text-[11px] font-black shrink-0`}>
+                    {idx + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-black text-ink-primary leading-tight">{item.label}</span>
+                    <span className="block text-[11px] text-ink-primary/55 leading-snug mt-0.5">{item.hint}</span>
+                  </span>
+                  <span className="text-ink-primary/30 group-hover:text-ink-primary/70 transition">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           {/* Quick action 2x2 grid */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-3">
             <Link
-              to="/events"
+              to="/calendar"
               className="rounded-xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
             >
               <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">

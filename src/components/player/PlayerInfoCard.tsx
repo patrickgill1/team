@@ -56,11 +56,11 @@ const PlayerInfoCard: React.FC<Props> = ({ player, canEdit, onUpdated }) => {
 
 const Row: React.FC<{ icon: React.ReactNode; label: string; value?: string }> = ({ icon, label, value }) => (
   <div className="flex items-center justify-between py-2.5 gap-2">
-    <dt className="flex items-center gap-2 text-sm text-white/70">
+    <dt className="flex items-center gap-2 text-sm text-ink-primary/70">
       <span className="text-ink-primary/40">{icon}</span>
       <span className="font-medium">{label}</span>
     </dt>
-    <dd className="text-sm font-bold text-white text-right truncate">{value || <span className="text-white/40">—</span>}</dd>
+    <dd className="text-sm font-bold text-ink-primary text-right truncate">{value || <span className="text-ink-primary/40">—</span>}</dd>
   </div>
 );
 

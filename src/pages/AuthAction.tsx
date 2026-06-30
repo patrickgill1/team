@@ -89,7 +89,7 @@ const AuthAction: React.FC = () => {
   // Deep-link target for 'Open the app' button. Universal links would
   // open the native app directly; without them we fall back to the
   // web origin and let Safari's smart app banner suggest the app.
-  const openAppUrl = window.location.origin || 'https://firefc.app';
+  const openAppUrl = window.location.origin || 'https://app.goalkickr.com';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-surface-base flex items-center justify-center px-4">

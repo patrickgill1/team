@@ -279,7 +279,7 @@ export async function revokeInvite(inviteId: string): Promise<void> {
 
 /** Build the share URL — used by both Copy and SMS buttons. */
 export function inviteUrl(inviteId: string): string {
-  // Use the canonical web origin (firefc.app) — window.location.origin on
+  // Use the canonical app origin — window.location.origin on
   // the Capacitor iOS shell is `capacitor://localhost`, which a recipient
   // can't open.
   return `${getShareOrigin()}/join/${inviteId}`;

@@ -17,6 +17,8 @@ import SubscriptionCard from '../components/settings/SubscriptionCard';
 import WidgetSetupCard from '../components/settings/WidgetSetupCard';
 import VideoStorageCard from '../components/video/VideoStorageCard';
 import { useTheme, type ThemeMode, isThemePickerVisible } from '../contexts/ThemeContext';
+import { useViewMode } from '../contexts/ViewModeContext';
+import Walkthrough from '../components/onboarding/Walkthrough';
 
 interface LinkedPlayer {
   id: string;
@@ -33,6 +35,7 @@ const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { userData, currentUser, logout, deleteAccount, refreshUserData } = useAuth();
   const { updateDocument } = useFirestore();
+  const { viewMode } = useViewMode();
   // OTA bundle version that's actually running. Distinct from
   // APP_VERSION (which is the binary version that matches what's in
   // the App Store / Play Store). So if you've pushed OTA fixes since
@@ -67,6 +70,7 @@ const Settings: React.FC = () => {
   const [enablingPush, setEnablingPush] = useState(false);
 
   const [showDelete, setShowDelete] = useState(false);
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
   const [deleteText, setDeleteText] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -405,7 +409,7 @@ const Settings: React.FC = () => {
                         className="w-20 h-20 rounded-full object-cover ring-2 ring-line-default/10"
                       />
                     ) : (
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-surface-elevated to-surface-raised flex items-center justify-center text-white text-xl font-bold ring-2 ring-line-default/10">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-surface-elevated to-surface-raised flex items-center justify-center text-ink-primary text-xl font-bold ring-2 ring-line-default/10">
                         {(p.name || '?').charAt(0)}
                       </div>
                     )}
@@ -471,6 +475,12 @@ const Settings: React.FC = () => {
               label="My tickets"
               onClick={() => navigate('/tickets')}
               hint="Support requests you've opened or that your club has filed."
+            />
+            <SettingsRow
+              icon="help"
+              label="Replay walkthrough"
+              onClick={() => setWalkthroughOpen(true)}
+              hint="Open the quick guide for your current role."
             />
           </div>
         </section>
@@ -601,6 +611,11 @@ const Settings: React.FC = () => {
           </div>
         </div>
       )}
+      <Walkthrough
+        open={walkthroughOpen}
+        onClose={() => setWalkthroughOpen(false)}
+        role={viewMode}
+      />
     </div>
   );
 };

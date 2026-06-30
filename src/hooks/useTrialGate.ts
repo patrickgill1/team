@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { useSubscription } from './useSubscription';
 
@@ -26,6 +27,8 @@ import { useSubscription } from './useSubscription';
 //
 // Active = trialing OR active. Past_due / canceled / no doc -> gated.
 
+const STABLE_GATE_REVEAL_DELAY_MS = 15000;
+
 export interface TrialGateState {
   /** True when the current user is a coach without an active sub.
    *  CTAs should show "Start your free trial" instead of running. */
@@ -40,32 +43,57 @@ export interface TrialGateState {
 export function useTrialGate(): TrialGateState {
   const { userData } = useAuth();
   const { loading, subscription, isActive } = useSubscription();
+  const [stableGateKey, setStableGateKey] = useState('');
 
-  if (loading) return { gated: false, reason: 'none', loading: true };
-  if (!userData) return { gated: false, reason: 'none', loading: false };
+  const baseState: TrialGateState = (() => {
+    if (!userData) return { gated: false, reason: 'none', loading: false };
 
-  const role = (userData as any)?.role;
-  const isCoachRole = role === 'coach' || role === 'team_manager';
-  const isPlatformAdmin = (userData as any)?.isClubAdmin === true;
-  if (!isCoachRole || isPlatformAdmin) {
-    return { gated: false, reason: 'none', loading: false };
+    const role = (userData as any)?.role;
+    const isCoachRole = role === 'coach' || role === 'team_manager';
+    const isPlatformAdmin = (userData as any)?.isClubAdmin === true;
+    if (!isCoachRole || isPlatformAdmin) {
+      return { gated: false, reason: 'none', loading: false };
+    }
+    // Coaches who joined via a club invite inherit coverage from the
+    // club — the club owner is paying on behalf of the staff. Stamped
+    // at invite-consume time (see consumeInvite in utils/invites.ts).
+    // Default-solo "clubs" don't qualify; those are the implicit
+    // wrapper around a one-coach team, and the owner pays on a Coach
+    // tier, not Club tier.
+    if ((userData as any).coverageSource === 'club') {
+      return { gated: false, reason: 'none', loading: false };
+    }
+    if ((userData as any).subscriptionActive === true) {
+      return { gated: false, reason: 'none', loading: false };
+    }
+    if (loading) return { gated: false, reason: 'none', loading: true };
+    if (isActive) return { gated: false, reason: 'none', loading: false };
+
+    const status = subscription?.status;
+    const reason: TrialGateState['reason'] =
+      status === 'past_due' ? 'past-due'
+      : status === 'canceled' ? 'canceled'
+      : !subscription ? 'no-sub'
+      : 'expired';
+    return { gated: true, reason, loading: false };
+  })();
+
+  const gateKey = baseState.gated
+    ? `${(userData as any)?.uid || 'user'}:${baseState.reason}:${subscription?.status || 'missing'}`
+    : '';
+
+  useEffect(() => {
+    if (!gateKey) {
+      setStableGateKey('');
+      return;
+    }
+    const timer = window.setTimeout(() => setStableGateKey(gateKey), STABLE_GATE_REVEAL_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [gateKey]);
+
+  if (baseState.gated && stableGateKey !== gateKey) {
+    return { gated: false, reason: 'none', loading: true };
   }
-  // Coaches who joined via a club invite inherit coverage from the
-  // club — the club owner is paying on behalf of the staff. Stamped
-  // at invite-consume time (see consumeInvite in utils/invites.ts).
-  // Default-solo "clubs" don't qualify; those are the implicit
-  // wrapper around a one-coach team, and the owner pays on a Coach
-  // tier, not Club tier.
-  if ((userData as any).coverageSource === 'club') {
-    return { gated: false, reason: 'none', loading: false };
-  }
-  if (isActive) return { gated: false, reason: 'none', loading: false };
 
-  const status = subscription?.status;
-  const reason: TrialGateState['reason'] =
-    status === 'past_due' ? 'past-due'
-    : status === 'canceled' ? 'canceled'
-    : !subscription ? 'no-sub'
-    : 'expired';
-  return { gated: true, reason, loading: false };
+  return baseState;
 }

@@ -14,6 +14,7 @@ import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
 import GettingStartedCard from '../components/dashboard/GettingStartedCard';
+import SmartDiscoveryPrompts from '../components/dashboard/SmartDiscoveryPrompts';
 import DataGate from '../components/common/DataGate';
 import Walkthrough, { shouldShowWalkthrough } from '../components/onboarding/Walkthrough';
 import { useActiveSeason } from '../hooks/useActiveSeason';
@@ -90,10 +91,10 @@ const Dashboard: React.FC = () => {
     // Defer one tick so the dashboard paints first, then the
     // walkthrough fades over it — feels less like a forced gate.
     const t = window.setTimeout(() => {
-      if (shouldShowWalkthrough()) setWalkthroughOpen(true);
+      if (shouldShowWalkthrough(viewMode)) setWalkthroughOpen(true);
     }, 600);
     return () => window.clearTimeout(t);
-  }, []);
+  }, [viewMode]);
   const [tonightGoal, setTonightGoal] = useState<{
     planId: string;
     goalId: string;
@@ -782,6 +783,22 @@ const Dashboard: React.FC = () => {
     return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${time}`;
   };
 
+  const friendlyEventWhen = (event: CalendarEvent): string => {
+    const start = new Date(event.date);
+    const offset = Number((event as any).arriveOffsetMinutes || 0);
+    if (offset <= 0) return friendlyWhen(start);
+    const arrive = new Date(start.getTime() - offset * 60_000);
+    const arriveText = friendlyWhen(arrive);
+    const startTime = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    if (arrive.getTime() > Date.now()) {
+      if (arriveText.startsWith('In ')) return `Arrive ${arriveText.toLowerCase()} · starts ${startTime}`;
+      if (arriveText.startsWith('Today at ')) return `Arrive by ${arriveText.replace('Today at ', '')} · starts ${startTime}`;
+      if (arriveText.startsWith('Tomorrow at ')) return `Arrive tomorrow at ${arriveText.replace('Tomorrow at ', '')}`;
+      return `Arrive ${arriveText.toLowerCase()}`;
+    }
+    return `Arrive by ${arrive.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+  };
+
   // Aggregate RSVP counts for the next event. Players only — public
   // share-link RSVPs were removed 2026-06-24 (parents are on the app now;
   // extended family invite as parents with relationship='grandparent'
@@ -861,7 +878,7 @@ const Dashboard: React.FC = () => {
         greeting={greeting}
         firstName={firstName}
         nextEvent={nextEvent}
-        whenText={nextEvent ? friendlyWhen(new Date(nextEvent.date)) : ''}
+        whenText={nextEvent ? friendlyEventWhen(nextEvent) : ''}
         weather={nextEventWeather}
         goingCount={rsvpCounts.going}
         pendingCount={rsvpCounts.pending}
@@ -896,6 +913,12 @@ const Dashboard: React.FC = () => {
             Self-hides for parents, subscribers, and the 7-day window
             after dismiss. */}
         <SubscribeBanner />
+
+        <SmartDiscoveryPrompts
+          players={players}
+          events={upcomingEvents}
+          isCoach={isUserCoach}
+        />
 
         {/* Admin cockpit returns to the dashboard when the user is
             in 'admin' view mode (Patrick 2026-06-21: 'shouldn't admin
@@ -971,27 +994,27 @@ const Dashboard: React.FC = () => {
           return (
             <Link
               to={`/development?expand=${encodeURIComponent(tonightGoal.planId)}`}
-              className="block group relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/5 hover:ring-brand-primary/40 transition shadow-lg"
+              className="block group relative overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-emerald-400/40 transition shadow-lg shadow-black/5"
             >
-              <div className="absolute -top-12 -right-12 w-40 h-40 bg-brand-primary/10 blur-3xl pointer-events-none" aria-hidden />
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-brand-primary-soft to-transparent pointer-events-none" aria-hidden />
 
               <div className="relative px-4 pt-3 pb-3.5">
                 {/* Row 1: focus on left, streak chip on right */}
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft">
+                    <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">
                       {tonightGoal.loggedToday ? 'Logged today' : 'This week'}
-                      <span className="text-charcoal-500"> · </span>
-                      <span className="text-charcoal-300 normal-case tracking-normal font-bold">{tonightGoal.planTitle}</span>
+                      <span className="text-ink-primary/30"> · </span>
+                      <span className="text-ink-primary/70 normal-case tracking-normal font-bold">{tonightGoal.planTitle}</span>
                     </div>
                     <div className="text-[13.5px] text-ink-primary leading-snug mt-1 line-clamp-2">
                       {tonightGoal.focus || tonightGoal.goalTitle}
                     </div>
                   </div>
                   {streak > 0 && (
-                    <div className="flex-shrink-0 inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-lg bg-gradient-to-b from-amber-400/20 to-amber-600/20 ring-1 ring-amber-400/40">
-                      <div className="text-[18px] font-black text-amber-300 leading-none tabular-nums">{streak}</div>
-                      <div className="text-[8px] font-extrabold tracking-widest uppercase text-amber-200/80 mt-0.5">Day streak</div>
+                    <div className="flex-shrink-0 inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/35">
+                      <div className="text-[18px] font-black text-emerald-300 leading-none tabular-nums">{streak}</div>
+                      <div className="text-[8px] font-extrabold tracking-widest uppercase text-ink-primary/55 mt-0.5">Day streak</div>
                     </div>
                   )}
                 </div>
@@ -1001,24 +1024,24 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center gap-2">
                     {tonightGoal.thisWeek.map((d, i) => (
                       <div key={i} className="flex flex-col items-center gap-1">
-                        <span className="text-[8px] font-bold tracking-wider text-charcoal-500">
+                        <span className="text-[8px] font-bold tracking-wider text-ink-primary/45">
                           {DAY_LETTER[d.date.getDay()]}
                         </span>
                         {d.logged ? (
-                          <span className="w-2 h-2 rounded-full bg-brand-primary shadow-sm shadow-brand-primary/50" aria-label="logged" />
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/40" aria-label="logged" />
                         ) : d.isFuture ? (
-                          <span className="w-2 h-2 rounded-full ring-1 ring-charcoal-700" aria-label="upcoming" />
+                          <span className="w-2 h-2 rounded-full ring-1 ring-line-default/40" aria-label="upcoming" />
                         ) : (
-                          <span className="w-2 h-2 rounded-full ring-1 ring-charcoal-500" aria-label="not logged" />
+                          <span className="w-2 h-2 rounded-full ring-1 ring-line-default/50" aria-label="not logged" />
                         )}
                       </div>
                     ))}
                   </div>
-                  <div className="flex-1 text-[11px] text-charcoal-400 truncate">
+                  <div className="flex-1 text-[11px] text-ink-primary/55 truncate">
                     <span className="text-ink-primary font-bold tabular-nums">{loggedCount}</span> of 6 days
                   </div>
                   <svg
-                    className="w-4 h-4 text-charcoal-500 group-hover:text-brand-primary-soft transition-colors flex-shrink-0"
+                    className="w-4 h-4 text-ink-primary/35 group-hover:text-brand-primary-soft transition-colors flex-shrink-0"
                     fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
                   >
                     <polyline points="9 18 15 12 9 6"/>
@@ -1060,7 +1083,7 @@ const Dashboard: React.FC = () => {
         {wallPosts.length > 0 && (
           <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
             <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
-              <h3 className="font-bold text-white flex items-center gap-2">
+              <h3 className="font-bold text-ink-primary flex items-center gap-2">
                 <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M12 8l-3 3h6z"/><rect x="3" y="11" width="18" height="11" rx="2"/></svg>
                 Announcements
               </h3>
@@ -1099,15 +1122,15 @@ const Dashboard: React.FC = () => {
                       to="/wall"
                       className="flex items-center gap-2 px-5 py-2.5 hover:bg-line-default/[0.04] transition-colors"
                     >
-                      <span className="text-xs font-semibold text-white shrink-0">{p.senderName}</span>
-                      <span className="text-[11px] text-white/40 shrink-0">
+                      <span className="text-xs font-semibold text-ink-primary shrink-0">{p.senderName}</span>
+                      <span className="text-[11px] text-ink-primary/45 shrink-0">
                         {p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
-                      <span className="text-white/25 shrink-0" aria-hidden>·</span>
-                      <span className="text-xs text-white/60 truncate flex-1 min-w-0">
+                      <span className="text-ink-primary/25 shrink-0" aria-hidden>·</span>
+                      <span className="text-xs text-ink-primary/65 truncate flex-1 min-w-0">
                         {snippet}
                       </span>
-                      <svg className="w-3 h-3 text-white/30 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 text-ink-primary/35 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     </Link>
@@ -1153,7 +1176,7 @@ const Dashboard: React.FC = () => {
       {/* First-launch walkthrough — shows once per device, 600ms
           after the dashboard paints. localStorage flag inside the
           component prevents re-shows. */}
-      <Walkthrough open={walkthroughOpen} onClose={() => setWalkthroughOpen(false)} />
+      <Walkthrough open={walkthroughOpen} onClose={() => setWalkthroughOpen(false)} role={viewMode} />
     </div>
   );
 };
@@ -1189,10 +1212,10 @@ const NextEventHero: React.FC<{
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') goToCalendar(); }}
-      className={`relative overflow-hidden rounded-2xl bg-white shadow-sm cursor-pointer hover:shadow-md active:scale-[0.995] transition ${
+      className={`relative overflow-hidden rounded-2xl bg-surface-elevated shadow-sm cursor-pointer hover:shadow-md active:scale-[0.995] transition ${
         isGameDayToday
           ? 'ring-2 ring-rose-400 ring-offset-2 shadow-[0_0_30px_-8px_rgba(244,63,94,0.55)] animate-pulse-soft'
-          : 'ring-1 ring-gray-200'
+          : 'ring-1 ring-line-default/10'
       }`}
       style={{ borderLeft: `4px solid ${isGameDayToday ? '#f43f5e' : '#06b6d4'}` }}
     >
@@ -1214,16 +1237,16 @@ const NextEventHero: React.FC<{
         {/* Content */}
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wider text-brand-primary mb-0.5">Next event</p>
-          <h2 className="text-lg sm:text-xl font-black text-gray-900 leading-tight truncate">{event.title}</h2>
-          <p className="text-sm text-gray-600 mt-1 flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <h2 className="text-lg sm:text-xl font-black text-ink-primary leading-tight truncate">{event.title}</h2>
+          <p className="text-sm text-ink-primary/65 mt-1 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-ink-primary/45 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="truncate">{fullDate}</span>
           </p>
           {event.location && (
-            <p className="text-sm text-gray-600 mt-0.5 flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <p className="text-sm text-ink-primary/65 mt-0.5 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-ink-primary/45 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -1235,10 +1258,10 @@ const NextEventHero: React.FC<{
               lookup; rain alert takes priority when it's worth flagging. */}
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {weather && (
-              <span className="text-xs text-gray-500 inline-flex items-center gap-1 bg-gray-50 ring-1 ring-gray-200 px-2 py-0.5 rounded-full">
+              <span className="text-xs text-ink-primary/65 inline-flex items-center gap-1 bg-line-default/5 ring-1 ring-line-default/10 px-2 py-0.5 rounded-full">
                 <span>{weather.icon}</span>
                 <span className="font-semibold">{Math.round(weather.tempMaxF)}°</span>
-                <span className="text-gray-400">/</span>
+                <span className="text-ink-primary/40">/</span>
                 <span>{Math.round(weather.tempMinF)}°</span>
               </span>
             )}
@@ -1290,7 +1313,7 @@ const NextEventHero: React.FC<{
           tap without leaving the dashboard. */}
       {!isCoach && !myRsvp && (
         <div className="px-4 sm:px-5 pb-4 -mt-1" onClick={(e) => e.stopPropagation()}>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Will you be there?</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/55 mb-2">Will you be there?</p>
           <div className="flex gap-1.5">
             {[
               { k: 'going' as const, label: '✓ Going', bg: 'bg-emerald-600 hover:bg-emerald-700' },
@@ -1315,7 +1338,7 @@ const NextEventHero: React.FC<{
 const AttendancePill: React.FC<{ label: string; value: number; dim?: boolean }> = ({ label, value, dim }) => (
   <div className={`rounded-xl px-3 py-2 text-center ${dim ? 'bg-line-default/5 ring-1 ring-line-default/10' : 'bg-line-default/15 ring-1 ring-line-default/20'}`}>
     <div className="text-xl font-black leading-tight">{value}</div>
-    <div className="text-[10px] uppercase tracking-wider font-bold text-white/80">{label}</div>
+    <div className="text-[10px] uppercase tracking-wider font-bold text-ink-primary/70">{label}</div>
   </div>
 );
 
@@ -1323,7 +1346,7 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
   return (
     <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
-        <h3 className="font-bold text-white flex items-center gap-2">
+        <h3 className="font-bold text-ink-primary flex items-center gap-2">
           <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           Recent chats
         </h3>
@@ -1331,8 +1354,8 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
       </div>
       {chats.length === 0 ? (
         <div className="p-5 text-center">
-          <p className="text-sm font-semibold text-white/85">No conversations yet</p>
-          <p className="text-xs text-white/60 mt-0.5">DMs and group chats will show up here.</p>
+          <p className="text-sm font-semibold text-ink-primary/85">No conversations yet</p>
+          <p className="text-xs text-ink-primary/60 mt-0.5">DMs and group chats will show up here.</p>
         </div>
       ) : (
         <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1383,12 +1406,12 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-1.5">
-                    <p className="font-semibold text-white text-sm truncate">{displayTitle}</p>
-                    <span className="text-[10px] text-white/40 flex-shrink-0">{relativeTime(new Date(thread.lastActivity))}</span>
+                    <p className="font-semibold text-ink-primary text-sm truncate">{displayTitle}</p>
+                    <span className="text-[10px] text-ink-primary/45 flex-shrink-0">{relativeTime(new Date(thread.lastActivity))}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <p className="text-xs text-white/60 truncate flex-1">
-                      {last?.senderName ? <span className="font-medium text-white/80">{last.senderName}: </span> : null}
+                    <p className="text-xs text-ink-primary/60 truncate flex-1">
+                      {last?.senderName ? <span className="font-medium text-ink-primary/80">{last.senderName}: </span> : null}
                       {last?.content || (isDM ? 'Tap to start chatting' : 'No messages yet')}
                     </p>
                     {unread && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-brand-primary-soft" />}
@@ -1446,12 +1469,22 @@ const MyPlayerCard: React.FC<{
   const cardBg = isPotm
     ? 'bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-500 ring-4 ring-amber-300/80 shadow-2xl shadow-amber-500/50'
     : `bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ${brandAccent.ring}`;
-  const accentText = isPotm ? 'text-amber-50' : 'text-white/70';
-  const subText = isPotm ? 'text-amber-100/80' : 'text-white/60';
+  const accentText = isPotm ? 'text-amber-50' : 'text-ink-primary/70';
+  const subText = isPotm ? 'text-amber-100/80' : 'text-ink-primary/55';
+  const streakBadgeTone = streakDays >= 10
+    ? 'bg-gradient-to-br from-amber-300 via-orange-500 to-rose-600 text-white ring-amber-200/80 shadow-amber-400/40'
+    : streakDays >= 5
+      ? 'bg-gradient-to-br from-orange-400 via-rose-500 to-brand-primary text-white ring-orange-200/70 shadow-orange-400/35'
+      : isPotm
+        ? 'bg-amber-50 text-amber-950 ring-amber-200/80 shadow-amber-900/20'
+        : 'bg-emerald-500 text-white ring-emerald-200/70 shadow-emerald-400/25';
+  const jerseyBadgeTone = isPotm
+    ? 'bg-amber-50 text-amber-950 ring-amber-200/80 shadow-amber-900/20'
+    : 'bg-white text-charcoal-950 ring-brand-primary-soft/45 shadow-brand-primary/20';
   return (
     <Link
       to={`/player/${player.id}`}
-      className={`relative overflow-hidden rounded-2xl text-white shadow-xl ${isPotm ? '' : brandAccent.shadow} hover:shadow-2xl active:scale-[0.995] transition flex ${cardBg}`}
+      className={`relative overflow-hidden rounded-2xl ${isPotm ? 'text-white' : 'text-ink-primary'} shadow-xl ${isPotm ? '' : brandAccent.shadow} hover:shadow-2xl active:scale-[0.995] transition flex ${cardBg}`}
     >
       {/* POTM banner across the very top of the card. Black text on
           a deeper amber strip keeps it readable against the bright
@@ -1499,40 +1532,42 @@ const MyPlayerCard: React.FC<{
         aria-hidden
       />
       <div className={`relative ${isPotm ? 'pt-12 pb-4 px-4 sm:pt-14 sm:pb-5 sm:px-5' : 'p-4 sm:p-5'} flex items-center gap-4 w-full`}>
-        {/* Avatar with jersey-number chip (matches PlayerCard pattern
-            used elsewhere — Patrick: "everywhere else it shows the
-            10 in the other way"). Optional POTW crown sits on top. */}
-        <div className="relative flex-shrink-0">
+        {/* Connected avatar medallion: streak and jersey ride the
+            same orbit as the portrait instead of floating as separate
+            stickers. */}
+        <div className="relative flex-shrink-0 p-1.5">
+          <div
+            aria-hidden
+            className={`absolute inset-0 rounded-full ring-2 ${isPotm ? 'ring-amber-100/70' : 'ring-brand-primary-soft/35'} shadow-lg ${isPotm ? 'shadow-amber-500/30' : 'shadow-brand-primary/20'}`}
+          />
           {p.profilePhotoUrl ? (
             <img
               src={p.profilePhotoUrl}
               alt={player.name}
-              className={`w-20 h-20 rounded-full object-cover shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-line-default/20'}`}
+              className={`relative w-20 h-20 rounded-full object-cover shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-brand-primary-soft/45'}`}
               loading="lazy"
             />
           ) : (
-            <div className={`w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-line-default/20'}`}>
+            <div className={`relative w-20 h-20 rounded-full bg-gradient-to-br from-brand-primary-soft to-surface-raised flex items-center justify-center text-white text-3xl font-black shadow ${isPotm ? 'ring-4 ring-amber-300' : 'ring-2 ring-brand-primary-soft/45'}`}>
               {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0)}
             </div>
           )}
-          {p.profilePhotoUrl && player.jerseyNumber != null && (
-            <span className="absolute -bottom-1 -right-1 bg-white text-charcoal-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-charcoal-900">
-              #{player.jerseyNumber}
-            </span>
-          )}
-          {/* Practice streak chip — bottom-LEFT of avatar (matches
-              PlayerCard placement so the two surfaces feel like one
-              system). Fire-themed at 3+ days. */}
           {streakDays > 0 && (
             <span
               title={`${streakDays}-day practice streak`}
-              className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-full text-[11px] font-black tabular-nums shadow-lg ring-2 ring-charcoal-900 ${
-                streakDays >= 3
-                  ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
-                  : 'bg-brand-primary text-white'
-              }`}
+              className={`absolute -top-1 -left-1 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-black tabular-nums ring-2 ring-offset-2 ring-offset-surface-elevated shadow-lg ${streakBadgeTone}`}
             >
-              {streakDays >= 3 ? '🔥' : ''}{streakDays}
+              {streakDays >= 5 && (
+                <span className="absolute -top-2 -right-1 text-[13px] leading-none drop-shadow" aria-hidden>
+                  🔥
+                </span>
+              )}
+              {streakDays}
+            </span>
+          )}
+          {p.profilePhotoUrl && player.jerseyNumber != null && (
+            <span className={`absolute -bottom-1 -right-1 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-black tracking-tight ring-2 ring-offset-2 ring-offset-surface-elevated shadow-lg ${jerseyBadgeTone}`}>
+              #{player.jerseyNumber}
             </span>
           )}
           {isPotm && (
@@ -1549,21 +1584,17 @@ const MyPlayerCard: React.FC<{
 
         {/* Name + meta + stats */}
         <div className="flex-1 min-w-0">
-          <p className={`text-xl sm:text-2xl font-black leading-tight truncate ${isPotm ? 'text-white drop-shadow' : ''}`}>{player.name}</p>
+          <p className={`text-xl sm:text-2xl font-black leading-tight truncate ${isPotm ? 'text-white drop-shadow' : 'text-ink-primary'}`}>{player.name}</p>
           {/* The small "POTW" chip next to the name was redundant with
               the big banner at the top of the card. Removed. */}
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${
-              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-white/85'
+              isPotm ? 'bg-amber-900/40 text-amber-100' : 'bg-line-default/10 text-ink-primary/80'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${positionDot}`} aria-hidden />
               {position}
             </span>
           </div>
-          {/* (Streak pill removed — the flame chip on the avatar's
-              bottom-left already shows the count; a second pill under
-              the name was duplication. PlayerCard pattern keeps the
-              streak as the avatar accent only.) */}
           {/* Stat row hides itself when every stat is zero —
               advertising 0/0/0 was worse than empty state because
               it implied "this app shows no stats." Patrick (half-
@@ -1641,7 +1672,7 @@ const TeamPulseCard: React.FC<{
   return (
     <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base rounded-2xl ring-1 ring-line-default/10 overflow-hidden shadow-lg">
       <div className="px-5 py-3 border-b border-line-default/10 flex items-center justify-between">
-        <h3 className="font-bold text-white flex items-center gap-2">
+        <h3 className="font-bold text-ink-primary flex items-center gap-2">
           <svg className="w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <line x1="18" y1="20" x2="18" y2="10" />
             <line x1="12" y1="20" x2="12" y2="4" />
@@ -1666,8 +1697,8 @@ const TeamPulseCard: React.FC<{
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-white text-sm">Live game tracker</p>
-          <p className="text-xs text-white/70">Scores, goals &amp; subs · works on any game</p>
+          <p className="font-bold text-ink-primary text-sm">Live game tracker</p>
+          <p className="text-xs text-ink-primary/60">Scores, goals &amp; subs · works on any game</p>
         </div>
         <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -1688,10 +1719,10 @@ const TeamPulseCard: React.FC<{
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60">Top scorer</p>
-                <p className="font-bold text-white text-sm truncate">{topScorer.name}</p>
+                <p className="font-bold text-ink-primary text-sm truncate">{topScorer.name}</p>
                 <p className="text-xs text-emerald-300 font-bold">
                   <span className="font-black">{topScorer.stats?.goals || 0}</span>{' '}
-                  <span className="text-white/40 font-medium uppercase tracking-wider text-[10px]">goals</span>
+                  <span className="text-ink-primary/45 font-medium uppercase tracking-wider text-[10px]">goals</span>
                 </p>
               </div>
             </Link>
@@ -1707,10 +1738,10 @@ const TeamPulseCard: React.FC<{
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60">Top assister</p>
-                <p className="font-bold text-white text-sm truncate">{topAssister.name}</p>
+                <p className="font-bold text-ink-primary text-sm truncate">{topAssister.name}</p>
                 <p className="text-xs text-brand-primary-soft font-bold">
                   <span className="font-black">{topAssister.stats?.assists || 0}</span>{' '}
-                  <span className="text-white/40 font-medium uppercase tracking-wider text-[10px]">assists</span>
+                  <span className="text-ink-primary/45 font-medium uppercase tracking-wider text-[10px]">assists</span>
                 </p>
               </div>
             </Link>
@@ -1718,7 +1749,7 @@ const TeamPulseCard: React.FC<{
         </div>
       )}
       {!topScorer && !topAssister && (
-        <p className="p-5 text-sm text-white/60 text-center">Log a game to see who's leading the team.</p>
+        <p className="p-5 text-sm text-ink-primary/60 text-center">Log a game to see who's leading the team.</p>
       )}
     </div>
   );
@@ -1811,12 +1842,12 @@ const DashTile: React.FC<{
   return (
     <Link
       to={to}
-      className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ring-line-default/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-white hover:ring-line-default/20 hover:bg-line-default/[0.03] active:scale-[0.97] transition shadow"
+      className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-surface-base ring-1 ring-line-default/10 rounded-2xl py-3 flex flex-col items-center gap-1.5 text-ink-primary hover:ring-line-default/20 hover:bg-line-default/[0.03] active:scale-[0.97] transition shadow"
     >
       <span className="text-brand-primary-soft">{icon}</span>
-      <span className="text-[11px] font-bold uppercase tracking-widest text-white/85">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-widest text-ink-primary/85">{label}</span>
       {badge != null && badge !== 0 && badge !== '' && (
-        <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-charcoal-950 ${badgeColor}`}>
+        <span className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold flex items-center justify-center ring-2 ring-surface-base ${badgeColor}`}>
           {badge}
         </span>
       )}
@@ -1837,7 +1868,7 @@ const FooterStat: React.FC<{
       </div>
     )}
     <div className="min-w-0">
-      <div className="text-xl font-black text-white leading-none">{value}</div>
+      <div className="text-xl font-black text-ink-primary leading-none">{value}</div>
       <div className="text-[10px] uppercase tracking-wider font-bold text-ink-primary/70 mt-0.5">{label}</div>
     </div>
   </div>

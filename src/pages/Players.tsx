@@ -69,7 +69,7 @@ const Players: React.FC = () => {
             footer link below the roster — coaches rarely use it. */}
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
-            <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-white/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <svg className="absolute inset-y-0 left-0 pl-3 my-auto w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -78,12 +78,12 @@ const Players: React.FC = () => {
               placeholder="Search by name or #…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-9 py-2.5 text-sm bg-line-default/[0.04] ring-1 ring-line-default/10 text-white placeholder-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              className="w-full pl-9 pr-9 py-2.5 text-sm bg-surface-elevated ring-1 ring-line-default/10 text-ink-primary placeholder:text-ink-primary/45 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-ink-primary/45 hover:text-ink-primary"
                 aria-label="Clear search"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -97,19 +97,19 @@ const Players: React.FC = () => {
             <select
               value={positionFilter}
               onChange={(e) => setPositionFilter(e.target.value)}
-              className="appearance-none bg-line-default/[0.04] ring-1 ring-line-default/10 text-white rounded-xl pl-3 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
+              className="appearance-none bg-surface-elevated ring-1 ring-line-default/10 text-ink-primary rounded-xl pl-3 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft"
             >
               <option value="" className="bg-surface-elevated">All positions</option>
               {positions.map(p => <option key={p} value={p} className="bg-surface-elevated">{p}</option>)}
             </select>
-            <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-primary/45" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </div>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2.5 text-white/70 hover:text-white bg-line-default/[0.04] ring-1 ring-line-default/10 rounded-xl"
+              className="text-[11px] font-extrabold tracking-widest uppercase px-3 py-2.5 text-ink-primary/70 hover:text-ink-primary bg-surface-elevated ring-1 ring-line-default/10 rounded-xl"
             >
               Clear
             </button>

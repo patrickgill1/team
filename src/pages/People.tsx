@@ -293,7 +293,7 @@ const People: React.FC = () => {
               onClick={() => setInvitesPanelOpen(true)}
               aria-label="Active invites"
               title="Active invites"
-              className="w-9 h-9 rounded-full bg-line-default/10 border border-line-default/20 text-white flex items-center justify-center hover:bg-line-default/20"
+              className="w-9 h-9 rounded-full bg-line-default/10 border border-line-default/20 text-ink-primary/70 flex items-center justify-center hover:bg-line-default/20 hover:text-ink-primary"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -325,7 +325,7 @@ const People: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or kid's name…"
-              className="w-full pl-9 pr-3 py-2 text-sm bg-surface-base text-ink-primary placeholder-bone/40 border border-line-default/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-surface-base text-ink-primary placeholder:text-ink-primary/40 border border-line-default/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
             />
           </div>
           {teams.length > 1 && (
@@ -502,13 +502,13 @@ const People: React.FC = () => {
           is fine. safe-bottom keeps it clear of the home indicator. */}
       {selectMode && selectedIds.size > 0 && (
         <div className="fixed inset-x-0 bottom-12 lg:bottom-0 z-50 bg-surface-base border-t border-brand-primary/20 px-4 py-3 flex items-center gap-3">
-          <span className="text-xs font-extrabold tracking-widest uppercase text-white flex-shrink-0">
+          <span className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/75 flex-shrink-0">
             {selectedIds.size} selected
           </span>
           <select
             value={bulkTarget}
             onChange={(e) => setBulkTarget(e.target.value)}
-            className="flex-1 bg-surface-elevated border border-slate-700 text-white text-sm rounded-lg px-2 py-1.5"
+            className="flex-1 bg-surface-elevated border border-line-default/15 text-ink-primary text-sm rounded-lg px-2 py-1.5"
           >
             <option value="">Add to squad…</option>
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -543,7 +543,7 @@ const People: React.FC = () => {
           </button>
           <button
             onClick={() => { setSelectMode(false); setSelectedIds(new Set()); setBulkTarget(''); }}
-            className="text-ink-primary/40 hover:text-white text-xs font-extrabold tracking-widest uppercase"
+            className="text-ink-primary/45 hover:text-ink-primary text-xs font-extrabold tracking-widest uppercase"
           >
             Cancel
           </button>

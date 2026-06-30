@@ -7,7 +7,7 @@ import { getAuth, signInWithCustomToken, signOut } from 'firebase/auth';
  * portal's "Sign in as user" button. The portal mints a Firebase
  * custom token via the Admin SDK and links here as:
  *
- *   https://goalkickr.com/auth/impersonate?token=<custom-token>
+ *   https://app.goalkickr.com/auth/impersonate?token=<custom-token>
  *
  * This page:
  *   1. Signs out any currently-authed user (so the impersonation

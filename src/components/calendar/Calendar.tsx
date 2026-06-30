@@ -555,13 +555,13 @@ const Calendar: React.FC<CalendarProps> = ({
         {/* Calendar Header */}
         <div className="bg-gradient-to-r from-surface-raised via-surface-tint to-surface-raised px-5 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+            <h2 className="text-lg sm:text-xl font-bold text-ink-primary tracking-tight">
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h2>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => navigateMonth('prev')}
-                className="p-2 hover:bg-line-default/15 active:bg-line-default/25 text-white rounded-lg transition-colors"
+                className="p-2 hover:bg-line-default/15 active:bg-line-default/25 text-ink-primary rounded-lg transition-colors"
                 aria-label="Previous month"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,13 +570,13 @@ const Calendar: React.FC<CalendarProps> = ({
               </button>
               <button
                 onClick={() => setCurrentDate(new Date())}
-                className="px-3 py-1.5 text-xs font-semibold bg-line-default/15 hover:bg-line-default/25 text-white rounded-lg transition-colors backdrop-blur-sm"
+                className="px-3 py-1.5 text-xs font-semibold bg-line-default/15 hover:bg-line-default/25 text-ink-primary rounded-lg transition-colors backdrop-blur-sm"
               >
                 Today
               </button>
               <button
                 onClick={() => navigateMonth('next')}
-                className="p-2 hover:bg-line-default/15 active:bg-line-default/25 text-white rounded-lg transition-colors"
+                className="p-2 hover:bg-line-default/15 active:bg-line-default/25 text-ink-primary rounded-lg transition-colors"
                 aria-label="Next month"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -695,14 +695,14 @@ const Calendar: React.FC<CalendarProps> = ({
             events are). Lives in the navy band so the page reads
             as one continuous surface. */}
         <div className="bg-surface-base px-4 pt-4 pb-3 flex items-center justify-between">
-          <h1 className="text-2xl font-black text-white tracking-tight">The Schedule</h1>
+          <h1 className="text-2xl font-black text-ink-primary tracking-tight">The Schedule</h1>
           {isUserCoach && (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsImportOpen(true)}
                 aria-label="Import schedule"
                 title="Import schedule from Ollie / GotSoccer / .ics"
-                className="w-9 h-9 rounded-full bg-line-default/10 ring-1 ring-line-default/15 text-white flex items-center justify-center hover:bg-line-default/15"
+                className="w-9 h-9 rounded-full bg-line-default/10 ring-1 ring-line-default/15 text-ink-primary/70 flex items-center justify-center hover:bg-line-default/15 hover:text-ink-primary"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -738,7 +738,7 @@ const Calendar: React.FC<CalendarProps> = ({
               className={`px-3 py-1 rounded-md text-[11px] font-extrabold tracking-widest uppercase border whitespace-nowrap ${
                 listTab === key
                   ? 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/40'
-                  : 'bg-surface-input/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
+                  : 'bg-surface-input/40 text-ink-primary/60 border-line-default/15 hover:text-ink-primary'
               }`}
             >
               {label}

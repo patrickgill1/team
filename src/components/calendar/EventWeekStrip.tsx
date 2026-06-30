@@ -49,10 +49,10 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
           const has = types.length > 0;
           const base = 'text-center py-1.5 rounded-md border transition-colors';
           const cls = isToday
-            ? `${base} bg-brand-primary/15 border-brand-primary-soft/50 ring-1 ring-brand-primary-soft/20`
+            ? `${base} bg-brand-primary/15 border-brand-primary-soft/50 ring-1 ring-brand-primary-soft/20 shadow-sm`
             : has
-            ? `${base} bg-surface-base/60 border-slate-700/50`
-            : `${base} bg-surface-base/40 border-slate-800/50`;
+            ? `${base} bg-surface-elevated border-line-default/15`
+            : `${base} bg-surface-base border-line-default/15`;
           return (
             <button
               key={key}
@@ -61,10 +61,10 @@ const EventWeekStrip: React.FC<Props> = ({ events, onDayClick }) => {
               className={cls}
               aria-label={`${DOWS_SHORT[d.getDay()]} ${d.getDate()}`}
             >
-              <div className={`text-[8px] font-extrabold tracking-widest ${isToday ? 'text-brand-primary-soft' : 'text-slate-500'}`}>
+              <div className={`text-[8px] font-extrabold tracking-widest ${isToday ? 'text-brand-primary-soft' : 'text-ink-primary/55'}`}>
                 {DOWS_SHORT[d.getDay()]}
               </div>
-              <div className={`text-[14px] font-black leading-none mt-0.5 ${isToday || has ? 'text-white' : 'text-slate-400'}`}>
+              <div className={`text-[14px] font-black leading-none mt-0.5 ${isToday || has ? 'text-ink-primary' : 'text-ink-primary/55'}`}>
                 {d.getDate()}
               </div>
               <div className="flex justify-center gap-[3px] mt-1 h-1">

@@ -196,8 +196,17 @@ function renderRichContent(text: string, ownTheme: boolean): string {
   const safe = escapeHtml(text);
   const linkColor = ownTheme ? 'text-white underline underline-offset-2' : 'text-brand-primary underline underline-offset-2';
   const linked = safe.replace(
-    /(https?:\/\/[^\s<]+)/g,
-    `<a href="$1" target="_blank" rel="noopener noreferrer" class="${linkColor} break-all">$1</a>`
+    /\b((?:https?:\/\/|www\.)[^\s<]+)/gi,
+    (raw) => {
+      let label = raw;
+      let trailing = '';
+      while (/[.,!?;:)]$/.test(label)) {
+        trailing = label.slice(-1) + trailing;
+        label = label.slice(0, -1);
+      }
+      const href = /^www\./i.test(label) ? `https://${label}` : label;
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="${linkColor} break-all">${label}</a>${trailing}`;
+    }
   );
   const mentionColor = ownTheme ? 'bg-line-default/25 text-white' : 'bg-brand-primary-soft text-brand-primary-dim';
   // @team is a special everyone-ping mention; render it noticeably
@@ -322,12 +331,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [readByOpen, setReadByOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
-  // Long-press on the bubble opens this lightweight react-only sheet
-  // (iMessage / WhatsApp pattern). The full action menu lives on the ⋯
-  // button — one gesture per surface so they don't fight each other.
-  // (quickReactOpen removed — long-press now opens the full EmojiPicker)
-  // Track whether long-press fired, so the touch-end click doesn't
-  // also open the full menu or swallow the gesture.
+  // Long-press opens the full action sheet. Reactions live at the top
+  // of that sheet, so the chat stream does not need a permanent dots
+  // affordance under every message.
+  // Track whether long-press fired, so the touch-end click does not
+  // also open media or swallow the gesture.
   const longPressFiredRef = useRef<boolean>(false);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState('');
@@ -441,18 +449,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       startY: e.touches[0].clientY,
       mode: null,
     };
-    // 1000ms keeps the long-press from firing on accidental brushes
-    // (Patrick's feedback was that 600ms was too sensitive). Long-press
-    // opens the quick-react sheet only — the full action menu is the
-    // ⋯ button's job, so the two gestures don't overlap.
+    // 1000ms keeps long-press from firing on accidental brushes.
+    // Movement cancels this timer below, so vertical scrolling does
+    // not accidentally summon the sheet.
     longPressTimer.current = window.setTimeout(() => {
       longPressFiredRef.current = true;
-      // Long-press opens the full reaction picker (same big sheet
-      // as the ⋯ "More emoji" button). Previously this opened a
-      // small quick-react row; Patrick wanted one consistent
-      // surface for "add a reaction" — easier to reach with a
-      // thumb, no two-step "tap + for more".
-      setEmojiOpen(true);
+      void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
+      setActionsOpen(true);
     }, 1000);
   };
 
@@ -464,13 +467,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       // Still figuring out which gesture this is. Need 8px of motion
       // before we commit either way.
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (longPressTimer.current) {
+        window.clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
       if (Math.abs(dx) > Math.abs(dy)) {
         swipeStateRef.current.mode = 'horizontal';
-        // Movement = not a long-press. Cancel the timer before it fires.
-        if (longPressTimer.current) {
-          window.clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
       } else {
         swipeStateRef.current.mode = 'vertical';
       }
@@ -710,7 +712,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setEmojiOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setActionsOpen(true); }}
             className={`overflow-hidden break-words select-none ${cornerClasses} ${bubbleBg} ${
               isMentioned && !isOwn ? 'ring-2 ring-amber-300' : ''
             }`}
@@ -769,7 +771,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setEmojiOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setActionsOpen(true); }}
             className="w-full max-w-[340px] rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 ring-1 ring-amber-400/50 shadow-md p-3.5"
           >
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -840,7 +842,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
-            onContextMenu={(e) => { e.preventDefault(); setEmojiOpen(true); }}
+            onContextMenu={(e) => { e.preventDefault(); setActionsOpen(true); }}
             className={`grid gap-1 ${images.length === 1 ? '' : 'grid-cols-2'} max-w-full`}
           >
             {images.map((img, i) => (
@@ -862,41 +864,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </div>
         )}
 
-        {/* Reactions + actions row, UNDER the bubble (Ollie pattern).
-            - For own messages, layout is reversed so the ⋯ kebab sits
-              CLOSEST to the bubble (rightmost in reading order).
-            - For incoming, ⋯ sits closest to the bubble on the left.
-            We render this row whenever the bubble itself rendered —
-            i.e. there's real content or images — so a deleted /
-            ghost message that has neither doesn't produce a stray
-            kebab + reaction chip floating in the thread. */}
-        {(message.content || images.length > 0) && (
+        {/* Reactions row. Message actions now live behind long-press /
+            right-click, which keeps the conversation clean until the
+            user deliberately asks for controls. */}
+        {(message.content || images.length > 0) && Object.keys(grouped).length > 0 && (
           <div className={`mt-1.5 flex items-center gap-1.5 flex-wrap ${isOwn ? 'flex-row-reverse justify-start' : 'justify-start'}`}>
-            {/* 'Message actions' affordance. Was a horizontal three-
-                dot kebab — user feedback (via Patrick): 'the 3 dots
-                under the message seemed like something went wrong
-                with a message.' Horizontal dots read as 'typing
-                indicator / error' to anyone outside the
-                kebab-menu-iconography convention; vertical dots (the
-                iOS standard 'more' affordance) are unambiguous and
-                land on the same actions sheet. */}
-            <button
-              onClick={() => {
-                void import('../../utils/nativeShell').then(m => m.tapHaptic('medium'));
-                setActionsOpen(true);
-              }}
-              aria-label="Message actions"
-              title="Message actions"
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-brand-primary active:scale-95 transition"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="5" r="1.9"/>
-                <circle cx="12" cy="12" r="1.9"/>
-                <circle cx="12" cy="19" r="1.9"/>
-              </svg>
-            </button>
-            {Object.keys(grouped).length > 0 && (
-              <div className={`flex flex-wrap gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex flex-wrap gap-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
             {Object.entries(grouped).map(([emoji, info]) => (
               <button
                 key={emoji}
@@ -941,8 +914,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <span className="font-semibold tabular-nums">{info.count}</span>
               </button>
             ))}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -1003,18 +975,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         )}
       </div>
 
-      {/* (⋯ button moved inside the inner column, alongside reactions
-          — see the row above. This used to live here outside the
-          column, vertically centered next to the bubble, but Patrick
-          wanted Ollie's pattern: kebab BELOW the bubble, on the same
-          row as reactions. Cleaner and fewer competing focal points.) */}
-
-      {/* Long-press / right-click quick-react sheet. Just the emoji row,
-          no menu — that's what the ⋯ button is for. Tap an emoji to
-          react and dismiss; tap + to open the full picker. */}
-      {/* (Old quick-react row removed — long-press now opens the
-          full EmojiPicker so there's a single consistent "add a
-          reaction" surface. See setEmojiOpen call above.) */}
+        {/* Message actions are gesture-first: long-press on touch, or
+          right-click/context-menu on desktop. The sheet keeps quick
+          reactions at the top, so no separate permanent kebab is
+          needed in the message stream. */}
 
       {actionsOpen && (
         <div

@@ -84,6 +84,7 @@ const NextEventPoster: React.FC<Props> = ({
   const eventDay   = eventDate ? eventDate.getDate() : 0;
   const eventDow   = eventDate ? DOWS_SHORT[eventDate.getDay()] : '';
   const location: string = (nextEvent as any)?.location || '';
+  const developmentFocus: string = ((nextEvent as any)?.developmentFocus || '').trim();
 
   // Empty state — no events on the calendar yet. Patrick: "can it
   // still show the field picture at the top during the process? I
@@ -97,19 +98,23 @@ const NextEventPoster: React.FC<Props> = ({
     return (
       <section className="px-3 sm:px-4 pt-3">
         <article
-          className="relative overflow-hidden rounded-2xl ring-1 ring-line-default/10 shadow-2xl shadow-black/40 min-h-[300px] sm:min-h-[340px] flex flex-col"
+          className="next-event-poster relative overflow-hidden rounded-2xl ring-1 ring-line-default/10 shadow-2xl shadow-black/40 min-h-[300px] sm:min-h-[340px] flex flex-col"
         >
           <img
             src={scene.bgImage}
             alt=""
             aria-hidden
             loading="eager"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover brightness-125 saturate-110"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
           <div
             aria-hidden
-            className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/45 to-black/85 pointer-events-none"
+            className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/20 to-black/65 pointer-events-none"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/80 via-black/50 to-transparent pointer-events-none"
           />
 
           {/* Header row: kicker + greeting */}
@@ -117,7 +122,7 @@ const NextEventPoster: React.FC<Props> = ({
             <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-brand-primary-soft">
               {isCoach ? 'Welcome' : 'Hi'}
             </p>
-            <p className="mt-1 text-sm text-ink-primary/80">{greeting}, {firstName}</p>
+            <p className="mt-1 text-sm text-white/80 drop-shadow">{greeting}, {firstName}</p>
           </div>
 
           <div className="flex-1" />
@@ -125,10 +130,10 @@ const NextEventPoster: React.FC<Props> = ({
           {/* Body: copy + roster chip + CTA */}
           <div className="relative px-5 pb-5 sm:pb-6 space-y-3">
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-ink-primary tracking-tight leading-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.95),0_0_1px_rgba(0,0,0,0.9)]">
                 {isCoach ? "Let's get your team going." : 'No upcoming events yet.'}
               </h1>
-              <p className="mt-1 text-sm text-ink-primary/75">
+              <p className="mt-1 text-sm font-medium text-white/90 [text-shadow:0_1px_5px_rgba(0,0,0,0.9)]">
                 {isCoach
                   ? 'Add players, schedule a practice, invite parents. Then your dashboard fills in.'
                   : 'Check back soon for your next game or practice.'}
@@ -142,7 +147,7 @@ const NextEventPoster: React.FC<Props> = ({
                 className="shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-black/40 ring-1 ring-line-default/15 backdrop-blur-sm"
               >
                 <span className="text-xl font-extrabold text-white leading-none tabular-nums">{playerCount}</span>
-                <span className="text-[9px] font-bold tracking-widest text-ink-primary/70 mt-1">ROSTER</span>
+                <span className="text-[9px] font-bold tracking-widest text-white/70 mt-1">ROSTER</span>
               </Link>
               {isCoach && (
                 <Link
@@ -162,7 +167,7 @@ const NextEventPoster: React.FC<Props> = ({
   return (
     <section className="px-3 sm:px-4 pt-3">
       <article
-        className="relative overflow-hidden rounded-2xl ring-1 ring-line-default/10 shadow-2xl shadow-black/40 min-h-[440px] sm:min-h-[480px] flex flex-col"
+        className="next-event-poster relative overflow-hidden rounded-2xl ring-1 ring-line-default/10 shadow-2xl shadow-black/40 min-h-[440px] sm:min-h-[480px] flex flex-col"
         aria-label={`Next up: ${nextEvent.title} on ${eventMonth} ${eventDay}`}
       >
         {/* Time-of-day photo as the poster bg. Object-cover so the
@@ -173,7 +178,7 @@ const NextEventPoster: React.FC<Props> = ({
           alt=""
           aria-hidden
           loading="eager"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover brightness-125 saturate-110"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
         {/* Cinematic overlay: dim middle, deeper bottom so the
@@ -181,19 +186,23 @@ const NextEventPoster: React.FC<Props> = ({
             surface regardless of photo content. */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/40 to-black/85 pointer-events-none"
+          className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/20 to-black/65 pointer-events-none"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none"
         />
 
         {/* Header row: greeting (left) + weather chip (right) */}
         <div className="relative flex items-start justify-between px-5 pt-5 sm:pt-6">
           <div>
             <p className="text-[10px] font-extrabold tracking-[0.25em] uppercase text-brand-primary-soft">Next Up</p>
-            <p className="mt-1 text-sm text-ink-primary/80">{greeting}, {firstName}</p>
+            <p className="mt-1 text-sm text-white/80 drop-shadow">{greeting}, {firstName}</p>
           </div>
           {weather && (
-            <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-black/35 ring-1 ring-line-default/10 px-2.5 py-1 backdrop-blur-sm">
+            <div className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-black/40 ring-1 ring-line-default/10 px-2.5 py-1 backdrop-blur-sm">
               <span aria-hidden className="text-base leading-none">{weather.icon}</span>
-              <span className="text-[12px] font-bold text-ink-primary tabular-nums">{weather.tempMaxF}°/{weather.tempMinF}°</span>
+              <span className="text-[12px] font-bold text-white tabular-nums drop-shadow">{weather.tempMaxF}°/{weather.tempMinF}°</span>
             </div>
           )}
         </div>
@@ -207,21 +216,26 @@ const NextEventPoster: React.FC<Props> = ({
             <Link
               to={`/events/${nextEvent.id}`}
               aria-label={`${nextEvent.title} on ${eventMonth} ${eventDay} ${eventDow}`}
-              className="shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-2xl bg-black/45 ring-1 ring-line-default/15 backdrop-blur-md"
+              className="shrink-0 flex flex-col items-center justify-center w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-2xl bg-black/50 ring-1 ring-line-default/15 backdrop-blur-md"
             >
               <span className="text-[10px] font-extrabold tracking-widest text-brand-primary-soft">{eventMonth}</span>
-              <span className="text-3xl sm:text-[34px] font-black text-white leading-none">{eventDay}</span>
-              <span className="text-[9px] font-bold tracking-widest text-ink-primary/70 mt-0.5">{eventDow}</span>
+              <span className="text-3xl sm:text-[34px] font-black text-white leading-none [text-shadow:0_2px_7px_rgba(0,0,0,0.95),0_0_1px_rgba(0,0,0,0.9)]">{eventDay}</span>
+              <span className="text-[9px] font-bold tracking-widest text-white/70 mt-0.5">{eventDow}</span>
             </Link>
             <div className="min-w-0 flex-1">
               <Link to={`/events/${nextEvent.id}`} className="block">
-                <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight drop-shadow-md truncate">
+                <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight truncate [text-shadow:0_3px_10px_rgba(0,0,0,0.95),0_0_1px_rgba(0,0,0,0.9)]">
                   {nextEvent.title}
                 </h2>
-                <p className="mt-1 text-sm sm:text-base text-ink-primary/85 truncate">{whenText}</p>
+                <p className="mt-1 text-sm sm:text-base font-semibold text-white/90 truncate [text-shadow:0_2px_7px_rgba(0,0,0,0.9)]">{whenText}</p>
                 {location && (
-                  <p className="mt-0.5 text-xs sm:text-sm text-ink-primary/65 truncate">
+                  <p className="mt-0.5 text-xs sm:text-sm font-semibold text-white/90 truncate [text-shadow:0_2px_7px_rgba(0,0,0,0.95),0_0_1px_rgba(0,0,0,0.9)]">
                     <span aria-hidden className="mr-1">·</span>{location}
+                  </p>
+                )}
+                {developmentFocus && (
+                  <p className="mt-1 inline-flex max-w-full items-center rounded-full bg-black/50 ring-1 ring-white/10 px-2 py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft truncate backdrop-blur-sm [text-shadow:0_2px_6px_rgba(0,0,0,0.85)]">
+                    Today: {developmentFocus}
                   </p>
                 )}
               </Link>
@@ -258,12 +272,12 @@ const NextEventPoster: React.FC<Props> = ({
               path, which is what 95% of users actually tap. */}
 
           {/* Going / pending tally line. Quiet, just-the-facts. */}
-          <p className="mt-3 text-center text-[12px] text-ink-primary/65">
-            <span className="font-bold text-ink-primary">{goingCount}</span> going
+          <p className="mt-3 text-center text-[12px] text-white/70 drop-shadow">
+            <span className="font-bold text-white">{goingCount}</span> going
             {pendingCount > 0 && (
               <>
                 {' · '}
-                <span className="font-bold text-ink-primary">{pendingCount}</span> pending
+                <span className="font-bold text-white">{pendingCount}</span> pending
               </>
             )}
           </p>
@@ -285,7 +299,7 @@ function RsvpButton({ tone, active, label, onClick }: {
     maybe: 'bg-amber-400 text-charcoal-950 ring-1 ring-amber-300/60 shadow-lg shadow-amber-500/30',
     no:    'bg-rose-500 text-white ring-1 ring-rose-300/60 shadow-lg shadow-rose-500/30',
   };
-  const inactiveStyles = 'bg-black/40 text-ink-primary/85 ring-1 ring-line-default/15 backdrop-blur-md hover:bg-black/55';
+  const inactiveStyles = 'bg-black/50 text-white/90 ring-1 ring-white/10 backdrop-blur-md hover:bg-black/60';
   return (
     <button
       type="button"

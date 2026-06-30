@@ -52,6 +52,7 @@ const EventForm: React.FC<EventFormProps> = ({
     recurrence: 'none' as 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly',
     recurrenceUntil: '' as string,
     arriveOffsetMinutes: 0,
+    developmentFocus: '',
     endTime: '' as string, // HH:mm, optional
     // Default ON for new events (you usually want to tell people about
     // a new game/practice). Default OFF for edits — the watcher in the
@@ -111,6 +112,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: (editingEvent as any).recurrence || 'none',
         recurrenceUntil: untilDate ? untilDate.toISOString().split('T')[0] : '',
         arriveOffsetMinutes: (editingEvent as any).arriveOffsetMinutes || 0,
+        developmentFocus: (editingEvent as any).developmentFocus || '',
         endTime: (() => {
           const e = (editingEvent as any).endDate;
           if (!e) return '';
@@ -141,6 +143,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: 'none',
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
+        developmentFocus: '',
         endTime: '',
         notifyTeam: true,
       });
@@ -491,6 +494,7 @@ const EventForm: React.FC<EventFormProps> = ({
         createdBy: userData.uid,
         createdByName: userData.name,
         arriveOffsetMinutes: formData.arriveOffsetMinutes > 0 ? formData.arriveOffsetMinutes : null,
+        developmentFocus: formData.developmentFocus.trim() || null,
         // Signal to the onEventCreate Cloud Function whether to fan
         // out push notifications. Set ONLY on create — edits do not
         // re-notify. The client-side sendPushToTeam call below still
@@ -608,6 +612,7 @@ const EventForm: React.FC<EventFormProps> = ({
         recurrence: 'none',
         recurrenceUntil: '',
         arriveOffsetMinutes: 0,
+        developmentFocus: '',
         endTime: '',
         notifyTeam: true,
       });
@@ -707,6 +712,31 @@ const EventForm: React.FC<EventFormProps> = ({
         <form ref={formRef} onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 space-y-4">
           {/* Event Type — segmented control with monoline SVG icons. */}
           <div>
+
+          <div>
+            <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-1.5">
+              Development focus
+            </label>
+            <select
+              value={formData.developmentFocus}
+              onChange={(e) => setFormData({ ...formData, developmentFocus: e.target.value })}
+              className="w-full px-3 py-2 bg-surface-base text-ink-primary [color-scheme:dark] border border-line-default/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+            >
+              <option value="">No event focus</option>
+              <option value="First touch">First touch</option>
+              <option value="Passing">Passing</option>
+              <option value="Defending">Defending</option>
+              <option value="Finishing">Finishing</option>
+              <option value="Confidence">Confidence</option>
+              <option value="Communication">Communication</option>
+              <option value="Effort">Effort</option>
+              <option value="Fitness">Fitness</option>
+              <option value="Decision making">Decision making</option>
+            </select>
+            <p className="text-xs text-ink-primary/55 mt-1">
+              Shows before the event and frames the post-event player pulse.
+            </p>
+          </div>
             <label className="block text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60 mb-2">
               Type
             </label>

@@ -217,6 +217,41 @@ body.platform-android {
   box-shadow: 0 4px 12px -2px rgba(0,0,0,0.6);
   border-color: rgba(255,255,255,0.15);
 }
+
+/* Light-mode compatibility pass. A lot of older surfaces were migrated
+  to bg-surface-* before their nested text utilities were migrated from
+  dark-only text-charcoal-* classes. Keep this focused on the legacy
+  muted text colors; true media overlays keep their intentional white
+  text and are fixed directly at the component level. */
+html[data-theme="light"] .card-modern {
+  background: rgb(var(--surface-elevated));
+  border-color: rgb(var(--line-default) / 0.12);
+  color: rgb(var(--ink-primary));
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+}
+html[data-theme="light"] .card-modern:hover {
+  box-shadow: 0 10px 24px -18px rgb(15 23 42 / 0.45);
+  border-color: rgb(var(--line-default) / 0.2);
+}
+html[data-theme="light"] .text-charcoal-300,
+html[data-theme="light"] .text-charcoal-400 {
+  color: rgb(var(--ink-secondary)) !important;
+}
+html[data-theme="light"] .text-charcoal-500,
+html[data-theme="light"] .text-charcoal-600,
+html[data-theme="light"] .text-slate-300,
+html[data-theme="light"] .text-slate-400 {
+  color: rgb(var(--ink-muted)) !important;
+}
+html[data-theme="light"] input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] select {
+  color-scheme: light !important;
+}
+html[data-theme="light"] .placeholder-white\/50::placeholder,
+html[data-theme="light"] .placeholder-bone\/40::placeholder {
+  color: rgb(var(--ink-muted) / 0.65) !important;
+}
 .card-interactive {
   cursor: pointer;
   transition: all 0.2s ease;

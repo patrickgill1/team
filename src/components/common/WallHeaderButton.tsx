@@ -98,7 +98,7 @@ const WallHeaderButton: React.FC = () => {
         onClick={handleOpen}
         aria-label="Posts"
         title="Posts"
-        className="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-white/85 hover:text-white hover:bg-line-default/10 transition"
+        className="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-ink-primary/65 hover:text-ink-primary hover:bg-line-default/10 transition"
       >
         {/* Newspaper / feed icon — replaces the megaphone. The
             megaphone ("sound icon") was being read as "audio/volume"
@@ -112,7 +112,7 @@ const WallHeaderButton: React.FC = () => {
           <line x1="7" y1="17" x2="13" y2="17" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-charcoal-950" aria-label={`${unreadCount} new posts`} />
+          <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-surface-input" aria-label={`${unreadCount} new posts`} />
         )}
       </button>
 
@@ -149,7 +149,7 @@ const WallHeaderButton: React.FC = () => {
                 <Link
                   to="/wall"
                   onClick={() => setOpen(false)}
-                  className="text-[11px] font-bold uppercase tracking-widest text-brand-primary-soft hover:text-white"
+                  className="text-[11px] font-bold uppercase tracking-widest text-brand-primary-soft hover:text-ink-primary"
                 >
                   View all →
                 </Link>
@@ -157,7 +157,7 @@ const WallHeaderButton: React.FC = () => {
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close"
-                  className="w-8 h-8 rounded-full bg-line-default/10 hover:bg-line-default/20 text-white flex items-center justify-center"
+                  className="w-8 h-8 rounded-full bg-line-default/10 hover:bg-line-default/20 text-ink-primary flex items-center justify-center"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -208,7 +208,7 @@ const WallHeaderButton: React.FC = () => {
               <Link
                 to="/wall"
                 onClick={() => setOpen(false)}
-                className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-white inline-flex items-center gap-1"
+                className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary inline-flex items-center gap-1"
               >
                 Open the wall
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>

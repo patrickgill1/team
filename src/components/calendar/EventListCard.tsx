@@ -82,7 +82,7 @@ function typeSpec(type: string | undefined) {
     case 'practice':
       return { label: 'Practice', pillBg: 'bg-brand-primary/10', pillRing: 'ring-brand-primary-soft/30', pillText: 'text-brand-primary-soft', edge: 'bg-brand-primary/70' };
     default:
-      return { label: 'Event', pillBg: 'bg-amber-500/15', pillRing: 'ring-amber-400/40', pillText: 'text-amber-300', edge: 'bg-amber-500' };
+      return { label: 'Event', pillBg: 'bg-amber-500/15', pillRing: 'ring-amber-400/40', pillText: 'text-amber-600', edge: 'bg-amber-500' };
   }
 }
 
@@ -129,7 +129,7 @@ const EventListCard: React.FC<Props> = ({
     const name = firstName(rsvpLabel === 'YOU' ? 'You' : rsvpLabel);
     if (myRsvp === 'going') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/50">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-400/50">
           <Icon name="check" className="w-3 h-3" />
           {name}: Going
         </span>
@@ -137,7 +137,7 @@ const EventListCard: React.FC<Props> = ({
     }
     if (myRsvp === 'maybe') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/50">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-amber-500/15 text-amber-600 ring-1 ring-amber-400/50">
           <Icon name="q" className="w-3 h-3" />
           {name}: Maybe
         </span>
@@ -145,7 +145,7 @@ const EventListCard: React.FC<Props> = ({
     }
     if (myRsvp === 'no') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/50">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-rose-500/15 text-rose-500 ring-1 ring-rose-400/50">
           <Icon name="x" className="w-3 h-3" />
           {name}: Can't
         </span>
@@ -217,7 +217,7 @@ const EventListCard: React.FC<Props> = ({
         <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
           <div className="w-[52px] rounded-lg bg-surface-base ring-1 ring-brand-primary-soft/30 flex flex-col items-center justify-center py-1.5">
             <span className="text-[9px] font-extrabold tracking-widest text-brand-primary-soft">{month}</span>
-            <span className={`text-[22px] font-black leading-none text-white ${cancelled ? 'line-through decoration-2' : ''}`}>{day}</span>
+            <span className={`text-[22px] font-black leading-none text-ink-primary ${cancelled ? 'line-through decoration-2' : ''}`}>{day}</span>
             <span className="text-[8px] font-bold tracking-widest text-charcoal-400 mt-0.5">{dow}</span>
           </div>
 

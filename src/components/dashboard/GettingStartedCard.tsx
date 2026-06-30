@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useSubscription } from '../../hooks/useSubscription';
-import { isCoach } from '../../utils/helpers';
+import { isCoach, isClubAdmin as isClubAdminUser } from '../../utils/helpers';
+import { useViewMode } from '../../contexts/ViewModeContext';
 import TierPickerSheet from '../common/TierPickerSheet';
 import { openWebSignup } from '../../utils/subscriptionApi';
 
@@ -35,10 +36,21 @@ interface Props {
 const DISMISS_KEY_PREFIX = 'gk_dashboard_getstarted_dismissed_at__';
 const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000;  // 24 hours
 
+type GuideRole = 'coach' | 'parent' | 'admin';
+
+interface SetupStep {
+  key: string;
+  label: string;
+  done: boolean;
+  cta: string;
+  onClick: () => void;
+}
+
 const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const navigate = useNavigate();
   const { currentUser, userData } = useAuth();
   const { selectedTeamId } = useTeam();
+  const { viewMode } = useViewMode();
   const { isActive, loading: subLoading } = useSubscription();
   const [dismissed, setDismissed] = useState(false);
   const [tierSheet, setTierSheet] = useState(false);
@@ -65,16 +77,20 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   }, [selectedTeamId, players?.length, events?.length]);
 
   if (!userData) return null;
-  if (!isCoach(userData.role)) return null;
   if (!selectedTeamId) return null;
   if (dismissed) return null;
-  // Wait for the subscription doc to load before deciding to render.
-  // Without this guard, the card flashes the 'Start your 7-day free
-  // trial' step for a frame on every cold start (isActive defaults
-  // to false while the snapshot is in flight) and disappears once
-  // the active-sub state lands. Patrick 2026-06-25: 'I swear I see
-  // the 7 day trial come up briefly and then go away.'
-  if (subLoading) return null;
+
+  const userIsCoach = isCoach(userData.role);
+  const userIsClubAdmin = isClubAdminUser(userData as any);
+  const guideRole: GuideRole = viewMode === 'admin' && userIsClubAdmin
+    ? 'admin'
+    : viewMode === 'coach' && userIsCoach
+      ? 'coach'
+      : 'parent';
+
+  // Wait for the subscription doc before rendering coach/admin billing
+  // steps. Parent mode has no billing step, so it can paint right away.
+  if ((guideRole === 'coach' || guideRole === 'admin') && subLoading) return null;
 
   // Steps
   const hasPlayers = (players?.length || 0) > 0;
@@ -82,10 +98,21 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   const hasInvitedParents = (players || []).some((p: any) =>
     (p.parentEmails?.length || 0) > 0 || (p.parentIds?.length || 0) > 0
   );
-  const hasTrial = isActive;
+  const hasSubscriptionAccess = isActive
+    || (userData as any)?.subscriptionActive === true
+    || (userData as any)?.coverageSource === 'club'
+    || (userData as any)?.isClubAdmin === true;
 
-  const allDone = hasPlayers && hasEvent && hasInvitedParents && hasTrial;
-  if (allDone) return null;
+  const linkedPlayers = (players || []).filter((p: any) =>
+    (Array.isArray(p.parentIds) && p.parentIds.includes((userData as any).uid)) ||
+    p.parentId === (userData as any).uid
+  );
+  const nextEvent = events?.[0] || null;
+  const parentRsvpDone = !!nextEvent && linkedPlayers.length > 0 && linkedPlayers.every((p: any) => {
+    const playerRsvp = (nextEvent as any).playerRsvps?.[p.id]?.status;
+    const adultRsvp = (nextEvent as any).rsvps?.[(userData as any).uid]?.status;
+    return !!(playerRsvp || adultRsvp);
+  });
 
   // Open the tier picker sheet. The sheet hands off to openWebSignup
   // with the user's choice (Coach annual vs Club). Used to be a
@@ -101,43 +128,114 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
     setDismissed(true);
   };
 
-  // Order matters: each step gates the next as the obvious "do this now."
-  //
-  // "Add players" and "invite parents" used to be separate steps,
-  // but they both routed to /people/add and the bulk form does both
-  // in one action — adding a player with a parent email sends the
-  // parent's invite immediately. Patrick: "add players and invite
-  // players can kinda be combined as it does the same thing, right?"
-  // Merged into one step. "Done" is when at least one player has a
-  // parent linked (parentIds) or a pending parent email.
   const rosterReady = hasPlayers && hasInvitedParents;
-  const steps = [
-    {
-      key: 'roster',
-      label: rosterReady
-        ? `${players.length} on the squad, parents in.`
-        : hasPlayers
-          ? 'Bring the rest of the parents in'
-          : 'Build your squad, bring parents in',
-      done: rosterReady,
-      cta: hasPlayers ? 'Bring more in' : 'Build squad',
-      onClick: () => navigate('/people/add'),
+  const roleCopy: Record<GuideRole, { eyebrow: string; empty: string; almost: string }> = {
+    coach: {
+      eyebrow: 'Coach launch guide',
+      empty: "Let's get your team ready.",
+      almost: 'One more step and you can run the week from here.',
     },
-    {
-      key: 'event',
-      label: hasEvent ? 'Practice or game on the calendar' : 'Schedule your first practice',
-      done: hasEvent,
-      cta: 'Add event',
-      onClick: () => navigate('/calendar'),
+    parent: {
+      eyebrow: 'Parent quick start',
+      empty: "Let's make this useful on day one.",
+      almost: 'One more tap and game week is covered.',
     },
-    {
-      key: 'trial',
-      label: hasTrial ? 'Subscription active' : 'Start your 7-day free trial',
-      done: hasTrial,
-      cta: 'Start trial',
-      onClick: handleStartTrial,
+    admin: {
+      eyebrow: 'Club launch guide',
+      empty: "Let's make the club hub operational.",
+      almost: 'One more setup item for the club.',
     },
-  ];
+  };
+
+  // Order matters: each role gets the next task that makes their
+  // first week successful, not a generic product tour.
+  const steps: SetupStep[] = guideRole === 'coach'
+    ? [
+        {
+          key: 'roster',
+          label: rosterReady
+            ? `${players.length} on the squad, parents in.`
+            : hasPlayers
+              ? 'Bring the rest of the parents in'
+              : 'Build your squad, bring parents in',
+          done: rosterReady,
+          cta: hasPlayers ? 'Bring more in' : 'Build squad',
+          onClick: () => navigate('/people/add'),
+        },
+        {
+          key: 'event',
+          label: hasEvent ? 'Practice or game on the calendar' : 'Schedule your first practice',
+          done: hasEvent,
+          cta: 'Add event',
+          onClick: () => navigate('/calendar'),
+        },
+        {
+          key: 'subscription',
+          label: hasSubscriptionAccess ? 'Subscription active' : 'Start your 7-day free trial',
+          done: hasSubscriptionAccess,
+          cta: 'Start trial',
+          onClick: handleStartTrial,
+        },
+      ]
+    : guideRole === 'admin'
+      ? [
+          {
+            key: 'club',
+            label: 'Open the club command center',
+            done: true,
+            cta: 'Open club',
+            onClick: () => navigate('/club'),
+          },
+          {
+            key: 'roster',
+            label: hasPlayers ? 'Roster data is flowing' : 'Add teams, players, or imported registrations',
+            done: hasPlayers,
+            cta: 'People',
+            onClick: () => navigate('/people'),
+          },
+          {
+            key: 'season',
+            label: hasEvent ? 'A season event is scheduled' : 'Set the first season event',
+            done: hasEvent,
+            cta: 'Calendar',
+            onClick: () => navigate('/calendar'),
+          },
+          {
+            key: 'subscription',
+            label: hasSubscriptionAccess ? 'Club billing is covered' : 'Pick the club plan',
+            done: hasSubscriptionAccess,
+            cta: 'Plans',
+            onClick: handleStartTrial,
+          },
+        ]
+      : [
+          {
+            key: 'player',
+            label: linkedPlayers.length > 0
+              ? `${linkedPlayers[0].name?.split(' ')[0] || 'Your player'} is connected`
+              : 'Connect your player to this team',
+            done: linkedPlayers.length > 0,
+            cta: linkedPlayers.length > 0 ? 'View player' : 'Join team',
+            onClick: () => linkedPlayers[0]?.id ? navigate(`/player/${linkedPlayers[0].id}`) : navigate('/join'),
+          },
+          {
+            key: 'calendar',
+            label: hasEvent ? 'You can see the next team event' : 'Check the team schedule',
+            done: hasEvent,
+            cta: 'Schedule',
+            onClick: () => navigate('/calendar'),
+          },
+          {
+            key: 'rsvp',
+            label: parentRsvpDone ? 'RSVP sent for the next event' : 'RSVP so the coach can plan',
+            done: parentRsvpDone,
+            cta: 'RSVP',
+            onClick: () => navigate('/calendar'),
+          },
+        ];
+
+  const allDone = steps.every((s) => s.done);
+  if (allDone) return null;
 
   const completedCount = steps.filter(s => s.done).length;
   const isLast = (idx: number) => steps.slice(idx + 1).every(s => s.done);
@@ -157,13 +255,13 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
       <div className="flex items-start justify-between gap-3 mb-4 pr-8">
         <div>
           <p className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-0.5">
-            Getting started
+            {roleCopy[guideRole].eyebrow}
           </p>
           <p className="text-ink-primary font-bold leading-tight">
             {completedCount === 0
-              ? "Let's set up your team."
+              ? roleCopy[guideRole].empty
               : completedCount === steps.length - 1
-                ? 'One more thing to go.'
+                ? roleCopy[guideRole].almost
                 : `${completedCount} of ${steps.length} done.`}
           </p>
         </div>
@@ -183,7 +281,7 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
       <ul className="space-y-2">
         {steps.map((s, i) => {
           const isNext = i === firstUndoneIdx;
-          const isTrial = s.key === 'trial';
+          const isTrial = s.key === 'subscription' && guideRole === 'coach';
           return (
             <li
               key={s.key}

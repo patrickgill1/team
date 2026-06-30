@@ -3,18 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import WidgetBridge from '../../utils/widgetBridge';
+import WidgetBridge, { syncWidgetTokenToNative } from '../../utils/widgetBridge';
 import { isOwner } from '../../utils/helpers';
 
 /**
  * Widget setup card. Generates and displays a long-lived widget
- * token that the user pastes into the iOS Player widget's edit
- * screen. Token is stored on users/{uid}.widgetToken and rotatable.
- *
- * No App Group / Capacitor plugin needed — the widget hits the
- * worker endpoint /widget/snapshot with the token as a bearer.
- * Trade-off: user has to copy a 24-char string once, instead of
- * the widget auto-discovering the account.
+ * token used by the native home-screen widget. Token is stored on
+ * users/{uid}.widgetToken and mirrored to native shared storage.
  */
 
 function randomToken(): string {
@@ -35,17 +30,48 @@ const WidgetSetupCard: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState<string>('');
 
   const uid = userData?.uid || currentUser?.uid;
 
   // Pushes the token into the native widget bridge so the home-screen
-  // widget's configure activity (Android) can auto-pick it up and skip
-  // the paste UI. Web/iOS fall back to no-op for now — iOS needs App
-  // Group entitlements before its bridge can light up; users on iOS
-  // copy/paste manually until that ships.
+  // widget can auto-pick it up and skip the paste UI. Web falls back
+  // to the no-op implementation in widgetBridge.ts.
   const syncToNativeBridge = async (next: string) => {
-    try { await WidgetBridge.setToken({ token: next }); }
-    catch { /* fire-and-forget */ }
+    return syncWidgetTokenToNative(next);
+  };
+
+  const checkSnapshot = async (next: string) => {
+    const res = await fetch(`https://api.goalkickr.com/widget/snapshot?token=${encodeURIComponent(next)}&t=${Date.now()}`, {
+      method: 'GET',
+      cache: 'no-store',
+    });
+    const body = await res.json().catch(() => ({} as any));
+    if (!res.ok || body?.ok === false) {
+      throw new Error(body?.error || `http-${res.status}`);
+    }
+    return body?.snapshot;
+  };
+
+  const refreshWidgetNow = async () => {
+    if (!token || busy) return;
+    setBusy(true);
+    setRefreshStatus('Writing token to widget...');
+    try {
+      const bridge = await syncToNativeBridge(token);
+      if (!bridge?.ok) {
+        setRefreshStatus(`Bridge failed: ${bridge?.error || 'unknown'}`);
+        return;
+      }
+      setRefreshStatus('Checking live widget snapshot...');
+      const snap = await checkSnapshot(token);
+      const player = snap?.playerName || 'player';
+      setRefreshStatus(`Widget ready: ${player}`);
+    } catch (err: any) {
+      setRefreshStatus(`Snapshot failed: ${String(err?.message || err)}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -85,7 +111,8 @@ const WidgetSetupCard: React.FC = () => {
       await updateDoc(doc(db, 'users', uid), { widgetToken: t });
       setToken(t);
       setShowInstructions(true);
-      void syncToNativeBridge(t);
+      const bridge = await syncToNativeBridge(t);
+      setRefreshStatus(bridge?.ok ? 'Widget token saved to this device.' : `Bridge failed: ${bridge?.error || 'unknown'}`);
     } finally { setBusy(false); }
   };
 
@@ -98,7 +125,8 @@ const WidgetSetupCard: React.FC = () => {
       await updateDoc(doc(db, 'users', uid), { widgetToken: t });
       setToken(t);
       setCopied(false);
-      void syncToNativeBridge(t);
+      const bridge = await syncToNativeBridge(t);
+      setRefreshStatus(bridge?.ok ? 'New widget code saved to this device.' : `Bridge failed: ${bridge?.error || 'unknown'}`);
     } finally { setBusy(false); }
   };
 
@@ -177,6 +205,25 @@ const WidgetSetupCard: React.FC = () => {
           >
             {showInstructions ? 'Hide setup steps' : 'How to add the widget'}
           </button>
+
+          <div className="rounded-lg bg-surface-base border border-line-default/10 p-3 space-y-2">
+            <button
+              type="button"
+              onClick={refreshWidgetNow}
+              disabled={busy}
+              className="w-full px-4 py-2.5 rounded-lg bg-brand-primary text-brand-primary-fg font-bold text-sm disabled:opacity-60"
+            >
+              {busy ? 'Refreshing...' : 'Refresh widget on this phone'}
+            </button>
+            <p className="text-[11px] text-ink-primary/55 leading-snug">
+              Writes this code into the native widget container, reloads timelines, and checks the live widget API.
+            </p>
+            {refreshStatus && (
+              <p className="font-mono text-[11px] text-ink-primary/75 break-words">
+                {refreshStatus}
+              </p>
+            )}
+          </div>
 
           {showInstructions && (() => {
             // Platform-aware instructions. Detect via Capacitor's

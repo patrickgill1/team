@@ -95,6 +95,28 @@ const People = React.lazy(() => import('./pages/People'));
 const Helpdesk = React.lazy(() => import('./pages/Helpdesk'));
 const HelpdeskTicketPage = React.lazy(() => import('./pages/HelpdeskTicket'));
 
+const prefetchCoreRoutes = (() => {
+  let started = false;
+  return () => {
+    if (started) return;
+    started = true;
+    [
+      () => import('./pages/Dashboard'),
+      () => import('./pages/CalendarPage'),
+      () => import('./pages/PlayerMediaPage'),
+      () => import('./pages/TeamChat'),
+      () => import('./pages/Wall'),
+      () => import('./pages/Stats'),
+      () => import('./pages/PlayerProfile'),
+      () => import('./pages/CoachCockpit'),
+      () => import('./pages/GameDay'),
+      () => import('./pages/Settings'),
+    ].forEach((load) => { load().catch(() => {}); });
+  };
+})();
+
+const UPDATE_STORY_MIN_MS = 6500;
+
 // Branded loading screen — picks up where the native splash leaves off
 // (same dark navy bg) and shows the app mark with a subtle bouncing
 // three-dot indicator below so the user knows something's happening.
@@ -243,6 +265,7 @@ const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) =
   // Matches the Instagram / Facebook widget UX. See widgetBridge.ts.
   React.useEffect(() => {
     if (!userData?.uid) return;
+    const prefetchTimer = window.setTimeout(prefetchCoreRoutes, 250);
     void bootstrapWidgetToken({
       uid: userData.uid,
       existingToken: (userData as any).widgetToken,
@@ -251,6 +274,7 @@ const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) =
         await updateDoc(doc(db, 'users', uid), { widgetToken: token });
       },
     });
+    return () => window.clearTimeout(prefetchTimer);
   }, [userData?.uid, (userData as any)?.widgetToken]);
   // Page shell uses the semantic surface token so the toggle in
   // Settings → Appearance flips the background. Inner components
@@ -349,20 +373,46 @@ function App() {
   // Result: parents got logged out mid-session every time a bundle
   // landed. Patrick verified the cascade in 3.1.6, 3.1.7, and 3.1.8.
   //
-  // New design (more like iMessage / Telegram updates):
-  //  - Download silently in background. Show the slim progress chip
-  //    so it's not invisible, but DON'T take over the screen.
-  //  - When download completes, surface a small "Update ready" pill
-  //    that the user can tap to apply now (cool splash + reload —
-  //    same flow as before). If they ignore it, the new bundle
-  //    applies automatically on the next cold start (the user
-  //    naturally backgrounds and re-opens the app).
-  //  - Cold-start application is the safe path because Firebase Auth
-  //    initializes cleanly from a fresh JS context — that's why
-  //    force-close + reopen always worked.
+  // The update moment should feel consistent with launch, not like
+  // the app stalled. While Capgo downloads we show the same branded
+  // quote/trivia/skill splash used after an update. Even if the bundle
+  // downloads quickly, the splash remains for a readable minimum so
+  // parents can actually finish the quote before the UI changes.
+  // If the native auth bridge is unavailable we still avoid a
+  // mid-session reload; after the readable pause the overlay steps
+  // down to the small "Update ready" pill and the bundle applies on
+  // the next cold start.
   const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
   const [updateApplying, setUpdateApplying] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
+  const [updateStoryVisible, setUpdateStoryVisible] = useState(false);
+  const updateStoryStartedAtRef = React.useRef<number | null>(null);
+  const updateStoryTimersRef = React.useRef<number[]>([]);
+
+  const clearUpdateStoryTimers = React.useCallback(() => {
+    updateStoryTimersRef.current.forEach((id) => window.clearTimeout(id));
+    updateStoryTimersRef.current = [];
+  }, []);
+
+  const beginUpdateStory = React.useCallback(() => {
+    if (!updateStoryStartedAtRef.current) {
+      updateStoryStartedAtRef.current = performance.now();
+    }
+    setUpdateStoryVisible(true);
+  }, []);
+
+  const updateStoryRemainingMs = React.useCallback(() => {
+    const startedAt = updateStoryStartedAtRef.current ?? performance.now();
+    return Math.max(0, UPDATE_STORY_MIN_MS - (performance.now() - startedAt));
+  }, []);
+
+  const resetUpdateStory = React.useCallback(() => {
+    clearUpdateStoryTimers();
+    updateStoryStartedAtRef.current = null;
+    setUpdateStoryVisible(false);
+  }, [clearUpdateStoryTimers]);
+
+  useEffect(() => clearUpdateStoryTimers, [clearUpdateStoryTimers]);
 
   // Detect whether the binary supports the Keychain auth bridge. If the
   // native plugin reports a currently-signed-in user, we're on a build
@@ -391,7 +441,11 @@ function App() {
     import('./utils/nativeShell').then(({ watchCapgoUpdate, reloadToLatestCapgoBundle }) => {
       if (cancelled) return;
       watchCapgoUpdate({
-        onProgress: ({ percent }) => setDownloadPercent(percent),
+        onProgress: ({ percent }) => {
+          beginUpdateStory();
+          setUpdateReady(false);
+          setDownloadPercent(percent);
+        },
         onComplete: async () => {
           // Two paths, gated by Keychain bridge availability:
           //
@@ -405,19 +459,31 @@ function App() {
           //     under the new binary → safe pill, apply on next
           //     natural cold start. Same model we've been on tonight.
           const bridgeAvailable = await canAutoReload();
+          beginUpdateStory();
+          setDownloadPercent(100);
+          clearUpdateStoryTimers();
           if (bridgeAvailable) {
-            setDownloadPercent(null);
             setUpdateApplying(true);
-            window.setTimeout(() => {
+            const reloadDelay = Math.max(1200, updateStoryRemainingMs());
+            const timerId = window.setTimeout(() => {
               void reloadToLatestCapgoBundle();
-            }, 1600);
+            }, reloadDelay);
+            updateStoryTimersRef.current.push(timerId);
             return;
           }
           // Safe path:
-          setDownloadPercent(null);
           setUpdateReady(true);
+          const timerId = window.setTimeout(() => {
+            setDownloadPercent(null);
+            resetUpdateStory();
+          }, updateStoryRemainingMs());
+          updateStoryTimersRef.current.push(timerId);
         },
-        onFailed: () => setDownloadPercent(null),
+        onFailed: () => {
+          setDownloadPercent(null);
+          setUpdateApplying(false);
+          resetUpdateStory();
+        },
       }).then((u) => {
         if (cancelled) { u(); return; }
         unsub = u;
@@ -428,9 +494,9 @@ function App() {
   // applyUpdateNow used to be wired to a "Now" button on the pill,
   // but that flow logged users out (mid-session WebView reload breaks
   // Firebase Auth recovery). Removed the trigger entirely; the
-  // UpdatingSplash + reloadToLatestCapgoBundle wiring stays in
-  // nativeShell.ts in case a future surface (e.g. a Settings →
-  // 'Install update now' row, with a clear warning) wants it.
+  // reloadToLatestCapgoBundle wiring stays in nativeShell.ts in case
+  // a future surface (e.g. a Settings → 'Install update now' row,
+  // with a clear warning) wants it.
 
   return (
     <ThemeProvider>
@@ -509,7 +575,7 @@ function App() {
                     fallback={(
                       <div className="min-h-[60vh] flex items-center justify-center p-6">
                         <div className="text-center max-w-sm">
-                          <p className="text-ink-primary/85 font-bold mb-1">Reconnecting chat…</p>
+                          <p className="text-ink-primary/80 font-bold mb-1">Reconnecting chat…</p>
                           <p className="text-ink-primary/55 text-sm mb-4">Your messages are safe. Pull to refresh, or wait a moment.</p>
                           <button
                             onClick={() => window.location.reload()}
@@ -952,46 +1018,75 @@ function App() {
           ? <JustUpdatedSplash onDone={() => setSplashPlaying(false)} />
           : <BrandedSplash onDone={() => setSplashPlaying(false)} />
       )}
-      {downloadPercent !== null && !updateApplying && !updateReady && (
-        <UpdateProgressBar percent={downloadPercent} />
+      {updateStoryVisible && (downloadPercent !== null || updateReady || updateApplying) && (
+        <UpdateStorySplash
+          percent={downloadPercent ?? (updateReady || updateApplying ? 100 : 0)}
+          mode={updateApplying ? 'applying' : updateReady ? 'ready' : 'downloading'}
+        />
       )}
-      {updateReady && !updateApplying && (
+      {updateReady && !updateApplying && !updateStoryVisible && (
         <UpdateReadyPill />
       )}
-      {updateApplying && <UpdatingSplash />}
     </AuthProvider>
     </ThemeProvider>
   );
 }
 
-// Slim non-blocking status strip pinned to the very top of the screen
-// while Capgo downloads a new bundle in the background. The user can
-// keep using the app — this just tells them "something's happening"
-// the way Gmail / Chrome / Spotify do during a silent update. The
-// bar slides down into the safe-area-top so it doesn't fight the
-// notch / Dynamic Island.
-const UpdateProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
+type UpdateStoryMode = 'downloading' | 'ready' | 'applying';
+
+const UpdateStorySplash: React.FC<{ percent: number; mode: UpdateStoryMode }> = ({ percent, mode }) => {
+  const itemRef = React.useRef(getRandomWelcomeBackItem());
+  const item = itemRef.current;
+  const pct = Math.min(100, Math.max(1, Math.floor(percent)));
+  const status = mode === 'applying'
+    ? 'Installing update'
+    : mode === 'ready'
+      ? 'Update ready'
+      : `Updating ${pct}%`;
+
   return (
     <div
-      aria-hidden
-      className="fixed left-0 right-0 z-[9998] pointer-events-none"
-      style={{ top: 'env(safe-area-inset-top)' }}
+      role="status"
+      aria-live="polite"
+      className="fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex items-center justify-center px-8 animate-fade-in"
     >
-      <div className="mx-3 mt-1 rounded-full bg-surface-elevated/85 ring-1 ring-brand-primary-soft/20 backdrop-blur-md shadow-lg shadow-brand-primary/10 overflow-hidden">
-        <div className="flex items-center gap-2 px-3 py-1.5">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inset-0 rounded-full bg-brand-primary-soft animate-ping opacity-75" />
-            <span className="relative rounded-full bg-brand-primary-soft h-2 w-2" />
-          </span>
-          <span className="text-[11px] font-semibold tracking-wide text-white/90 flex-1">
-            Updating · {Math.max(1, Math.floor(percent))}%
-          </span>
-        </div>
-        <div className="h-0.5 bg-line-default/5">
-          <div
-            className="h-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 transition-[width] duration-300 ease-out"
-            style={{ width: `${Math.max(2, Math.floor(percent))}%` }}
-          />
+      <div className="flex flex-col items-center gap-6 max-w-lg w-full">
+        <img
+          src="/images/logo.png"
+          alt=""
+          className="w-20 h-20 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
+        />
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-brand-primary">
+          {KIND_LABEL[item.kind]}
+        </p>
+        <p className="text-ink-primary text-base sm:text-lg font-semibold leading-relaxed text-center">
+          {item.attribution ? `"${item.text}"` : item.text}
+        </p>
+        {item.attribution && (
+          <p className="text-ink-primary/55 text-xs font-semibold tracking-wide">
+            — {item.attribution}
+          </p>
+        )}
+        <div className="w-full max-w-xs mt-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-extrabold uppercase tracking-widest text-ink-primary/55">
+              {status}
+            </span>
+            <span className="text-[11px] font-bold text-brand-primary-soft">
+              {pct}%
+            </span>
+          </div>
+          <div className="h-1 rounded-full bg-line-default/10 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 transition-[width] duration-300 ease-out"
+              style={{ width: `${Math.max(2, pct)}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '180ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-soft splash-dot" style={{ animationDelay: '360ms' }} />
+          </div>
         </div>
       </div>
     </div>
@@ -1020,13 +1115,13 @@ const UpdateReadyPill: React.FC = () => {
             <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
             <span className="relative rounded-full bg-emerald-400 h-2 w-2" />
           </span>
-          <span className="text-[12px] font-semibold text-white/90 flex-1">
+          <span className="text-[12px] font-semibold text-ink-primary flex-1">
             Update ready · installs when you reopen the app
           </span>
           <button
             onClick={() => setDismissed(true)}
             aria-label="Dismiss"
-            className="text-white/40 hover:text-white/70 transition-colors"
+            className="text-ink-primary/50 hover:text-ink-primary/70 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -1039,45 +1134,16 @@ const UpdateReadyPill: React.FC = () => {
   );
 };
 
-// Branded full-screen overlay shown for ~1.5s right before the WebView
-// swaps onto the new bundle. Same gradient + breathing logo as
-// BrandedSplash so the transition reads as "the app is launching"
-// rather than "the app crashed." The progress bar is finished/full
-// here so the user sees the moment-of-install.
-const UpdatingSplash: React.FC = () => {
-  return (
-    <div
-      aria-hidden
-      className="fixed inset-0 z-[9999] bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep flex flex-col items-center justify-center animate-fade-in"
-    >
-      <div className="flex flex-col items-center gap-6">
-        <img
-          src="/images/logo.png"
-          alt=""
-          className="w-28 h-28 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
-        />
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-white/85 text-sm font-semibold tracking-wide">Updating…</p>
-          <div className="w-44 h-1 rounded-full bg-line-default/10 overflow-hidden">
-            <div className="h-full w-full bg-gradient-to-r from-brand-primary-soft to-fuchsia-400 animate-shimmer-bar" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // "Just updated" splash — runs INSTEAD of the regular BrandedSplash
 // on the first cold start after a Capgo bundle swap. Same gradient
 // + breathing logo as the regular splash so it reads as continuous
-// with the launch, plus a kind chip + rotating content item (quote
-// / trivia / skill tip / practice idea) so the parent's brain has
-// something to land on while the app finishes booting. Two real
-// jobs: (1) make the update moment feel intentional, not "wait,
-// what just refreshed?", (2) reinforce that the team behind the
-// app cares — Patrick: "more polish means more trust."
+// with the launch, plus a kind chip + rotating content item so the
+// parent's brain has something to land on while the app finishes
+// booting. Two real jobs: (1) make the update moment feel intentional,
+// not "wait, what just refreshed?", (2) reinforce that the team behind
+// the app cares — Patrick: "more polish means more trust."
 //
-// Visible duration is longer than the standard splash (3s vs 1.5s)
+// Visible duration is longer than the standard splash (5.6s vs 1.5s)
 // because there's actual content to read.
 const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const [fading, setFading] = useState(false);
@@ -1087,8 +1153,8 @@ const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     let t1: number | undefined;
     let t2: number | undefined;
     const startVisibleClock = () => {
-      t1 = window.setTimeout(() => setFading(true), 3000);
-      t2 = window.setTimeout(() => onDone(), 3400);
+      t1 = window.setTimeout(() => setFading(true), 5600);
+      t2 = window.setTimeout(() => onDone(), 6000);
     };
     const id1 = requestAnimationFrame(() => {
       const id2 = requestAnimationFrame(() => {
@@ -1121,14 +1187,14 @@ const JustUpdatedSplash: React.FC<{ onDone: () => void }> = ({ onDone }) => {
           alt=""
           className="w-20 h-20 rounded-2xl shadow-2xl shadow-brand-primary/30 ring-1 ring-line-default/10 splash-breathe"
         />
-        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-brand-primary-soft/70">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-brand-primary">
           {KIND_LABEL[item.kind]}
         </p>
-        <p className="text-white text-base sm:text-lg font-medium leading-relaxed text-center">
+        <p className="text-ink-primary text-base sm:text-lg font-semibold leading-relaxed text-center">
           {item.attribution ? `"${item.text}"` : item.text}
         </p>
         {item.attribution && (
-          <p className="text-white/50 text-xs font-semibold tracking-wide">
+          <p className="text-ink-primary/55 text-xs font-semibold tracking-wide">
             — {item.attribution}
           </p>
         )}

@@ -44,7 +44,7 @@ export async function uploadToR2(
   const contentType = inferContentType(file);
 
   // 1. Ask our server for a presigned PUT URL. Absolute origin so
-  //    Capacitor (capacitor://localhost) routes to firefc.app, same
+  //    Capacitor (capacitor://localhost) routes to app.goalkickr.com, same
   //    fix as streamUpload.ts.
   const { getShareOrigin } = await import('./origin');
   const presignRes = await fetch(`${getShareOrigin()}/api/r2-presign`, {

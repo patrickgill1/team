@@ -2,12 +2,9 @@ import React from 'react';
 import { getPlayerPositionsLabel } from '../../utils/helpers';
 import type { Player } from '../../types';
 
-// PlayerProfile hero, redesigned to match the dark-mode mockup vibe.
-// Big photo with cyan ring, name in display font, position/team/jersey
-// glance row, DOB/age bio row, Fire FC mark + tagline on the right.
-// Edit pencil sits top-right (parent-only). Sits ABOVE the rest of the
-// profile cards which keep the white/light theme so this band reads
-// as a distinct hero, not the whole page going dark.
+// PlayerProfile hero. Uses the same semantic surface/ink treatment as
+// the rest of the app so the profile does not become a separate dark
+// microsite on web.
 
 interface Props {
   player: Player;
@@ -26,20 +23,14 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
   const positionLabel = getPlayerPositionsLabel(player) || (player as any).position;
 
   return (
-    <section className="relative bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep overflow-hidden">
-      {/* Atmospheric glow + faint pitch silhouette */}
-      <div className="absolute inset-0 pointer-events-none opacity-30">
-        <div className="absolute -top-32 -right-20 w-[480px] h-[480px] rounded-full bg-brand-primary/15 blur-3xl" />
-        <div className="absolute -bottom-32 -left-20 w-[480px] h-[480px] rounded-full bg-violet-500/15 blur-3xl" />
-      </div>
-
+    <section className="relative bg-surface-elevated overflow-hidden border-b border-line-default/10">
       {/* Top nav row */}
-      <div className="relative px-4 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between">
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="w-10 h-10 rounded-full bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 backdrop-blur flex items-center justify-center text-white"
+            className="w-10 h-10 rounded-full bg-surface-input hover:bg-surface-raised ring-1 ring-line-default/15 flex items-center justify-center text-ink-primary"
             aria-label="Back"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
@@ -49,7 +40,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           <button
             type="button"
             onClick={onEdit}
-            className="w-10 h-10 rounded-full bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 backdrop-blur flex items-center justify-center text-white"
+            className="w-10 h-10 rounded-full bg-surface-input hover:bg-surface-raised ring-1 ring-line-default/15 flex items-center justify-center text-ink-primary"
             aria-label="Edit profile"
             title="Edit profile"
           >
@@ -59,7 +50,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
       </div>
 
       {/* Main hero band */}
-      <div className="relative px-4 sm:px-6 pt-2 pb-6 flex items-start gap-5">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-6 flex items-start gap-5">
         {/* Photo with cyan ring + jersey number badge */}
         <div className="relative shrink-0">
           {player.profilePhotoUrl ? (
@@ -67,20 +58,20 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
               src={player.profilePhotoUrl}
               alt={player.name}
               className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover ring-4 shadow-2xl ${
-                isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-brand-primary-soft/70 shadow-brand-primary-soft/30'
+                isCurrentPotm ? 'ring-amber-300 shadow-amber-400/30' : 'ring-brand-primary-soft/70 shadow-brand-primary-soft/20'
               }`}
             />
           ) : (
             <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-line-default/10 ring-4 shadow-2xl flex items-center justify-center backdrop-blur ${
               isCurrentPotm ? 'ring-amber-300 shadow-amber-400/40' : 'ring-brand-primary-soft/70'
             }`}>
-              <span className="text-4xl sm:text-5xl font-black text-white">
+              <span className="text-4xl sm:text-5xl font-black text-ink-primary">
                 {player.jerseyNumber != null ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
           {player.profilePhotoUrl && player.jerseyNumber != null && (
-            <span className="absolute -bottom-2 -right-2 bg-brand-primary text-white rounded-full min-w-[36px] h-9 px-2.5 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-slate-950">
+            <span className="absolute -bottom-2 -right-2 bg-brand-primary text-white rounded-full min-w-[36px] h-9 px-2.5 flex items-center justify-center text-sm font-black shadow-xl ring-2 ring-surface-elevated">
               #{player.jerseyNumber}
             </span>
           )}
@@ -88,19 +79,19 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
 
         {/* Name + identity rows */}
         <div className="flex-1 min-w-0">
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-white truncate uppercase">
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-none text-ink-primary truncate uppercase">
             {player.name}
           </h1>
           {(positionLabel || teamName) && (
             <p className="mt-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-widest">
               {positionLabel && <span className="text-brand-primary-soft">{positionLabel}</span>}
-              {positionLabel && teamName && <span className="text-white/40 mx-2">·</span>}
-              {teamName && <span className="text-white/80">{teamName}</span>}
+              {positionLabel && teamName && <span className="text-ink-primary/35 mx-2">·</span>}
+              {teamName && <span className="text-ink-primary/75">{teamName}</span>}
             </p>
           )}
           {/* Bio strip — DOB / age. Compact, mobile-friendly. */}
           {(dob || player.preferredFoot) && (
-            <div className="mt-3 flex items-center gap-2 flex-wrap text-white/80">
+            <div className="mt-3 flex items-center gap-2 flex-wrap text-ink-primary/75">
               {dob && (
                 <Pill icon={<CalendarIcon />} label={`${dob.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}${age != null ? ` (${age})` : ''}`} />
               )}
@@ -113,8 +104,8 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
       </div>
 
       {/* Tagline strip */}
-      <div className="relative px-4 sm:px-6 pb-5 text-center">
-        <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] text-brand-primary-soft/70">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-5 text-center">
+        <p className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] text-brand-primary-soft/80">
           Every Player Deserves a Shot
         </p>
       </div>

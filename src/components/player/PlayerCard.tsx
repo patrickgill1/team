@@ -44,7 +44,7 @@ const MiniStat: React.FC<{ label: string; value: number; accent: 'emerald' | 'cy
       {/* tracking-tight + leading-none so the label fits even on the narrowest
           card width; 'ASSISTS' was clipping to 'ASSIS' on the previous
           tracking-wider value. */}
-      <div className="text-[9px] sm:text-[10px] uppercase tracking-tight leading-none text-white/70 font-bold mt-0.5 truncate">{label}</div>
+      <div className="text-[9px] sm:text-[10px] uppercase tracking-tight leading-none text-ink-primary/60 font-bold mt-0.5 truncate">{label}</div>
     </div>
   );
 };
@@ -136,7 +136,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-surface-elevated to-surface-input p-4 sm:p-5 text-white shadow-md border border-brand-primary/10">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-surface-elevated to-surface-input p-4 sm:p-5 text-ink-primary shadow-md border border-brand-primary/10">
         {/* Faint cyan accent — keeps a hint of "card has personality"
             without the bubbly blur-blob look. */}
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-brand-primary/10 rounded-full blur-2xl pointer-events-none" />
@@ -146,7 +146,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="absolute top-3 right-3 z-10 flex space-x-1">
             <button
               onClick={() => onEdit && onEdit(player)}
-              className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-white backdrop-blur transition-colors"
+              className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-ink-primary/70 hover:text-ink-primary backdrop-blur transition-colors"
               title="Edit Player"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,7 +155,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 bg-line-default/10 hover:bg-amber-500/40 ring-1 ring-line-default/15 rounded-full text-white backdrop-blur transition-colors"
+              className="p-2 bg-line-default/10 hover:bg-amber-500/20 ring-1 ring-line-default/15 rounded-full text-ink-primary/70 hover:text-ink-primary backdrop-blur transition-colors"
               title="Archive player (preserves stats; can be restored)"
             >
               {/* Archive box icon (less alarming than a trash can) */}
@@ -169,7 +169,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
         <div className="relative">
           {/* Position pill */}
           {player.position && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 text-[10px] font-bold uppercase tracking-wider mb-4 backdrop-blur">
               <span className={`w-2 h-2 rounded-full ${positionDot(player.position)}`} />
               {player.position}
             </div>
@@ -191,7 +191,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
               {((player as any).currentStreakDays ?? 0) > 0 && (
                 <span
                   title={`${(player as any).currentStreakDays}-day practice streak`}
-                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-lg ring-2 ring-charcoal-900 ${
+                  className={`absolute -bottom-1 -left-1 z-10 inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[10px] font-black tabular-nums shadow-lg ring-2 ring-surface-elevated ${
                     ((player as any).currentStreakDays ?? 0) >= 3
                       ? 'bg-gradient-to-br from-rose-500 to-orange-500 text-white'
                       : 'bg-brand-primary text-white'
@@ -214,13 +214,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-line-default/10 ring-2 shadow-lg flex items-center justify-center backdrop-blur ${
                   (player as any).isCurrentPotm ? 'ring-amber-300 shadow-amber-400/50' : 'ring-line-default/25'
                 }`}>
-                  <span className="text-2xl font-black text-white">
+                  <span className="text-2xl font-black text-ink-primary/65">
                     {player.jerseyNumber ? `#${player.jerseyNumber}` : player.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
               {player.profilePhotoUrl && player.jerseyNumber != null && (
-                <span className="absolute -bottom-1 -right-1 bg-white text-charcoal-800 rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-charcoal-900">
+                <span className="absolute -bottom-1 -right-1 bg-surface-base text-ink-primary rounded-full min-w-[28px] h-7 px-1.5 flex items-center justify-center text-xs font-black shadow-lg ring-2 ring-surface-elevated">
                   #{player.jerseyNumber}
                 </span>
               )}
@@ -232,7 +232,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                     'Ryd…' / 'Hect…'. Looked broken on iPad-width cards. */}
                 <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight break-words line-clamp-2">{player.name}</h3>
               </Link>
-              <p className="text-white/70 text-sm font-medium mt-0.5">
+              <p className="text-ink-primary/60 text-sm font-medium mt-0.5">
                 {player.jerseyNumber != null && !player.profilePhotoUrl ? `Jersey #${player.jerseyNumber}` : ''}
                 {player.jerseyNumber != null && !player.profilePhotoUrl && age ? ' · ' : ''}
                 {age ? `Age ${age}` : (player.jerseyNumber != null && !player.profilePhotoUrl ? '' : 'Player')}
@@ -252,8 +252,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           {!player.isActive && isUserCoach && (
             <div className="rounded-xl bg-amber-400/10 ring-1 ring-amber-300/30 p-3 mb-3 flex items-center justify-between gap-3 backdrop-blur">
               <div>
-                <p className="text-xs uppercase tracking-widest font-bold text-amber-200">Past Player</p>
-                <p className="text-xs text-white/70 mt-0.5">Profile + clips + history preserved.</p>
+                <p className="text-xs uppercase tracking-widest font-bold text-amber-700">Past Player</p>
+                <p className="text-xs text-ink-primary/65 mt-0.5">Profile + clips + history preserved.</p>
               </div>
               <button
                 onClick={async () => {
@@ -264,7 +264,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                     alert('Could not reactivate. Try again.');
                   }
                 }}
-                className="px-3 py-2 rounded-full bg-emerald-400/20 ring-1 ring-emerald-300/40 text-emerald-200 hover:bg-emerald-400/30 text-xs font-semibold backdrop-blur transition whitespace-nowrap"
+                className="px-3 py-2 rounded-full bg-emerald-400/15 ring-1 ring-emerald-400/30 text-emerald-700 hover:bg-emerald-400/25 text-xs font-semibold backdrop-blur transition whitespace-nowrap"
               >
                 ↺ Bring Back
               </button>
@@ -294,8 +294,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 onClick={toggleMyChild}
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold backdrop-blur transition ${
                   isMyChild
-                    ? 'bg-emerald-400/20 ring-1 ring-emerald-300/40 text-emerald-200 hover:bg-emerald-400/30'
-                    : 'bg-line-default/15 ring-1 ring-line-default/20 text-white hover:bg-line-default/25'
+                    ? 'bg-emerald-400/15 ring-1 ring-emerald-400/30 text-emerald-700 hover:bg-emerald-400/25'
+                    : 'bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 hover:bg-line-default/15 hover:text-ink-primary'
                 }`}
                 title={isMyChild ? 'Unlink as my child' : 'Link as my child'}
               >
@@ -305,7 +305,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             {!isUserCoach && showActions && (
               <button
                 onClick={() => onEdit && onEdit(player)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/15 ring-1 ring-line-default/20 text-white font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/75 font-semibold text-sm hover:bg-line-default/15 hover:text-ink-primary transition backdrop-blur"
               >
                 Update Stats
               </button>
@@ -317,19 +317,19 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             <div className="mt-4 pt-4 border-t border-line-default/10 space-y-3">
               {player.medicalInfo && (
                 <div className="rounded-xl bg-rose-500/15 ring-1 ring-rose-300/30 p-3 backdrop-blur">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-rose-200 mb-1">Medical Info</p>
-                  <p className="text-xs text-rose-100">{player.medicalInfo}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700 mb-1">Medical Info</p>
+                  <p className="text-xs text-rose-800">{player.medicalInfo}</p>
                 </div>
               )}
 
               {player.emergencyContacts && player.emergencyContacts.length > 0 && (
                 <div className="rounded-xl bg-line-default/5 ring-1 ring-line-default/10 p-3 backdrop-blur">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1.5">Emergency Contacts</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/65 mb-1.5">Emergency Contacts</p>
                   <div className="space-y-1.5">
                     {player.emergencyContacts.map((contact, index) => (
-                      <div key={index} className="text-xs text-white/85">
+                      <div key={index} className="text-xs text-ink-primary/80">
                         <span className="font-semibold">{contact.name}</span>
-                        <span className="text-white/60"> ({contact.relationship})</span>
+                        <span className="text-ink-primary/55"> ({contact.relationship})</span>
                         {contact.isPrimary && <span className="text-brand-primary-soft ml-1">• Primary</span>}
                         <a
                           href={`tel:${contact.phoneNumber}`}

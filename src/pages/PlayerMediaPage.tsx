@@ -1273,7 +1273,7 @@ const PlayerMediaPage: React.FC = () => {
   if (loading) return <DataGate when="loading" />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface-base via-gray-950 to-gray-950">
+    <div className="min-h-screen bg-surface-base">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Page title — Patrick's half-empty critique flagged the
             previous 'MEDIA / HIGHLIGHTS · MOMENTS · MEMORIES' hero
@@ -1293,7 +1293,7 @@ const PlayerMediaPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('highlights')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'highlights' ? 'text-brand-primary-soft' : 'text-ink-primary/40 hover:text-white'
+                activeTab === 'highlights' ? 'text-brand-primary-soft' : 'text-ink-primary/50 hover:text-ink-primary'
               }`}
             >
               Highlights
@@ -1302,7 +1302,7 @@ const PlayerMediaPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('fullgames')}
               className={`px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition-colors relative ${
-                activeTab === 'fullgames' ? 'text-brand-primary-soft' : 'text-ink-primary/40 hover:text-white'
+                activeTab === 'fullgames' ? 'text-brand-primary-soft' : 'text-ink-primary/50 hover:text-ink-primary'
               }`}
             >
               Full Games
@@ -1311,7 +1311,7 @@ const PlayerMediaPage: React.FC = () => {
             {canManageMedia && (selectedTeam?.videoTier || 'free') === 'free' && (
               <button
                 onClick={() => navigate('/upgrade/video')}
-                className="ml-2 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/40 hover:bg-amber-500/25 transition-colors"
+                className="ml-2 px-3 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/40 hover:bg-amber-500/25 transition-colors"
               >
                 Upgrade
               </button>
@@ -1325,7 +1325,7 @@ const PlayerMediaPage: React.FC = () => {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search highlights..."
-                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-line-default/5 border border-line-default/10 rounded-lg text-sm text-white placeholder-bone/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary/50"
+                  className="w-44 sm:w-64 pl-9 pr-3 py-2 bg-surface-input border border-line-default/10 rounded-lg text-sm text-ink-primary placeholder:text-ink-primary/45 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary/50"
                 />
                 <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-ink-primary/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
@@ -1409,10 +1409,10 @@ const PlayerMediaPage: React.FC = () => {
                       onClick={() => setSelectedPlayerId('all')}
                       className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === 'all' ? 'scale-105' : ''}`}
                     >
-                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint flex items-center justify-center text-white text-2xl font-black ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === 'all' ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
+                      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-brand-primary to-surface-tint flex items-center justify-center text-white text-2xl font-black ring-2 ring-offset-2 ring-offset-surface-base ${selectedPlayerId === 'all' ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
                         ALL
                       </div>
-                      <span className="text-xs text-white font-medium mt-2">All</span>
+                      <span className="text-xs text-ink-primary font-medium mt-2">All</span>
                       <span className="text-[10px] text-ink-primary/50">{media.length} clips</span>
                     </button>
                     {/* Parent's kid floats to the front for them. */}
@@ -1429,7 +1429,7 @@ const PlayerMediaPage: React.FC = () => {
                         onClick={() => setSelectedPlayerId(player.id)}
                         className={`flex flex-col items-center flex-shrink-0 transition-transform hover:scale-105 ${selectedPlayerId === player.id ? 'scale-105' : ''}`}
                       >
-                        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-surface-raised to-surface-elevated ring-2 ring-offset-2 ring-offset-gray-950 ${selectedPlayerId === player.id ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
+                        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-surface-raised to-surface-elevated ring-2 ring-offset-2 ring-offset-surface-base ${selectedPlayerId === player.id ? 'ring-brand-primary-soft' : 'ring-transparent'}`}>
                           {player.profilePhotoUrl ? (
                             <img src={player.profilePhotoUrl} alt={player.name} className="w-full h-full object-cover" loading="lazy" />
                           ) : (
@@ -1443,7 +1443,7 @@ const PlayerMediaPage: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-white font-medium mt-2 max-w-[80px] truncate">{player.name.split(' ')[0]}</span>
+                        <span className="text-xs text-ink-primary font-medium mt-2 max-w-[80px] truncate">{player.name.split(' ')[0]}</span>
                         <span className="text-[10px] text-ink-primary/50">{count} clip{count !== 1 ? 's' : ''}</span>
                       </button>
                     ))}
@@ -1451,7 +1451,7 @@ const PlayerMediaPage: React.FC = () => {
                   {/* Right-edge fade — discoverability cue that there's
                       more to scroll. Hidden on small screens via
                       pointer-events:none + gradient. */}
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-950 via-gray-950/70 to-transparent" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-surface-base via-surface-base/70 to-transparent" />
                 </div>
               </section>
             )}
@@ -1507,7 +1507,7 @@ const PlayerMediaPage: React.FC = () => {
                       key={opt.k}
                       onClick={() => setMediaTypeFilter(opt.k)}
                       className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
-                        mediaTypeFilter === opt.k ? 'bg-surface-elevated text-ink-primary' : 'text-white/70 hover:text-white'
+                        mediaTypeFilter === opt.k ? 'bg-surface-elevated text-ink-primary shadow-sm' : 'text-ink-primary/60 hover:text-ink-primary'
                       }`}
                     >
                       {opt.label}
@@ -1549,7 +1549,7 @@ const PlayerMediaPage: React.FC = () => {
                               {player.jerseyNumber || player.name.charAt(0)}
                             </div>
                           )}
-                          <h3 className="text-base font-bold text-white">{player.name}</h3>
+                          <h3 className="text-base font-bold text-ink-primary">{player.name}</h3>
                           <span className="text-xs text-ink-primary/50">{items.length} item{items.length !== 1 ? 's' : ''}</span>
                         </div>
                         <DarkMediaGrid items={items} onView={setSelectedMedia} onDelete={handleDelete} onLike={handleLike} onShare={handleShare} userData={userData} />
@@ -1559,7 +1559,7 @@ const PlayerMediaPage: React.FC = () => {
                       <div className="text-center pt-4">
                         <button
                           onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
-                          className="px-6 py-2.5 bg-line-default/5 border border-line-default/10 rounded-lg text-sm font-medium text-white hover:bg-line-default/10 transition-colors"
+                          className="px-6 py-2.5 bg-line-default/5 border border-line-default/10 rounded-lg text-sm font-medium text-ink-primary hover:bg-line-default/10 transition-colors"
                         >
                           Load More ({allFilteredMedia.length - visibleCount} remaining)
                         </button>
@@ -1567,11 +1567,11 @@ const PlayerMediaPage: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-10 bg-line-default/5 rounded-xl border border-line-default/10">
+                  <div className="text-center py-10 bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm">
                     <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center mb-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
                     </div>
-                    <h3 className="text-lg font-bold text-white">No media yet</h3>
+                    <h3 className="text-lg font-bold text-ink-primary">No media yet</h3>
                     <p className="text-sm text-ink-primary/40 mt-1">Upload photos and videos for your players.</p>
                   </div>
                 )
@@ -1582,7 +1582,7 @@ const PlayerMediaPage: React.FC = () => {
                     <div className="text-center pt-4">
                       <button
                         onClick={() => setVisibleCount(c => c + ITEMS_PER_PAGE)}
-                        className="px-6 py-2.5 bg-line-default/5 border border-line-default/10 rounded-lg text-sm font-medium text-white hover:bg-line-default/10 transition-colors"
+                        className="px-6 py-2.5 bg-line-default/5 border border-line-default/10 rounded-lg text-sm font-medium text-ink-primary hover:bg-line-default/10 transition-colors"
                       >
                         Load More ({allFilteredMedia.length - visibleCount} remaining)
                       </button>
@@ -2423,7 +2423,7 @@ const StatCard: React.FC<{ icon: string; label: string; value: string; accent: s
       <div className="text-2xl sm:text-3xl">{icon}</div>
       <div className="min-w-0">
         <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-ink-primary/40">{label}</div>
-        <div className="text-base sm:text-xl font-black text-white truncate">{value}</div>
+        <div className="text-base sm:text-xl font-black text-ink-primary truncate">{value}</div>
       </div>
     </div>
   </div>
@@ -2431,7 +2431,7 @@ const StatCard: React.FC<{ icon: string; label: string; value: string; accent: s
 
 const SectionHeader: React.FC<{ title: string; action?: { label: string; onClick: any } }> = ({ title, action }) => (
   <div className="flex items-center justify-between mb-4">
-    <h2 className="text-sm sm:text-base font-bold uppercase tracking-[0.15em] text-white">{title}</h2>
+    <h2 className="text-sm sm:text-base font-bold uppercase tracking-[0.15em] text-ink-primary">{title}</h2>
     {action && (
       <button onClick={action.onClick} className="text-xs sm:text-sm text-brand-primary-soft hover:text-brand-primary-soft font-medium">
         {action.label} →

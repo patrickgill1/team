@@ -1,8 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useSubscription } from '../../hooks/useSubscription';
-import { isCoach } from '../../utils/helpers';
+import { useTrialGate } from '../../hooks/useTrialGate';
 import TierPickerSheet from '../common/TierPickerSheet';
 
 // Persistent dashboard nudge for coaches without an active
@@ -18,12 +17,14 @@ import TierPickerSheet from '../common/TierPickerSheet';
 
 const DISMISS_KEY = 'gk_dashboard_sub_dismissed_at';
 const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const GATE_REVEAL_DELAY_MS = 3000;
 
 const SubscribeBanner: React.FC = () => {
   const { currentUser, userData } = useAuth();
-  const { loading, isActive } = useSubscription();
+  const { loading, gated } = useTrialGate();
   const [dismissed, setDismissed] = useState(false);
   const [tierSheet, setTierSheet] = useState(false);
+  const [readyToReveal, setReadyToReveal] = useState(false);
 
   useEffect(() => {
     try {
@@ -32,10 +33,19 @@ const SubscribeBanner: React.FC = () => {
     } catch { /* ignore */ }
   }, []);
 
+  useEffect(() => {
+    if (loading || !gated) {
+      setReadyToReveal(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setReadyToReveal(true), GATE_REVEAL_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [loading, gated]);
+
   if (loading) return null;
   if (!userData) return null;
-  if (!isCoach(userData.role)) return null;  // parents are free; never nudge
-  if (isActive) return null;                  // already paying
+  if (!gated) return null;
+  if (!readyToReveal) return null;
   if (dismissed) return null;
 
   // Open the tier picker first so a coach running a multi-team

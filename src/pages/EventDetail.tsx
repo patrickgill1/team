@@ -131,7 +131,9 @@ const EventDetail: React.FC = () => {
   // Players linked to the current user (parent → kids). Drives the
   // per-kid RSVP rows so a coach-who-is-also-a-parent can RSVP for
   // themselves AND their kid in the same screen.
-  const [myLinkedPlayers, setMyLinkedPlayers] = useState<Array<{ id: string; name: string }>>([]);
+  const [myLinkedPlayers, setMyLinkedPlayers] = useState<Array<{ id: string; name: string; photoURL?: string }>>([]);
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, { feel?: string; energy?: string; confidence?: number; note?: string }>>({});
+  const [feedbackSaving, setFeedbackSaving] = useState<Record<string, boolean>>({});
   // Which guest RSVP token, if any, the coach is currently merging.
   const [mergingToken, setMergingToken] = useState<string | null>(null);
   const [mergeBusy, setMergeBusy] = useState(false);
@@ -237,7 +239,7 @@ const EventDetail: React.FC = () => {
           .map(d => ({ id: d.id, ...(d.data() as any) }))
           .filter((p: any) => p.isActive !== false)
           .filter((p: any) => Array.isArray(p.teamIds) ? p.teamIds.includes(event.teamId) : true)
-          .map((p: any) => ({ id: p.id, name: p.name }))
+          .map((p: any) => ({ id: p.id, name: p.name, photoURL: p.profilePhotoUrl || undefined }))
           .sort((a, b) => a.name.localeCompare(b.name));
         setMyLinkedPlayers(list);
       } catch (err) {
@@ -320,6 +322,8 @@ const EventDetail: React.FC = () => {
 
   const eventDate = event ? new Date(event.date) : null;
   const eventEnd = event?.endDate ? new Date(event.endDate) : undefined;
+  const eventEnded = !!eventDate && (eventEnd?.getTime() || eventDate.getTime() + 90 * 60_000) < now.getTime();
+  const eventFocus = ((event as any)?.developmentFocus || '').trim();
 
   const countdown = useMemo(() => {
     if (!eventDate) return null;
@@ -545,6 +549,62 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  const setFeedbackDraft = (playerId: string, patch: any) => {
+    setFeedbackDrafts(prev => ({ ...prev, [playerId]: { ...(prev[playerId] || {}), ...patch } }));
+  };
+
+  const submitPlayerFeedback = async (player: { id: string; name: string; photoURL?: string }) => {
+    if (!event || !userData?.uid) return;
+    const draft = feedbackDrafts[player.id] || {};
+    const feel = draft.feel || 'good';
+    const feedbackMap = { ...((event as any).playerFeedback || {}) };
+    const playerMap = { ...(feedbackMap[player.id] || {}) };
+    const existing = playerMap[userData.uid] || {};
+    const feedbackEntry = {
+      ...existing,
+      playerId: player.id,
+      playerName: player.name,
+      playerPhotoURL: player.photoURL || null,
+      submittedByUid: userData.uid,
+      submittedByName: userData.name || userData.email || 'Parent',
+      feel,
+      energy: draft.energy || 'okay',
+      confidence: Number(draft.confidence || 3),
+      note: (draft.note || '').trim() || null,
+      focus: eventFocus || null,
+      createdAt: existing.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    playerMap[userData.uid] = feedbackEntry;
+    feedbackMap[player.id] = playerMap;
+    setFeedbackSaving(prev => ({ ...prev, [player.id]: true }));
+    setEvent({ ...event, playerFeedback: feedbackMap } as any);
+    try {
+      await updateDocument('events', event.id, { [`playerFeedback.${player.id}.${userData.uid}`]: feedbackEntry });
+      setFeedbackDrafts(prev => ({ ...prev, [player.id]: {} }));
+    } catch (err) {
+      console.error('player feedback save failed', err);
+      alert('Could not send feedback. Please try again.');
+    } finally {
+      setFeedbackSaving(prev => ({ ...prev, [player.id]: false }));
+    }
+  };
+
+  const feedbackRows = useMemo(() => {
+    const map = ((event as any)?.playerFeedback || {}) as Record<string, Record<string, any>>;
+    const rows: any[] = [];
+    Object.keys(map).forEach(playerId => {
+      Object.keys(map[playerId] || {}).forEach(uid => {
+        rows.push({ playerId, uid, ...map[playerId][uid] });
+      });
+    });
+    return rows.sort((a, b) => {
+      const at = a.updatedAt?.toDate?.() || a.updatedAt || a.createdAt?.toDate?.() || a.createdAt || 0;
+      const bt = b.updatedAt?.toDate?.() || b.updatedAt || b.createdAt?.toDate?.() || b.createdAt || 0;
+      return new Date(bt).getTime() - new Date(at).getTime();
+    });
+  }, [event]);
+
   // Convert a guest (share-link) RSVP into an official roster RSVP.
   // Removes the entry from publicRsvps and adds it to playerRsvps so
   // the player's lineup math is correct. Coach-only.
@@ -752,7 +812,7 @@ const EventDetail: React.FC = () => {
   if (!event || !eventDate) {
     return (
       <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center p-8 text-center">
-        <p className="text-charcoal-400 mb-4">Event not found.</p>
+        <p className="text-ink-primary/65 mb-4">Event not found.</p>
         <Link to="/calendar" className="text-brand-primary font-semibold">← Back to events</Link>
       </div>
     );
@@ -769,11 +829,11 @@ const EventDetail: React.FC = () => {
     countdown?.variant === 'live'
       ? 'bg-rose-500/15 border-rose-500/35 text-rose-200'
       : countdown?.variant === 'past'
-      ? 'bg-line-default/[0.04]0/10 border-slate-500/20 text-ink-primary/50'
+      ? 'bg-line-default/10 border-slate-500/20 text-ink-primary/50'
       : 'bg-brand-primary/10 border-brand-primary/25 text-ink-primary/85';
   const pulseClass =
     countdown?.variant === 'live' ? 'bg-rose-500'
-    : countdown?.variant === 'past' ? 'bg-line-default/[0.04]0'
+    : countdown?.variant === 'past' ? 'bg-line-default/40'
     : 'bg-brand-primary-soft animate-pulse';
 
   return (
@@ -818,7 +878,7 @@ const EventDetail: React.FC = () => {
           <div className="flex items-center justify-between mb-5">
             <button
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full bg-line-default/10 backdrop-blur ring-1 ring-line-default/15 text-white flex items-center justify-center hover:bg-line-default/15"
+              className="w-9 h-9 rounded-full bg-line-default/10 backdrop-blur ring-1 ring-line-default/15 text-ink-primary/75 flex items-center justify-center hover:bg-line-default/15 hover:text-ink-primary"
               aria-label="Back"
             >
               <Icon name="arrow-left" className="w-4 h-4" />
@@ -832,7 +892,7 @@ const EventDetail: React.FC = () => {
             {isUserCoach ? (
               <button
                 onClick={() => setIsEditOpen(true)}
-                className="w-9 h-9 rounded-full bg-line-default/10 backdrop-blur ring-1 ring-line-default/15 text-white flex items-center justify-center hover:bg-line-default/15"
+                className="w-9 h-9 rounded-full bg-line-default/10 backdrop-blur ring-1 ring-line-default/15 text-ink-primary/75 flex items-center justify-center hover:bg-line-default/15 hover:text-ink-primary"
                 aria-label="Edit event"
               >
                 <Icon name="edit" className="w-4 h-4" />
@@ -852,7 +912,7 @@ const EventDetail: React.FC = () => {
             <h1 className="mt-1 text-3xl sm:text-4xl font-black text-ink-primary leading-[1.05] tracking-tight">
               {event.title}
             </h1>
-            <p className="mt-3 text-[13.5px] text-charcoal-200 flex items-center gap-1.5 flex-wrap">
+            <p className="mt-3 text-[13.5px] text-ink-primary/70 flex items-center gap-1.5 flex-wrap">
               <span className="inline-flex items-center gap-1.5">
                 <Icon name="cal" className="w-3.5 h-3.5 text-brand-primary-soft" />
                 {eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -900,11 +960,11 @@ const EventDetail: React.FC = () => {
             <div className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-amber-600 text-amber-50 flex-shrink-0">
               Cancelled
             </div>
-            <div className="text-sm text-amber-200 flex-1 min-w-0">
+            <div className="text-sm text-amber-900 flex-1 min-w-0">
               {event.cancelReason ? (
                 <p className="leading-snug">{event.cancelReason}</p>
               ) : (
-                <p className="leading-snug italic text-amber-200/60">No reason given.</p>
+                <p className="leading-snug italic text-amber-900/60">No reason given.</p>
               )}
             </div>
           </div>
@@ -931,7 +991,7 @@ const EventDetail: React.FC = () => {
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <Icon name="check" className="w-3 h-3 text-brand-primary shrink-0" />
-                <span className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400">Mark attendance</span>
+                <span className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Mark attendance</span>
                 <span className="text-[10px] text-ink-primary/50 font-bold ml-1 truncate">
                   · {goingCount} going · {roster.length} on roster
                 </span>
@@ -950,7 +1010,7 @@ const EventDetail: React.FC = () => {
                       className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[11px] font-bold border transition ${
                         current === status
                           ? `${active} text-white border-transparent shadow-sm`
-                          : 'bg-surface-elevated text-charcoal-400 border-line-default/10 hover:border-line-default/15'
+                          : 'bg-surface-elevated text-ink-primary/70 border-line-default/10 hover:border-line-default/15'
                       }`}
                     >
                       {label}
@@ -975,8 +1035,8 @@ const EventDetail: React.FC = () => {
       })()}
 
       {myLinkedPlayers.length > 0 && (
-        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-2 flex items-center gap-1.5">
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/10 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-2 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-brand-primary" />
             RSVP for your {myLinkedPlayers.length > 1 ? 'players' : 'player'}
           </div>
@@ -990,7 +1050,7 @@ const EventDetail: React.FC = () => {
                   className={`flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
                     current === status
                       ? `${active} text-white border-transparent shadow-sm`
-                      : 'bg-surface-input text-charcoal-200 border-line-default/10 hover:border-line-default/20'
+                      : 'bg-surface-input text-ink-primary/75 border-line-default/10 hover:border-line-default/20'
                   }`}
                 >
                   {label}
@@ -1019,7 +1079,7 @@ const EventDetail: React.FC = () => {
           header' (moved off the dashboard hero into here). */}
       {isUserCoach && myLinkedPlayers.length > 0 && (
         <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-2 flex items-center gap-1.5">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-2 flex items-center gap-1.5">
             <Icon name="check" className="w-3 h-3 text-brand-primary" />
             Coach attendance
           </div>
@@ -1062,7 +1122,7 @@ const EventDetail: React.FC = () => {
         {event.isCancelled ? (
           <button
             onClick={handleRestore}
-            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-300 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 text-emerald-700 text-xs font-bold tracking-wider uppercase hover:bg-emerald-500/25 transition"
           >
             <Icon name="check" className="w-4 h-4" />
             Restore
@@ -1070,7 +1130,7 @@ const EventDetail: React.FC = () => {
         ) : (
           <button
             onClick={handleCancel}
-            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-300 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
+            className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 text-amber-700 text-xs font-bold tracking-wider uppercase hover:bg-amber-500/25 transition"
           >
             <Icon name="trash" className="w-4 h-4" />
             Cancel
@@ -1085,7 +1145,7 @@ const EventDetail: React.FC = () => {
       {event.type === 'game' && (event as any).homeAway && (
         <section className={`px-4 sm:px-6 py-3 ${
           (event as any).homeAway === 'home'
-            ? 'bg-surface-elevated ring-1 ring-charcoal-700 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
+            ? 'bg-surface-elevated ring-1 ring-line-default/15 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
             : 'bg-surface-elevated ring-1 ring-line-default/10/80 rounded-2xl mx-3 sm:mx-4 my-3 sm:my-4 shadow-sm'
         }`}>
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
@@ -1098,7 +1158,7 @@ const EventDetail: React.FC = () => {
               }`} aria-hidden />
               <div>
                 <div className={`text-xs font-extrabold tracking-widest uppercase ${
-                  (event as any).homeAway === 'home' ? 'text-brand-primary-soft' : 'text-charcoal-200'
+                  (event as any).homeAway === 'home' ? 'text-brand-primary' : 'text-ink-primary/75'
                 }`}>
                   {(event as any).homeAway === 'home' ? 'Home game' : 'Away game'}
                 </div>
@@ -1112,7 +1172,7 @@ const EventDetail: React.FC = () => {
             <span className={`text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded border ${
               (event as any).homeAway === 'home'
                 ? 'bg-brand-primary/15 text-ink-primary border-brand-primary/30'
-                : 'bg-surface-base text-charcoal-400 border-line-default/10'
+                : 'bg-surface-base text-ink-primary/65 border-line-default/10'
             }`}>
               {(event as any).homeAway === 'home' ? 'Home' : 'Away'}
             </span>
@@ -1123,7 +1183,7 @@ const EventDetail: React.FC = () => {
       {/* RSVPS */}
       <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
             <Icon name="users" className="w-3 h-3 text-brand-primary" />
             RSVPs
           </div>
@@ -1132,22 +1192,22 @@ const EventDetail: React.FC = () => {
           <div className="relative overflow-hidden rounded-lg bg-emerald-500/15 ring-1 ring-emerald-400/40 px-3 py-2.5">
             <span className="absolute inset-x-0 top-0 h-0.5 bg-emerald-500" />
             <div className="text-2xl font-black text-emerald-300 leading-none">{buckets.going.length}</div>
-            <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">GOING</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-ink-primary/65 mt-1">GOING</div>
           </div>
           <div className="relative overflow-hidden rounded-lg bg-amber-500/15 ring-1 ring-amber-400/40 px-3 py-2.5">
             <span className="absolute inset-x-0 top-0 h-0.5 bg-amber-500" />
             <div className="text-2xl font-black text-amber-300 leading-none">{buckets.maybe.length}</div>
-            <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">MAYBE</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-ink-primary/65 mt-1">MAYBE</div>
           </div>
           <div className="relative overflow-hidden rounded-lg bg-rose-500/15 ring-1 ring-rose-400/40 px-3 py-2.5">
             <span className="absolute inset-x-0 top-0 h-0.5 bg-rose-500" />
             <div className="text-2xl font-black text-rose-300 leading-none">{buckets.cant.length}</div>
-            <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">CAN'T</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-ink-primary/65 mt-1">CAN'T</div>
           </div>
           <div className="relative overflow-hidden rounded-lg bg-surface-input ring-1 ring-line-default/10 px-3 py-2.5">
             <span className="absolute inset-x-0 top-0 h-0.5 bg-line-default/40" />
-            <div className="text-2xl font-black text-charcoal-200 leading-none">{buckets.pending}</div>
-            <div className="text-[9px] font-extrabold tracking-widest text-charcoal-400 mt-1">PENDING</div>
+            <div className="text-2xl font-black text-ink-primary/75 leading-none">{buckets.pending}</div>
+            <div className="text-[9px] font-extrabold tracking-widest text-ink-primary/65 mt-1">PENDING</div>
           </div>
         </div>
         {isUserCoach && buckets.pending > 0 && !event.isCancelled && (
@@ -1162,7 +1222,7 @@ const EventDetail: React.FC = () => {
               {remindBusy ? 'Sending…' : `Remind ${buckets.pending} pending`}
             </button>
             {remindToast && (
-              <span className="text-[11px] font-semibold text-charcoal-400">{remindToast}</span>
+              <span className="text-[11px] font-semibold text-ink-primary/65">{remindToast}</span>
             )}
           </div>
         )}
@@ -1192,7 +1252,7 @@ const EventDetail: React.FC = () => {
                       ? { label: 'ROSTER', cls: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/40' }
                       : p.kind === 'staff'
                         ? { label: 'STAFF',  cls: 'bg-brand-primary/15 text-brand-primary-soft ring-brand-primary-soft/40' }
-                        : { label: 'GUEST',  cls: 'bg-surface-input text-charcoal-300 ring-line-default/10' };
+                        : { label: 'GUEST',  cls: 'bg-surface-input text-ink-primary/65 ring-line-default/10' };
                     return (
                       <span className={`text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded ring-1 ${badge.cls}`}>
                         {badge.label}
@@ -1201,8 +1261,8 @@ const EventDetail: React.FC = () => {
                   })()}
                 </div>
                 {p.kind === 'guest' && mergingToken === p.guestToken && (
-                  <div className="mt-2 ml-9 rounded-lg border border-brand-primary-soft/30 bg-brand-primary/15/60 p-2">
-                    <div className="text-[11px] text-charcoal-200 mb-1.5">
+                  <div className="mt-2 ml-9 rounded-lg border border-brand-primary-soft/30 bg-brand-primary/[0.15] p-2">
+                    <div className="text-[11px] text-ink-primary/75 mb-1.5">
                       Merge <span className="font-bold">"{p.name}"</span> into roster player:
                     </div>
                     <div className="max-h-44 overflow-y-auto -mx-1">
@@ -1219,7 +1279,7 @@ const EventDetail: React.FC = () => {
                             disabled={mergeBusy}
                             onClick={() => mergeGuestIntoRoster(p.guestToken, rp.id, rp.name)}
                             className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between hover:bg-brand-primary/20 disabled:opacity-50 ${
-                              matches ? 'font-bold text-brand-primary-dim' : 'text-charcoal-200'
+                              matches ? 'font-bold text-brand-primary-dim' : 'text-ink-primary/75'
                             }`}
                           >
                             <span>{rp.name}</span>
@@ -1230,7 +1290,7 @@ const EventDetail: React.FC = () => {
                     </div>
                     <button
                       onClick={() => setMergingToken(null)}
-                      className="mt-1 w-full text-center text-[11px] font-bold text-ink-primary/50 py-1 hover:text-charcoal-200"
+                      className="mt-1 w-full text-center text-[11px] font-bold text-ink-primary/50 py-1 hover:text-ink-primary/75"
                     >
                       Cancel
                     </button>
@@ -1243,11 +1303,147 @@ const EventDetail: React.FC = () => {
         )}
       </section>
 
+      {/* EVENT PULSE — private post-event player feedback. Parents / players
+          send a quick check-in to the coach; coaches see the rolled-up feed
+          here. Nothing posts to Wall or Chat automatically. */}
+      {eventEnded && !event.isCancelled && (myLinkedPlayers.length > 0 || (isUserCoach && feedbackRows.length > 0)) && (
+        <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
+                <Icon name="bell" className="w-3 h-3 text-brand-primary" />
+                Event Pulse
+              </div>
+              <p className="mt-1 text-[12px] leading-snug text-ink-primary/55">
+                {eventFocus ? `How did ${eventFocus.toLowerCase()} feel today?` : 'How did the session feel today?'}
+              </p>
+            </div>
+            {isUserCoach && feedbackRows.length > 0 && (
+              <span className="shrink-0 rounded-full bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 px-2 py-1 text-[10px] font-extrabold tracking-widest uppercase">
+                {feedbackRows.length} sent
+              </span>
+            )}
+          </div>
+
+          {myLinkedPlayers.length > 0 && (
+            <div className="space-y-3">
+              {myLinkedPlayers.map(player => {
+                const mine = ((event as any).playerFeedback || {})?.[player.id]?.[userData?.uid || ''];
+                const draft = feedbackDrafts[player.id] || {};
+                const selectedFeel = draft.feel || mine?.feel || '';
+                const selectedEnergy = draft.energy || mine?.energy || '';
+                const selectedConfidence = Number(draft.confidence || mine?.confidence || 3);
+                const feelBtn = (value: string, label: string) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setFeedbackDraft(player.id, { feel: value })}
+                    className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold ring-1 transition ${
+                      selectedFeel === value
+                        ? 'bg-brand-primary text-white ring-brand-primary-soft/40 shadow-sm'
+                        : 'bg-surface-input text-ink-primary/70 ring-line-default/10 hover:ring-line-default/20'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+                return (
+                  <div key={player.id} className="rounded-xl bg-surface-input/75 ring-1 ring-line-default/15 p-3">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <RosterAvatar name={player.name} photoUrl={player.photoURL} size={36} className="ring-1 ring-line-default/10" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-black text-ink-primary truncate">{player.name}</div>
+                        <div className="text-[11px] text-ink-primary/50">
+                          {mine ? 'Feedback sent. You can update it.' : 'Send a quick private note to coach.'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5 mb-2">
+                      {feelBtn('great', 'Great')}
+                      {feelBtn('good', 'Good')}
+                      {feelBtn('tough', 'Tough')}
+                      {feelBtn('frustrated', 'Hard')}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <select
+                        value={selectedEnergy}
+                        onChange={(e) => setFeedbackDraft(player.id, { energy: e.target.value })}
+                        className="w-full rounded-lg bg-surface-elevated text-ink-primary ring-1 ring-line-default/15 px-2 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                      >
+                        <option value="">Energy</option>
+                        <option value="low">Low energy</option>
+                        <option value="okay">Okay energy</option>
+                        <option value="high">High energy</option>
+                      </select>
+                      <select
+                        value={selectedConfidence}
+                        onChange={(e) => setFeedbackDraft(player.id, { confidence: Number(e.target.value) })}
+                        className="w-full rounded-lg bg-surface-elevated text-ink-primary ring-1 ring-line-default/15 px-2 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+                      >
+                        <option value={1}>Confidence 1/5</option>
+                        <option value={2}>Confidence 2/5</option>
+                        <option value={3}>Confidence 3/5</option>
+                        <option value={4}>Confidence 4/5</option>
+                        <option value={5}>Confidence 5/5</option>
+                      </select>
+                    </div>
+                    <textarea
+                      value={draft.note ?? mine?.note ?? ''}
+                      onChange={(e) => setFeedbackDraft(player.id, { note: e.target.value })}
+                      rows={2}
+                      placeholder="Anything coach should know?"
+                      className="w-full rounded-lg bg-surface-elevated text-ink-primary placeholder:text-ink-primary/40 ring-1 ring-line-default/15 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/40 resize-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={feedbackSaving[player.id] || !selectedFeel}
+                      onClick={() => submitPlayerFeedback(player)}
+                      className="mt-2 w-full rounded-lg bg-brand-primary text-white px-3 py-2 text-[12px] font-extrabold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {feedbackSaving[player.id] ? 'Sending...' : mine ? 'Update Coach' : 'Send to Coach'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {isUserCoach && feedbackRows.length > 0 && (
+            <ul className={`${myLinkedPlayers.length > 0 ? 'mt-4 pt-4 border-t border-line-default/10' : ''} space-y-2`}>
+              {feedbackRows.map(row => {
+                const rosterPlayer = roster.find(p => p.id === row.playerId);
+                const conf = typeof row.confidence === 'number' ? `${row.confidence}/5` : '—';
+                return (
+                  <li key={`${row.playerId}_${row.uid}`} className="rounded-xl bg-surface-input/75 ring-1 ring-line-default/15 p-3">
+                    <div className="flex items-start gap-2.5">
+                      <RosterAvatar name={row.playerName || rosterPlayer?.name || 'Player'} photoUrl={row.playerPhotoURL || rosterPlayer?.photoURL} size={36} className="ring-1 ring-line-default/10" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-black text-ink-primary truncate">{row.playerName || rosterPlayer?.name || 'Player'}</p>
+                          <span className="rounded-full bg-brand-primary/15 text-brand-primary-soft ring-1 ring-brand-primary-soft/30 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest">
+                            {String(row.feel || 'good')}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-ink-primary/55">
+                          Energy {row.energy || 'okay'} · Confidence {conf}{row.focus ? ` · Focus: ${row.focus}` : ''}
+                        </p>
+                        {row.note && <p className="mt-2 text-sm leading-snug text-ink-primary/80 whitespace-pre-wrap">{row.note}</p>}
+                        <p className="mt-2 text-[10px] font-semibold text-ink-primary/45">From {row.submittedByName || 'parent/player'}</p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
+
       {/* WEATHER */}
       {weather && (
         <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
+            <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
               <Icon name="cloud" className="w-3 h-3 text-brand-primary" />
               Weather
             </div>
@@ -1470,10 +1666,10 @@ const EventDetail: React.FC = () => {
       {/* DESCRIPTION */}
       {event.description && (
         <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
-          <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 mb-1.5">
+          <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-1.5">
             About
           </div>
-          <p className="text-sm text-charcoal-200 whitespace-pre-wrap">{event.description}</p>
+          <p className="text-sm leading-relaxed text-white/80 whitespace-pre-wrap">{event.description}</p>
         </section>
       )}
 
@@ -1485,7 +1681,7 @@ const EventDetail: React.FC = () => {
       {(event as any).locationCoords?.lat && (
         <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-1.5">
-            <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400">Map</div>
+            <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70">Map</div>
             <a
               href={mapsUrl({
                 name: event.location,
@@ -1564,7 +1760,7 @@ const PackingListSection: React.FC<{
   return (
     <section className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 shadow-xl shadow-black/40 mx-3 sm:mx-4 my-3 sm:my-4 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-xs font-extrabold tracking-widest uppercase text-charcoal-400 flex items-center gap-1.5">
+        <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 flex items-center gap-1.5">
           <svg className="w-3 h-3 text-brand-primary" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           What to bring
         </div>
@@ -1646,7 +1842,7 @@ const PackingListSection: React.FC<{
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                     )}
                   </span>
-                  <span className={`text-sm ${isChecked ? 'line-through text-ink-primary/50' : 'text-charcoal-200'}`}>
+                  <span className={`text-sm ${isChecked ? 'line-through text-ink-primary/50' : 'text-ink-primary/75'}`}>
                     {item.label}
                   </span>
                 </button>

@@ -1,8 +1,9 @@
 import React from 'react';
 
-// Four-tile dark stats band that sits directly under the redesigned
-// hero. Glanceable numbers + label, gradient tones to match the
-// mockup. We deliberately pick metrics that REALLY exist on Fire FC
+// Four-tile stats band that sits directly under the redesigned hero.
+// Glanceable numbers + label, with restrained neutral surfaces so it
+// works in light mode, dark mode, and grey club-brand palettes. We
+// deliberately pick metrics that REALLY exist on Fire FC
 // data rather than the mockup's "Overall Season Rating" (made-up
 // composite) so the numbers are trustworthy.
 
@@ -17,8 +18,8 @@ interface Props {
 
 const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePct, jugglesBest }) => {
   return (
-    <section className="bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-3 sm:px-6 pb-5 border-b border-brand-primary/15">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+    <section className="bg-surface-base px-4 sm:px-6 py-4 border-b border-line-default/10">
+      <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <StatTile
           accent="amber"
           icon={<TrophyIcon />}
@@ -27,7 +28,7 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
           sub="Awards"
         />
         <StatTile
-          accent="orange"
+          accent="emerald"
           icon={<FlameIcon />}
           value={String(streakDays)}
           label="Day"
@@ -53,9 +54,9 @@ const ProfileStatsStrip: React.FC<Props> = ({ potmWins, streakDays, attendancePc
 };
 
 const ACCENT: Record<string, { bg: string; ring: string; badge: string; text: string }> = {
-  amber: { bg: 'bg-amber-500/10', ring: 'ring-amber-400/30', badge: 'bg-amber-400', text: 'text-ink-primary' },
-  orange: { bg: 'bg-orange-500/10', ring: 'ring-orange-400/30', badge: 'bg-orange-400', text: 'text-ink-primary' },
-  cyan: { bg: 'bg-brand-primary/10', ring: 'ring-brand-primary-soft/30', badge: 'bg-brand-primary-soft', text: 'text-ink-primary' },
+  amber: { bg: 'bg-surface-elevated/80', ring: 'ring-amber-400/35', badge: 'bg-amber-400', text: 'text-ink-primary' },
+  emerald: { bg: 'bg-surface-elevated/80', ring: 'ring-emerald-400/30', badge: 'bg-emerald-400', text: 'text-ink-primary' },
+  cyan: { bg: 'bg-surface-elevated/80', ring: 'ring-brand-primary-soft/30', badge: 'bg-brand-primary-soft', text: 'text-ink-primary' },
 };
 
 const StatTile: React.FC<{
@@ -67,7 +68,7 @@ const StatTile: React.FC<{
 }> = ({ accent, icon, value, label, sub }) => {
   const a = ACCENT[accent];
   return (
-    <div className={`relative overflow-hidden rounded-2xl ${a.bg} ring-1 ${a.ring} p-3 sm:p-4`}>
+    <div className={`relative overflow-hidden rounded-2xl ${a.bg} ring-1 ${a.ring} p-3 sm:p-4 shadow-sm shadow-black/5`}>
       <div className="flex items-center gap-2 mb-1">
         <span className={`inline-flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-full ${a.badge} text-slate-950 shadow-inner`}>
           {icon}

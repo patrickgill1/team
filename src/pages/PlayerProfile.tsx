@@ -509,9 +509,9 @@ const PlayerProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      {/* ───── HERO (v2) ─────
-          Dark gradient hero band + 4-tile glance stats. Replaces the
-          old fire-700→navy-900 gradient + hand-rolled photo/name block. */}
+      <div className="mx-auto w-full max-w-6xl sm:px-4 lg:px-6 sm:py-5">
+        <div className="overflow-hidden bg-surface-base text-ink-primary sm:rounded-2xl sm:ring-1 sm:ring-line-default/10">
+        {/* ───── HERO (v2) ───── */}
       <ProfileHero
         player={player}
         teamName={selectedTeam?.name}
@@ -535,56 +535,56 @@ const PlayerProfile: React.FC = () => {
           card — that's an admin pipeline view. */}
 
       {/* Existing top-of-hero action row preserved for parity */}
-      <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep px-4 sm:px-6 py-3 border-b border-line-default/5 flex items-center justify-between">
-        <Link
-          to="/players"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-white text-xs font-semibold hover:bg-line-default/20 transition backdrop-blur"
+      <div className="bg-surface-base px-4 sm:px-6 py-3 border-b border-line-default/10">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button
+          type="button"
+          onClick={() => { window.history.length > 1 ? window.history.back() : (window.location.href = '/dashboard'); }}
+          className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary text-xs font-bold hover:bg-surface-input transition"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-          Roster
-        </Link>
-        <div className="flex items-center gap-2">
+          Back
+        </button>
           {userData && isCoach(userData.role) && (
             <button
               onClick={() => setShowWhisper(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-line-default/15 hover:bg-line-default/25 text-white text-xs font-semibold ring-1 ring-line-default/20 transition backdrop-blur"
+              className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-surface-elevated hover:bg-surface-input text-ink-primary text-xs font-bold ring-1 ring-line-default/15 transition"
               title="Send a private note to this player's parents"
             >
-              💬 Parent Whisper
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              Whisper
             </button>
           )}
           <button
             onClick={handleShareProfile}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ring-1 transition backdrop-blur ${
+            className={`min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold ring-1 transition backdrop-blur ${
               (player as any)?.publicShare?.enabled
                 ? 'bg-emerald-500/20 ring-emerald-400/40 text-emerald-200 hover:bg-emerald-500/30'
-                : 'bg-line-default/10 ring-line-default/20 text-white hover:bg-line-default/20'
+                : 'bg-surface-elevated ring-line-default/15 text-ink-primary hover:bg-surface-input'
             }`}
             title={(player as any)?.publicShare?.enabled ? 'Public card is live — tap to share the link again' : 'Share profile'}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-            {(player as any)?.publicShare?.enabled ? 'Share · ON' : 'Share'}
+            {(player as any)?.publicShare?.enabled ? 'Share on' : 'Share'}
           </button>
           {(player as any)?.publicShare?.enabled && (
             <button
               onClick={disablePublicShare}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-line-default/10 ring-1 ring-line-default/20 text-white/80 text-xs font-semibold hover:bg-line-default/20 hover:text-white transition backdrop-blur"
+              className="min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-surface-elevated ring-1 ring-line-default/15 text-ink-primary/80 text-xs font-bold hover:bg-surface-input hover:text-ink-primary transition"
               title="Turn public sharing off — existing links stop working"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
               </svg>
-              Stop sharing
+              Stop share
             </button>
           )}
         </div>
       </div>
 
-      {/* Legacy hero band — season toggle + detailed 4-up career stats.
-          Kept in a darker continuation strip so the visual flow is
-          uninterrupted from the new hero into the existing toggle. */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-surface-elevated via-surface-elevated to-vignette-deep text-white">
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
+        {/* Season toggle + detailed 4-up career stats. */}
+      <div className="relative overflow-visible bg-surface-base text-ink-primary border-b border-line-default/10">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
           {/* Hidden legacy block kept for the season toggle + detailed stats; the new ProfileHero replaces the old photo + name top. */}
           {false && (
             <div className="flex items-center justify-between mb-5">
@@ -604,7 +604,7 @@ const PlayerProfile: React.FC = () => {
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
                   (selectedSeasonId === 'current' || (activeSeason && selectedSeasonId === activeSeason.id))
                     ? 'bg-surface-elevated text-ink-primary/90 shadow'
-                    : 'text-white/80 hover:text-white'
+                    : 'text-ink-primary/65 hover:text-ink-primary'
                 }`}
               >
                 This Season
@@ -614,7 +614,7 @@ const PlayerProfile: React.FC = () => {
                 className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
                   selectedSeasonId === 'lifetime'
                     ? 'bg-surface-elevated text-ink-primary/90 shadow'
-                    : 'text-white/80 hover:text-white'
+                    : 'text-ink-primary/65 hover:text-ink-primary'
                 }`}
               >
                 Overall
@@ -628,19 +628,19 @@ const PlayerProfile: React.FC = () => {
                     className={`px-2.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition ${
                       selectedSeasonId !== 'current' && selectedSeasonId !== 'lifetime' && (!activeSeason || selectedSeasonId !== activeSeason.id)
                         ? 'bg-surface-elevated text-ink-primary/90 shadow'
-                        : 'text-white/80 hover:text-white'
+                        : 'text-ink-primary/65 hover:text-ink-primary'
                     }`}
                     aria-label="Pick another season"
                   >
                     •••
                   </button>
                   {seasonMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 z-30 min-w-[180px] rounded-xl bg-surface-elevated/95 backdrop-blur ring-1 ring-line-default/15 shadow-xl py-1">
+                    <div className="absolute right-0 top-full mt-2 z-50 min-w-[180px] rounded-xl bg-surface-elevated ring-1 ring-line-default/15 shadow-xl py-1">
                       {allSeasons.filter(s => !s.isActive).map(s => (
                         <button
                           key={s.id}
                           onClick={() => { setSelectedSeasonId(s.id); setSeasonMenuOpen(false); }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-line-default/5 ${selectedSeasonId === s.id ? 'text-brand-primary-soft font-semibold' : 'text-white/85'}`}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-line-default/[0.05] ${selectedSeasonId === s.id ? 'text-brand-primary-soft font-semibold' : 'text-ink-primary/85'}`}
                         >
                           {s.name}
                         </button>
@@ -667,23 +667,23 @@ const PlayerProfile: React.FC = () => {
                 <div className="grid grid-cols-4 gap-2 sm:gap-3">
                   <div className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-2.5 sm:p-3 text-center">
                     <div className="text-2xl sm:text-3xl font-black text-emerald-300">{s.goals || 0}</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Goals</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-ink-primary/60 font-bold">Goals</div>
                   </div>
                   <div className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-2.5 sm:p-3 text-center">
                     <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{s.assists || 0}</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Assists</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-ink-primary/60 font-bold">Assists</div>
                   </div>
                   <div className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-2.5 sm:p-3 text-center">
                     <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{votingWins.length}</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">POTM</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-ink-primary/60 font-bold">POTM</div>
                   </div>
                   <div className="rounded-2xl bg-line-default/10 ring-1 ring-line-default/15 backdrop-blur p-2.5 sm:p-3 text-center">
-                    <div className="text-2xl sm:text-3xl font-black text-white">{media.length}</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-bold">Clips</div>
+                    <div className="text-2xl sm:text-3xl font-black text-ink-primary">{media.length}</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-ink-primary/60 font-bold">Clips</div>
                   </div>
                 </div>
                 {showCareerStrip && (
-                  <p className="mt-3 text-[11px] text-white/60 font-medium tracking-wide">
+                  <p className="mt-3 text-[11px] text-ink-primary/60 font-medium tracking-wide">
                     Career: {lifetime.goals} goals · {lifetime.assists} assists
                     {lifetime.gamesPlayed > 0 ? ` · ${lifetime.gamesPlayed} games` : ''}
                     {allSeasons.length > 0 ? ` across ${allSeasons.length} season${allSeasons.length === 1 ? '' : 's'}` : ''}
@@ -696,8 +696,8 @@ const PlayerProfile: React.FC = () => {
       </div>
 
       {/* ───── PILL TABS (sticky) ───── */}
-      <div className="bg-surface-elevated border-b border-line-default/5 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3">
+      <div className="bg-surface-base sticky top-0 z-20 border-b border-line-default/10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
           {/* Wrap, never scroll. Sideways pill scrolling hides options
               behind the right edge and reads as "we ran out of room." */}
           <div className="flex flex-wrap gap-1.5">
@@ -719,14 +719,14 @@ const PlayerProfile: React.FC = () => {
                   onClick={() => setActiveTab(tab)}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition ${
                     isActive
-                      ? 'bg-surface-elevated text-white shadow'
+                      ? 'bg-ink-primary text-surface-base shadow'
                       : 'bg-line-default/[0.08] text-ink-primary/65 hover:bg-line-default/[0.1]'
                   }`}
                 >
                   <span>{label}</span>
                   {count !== null && count > 0 && (
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                      isActive ? 'bg-line-default/20 text-white' : 'bg-surface-elevated text-ink-primary/50'
+                      isActive ? 'bg-surface-base/20 text-surface-base' : 'bg-surface-elevated text-ink-primary/50'
                     }`}>
                       {count}
                     </span>
@@ -738,13 +738,10 @@ const PlayerProfile: React.FC = () => {
         </div>
       </div>
 
-      {/* Tab Content */}
-      {/* Overview tab gets its own full-width dark band so it visually
-          continues from the hero. Media/Development/Awards keep the
-          original light treatment (different surface, different vibe). */}
+        {/* Tab Content */}
       {activeTab === 'overview' && (
-        <div className="bg-gradient-to-br from-surface-base via-surface-elevated to-vignette-deep">
-          <div className="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
+        <div className="bg-surface-base">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
           <div className="space-y-4 sm:space-y-6">
 
             {/* WHAT PEOPLE ARE SAYING — kids love this. Always render a
@@ -761,11 +758,11 @@ const PlayerProfile: React.FC = () => {
               </div>
               {latestQuote ? (
                 <>
-                  <p className="text-base sm:text-lg font-bold italic leading-snug text-white">"{latestQuote.reason}"</p>
-                  <p className="text-xs text-white/60 mt-2 font-semibold">— {latestQuote.voterName} · {latestQuote.gameTitle}</p>
+                  <p className="text-base sm:text-lg font-bold italic leading-snug text-ink-primary">"{latestQuote.reason}"</p>
+                  <p className="text-xs text-ink-primary/60 mt-2 font-semibold">— {latestQuote.voterName} · {latestQuote.gameTitle}</p>
                 </>
               ) : (
-                <p className="text-sm text-white/70 leading-snug">
+                <p className="text-sm text-ink-primary/70 leading-snug">
                   No shoutouts yet on this team — they'll show up here after the first match where {player.name.split(' ')[0]} gets a Player of the Match nod with a reason.
                 </p>
               )}
@@ -814,7 +811,7 @@ const PlayerProfile: React.FC = () => {
                 <div className="bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-extrabold uppercase tracking-widest text-brand-primary-soft">Stats</h2>
-                    <span className="text-[10px] uppercase tracking-widest text-white/50 font-bold">{scopeLabel}</span>
+                    <span className="text-[10px] uppercase tracking-widest text-ink-primary/50 font-bold">{scopeLabel}</span>
                   </div>
                   {/* Scope toggle */}
                   <div className="flex gap-1 mb-3 rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 p-1">
@@ -829,7 +826,7 @@ const PlayerProfile: React.FC = () => {
                         className={`flex-1 px-2 py-1 rounded-lg text-[10px] font-extrabold tracking-widest uppercase transition ${
                           statsScope === k
                             ? 'bg-brand-primary/20 text-ink-primary ring-1 ring-brand-primary-soft/40'
-                            : 'text-white/60 hover:text-white'
+                            : 'text-ink-primary/60 hover:text-ink-primary'
                         }`}
                       >
                         {label}
@@ -839,30 +836,30 @@ const PlayerProfile: React.FC = () => {
                   <div className="grid grid-cols-4 gap-2">
                     <div className="rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 p-2.5 text-center">
                       <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{scoped.gamesPlayed || 0}</div>
-                      <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Games</div>
+                      <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Games</div>
                     </div>
                     <div className="rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 p-2.5 text-center">
                       <div className="text-2xl sm:text-3xl font-black text-emerald-300">{scoped.goals || 0}</div>
-                      <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Goals</div>
+                      <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Goals</div>
                     </div>
                     <div className="rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 p-2.5 text-center">
                       <div className="text-2xl sm:text-3xl font-black text-brand-primary-soft">{scoped.assists || 0}</div>
-                      <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Assists</div>
+                      <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Assists</div>
                     </div>
                     {isGoalkeeper(player) ? (
                       <div className="rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 p-2.5 text-center">
                         <div className="text-2xl sm:text-3xl font-black text-amber-300">{scoped.saves || 0}</div>
-                        <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">Saves</div>
+                        <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">Saves</div>
                       </div>
                     ) : (
                       <div className="rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 p-2.5 text-center">
                         <div className="text-2xl sm:text-3xl font-black text-amber-300">{(scoped.goals || 0) + (scoped.assists || 0)}</div>
-                        <div className="text-[9px] uppercase tracking-widest text-white/60 font-bold mt-0.5">G+A</div>
+                        <div className="text-[9px] uppercase tracking-widest text-ink-primary/60 font-bold mt-0.5">G+A</div>
                       </div>
                     )}
                   </div>
                   {statsScope === 'all_time' && memberships.length > 1 && (
-                    <p className="mt-2 text-[10px] text-white/50 tracking-wide">Combined across {memberships.length} team-season{memberships.length === 1 ? '' : 's'}.</p>
+                    <p className="mt-2 text-[10px] text-ink-primary/50 tracking-wide">Combined across {memberships.length} team-season{memberships.length === 1 ? '' : 's'}.</p>
                   )}
                 </div>
               );
@@ -881,13 +878,13 @@ const PlayerProfile: React.FC = () => {
                 <div className="bg-line-default/[0.04] backdrop-blur ring-1 ring-line-default/10 rounded-2xl p-5 sm:p-6">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <div className={`text-[10px] uppercase tracking-widest font-black mb-1 ${hot ? 'text-orange-300' : 'text-brand-primary-soft'}`}>Practice Effort</div>
-                      <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-white">{streakDays}</div>
-                      <div className="text-xs sm:text-sm font-semibold text-white/60 mt-1.5">{streakDays === 1 ? 'day' : 'days'} in a row · {hot ? "you're on fire" : 'keep it going'}</div>
+                      <div className={`text-[10px] uppercase tracking-widest font-black mb-1 ${hot ? 'text-emerald-300' : 'text-brand-primary-soft'}`}>Practice Effort</div>
+                      <div className="text-4xl sm:text-5xl font-black tracking-tight leading-none text-ink-primary">{streakDays}</div>
+                      <div className="text-xs sm:text-sm font-semibold text-ink-primary/60 mt-1.5">{streakDays === 1 ? 'day' : 'days'} in a row · {hot ? "you're on fire" : 'keep it going'}</div>
                     </div>
                     <div className={`shrink-0 w-14 h-14 rounded-full flex items-center justify-center ${
                       hot
-                        ? 'bg-orange-500/15 ring-1 ring-orange-400/30 text-orange-300'
+                        ? 'bg-emerald-500/15 ring-1 ring-emerald-400/30 text-emerald-300'
                         : 'bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft'
                     }`}>
                       <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
@@ -1047,14 +1044,14 @@ const PlayerProfile: React.FC = () => {
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4h14v2h2v4a4 4 0 0 1-4 4h-.55A6 6 0 0 1 13 18v2h2v2H9v-2h2v-2a6 6 0 0 1-3.45-4H7a4 4 0 0 1-4-4V6h2zm0 4v2a2 2 0 0 0 2 2V8zm14 0v4a2 2 0 0 0 2-2V8z" /></svg>
                     </div>
                     <div className="text-3xl sm:text-4xl font-black leading-none text-amber-200">{votingWins.length}</div>
-                    <div className="text-[10px] uppercase tracking-wider font-bold text-white/70 mt-1">Wins</div>
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-ink-primary/70 mt-1">Wins</div>
                   </div>
                   <div className="rounded-2xl bg-brand-primary/10 ring-1 ring-brand-primary-soft/30 p-5">
                     <div className="flex items-center gap-2 mb-2 text-brand-primary-soft">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                     </div>
                     <div className="text-3xl sm:text-4xl font-black leading-none text-ink-primary">{votingNominations}</div>
-                    <div className="text-[10px] uppercase tracking-wider font-bold text-white/70 mt-1">Nominated</div>
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-ink-primary/70 mt-1">Nominated</div>
                   </div>
                 </div>
               </div>
@@ -1091,16 +1088,16 @@ const PlayerProfile: React.FC = () => {
                       <div className="text-2xl font-black text-amber-200 tabular-nums leading-tight">{best}</div>
                     </div>
                     <div className="rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 px-3 py-2.5">
-                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-white/60">7-day attempts</div>
-                      <div className="text-2xl font-black text-white tabular-nums leading-tight">{lastWeek.length}</div>
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">7-day attempts</div>
+                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight">{lastWeek.length}</div>
                     </div>
                     <div className="rounded-xl bg-line-default/[0.03] ring-1 ring-line-default/10 px-3 py-2.5">
-                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-white/60">Last</div>
-                      <div className="text-2xl font-black text-white tabular-nums leading-tight">{last?.count ?? '—'}</div>
+                      <div className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/60">Last</div>
+                      <div className="text-2xl font-black text-ink-primary tabular-nums leading-tight">{last?.count ?? '—'}</div>
                     </div>
                   </div>
                   {history.length === 0 && (
-                    <p className="text-xs text-white/50 mt-3">No attempts yet. Tap "+ Log" to record one.</p>
+                    <p className="text-xs text-ink-primary/50 mt-3">No attempts yet. Tap "+ Log" to record one.</p>
                   )}
                 </div>
               );
@@ -1112,8 +1109,8 @@ const PlayerProfile: React.FC = () => {
                 <div className="mx-auto w-14 h-14 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 flex items-center justify-center text-brand-primary-soft mb-3">
                   <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="white" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-1">{player.name.split(' ')[0]}'s journey starts here</h3>
-                <p className="text-sm text-white/60">Stats, clips, and awards will show up as the season unfolds.</p>
+                <h3 className="text-lg font-bold text-ink-primary mb-1">{player.name.split(' ')[0]}'s journey starts here</h3>
+                <p className="text-sm text-ink-primary/60">Stats, clips, and awards will show up as the season unfolds.</p>
               </div>
             )}
           </div>
@@ -1121,7 +1118,11 @@ const PlayerProfile: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-6">
+        </div>
+      </div>
+
+      {activeTab !== 'overview' && (
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-10 py-5 sm:py-6">
 
         {/* ─── MEDIA TAB ─────────────────────────────────────────── */}
         {activeTab === 'media' && (
@@ -1133,7 +1134,7 @@ const PlayerProfile: React.FC = () => {
                     key={item.id}
                     type="button"
                     onClick={() => setLightboxItem(item)}
-                    className="group relative aspect-square bg-gradient-to-br from-gray-800 to-gray-950 rounded-2xl overflow-hidden text-left shadow-sm ring-1 ring-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition"
+                    className="group relative aspect-square bg-surface-elevated rounded-2xl overflow-hidden text-left shadow-sm ring-1 ring-line-default/10 hover:shadow-lg hover:-translate-y-0.5 transition"
                   >
                     {item.type === 'video' ? (
                       <>
@@ -1397,6 +1398,7 @@ const PlayerProfile: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* ─── Equipment Edit Modal ────────────────────────────────── */}
       {juggleOpen && (

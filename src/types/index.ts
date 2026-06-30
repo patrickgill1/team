@@ -1515,6 +1515,27 @@ export interface CalendarEvent {
    *  automatically shifts if the event itself is rescheduled. Useful
    *  for games (warmups) and tournaments (check-in). */
   arriveOffsetMinutes?: number;
+  /** Coach-defined development focus for this event. Used by the
+   *  widget / dashboard before the event and by post-event feedback
+   *  prompts after the event. Examples: first touch, confidence,
+   *  defending, finishing. */
+  developmentFocus?: string;
+  /** Private parent/player post-event feedback, keyed by playerId
+   *  then submitter uid. Visible to coaches; not posted to chat/wall. */
+  playerFeedback?: Record<string, Record<string, {
+    playerId: string;
+    playerName: string;
+    playerPhotoURL?: string;
+    submittedByUid: string;
+    submittedByName?: string;
+    feel: 'great' | 'good' | 'tough' | 'frustrated';
+    energy?: 'low' | 'okay' | 'high';
+    confidence?: number;
+    note?: string;
+    focus?: string;
+    createdAt: any;
+    updatedAt?: any;
+  }>>;
   /** Coach-defined packing checklist. Each parent gets their own
    *  per-user checkmark state via packingCheckedBy keyed by uid. */
   packingList?: Array<{

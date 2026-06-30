@@ -40,7 +40,7 @@ const ChatHeaderButton: React.FC = () => {
       to="/chat"
       aria-label={unreadCount > 0 ? `Chat — ${unreadCount} unread` : 'Chat'}
       title={unreadCount > 0 ? `${unreadCount} unread` : 'Chat'}
-      className="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-white/85 hover:text-white hover:bg-line-default/10 transition"
+      className="relative inline-flex items-center justify-center w-9 h-9 rounded-full text-ink-primary/65 hover:text-ink-primary hover:bg-line-default/10 transition"
     >
       {/* Chat bubble glyph — same monoline weight as the news/feed
           icon in WallHeaderButton so the two affordances read as a
@@ -52,7 +52,7 @@ const ChatHeaderButton: React.FC = () => {
         unreadCount <= 9 ? (
           // Tiny count chip when manageable.
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 ring-2 ring-charcoal-800 text-[10px] font-extrabold text-white flex items-center justify-center tabular-nums"
+            className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 ring-2 ring-surface-input text-[10px] font-extrabold text-white flex items-center justify-center tabular-nums"
             aria-hidden
           >
             {unreadCount}
@@ -60,7 +60,7 @@ const ChatHeaderButton: React.FC = () => {
         ) : (
           // Cap at 9+ so a heavy chat day doesn't blow out the chrome layout.
           <span
-            className="absolute -top-0.5 -right-0.5 px-1 h-[16px] min-w-[20px] rounded-full bg-rose-500 ring-2 ring-charcoal-800 text-[10px] font-extrabold text-white flex items-center justify-center tabular-nums"
+            className="absolute -top-0.5 -right-0.5 px-1 h-[16px] min-w-[20px] rounded-full bg-rose-500 ring-2 ring-surface-input text-[10px] font-extrabold text-white flex items-center justify-center tabular-nums"
             aria-hidden
           >
             9+

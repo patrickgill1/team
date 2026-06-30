@@ -19,9 +19,9 @@ const Header: React.FC<HeaderProps> = ({ title = 'GoalKickr', subtitle, action }
     <header className="bg-gradient-to-b from-surface-base to-surface-elevated border-b border-brand-primary/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 lg:py-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">{title}</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-ink-primary tracking-tight truncate">{title}</h1>
           {subtitle && (
-            <p className="mt-0.5 text-xs sm:text-sm text-slate-400 truncate">{subtitle}</p>
+            <p className="mt-0.5 text-xs sm:text-sm text-ink-primary/55 truncate">{subtitle}</p>
           )}
         </div>
         {action && (

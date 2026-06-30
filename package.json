@@ -1,6 +1,6 @@
 {
   "name": "soccer-team-app",
-  "version": "3.7.54",
+  "version": "3.8.94",
   "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -52,7 +52,9 @@
   "scripts": {
     "postinstall": "patch-package",
     "start": "react-scripts start",
+    "prebuild": "node ./scripts/ensure-clean-tree.js",
     "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "build:dirty": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "ios:add": "cap add ios && cap sync ios",

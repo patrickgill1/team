@@ -1,5 +1,7 @@
 package com.firefc.team.widget;
 
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.SharedPreferences;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -27,7 +29,19 @@ public class WidgetBridgePlugin extends Plugin {
         String token = call.getString("token", "");
         SharedPreferences prefs = getContext()
             .getSharedPreferences(PlayerWidgetProvider.PREFS_NAME, 0);
-        prefs.edit().putString(GLOBAL_TOKEN_KEY, token == null ? "" : token).apply();
+        String value = token == null ? "" : token;
+        SharedPreferences.Editor editor = prefs.edit().putString(GLOBAL_TOKEN_KEY, value);
+
+        AppWidgetManager mgr = AppWidgetManager.getInstance(getContext());
+        int[] widgetIds = mgr.getAppWidgetIds(new ComponentName(getContext(), PlayerWidgetProvider.class));
+        for (int widgetId : widgetIds) {
+            editor.putString(PlayerWidgetProvider.PREF_PREFIX_KEY + widgetId, value);
+        }
+        editor.apply();
+
+        for (int widgetId : widgetIds) {
+            PlayerWidgetProvider.updateAppWidget(getContext(), mgr, widgetId);
+        }
         call.resolve();
     }
 
@@ -45,7 +59,18 @@ public class WidgetBridgePlugin extends Plugin {
     public void clearToken(PluginCall call) {
         SharedPreferences prefs = getContext()
             .getSharedPreferences(PlayerWidgetProvider.PREFS_NAME, 0);
-        prefs.edit().remove(GLOBAL_TOKEN_KEY).apply();
+        SharedPreferences.Editor editor = prefs.edit().remove(GLOBAL_TOKEN_KEY);
+
+        AppWidgetManager mgr = AppWidgetManager.getInstance(getContext());
+        int[] widgetIds = mgr.getAppWidgetIds(new ComponentName(getContext(), PlayerWidgetProvider.class));
+        for (int widgetId : widgetIds) {
+            editor.remove(PlayerWidgetProvider.PREF_PREFIX_KEY + widgetId);
+        }
+        editor.apply();
+
+        for (int widgetId : widgetIds) {
+            PlayerWidgetProvider.updateAppWidget(getContext(), mgr, widgetId);
+        }
         call.resolve();
     }
 }

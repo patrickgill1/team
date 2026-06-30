@@ -58,8 +58,19 @@ const EMPTY_SUBSCRIPTION: SubscriptionState = {
 };
 
 const subscriptionCache = new Map<string, SubscriptionState>();
-const INACTIVE_REVEAL_DELAY_MS = 8000;
+// Grace window before any "not active" state is reported to consumers.
+// Covers all paths: doc-doesn't-exist, doc-exists-but-canceled,
+// doc-exists-but-incomplete, doc-exists-but-past-due, denormalized
+// user-doc fields lagging behind the actual subscriptions doc. The
+// hook holds loading: true until the inactive state has been stable
+// for this long, so a one-second blip from cache → fresh snapshot
+// never gates a paying user.
+const INACTIVE_GRACE_MS = 8000;
 const ACTIVE_LOCAL_TTL_MS = 24 * 60 * 60 * 1000;
+
+function isActiveState(state: SubscriptionState): boolean {
+  return state.isActive || state.isTrialing;
+}
 
 function localActiveKey(uid: string): string {
   return `gk.subscription.active.${uid}`;
@@ -160,11 +171,20 @@ export function useSubscription(): SubscriptionState {
     }
 
     let cancelled = false;
-    let readyToShowInactive = false;
     let pendingInactive: SubscriptionState | null = null;
+    let pendingInactiveTimer: number | null = null;
     const cached = subscriptionCache.get(uid);
     const optimistic = optimisticStateFromUserDoc(userData, uid);
     const localActive = readLocalActive(uid);
+    const hasActiveSignal = !!(optimistic || (cached && isActiveState(cached)) || localActive);
+
+    const clearPendingInactive = () => {
+      if (pendingInactiveTimer !== null) {
+        window.clearTimeout(pendingInactiveTimer);
+        pendingInactiveTimer = null;
+      }
+      pendingInactive = null;
+    };
 
     const applyState = (next: SubscriptionState) => {
       subscriptionCache.set(uid, next);
@@ -172,42 +192,73 @@ export function useSubscription(): SubscriptionState {
       if (!cancelled) setState(next);
     };
 
+    // Apply the resolved inactive state once the grace window expires
+    // OR right away if the user has never been seen as active (no need
+    // to delay the truth for someone who's genuinely never paid).
+    const scheduleInactive = (next: SubscriptionState) => {
+      // If we already know they're inactive AND we don't have any
+      // active signal to defend, surface immediately. The delay only
+      // exists to protect against a momentary "no-data" or "stale-
+      // canceled" flash on top of a real active subscription.
+      if (!hasActiveSignal) {
+        applyState(next);
+        return;
+      }
+      // Already scheduled — let the existing timer fire.
+      if (pendingInactive) {
+        pendingInactive = next;
+        return;
+      }
+      pendingInactive = next;
+      pendingInactiveTimer = window.setTimeout(() => {
+        const toApply = pendingInactive;
+        pendingInactiveTimer = null;
+        pendingInactive = null;
+        if (toApply && !cancelled) applyState(toApply);
+      }, INACTIVE_GRACE_MS);
+    };
+
+    // Seed initial state. Prefer the most confident signal.
     if (optimistic) applyState(optimistic);
     else if (cached) setState(cached);
     else if (localActive) setState(localActive);
     else setState(loadingState());
-
-    const revealInactiveTimer = window.setTimeout(() => {
-      readyToShowInactive = true;
-      if (pendingInactive) applyState(pendingInactive);
-    }, INACTIVE_REVEAL_DELAY_MS);
 
     const ref = doc(db, 'subscriptions', uid);
     const unsub = onSnapshot(
       ref,
       { includeMetadataChanges: true },
       (snap) => {
-        if (!snap.exists()) {
-          // Ignore cache-only misses on cold route mounts. They are the
-          // most common cause of a one-frame "start trial" flash for
-          // users whose active subscription arrives from the server a
-          // beat later.
-          if (snap.metadata.fromCache && !cached && !optimistic) return;
-          const next = EMPTY_SUBSCRIPTION;
-          if (!readyToShowInactive && !optimistic) {
-            pendingInactive = next;
-            if (!cached) applyState(loadingState());
-          }
-          else applyState(next);
+        // Cache-only miss on cold mount when we have no other active
+        // signal: ignore. Server snapshot will follow in a moment.
+        if (!snap.exists() && snap.metadata.fromCache && !cached && !optimistic) {
           return;
         }
-        const data = snap.data() as SubscriptionDoc;
-        applyState(stateFromSubscription(data));
+
+        const next = snap.exists()
+          ? stateFromSubscription(snap.data() as SubscriptionDoc)
+          : EMPTY_SUBSCRIPTION;
+
+        if (isActiveState(next)) {
+          // Active states always apply immediately — they unlock UX,
+          // they don't gate it. Also drop any pending inactive timer
+          // so a delayed false-positive can't fire after a true active.
+          clearPendingInactive();
+          applyState(next);
+        } else {
+          // Inactive in any form (no doc, canceled, past_due,
+          // incomplete, unpaid). Hold the previous state and only
+          // commit the inactive after the grace window. If a new
+          // active snapshot arrives during the window we cancel and
+          // commit that instead.
+          scheduleInactive(next);
+        }
       },
       // Silent on errors — most likely cause is rules denial because
       // the doc lives at subscriptions/cus_xxx for a marketing-site
       // signup that hasn't been linked to a uid yet.
       () => {
+        clearPendingInactive();
         const fallback = optimistic || cached;
         if (fallback) applyState({ ...fallback, loading: false });
         else applyState(EMPTY_SUBSCRIPTION);
@@ -215,7 +266,7 @@ export function useSubscription(): SubscriptionState {
     );
     return () => {
       cancelled = true;
-      window.clearTimeout(revealInactiveTimer);
+      clearPendingInactive();
       unsub();
     };
   }, [

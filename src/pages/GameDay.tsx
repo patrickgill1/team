@@ -1,7 +1,7 @@
 // @ts-nocheck
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { doc, getDoc, onSnapshot, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, updateDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
@@ -9,6 +9,13 @@ import { useTeam } from '../contexts/TeamContext';
 import { isCoach, resolveSenderRole } from '../utils/helpers';
 import GameRecapCard from '../components/gameday/GameRecapCard';
 import FormationView from '../components/gameday/FormationView';
+import {
+  addWatchGameActionListener,
+  clearWatchGameSession,
+  drainWatchGameActions,
+  publishWatchGameSession,
+  WatchGameAction,
+} from '../utils/watchGameBridge';
 
 type StatKind = 'goal' | 'owngoal' | 'assist' | 'save' | 'yellow' | 'red' | 'sub' | 'note';
 
@@ -151,7 +158,7 @@ const GameDay: React.FC = () => {
   // Lightning"). Falls back to "Us" when the team doc hasn't loaded
   // yet so we never ship a wrong club's name in a push.
   const usLabel = selectedTeam?.name || 'Us';
-  const { getDocument, getPlayersByTeam, addGameStat, updatePlayerStats, addChatMessage, addChatThread, getDocuments } = useFirestore();
+  const { getDocument, getPlayersByTeam, addGameStat, updatePlayerStats, addChatMessage, getDocuments } = useFirestore();
   const isQuickGame = !!eventId && eventId.startsWith('quick_');
   const [event, setEvent] = useState<any | null>(null);
   const [game, setGame] = useState<LiveGameDoc | null>(null);
@@ -161,6 +168,7 @@ const GameDay: React.FC = () => {
   const [pickerKind, setPickerKind] = useState<StatKind | null>(null);
   const [noteText, setNoteText] = useState('');
   const [now, setNow] = useState(Date.now());
+  const handledWatchActionIds = useRef<Set<string>>(new Set());
 
   const isUserCoach = userData ? isCoach(userData.role) : false;
 
@@ -496,11 +504,11 @@ const GameDay: React.FC = () => {
     }
   };
 
-  const removeTimelineEntry = async (id: string) => {
+  const removeTimelineEntry = async (id: string, confirmFirst = true) => {
     if (!game) return;
     const target = game.timeline.find(t => t.id === id);
     if (!target) return;
-    if (!window.confirm('Remove this entry?')) return;
+    if (confirmFirst && !window.confirm('Remove this entry?')) return;
     const newTimeline = game.timeline.filter(t => t.id !== id);
     const update: Partial<LiveGameDoc> = { timeline: newTimeline };
     if ((target.kind === 'goal' || target.kind === 'owngoal') && (game.ourScore || 0) > 0) {
@@ -509,34 +517,52 @@ const GameDay: React.FC = () => {
     await patch(update);
   };
 
-  // Post the recap to the team's chat. Finds an existing thread named
-  // "Game recaps" for this team, or creates one if it doesn't exist,
-  // then drops the recap text as a regular chat message. Lets parents
-  // see/react to recaps inside the app rather than just over share
-  // sheet text.
+  // Post the recap to a dedicated team-scoped thread. Each team gets
+  // one "Game recaps" channel, so final results do not bury regular
+  // team conversation.
   const postRecapToChat = async (text: string) => {
     if (!userData || !event?.teamId) return;
     try {
-      const existing: any[] = await getDocuments('chat_threads', []);
       const RECAP_TITLE = 'Game recaps';
-      let recapThread = (existing || []).find(
-        (t: any) => t.teamId === event.teamId && t.title === RECAP_TITLE
-      );
+      const recapThreadId = `gamerecaps_${event.teamId}`;
+      const recapRef = doc(db, 'chat_threads', recapThreadId);
+      const canonicalSnap = await getDoc(recapRef);
+      let recapThread: any = canonicalSnap.exists() ? { id: recapThreadId, ...canonicalSnap.data() } : null;
+
       if (!recapThread) {
-        const newId = await addChatThread({
+        const existing: any[] = await getDocuments('chat_threads', [
+          where('teamId', '==', event.teamId),
+          where('title', '==', RECAP_TITLE),
+        ]).catch(() => []);
+        recapThread = (existing || []).find((t: any) => (t.scope || 'team') === 'team') || null;
+      }
+
+      if (!recapThread) {
+        await setDoc(recapRef, {
+          id: recapThreadId,
           title: RECAP_TITLE,
           description: 'Auto-posted recaps after each finalized game.',
           teamId: event.teamId,
+          scope: 'team',
+          isOfficialGameRecapsThread: true,
           createdBy: userData.uid,
           createdByName: userData.name,
-          lastActivity: new Date(),
+          createdAt: serverTimestamp(),
+          lastActivity: serverTimestamp(),
           isPinned: true,
           isPrivate: false,
           messageCount: 0,
           participants: [userData.uid],
           tags: ['recap'],
-        } as any);
-        recapThread = { id: newId };
+        } as any, { merge: true });
+        recapThread = { id: recapThreadId };
+      } else {
+        await updateDoc(doc(db, 'chat_threads', recapThread.id), {
+          scope: 'team',
+          teamId: event.teamId,
+          isOfficialGameRecapsThread: true,
+          tags: Array.from(new Set([...(Array.isArray(recapThread.tags) ? recapThread.tags : []), 'recap'])),
+        }).catch(() => null);
       }
       await addChatMessage({
         threadId: recapThread.id,
@@ -672,6 +698,112 @@ const GameDay: React.FC = () => {
     return sorted[0];
   }, [lineup.benchIds, lineup.minutes, lineup.onField, liveSeconds]);
 
+  const ourScore = game?.ourScore ?? 0;
+  const oppScore = game?.oppScore ?? 0;
+  const status = game?.status || 'scheduled';
+  const sortedTimeline = useMemo(() => [...(game?.timeline || [])].sort((a, b) => b.at - a.at), [game?.timeline]);
+  const suggestedNextPlayer = suggestedNext ? players.find(p => p.id === suggestedNext) : null;
+
+  useEffect(() => {
+    if (!isUserCoach || !eventId || !event || !game) return;
+    void publishWatchGameSession({
+      eventId,
+      teamId: event.teamId || game.teamId,
+      homeName: usLabel,
+      opponentName: event.opponent || game.opponent || 'Opponent',
+      ourScore,
+      oppScore,
+      status,
+      period: game.period || 1,
+      clockOffsetSeconds: game.clockOffsetSeconds || 0,
+      clockStartedAtMs: game.status === 'live' ? (game.clockSecondsAtStart || null) : null,
+      shiftSeconds: lineup.shiftSeconds || null,
+      lastBellAtSec: lineup.lastBellAtSec || 0,
+      bellEnabled: !!lineup.bellEnabled,
+      suggestedNextPlayer: suggestedNextPlayer ? {
+        id: suggestedNextPlayer.id,
+        name: suggestedNextPlayer.name,
+        jerseyNumber: suggestedNextPlayer.jerseyNumber ?? null,
+      } : null,
+      updatedAt: Date.now(),
+    });
+  }, [
+    isUserCoach,
+    eventId,
+    event,
+    game,
+    usLabel,
+    ourScore,
+    oppScore,
+    status,
+    lineup.shiftSeconds,
+    lineup.lastBellAtSec,
+    lineup.bellEnabled,
+    suggestedNextPlayer,
+  ]);
+
+  useEffect(() => {
+    return () => { void clearWatchGameSession(); };
+  }, []);
+
+  const handleWatchGameAction = useCallback(async (action: WatchGameAction) => {
+    if (!isUserCoach || !eventId) return;
+    if (action.eventId && action.eventId !== eventId) return;
+    const actionKey = action.id || `${action.eventId || eventId}:${action.action}:${action.receivedAt || ''}`;
+    if (handledWatchActionIds.current.has(actionKey)) return;
+    handledWatchActionIds.current.add(actionKey);
+    if (handledWatchActionIds.current.size > 100) {
+      const oldestActionKey = handledWatchActionIds.current.values().next().value;
+      if (oldestActionKey) handledWatchActionIds.current.delete(oldestActionKey);
+    }
+    switch (action.action) {
+      case 'ourGoal':
+        await addTimelineEntry('goal', { note: 'Watch goal' });
+        break;
+      case 'oppGoal':
+        await incScore('opp', 1);
+        break;
+      case 'undoLast': {
+        const latest = [...(game?.timeline || [])].sort((a, b) => b.at - a.at)[0];
+        if (latest) await removeTimelineEntry(latest.id, false);
+        else if ((game?.oppScore || 0) > 0) await incScore('opp', -1);
+        break;
+      }
+      case 'subMade':
+        await acknowledgeBell();
+        break;
+      case 'startClock':
+        await startClock();
+        break;
+      case 'pauseClock':
+        await pauseClock();
+        break;
+    }
+  }, [isUserCoach, eventId, game]);
+
+  useEffect(() => {
+    if (!isUserCoach || !eventId) return;
+    let removed = false;
+    let listener: { remove: () => Promise<void> } | null = null;
+    void drainWatchGameActions().then(actions => {
+      if (removed) return;
+      actions.forEach(action => { void handleWatchGameAction(action); });
+    });
+    void addWatchGameActionListener(action => {
+      void handleWatchGameAction(action);
+      void drainWatchGameActions().then(actions => {
+        actions.forEach(queuedAction => { void handleWatchGameAction(queuedAction); });
+      });
+    }).then(handle => {
+      listener = handle;
+      if (removed && listener) void listener.remove();
+    });
+    return () => {
+      removed = true;
+      if (listener) void listener.remove();
+    };
+  }, [isUserCoach, eventId, handleWatchGameAction]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center">
@@ -692,11 +824,16 @@ const GameDay: React.FC = () => {
       </div>
     );
   }
-
-  const ourScore = game?.ourScore ?? 0;
-  const oppScore = game?.oppScore ?? 0;
-  const status = game?.status || 'scheduled';
-  const sortedTimeline = [...(game?.timeline || [])].sort((a, b) => b.at - a.at);
+  const nextCoachAction =
+    status === 'scheduled'
+      ? { label: 'Start the clock', detail: 'Kickoff is ready when you are.' }
+      : status === 'live' && suggestedNextPlayer
+        ? { label: `Next sub: ${suggestedNextPlayer.name}`, detail: `${Math.floor(minutesFor(suggestedNextPlayer.id) / 60)} min logged so far.` }
+        : status === 'live'
+          ? { label: 'Record the next moment', detail: 'Goals, cards, saves, subs, and notes stay synced.' }
+          : status === 'halftime'
+            ? { label: 'Resume second half', detail: 'Clock, score, and timeline are paused.' }
+            : { label: 'Share the recap', detail: 'Post the final summary back to team chat.' };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-white pb-32">
@@ -759,6 +896,32 @@ const GameDay: React.FC = () => {
           )}
         </div>
       </header>
+
+      <section className="max-w-3xl mx-auto px-4 pt-3">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-2xl bg-surface-elevated/90 ring-1 ring-line-default/10 p-3 min-w-0">
+            <p className="text-[9px] font-extrabold tracking-widest uppercase text-brand-primary-soft mb-1">Next</p>
+            <p className="text-[12px] font-black text-ink-primary leading-tight truncate">{nextCoachAction.label}</p>
+            <p className="text-[10px] text-ink-primary/50 leading-snug mt-1 line-clamp-2">{nextCoachAction.detail}</p>
+          </div>
+          <div className="rounded-2xl bg-surface-elevated/90 ring-1 ring-line-default/10 p-3 min-w-0">
+            <p className="text-[9px] font-extrabold tracking-widest uppercase text-amber-300 mb-1">Rotation</p>
+            <p className="text-[12px] font-black text-ink-primary leading-tight truncate">
+              {lineup.onField.length ? `${lineup.onField.length} on · ${lineup.benchIds.length} bench` : 'Lineup empty'}
+            </p>
+            <p className="text-[10px] text-ink-primary/50 leading-snug mt-1">
+              {lineup.bellEnabled ? `${Math.round(lineup.shiftSeconds / 60)} min bell on` : 'Bell off'}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-surface-elevated/90 ring-1 ring-line-default/10 p-3 min-w-0">
+            <p className="text-[9px] font-extrabold tracking-widest uppercase text-emerald-300 mb-1">Log</p>
+            <p className="text-[12px] font-black text-ink-primary leading-tight truncate">{sortedTimeline.length} moments</p>
+            <p className="text-[10px] text-ink-primary/50 leading-snug mt-1">
+              {sortedTimeline[0] ? `${KIND_META[sortedTimeline[0].kind].label} at ${sortedTimeline[0].minute}'` : 'Nothing recorded yet'}
+            </p>
+          </div>
+        </div>
+      </section>
 
       <main className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
         {/* Recap card — only after the game is finalized. Auto-builds

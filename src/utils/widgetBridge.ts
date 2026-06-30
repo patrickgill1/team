@@ -1,4 +1,4 @@
-import { registerPlugin } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
 /**
  * Native bridge to the home-screen widget's shared storage. When
@@ -7,17 +7,19 @@ import { registerPlugin } from '@capacitor/core';
  * slot (Android) that the widget's configure activity reads on
  * widget-add. The user never has to copy or paste the code.
  *
- * iOS implementation isn't wired yet — requires App Group
- * entitlements + a Swift plugin counterpart. Until then iOS users
- * still copy/paste from Settings -> Widget. The web fallback
- * below is a no-op so the call site can be platform-agnostic
- * without crashing in browser previews.
+ * iOS writes the same value into the app group's UserDefaults via
+ * WidgetBridgePlugin.swift so the WidgetKit extension can read it.
+ * The web fallback below is a no-op so the call site can be
+ * platform-agnostic without crashing in browser previews.
  */
 
 export interface WidgetBridgePlugin {
   setToken(options: { token: string }): Promise<void>;
   getToken(): Promise<{ token: string }>;
   clearToken(): Promise<void>;
+  setGameSession?(options: { session: unknown }): Promise<void>;
+  clearGameSession?(): Promise<void>;
+  drainWatchGameActions?(): Promise<{ actions: unknown[] }>;
 }
 
 const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge', {
@@ -25,10 +27,34 @@ const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge', {
     setToken: async () => {},
     getToken: async () => ({ token: '' }),
     clearToken: async () => {},
+    setGameSession: async () => {},
+    clearGameSession: async () => {},
+    drainWatchGameActions: async () => ({ actions: [] }),
   }),
 });
 
 export default WidgetBridge;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export async function syncWidgetTokenToNative(token: string, attempts = 3): Promise<{ ok: boolean; skipped?: boolean; readback?: string; error?: string }> {
+  if (!token) return { ok: false, error: 'missing-token' };
+  if (!Capacitor.isNativePlatform()) return { ok: true, skipped: true };
+
+  let lastError = '';
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await WidgetBridge.setToken({ token });
+      const readback = await WidgetBridge.getToken().catch(() => ({ token: '' }));
+      if (readback.token === token) return { ok: true, readback: readback.token };
+      lastError = readback.token ? 'readback-mismatch' : 'readback-empty';
+    } catch (err: any) {
+      lastError = String(err?.message || err || 'bridge-error');
+    }
+    if (i < attempts - 1) await delay(350 * (i + 1));
+  }
+  return { ok: false, error: lastError || 'bridge-failed' };
+}
 
 // 24 url-safe chars, ~140 bits of entropy. Used as the per-user
 // long-lived widget token. crypto.getRandomValues is available in
@@ -60,8 +86,7 @@ export async function bootstrapWidgetToken(opts: {
   if (!uid) return;
 
   if (existingToken && typeof existingToken === 'string') {
-    try { await WidgetBridge.setToken({ token: existingToken }); }
-    catch { /* native bridge may not exist on web; silent ok */ }
+    await syncWidgetTokenToNative(existingToken).catch(() => null);
     return;
   }
 
@@ -70,7 +95,7 @@ export async function bootstrapWidgetToken(opts: {
   try {
     const t = randomWidgetToken();
     await writeFirestore(uid, t);
-    try { await WidgetBridge.setToken({ token: t }); } catch { /* ignore */ }
+    await syncWidgetTokenToNative(t).catch(() => null);
   } catch {
     /* leave the user without a token; next session will retry */
   } finally {

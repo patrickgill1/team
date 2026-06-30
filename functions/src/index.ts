@@ -76,7 +76,7 @@ interface UserDoc {
 }
 
 const APP_ORIGIN =
-  process.env.APP_ORIGIN || "https://goalkickr.com";
+  process.env.APP_ORIGIN || "https://app.goalkickr.com";
 
 /**
  * Replay of the client's effectiveParticipants() rule so the fan-out

@@ -35,7 +35,7 @@ const messaging_1 = require("firebase-admin/messaging");
     maxInstances: 10,
     concurrency: 80,
 });
-const APP_ORIGIN = process.env.APP_ORIGIN || "https://goalkickr.com";
+const APP_ORIGIN = process.env.APP_ORIGIN || "https://app.goalkickr.com";
 /**
  * Replay of the client's effectiveParticipants() rule so the fan-out
  * matches what the chat UI tells the user is in the thread.

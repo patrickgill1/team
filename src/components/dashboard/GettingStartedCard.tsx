@@ -25,6 +25,11 @@ import { openWebSignup } from '../../utils/subscriptionApi';
 interface Props {
   players: any[];   // from Dashboard's player state
   events: any[];    // from Dashboard's event state
+  /** True while Dashboard's initial player/event load is in flight.
+   *  Suppresses the card so a coach with 15 players doesn't see the
+   *  "Schedule your first event" empty state flash for a moment
+   *  before the events query resolves. */
+  dataLoading?: boolean;
 }
 
 // Dismiss is keyed per team — dismissing on one team doesn't hide
@@ -46,7 +51,7 @@ interface SetupStep {
   onClick: () => void;
 }
 
-const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
+const GettingStartedCard: React.FC<Props> = ({ players, events, dataLoading }) => {
   const navigate = useNavigate();
   const { currentUser, userData } = useAuth();
   const { selectedTeamId } = useTeam();
@@ -79,6 +84,11 @@ const GettingStartedCard: React.FC<Props> = ({ players, events }) => {
   if (!userData) return null;
   if (!selectedTeamId) return null;
   if (dismissed) return null;
+  // Suppress the card while Dashboard is still fetching players +
+  // events. Without this guard a coach with 15 players sees the
+  // "Schedule your first event" empty state flash for a moment
+  // because the events array is `[]` during the load.
+  if (dataLoading) return null;
 
   const userIsCoach = isCoach(userData.role);
   const userIsClubAdmin = isClubAdminUser(userData as any);

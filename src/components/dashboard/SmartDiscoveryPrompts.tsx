@@ -16,6 +16,12 @@ interface Props {
   players: any[];
   events: any[];
   isCoach: boolean;
+  /** Suppress prompts while Dashboard's initial player/event load is
+   *  in flight — same reason GettingStartedCard skips render: an
+   *  events array that's empty because it hasn't loaded yet would
+   *  trigger the "schedule your first practice" empty-state prompt
+   *  even for a coach with a full calendar. */
+  dataLoading?: boolean;
 }
 
 const toneClass: Record<Prompt['tone'], string> = {
@@ -34,7 +40,8 @@ function isSoonGame(event: any): boolean {
   return ms > -2 * 60 * 60 * 1000 && ms < 72 * 60 * 60 * 1000;
 }
 
-const SmartDiscoveryPrompts: React.FC<Props> = ({ players, events, isCoach }) => {
+const SmartDiscoveryPrompts: React.FC<Props> = ({ players, events, isCoach, dataLoading }) => {
+  if (dataLoading) return null;
   const prompts: Prompt[] = [];
   const nextGame = events.find(isSoonGame);
   const rosterNeedsParents = players.some((p: any) =>

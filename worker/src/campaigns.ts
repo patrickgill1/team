@@ -34,6 +34,15 @@ export interface CampaignsEnv {
   FROM_EMAIL?: string;
   FROM_NAME?: string;
   APP_ORIGIN?: string;
+  API_ORIGIN?: string;
+}
+
+function appOrigin(env: CampaignsEnv): string {
+  return env.APP_ORIGIN?.replace(/\/$/, '') || 'https://app.goalkickr.com';
+}
+
+function apiOrigin(env: CampaignsEnv): string {
+  return env.API_ORIGIN?.replace(/\/$/, '') || 'https://api.goalkickr.com';
 }
 
 function getSa(env: CampaignsEnv): ServiceAccount | null {
@@ -94,14 +103,14 @@ export async function buildUnsubscribeUrl(uid: string, tier: 'tier2' | 'tier3', 
   // No expiry on unsub links — a user should always be able to
   // unsubscribe even from an old email. exp=0 means 'never'.
   const token = await signToken(uid, tier, 0, secret);
-  const base = env.APP_ORIGIN?.replace(/\/$/, '') || 'https://api.goalkickr.com';
+  const base = apiOrigin(env);
   return `${base}/u/${encodeURIComponent(token)}`;
 }
 
 export async function buildOpenPixelUrl(uid: string, campaignId: string, env: CampaignsEnv): Promise<string> {
   const secret = env.NOTIFY_SECRET || '';
   const token = await signToken(uid, 'open', 0, secret);
-  const base = env.APP_ORIGIN?.replace(/\/$/, '') || 'https://api.goalkickr.com';
+  const base = apiOrigin(env);
   return `${base}/o/${encodeURIComponent(campaignId)}/${encodeURIComponent(token)}.gif`;
 }
 
@@ -163,7 +172,7 @@ export async function handleUnsubscribe(request: Request, env: CampaignsEnv): Pr
   return new Response(unsubPage(
     `<h2>You're unsubscribed from ${tierLabel} emails.</h2>` +
     `<p>You'll still get transactional emails like password resets and billing receipts — those are required.</p>` +
-    `<p>Changed your mind? <a href="${env.APP_ORIGIN || 'https://firefc.app'}/settings">Re-subscribe in Settings</a>.</p>`,
+    `<p>Changed your mind? <a href="${appOrigin(env)}/settings">Re-subscribe in Settings</a>.</p>`,
   ), {
     status: 200,
     headers: { 'content-type': 'text/html; charset=utf-8' },
@@ -504,7 +513,7 @@ export async function runDueCampaigns(env: CampaignsEnv): Promise<{ processed: n
           recipientName: r.name,
           openPixelUrl,
           unsubUrl,
-          appOrigin: env.APP_ORIGIN || 'https://firefc.app',
+          appOrigin: appOrigin(env),
         });
         const subject = String(data.subject || 'A note from GoalKickr')
           .replace(/\{\{\s*name\s*\}\}/g, r.name || 'Coach');

@@ -12,7 +12,7 @@
 // Flow:
 //   1. Team app signUp() calls POST /auth/send-verification { email }
 //   2. Worker uses Admin SDK to generateEmailVerificationLink with
-//      continueUrl pointing at firefc.app/auth/action.
+//      continueUrl pointing at app.goalkickr.com/auth/action.
 //   3. Worker rewrites the Firebase link's host from
 //      <project>.firebaseapp.com to our APP_ORIGIN (so the link in
 //      the email matches our brand).
@@ -179,7 +179,7 @@ export async function handleSendVerification(request: Request, env: AuthMailEnv)
   const pid = projectId(env);
   const sa = getSa(env);
   if (!pid || !sa) return json({ error: 'firestore-not-configured' }, 503);
-  const appOrigin = env.APP_ORIGIN || 'https://firefc.app';
+  const appOrigin = env.APP_ORIGIN || 'https://app.goalkickr.com';
 
   try {
     const firebaseLink = await generateActionLink(pid, sa, {

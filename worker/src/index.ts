@@ -39,6 +39,7 @@ export interface Env {
   FROM_EMAIL: string;
   FROM_NAME: string;
   APP_ORIGIN: string;
+  API_ORIGIN?: string;
   ALLOWED_ORIGINS: string;
   FCM_SERVICE_ACCOUNT?: string;
   FIREBASE_PROJECT_ID?: string;

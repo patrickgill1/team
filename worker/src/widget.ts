@@ -35,10 +35,19 @@ interface WidgetSnapshot {
   nextEventTitle?: string | null;
   nextEventType?: string | null;
   nextEventDateMs?: number | null;
+  nextEventArriveByMs?: number | null;
+  nextEventArriveOffsetMinutes?: number | null;
   nextEventLocation?: string | null;
+  nextEventDevelopmentFocus?: string | null;
   // Player's RSVP for the next event ('going' | 'maybe' | 'no' |
   // null if no response). Read from event.playerRsvps[playerId].
   nextEventRsvp?: 'going' | 'maybe' | 'no' | null;
+  nextEventNeedsRsvp?: boolean | null;
+  postEventFeedbackEventId?: string | null;
+  postEventFeedbackTitle?: string | null;
+  postEventFeedbackDateMs?: number | null;
+  postEventFeedbackFocus?: string | null;
+  needsPostEventFeedback?: boolean | null;
   // Fallback when the schedule is empty — shows the most recent
   // game result so the widget always has something to show.
   lastResultTitle?: string | null;
@@ -68,6 +77,13 @@ function getSa(env: WidgetEnv): ServiceAccount | null {
 function projectId(env: WidgetEnv): string | null {
   if (env.FIREBASE_PROJECT_ID) return env.FIREBASE_PROJECT_ID;
   return getSa(env)?.project_id || null;
+}
+
+function eventDateMs(value: any): number {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'string') return Date.parse(value);
+  if (typeof value === 'number') return value;
+  return NaN;
 }
 
 // Constant-time compare so token verification isn't timing-
@@ -222,6 +238,7 @@ async function buildSnapshot(
   let nextMs = Number.POSITIVE_INFINITY;
   let lastGame: any = null;
   let lastGameMs = Number.NEGATIVE_INFINITY;
+  let feedbackPrompt: { eventId: string; event: any; dateMs: number } | null = null;
   const nowMs = Date.now();
   const lookbackDays = 21;
   const lookbackDate = new Date(nowMs - lookbackDays * 24 * 60 * 60 * 1000);
@@ -255,51 +272,78 @@ async function buildSnapshot(
     for (const r of rows) {
       const d: any = r.data || {};
       if (d.isCancelled === true) continue;
-      const ms = d.date instanceof Date
-        ? d.date.getTime()
-        : (typeof d.date === 'string' ? Date.parse(d.date) : NaN);
+      const ms = eventDateMs(d.date);
       if (!Number.isFinite(ms) || ms < nowMs) continue;
       if (ms < nextMs) { nextMs = ms; nextEvent = d; }
     }
   }
 
-  // PASS 2 — last completed game (fallback when no upcoming).
-  // Only fired if Pass 1 found nothing, since walking the past for
-  // every render is wasted work when the schedule isn't empty.
-  if (!nextEvent) {
-    for (const tid of tIds.slice(0, 5)) {
-      let rows: any[] = [];
-      try {
-        rows = await runQuery(
-          pid,
-          'events',
-          [
-            { field: 'teamId', op: 'EQUAL', value: tid },
-            { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: lookbackDate },
-            { field: 'date', op: 'LESS_THAN', value: nowDate },
-          ],
-          sa,
-          100,
-        );
-        console.log(`[widget] past team=${tid} count=${rows.length}`);
-      } catch (e) {
-        console.error('[widget] past query failed for team', tid, (e as Error).message);
-        continue;
+  // PASS 2 — recent past. Needed for two widget paths:
+  //   (a) last completed game fallback when there is no upcoming event
+  //   (b) post-event feedback nudge after a practice/game ends
+  for (const tid of tIds.slice(0, 5)) {
+    let rows: any[] = [];
+    try {
+      rows = await runQuery(
+        pid,
+        'events',
+        [
+          { field: 'teamId', op: 'EQUAL', value: tid },
+          { field: 'date', op: 'GREATER_THAN_OR_EQUAL', value: lookbackDate },
+          { field: 'date', op: 'LESS_THAN', value: nowDate },
+        ],
+        sa,
+        100,
+      );
+      console.log(`[widget] past team=${tid} count=${rows.length}`);
+    } catch (e) {
+      console.error('[widget] past query failed for team', tid, (e as Error).message);
+      continue;
+    }
+    for (const r of rows) {
+      const d: any = r.data || {};
+      if (d.isCancelled === true) continue;
+      const ms = eventDateMs(d.date);
+      if (!Number.isFinite(ms)) continue;
+      const endMs = Number.isFinite(eventDateMs(d.endDate)) ? eventDateMs(d.endDate) : ms + 90 * 60 * 1000;
+      const feedbackMap = d.playerFeedback && typeof d.playerFeedback === 'object' ? d.playerFeedback : {};
+      const hasFeedback = linked.some(r => {
+        const playerFeedback = (feedbackMap as any)[r.id];
+        return playerFeedback && typeof playerFeedback === 'object' && !!playerFeedback[uid];
+      });
+      // A lightweight widget nudge for the most recent completed
+      // event in the last 36 hours where this parent/player hasn't
+      // checked in yet. It intentionally works for practices and
+      // games, not just completed game-result records.
+      if (!hasFeedback && endMs < nowMs && nowMs - endMs <= 36 * 60 * 60 * 1000) {
+        if (!feedbackPrompt || ms > feedbackPrompt.dateMs) {
+          feedbackPrompt = { eventId: r.id as string, event: d, dateMs: ms };
+        }
       }
-      for (const r of rows) {
-        const d: any = r.data || {};
-        if (d.isCancelled === true) continue;
-        const ms = d.date instanceof Date
-          ? d.date.getTime()
-          : (typeof d.date === 'string' ? Date.parse(d.date) : NaN);
-        if (!Number.isFinite(ms)) continue;
-        const res: any = d.result;
-        const isCompleted = res && typeof res === 'object' && res.status === 'completed'
-          && typeof res.teamScore === 'number' && typeof res.opponentScore === 'number';
-        if (isCompleted && ms > lastGameMs) { lastGameMs = ms; lastGame = d; }
-      }
+      const res: any = d.result;
+      const isCompleted = res && typeof res === 'object' && res.status === 'completed'
+        && typeof res.teamScore === 'number' && typeof res.opponentScore === 'number';
+      if (isCompleted && ms > lastGameMs) { lastGameMs = ms; lastGame = d; }
     }
   }
+
+  const nextEventRsvp: 'going' | 'maybe' | 'no' | null = (() => {
+    const m = nextEvent?.playerRsvps;
+    if (!m || typeof m !== 'object') return null;
+    // Check every linked player id — the kid's main-team record
+    // and academy-team record have different player ids, and the
+    // RSVP is keyed by whichever id matches the event's team.
+    for (const r of linked) {
+      const row = (m as any)[r.id];
+      const s = row?.status;
+      if (s === 'going' || s === 'maybe' || s === 'no') return s;
+    }
+    return null;
+  })();
+  const nextArriveOffset = Number(nextEvent?.arriveOffsetMinutes || 0);
+  const nextArriveByMs = Number.isFinite(nextMs) && nextArriveOffset > 0
+    ? nextMs - nextArriveOffset * 60 * 1000
+    : (Number.isFinite(nextMs) ? nextMs : null);
 
   let lastResultScore: string | null = null;
   let lastResultTitle: string | null = null;
@@ -332,20 +376,17 @@ async function buildSnapshot(
     nextEventTitle: nextEvent?.title || null,
     nextEventType: nextEvent?.type || null,
     nextEventDateMs: Number.isFinite(nextMs) ? nextMs : null,
+    nextEventArriveByMs: nextArriveByMs,
+    nextEventArriveOffsetMinutes: nextArriveOffset > 0 ? nextArriveOffset : null,
     nextEventLocation: nextEvent?.location || null,
-    nextEventRsvp: ((): 'going' | 'maybe' | 'no' | null => {
-      const m = nextEvent?.playerRsvps;
-      if (!m || typeof m !== 'object') return null;
-      // Check every linked player id — the kid's main-team record
-      // and academy-team record have different player ids, and the
-      // RSVP is keyed by whichever id matches the event's team.
-      for (const r of linked) {
-        const row = (m as any)[r.id];
-        const s = row?.status;
-        if (s === 'going' || s === 'maybe' || s === 'no') return s;
-      }
-      return null;
-    })(),
+    nextEventDevelopmentFocus: nextEvent?.developmentFocus || null,
+    nextEventRsvp,
+    nextEventNeedsRsvp: !!nextEvent && !nextEventRsvp,
+    postEventFeedbackEventId: feedbackPrompt?.eventId || null,
+    postEventFeedbackTitle: feedbackPrompt?.event?.title || null,
+    postEventFeedbackDateMs: feedbackPrompt?.dateMs || null,
+    postEventFeedbackFocus: feedbackPrompt?.event?.developmentFocus || null,
+    needsPostEventFeedback: !!feedbackPrompt,
     lastResultTitle,
     lastResultScore,
     lastResultDateMs: Number.isFinite(lastGameMs) ? lastGameMs : null,

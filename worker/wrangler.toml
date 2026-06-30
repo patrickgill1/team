@@ -13,7 +13,8 @@ workers_dev = true
 [vars]
 FROM_EMAIL = "noreply@goalkickr.com"
 FROM_NAME  = "GoalKickr"
-APP_ORIGIN = "https://firefc.app"
+APP_ORIGIN = "https://app.goalkickr.com"
+API_ORIGIN = "https://api.goalkickr.com"
 # Required by /auth/exchange-id-token to validate the `aud` claim on
 # Firebase ID tokens received from the native plugin's getIdToken(). The
 # project ID isn't secret — Firebase exposes it in client-side config.

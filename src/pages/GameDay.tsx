@@ -666,6 +666,94 @@ const GameDay: React.FC = () => {
     await persistLineup({ ...lineup, lastBellAtSec: liveSeconds });
   };
 
+  // Watch Quick Sub: swap `inPlayerId` off the bench for the
+  // longest-on-field player. Atomic — one persistLineup call — so a
+  // slow network can't leave us mid-swap. Snapshots the reverse
+  // state into `pendingSubUndo` so the coach has 8 seconds to undo
+  // if the Watch tap was wrong (fat-fingered a neighbor in the list).
+  const [pendingSubUndo, setPendingSubUndo] = useState<{
+    inId: string;
+    outId: string;
+    inName: string;
+    outName: string;
+    prevLineup: LineupState;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!pendingSubUndo) return;
+    const id = window.setTimeout(() => setPendingSubUndo(null), 8000);
+    return () => window.clearTimeout(id);
+  }, [pendingSubUndo]);
+
+  const watchQuickSub = useCallback(async (inPlayerId: string) => {
+    if (!lineup.benchIds.includes(inPlayerId)) return;
+    // Auto-pick sub-out: the on-field player with the longest current
+    // shift (highest liveSeconds - enteredAtSec). Rotates the tired
+    // player off without the coach having to pick.
+    const outSlot = [...lineup.onField].sort(
+      (a, b) => (liveSeconds - a.enteredAtSec) - (liveSeconds - b.enteredAtSec)
+    ).pop();
+    if (!outSlot) return; // empty field — nothing to swap out
+    const outId = outSlot.playerId;
+    const accrued = game?.status === 'live' ? Math.max(0, liveSeconds - outSlot.enteredAtSec) : 0;
+    const prevLineup = lineup;
+    const nextLineup: LineupState = {
+      ...lineup,
+      onField: [
+        ...lineup.onField.filter(s => s.playerId !== outId),
+        { playerId: inPlayerId, enteredAtSec: liveSeconds },
+      ],
+      benchIds: [...lineup.benchIds.filter(id => id !== inPlayerId), outId],
+      minutes: {
+        ...(lineup.minutes || {}),
+        [outId]: (lineup.minutes?.[outId] || 0) + accrued,
+      },
+      lastBellAtSec: liveSeconds, // ack the bell too — Watch tap covers both
+    };
+    const inP = players.find(x => x.id === inPlayerId);
+    const outP = players.find(x => x.id === outId);
+    const now = Date.now();
+    const rand = () => Math.random().toString(36).slice(2, 6);
+    const entryIn: TimelineEntry = {
+      id: `${now}_${rand()}`,
+      at: now, minute, kind: 'sub',
+      playerId: inPlayerId, playerName: inP?.name, jerseyNumber: inP?.jerseyNumber,
+      note: 'on',
+      recordedBy: userData?.uid, recordedByName: userData?.name || 'Coach',
+      source: 'live',
+    };
+    const entryOut: TimelineEntry = {
+      id: `${now + 1}_${rand()}`,
+      at: now + 1, minute, kind: 'sub',
+      playerId: outId, playerName: outP?.name, jerseyNumber: outP?.jerseyNumber,
+      note: 'off',
+      recordedBy: userData?.uid, recordedByName: userData?.name || 'Coach',
+      source: 'live',
+    };
+    await persistLineup(nextLineup, entryIn);
+    await persistLineup(nextLineup, entryOut);
+    setPendingSubUndo({
+      inId: inPlayerId,
+      outId,
+      inName: inP?.name || 'Player',
+      outName: outP?.name || 'Player',
+      prevLineup,
+    });
+  }, [lineup, liveSeconds, game?.status, players, minute, userData?.uid, userData?.name]);
+
+  const undoQuickSub = useCallback(async () => {
+    if (!pendingSubUndo) return;
+    // Reverse: restore the pre-swap lineup and pop the two sub
+    // timeline entries we wrote.
+    await persistLineup(pendingSubUndo.prevLineup);
+    const timeline = [...(game?.timeline || [])].sort((a, b) => b.at - a.at);
+    const outEntry = timeline.find(t => t.kind === 'sub' && t.playerId === pendingSubUndo.outId && t.note === 'off');
+    const inEntry = timeline.find(t => t.kind === 'sub' && t.playerId === pendingSubUndo.inId && t.note === 'on');
+    if (outEntry) await removeTimelineEntry(outEntry.id, false);
+    if (inEntry) await removeTimelineEntry(inEntry.id, false);
+    setPendingSubUndo(null);
+  }, [pendingSubUndo, game?.timeline]);
+
   // Bell trigger
   const bellAlerted = useRef<number>(0);
   useEffect(() => {
@@ -725,6 +813,22 @@ const GameDay: React.FC = () => {
         name: suggestedNextPlayer.name,
         jerseyNumber: suggestedNextPlayer.jerseyNumber ?? null,
       } : null,
+      // Bench snapshot for the Watch player picker. Sorted
+      // fewest-minutes-first so the top of the Digital-Crown scroll
+      // is always the player who most needs time — one flick usually
+      // gets the coach where they want to be.
+      bench: [...lineup.benchIds]
+        .sort((a, b) => minutesFor(a) - minutesFor(b))
+        .map(id => {
+          const p = players.find(x => x.id === id);
+          if (!p) return null;
+          return {
+            id: p.id,
+            name: p.name || 'Player',
+            jerseyNumber: p.jerseyNumber ?? null,
+          };
+        })
+        .filter((x): x is { id: string; name: string; jerseyNumber: number | null } => x !== null),
       updatedAt: Date.now(),
     });
   }, [
@@ -739,7 +843,10 @@ const GameDay: React.FC = () => {
     lineup.shiftSeconds,
     lineup.lastBellAtSec,
     lineup.bellEnabled,
+    lineup.benchIds,
+    lineup.minutes,
     suggestedNextPlayer,
+    players,
   ]);
 
   useEffect(() => {
@@ -785,7 +892,11 @@ const GameDay: React.FC = () => {
         break;
       }
       case 'subMade':
-        await acknowledgeBell();
+        // If the Watch sent a specific playerId, run the auto-swap.
+        // If not (e.g. pre-picker Watch app version, or the coach hit
+        // the fallback "just reset timer" path), just ack the bell.
+        if (action.playerId) await watchQuickSub(action.playerId);
+        else await acknowledgeBell();
         break;
       case 'startClock':
         await startClock();
@@ -794,7 +905,7 @@ const GameDay: React.FC = () => {
         await pauseClock();
         break;
     }
-  }, [isUserCoach, eventId, game]);
+  }, [isUserCoach, eventId, game, watchQuickSub]);
 
   useEffect(() => {
     if (!isUserCoach || !eventId) return;
@@ -852,6 +963,24 @@ const GameDay: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-white pb-32">
+      {/* Watch Quick Sub undo toast — 8-second window to reverse a
+          Watch-triggered swap. Renders above the sticky header so it
+          isn't hidden by the scoreboard. */}
+      {pendingSubUndo && (
+        <div className="sticky top-0 z-30 bg-emerald-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold shadow-lg animate-slide-down">
+          <span className="truncate">
+            <span className="opacity-80 mr-1">Sub:</span>
+            {pendingSubUndo.inName.split(' ')[0]} in for {pendingSubUndo.outName.split(' ')[0]}
+          </span>
+          <button
+            type="button"
+            onClick={undoQuickSub}
+            className="text-[11px] tracking-widest uppercase font-black bg-white/20 rounded-full px-3 py-1 hover:bg-white/30 active:bg-white/40 transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
       {/* Header / Scoreboard */}
       <header className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-line-default/10">
         <div className="max-w-3xl mx-auto px-4 py-3">

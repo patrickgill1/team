@@ -58,6 +58,16 @@ interface LiveGameDoc {
   updatedAt?: any;
   startedBy?: string;
   startedByName?: string;
+  /** When explicitly false, the game does not roll up into player
+   *  season totals (players.stats.goals/assists/etc.) or write a
+   *  game_stats row on Final. Timeline entries are still recorded so
+   *  the coach can browse who did what during a scrimmage or a test
+   *  game, but nothing sticks to the player card.
+   *
+   *  Undefined = counts (opt-out model). Demo teams (team.isDemo)
+   *  force this to false regardless of the toggle.
+   */
+  countsToStats?: boolean;
 }
 
 interface OnFieldSlot {
@@ -324,6 +334,16 @@ const GameDay: React.FC = () => {
     const theirs = game.oppScore || 0;
     const result = ours > theirs ? 'Win' : ours < theirs ? 'Loss' : 'Draw';
     void notifyGoingParents(`Full time — ${result}`, `${usLabel} ${ours}-${theirs} ${opp}`);
+    // Stats gate: skip season-aggregate writes when the coach turned
+    // "counts to stats" off on this specific game (scrimmage, testing)
+    // OR when the team is flagged as demo. Timeline is already written
+    // and stays viewable — nothing rolls up to player cards.
+    const teamIsDemo = (selectedTeam as any)?.isDemo === true;
+    const gameCountsToStats = game.countsToStats !== false;
+    if (!gameCountsToStats || teamIsDemo) {
+      console.log(`[gameday] endGame: skipping stats rollup (countsToStats=${game.countsToStats}, teamIsDemo=${teamIsDemo})`);
+      return;
+    }
     // Write season-aggregate stats
     try {
       const counts: Record<string, { goals: number; assists: number; saves: number; yellow: number; red: number; name: string }> = {};
@@ -986,14 +1006,47 @@ const GameDay: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <Link to="/calendar" className="text-xs text-white/60 hover:text-white">← Calendar</Link>
-            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
-              status === 'live' ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
-              status === 'halftime' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40' :
-              status === 'final' ? 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40' :
-              'bg-brand-primary/20 text-brand-primary-soft ring-1 ring-brand-primary/40'
-            }`}>
-              {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}
-            </span>
+            <div className="flex items-center gap-2">
+              {isUserCoach && (() => {
+                // Stats toggle. Off = scrimmage / testing (timeline still
+                // records but nothing rolls up to player cards on Final).
+                // Demo teams force off and lock the toggle.
+                const teamIsDemo = (selectedTeam as any)?.isDemo === true;
+                const countsOn = !teamIsDemo && (game?.countsToStats !== false);
+                const label = teamIsDemo ? 'DEMO · STATS OFF' : countsOn ? 'STATS ON' : 'STATS OFF';
+                const tone = countsOn
+                  ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30 hover:bg-emerald-500/25'
+                  : 'bg-amber-500/20 text-amber-300 ring-amber-500/40 hover:bg-amber-500/30';
+                return (
+                  <button
+                    type="button"
+                    disabled={teamIsDemo}
+                    onClick={async () => {
+                      await ensureGameDoc();
+                      await patch({ countsToStats: !countsOn } as any);
+                    }}
+                    className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ring-1 transition-colors ${tone} ${
+                      teamIsDemo ? 'cursor-not-allowed opacity-90' : ''
+                    }`}
+                    title={teamIsDemo
+                      ? 'Demo team: games never count toward stats'
+                      : countsOn
+                        ? 'Tap to skip stats for this game (scrimmage / testing)'
+                        : 'Tap to count this game toward season stats'}
+                  >
+                    {label}
+                  </button>
+                );
+              })()}
+              <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
+                status === 'live' ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40 animate-pulse' :
+                status === 'halftime' ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40' :
+                status === 'final' ? 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/40' :
+                'bg-brand-primary/20 text-brand-primary-soft ring-1 ring-brand-primary/40'
+              }`}>
+                {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}
+              </span>
+            </div>
           </div>
           <div className="grid grid-cols-3 items-center text-center gap-2">
             <div>

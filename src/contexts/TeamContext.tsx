@@ -86,6 +86,8 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               clubId: (data as any).clubId,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
+              isDemo: data.isDemo === true,
+              notificationsDisabled: data.notificationsDisabled === true,
               createdAt: data.createdAt?.toDate?.() || new Date(),
               updatedAt: data.updatedAt?.toDate?.() || undefined,
             });
@@ -148,6 +150,8 @@ export const TeamProvider: React.FC<{ children: React.ReactNode }> = ({ children
               clubId: (data as any).clubId,
               isActive: data.isActive !== false,
               archivedAt: data.archivedAt?.toDate?.() || undefined,
+              isDemo: data.isDemo === true,
+              notificationsDisabled: data.notificationsDisabled === true,
               createdAt: data.createdAt?.toDate?.() || new Date(),
               updatedAt: data.updatedAt?.toDate?.() || undefined,
             });

@@ -1642,6 +1642,14 @@ export interface Team {
    *  remains queryable for parents/players to view past content. */
   isActive?: boolean;
   archivedAt?: Date;
+  /** Demo team flag. Skips push fan-out on event/chat creation AND
+   *  forces countsToStats=false on all games — the team is for
+   *  screenshots / testing, not real play. Set via Firestore console. */
+  isDemo?: boolean;
+  /** Broader kill switch for push fan-out only (does NOT gate stats).
+   *  Use this to pause notifications on a real team without treating
+   *  it as demo content. */
+  notificationsDisabled?: boolean;
   /** Team-activation funnel — five stages tracking the path from
    *  tryouts to season-ready. Same shape as Player.funnelProgress, with
    *  Team-specific stage keys. Some stages auto-fill from existing data

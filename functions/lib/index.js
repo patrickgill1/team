@@ -117,6 +117,27 @@ exports.onChatMessageCreate = (0, firestore_1.onDocumentCreated)("chat_messages/
         return;
     }
     const thread = { id: threadSnap.id, ...threadSnap.data() };
+    // Same demo-team kill switch as onEventCreate. Threads on a
+    // demo/notifications-off team never fan out, even if stale
+    // team memberships would otherwise resolve real users.
+    const threadTeamId = thread.teamId;
+    if (threadTeamId) {
+        try {
+            const teamSnap = await db.collection("teams").doc(threadTeamId).get();
+            if (teamSnap.exists) {
+                const t = teamSnap.data();
+                if (t.isDemo === true || t.notificationsDisabled === true) {
+                    firebase_functions_1.logger.info("chat push skipped — team demo/notifications-off", {
+                        messageId, threadId: message.threadId, teamId: threadTeamId,
+                    });
+                    return;
+                }
+            }
+        }
+        catch (err) {
+            firebase_functions_1.logger.warn("team demo-flag lookup failed", { teamId: threadTeamId, err });
+        }
+    }
     const candidateUids = await resolveRecipientUids(thread);
     const mutedThreadSet = new Set(thread.mutedByUids || []);
     const recipients = candidateUids.filter((uid) => !!uid &&
@@ -340,6 +361,28 @@ exports.onEventCreate = (0, firestore_1.onDocumentCreated)("events/{eventId}", a
     }
     const db = (0, firestore_2.getFirestore)();
     const teamId = eventDoc.teamId;
+    // Kill switch: teams flagged as demo/screenshot content, or
+    // explicitly opted out of push, never fan out. Prevents the
+    // 2026-07-01 leak where an event created on a demo team pushed
+    // a notification to a real user whose account still had the
+    // demo team in `teamIds` (stale membership from initial setup).
+    // Marking the team doc with either flag stops the fan-out
+    // regardless of who still touches the team's memberships.
+    try {
+        const teamSnap = await db.collection("teams").doc(teamId).get();
+        if (teamSnap.exists) {
+            const t = teamSnap.data();
+            if (t.isDemo === true || t.notificationsDisabled === true) {
+                firebase_functions_1.logger.info("event push skipped — team demo/notifications-off", {
+                    eventId, teamId,
+                });
+                return;
+            }
+        }
+    }
+    catch (err) {
+        firebase_functions_1.logger.warn("team demo-flag lookup failed", { teamId, err });
+    }
     // Resolve team roster — same two-path lookup as the chat trigger.
     const candidateUids = new Set();
     try {

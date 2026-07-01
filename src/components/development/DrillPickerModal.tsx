@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../utils/firebase';
 import { Drill } from '../../types';
 import { useFirestore } from '../../hooks/useFirestore';
 
@@ -25,13 +27,28 @@ interface Props {
   onPick: (drills: Drill[]) => void;
 }
 
+// Ambient metadata not on the base Drill type — kept as an intersection
+// so the picker can render badges without polluting the exported Drill
+// interface. `useCase` and `shareToLibrary` DO exist on drill docs but
+// aren't declared on the type; this is a local narrowing.
+type PickerDrill = Drill & {
+  useCase?: 'team' | 'solo' | 'both';
+  shareToLibrary?: boolean;
+  averageRating?: number;
+  ratingCount?: number;
+};
+
 const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) => {
-  const { getDocuments } = useFirestore();
-  const [drills, setDrills] = useState<Drill[]>([]);
+  useFirestore(); // preserved for provider-init side effects
+  const [drills, setDrills] = useState<PickerDrill[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterTopic, setFilterTopic] = useState<Drill['topic'] | 'all'>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Dev-plan context = solo work by default. Team drills get hidden
+  // unless the coach flips "Show all" — matches the split for
+  // PracticePlanBuilder (which is the mirror image).
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !teamId) return;
@@ -39,21 +56,34 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
     (async () => {
       try {
         setLoading(true);
-        const all = await getDocuments('drills', []);
-        const visible = (all as any[])
+        // Two sources, deduped by drill id:
+        //  1. This team's drills
+        //  2. Every drill flagged shareToLibrary === true
+        // Sharing is only useful once the shared drills show up in
+        // the surface where coaches build assignments — the join.
+        const [teamSnap, sharedSnap] = await Promise.all([
+          getDocs(query(collection(db, 'drills'), where('teamId', '==', teamId))),
+          getDocs(query(collection(db, 'drills'), where('shareToLibrary', '==', true))),
+        ]);
+        if (cancelled) return;
+        const map = new Map<string, any>();
+        teamSnap.docs.forEach(d => map.set(d.id, { id: d.id, ...(d.data() as any) }));
+        sharedSnap.docs.forEach(d => {
+          if (!map.has(d.id)) map.set(d.id, { id: d.id, ...(d.data() as any) });
+        });
+        const visible = Array.from(map.values())
           .filter(d => d.isActive !== false)
-          .filter(d => d.teamId === teamId)
           .map(d => ({
             ...d,
             createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(d.createdAt || Date.now()),
-          })) as Drill[];
+          })) as PickerDrill[];
         if (!cancelled) setDrills(visible);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [isOpen, teamId, getDocuments]);
+  }, [isOpen, teamId]);
 
   useEffect(() => {
     if (!isOpen) setSelected(new Set());
@@ -62,11 +92,29 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return drills.filter(d => {
+      // Dev-plan lane: solo + both by default. showAll flips the
+      // filter off entirely so a coach can grab a team drill for
+      // per-kid assignment when they want to.
+      if (!showAll) {
+        const uc = d.useCase;
+        if (uc === 'team' || uc === undefined) return false;
+      }
       if (filterTopic !== 'all' && d.topic !== filterTopic) return false;
       if (q && !d.title.toLowerCase().includes(q) && !(d.focus || '').toLowerCase().includes(q)) return false;
       return true;
-    }).sort((a, b) => (b.assignmentCount || 0) - (a.assignmentCount || 0));
-  }, [drills, search, filterTopic]);
+    }).sort((a, b) => {
+      // Rated shared drills at the top when we're not sorting by team
+      // usage; falls back to assignment count.
+      const ar = a.shareToLibrary ? (a.averageRating || 0) : 0;
+      const br = b.shareToLibrary ? (b.averageRating || 0) : 0;
+      if (ar !== br) return br - ar;
+      return (b.assignmentCount || 0) - (a.assignmentCount || 0);
+    });
+  }, [drills, search, filterTopic, showAll]);
+  const teamHiddenCount = useMemo(
+    () => showAll ? 0 : drills.filter(d => d.useCase === 'team' || d.useCase === undefined).length,
+    [drills, showAll],
+  );
 
   const toggle = (id: string) => {
     setSelected(prev => {
@@ -98,7 +146,7 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
           </button>
         </div>
 
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-2">
+        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap gap-2 items-center">
           <input
             type="text"
             value={search}
@@ -114,7 +162,24 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
             <option value="all">All topics</option>
             {Object.entries(TOPIC_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
+          <button
+            type="button"
+            onClick={() => setShowAll(v => !v)}
+            className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full ring-1 transition ${
+              showAll
+                ? 'bg-brand-primary text-white ring-brand-primary/60'
+                : 'bg-slate-100 text-slate-600 ring-slate-200 hover:bg-slate-200'
+            }`}
+            title={showAll ? 'Currently showing everything' : 'Showing solo drills only'}
+          >
+            {showAll ? 'Solo only' : 'Show all'}
+          </button>
         </div>
+        {!showAll && teamHiddenCount > 0 && (
+          <div className="px-5 py-1.5 text-[11px] text-slate-500 bg-slate-50 border-b border-slate-100">
+            {teamHiddenCount} team drill{teamHiddenCount === 1 ? '' : 's'} hidden (for practice plans)
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-3">
           {loading ? (
@@ -152,6 +217,19 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
                         <span className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary bg-brand-primary-soft ring-1 ring-brand-primary-soft px-1.5 py-0.5 rounded">
                           {TOPIC_LABELS[d.topic]}
                         </span>
+                        {d.shareToLibrary && d.teamId !== teamId && (
+                          <span
+                            className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-1.5 py-0.5 rounded"
+                            title="From the shared library"
+                          >
+                            Library
+                          </span>
+                        )}
+                        {d.useCase === 'solo' && (
+                          <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-700 bg-amber-50 ring-1 ring-amber-200 px-1.5 py-0.5 rounded">
+                            Solo
+                          </span>
+                        )}
                         {d.source === 'ai' && (
                           <span className="text-[10px] font-extrabold tracking-widest uppercase text-violet-700 bg-violet-50 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">AI</span>
                         )}
@@ -165,6 +243,9 @@ const DrillPickerModal: React.FC<Props> = ({ isOpen, onClose, teamId, onPick }) 
                         {d.durationMinutes != null && <span>{d.durationMinutes} min</span>}
                         {d.videoLinks && d.videoLinks.length > 0 && <span>· {d.videoLinks.length} video{d.videoLinks.length === 1 ? '' : 's'}</span>}
                         {d.assignmentCount != null && d.assignmentCount > 0 && <span>· assigned {d.assignmentCount}×</span>}
+                        {d.shareToLibrary && d.ratingCount && d.ratingCount > 0 ? (
+                          <span>· ★ {(d.averageRating || 0).toFixed(1)} <span className="opacity-70">({d.ratingCount})</span></span>
+                        ) : null}
                       </div>
                     </button>
                   </li>

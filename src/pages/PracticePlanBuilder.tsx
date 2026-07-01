@@ -19,6 +19,14 @@ interface Drill {
   category: 'warmup' | 'technical' | 'tactical' | 'scrimmage' | 'fitness' | 'cooldown';
   notes?: string;
   equipment?: string;
+  // Picker-only metadata (never persisted onto a practice plan).
+  // Kept optional so the shape stays valid on saved plans too.
+  _useCase?: 'team' | 'solo' | 'both';
+  _fromLibrary?: boolean;
+  _sourceUid?: string;
+  _createdByName?: string;
+  _averageRating?: number;
+  _ratingCount?: number;
 }
 
 interface PracticePlan {
@@ -68,13 +76,19 @@ function pickSegment(realCategory: string | undefined, useCase: string | undefin
   }
 }
 
-function adaptRealDrill(d: any): Drill {
+function adaptRealDrill(d: any, opts?: { fromLibrary?: boolean }): Drill {
   return {
     id: d.id,
     name: d.title || 'Untitled drill',
     durationMin: typeof d.durationMinutes === 'number' && d.durationMinutes > 0 ? d.durationMinutes : 10,
     category: pickSegment(d.category, d.useCase),
     notes: d.focus || d.description || undefined,
+    _useCase: d.useCase,
+    _fromLibrary: !!opts?.fromLibrary,
+    _sourceUid: d.createdBy,
+    _createdByName: d.createdByName,
+    _averageRating: typeof d.averageRating === 'number' ? d.averageRating : undefined,
+    _ratingCount: typeof d.ratingCount === 'number' ? d.ratingCount : undefined,
   };
 }
 
@@ -93,6 +107,11 @@ const PracticePlanBuilder: React.FC = () => {
   // page and Training Ground share the same source of truth.
   const [libraryDrills, setLibraryDrills] = useState<Drill[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
+  // Picker-scope filter. Practice building is a team-context task, so
+  // the default lane is team + both. "Show all" reveals solo drills
+  // too (per-kid homework) for the rare case the coach wants to grab
+  // one for group work.
+  const [pickerShowAll, setPickerShowAll] = useState(false);
 
   const active = useMemo(() => plans.find(p => p.id === activeId) || null, [plans, activeId]);
   const totalMin = useMemo(() => (active ? active.drills.reduce((s, d) => s + (d.durationMin || 0), 0) : 0), [active]);
@@ -116,24 +135,38 @@ const PracticePlanBuilder: React.FC = () => {
     })();
   }, [selectedTeamId]);
 
-  // Load the real drill library — same source as Training Ground.
-  // Filters: this team's drills + any club-shared drills the user
-  // has access to. Active only. Sort by most-used first so the
-  // workhorses bubble to the top of the library picker.
+  // Load drills from TWO sources:
+  //  1. This team's drills (owned/shared into the team).
+  //  2. Every drill flagged `shareToLibrary: true` across the platform.
+  //     Marked `_fromLibrary: true` so the picker shows a badge and
+  //     the rating strip. Sharing is only useful if the shared drills
+  //     surface in the surface coaches build sessions from — this is
+  //     the join.
   useEffect(() => {
     if (!selectedTeamId) return;
     let cancelled = false;
     (async () => {
       setLibraryLoading(true);
       try {
-        const snap = await getDocs(query(collection(db, 'drills'), where('teamId', '==', selectedTeamId)));
+        const [teamSnap, sharedSnap] = await Promise.all([
+          getDocs(query(collection(db, 'drills'), where('teamId', '==', selectedTeamId))),
+          getDocs(query(collection(db, 'drills'), where('shareToLibrary', '==', true))),
+        ]);
         if (cancelled) return;
-        const adapted = snap.docs
+        const teamRows = teamSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        const teamIds = new Set(teamRows.map((d: any) => d.id));
+        const sharedRows = sharedSnap.docs
           .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((d: any) => !teamIds.has(d.id));  // dedup — team drill wins over its library copy
+        const adaptedTeam = teamRows
           .filter((d: any) => d.isActive !== false)
           .sort((a: any, b: any) => (b.assignmentCount || 0) - (a.assignmentCount || 0))
-          .map(adaptRealDrill);
-        setLibraryDrills(adapted);
+          .map(d => adaptRealDrill(d, { fromLibrary: false }));
+        const adaptedShared = sharedRows
+          .filter((d: any) => d.isActive !== false)
+          .sort((a: any, b: any) => (b.averageRating || 0) - (a.averageRating || 0))
+          .map(d => adaptRealDrill(d, { fromLibrary: true }));
+        setLibraryDrills([...adaptedTeam, ...adaptedShared]);
       } catch (e) {
         console.warn('drill library load failed', e);
       } finally {
@@ -142,6 +175,14 @@ const PracticePlanBuilder: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, [selectedTeamId]);
+
+  // Practice building = team context by default. Filter out solo
+  // drills unless the coach explicitly asks for "show all."
+  const pickerDrills = useMemo(() => {
+    if (pickerShowAll) return libraryDrills;
+    return libraryDrills.filter(d => d._useCase !== 'solo');
+  }, [libraryDrills, pickerShowAll]);
+  const soloHiddenCount = libraryDrills.length - pickerDrills.length;
 
   if (!isUserCoach) {
     return (
@@ -201,7 +242,11 @@ const PracticePlanBuilder: React.FC = () => {
   };
 
   const addDrill = (drill: Drill) => {
-    update(p => ({ ...p, drills: [...p.drills, { ...drill, id: newId() }] }));
+    // Strip picker-only metadata (leading _) before persisting onto
+    // the plan. Keeps Firestore docs clean and avoids the library
+    // origin bleeding into saved plan copies.
+    const { _useCase, _fromLibrary, _sourceUid, _createdByName, _averageRating, _ratingCount, ...clean } = drill;
+    update(p => ({ ...p, drills: [...p.drills, { ...clean, id: newId() }] }));
     setShowLibrary(false);
   };
   const moveDrill = (idx: number, dir: -1 | 1) => {
@@ -452,10 +497,30 @@ const PracticePlanBuilder: React.FC = () => {
               </button>
             </div>
             <div className="p-3 space-y-2">
+              {(libraryDrills.length > 0 || pickerShowAll) && (
+                <div className="flex items-center gap-2 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setPickerShowAll(v => !v)}
+                    className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full ring-1 transition ${
+                      pickerShowAll
+                        ? 'bg-brand-primary text-white ring-brand-primary/60'
+                        : 'bg-line-default/[0.06] text-ink-primary/70 ring-line-default/15 hover:bg-line-default/[0.1]'
+                    }`}
+                  >
+                    {pickerShowAll ? 'Team only' : 'Show all'}
+                  </button>
+                  {!pickerShowAll && soloHiddenCount > 0 && (
+                    <span className="text-[10px] text-ink-primary/50">
+                      {soloHiddenCount} solo drill{soloHiddenCount === 1 ? '' : 's'} hidden (for dev plans)
+                    </span>
+                  )}
+                </div>
+              )}
               {libraryLoading && (
                 <div className="text-center text-ink-primary/55 text-sm py-6">Loading drills…</div>
               )}
-              {!libraryLoading && libraryDrills.length === 0 && (
+              {!libraryLoading && pickerDrills.length === 0 && (
                 <div className="text-center py-10 px-4">
                   <p className="text-sm font-bold text-ink-primary/85">No drills yet.</p>
                   <p className="text-xs text-ink-primary/55 mt-1">Head to Training Ground to build your library, then come back to drop drills into a session.</p>
@@ -468,7 +533,7 @@ const PracticePlanBuilder: React.FC = () => {
                   </Link>
                 </div>
               )}
-              {!libraryLoading && libraryDrills.map(d => {
+              {!libraryLoading && pickerDrills.map(d => {
                 const meta = CATEGORY[d.category];
                 return (
                   <button
@@ -476,12 +541,31 @@ const PracticePlanBuilder: React.FC = () => {
                     onClick={() => addDrill(d)}
                     className={`w-full text-left rounded-xl border ${meta.color} p-3 hover:ring-2 hover:ring-brand-primary-soft transition`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-bold uppercase tracking-wider">{meta.label}</span>
+                      {d._fromLibrary && (
+                        <span
+                          className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-400/30 px-1.5 py-0.5 rounded"
+                          title="From the shared library"
+                        >
+                          Library
+                        </span>
+                      )}
+                      {d._useCase === 'solo' && (
+                        <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 bg-amber-500/15 ring-1 ring-amber-400/30 px-1.5 py-0.5 rounded">
+                          Solo
+                        </span>
+                      )}
                       <span className="ml-auto text-[10px] bg-line-default/60 rounded px-1.5 py-0.5 text-ink-primary/85 font-semibold">{d.durationMin} min</span>
                     </div>
                     <div className="font-semibold text-sm mt-1">{d.name}</div>
                     {d.notes && <div className="text-xs opacity-80 mt-0.5">{d.notes}</div>}
+                    {d._fromLibrary && d._ratingCount ? (
+                      <div className="text-[10px] text-ink-primary/60 mt-1">
+                        ★ {(d._averageRating || 0).toFixed(1)} <span className="opacity-60">({d._ratingCount})</span>
+                        {d._createdByName ? <span className="opacity-60"> · by {d._createdByName}</span> : null}
+                      </div>
+                    ) : null}
                   </button>
                 );
               })}

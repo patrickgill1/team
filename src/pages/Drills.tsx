@@ -97,7 +97,12 @@ const Drills: React.FC = () => {
           topic: filterTopic === 'all' ? undefined : filterTopic,
           ageBand: filterAge === 'all' ? undefined : filterAge,
           featuredOnly: librarySort === 'featured',
-          excludeCreatorUid: userData.uid,  // don't show my own drills back to me
+          // Include the coach's OWN shared drills. Filtering them out
+          // silently broke the "did my share work?" verification path
+          // — coaches thought sharing was busted because they didn't
+          // see their drill in the library they were checking. A
+          // small "Yours" pill on each row keeps the discovery
+          // ergonomics without hiding them.
         });
         if (cancelled) return;
         const sorted = rows.slice().sort((a, b) => {
@@ -422,6 +427,14 @@ const Drills: React.FC = () => {
                     )}
                     {d.source === 'ai' && (
                       <span className="text-[10px] font-extrabold tracking-widest uppercase text-violet-300 bg-violet-500/15 ring-1 ring-violet-200 px-1.5 py-0.5 rounded">AI</span>
+                    )}
+                    {d.shareToLibrary === true && (
+                      <span
+                        className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-400/30 px-1.5 py-0.5 rounded"
+                        title="Visible in the public drill library"
+                      >
+                        Shared
+                      </span>
                     )}
                     {d.ageBand && d.ageBand !== 'all' && (
                       <span className="text-[10px] font-bold text-ink-primary/50 ml-auto">{d.ageBand}</span>
@@ -851,6 +864,13 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
   const [clubAllowsSharing, setClubAllowsSharing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 4500);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   // Read the club's allowDrillSharing setting. If the club owner has
   // disabled outbound sharing, the toggle reads as locked. Already-
@@ -886,6 +906,9 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
     try {
       await toggleShareToLibrary(drill.id, next);
       setShared(next);
+      setToast(next
+        ? 'Shared to library. Any coach can now find, rate, and save this drill.'
+        : 'Pulled from library. Other coaches will no longer see this drill.');
     } catch (e: any) {
       setError(e?.message || 'Could not update share status.');
     } finally {
@@ -920,6 +943,9 @@ const ShareToLibraryRow: React.FC<{ drill: Drill }> = ({ drill }) => {
       </div>
       {error && (
         <p className="mt-2 text-rose-300 text-xs bg-rose-500/10 border border-rose-500/30 rounded p-2">{error}</p>
+      )}
+      {toast && !error && (
+        <p className="mt-2 text-emerald-200 text-xs bg-emerald-500/10 border border-emerald-500/30 rounded p-2">{toast}</p>
       )}
     </div>
   );
@@ -1014,6 +1040,7 @@ const LibraryCard: React.FC<{
   const count = drill.ratingCount || 0;
   const saveCount = drill.saveCount || 0;
   const featured = isFeatured(drill);
+  const isYours = !!voterUid && drill.createdBy === voterUid;
 
   return (
     <li className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
@@ -1038,6 +1065,14 @@ const LibraryCard: React.FC<{
           )}
           {featured && (
             <span className="text-[10px] font-extrabold tracking-widest uppercase text-amber-300 bg-amber-500/15 ring-1 ring-amber-300/30 px-1.5 py-0.5 rounded">Featured</span>
+          )}
+          {isYours && (
+            <span
+              className="text-[10px] font-extrabold tracking-widest uppercase text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-400/30 px-1.5 py-0.5 rounded"
+              title="You shared this drill"
+            >
+              Yours
+            </span>
           )}
         </div>
         <h3 className="text-base font-bold text-ink-primary mb-1 line-clamp-2">{drill.title}</h3>
@@ -1078,20 +1113,31 @@ const LibraryCard: React.FC<{
         </div>
 
         <div className="mt-3 flex items-stretch gap-2">
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving}
-            className="flex-1 px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60 transition"
-          >
-            {saving ? 'Saving…' : 'Save to my drills'}
-          </button>
-          <ReportLibraryDrillButton
-            drill={drill}
-            reporterUid={voterUid}
-            reporterName={voterName}
-            reporterEmail={voterEmail}
-          />
+          {isYours ? (
+            // Own drill: no "Save to my drills" (it's already yours),
+            // no "Report" (you're the author). Show a subtle
+            // confirmation strip so the row isn't visually broken.
+            <div className="flex-1 px-3 py-2 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/25 text-emerald-300 text-[11px] font-extrabold uppercase tracking-widest text-center">
+              In library · {saveCount} save{saveCount === 1 ? '' : 's'}
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saving}
+                className="flex-1 px-3 py-2 rounded-lg bg-brand-primary text-white text-xs font-extrabold uppercase tracking-widest hover:bg-brand-primary-soft hover:text-charcoal-950 disabled:opacity-60 transition"
+              >
+                {saving ? 'Saving…' : 'Save to my drills'}
+              </button>
+              <ReportLibraryDrillButton
+                drill={drill}
+                reporterUid={voterUid}
+                reporterName={voterName}
+                reporterEmail={voterEmail}
+              />
+            </>
+          )}
         </div>
       </div>
     </li>

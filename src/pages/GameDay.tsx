@@ -763,6 +763,21 @@ const GameDay: React.FC = () => {
       case 'oppGoal':
         await incScore('opp', 1);
         break;
+      case 'ourGoalMinus': {
+        // Watch minus button on our column — pop the most recent
+        // goal off the timeline. Falls back to a raw score decrement
+        // if there are no timeline entries (edge case where the score
+        // was set manually).
+        const ourGoals = [...(game?.timeline || [])]
+          .filter(t => t.kind === 'goal')
+          .sort((a, b) => b.at - a.at);
+        if (ourGoals.length > 0) await removeTimelineEntry(ourGoals[0].id, false);
+        else if ((game?.ourScore || 0) > 0) await incScore('our', -1);
+        break;
+      }
+      case 'oppGoalMinus':
+        if ((game?.oppScore || 0) > 0) await incScore('opp', -1);
+        break;
       case 'undoLast': {
         const latest = [...(game?.timeline || [])].sort((a, b) => b.at - a.at)[0];
         if (latest) await removeTimelineEntry(latest.id, false);

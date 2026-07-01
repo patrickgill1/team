@@ -2,7 +2,15 @@ import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import WidgetBridge from './widgetBridge';
 
 export type WatchGameStatus = 'scheduled' | 'live' | 'halftime' | 'final';
-export type WatchGameActionType = 'ourGoal' | 'oppGoal' | 'undoLast' | 'subMade' | 'startClock' | 'pauseClock';
+export type WatchGameActionType =
+  | 'ourGoal'
+  | 'oppGoal'
+  | 'ourGoalMinus'
+  | 'oppGoalMinus'
+  | 'undoLast'
+  | 'subMade'
+  | 'startClock'
+  | 'pauseClock';
 
 export interface WatchGamePlayerSummary {
   id: string;

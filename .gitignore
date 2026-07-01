@@ -100,3 +100,7 @@ key.properties
 
 # Demo seed: never commit the Firebase Admin key
 scripts/demo-service-account.json
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store

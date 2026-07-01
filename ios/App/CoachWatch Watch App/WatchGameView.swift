@@ -33,8 +33,7 @@ struct WatchGameView: View {
             VStack(spacing: 10) {
                 header(session)
                 scoreboard(session)
-                subsSection(session)
-                quickSubButton
+                quickSubButton(session)
                 if !model.lastActionStatus.isEmpty {
                     Text(model.lastActionStatus)
                         .font(.caption2.bold())
@@ -204,67 +203,29 @@ struct WatchGameView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Subs section
-
-    private func subsSection(_ session: WatchGameSession) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("SUBS")
-                .font(.system(size: 10, weight: .black))
-                .foregroundStyle(.secondary)
-
-            if let name = session.suggestedNextPlayerName, !name.isEmpty {
-                subRow(kind: "NEXT", kindTint: Color.green, jersey: nil, name: name, minute: nil)
-            } else {
-                Text("No pending subs")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 2)
-    }
-
-    private func subRow(kind: String, kindTint: Color, jersey: Int?, name: String, minute: Int?) -> some View {
-        HStack(spacing: 6) {
-            Text(kind)
-                .font(.system(size: 9, weight: .black))
-                .padding(.horizontal, 4).padding(.vertical, 1.5)
-                .background(RoundedRectangle(cornerRadius: 3).fill(kindTint.opacity(0.25)))
-                .foregroundStyle(kindTint)
-            if let jersey {
-                Text("#\(jersey)")
-                    .font(.system(size: 10, weight: .black))
-                    .foregroundStyle(.secondary)
-            }
-            Text(shortDisplayName(name))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-            Spacer(minLength: 4)
-            if let minute {
-                Text("\(minute)'")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-        }
-    }
-
     // MARK: - Quick Sub CTA
+    //
+    // Sub UX: no persistent roster on the wrist. Coach's phone owns
+    // the shift bell + suggested player. When the shift interval
+    // elapses, WatchGameModel.checkSubAlert fires a haptic .notification
+    // tap — that's the alert. This button acknowledges (writes a sub
+    // event on the phone which resets the timer). Button pulses red
+    // when a sub is due so the wrist glance matches the tap.
 
-    private var quickSubButton: some View {
-        Button(action: { model.send("subMade") }) {
+    private func quickSubButton(_ session: WatchGameSession) -> some View {
+        let dueNow = (model.secondsUntilSub() ?? -1) == 0
+        return Button(action: { model.send("subMade") }) {
             HStack(spacing: 5) {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 12, weight: .heavy))
-                Text("Quick Sub")
+                Text(dueNow ? "Sub now" : "Quick Sub")
                     .font(.system(size: 13, weight: .heavy))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 5)
         }
         .buttonStyle(.borderedProminent)
-        .tint(.red)
+        .tint(dueNow ? .red : Color.red.opacity(0.6))
     }
 
     // MARK: - Helpers

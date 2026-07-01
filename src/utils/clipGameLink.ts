@@ -34,9 +34,13 @@ export interface AttachResult {
   attachedScorer: boolean;
   attachedAssistIds: string[];
   // Credits that needed a brand-new timeline entry — caller must bump season
-  // stats for these *only when status === 'final'*.
+  // stats for these *only when status === 'final' AND countsToStats !== false*.
   addedScorer: boolean;
   addedAssistIds: string[];
+  // Mirrors live_games.countsToStats. Callers use this to decide
+  // whether to bump players.stats on final-status games — scrimmages
+  // and demo-team games explicitly opt out of the rollup.
+  countsToStats: boolean;
 }
 
 const newId = () => `clip_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -48,6 +52,7 @@ export async function attachClipCreditsToGame(input: AttachInput): Promise<Attac
     attachedAssistIds: [],
     addedScorer: false,
     addedAssistIds: [],
+    countsToStats: true,
   };
 
   const ref = doc(db, 'live_games', input.gameId);
@@ -56,6 +61,7 @@ export async function attachClipCreditsToGame(input: AttachInput): Promise<Attac
 
   const data = snap.data() as any;
   result.status = data.status || 'scheduled';
+  result.countsToStats = data.countsToStats !== false;
   const timeline: any[] = Array.isArray(data.timeline) ? [...data.timeline] : [];
 
   const findOpenEntry = (playerId: string, kind: 'goal' | 'assist') =>

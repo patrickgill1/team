@@ -356,6 +356,29 @@ const PlayerMediaPage: React.FC = () => {
     const player = players.find(p => p.id === uploadPlayerId);
     if (!player) return;
 
+    // Stats-accuracy guard: if the clip carries credits (a goal
+    // scorer, an assist, or the 'Goal' tag) BUT the user didn't
+    // link it to a game, the upload path bumps player.stats
+    // directly with a synthetic gameId — so if the coach also
+    // tapped the same goal in Game Day, the player ends up +2.
+    // Confirm the tradeoff explicitly. Not a block; just a nudge.
+    const isOwnGoalTag = uploadTags.includes('Own Goal');
+    const isGoalTag = uploadTags.includes('Goal') || isOwnGoalTag;
+    const hasScorer = isGoalTag && !isOwnGoalTag && !!(uploadGoalScorerId || uploadPlayerId);
+    const hasAssists = isGoalTag && uploadAssistByIds.length > 0;
+    const hasCredits = hasScorer || hasAssists;
+    if (hasCredits && !uploadGameId && recentGames.length > 0) {
+      const scorerName = hasScorer
+        ? (players.find(p => p.id === (uploadGoalScorerId || uploadPlayerId))?.name || 'a player')
+        : null;
+      const msg = hasScorer && hasAssists
+        ? `This clip credits ${scorerName} with a goal plus ${uploadAssistByIds.length} assist${uploadAssistByIds.length === 1 ? '' : 's'} but isn't linked to a game.\n\nLink it to a game to avoid double-counting if the goal was already tapped in GameDay. Upload anyway?`
+        : hasScorer
+          ? `This clip credits ${scorerName} with a goal but isn't linked to a game.\n\nLink it to a game to avoid double-counting if the goal was already tapped in GameDay. Upload anyway?`
+          : `This clip carries assist credits but isn't linked to a game.\n\nLink it to a game to avoid double-counting if the play was already tapped in GameDay. Upload anyway?`;
+      if (!window.confirm(msg)) return;
+    }
+
     try {
       setUploading(true);
       const totalFiles = uploadFiles.length;
@@ -514,11 +537,14 @@ const PlayerMediaPage: React.FC = () => {
               if (res.status === 'final') {
                 // Game already finalized — finalize won't re-run, so bump only the
                 // credits we *added* (attached ones were already counted live).
-                needsBumpScorer = res.addedScorer;
-                needsBumpAssistIds = res.addedAssistIds;
+                // But respect the game's countsToStats flag: scrimmages and demo
+                // games opt out of rollup, so a clip linked to one of those never
+                // bumps player.stats even after final.
+                needsBumpScorer = res.addedScorer && res.countsToStats;
+                needsBumpAssistIds = res.countsToStats ? res.addedAssistIds : [];
               } else if (res.status !== 'no-doc') {
                 // Game is live/halftime/scheduled — finalize will pick everything
-                // up. Skip the immediate bump.
+                // up (and will itself honor countsToStats). Skip the immediate bump.
                 needsBumpScorer = false;
                 needsBumpAssistIds = [];
               }
@@ -971,6 +997,30 @@ const PlayerMediaPage: React.FC = () => {
     if (!canManageMedia) return;
     const collection = selectedMedia.id.startsWith('gallery_') ? 'gallery' : 'player_media';
     const docId = selectedMedia.id.startsWith('gallery_') ? selectedMedia.id.replace('gallery_', '') : selectedMedia.id;
+
+    // Same guard as handleUpload: if edited credits exist and there
+    // is no game linked, warn about the double-count risk. Only
+    // triggers on transitions INTO the risky state (adding credits
+    // without a game); un-tagging or removing credits doesn't nag.
+    {
+      const isOwnGoalEdit = editingTags.includes('Own Goal');
+      const isGoalTagEdit = editingTags.includes('Goal') || isOwnGoalEdit;
+      const editHasScorer = isGoalTagEdit && !isOwnGoalEdit && !!(editingGoalScorerId || selectedMedia.playerId);
+      const editHasAssists = isGoalTagEdit && editingAssistByIds.length > 0;
+      const editHasCredits = editHasScorer || editHasAssists;
+      if (editHasCredits && !editingGameId && recentGames.length > 0) {
+        const scorerName = editHasScorer
+          ? (players.find(p => p.id === (editingGoalScorerId || selectedMedia.playerId))?.name || 'a player')
+          : null;
+        const msg = editHasScorer && editHasAssists
+          ? `This clip credits ${scorerName} with a goal plus ${editingAssistByIds.length} assist${editingAssistByIds.length === 1 ? '' : 's'} but isn't linked to a game.\n\nLink it to a game to avoid double-counting if the goal was already tapped in GameDay. Save anyway?`
+          : editHasScorer
+            ? `This clip credits ${scorerName} with a goal but isn't linked to a game.\n\nLink it to a game to avoid double-counting if the goal was already tapped in GameDay. Save anyway?`
+            : `This clip carries assist credits but isn't linked to a game.\n\nLink it to a game to avoid double-counting if the play was already tapped in GameDay. Save anyway?`;
+        if (!window.confirm(msg)) return;
+      }
+    }
+
     try {
       // Derive taggedPlayerIds from player name tags
       const taggedPlayerIds = players
@@ -1041,8 +1091,11 @@ const PlayerMediaPage: React.FC = () => {
             recordedByName: userData?.name,
           });
           if (res.status === 'final') {
-            willBumpScorerId = res.addedScorer ? newScorerId : undefined;
-            willBumpAssistIds = res.addedAssistIds;
+            // Only bump when the game's countsToStats flag allows it.
+            // Scrimmage/demo games opt out of rollup, so linking a clip
+            // to one shouldn't backdoor stats into the player card.
+            willBumpScorerId = (res.addedScorer && res.countsToStats) ? newScorerId : undefined;
+            willBumpAssistIds = res.countsToStats ? res.addedAssistIds : [];
           } else if (res.status === 'no-doc') {
             // Game has no live doc — fall back to direct bump
             willBumpScorerId = newScorerId;

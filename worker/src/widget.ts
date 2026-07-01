@@ -206,34 +206,49 @@ async function buildSnapshot(
   const p: any = ranked[0].data || {};
   const playerId = ranked[0].id;
 
-  // Aggregate teams across EVERY linked player record so events
-  // Aggregate teams across:
-  //   (a) every linked player record's teamIds (kid plays on)
-  //   (b) the user's own teamIds (coach OR parent membership)
+  // Aggregate teams for this widget's next-event query. Scoping is
+  // the security boundary — anything in this set surfaces on the
+  // widget face, so we include only teams the DISPLAYED PLAYER is
+  // rostered on.
   //
-  // (b) is critical for coach-parents: when Patrick coaches his
-  // main team, Hunter's main-team player record may not list him
-  // in parentIds (his wife is the parent there), so (a) alone
-  // would miss every main-team event. Patrick caught this on the
-  // second-round widget test. user.teamIds covers any team the
-  // user belongs to in any role.
-  const teamSet = new Set<string>();
+  // Three cases:
+  //
+  // (A) Player is known (explicit widgetPlayerId / selfPlayerId, OR
+  //     linked via parentIds): teamSet = strictly the player's
+  //     teamIds. Do NOT merge in the token holder's user.teamIds or
+  //     coached teams. That merge is how the 2026-07-01 leak worked:
+  //     Patrick's demo-team membership on his own user doc surfaced
+  //     demo events on his son's widget.
+  //
+  // (B) No linked player at all (user has no player records visible
+  //     to them): fall back to user.teamIds + coached teams so the
+  //     widget can still surface *something* — a coach with no kids
+  //     of their own, for instance.
+  //
+  // Trade-off called out for future work: a coach-parent where the
+  // kid's main-team player record lists the OTHER parent in
+  // parentIds (only) will miss main-team events under this scoping.
+  // The fix belongs at the data layer (add coach to parentIds, or a
+  // dedicated co-parent field) rather than paying for it with a
+  // cross-team widget leak.
+  const playerTeamSet = new Set<string>();
   for (const r of linked) {
     const d = r.data || {};
-    if (Array.isArray(d.teamIds)) d.teamIds.forEach((t: string) => t && teamSet.add(t));
-    if (d.teamId) teamSet.add(d.teamId);
+    if (Array.isArray(d.teamIds)) d.teamIds.forEach((t: string) => t && playerTeamSet.add(t));
+    if (d.teamId) playerTeamSet.add(d.teamId);
   }
-  if (Array.isArray(user?.teamIds)) {
-    user.teamIds.forEach((t: string) => t && teamSet.add(t));
+  const teamSet = new Set<string>(playerTeamSet);
+  let coachedTeams: string[] = [];
+  const useDiscoveryFallback = playerTeamSet.size === 0;
+  if (useDiscoveryFallback) {
+    if (Array.isArray(user?.teamIds)) {
+      user.teamIds.forEach((t: string) => t && teamSet.add(t));
+    }
+    coachedTeams = await findCoachedTeamIds(pid, sa, uid);
+    coachedTeams.forEach(t => t && teamSet.add(t));
   }
-  // Coach membership lives on team.coachIds, NOT user.teamIds, so
-  // a coach-parent's coached team would be missing without this
-  // explicit query. Worth the extra round-trip — it's the only
-  // way to surface main-team events for coach-parents.
-  const coachedTeams = await findCoachedTeamIds(pid, sa, uid);
-  coachedTeams.forEach(t => t && teamSet.add(t));
   const tIds: string[] = Array.from(teamSet);
-  console.log(`[widget] uid=${uid} linkedPlayers=${linked.length} coached=${coachedTeams.length} userTeamIds=${(user?.teamIds||[]).length} teams=${JSON.stringify(tIds)}`);
+  console.log(`[widget] uid=${uid} mode=${useDiscoveryFallback ? 'discovery' : 'player-scoped'} linkedPlayers=${linked.length} playerTeams=${playerTeamSet.size} coached=${coachedTeams.length} userTeamIds=${(user?.teamIds||[]).length} teams=${JSON.stringify(tIds)}`);
   let nextEvent: any = null;
   let nextMs = Number.POSITIVE_INFINITY;
   let lastGame: any = null;

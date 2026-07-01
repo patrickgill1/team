@@ -323,7 +323,17 @@ const GameDay: React.FC = () => {
       alert('This game is already finalized. Season stats were written when it was finalized.');
       return;
     }
-    if (!window.confirm('End the game? This will mark it Final and write per-player stats to season totals.')) return;
+    // Copy adapts to the actual outcome so the coach isn't lied to.
+    // Demo team → hard-off, no toggle. Toggle off → same effect,
+    // different reason.
+    const teamIsDemoConfirm = (selectedTeam as any)?.isDemo === true;
+    const willCount = !teamIsDemoConfirm && (game?.countsToStats !== false);
+    const confirmMsg = willCount
+      ? 'End the game? This will mark it Final and write per-player stats to season totals.'
+      : teamIsDemoConfirm
+        ? 'End the game? Demo team — nothing will be written to season totals.'
+        : 'End the game? STATS OFF for this game — nothing will be written to season totals. The timeline stays viewable.';
+    if (!window.confirm(confirmMsg)) return;
     await patch({
       status: 'final',
       clockOffsetSeconds: liveSeconds,

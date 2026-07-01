@@ -4,6 +4,12 @@ import SwiftUI
 import WatchConnectivity
 import WatchKit
 
+struct WatchBenchPlayer: Equatable, Identifiable {
+    let id: String
+    let name: String
+    let jerseyNumber: Int?
+}
+
 struct WatchGameSession: Equatable {
     var eventId: String
     var homeName: String
@@ -18,6 +24,7 @@ struct WatchGameSession: Equatable {
     var lastBellAtSec: Int?
     var bellEnabled: Bool
     var suggestedNextPlayerName: String?
+    var bench: [WatchBenchPlayer]
     var updatedAt: Double
 
     static let empty = WatchGameSession(
@@ -34,6 +41,7 @@ struct WatchGameSession: Equatable {
         lastBellAtSec: nil,
         bellEnabled: false,
         suggestedNextPlayerName: nil,
+        bench: [],
         updatedAt: 0
     )
 
@@ -71,15 +79,18 @@ final class WatchGameModel: NSObject, ObservableObject, WCSessionDelegate {
         return max(0, shift - (liveClockSeconds() - last))
     }
 
-    func send(_ action: String) {
+    func send(_ action: String, playerId: String? = nil) {
         guard WCSession.isSupported() else { return }
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))_\(UUID().uuidString.prefix(8))"
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "kind": "gameAction",
             "action": action,
             "id": id,
             "eventId": session?.eventId ?? ""
         ]
+        if let playerId, !playerId.isEmpty {
+            payload["playerId"] = playerId
+        }
         WCSession.default.sendMessage(payload, replyHandler: { [weak self] _ in
             DispatchQueue.main.async { self?.lastActionStatus = "Sent" }
         }, errorHandler: { [weak self] _ in
@@ -141,6 +152,15 @@ extension WatchGameSession {
         let suggested = raw["suggestedNextPlayer"] as? [String: Any]
         let period: String
         if let value = raw["period"] { period = String(describing: value) } else { period = "1" }
+        let benchRaw = raw["bench"] as? [[String: Any]] ?? []
+        let bench: [WatchBenchPlayer] = benchRaw.compactMap { entry in
+            guard let id = entry["id"] as? String, !id.isEmpty else { return nil }
+            return WatchBenchPlayer(
+                id: id,
+                name: entry["name"] as? String ?? "Player",
+                jerseyNumber: entry["jerseyNumber"] as? Int
+            )
+        }
         return WatchGameSession(
             eventId: raw["eventId"] as? String ?? "",
             homeName: raw["homeName"] as? String ?? "Us",
@@ -155,6 +175,7 @@ extension WatchGameSession {
             lastBellAtSec: raw["lastBellAtSec"] as? Int,
             bellEnabled: raw["bellEnabled"] as? Bool ?? false,
             suggestedNextPlayerName: suggested?["name"] as? String,
+            bench: bench,
             updatedAt: raw["updatedAt"] as? Double ?? 0
         )
     }

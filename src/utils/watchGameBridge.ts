@@ -33,6 +33,10 @@ export interface WatchGameSession {
   lastBellAtSec?: number | null;
   bellEnabled?: boolean;
   suggestedNextPlayer?: WatchGamePlayerSummary | null;
+  // Bench roster, ordered least-minutes-first so the Watch picker
+  // surfaces players who need time at the top of the list. Keeps the
+  // scroll to a minimum for the coach's most likely pick.
+  bench?: WatchGamePlayerSummary[];
   updatedAt: number;
 }
 
@@ -40,6 +44,10 @@ export interface WatchGameAction {
   id?: string;
   eventId?: string;
   action: WatchGameActionType;
+  // Present on 'subMade' actions coming from the Watch player picker
+  // — the id of the bench player the coach picked to sub in. Phone
+  // side auto-picks who comes off (longest-on-field).
+  playerId?: string;
   receivedAt?: number;
 }
 

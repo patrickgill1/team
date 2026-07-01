@@ -132,7 +132,13 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      if (!selectedTeamId) { setLoading(false); return; }
+      // Hold loading=true while TeamContext resolves selectedTeamId
+      // on cold app open. Flipping loading=false here caused the
+      // empty-state cards to flash for a beat before the team-scoped
+      // data query fired. GettingStartedCard + SmartDiscoveryPrompts
+      // both bail on !selectedTeamId anyway, so keeping loading
+      // "sticky" until real data is fetched is safe.
+      if (!selectedTeamId) return;
       setLoading(true);
       try {
         const [teamPlayers, teamEvents, teamMedia, statsMap] = await Promise.all([

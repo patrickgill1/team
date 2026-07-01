@@ -16,6 +16,7 @@ import { getRandomWelcomeBackItem, KIND_LABEL } from './utils/welcomeBackContent
 import Navigation from './components/common/Navigation';
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext';
 import InstallAppBanner from './components/common/InstallAppBanner';
+import LiveGameBanner from './components/gameday/LiveGameBanner';
 import ApplyClubBrand from './components/common/ApplyClubBrand';
 // Static import so the splash dismissal can't be blocked by a
 // failed dynamic-chunk fetch on cold start.
@@ -285,6 +286,7 @@ const AppLayoutShell: React.FC<{ children: React.ReactNode }> = ({ children }) =
       <Navigation />
       <ApplyClubBrand />
       <main className={`${collapsed ? 'lg:ml-20' : 'lg:ml-64'} pt-[calc(env(safe-area-inset-top)+3.5rem)] lg:pt-0 pb-20 lg:pb-0 transition-all duration-300`}>
+        <LiveGameBanner />
         <InstallAppBanner />
         {children}
       </main>

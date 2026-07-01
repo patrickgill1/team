@@ -56,6 +56,30 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
   const [draggingId, setDraggingId] = useState<string | null>(null);
   // Live x/y during a drag (% of field) — flushed to onMove on release.
   const [dragXY, setDragXY] = useState<{ x: number; y: number } | null>(null);
+  // Long-press gate. Without it, ANY pointerdown on a chip captures
+  // the pointer and locks the page from vertical scroll — brutal on
+  // mobile since chips cover most of the field. With the gate, short
+  // taps propagate to the scroll container; only a sustained hold
+  // (250ms) plus a haptic bump activates drag. Matches iOS home-
+  // screen icon rearrangement UX.
+  const LONG_PRESS_MS = 250;
+  const pressTimerRef = useRef<number | null>(null);
+  const pendingDragRef = useRef<{
+    id: string;
+    pos: { x: number; y: number };
+    pointerId: number;
+    startX: number;
+    startY: number;
+    target: HTMLElement;
+  } | null>(null);
+
+  const clearPendingDrag = () => {
+    if (pressTimerRef.current != null) {
+      window.clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    pendingDragRef.current = null;
+  };
 
   const onField = useMemo(
     () => onFieldIds.map(id => players.find(p => p.id === id)).filter(Boolean),
@@ -172,14 +196,44 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
               key={p.id}
               type="button"
               onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setDraggingId(p.id);
-                setDragXY(pos);
-                // Capture so we keep receiving move events even if the
-                // pointer leaves the button's bounds.
-                try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+                // Long-press gate: DON'T preventDefault yet — that
+                // would kill the browser's touch-scroll for this
+                // gesture. We only claim the pointer after 250ms of
+                // sustained hold with < ~8px movement. Short taps and
+                // scrolls fall through to the page scroller.
+                pendingDragRef.current = {
+                  id: p.id,
+                  pos,
+                  pointerId: e.pointerId,
+                  startX: e.clientX,
+                  startY: e.clientY,
+                  target: e.currentTarget as HTMLElement,
+                };
+                if (pressTimerRef.current != null) window.clearTimeout(pressTimerRef.current);
+                pressTimerRef.current = window.setTimeout(() => {
+                  const pending = pendingDragRef.current;
+                  if (!pending) return;
+                  setDraggingId(pending.id);
+                  setDragXY(pending.pos);
+                  try { pending.target.setPointerCapture(pending.pointerId); } catch {}
+                  // Haptic bump so the coach feels the chip "picked
+                  // up." Same class the rest of the app uses.
+                  void import('../../utils/nativeShell').then(m => m.tapHaptic('medium')).catch(() => {});
+                  pressTimerRef.current = null;
+                }, LONG_PRESS_MS);
               }}
+              onPointerMove={(e) => {
+                // Cancel the pending long-press if the user moved
+                // more than ~8px before the hold fired — they were
+                // trying to scroll, not drag.
+                const pending = pendingDragRef.current;
+                if (!pending || draggingId) return;
+                const dx = e.clientX - pending.startX;
+                const dy = e.clientY - pending.startY;
+                if (dx * dx + dy * dy > 64) clearPendingDrag();
+              }}
+              onPointerUp={clearPendingDrag}
+              onPointerCancel={clearPendingDrag}
               className={`absolute flex flex-col items-center gap-1 transition-transform ${
                 isDragging ? 'z-20 scale-110' : 'z-10'
               }`}

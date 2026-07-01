@@ -40,6 +40,7 @@ const Navigation: React.FC = () => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isProfileSheetOpen, setIsProfileSheetOpen] = useState(false);
   const [teamSwitcherOpen, setTeamSwitcherOpen] = useState(false);
+  const [archivedExpanded, setArchivedExpanded] = useState(false);
   const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebar();
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -332,26 +333,46 @@ const Navigation: React.FC = () => {
           </button>
         </div>
 
-        {/* Team Selector */}
-        {!sidebarCollapsed && (
-          <div className="px-4 pb-4">
-            {teams.length > 1 ? (
+        {/* Team Selector — same active/archived split as mobile */}
+        {!sidebarCollapsed && (() => {
+          const activeTeams = teams.filter(t => (t as any).isActive !== false);
+          const archivedTeams = teams.filter(t => (t as any).isActive === false);
+          const currentIsArchived = teams.find(t => t.id === selectedTeamId && (t as any).isActive === false);
+          const visibleTeams = (archivedExpanded || currentIsArchived)
+            ? [...activeTeams, ...archivedTeams]
+            : activeTeams;
+          if (visibleTeams.length <= 1 && archivedTeams.length === 0) {
+            return selectedTeam ? (
+              <div className="px-4 pb-4">
+                <div className="text-sm text-brand-primary-soft px-1">{selectedTeam.name}</div>
+              </div>
+            ) : null;
+          }
+          return (
+            <div className="px-4 pb-4 space-y-1">
               <select
                 value={selectedTeamId}
                 onChange={e => setSelectedTeamId(e.target.value)}
                 className="w-full text-sm bg-line-default/10 text-ink-primary border border-line-default/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary-soft focus:border-transparent"
               >
-                {teams.map(t => (
+                {visibleTeams.map(t => (
                   <option key={t.id} value={t.id} className="bg-surface-base text-ink-primary">
                     {(t as any).isActive === false ? `${t.name} (archived)` : t.name}
                   </option>
                 ))}
               </select>
-            ) : selectedTeam ? (
-              <div className="text-sm text-brand-primary-soft px-1">{selectedTeam.name}</div>
-            ) : null}
-          </div>
-        )}
+              {archivedTeams.length > 0 && !currentIsArchived && (
+                <button
+                  type="button"
+                  onClick={() => setArchivedExpanded(v => !v)}
+                  className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-ink-primary/80 px-1"
+                >
+                  {archivedExpanded ? 'Hide archived teams' : `Show ${archivedTeams.length} archived`}
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Scrollable Nav */}
         <nav className="flex-1 overflow-y-auto px-3 space-y-1">
@@ -559,10 +580,13 @@ const Navigation: React.FC = () => {
                 Close
               </button>
             </div>
-            <ul className="divide-y divide-line-default/5 max-h-[60vh] overflow-y-auto">
-              {teams.map(t => {
+            {(() => {
+              const activeTeams = teams.filter(t => (t as any).isActive !== false);
+              const archivedTeams = teams.filter(t => (t as any).isActive === false);
+              const currentIsArchived = teams.find(t => t.id === selectedTeamId && (t as any).isActive === false);
+              const showArchived = archivedExpanded || !!currentIsArchived;
+              const renderRow = (t: typeof teams[number], archived: boolean) => {
                 const isCurrent = t.id === selectedTeamId;
-                const isArchived = (t as any).isActive === false;
                 return (
                   <li key={t.id}>
                     <button
@@ -573,11 +597,11 @@ const Navigation: React.FC = () => {
                       }}
                       className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-line-default/5 active:bg-line-default/10 transition-colors ${
                         isCurrent ? 'bg-brand-primary/10' : ''
-                      } ${isArchived && !isCurrent ? 'opacity-55' : ''}`}
+                      } ${archived && !isCurrent ? 'opacity-55' : ''}`}
                     >
                       <span className={`text-[15px] font-bold truncate flex items-center gap-2 ${isCurrent ? 'text-brand-primary-soft' : 'text-ink-primary'}`}>
                         {t.name}
-                        {isArchived && (
+                        {archived && (
                           <span className="text-[9px] font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-line-default/[0.08] text-ink-primary/55 ring-1 ring-line-default/10">Archived</span>
                         )}
                       </span>
@@ -589,8 +613,40 @@ const Navigation: React.FC = () => {
                     </button>
                   </li>
                 );
-              })}
-            </ul>
+              };
+              return (
+                <div className="max-h-[60vh] overflow-y-auto">
+                  <ul className="divide-y divide-line-default/5">
+                    {activeTeams.map(t => renderRow(t, false))}
+                  </ul>
+                  {archivedTeams.length > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setArchivedExpanded(v => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:bg-line-default/5"
+                      >
+                        <span>
+                          {archivedTeams.length === 1 ? '1 archived team' : `${archivedTeams.length} archived teams`}
+                        </span>
+                        <svg
+                          className={`w-4 h-4 transition-transform ${showArchived ? 'rotate-180' : ''}`}
+                          fill="none" stroke="currentColor" strokeWidth={2.5}
+                          strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
+                      {showArchived && (
+                        <ul className="divide-y divide-line-default/5">
+                          {archivedTeams.map(t => renderRow(t, true))}
+                        </ul>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -680,22 +736,43 @@ const Navigation: React.FC = () => {
               </button>
             </div>
 
-            {/* Team Selector */}
-            {teams.length > 1 && (
-              <div className="px-6 pb-3">
-                <select
-                  value={selectedTeamId}
-                  onChange={e => setSelectedTeamId(e.target.value)}
-                  className="w-full text-sm border border-line-default/10 rounded-xl px-3 py-2.5 bg-line-default/5 text-ink-primary focus:ring-2 focus:ring-brand-primary-soft"
-                >
-                  {teams.map(t => (
-                    <option key={t.id} value={t.id} className="bg-surface-elevated">
-                      {(t as any).isActive === false ? `${t.name} (archived)` : t.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {/* Team Selector — active teams by default. Archived teams
+                only appear if one is currently selected OR the user
+                taps the archived footer to unhide them. Keeps daily
+                switching uncluttered while still reachable. */}
+            {(() => {
+              const activeTeams = teams.filter(t => (t as any).isActive !== false);
+              const archivedTeams = teams.filter(t => (t as any).isActive === false);
+              const currentIsArchived = teams.find(t => t.id === selectedTeamId && (t as any).isActive === false);
+              const visibleTeams = (archivedExpanded || currentIsArchived)
+                ? [...activeTeams, ...archivedTeams]
+                : activeTeams;
+              if (visibleTeams.length <= 1 && archivedTeams.length === 0) return null;
+              return (
+                <div className="px-6 pb-3 space-y-1">
+                  <select
+                    value={selectedTeamId}
+                    onChange={e => setSelectedTeamId(e.target.value)}
+                    className="w-full text-sm border border-line-default/10 rounded-xl px-3 py-2.5 bg-line-default/5 text-ink-primary focus:ring-2 focus:ring-brand-primary-soft"
+                  >
+                    {visibleTeams.map(t => (
+                      <option key={t.id} value={t.id} className="bg-surface-elevated">
+                        {(t as any).isActive === false ? `${t.name} (archived)` : t.name}
+                      </option>
+                    ))}
+                  </select>
+                  {archivedTeams.length > 0 && !currentIsArchived && (
+                    <button
+                      type="button"
+                      onClick={() => setArchivedExpanded(v => !v)}
+                      className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/50 hover:text-ink-primary/80 px-1"
+                    >
+                      {archivedExpanded ? 'Hide archived teams' : `Show ${archivedTeams.length} archived`}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Sectioned list — consistent outline icons in a tinted
                 square, single-column rows like Ollie's Tools page.

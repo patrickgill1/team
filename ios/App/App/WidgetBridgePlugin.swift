@@ -40,6 +40,12 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate 
     ]
 
     private var watchSessionActivated = false
+    // Serial queue serialising every mutation of the watch action
+    // queue in UserDefaults. Two Watch messages arriving in the same
+    // second could otherwise both read the same starting queue,
+    // append, and write back — the second write clobbers the first
+    // and silently loses a tap.
+    private let watchActionQueueLock = DispatchQueue(label: "com.firefc.team.watchActionQueue")
 
     private func defaults() -> UserDefaults? {
         return UserDefaults(suiteName: APP_GROUP_ID)
@@ -133,20 +139,26 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate 
         enriched["id"] = enriched["id"] ?? "\(Int(Date().timeIntervalSince1970 * 1000))_\(UUID().uuidString.prefix(8))"
         enriched["receivedAt"] = enriched["receivedAt"] ?? Int(Date().timeIntervalSince1970 * 1000)
 
-        let d = UserDefaults.standard
-        var queue = d.array(forKey: WATCH_ACTION_QUEUE_KEY) as? [[String: Any]] ?? []
-        queue.append(enriched)
-        if queue.count > 50 { queue = Array(queue.suffix(50)) }
-        d.set(queue, forKey: WATCH_ACTION_QUEUE_KEY)
+        // Serialise the read-modify-write against the shared UserDefaults
+        // slot so two concurrent Watch messages can't lose one another.
+        watchActionQueueLock.sync {
+            let d = UserDefaults.standard
+            var queue = d.array(forKey: WATCH_ACTION_QUEUE_KEY) as? [[String: Any]] ?? []
+            queue.append(enriched)
+            if queue.count > 50 { queue = Array(queue.suffix(50)) }
+            d.set(queue, forKey: WATCH_ACTION_QUEUE_KEY)
+        }
 
         notifyListeners("watchGameAction", data: enriched)
     }
 
     private func drainQueuedWatchActions() -> [[String: Any]] {
-        let d = UserDefaults.standard
-        let queue = d.array(forKey: WATCH_ACTION_QUEUE_KEY) as? [[String: Any]] ?? []
-        d.removeObject(forKey: WATCH_ACTION_QUEUE_KEY)
-        return queue
+        return watchActionQueueLock.sync {
+            let d = UserDefaults.standard
+            let queue = d.array(forKey: WATCH_ACTION_QUEUE_KEY) as? [[String: Any]] ?? []
+            d.removeObject(forKey: WATCH_ACTION_QUEUE_KEY)
+            return queue
+        }
     }
 
     public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WatchGameView: View {
     @EnvironmentObject private var model: WatchGameModel
+    @State private var overflowOpen = false
 
     var body: some View {
         if let session = model.session, !session.eventId.isEmpty {
@@ -69,27 +70,10 @@ struct WatchGameView: View {
 
             Spacer(minLength: 4)
 
-            // Overflow menu — undo + pause/resume live here so the
-            // main surface is only the primary score/sub actions.
-            Menu {
-                Button {
-                    model.send("undoLast")
-                } label: {
-                    Label("Undo last", systemImage: "arrow.uturn.backward")
-                }
-                if session.isLive {
-                    Button {
-                        model.send("pauseClock")
-                    } label: {
-                        Label("Pause clock", systemImage: "pause.fill")
-                    }
-                } else {
-                    Button {
-                        model.send("startClock")
-                    } label: {
-                        Label("Start clock", systemImage: "play.fill")
-                    }
-                }
+            // Overflow — SwiftUI's Menu isn't available on watchOS,
+            // so tapping this opens a sheet with the same actions.
+            Button {
+                overflowOpen = true
             } label: {
                 ZStack {
                     Circle().fill(Color.white.opacity(0.12))
@@ -99,7 +83,50 @@ struct WatchGameView: View {
                 }
                 .frame(width: 26, height: 26)
             }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $overflowOpen) {
+                overflowSheet(session)
+            }
         }
+    }
+
+    private func overflowSheet(_ session: WatchGameSession) -> some View {
+        VStack(spacing: 8) {
+            Button {
+                model.send("undoLast")
+                overflowOpen = false
+            } label: {
+                Label("Undo last", systemImage: "arrow.uturn.backward")
+                    .frame(maxWidth: .infinity)
+            }
+            .tint(.orange)
+
+            if session.isLive {
+                Button {
+                    model.send("pauseClock")
+                    overflowOpen = false
+                } label: {
+                    Label("Pause clock", systemImage: "pause.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .tint(.yellow)
+            } else {
+                Button {
+                    model.send("startClock")
+                    overflowOpen = false
+                } label: {
+                    Label("Start clock", systemImage: "play.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .tint(.green)
+            }
+
+            Button("Close") { overflowOpen = false }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+        }
+        .padding()
     }
 
     private func statusPill(_ session: WatchGameSession) -> some View {

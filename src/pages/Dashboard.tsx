@@ -1463,10 +1463,16 @@ const MyPlayerCard: React.FC<{
   // color), so role-info isn't lost — it just lives in the right
   // place. Cohesion across players matters more than per-player
   // color identity for brand consistency.
+  // Aura tuned per theme: dark mode keeps the crimson aura Patrick
+  // loves (subtle glow blob + rimmed ring). Light mode dials the blob
+  // WAY down and softens the ring — the crimson outline that felt
+  // "premium" in dark was reading as a peach fill bleeding into the
+  // card in light. Blob-in-corner reads as ambient glow on dark
+  // surfaces; on white it just paints a splash.
   const brandAccent = {
-    ring: 'ring-brand-primary/35',
-    shadow: 'shadow-brand-primary/25',
-    blob: 'bg-brand-primary/20',
+    ring: 'ring-brand-primary/10 dark:ring-brand-primary/35',
+    shadow: 'shadow-brand-primary/10 dark:shadow-brand-primary/25',
+    blob: 'bg-brand-primary/[0.03] dark:bg-brand-primary/20',
   };
   // POTM-of-the-week treatment — the whole card goes gold. Bright
   // saturated gradient, thick gold ring, glow shadow, animated

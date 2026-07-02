@@ -438,18 +438,19 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
             return (
               <div
                 key={entry.user.uid}
-                className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-surface-raised via-surface-input to-surface-elevated p-5 sm:p-6 text-white shadow-2xl ring-1 ring-line-default/10"
+                className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-surface-raised via-surface-input to-surface-elevated p-5 sm:p-6 text-ink-primary shadow-2xl ring-1 ring-line-default/10"
               >
-                {/* decorative blobs */}
-                <div className={`absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none ${isCoachRole ? 'bg-violet-500/150/20' : 'bg-brand-primary/150/20'}`} />
-                <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/150/20 rounded-full blur-3xl pointer-events-none" />
+                {/* decorative blobs — subtle glow in dark, near-invisible
+                    in light so they don't paint the whole card with color. */}
+                <div className={`absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none ${isCoachRole ? 'bg-violet-500/[0.04] dark:bg-violet-500/20' : 'bg-brand-primary/[0.04] dark:bg-brand-primary/20'}`} />
+                <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/[0.04] dark:bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Head coach controls (top-right) */}
                 {isUserHeadCoach && entry.user.uid !== userData?.uid && (isUserOwner || !isHeadCoach(entry.user)) && (
                   <div className="absolute top-3 right-3 z-10 flex space-x-1">
                     <button
                       onClick={() => handleChangeRole(entry.user.uid, entry.user.name, entry.user.role)}
-                      className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-white backdrop-blur transition-colors"
+                      className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-ink-primary backdrop-blur transition-colors"
                       title={isCoachRole ? 'Demote to parent' : 'Promote to coach'}
                     >
                       {isCoachRole ? (
@@ -464,7 +465,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     </button>
                     <button
                       onClick={() => handleRemoveMember(entry.user.uid, entry.user.name)}
-                      className="p-2 bg-line-default/10 hover:bg-rose-500/150/40 ring-1 ring-line-default/15 rounded-full text-white backdrop-blur transition-colors"
+                      className="p-2 bg-line-default/10 hover:bg-rose-500/40 ring-1 ring-line-default/15 rounded-full text-ink-primary backdrop-blur transition-colors"
                       title="Remove member"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,12 +493,12 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                       />
                     ) : (
                       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-line-default/10 ring-2 ring-line-default/25 shadow-lg flex items-center justify-center backdrop-blur flex-shrink-0">
-                        <span className="text-lg sm:text-xl font-black text-white">{initials}</span>
+                        <span className="text-lg sm:text-xl font-black text-ink-primary">{initials}</span>
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight truncate">{entry.user.name || 'Unknown'}</h3>
-                      <p className="text-white/70 text-sm font-medium mt-0.5 truncate">
+                      <p className="text-ink-primary/70 text-sm font-medium mt-0.5 truncate">
                         {isCoachRole
                           ? 'Team Coach'
                           : entry.players.length > 0
@@ -510,7 +511,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   {/* Players section */}
                   {entry.players.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mb-2">Their Players</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink-primary/60 mb-2">Their Players</p>
                       <div className="space-y-2">
                         {entry.players.map((player: any) => {
                           const playerAge = player.dateOfBirth ? new Date().getFullYear() - new Date(player.dateOfBirth).getFullYear() : null;
@@ -529,8 +530,8 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
-                                <p className="font-bold text-white text-sm truncate">{player.name}</p>
-                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-white/70">
+                                <p className="font-bold text-ink-primary text-sm truncate">{player.name}</p>
+                                <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-ink-primary/70">
                                   {player.position && <span>{player.position}</span>}
                                   {playerAge && <span>· Age {playerAge}</span>}
                                   {player.stats?.goals > 0 && <span className="text-emerald-300">· {player.stats.goals}G</span>}
@@ -547,13 +548,13 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   {/* Empty state for parents with no players */}
                   {entry.user.role === 'parent' && entry.players.length === 0 && (
                     <div className="mb-4 rounded-2xl bg-line-default/5 ring-1 ring-dashed ring-line-default/20 p-4 text-center backdrop-blur">
-                      <p className="text-white/85 text-sm font-medium mb-1">Not linked to a player</p>
-                      <p className="text-white/55 text-xs mb-3">A coach can link them to one.</p>
+                      <p className="text-ink-primary/85 text-sm font-medium mb-1">Not linked to a player</p>
+                      <p className="text-ink-primary/55 text-xs mb-3">A coach can link them to one.</p>
                       {isUserCoach && (
                         linkingUid === entry.user.uid ? (
                           <div className="space-y-2">
                             <select
-                              className="w-full bg-line-default/10 ring-1 ring-line-default/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft backdrop-blur"
+                              className="w-full bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary-soft backdrop-blur"
                               defaultValue=""
                               onChange={(e) => {
                                 if (e.target.value) {
@@ -570,7 +571,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                             </select>
                             <button
                               onClick={() => setLinkingUid(null)}
-                              className="text-xs text-white/60 hover:text-white"
+                              className="text-xs text-ink-primary/60 hover:text-ink-primary"
                             >
                               Cancel
                             </button>
@@ -613,7 +614,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         </a>
                       )}
                       {entry.privacy.showAddress && entry.user.address && (
-                        <div className="flex items-center gap-2 text-sm text-white/75">
+                        <div className="flex items-center gap-2 text-sm text-ink-primary/75">
                           <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -628,7 +629,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   {isUserCoach && entry.user.emergencyContact && (
                     <div className="rounded-xl bg-rose-500/150/15 ring-1 ring-rose-300/30 p-3 backdrop-blur mb-4">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-rose-200 mb-1">Emergency Contact</p>
-                      <p className="text-sm text-white font-semibold">{entry.user.emergencyContact}</p>
+                      <p className="text-sm text-ink-primary font-semibold">{entry.user.emergencyContact}</p>
                       {entry.user.emergencyPhone && (
                         <a
                           href={`tel:${entry.user.emergencyPhone}`}
@@ -656,7 +657,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     {entry.privacy.showPhone && entry.user.phoneNumber && (
                       <button
                         onClick={() => window.open(`tel:${entry.user.phoneNumber}`)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/15 ring-1 ring-line-default/20 text-white font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/15 ring-1 ring-line-default/20 text-ink-primary font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />

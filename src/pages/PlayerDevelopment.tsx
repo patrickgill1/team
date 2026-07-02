@@ -2233,15 +2233,15 @@ const PlanCard: React.FC<PlanCardProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => onQuickDidIt(goal.id)}
-                                    className="w-full rounded-xl bg-gradient-to-br from-brand-primary via-brand-primary to-surface-elevated hover:from-brand-primary-soft hover:via-brand-primary hover:to-surface-input text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
+                                    className="w-full rounded-xl bg-brand-primary hover:bg-brand-primary-soft dark:bg-gradient-to-br dark:from-brand-primary dark:via-brand-primary dark:to-surface-elevated dark:hover:from-brand-primary-soft dark:hover:via-brand-primary dark:hover:to-surface-input text-white shadow-lg hover:shadow-xl active:scale-[0.98] transition-all px-5 py-4 group"
                                   >
                                     <div className="flex items-center justify-center gap-3">
-                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-line-default/20 ring-2 ring-line-default/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                      <span className="flex-shrink-0 w-10 h-10 rounded-full bg-white/25 ring-2 ring-white/30 flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                                       </span>
                                       <span className="text-lg font-black tracking-wide uppercase">I did it</span>
                                       {streak > 0 && (
-                                        <span className="text-xs font-bold bg-line-default/20 px-2 py-0.5 rounded-full">
+                                        <span className="text-xs font-bold bg-white/25 px-2 py-0.5 rounded-full">
                                           {streak}-day streak — don't break it
                                         </span>
                                       )}

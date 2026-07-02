@@ -96,7 +96,7 @@ const SnackAssignment: React.FC<Props> = ({ eventId, teamId, isCoach, assignment
         {isCoach && !editing && (
           <button
             onClick={() => setEditing(true)}
-            className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary hover:text-brand-primary-dim"
+            className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-brand-primary/15 dark:text-brand-primary-soft dark:hover:bg-brand-primary/25"
           >
             {assignment ? 'Change' : 'Assign'}
           </button>

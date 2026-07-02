@@ -81,13 +81,13 @@ const CarpoolBoard: React.FC<Props> = ({ posts, currentUid, currentName, onAdd, 
           <div className="flex gap-1.5">
             <button
               onClick={() => setAdding('offer')}
-              className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
+              className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-purple-600 text-white border border-purple-700 hover:bg-purple-700 dark:bg-purple-50 dark:text-purple-700 dark:border-purple-200 dark:hover:bg-purple-100"
             >
               + Offer ride
             </button>
             <button
               onClick={() => setAdding('request')}
-              className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary-soft text-brand-primary border border-brand-primary-soft hover:bg-brand-primary-soft"
+              className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white border border-brand-primary hover:bg-brand-primary-hov dark:bg-brand-primary-soft dark:text-brand-primary dark:border-brand-primary-soft dark:hover:bg-brand-primary-soft"
             >
               + Need ride
             </button>

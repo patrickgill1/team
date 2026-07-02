@@ -4,6 +4,12 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
     "./public/index.html"
   ],
+  // Route Tailwind's dark: variant through our own theme attribute
+  // instead of the OS prefers-color-scheme media query. ThemeContext
+  // writes `data-theme="dark" | "light"` onto <html>; we want `dark:`
+  // classes to follow that decision so a user who forces light mode
+  // gets light styles even when their OS is dark.
+  darkMode: ['selector', 'html[data-theme="dark"]'],
   theme: {
     extend: {
       // GoalKickr brand palette (mirror of goalkickr-site). Cinematic

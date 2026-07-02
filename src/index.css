@@ -252,6 +252,78 @@ html[data-theme="light"] .placeholder-white\/50::placeholder,
 html[data-theme="light"] .placeholder-bone\/40::placeholder {
   color: rgb(var(--ink-muted) / 0.65) !important;
 }
+
+/* ─────────────────────────────────────────────────────────
+   Light-mode contrast rescues for pill patterns coded with
+   dark-mode assumptions. Rather than sweep 30+ files, we
+   override the specific low-contrast pairs at the CSS level
+   so:
+     bg-{color}-500/15 + text-{color}-300  → readable in light
+   Only fires under data-theme="light"; dark mode is untouched.
+   Applied to emerald (success), amber (warning), rose (error),
+   red (danger), violet (coach/role), and cyan pills.
+   ───────────────────────────────────────────────────────── */
+
+/* EMERALD (success / stats-on / SHARED / paid) */
+html[data-theme="light"] .text-emerald-300 {
+  color: rgb(4 120 87) !important;  /* emerald-700 */
+}
+html[data-theme="light"] .text-emerald-200 {
+  color: rgb(4 120 87) !important;
+}
+html[data-theme="light"] .bg-emerald-500\/15,
+html[data-theme="light"] .bg-emerald-500\/10 {
+  background-color: rgb(209 250 229) !important;  /* emerald-100 */
+}
+html[data-theme="light"] .bg-emerald-500\/20 {
+  background-color: rgb(167 243 208) !important;  /* emerald-200 */
+}
+
+/* AMBER (warning / STATS OFF / featured / Extra Reps) */
+html[data-theme="light"] .text-amber-300,
+html[data-theme="light"] .text-amber-200 {
+  color: rgb(180 83 9) !important;  /* amber-700 */
+}
+html[data-theme="light"] .bg-amber-500\/15,
+html[data-theme="light"] .bg-amber-500\/10 {
+  background-color: rgb(254 243 199) !important;  /* amber-100 */
+}
+html[data-theme="light"] .bg-amber-500\/20 {
+  background-color: rgb(253 230 138) !important;  /* amber-200 */
+}
+
+/* ROSE (danger / assists) */
+html[data-theme="light"] .text-rose-300,
+html[data-theme="light"] .text-rose-200 {
+  color: rgb(190 18 60) !important;  /* rose-700 */
+}
+html[data-theme="light"] .bg-rose-500\/15,
+html[data-theme="light"] .bg-rose-500\/10 {
+  background-color: rgb(255 228 230) !important;  /* rose-100 */
+}
+html[data-theme="light"] .bg-rose-500\/20 {
+  background-color: rgb(254 205 211) !important;  /* rose-200 */
+}
+
+/* VIOLET (coach role) */
+html[data-theme="light"] .text-violet-300,
+html[data-theme="light"] .text-violet-200 {
+  color: rgb(91 33 182) !important;  /* violet-800 */
+}
+html[data-theme="light"] .bg-violet-500\/15,
+html[data-theme="light"] .bg-violet-500\/10 {
+  background-color: rgb(237 233 254) !important;  /* violet-100 */
+}
+
+/* CYAN (info) */
+html[data-theme="light"] .text-cyan-300,
+html[data-theme="light"] .text-cyan-200 {
+  color: rgb(14 116 144) !important;  /* cyan-700 */
+}
+html[data-theme="light"] .bg-cyan-500\/15,
+html[data-theme="light"] .bg-cyan-500\/10 {
+  background-color: rgb(207 250 254) !important;  /* cyan-100 */
+}
 .card-interactive {
   cursor: pointer;
   transition: all 0.2s ease;

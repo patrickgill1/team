@@ -1669,7 +1669,7 @@ const EventDetail: React.FC = () => {
           <div className="text-xs font-extrabold tracking-widest uppercase text-ink-primary/70 mb-1.5">
             About
           </div>
-          <p className="text-sm leading-relaxed text-white/80 whitespace-pre-wrap">{event.description}</p>
+          <p className="text-sm leading-relaxed text-ink-primary/85 whitespace-pre-wrap">{event.description}</p>
         </section>
       )}
 
@@ -1765,7 +1765,10 @@ const PackingListSection: React.FC<{
           What to bring
         </div>
         {isCoach && !editing && (
-          <button onClick={() => setEditing(true)} className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary">
+          <button
+            onClick={() => setEditing(true)}
+            className="text-[11px] font-extrabold tracking-widest uppercase px-2 py-1 rounded bg-brand-primary text-white hover:bg-brand-primary-hov dark:bg-transparent dark:text-brand-primary dark:hover:text-brand-primary-dim"
+          >
             {list.length === 0 ? '+ Add' : 'Edit'}
           </button>
         )}

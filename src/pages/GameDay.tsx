@@ -188,6 +188,24 @@ const GameDay: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
+  // GameDay is intentionally a dark-only surface — hardcoded
+  // scoreboard palette (text-white on bg-black/60), sunlight-legibility
+  // priority, and no glare on the pitch. Rather than rewrite every
+  // hardcoded class to route through theme tokens, we force
+  // data-theme="dark" on the root element while GameDay is mounted
+  // and restore the user's preference on unmount. Apple Sports and
+  // most in-match apps do the same. If we ever want a true light
+  // variant, this is the escape hatch to remove.
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', 'dark');
+    return () => {
+      if (prev) root.setAttribute('data-theme', prev);
+      else root.removeAttribute('data-theme');
+    };
+  }, []);
+
   // Load event + players, subscribe to live game
   useEffect(() => {
     if (!eventId) {

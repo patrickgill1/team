@@ -1026,7 +1026,7 @@ const Wall: React.FC = () => {
           <Link to="/dashboard" aria-label="Back" className="inline-flex items-center justify-center w-8 h-8 rounded-full text-brand-primary-soft hover:bg-line-default/10">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </Link>
-          <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5">
+          <h1 className="text-base sm:text-lg font-black text-ink-primary flex items-center gap-1.5">
             <AppIcon name="news" className="w-4 h-4 text-brand-primary-soft" />
             <span className="tracking-tight">The Wall</span>
           </h1>
@@ -1049,7 +1049,7 @@ const Wall: React.FC = () => {
                 onClick={() => setActiveCategory(c.id)}
                 className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-extrabold uppercase tracking-widest transition ${
                   activeCategory === c.id
-                    ? 'bg-surface-base text-white'
+                    ? 'bg-surface-raised text-ink-primary'
                     : 'bg-line-default/[0.06] text-ink-primary/65 ring-1 ring-line-default/10 hover:bg-line-default/[0.1]'
                 }`}
               >
@@ -1091,7 +1091,7 @@ const Wall: React.FC = () => {
                 <button
                   type="button"
                   onClick={closeComposer}
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white"
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-ink-primary"
                 >
                   Cancel
                 </button>
@@ -1102,7 +1102,7 @@ const Wall: React.FC = () => {
                   type="button"
                   onClick={async () => { await handlePost(); if (!postError) closeComposer(); }}
                   disabled={!composer.trim() || posting}
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-white disabled:opacity-40"
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-ink-primary disabled:opacity-40"
                 >
                   {posting ? 'Saving…' : (editingPostId ? 'Save' : 'Post')}
                 </button>
@@ -1561,7 +1561,7 @@ const Wall: React.FC = () => {
                       type="button"
                       onClick={() => setReactingPostId(p.id)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest transition active:scale-95 ${
-                        myLike ? 'text-rose-300' : 'text-ink-primary/80 hover:text-white'
+                        myLike ? 'text-rose-300' : 'text-ink-primary/80 hover:text-ink-primary'
                       }`}
                     >
                       <svg className="w-5 h-5" fill={myLike ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -1572,7 +1572,7 @@ const Wall: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => toggleExpand(p.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest text-ink-primary/80 hover:text-white active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest text-ink-primary/80 hover:text-ink-primary active:scale-95"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -1583,7 +1583,7 @@ const Wall: React.FC = () => {
                       type="button"
                       onClick={() => shareToWeb(p)}
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-extrabold uppercase tracking-widest active:scale-95 ${
-                        (p as any).isPublic ? 'text-emerald-300 hover:text-emerald-200' : 'text-ink-primary/80 hover:text-white'
+                        (p as any).isPublic ? 'text-emerald-300 hover:text-emerald-200' : 'text-ink-primary/80 hover:text-ink-primary'
                       }`}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -1594,7 +1594,7 @@ const Wall: React.FC = () => {
                         type="button"
                         onClick={() => setManagePostId(p.id)}
                         aria-label="Manage post"
-                        className="w-10 py-2 flex items-center justify-center rounded-lg text-ink-primary/60 hover:text-white active:scale-95"
+                        className="w-10 py-2 flex items-center justify-center rounded-lg text-ink-primary/60 hover:text-ink-primary active:scale-95"
                       >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>
                       </button>
@@ -1741,7 +1741,7 @@ const Wall: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
-                <button onClick={() => setReactorsPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white">
+                <button onClick={() => setReactorsPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-ink-primary">
                   Close
                 </button>
                 <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">
@@ -1824,7 +1824,7 @@ const Wall: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
-                <button onClick={() => setViewersPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white">
+                <button onClick={() => setViewersPostId(null)} className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-ink-primary">
                   Close
                 </button>
                 <div className="text-xs font-extrabold tracking-widest uppercase text-brand-primary-soft">
@@ -1883,7 +1883,7 @@ const Wall: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setManagePostId(null)}
-                  className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-white"
+                  className="text-[11px] font-extrabold tracking-widest uppercase text-ink-primary/40 hover:text-ink-primary"
                 >
                   Close
                 </button>

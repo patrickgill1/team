@@ -117,6 +117,14 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
 
   // Pointer drag handlers. Track movement as % of the field's bbox so
   // the persisted positions scale across screen sizes.
+  //
+  // The touchmove listener is intentionally registered with
+  // {passive: false} so we can preventDefault() while a drag is
+  // active. Without this, iOS commits to "this gesture is a scroll"
+  // at touch-start and keeps scrolling the page even after our
+  // long-press activates drag mode — a mid-gesture change to
+  // touch-action does not reclaim the gesture. preventDefault-ing
+  // touchmove is the only way to stop the in-flight scroll.
   useEffect(() => {
     if (!draggingId) return;
     const handleMove = (e: PointerEvent) => {
@@ -135,13 +143,19 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
       setDraggingId(null);
       setDragXY(null);
     };
+    const stopScroll = (e: TouchEvent) => {
+      // preventDefault requires the listener to be non-passive.
+      if (e.cancelable) e.preventDefault();
+    };
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp);
     window.addEventListener('pointercancel', handleUp);
+    document.addEventListener('touchmove', stopScroll, { passive: false });
     return () => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
       window.removeEventListener('pointercancel', handleUp);
+      document.removeEventListener('touchmove', stopScroll);
     };
   }, [draggingId, dragXY, onMove]);
 

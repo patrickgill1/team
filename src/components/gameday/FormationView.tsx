@@ -158,7 +158,14 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
       <div
         ref={fieldRef}
         className="relative bg-gradient-to-b from-emerald-700 via-emerald-600 to-emerald-700 select-none"
-        style={{ aspectRatio: FIELD_RATIO[format], touchAction: 'none' }}
+        // touchAction on the FIELD wrapper is the real scroll gate.
+        // Was locked to 'none' unconditionally; iOS honored it and
+        // refused to let any touch that started inside the field
+        // pass through to the page scroller — no matter what
+        // touch-action we set on the chip buttons. Now only lock
+        // when a chip is actively being dragged. Otherwise the
+        // page can pan.
+        style={{ aspectRatio: FIELD_RATIO[format], touchAction: draggingId ? 'none' : 'pan-y' }}
       >
         {/* Stripe overlay */}
         <div className="absolute inset-0 opacity-15 pointer-events-none">
@@ -265,7 +272,12 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
                   </div>
                 )}
                 {p.jerseyNumber != null && (
-                  <span className="absolute -bottom-1 -right-1 px-1 rounded bg-surface-elevated text-white text-[9px] font-black ring-2 ring-white tabular-nums pointer-events-none">
+                  // Jersey pill — always crimson with white text so
+                  // it reads on either theme AND on top of the green
+                  // field. The old bg-surface-elevated + text-white
+                  // vanished in light mode (light bg + white text =
+                  // invisible).
+                  <span className="absolute -bottom-1 -right-1 px-1 rounded bg-brand-primary text-white text-[9px] font-black ring-2 ring-white tabular-nums pointer-events-none">
                     #{p.jerseyNumber}
                   </span>
                 )}

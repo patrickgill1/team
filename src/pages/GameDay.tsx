@@ -188,23 +188,6 @@ const GameDay: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
-  // GameDay is intentionally a dark-only surface — hardcoded
-  // scoreboard palette (text-white on bg-black/60), sunlight-legibility
-  // priority, and no glare on the pitch. Rather than rewrite every
-  // hardcoded class to route through theme tokens, we force
-  // data-theme="dark" on the root element while GameDay is mounted
-  // and restore the user's preference on unmount. Apple Sports and
-  // most in-match apps do the same. If we ever want a true light
-  // variant, this is the escape hatch to remove.
-  useEffect(() => {
-    const root = document.documentElement;
-    const prev = root.getAttribute('data-theme');
-    root.setAttribute('data-theme', 'dark');
-    return () => {
-      if (prev) root.setAttribute('data-theme', prev);
-      else root.removeAttribute('data-theme');
-    };
-  }, []);
 
   // Load event + players, subscribe to live game
   useEffect(() => {
@@ -987,12 +970,12 @@ const GameDay: React.FC = () => {
   }
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center p-4 text-white">
+      <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-input to-surface-base flex items-center justify-center p-4 text-ink-primary">
         <div className="text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-brand-primary/15 ring-1 ring-brand-primary-soft/30 text-brand-primary-soft flex items-center justify-center mb-3">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path fill="#0f172a" d="M12 6l2.5 2-.75 3h-3.5l-.75-3z" /></svg>
           </div>
-          <p className="mb-4 text-sm text-white/80">{error || 'Event not found'}</p>
+          <p className="mb-4 text-sm text-ink-primary/80">{error || 'Event not found'}</p>
           <Link to="/calendar" className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-primary hover:bg-brand-primary rounded-lg text-sm font-bold">Back to Calendar</Link>
         </div>
       </div>
@@ -1010,7 +993,7 @@ const GameDay: React.FC = () => {
             : { label: 'Share the recap', detail: 'Post the final summary back to team chat.' };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-white pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-surface-base via-surface-elevated to-vignette-deep text-ink-primary pb-32">
       {/* Watch Quick Sub undo toast — 8-second window to reverse a
           Watch-triggered swap. Renders above the sticky header so it
           isn't hidden by the scoreboard. */}
@@ -1030,10 +1013,10 @@ const GameDay: React.FC = () => {
         </div>
       )}
       {/* Header / Scoreboard */}
-      <header className="sticky top-0 z-20 bg-black/60 backdrop-blur-md border-b border-line-default/10">
+      <header className="sticky top-0 z-20 bg-surface-elevated/85 dark:bg-black/60 backdrop-blur-md border-b border-line-default/10">
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <Link to="/calendar" className="text-xs text-white/60 hover:text-white">← Calendar</Link>
+            <Link to="/calendar" className="text-xs text-ink-primary/65 hover:text-ink-primary">← Calendar</Link>
             <div className="flex items-center gap-2">
               {isUserCoach && (() => {
                 // Stats toggle. Off = scrimmage / testing (timeline still
@@ -1078,7 +1061,7 @@ const GameDay: React.FC = () => {
           </div>
           <div className="grid grid-cols-3 items-center text-center gap-2">
             <div>
-              <div className="text-xs text-white/60 truncate">{usLabel}</div>
+              <div className="text-xs text-ink-primary/65 truncate">{usLabel}</div>
               <div className="text-5xl font-black tabular-nums">{ourScore}</div>
               {isUserCoach && (
                 <div className="flex justify-center gap-1 mt-1">
@@ -1088,12 +1071,12 @@ const GameDay: React.FC = () => {
               )}
             </div>
             <div>
-              <div className="text-xs text-white/60 mb-1">{event.homeAway === 'away' ? '@ Away' : event.homeAway === 'home' ? 'Home' : ''}</div>
+              <div className="text-xs text-ink-primary/65 mb-1">{event.homeAway === 'away' ? '@ Away' : event.homeAway === 'home' ? 'Home' : ''}</div>
               <div className="text-2xl font-mono tabular-nums">{formatClock(liveSeconds)}</div>
-              <div className="text-[10px] text-white/40 mt-0.5">Min {minute}</div>
+              <div className="text-[10px] text-ink-primary/45 mt-0.5">Min {minute}</div>
             </div>
             <div>
-              <div className="text-xs text-white/60 truncate">{event.opponent || 'Opponent'}</div>
+              <div className="text-xs text-ink-primary/65 truncate">{event.opponent || 'Opponent'}</div>
               <div className="text-5xl font-black tabular-nums">{oppScore}</div>
               {isUserCoach && (
                 <div className="flex justify-center gap-1 mt-1">
@@ -1169,7 +1152,7 @@ const GameDay: React.FC = () => {
         {status !== 'final' && lineup.onField.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs uppercase tracking-wider text-white/40">Formation</h3>
+              <h3 className="text-xs uppercase tracking-wider text-ink-primary/45">Formation</h3>
               {isUserCoach && (
                 <div className="inline-flex items-center bg-line-default/5 ring-1 ring-line-default/15 rounded-full p-0.5">
                   {(['7v7', '9v9', '11v11'] as const).map((f) => {
@@ -1179,7 +1162,7 @@ const GameDay: React.FC = () => {
                         key={f}
                         onClick={() => patch({ format: f })}
                         className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full transition ${
-                          active ? 'bg-white text-charcoal-900 shadow' : 'text-white/70 hover:text-white'
+                          active ? 'bg-white text-charcoal-900 shadow' : 'text-ink-primary/70 hover:text-ink-primary'
                         }`}
                       >
                         {f}
@@ -1243,13 +1226,13 @@ const GameDay: React.FC = () => {
         {isUserCoach && status !== 'final' && (
           <section className="rounded-2xl bg-line-default/5 ring-1 ring-line-default/10 p-3 sm:p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs uppercase tracking-wider text-white/60 font-bold">Lineup &amp; Subs</h3>
+              <h3 className="text-xs uppercase tracking-wider text-ink-primary/65 font-bold">Lineup &amp; Subs</h3>
               <div className="flex items-center gap-2 text-[11px]">
-                <span className="text-white/40">Shift</span>
+                <span className="text-ink-primary/45">Shift</span>
                 <select
                   value={lineup.shiftSeconds}
                   onChange={e => setShiftSeconds(parseInt(e.target.value, 10))}
-                  className="bg-line-default/10 ring-1 ring-line-default/20 rounded px-1.5 py-0.5 text-white text-[11px]"
+                  className="bg-line-default/10 ring-1 ring-line-default/20 rounded px-1.5 py-0.5 text-ink-primary text-[11px]"
                 >
                   <option value={180}>3 min</option>
                   <option value={300}>5 min</option>
@@ -1258,7 +1241,7 @@ const GameDay: React.FC = () => {
                 </select>
                 <button
                   onClick={toggleBell}
-                  className={`px-2 py-0.5 rounded font-semibold ${lineup.bellEnabled ? 'bg-emerald-600/30 text-emerald-200 ring-1 ring-emerald-500/50' : 'bg-line-default/10 text-white/50 ring-1 ring-line-default/20'}`}
+                  className={`px-2 py-0.5 rounded font-semibold ${lineup.bellEnabled ? 'bg-emerald-600/30 text-emerald-200 ring-1 ring-emerald-500/50' : 'bg-line-default/10 text-ink-primary/55 ring-1 ring-line-default/20'}`}
                   title="Toggle rotation bell"
                 >🔔 {lineup.bellEnabled ? 'On' : 'Off'}</button>
               </div>
@@ -1272,7 +1255,7 @@ const GameDay: React.FC = () => {
                   const pct = Math.min(100, ((lineup.shiftSeconds - remaining) / lineup.shiftSeconds) * 100);
                   return (
                     <div>
-                      <div className="flex items-center justify-between text-[11px] text-white/60 mb-1">
+                      <div className="flex items-center justify-between text-[11px] text-ink-primary/65 mb-1">
                         <span>Next rotation in {formatClock(remaining)}</span>
                         <button onClick={acknowledgeBell} className="text-brand-primary-soft hover:text-ink-primary">Reset</button>
                       </div>
@@ -1320,7 +1303,7 @@ const GameDay: React.FC = () => {
                         </button>
                       );
                     })}
-                    {lineup.onField.length === 0 && <div className="text-[11px] text-white/40 italic px-1">No one on the field.</div>}
+                    {lineup.onField.length === 0 && <div className="text-[11px] text-ink-primary/45 italic px-1">No one on the field.</div>}
                   </div>
                 </div>
 
@@ -1350,12 +1333,12 @@ const GameDay: React.FC = () => {
                                 {p.name}
                                 {isNext && <span className="text-[9px] bg-amber-600 px-1 rounded text-white">NEXT</span>}
                               </span>
-                              <span className="block text-[10px] text-white/50 tabular-nums">{mins} min</span>
+                              <span className="block text-[10px] text-ink-primary/55 tabular-nums">{mins} min</span>
                             </span>
                           </button>
                         );
                       })}
-                    {lineup.benchIds.length === 0 && <div className="text-[11px] text-white/40 italic px-1">Bench empty.</div>}
+                    {lineup.benchIds.length === 0 && <div className="text-[11px] text-ink-primary/45 italic px-1">Bench empty.</div>}
                   </div>
                 </div>
               </div>
@@ -1365,11 +1348,11 @@ const GameDay: React.FC = () => {
 
         {/* Timeline */}
         <section>
-          <h3 className="text-xs uppercase tracking-wider text-white/40 mb-2">
+          <h3 className="text-xs uppercase tracking-wider text-ink-primary/45 mb-2">
             Timeline ({sortedTimeline.length})
           </h3>
           {sortedTimeline.length === 0 ? (
-            <div className="text-center py-10 text-white/40 text-sm rounded-xl bg-line-default/5 ring-1 ring-line-default/10">
+            <div className="text-center py-10 text-ink-primary/45 text-sm rounded-xl bg-line-default/5 ring-1 ring-line-default/10">
               No events yet. {isUserCoach ? 'Tap an action above.' : 'Coaches will record events live.'}
             </div>
           ) : (
@@ -1391,7 +1374,7 @@ const GameDay: React.FC = () => {
                         </>
                       )}
                     </div>
-                    {t.note && <div className="text-xs text-white/70 mt-0.5">{t.note}</div>}
+                    {t.note && <div className="text-xs text-ink-primary/70 mt-0.5">{t.note}</div>}
                     {t.clipUrl && (
                       <a
                         href={t.clipUrl}
@@ -1402,7 +1385,7 @@ const GameDay: React.FC = () => {
                         🎬 {t.source === 'clip' ? 'Clip credit' : 'Watch clip'}
                       </a>
                     )}
-                    <div className="text-[10px] text-white/40 mt-0.5">
+                    <div className="text-[10px] text-ink-primary/45 mt-0.5">
                       Min {t.minute} · {new Date(t.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       {t.recordedByName ? ` · by ${t.recordedByName}` : ''}
                     </div>
@@ -1410,7 +1393,7 @@ const GameDay: React.FC = () => {
                   {isUserCoach && (
                     <button
                       onClick={() => removeTimelineEntry(t.id)}
-                      className="text-white/40 hover:text-red-400 text-sm"
+                      className="text-ink-primary/45 hover:text-red-400 text-sm"
                       title="Remove"
                     >✕</button>
                   )}
@@ -1422,10 +1405,10 @@ const GameDay: React.FC = () => {
 
         {/* Per-player live tally */}
         <section>
-          <h3 className="text-xs uppercase tracking-wider text-white/40 mb-2">Live Stat Sheet</h3>
+          <h3 className="text-xs uppercase tracking-wider text-ink-primary/45 mb-2">Live Stat Sheet</h3>
           <div className="rounded-xl bg-line-default/5 ring-1 ring-line-default/10 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-line-default/5 text-white/60 text-[10px] uppercase tracking-wider">
+              <thead className="bg-line-default/5 text-ink-primary/65 text-[10px] uppercase tracking-wider">
                 <tr>
                   <th className="text-left px-3 py-2">Player</th>
                   <th className="px-2 py-2">⚽</th>
@@ -1448,7 +1431,7 @@ const GameDay: React.FC = () => {
                   }, { goals: 0, assists: 0, saves: 0, yellow: 0, red: 0 });
                   const hasAny = tally.goals + tally.assists + tally.saves + tally.yellow + tally.red > 0;
                   return (
-                    <tr key={p.id} className={`border-t border-line-default/5 ${hasAny ? 'text-white' : 'text-white/40'}`}>
+                    <tr key={p.id} className={`border-t border-line-default/5 ${hasAny ? 'text-ink-primary' : 'text-ink-primary/45'}`}>
                       <td className="px-3 py-2 truncate">
                         {p.jerseyNumber != null ? <span className="text-brand-primary-soft font-bold mr-1">#{p.jerseyNumber}</span> : null}
                         {p.name}
@@ -1469,15 +1452,15 @@ const GameDay: React.FC = () => {
 
       {/* Player picker modal */}
       {pickerKind && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setPickerKind(null)}>
+        <div className="fixed inset-0 z-50 bg-surface-base/70 dark:bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setPickerKind(null)}>
           <div className="bg-surface-elevated ring-1 ring-line-default/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-4 py-3 border-b border-line-default/10 flex items-center justify-between">
               <h3 className="font-bold flex items-center gap-2">
                 <span>{KIND_META[pickerKind].emoji}</span>
                 <span>{KIND_META[pickerKind].label}</span>
-                <span className="text-xs text-white/40 font-normal">· Min {minute}</span>
+                <span className="text-xs text-ink-primary/45 font-normal">· Min {minute}</span>
               </h3>
-              <button onClick={() => setPickerKind(null)} className="text-white/60 hover:text-white text-xl leading-none">✕</button>
+              <button onClick={() => setPickerKind(null)} className="text-ink-primary/65 hover:text-ink-primary text-xl leading-none">✕</button>
             </div>
             {pickerKind === 'note' ? (
               <div className="p-4 space-y-3">
@@ -1486,7 +1469,7 @@ const GameDay: React.FC = () => {
                   onChange={e => setNoteText(e.target.value)}
                   placeholder="What happened? (e.g. great defensive stop, weather break)"
                   rows={4}
-                  className="w-full px-3 py-2 bg-line-default/5 border border-line-default/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 bg-line-default/5 border border-line-default/10 rounded-lg text-sm text-ink-primary placeholder-ink-primary/35 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   autoFocus
                 />
                 <button
@@ -1502,7 +1485,7 @@ const GameDay: React.FC = () => {
             ) : (
               <div className="overflow-y-auto p-2 grid grid-cols-2 gap-2">
                 {players.length === 0 ? (
-                  <div className="col-span-2 p-6 text-center text-white/40 text-sm">Squad's empty.</div>
+                  <div className="col-span-2 p-6 text-center text-ink-primary/45 text-sm">Squad's empty.</div>
                 ) : players.map(p => (
                   <button
                     key={p.id}
@@ -1517,7 +1500,7 @@ const GameDay: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-semibold truncate">{p.name}</div>
-                      {p.position && <div className="text-[10px] text-white/40 truncate">{p.position}</div>}
+                      {p.position && <div className="text-[10px] text-ink-primary/45 truncate">{p.position}</div>}
                     </div>
                   </button>
                 ))}

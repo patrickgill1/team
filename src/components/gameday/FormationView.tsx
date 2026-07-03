@@ -242,7 +242,13 @@ const FormationView: React.FC<Props> = ({ players, onFieldIds, positions = {}, f
                 top: `${pos.y}%`,
                 transform: 'translate(-50%, -50%)',
                 cursor: 'grab',
-                touchAction: 'none',
+                // touchAction only 'none' during active drag. Setting
+                // it unconditionally was the actual scroll trap: iOS
+                // Safari sees touch-action:none on a chip, refuses to
+                // let the touch propagate to page scroll before the
+                // long-press gate even fires. `manipulation` lets
+                // scrolls pass while still killing double-tap-zoom.
+                touchAction: isDragging ? 'none' : 'manipulation',
               }}
             >
               <div className="relative">

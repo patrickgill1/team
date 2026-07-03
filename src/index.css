@@ -324,6 +324,97 @@ html[data-theme="light"] .bg-cyan-500\/15,
 html[data-theme="light"] .bg-cyan-500\/10 {
   background-color: rgb(207 250 254) !important;  /* cyan-100 */
 }
+
+/* ─────────────────────────────────────────────────────────
+   LEGACY DARK-PALETTE REMAPS
+   Per the theme-tokens memory, ~160 components still use
+   raw bg-charcoal-* / text-bone / border-white-N literals
+   from before the token migration. These stayed dark by
+   design (fine when the app was dark-only). Under light
+   mode they need to flip. Rather than sweep every file, we
+   remap the classes in one place so every legacy call site
+   inherits proper light styling.
+   ───────────────────────────────────────────────────────── */
+
+/* Charcoal backgrounds — page/panel/input tokens */
+html[data-theme="light"] .bg-charcoal-950 {
+  background-color: rgb(var(--surface-base)) !important;
+}
+html[data-theme="light"] .bg-charcoal-900 {
+  background-color: rgb(var(--surface-elevated)) !important;
+}
+html[data-theme="light"] .bg-charcoal-800 {
+  background-color: rgb(var(--surface-input)) !important;
+}
+html[data-theme="light"] .bg-charcoal-700 {
+  background-color: rgb(var(--surface-raised)) !important;
+}
+html[data-theme="light"] .bg-charcoal-600 {
+  background-color: rgb(var(--surface-tint)) !important;
+}
+
+/* Bone family (primary text on dark) → ink-primary in light */
+html[data-theme="light"] .text-bone {
+  color: rgb(var(--ink-primary)) !important;
+}
+html[data-theme="light"] .text-bone\/85,
+html[data-theme="light"] .text-bone\/80,
+html[data-theme="light"] .text-bone\/75 {
+  color: rgb(var(--ink-primary) / 0.85) !important;
+}
+html[data-theme="light"] .text-bone\/70,
+html[data-theme="light"] .text-bone\/65,
+html[data-theme="light"] .text-bone\/60 {
+  color: rgb(var(--ink-secondary)) !important;
+}
+html[data-theme="light"] .text-bone\/55,
+html[data-theme="light"] .text-bone\/50,
+html[data-theme="light"] .text-bone\/45,
+html[data-theme="light"] .text-bone\/40,
+html[data-theme="light"] .text-bone\/35 {
+  color: rgb(var(--ink-muted)) !important;
+}
+html[data-theme="light"] .bg-bone {
+  background-color: rgb(var(--surface-base)) !important;
+}
+
+/* Charcoal text tones (the darker charcoal-700/800/900 remap to
+   ink-primary — they were meant as strong dark text on light
+   surfaces originally, so they already read on light. Handle
+   them for completeness anyway.) */
+html[data-theme="light"] .text-charcoal-700,
+html[data-theme="light"] .text-charcoal-800,
+html[data-theme="light"] .text-charcoal-900,
+html[data-theme="light"] .text-charcoal-950 {
+  color: rgb(var(--ink-primary)) !important;
+}
+html[data-theme="light"] .text-charcoal-200 {
+  color: rgb(var(--ink-secondary)) !important;
+}
+html[data-theme="light"] .text-charcoal-100,
+html[data-theme="light"] .text-charcoal-50 {
+  color: rgb(var(--ink-primary)) !important;
+}
+
+/* Border literals: `border-white/N` and `ring-white/N` are hardcoded
+   white borders that vanish on white surfaces in light. Flip to the
+   `line-default` token which is white in dark, dark-navy in light. */
+html[data-theme="light"] .border-white\/5,
+html[data-theme="light"] .border-white\/10,
+html[data-theme="light"] .border-white\/15,
+html[data-theme="light"] .border-white\/20 {
+  border-color: rgb(var(--line-default) / 0.12) !important;
+}
+html[data-theme="light"] .ring-white\/5,
+html[data-theme="light"] .ring-white\/10,
+html[data-theme="light"] .ring-white\/15,
+html[data-theme="light"] .ring-white\/20 {
+  --tw-ring-color: rgb(var(--line-default) / 0.12) !important;
+}
+html[data-theme="light"] .divide-white\/5 > * + *,
+html[data-theme="light"] .divide-white\/10 > * + * {
+  border-color: rgb(var(--line-default) / 0.10) !important;
+}
 .card-interactive {
   cursor: pointer;
   transition: all 0.2s ease;

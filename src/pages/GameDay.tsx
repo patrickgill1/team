@@ -860,6 +860,24 @@ const GameDay: React.FC = () => {
           };
         })
         .filter((x): x is { id: string; name: string; jerseyNumber: number | null } => x !== null),
+      // Full roster (on-field + bench) for the Watch STAT picker.
+      // Sorted by jersey number ascending so the order is predictable
+      // for coaches who've memorized numbers. Coaches who don't use
+      // the sub tracker can still attribute stats to any team player
+      // without artificially subbing anyone in.
+      roster: [...players]
+        .filter(p => p && p.id)
+        .sort((a, b) => {
+          const an = typeof a.jerseyNumber === 'number' ? a.jerseyNumber : Number.MAX_SAFE_INTEGER;
+          const bn = typeof b.jerseyNumber === 'number' ? b.jerseyNumber : Number.MAX_SAFE_INTEGER;
+          if (an !== bn) return an - bn;
+          return (a.name || '').localeCompare(b.name || '');
+        })
+        .map(p => ({
+          id: p.id,
+          name: p.name || 'Player',
+          jerseyNumber: p.jerseyNumber ?? null,
+        })),
       updatedAt: Date.now(),
     });
   }, [
@@ -935,8 +953,38 @@ const GameDay: React.FC = () => {
       case 'pauseClock':
         await pauseClock();
         break;
+      case 'recordStat': {
+        // Watch stat picker fired: attribute a goal/assist/save/
+        // yellow/red to a specific player. Reuses addTimelineEntry
+        // (same code path as tap-to-record on the phone) so scoring,
+        // undo, and season rollup all work identically.
+        const kind = action.stat as any;
+        const validKinds = new Set(['goal', 'assist', 'save', 'yellow', 'red']);
+        if (!action.playerId || !kind || !validKinds.has(kind)) break;
+        await addTimelineEntry(kind, { playerId: action.playerId, note: 'Watch' });
+        break;
+      }
+      case 'endPeriod':
+        // Bump the period label. Handled via patch — same shape the
+        // "End period" button in the header would use.
+        if (game) {
+          const cur = game.period;
+          const next: LiveGameDoc['period'] =
+            cur === 1 ? 2 :
+            cur === 2 ? 'OT' :
+            cur === 'OT' ? 'OT' : 1;
+          await patch({
+            period: next,
+            clockOffsetSeconds: liveSeconds,
+            clockSecondsAtStart: game.status === 'live' ? Date.now() : (game.clockSecondsAtStart || 0),
+          } as any);
+        }
+        break;
+      case 'toggleBell':
+        await toggleBell();
+        break;
     }
-  }, [isUserCoach, eventId, game, watchQuickSub]);
+  }, [isUserCoach, eventId, game, watchQuickSub, liveSeconds]);
 
   useEffect(() => {
     if (!isUserCoach || !eventId) return;

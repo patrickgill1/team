@@ -10,6 +10,11 @@ struct WatchBenchPlayer: Equatable, Identifiable {
     let jerseyNumber: Int?
 }
 
+// Same shape, different semantic use. The stat picker walks the
+// full roster; the sub picker walks the bench subset. Aliased for
+// clarity at call sites.
+typealias WatchRosterPlayer = WatchBenchPlayer
+
 struct WatchGameSession: Equatable {
     var eventId: String
     var homeName: String
@@ -25,6 +30,7 @@ struct WatchGameSession: Equatable {
     var bellEnabled: Bool
     var suggestedNextPlayerName: String?
     var bench: [WatchBenchPlayer]
+    var roster: [WatchRosterPlayer]
     var updatedAt: Double
 
     static let empty = WatchGameSession(
@@ -42,6 +48,7 @@ struct WatchGameSession: Equatable {
         bellEnabled: false,
         suggestedNextPlayerName: nil,
         bench: [],
+        roster: [],
         updatedAt: 0
     )
 
@@ -79,7 +86,7 @@ final class WatchGameModel: NSObject, ObservableObject, WCSessionDelegate {
         return max(0, shift - (liveClockSeconds() - last))
     }
 
-    func send(_ action: String, playerId: String? = nil) {
+    func send(_ action: String, playerId: String? = nil, stat: String? = nil) {
         guard WCSession.isSupported() else { return }
         let id = "\(Int(Date().timeIntervalSince1970 * 1000))_\(UUID().uuidString.prefix(8))"
         var payload: [String: Any] = [
@@ -90,6 +97,9 @@ final class WatchGameModel: NSObject, ObservableObject, WCSessionDelegate {
         ]
         if let playerId, !playerId.isEmpty {
             payload["playerId"] = playerId
+        }
+        if let stat, !stat.isEmpty {
+            payload["stat"] = stat
         }
         WCSession.default.sendMessage(payload, replyHandler: { [weak self] _ in
             DispatchQueue.main.async { self?.lastActionStatus = "Sent" }
@@ -111,6 +121,22 @@ final class WatchGameModel: NSObject, ObservableObject, WCSessionDelegate {
             guard let self else { return }
             self.now = Date()
             self.checkSubAlert()
+            self.expireStaleSession()
+        }
+    }
+
+    // A session applied while the Watch was open can go stale in
+    // place — the coach ended the game on the phone but the app
+    // was force-quit before a clearGameSession fired. Every second
+    // we check: if the current session's updatedAt is more than
+    // 6 hours old, drop it. Belt to the applyApplicationContext
+    // suspenders.
+    private func expireStaleSession() {
+        guard let s = session, s.updatedAt > 0 else { return }
+        let sixHoursMs: Double = 6 * 60 * 60 * 1000
+        let nowMs = Date().timeIntervalSince1970 * 1000
+        if nowMs - s.updatedAt > sixHoursMs {
+            DispatchQueue.main.async { self.session = nil }
         }
     }
 
@@ -131,6 +157,18 @@ final class WatchGameModel: NSObject, ObservableObject, WCSessionDelegate {
         }
         guard kind == "gameSession", let raw = context["session"] as? [String: Any] else { return }
         let next = WatchGameSession.from(raw)
+        // Zombie session guard: if the phone pushed a session whose
+        // updatedAt is more than 6 hours old, don't apply it. This
+        // catches the "Patrick opened the Watch app days later and
+        // it showed a game he ended yesterday" case. The Watch keeps
+        // its last-known session across app relaunches, so without a
+        // freshness check we surface stale state.
+        let sixHoursMs: Double = 6 * 60 * 60 * 1000
+        let nowMs = Date().timeIntervalSince1970 * 1000
+        if next.updatedAt > 0, nowMs - next.updatedAt > sixHoursMs {
+            DispatchQueue.main.async { self.session = nil }
+            return
+        }
         DispatchQueue.main.async { self.session = next }
     }
 
@@ -161,6 +199,15 @@ extension WatchGameSession {
                 jerseyNumber: entry["jerseyNumber"] as? Int
             )
         }
+        let rosterRaw = raw["roster"] as? [[String: Any]] ?? []
+        let roster: [WatchRosterPlayer] = rosterRaw.compactMap { entry in
+            guard let id = entry["id"] as? String, !id.isEmpty else { return nil }
+            return WatchRosterPlayer(
+                id: id,
+                name: entry["name"] as? String ?? "Player",
+                jerseyNumber: entry["jerseyNumber"] as? Int
+            )
+        }
         return WatchGameSession(
             eventId: raw["eventId"] as? String ?? "",
             homeName: raw["homeName"] as? String ?? "Us",
@@ -176,6 +223,7 @@ extension WatchGameSession {
             bellEnabled: raw["bellEnabled"] as? Bool ?? false,
             suggestedNextPlayerName: suggested?["name"] as? String,
             bench: bench,
+            roster: roster,
             updatedAt: raw["updatedAt"] as? Double ?? 0
         )
     }

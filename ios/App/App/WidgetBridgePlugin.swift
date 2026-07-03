@@ -184,11 +184,14 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate 
         var payload: [String: Any] = ["action": action]
         if let eventId = message["eventId"] as? String { payload["eventId"] = eventId }
         if let id = message["id"] as? String { payload["id"] = id }
-        // playerId rides along on `subMade` when the coach picked from
-        // the Watch sub picker; phone side uses it to auto-swap out
-        // the longest-on-field player.
+        // playerId rides along on `subMade` (bench player coming IN)
+        // and `recordStat` (player being credited with a goal, assist,
+        // save, or card). `stat` rides along on `recordStat` only.
         if let playerId = message["playerId"] as? String, !playerId.isEmpty {
             payload["playerId"] = playerId
+        }
+        if let stat = message["stat"] as? String, !stat.isEmpty {
+            payload["stat"] = stat
         }
         DispatchQueue.main.async { self.enqueueWatchAction(payload) }
     }

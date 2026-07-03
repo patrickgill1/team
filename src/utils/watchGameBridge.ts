@@ -10,7 +10,15 @@ export type WatchGameActionType =
   | 'undoLast'
   | 'subMade'
   | 'startClock'
-  | 'pauseClock';
+  | 'pauseClock'
+  | 'recordStat'   // Watch stat picker → phone attributes to a player
+  | 'endPeriod'    // Overflow: advance period (1st → 2nd → OT)
+  | 'toggleBell';  // Overflow: silence / re-enable shift bell
+
+// Stat kinds accepted by the recordStat action. Match the
+// TimelineEntry.kind values so the phone side can dispatch
+// directly into addTimelineEntry.
+export type WatchStatKind = 'goal' | 'assist' | 'save' | 'yellow' | 'red';
 
 export interface WatchGamePlayerSummary {
   id: string;
@@ -37,6 +45,12 @@ export interface WatchGameSession {
   // surfaces players who need time at the top of the list. Keeps the
   // scroll to a minimum for the coach's most likely pick.
   bench?: WatchGamePlayerSummary[];
+  // Full roster (on-field + bench), used by the stat picker so a
+  // coach can attribute a goal/assist/save to any active player
+  // regardless of whether they use the sub tracker. Ordered by
+  // jersey number ascending so it's predictable for coaches who've
+  // memorized their kids' numbers.
+  roster?: WatchGamePlayerSummary[];
   updatedAt: number;
 }
 
@@ -44,10 +58,13 @@ export interface WatchGameAction {
   id?: string;
   eventId?: string;
   action: WatchGameActionType;
-  // Present on 'subMade' actions coming from the Watch player picker
-  // — the id of the bench player the coach picked to sub in. Phone
-  // side auto-picks who comes off (longest-on-field).
+  // Present on 'subMade' actions (bench player coming IN) and
+  // 'recordStat' actions (player being credited). Phone side reads
+  // this to attribute the action.
   playerId?: string;
+  // Only on 'recordStat' — which kind of stat to record. Maps to
+  // TimelineEntry.kind on the phone side.
+  stat?: WatchStatKind;
   receivedAt?: number;
 }
 

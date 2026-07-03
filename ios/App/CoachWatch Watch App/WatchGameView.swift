@@ -1,9 +1,58 @@
 import SwiftUI
 
+// Kinds accepted by the Watch stat picker. String rawValue matches
+// TimelineEntry.kind on the phone side (goal, assist, save, yellow,
+// red) so no translation is needed — payload passes through the
+// bridge and the phone dispatches straight into addTimelineEntry.
+enum WatchStatKind: String, CaseIterable, Identifiable {
+    case goal
+    case assist
+    case save
+    case yellow
+    case red
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .goal:   return "Goal"
+        case .assist: return "Assist"
+        case .save:   return "Save"
+        case .yellow: return "Yellow"
+        case .red:    return "Red"
+        }
+    }
+    var systemImage: String {
+        switch self {
+        case .goal:   return "soccerball"
+        case .assist: return "hand.thumbsup.fill"
+        case .save:   return "hand.raised.fill"
+        case .yellow: return "square.fill"
+        case .red:    return "square.fill"
+        }
+    }
+    var tint: Color {
+        switch self {
+        case .goal:   return .red
+        case .assist: return .blue
+        case .save:   return .green
+        case .yellow: return .yellow
+        case .red:    return Color(red: 0.86, green: 0.15, blue: 0.15)
+        }
+    }
+}
+
 struct WatchGameView: View {
     @EnvironmentObject private var model: WatchGameModel
     @State private var overflowOpen = false
     @State private var subPickerOpen = false
+    // Two-stage stat flow: statKindPickerOpen shows the 5-way grid
+    // (Goal / Assist / Save / Yellow / Red). Once a kind is chosen,
+    // pendingStatKind flips and statPlayerPickerOpen shows the
+    // roster picker. Player tap sends `recordStat` and both sheets
+    // close. Kept as two states (not a Bool + optional) so SwiftUI's
+    // sheet(isPresented:) can drive them independently.
+    @State private var statKindPickerOpen = false
+    @State private var statPlayerPickerOpen = false
+    @State private var pendingStatKind: WatchStatKind? = nil
 
     var body: some View {
         if let session = model.session, !session.eventId.isEmpty {
@@ -97,9 +146,9 @@ struct WatchGameView: View {
 
     private func scoreBoard(_ session: WatchGameSession) -> some View {
         HStack(alignment: .top, spacing: 4) {
-            teamColumn(name: session.homeName, score: session.ourScore, isOurs: true)
+            teamColumn(session: session, name: session.homeName, score: session.ourScore, isOurs: true)
             centerColumn(session).frame(width: 54)
-            teamColumn(name: session.opponentName, score: session.oppScore, isOurs: false)
+            teamColumn(session: session, name: session.opponentName, score: session.oppScore, isOurs: false)
         }
     }
 
@@ -116,13 +165,15 @@ struct WatchGameView: View {
         .padding(.top, 26) // sit below team labels so scores stay top-aligned
     }
 
-    // Our column: red block, white score, red +/- circles
-    // Their column: white block, black score, white +/- circles w/ red icons
-    private func teamColumn(name: String, score: Int, isOurs: Bool) -> some View {
+    // Asymmetric team columns:
+    //  - Ours: score block + "+ STAT" pill (opens the attribution flow)
+    //  - Theirs: score block + minus/plus circles (no attribution needed)
+    // The design mirrors the reality — a coach only cares WHO on
+    // their own team scored/saved/carded. Opponent stats are just
+    // scoreboard maintenance.
+    private func teamColumn(session: WatchGameSession, name: String, score: Int, isOurs: Bool) -> some View {
         let blockFill: Color = isOurs ? .red : .white
         let scoreColor: Color = isOurs ? .white : .black
-        let circleFill: Color = isOurs ? .red : .white
-        let iconColor: Color = isOurs ? .white : .red
 
         return VStack(spacing: 5) {
             Text(shortName(name))
@@ -141,12 +192,45 @@ struct WatchGameView: View {
                         .minimumScaleFactor(0.6)
                 )
 
-            HStack(spacing: 6) {
-                circleButton(system: "minus", fill: circleFill, icon: iconColor) {
-                    model.send(isOurs ? "ourGoalMinus" : "oppGoalMinus")
+            if isOurs {
+                // Single "+ STAT" pill. Opens the stat-kind picker
+                // when the roster is loaded; falls back to a raw
+                // ourGoal (unattributed) when the roster is empty.
+                Button {
+                    if session.roster.isEmpty {
+                        model.send("ourGoal")
+                    } else {
+                        statKindPickerOpen = true
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .heavy))
+                        Text("STAT")
+                            .font(.system(size: 11, weight: .black))
+                            .tracking(0.5)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.red.opacity(0.9))
+                    )
                 }
-                circleButton(system: "plus", fill: circleFill, icon: iconColor) {
-                    model.send(isOurs ? "ourGoal" : "oppGoal")
+                .buttonStyle(.plain)
+                .sheet(isPresented: $statKindPickerOpen) {
+                    statKindPickerSheet()
+                }
+            } else {
+                HStack(spacing: 6) {
+                    circleButton(system: "minus", fill: .white, icon: .red) {
+                        model.send("oppGoalMinus")
+                    }
+                    circleButton(system: "plus", fill: .white, icon: .red) {
+                        model.send("oppGoal")
+                    }
                 }
             }
         }
@@ -323,6 +407,135 @@ struct WatchGameView: View {
         return String(first)
     }
 
+    // MARK: - Stat picker (kind + player, two sheets)
+
+    private func statKindPickerSheet() -> some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("STAT")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(.secondary)
+                    .tracking(1.5)
+                Spacer()
+                Button("Cancel") {
+                    statKindPickerOpen = false
+                    pendingStatKind = nil
+                }
+                .font(.system(size: 12, weight: .bold))
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+            }
+            .padding(.horizontal, 4)
+
+            // 5 stat kinds — Goal, Assist, Save, Yellow, Red — laid out
+            // as a vertical stack. Digital Crown scrolls. Simpler than
+            // a grid on a 41mm face and easier tap targets.
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    ForEach(WatchStatKind.allCases) { kind in
+                        Button {
+                            pendingStatKind = kind
+                            statKindPickerOpen = false
+                            // Chain to the player picker on the next
+                            // runloop so SwiftUI can dismiss the first
+                            // sheet before presenting the second.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                statPlayerPickerOpen = true
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: kind.systemImage)
+                                    .font(.system(size: 14, weight: .heavy))
+                                Text(kind.label.uppercased())
+                                    .font(.system(size: 15, weight: .black))
+                                Spacer()
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(kind.tint.opacity(0.9))
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(.top, 4)
+        .sheet(isPresented: $statPlayerPickerOpen) {
+            statPlayerPickerSheet()
+        }
+    }
+
+    private func statPlayerPickerSheet() -> some View {
+        let kind = pendingStatKind
+        let roster = model.session?.roster ?? []
+        return VStack(spacing: 0) {
+            HStack {
+                Text(kind?.label.uppercased() ?? "STAT")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(.secondary)
+                    .tracking(1.5)
+                Spacer()
+                Button("Cancel") {
+                    statPlayerPickerOpen = false
+                    pendingStatKind = nil
+                }
+                .font(.system(size: 12, weight: .bold))
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+            }
+            .padding(.horizontal, 4)
+            .padding(.bottom, 6)
+
+            ScrollView {
+                LazyVStack(spacing: 4) {
+                    ForEach(roster) { player in
+                        Button {
+                            if let kind {
+                                model.send("recordStat", playerId: player.id, stat: kind.rawValue)
+                            }
+                            statPlayerPickerOpen = false
+                            pendingStatKind = nil
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text(firstName(player.name))
+                                    .font(.system(size: 16, weight: .black))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                Spacer(minLength: 4)
+                                if let n = player.jerseyNumber {
+                                    Text("#\(n)")
+                                        .font(.system(size: 12, weight: .black, design: .rounded))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                        .monospacedDigit()
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(Color.white.opacity(0.12))
+                                        )
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill((kind?.tint ?? .red).opacity(0.85))
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
     // MARK: - Overflow (Menu is watchOS-unavailable, so use a sheet)
 
     private func overflowSheet(_ session: WatchGameSession) -> some View {
@@ -355,6 +568,32 @@ struct WatchGameView: View {
                 }
                 .tint(.green)
             }
+
+            // Advance the period without leaving the Watch. Phone
+            // side steps 1 → 2 → OT and resets the clock offset.
+            Button {
+                model.send("endPeriod")
+                overflowOpen = false
+            } label: {
+                Label("End period", systemImage: "forward.end.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .tint(.blue)
+
+            // Silence the shift bell for the rest of the game — or
+            // bring it back if it was already off. Handy for the last
+            // few minutes when subs don't matter anymore.
+            Button {
+                model.send("toggleBell")
+                overflowOpen = false
+            } label: {
+                Label(
+                    session.bellEnabled ? "Silence sub bell" : "Enable sub bell",
+                    systemImage: session.bellEnabled ? "bell.slash.fill" : "bell.fill"
+                )
+                .frame(maxWidth: .infinity)
+            }
+            .tint(.purple)
 
             Button("Close") { overflowOpen = false }
                 .buttonStyle(.plain)
@@ -406,6 +645,14 @@ struct WatchGameView: View {
             WatchBenchPlayer(id: "2", name: "Mia Chen", jerseyNumber: 7),
             WatchBenchPlayer(id: "3", name: "Jordan Ruiz", jerseyNumber: 23),
             WatchBenchPlayer(id: "4", name: "Sam Patel", jerseyNumber: 5),
+        ],
+        roster: [
+            WatchRosterPlayer(id: "1", name: "Aiden Kim", jerseyNumber: 14),
+            WatchRosterPlayer(id: "2", name: "Mia Chen", jerseyNumber: 7),
+            WatchRosterPlayer(id: "3", name: "Jordan Ruiz", jerseyNumber: 23),
+            WatchRosterPlayer(id: "4", name: "Sam Patel", jerseyNumber: 5),
+            WatchRosterPlayer(id: "5", name: "Alex Morgan", jerseyNumber: 10),
+            WatchRosterPlayer(id: "6", name: "Chris Diaz", jerseyNumber: 2),
         ],
         updatedAt: Date().timeIntervalSince1970 * 1000
     )

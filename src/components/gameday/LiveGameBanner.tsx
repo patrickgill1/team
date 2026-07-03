@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useTeam } from '../../contexts/TeamContext';
+import { clearWatchGameSession } from '../../utils/watchGameBridge';
 
 /**
  * Persistent "there's a live game running" banner. Sticks to the top
@@ -85,6 +86,15 @@ const LiveGameBanner: React.FC = () => {
         if (!best || row.updatedAtMs > best.updatedAtMs) best = row;
       });
       setLive(best);
+      // If there's no fresh live game for the current team, tell the
+      // paired Watch to drop its session too — otherwise the Watch
+      // holds onto whatever was last pushed (yesterday's ended game).
+      // Fires even when GameDay isn't mounted, which is the point:
+      // the coach opens the phone to Dashboard, sees no live banner,
+      // opens the Watch expecting nothing, gets nothing.
+      if (!best) {
+        void clearWatchGameSession().catch(() => undefined);
+      }
     }, () => setLive(null));
     return unsub;
   }, [selectedTeamId]);

@@ -9,6 +9,7 @@ import AppIcon from '../components/common/AppIcon';
 import { VOCAB } from '../vocab';
 import StatsTracker from '../components/stats/StatsTracker';
 import StatsDisplay from '../components/stats/StatsDisplay';
+import TeamRecordsSection from '../components/stats/TeamRecordsSection';
 import { useActiveSeason } from '../hooks/useActiveSeason';
 import { getPlayerStats, getPlayerLifetimeStats } from '../utils/seasons';
 
@@ -141,6 +142,10 @@ const Stats: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Records section — top of Stats page. Season leaders + team
+            single-game records with This Season / All-Time tabs. */}
+        {selectedTeamId && <TeamRecordsSection teamId={selectedTeamId} players={players} />}
 
         {/* Tab Navigation */}
         <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm">

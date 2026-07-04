@@ -192,10 +192,14 @@ const PlayerDevelopment: React.FC = () => {
     }
   }, [plans, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadData = async () => {
+  const loadData = async (opts: { silent?: boolean } = {}) => {
     if (!selectedTeamId) { setLoading(false); return; }
     try {
-      setLoading(true);
+      // `silent` reloads keep the current card visible while the fetch
+      // runs. Without it, setLoading(true) unmounts everything and the
+      // page flashes to a spinner before the fresh data lands — Patrick
+      // saw this after tapping "I did it" on a goal.
+      if (!opts.silent) setLoading(true);
 
       // Load players and plans in parallel
       const plansPromise = (selectedPlayerId && selectedPlayerId !== 'all')
@@ -603,7 +607,7 @@ const PlayerDevelopment: React.FC = () => {
       // "the full plan page says 5 day streak but the profile pills
       // still say 4." Same race InlineDevPlanCard had; same fix.
       await recomputeAndPersistPlayerStreak(plan.playerId, plan, updatedGoals);
-      loadData();
+      loadData({ silent: true });
     } catch (error) {
       console.error('Error logging quick did-it:', error);
     }

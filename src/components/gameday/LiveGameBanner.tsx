@@ -57,6 +57,10 @@ const LiveGameBanner: React.FC = () => {
 
   useEffect(() => {
     if (!selectedTeamId) { setLive(null); return; }
+    // Snapshot pathname at effect-setup time so the onSnapshot
+    // callback closes over the pathname of the moment; React's
+    // location.pathname would be captured stale otherwise.
+    const currentPath = location.pathname;
     const q = query(
       collection(db, 'live_games'),
       where('teamId', '==', selectedTeamId),
@@ -86,18 +90,24 @@ const LiveGameBanner: React.FC = () => {
         if (!best || row.updatedAtMs > best.updatedAtMs) best = row;
       });
       setLive(best);
-      // If there's no fresh live game for the current team, tell the
-      // paired Watch to drop its session too — otherwise the Watch
-      // holds onto whatever was last pushed (yesterday's ended game).
-      // Fires even when GameDay isn't mounted, which is the point:
-      // the coach opens the phone to Dashboard, sees no live banner,
-      // opens the Watch expecting nothing, gets nothing.
-      if (!best) {
+      // If there's no fresh live game AND the user isn't currently
+      // ON GameDay for some event, clear the Watch session. This
+      // catches the "opened phone to Dashboard, Watch still shows
+      // yesterday's game" zombie case.
+      //
+      // Skip when the pathname is a game-day route: GameDay owns the
+      // Watch session while it's mounted, and it publishes 'scheduled'
+      // sessions before the coach taps Start. Without this skip we
+      // race with GameDay's publish and clear a session it just
+      // pushed — the coach starts a fresh game and the Watch flips
+      // straight to idle.
+      if (!best && !currentPath.startsWith('/game-day/')) {
         void clearWatchGameSession().catch(() => undefined);
       }
     }, () => setLive(null));
     return unsub;
-  }, [selectedTeamId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTeamId, location.pathname]);
 
   // Ticker only when a live game exists — avoids waking the render
   // loop every second on regular pages.

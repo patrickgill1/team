@@ -53,19 +53,20 @@ const RefundModal: React.FC<Props> = ({ registration, actorUid, actorName, onClo
     setSending(true);
     setError(null);
     try {
-      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
-      if (!NOTIFY_URL || !NOTIFY_SECRET) { setError('Worker not configured.'); return; }
+      const { workerFetch, hasWorkerConfig } = await import('../../utils/workerFetch');
+      if (!hasWorkerConfig()) { setError('Worker not configured.'); return; }
+      // clubId is required in the payload so the worker's
+      // requireClubAdmin(clubId) gate can verify the caller.
       const body: any = {
         registrationId: registration.id,
+        clubId: registration.clubId,
         amountCents: requestedCents,
         reason: detail.trim() ? `${reason}: ${detail.trim()}` : reason,
         actorUid,
         actorName,
       };
-      const r = await fetch(`${NOTIFY_URL}/stripe/registration-refund`, {
+      const r = await workerFetch('/stripe/registration-refund', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
         body: JSON.stringify(body),
       });
       const data: any = await r.json().catch(() => ({}));

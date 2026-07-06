@@ -3,7 +3,10 @@
  *
  * Reads:
  *   process.env.REACT_APP_NOTIFY_URL     e.g. https://firefc16-mailer.xxx.workers.dev
- *   process.env.REACT_APP_NOTIFY_SECRET  Bearer token (also set as worker secret)
+ *
+ * Auth: each request is stamped with a Firebase ID token by workerFetch.
+ * The legacy REACT_APP_NOTIFY_SECRET static bearer was retired 2026-07-03
+ * because it shipped in every browser bundle.
  *
  * If env is missing, helpers no-op (so dev/local builds don't crash) and log a warning.
  *
@@ -13,9 +16,7 @@
 
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from './firebase';
-
-const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
+import { workerFetch, hasWorkerConfig } from './workerFetch';
 
 export type EmailPrefKey = 'devPlan' | 'clip' | 'potm' | 'digest';
 
@@ -60,10 +61,10 @@ export interface NotifyMessage {
 }
 
 function configured(): boolean {
-  if (!NOTIFY_URL || !NOTIFY_SECRET) {
+  if (!hasWorkerConfig()) {
     if (typeof window !== 'undefined' && !(window as any).__notifyWarned) {
       // eslint-disable-next-line no-console
-      console.warn('[notify] REACT_APP_NOTIFY_URL / REACT_APP_NOTIFY_SECRET not set — emails disabled.');
+      console.warn('[notify] REACT_APP_NOTIFY_URL not set — emails disabled.');
       (window as any).__notifyWarned = true;
     }
     return false;
@@ -74,12 +75,8 @@ function configured(): boolean {
 export async function sendEmail(msg: NotifyMessage): Promise<boolean> {
   if (!configured()) return false;
   try {
-    const res = await fetch(`${NOTIFY_URL}/send`, {
+    const res = await workerFetch('/send', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${NOTIFY_SECRET}`,
-      },
       body: JSON.stringify(msg),
     });
     if (!res.ok) {
@@ -98,17 +95,13 @@ export async function sendEmail(msg: NotifyMessage): Promise<boolean> {
 export async function sendEmailBatch(messages: NotifyMessage[]): Promise<boolean> {
   if (!configured()) {
     // eslint-disable-next-line no-console
-    console.error('[notify] sendEmailBatch aborted: NOTIFY_URL / NOTIFY_SECRET missing from bundle');
+    console.error('[notify] sendEmailBatch aborted: NOTIFY_URL missing from bundle');
     return false;
   }
   if (messages.length === 0) return true;
   try {
-    const res = await fetch(`${NOTIFY_URL}/send-batch`, {
+    const res = await workerFetch('/send-batch', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${NOTIFY_SECRET}`,
-      },
       body: JSON.stringify({ messages }),
     });
     if (!res.ok) {
@@ -234,9 +227,8 @@ export async function sendPushToUsers(
       console.warn('[notify] push: no FCM tokens registered for any recipient');
       return false;
     }
-    const res = await fetch(`${NOTIFY_URL}/send-push`, {
+    const res = await workerFetch('/send-push', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
       body: JSON.stringify({ tokens, title: msg.title, body: msg.body, url: msg.url }),
     });
     if (!res.ok) {

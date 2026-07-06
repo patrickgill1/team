@@ -538,12 +538,10 @@ const DrillEditor: React.FC<DrillEditorProps> = ({ drill, onClose, onSave }) => 
     }
     setGenerating(true);
     try {
-      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL || '';
-      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET || '';
-      if (!NOTIFY_URL || !NOTIFY_SECRET) throw new Error('Notify worker not configured');
-      const res = await fetch(`${NOTIFY_URL}/generate-drill`, {
+      const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+      if (!hasWorkerConfig()) throw new Error('Notify worker not configured');
+      const res = await workerFetch('/generate-drill', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
         body: JSON.stringify({ prompt: aiPrompt, topic, ageBand }),
       });
       if (!res.ok) throw new Error(`Generator returned ${res.status}`);

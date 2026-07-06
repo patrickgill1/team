@@ -1015,17 +1015,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const idToken = tokenRes?.token;
       if (!idToken) return false;
       const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL || '';
-      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET || '';
-      if (!NOTIFY_URL || !NOTIFY_SECRET) {
+      if (!NOTIFY_URL) {
         console.warn('[auth] keychain bridge: notify worker not configured');
         return false;
       }
+      // /auth/exchange-id-token self-authenticates via the ID token
+      // in the body — no bearer needed. This is the ONE endpoint that
+      // must remain reachable without a bearer, because it's how we
+      // get a bearer in the first place after a WebView reload.
       const res = await fetch(`${NOTIFY_URL}/auth/exchange-id-token`, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${NOTIFY_SECRET}`,
-        },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ idToken }),
       });
       const data: any = await res.json().catch(() => ({}));

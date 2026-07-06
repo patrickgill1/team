@@ -454,12 +454,10 @@ const PersonAdmin: React.FC = () => {
               if (!latestRegistration || (payments?.balanceCents ?? 0) <= 0) return;
               setPaymentLinkLoading(true);
               try {
-                const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-                const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
-                if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
-                const r = await fetch(`${NOTIFY_URL}/stripe/registration-checkout`, {
+                const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+                if (!hasWorkerConfig()) { alert('Worker not configured.'); return; }
+                const r = await workerFetch('/stripe/registration-checkout', {
                   method: 'POST',
-                  headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
                   body: JSON.stringify({ registrationId: latestRegistration.id }),
                 });
                 const data: any = await r.json().catch(() => ({}));
@@ -1274,12 +1272,10 @@ const InstallmentList: React.FC<{
   const sendLink = async (inst: Installment) => {
     setBusyId(inst.id);
     try {
-      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
-      if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
-      const r = await fetch(`${NOTIFY_URL}/stripe/registration-checkout`, {
+      const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+      if (!hasWorkerConfig()) { alert('Worker not configured.'); return; }
+      const r = await workerFetch('/stripe/registration-checkout', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
         body: JSON.stringify({ registrationId: registration.id, installmentId: inst.id }),
       });
       const data: any = await r.json().catch(() => ({}));

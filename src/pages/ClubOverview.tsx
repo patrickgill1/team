@@ -897,15 +897,10 @@ const PaymentsTab: React.FC = () => {
     setConnectFinishing(true);
     (async () => {
       try {
-        const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-        const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
-        if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
-        const r = await fetch(`${NOTIFY_URL}/stripe/connect/finish`, {
+        const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+        if (!hasWorkerConfig()) { alert('Worker not configured.'); return; }
+        const r = await workerFetch('/stripe/connect/finish', {
           method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            authorization: `Bearer ${NOTIFY_SECRET}`,
-          },
           body: JSON.stringify({ code, clubId }),
         });
         const data: any = await r.json().catch(() => ({}));
@@ -1070,12 +1065,10 @@ const PaymentsTab: React.FC = () => {
                     );
                     if (!confirm) return;
                     try {
-                      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-                      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
-                      if (!NOTIFY_URL || !NOTIFY_SECRET) { alert('Worker not configured.'); return; }
-                      const r = await fetch(`${NOTIFY_URL}/stripe/connect/disconnect`, {
+                      const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+                      if (!hasWorkerConfig()) { alert('Worker not configured.'); return; }
+                      const r = await workerFetch('/stripe/connect/disconnect', {
                         method: 'POST',
-                        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
                         body: JSON.stringify({ clubId }),
                       });
                       const data: any = await r.json().catch(() => ({}));

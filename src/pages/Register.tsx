@@ -503,15 +503,10 @@ const RegisterForm: React.FC = () => {
       // and admin marks paid manually (or it's a free registration).
       if (quote.totalCents > 0) {
         try {
-          const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-          const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
-          if (NOTIFY_URL && NOTIFY_SECRET) {
-            const r = await fetch(`${NOTIFY_URL}/stripe/registration-checkout`, {
+          const { workerFetch, hasWorkerConfig } = await import('../utils/workerFetch');
+          if (hasWorkerConfig()) {
+            const r = await workerFetch('/stripe/registration-checkout', {
               method: 'POST',
-              headers: {
-                'content-type': 'application/json',
-                authorization: `Bearer ${NOTIFY_SECRET}`,
-              },
               body: JSON.stringify({ registrationId: ref.id }),
             });
             const data: any = await r.json().catch(() => ({}));

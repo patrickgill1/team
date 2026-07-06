@@ -105,15 +105,13 @@ const ImportScheduleModal: React.FC<Props> = ({ isOpen, onClose, existingEvents,
     setError(null);
     setFetchingUrl(true);
     try {
-      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL || '';
-      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET || '';
-      if (!NOTIFY_URL || !NOTIFY_SECRET) {
+      const { workerFetch, hasWorkerConfig } = await import('../../utils/workerFetch');
+      if (!hasWorkerConfig()) {
         setError('Calendar URL import is not configured for this build.');
         return;
       }
-      const res = await fetch(`${NOTIFY_URL}/ical-fetch`, {
+      const res = await workerFetch('/ical-fetch', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
         body: JSON.stringify({ url: trimmed }),
       });
       const data: any = await res.json().catch(() => ({}));

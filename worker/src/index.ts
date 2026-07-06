@@ -7,11 +7,32 @@
  *   POST /send-push    { tokens: string[], title, body, url?, icon? }
  *   GET  /health
  *
- * Auth: every request needs `Authorization: Bearer <NOTIFY_SECRET>`.
+ * Auth (2026-07-03 hardening): every non-public endpoint now requires
+ * a Firebase ID token in `Authorization: Bearer <idToken>`. Each
+ * endpoint enforces its own authorization scope via helpers in
+ * `./auth`:
+ *   - requireUser: any signed-in caller
+ *   - requireCoachOfTeam(teamId): coach or team_manager on that team
+ *   - requireClubAdmin(clubId): club owner or listed admin
+ *   - requirePlatformAdmin: user.isClubAdmin === true (rare — Patrick)
+ *   - requireSelf(uid): the token's uid must equal the target uid
+ *
+ * The prior NOTIFY_SECRET static bearer was shipped in the client
+ * bundle via REACT_APP_NOTIFY_SECRET, giving anyone with the JS
+ * admin access to every endpoint. That vector is closed.
  */
 
 import { sendPush, parseServiceAccount } from './fcm';
 import { verifyIdToken, mintCustomToken } from './firebaseAuth';
+import {
+  requireUser,
+  requireCoachOfTeam,
+  requireClubAdmin,
+  requirePlatformAdmin,
+  requireSelf,
+  authErrorResponse,
+  AuthError,
+} from './auth';
 import { runWeeklyDigest } from './digest';
 import { runRegistrationDrips } from './drips';
 import { runAdminWeeklyRoundup } from './adminDigest';
@@ -34,7 +55,11 @@ import { handleUnsubscribe, handleOpenPixel, runDueCampaigns } from './campaigns
 import { handleSendVerification } from './authMail';
 
 export interface Env {
-  NOTIFY_SECRET: string;
+  // NOTIFY_SECRET is retained on the env for backwards compatibility
+  // with any scheduled/cron entry points that used to require it —
+  // it is NOT used to authenticate normal client-triggered
+  // endpoints anymore. Rotate + delete after the client rollout.
+  NOTIFY_SECRET?: string;
   RESEND_API_KEY: string;
   FROM_EMAIL: string;
   FROM_NAME: string;
@@ -75,12 +100,6 @@ function corsHeaders(req: Request, env: Env): Record<string, string> {
     'access-control-max-age': '86400',
     'vary': 'Origin',
   };
-}
-
-function authed(req: Request, env: Env): boolean {
-  const h = req.headers.get('Authorization') || '';
-  const m = h.match(/^Bearer\s+(.+)$/i);
-  return !!m && m[1] === env.NOTIFY_SECRET;
 }
 
 function htmlToText(html: string): string {
@@ -133,6 +152,11 @@ async function safeFetch(req: Request, env: Env): Promise<Response> {
   try {
     return await routeFetch(req, env);
   } catch (err: any) {
+    const cors = corsHeaders(req, env);
+    // AuthError → clean 401/403 with the error code; nothing to log.
+    // Prevents auth failures from clogging crash_logs.
+    const authResp = authErrorResponse(err, cors);
+    if (authResp) return authResp;
     const url = new URL(req.url);
     await logWorkerError(env, {
       err,
@@ -140,7 +164,6 @@ async function safeFetch(req: Request, env: Env): Promise<Response> {
       url: req.url,
       status: 500,
     }).catch(() => { /* never throw */ });
-    const cors = corsHeaders(req, env);
     return new Response(JSON.stringify({ ok: false, error: 'internal' }), {
       status: 500,
       headers: { 'content-type': 'application/json; charset=utf-8', ...cors },
@@ -279,16 +302,14 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       return new Response(res.body, { status: res.status, headers });
     }
 
-    if (!authed(req, env)) {
-      return json({ ok: false, error: 'unauthorized' }, 401, cors);
-    }
-
     if (req.method !== 'POST') {
       return json({ ok: false, error: 'method-not-allowed' }, 405, cors);
     }
 
     // /run-digest takes no body — handle it before requiring JSON parse.
+    // Platform-admin only (Patrick).
     if (url.pathname === '/run-digest') {
+      await requirePlatformAdmin(req, env);
       const result = await runWeeklyDigest(env);
       return json(result, result.ok ? 200 : 500, cors);
     }
@@ -316,7 +337,10 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     // RS256 signature check + claim validation), so a bad actor
     // can't pass an arbitrary uid and get a token for it. Custom
     // token's uid is whatever the verified ID token's `sub` claim
-    // says — same identity, just a different token format.
+    // says — same identity, just a different token format. Because
+    // this endpoint self-authenticates via the ID token in the
+    // body, it does NOT require an Authorization: Bearer header —
+    // that would be circular during the sign-in-refresh flow.
     if (url.pathname === '/auth/exchange-id-token') {
       const idToken = String(payload?.idToken || '');
       if (!idToken) return json({ ok: false, error: 'id-token-required' }, 400, cors);
@@ -362,6 +386,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     // Worker fetches server-side, returns the text body to the
     // browser with proper CORS for our origins.
     if (url.pathname === '/ical-fetch') {
+      await requireUser(req, env);
       const target = String(payload?.url || '');
       if (!/^https?:\/\//i.test(target)) {
         return json({ ok: false, error: 'invalid-url' }, 400, cors);
@@ -385,11 +410,17 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     }
 
     if (url.pathname === '/send') {
+      // Any signed-in user may send from the app's from-address; the
+      // From is server-set, so misuse is bounded by rate-limits (TODO).
+      await requireUser(req, env);
       const result = await sendOne(payload as MailMessage, env);
       return json(result, result.ok ? 200 : 502, cors);
     }
 
     if (url.pathname === '/stripe/connect/finish') {
+      // Only the club owner/admin can wire a Stripe Connect account
+      // onto a club they belong to.
+      await requireClubAdmin(req, env, String(payload?.clubId || ''));
       const res = await handleConnectFinish(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
@@ -397,6 +428,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     }
 
     if (url.pathname === '/stripe/connect/disconnect') {
+      await requireClubAdmin(req, env, String(payload?.clubId || ''));
       const res = await handleConnectDisconnect(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
@@ -404,6 +436,8 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     }
 
     if (url.pathname === '/stripe/registration-checkout') {
+      // A parent registering a kid — any signed-in user is fine.
+      await requireUser(req, env);
       const res = await handleRegistrationCheckout(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
@@ -411,17 +445,21 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     }
 
     if (url.pathname === '/stripe/registration-refund') {
+      // Refunds move money out — must be a club admin. clubId is
+      // typically embedded in the registration doc; we require it in
+      // the payload for the authz gate.
+      await requireClubAdmin(req, env, String(payload?.clubId || ''));
       const res = await handleRegistrationRefund(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });
     }
 
-    // Stripe Billing Customer Portal session — gated behind the
-    // bearer because callers send their stripeCustomerId in the
-    // clear and we don't want a random someone minting portal links
-    // for someone else's customer id.
+    // Stripe Billing Customer Portal session — user must be the same
+    // uid that owns the subscription. Body ships `uid`; requireSelf
+    // pins it to the token's claim.
     if (url.pathname === '/stripe/customer-portal') {
+      await requireSelf(req, env, String(payload?.uid || ''));
       const res = await handleCustomerPortal(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
@@ -429,6 +467,8 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     }
 
     if (url.pathname === '/send-batch') {
+      // Same posture as /send — any signed-in user; rate-limit later.
+      await requireUser(req, env);
       const messages: MailMessage[] = Array.isArray(payload?.messages) ? payload.messages : [];
       if (messages.length === 0) return json({ ok: false, error: 'no-messages' }, 400, cors);
       if (messages.length > 50) return json({ ok: false, error: 'too-many' }, 400, cors);
@@ -444,6 +484,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     // and centralize rate-limit handling. Auth is the same NOTIFY_SECRET
     // bearer pattern as the other endpoints.
     if (url.pathname === '/places/autocomplete') {
+      await requireUser(req, env);
       if (!env.GOOGLE_PLACES_API_KEY) return json({ ok: false, error: 'google-places-not-configured' }, 503, cors);
       const q = String(payload?.q || '').slice(0, 200);
       if (!q || q.length < 2) return json({ ok: false, error: 'no-query' }, 400, cors);
@@ -490,6 +531,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     }
 
     if (url.pathname === '/places/details') {
+      await requireUser(req, env);
       if (!env.GOOGLE_PLACES_API_KEY) return json({ ok: false, error: 'google-places-not-configured' }, 503, cors);
       const placeId = String(payload?.placeId || '');
       if (!placeId) return json({ ok: false, error: 'no-place-id' }, 400, cors);
@@ -524,6 +566,12 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     }
 
     if (url.pathname === '/send-push') {
+      // Any signed-in user. A followup phase should tighten this to
+      // requireCoachOfTeam(payload.teamId) once every push call site
+      // in the client plumbs teamId through — right now they don't.
+      // The main exposure (unauthenticated bundle-scraped bearer)
+      // closes just by requiring an ID token.
+      await requireUser(req, env);
       if (!env.FCM_SERVICE_ACCOUNT) return json({ ok: false, error: 'fcm-not-configured' }, 503, cors);
       const tokens: string[] = Array.isArray(payload?.tokens) ? payload.tokens.filter((t: any) => typeof t === 'string' && t.length > 10) : [];
       const title: string = String(payload?.title || '').slice(0, 200);
@@ -546,6 +594,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     // JSON mode (response_format) so the model is forced to emit valid
     // JSON — no regex parsing of free-form prose needed.
     if (url.pathname === '/generate-drill') {
+      await requireUser(req, env);
       if (!env.OPENAI_API_KEY) {
         return json({ ok: false, error: 'openai-not-configured' }, 503, cors);
       }

@@ -7,12 +7,12 @@
 // shelling out is the cleanest way to stay compliant.
 //
 // Required env (CRA build-time):
-//   REACT_APP_NOTIFY_URL     same worker as notify.ts uses
-//   REACT_APP_NOTIFY_SECRET  bearer for /stripe/customer-portal
+//   REACT_APP_NOTIFY_URL     same worker as notify.ts uses (auth via ID token)
 //   REACT_APP_GOALKICKR_SITE optional; defaults to https://goalkickr.com
 
-const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
+import { workerFetch, hasWorkerConfig } from './workerFetch';
+import { getAuth } from 'firebase/auth';
+
 const SITE_URL = process.env.REACT_APP_GOALKICKR_SITE || 'https://goalkickr.com';
 
 // Open an external URL. Capacitor's WKWebView treats window.open
@@ -46,15 +46,16 @@ export async function openCustomerPortal(opts: {
 }): Promise<string | null> {
   const { customerId } = opts;
   if (!customerId) return 'no-customer-id';
-  if (!NOTIFY_URL || !NOTIFY_SECRET) return 'billing-not-configured';
+  if (!hasWorkerConfig()) return 'billing-not-configured';
+  const uid = getAuth().currentUser?.uid;
+  if (!uid) return 'not-signed-in';
   try {
-    const res = await fetch(`${NOTIFY_URL.replace(/\/$/, '')}/stripe/customer-portal`, {
+    // uid is required so the worker's requireSelf(uid) gate can
+    // confirm the token owner matches. Without it we'd return 400.
+    const res = await workerFetch('/stripe/customer-portal', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${NOTIFY_SECRET}`,
-      },
       body: JSON.stringify({
+        uid,
         customerId,
         returnUrl: opts.returnUrl || `${SITE_URL}/account`,
       }),
@@ -129,14 +130,19 @@ export async function startVideoCheckout(opts: {
   customerEmail?: string;
   returnUrl?: string;
 }): Promise<string | null> {
-  if (!NOTIFY_URL) return 'billing-not-configured';
+  if (!hasWorkerConfig()) return 'billing-not-configured';
   const priceId = opts.tier === 'pro'
     ? process.env.REACT_APP_STRIPE_PRICE_VIDEO_PRO
     : process.env.REACT_APP_STRIPE_PRICE_VIDEO_ADDON;
   if (!priceId) return 'price-not-configured';
   if (!opts.teamId) return 'no-team-id';
   try {
-    const res = await fetch(`${NOTIFY_URL.replace(/\/$/, '')}/stripe/video-checkout`, {
+    // /stripe/video-checkout is unauthenticated (it's reachable from
+    // pre-signed-in flows on the marketing site too), so use a raw
+    // fetch here — workerFetch would inject an ID token and fail if
+    // the user isn't signed in yet.
+    const notifyUrl = process.env.REACT_APP_NOTIFY_URL || '';
+    const res = await fetch(`${notifyUrl.replace(/\/$/, '')}/stripe/video-checkout`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

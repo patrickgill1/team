@@ -17,12 +17,11 @@
  * for the rest of the session.
  */
 
-const NOTIFY_URL: string = (process.env.REACT_APP_NOTIFY_URL || '').trim();
-const NOTIFY_SECRET: string = (process.env.REACT_APP_NOTIFY_SECRET || '').trim();
+import { workerFetch, hasWorkerConfig } from './workerFetch';
 
 export const MAPBOX_TOKEN: string = (process.env.REACT_APP_MAPBOX_TOKEN || '').trim();
 export const hasMapbox = (): boolean => MAPBOX_TOKEN.length > 0;
-export const hasNotifyProxy = (): boolean => NOTIFY_URL.length > 0 && NOTIFY_SECRET.length > 0;
+export const hasNotifyProxy = (): boolean => hasWorkerConfig();
 
 // Session-scoped cache so we don't hammer the worker if Google is
 // unconfigured on this deploy. Reset by reload.
@@ -47,12 +46,8 @@ export function endGoogleSession(): void {
 async function callProxy(path: string, body: any): Promise<any | null> {
   if (!hasNotifyProxy()) return null;
   try {
-    const res = await fetch(`${NOTIFY_URL}${path}`, {
+    const res = await workerFetch(path, {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${NOTIFY_SECRET}`,
-      },
       body: JSON.stringify(body),
     });
     if (res.ok) {

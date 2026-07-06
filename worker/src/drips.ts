@@ -28,7 +28,9 @@ import {
 } from './firestore';
 
 interface DripEnv {
-  NOTIFY_SECRET: string;
+  // Legacy — retained for source-level compatibility; not read at
+  // runtime here.
+  NOTIFY_SECRET?: string;
   RESEND_API_KEY: string;
   FROM_EMAIL: string;
   FROM_NAME: string;

@@ -89,15 +89,13 @@ const NotificationPreferences: React.FC = () => {
         setDiag(d => ({ ...d, sending: false, response: { ok: false, sent: 0, failed: 0, invalidCount: 0, error: 'no-tokens-registered' } }));
         return;
       }
-      const NOTIFY_URL = process.env.REACT_APP_NOTIFY_URL;
-      const NOTIFY_SECRET = process.env.REACT_APP_NOTIFY_SECRET;
-      if (!NOTIFY_URL || !NOTIFY_SECRET) {
+      const { workerFetch, hasWorkerConfig } = await import('../../utils/workerFetch');
+      if (!hasWorkerConfig()) {
         setDiag(d => ({ ...d, sending: false, response: { ok: false, sent: 0, failed: 0, invalidCount: 0, error: 'notify-env-missing' } }));
         return;
       }
-      const res = await fetch(`${NOTIFY_URL}/send-push`, {
+      const res = await workerFetch('/send-push', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${NOTIFY_SECRET}` },
         body: JSON.stringify({
           tokens,
           title: 'GoalKickr test push',

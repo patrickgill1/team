@@ -206,42 +206,24 @@ const TeamManagement: React.FC = () => {
   // InviteShareModal.
 
   const handleSharePlayer = async () => {
-    if (!selectedPlayerId || !targetTeamId) return;
-
+    if (!selectedPlayerId || !targetTeamId || !selectedTeamId) return;
     try {
       const player = allPlayers.find(p => p.id === selectedPlayerId);
       if (!player) return;
-
-      // Add target team to player's teamIds
-      const currentTeamIds = player.teamIds || [player.teamId];
-      if (!currentTeamIds.includes(targetTeamId)) {
-        await updateDocument('players', selectedPlayerId, {
-          teamIds: [...currentTeamIds, targetTeamId],
-          updatedAt: new Date()
-        });
-      }
-
-      // Give parent(s) access to the target team
-      if (player.parentIds?.length) {
-        for (const parentId of player.parentIds) {
-          try {
-            const parentDoc = await getDocuments('users', []);
-            const parent = parentDoc.find((u: any) => u.uid === parentId || u.id === parentId);
-            if (parent) {
-              const parentTeamIds = (parent as any).teamIds || [(parent as any).teamId];
-              if (!parentTeamIds.includes(targetTeamId)) {
-                await updateDocument('users', parentId, {
-                  teamIds: [...parentTeamIds, targetTeamId],
-                  updatedAt: new Date()
-                });
-              }
-            }
-          } catch (err) {
-            console.error(`Error updating parent ${parentId}:`, err);
-          }
-        }
-      }
-
+      // Worker verifies caller coaches BOTH source and target teams,
+      // atomically updates player.teamIds, team.playerIds, and fans
+      // out user.teamIds to every parent.
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/teams/share-player', {
+        method: 'POST',
+        body: JSON.stringify({
+          fromTeamId: selectedTeamId,
+          toTeamId: targetTeamId,
+          playerId: selectedPlayerId,
+        }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `share-${res.status}`);
       setSelectedPlayerId('');
       setTargetTeamId('');
       setShowSharePlayerModal(false);
@@ -280,48 +262,16 @@ const TeamManagement: React.FC = () => {
     }
 
     try {
-      const newPlayerTeamIds = currentTeamIds.filter(t => t !== teamIdToRemove);
-      // If the team we're removing is the player's primary teamId, promote a
-      // remaining one. Otherwise the legacy teamId field stays in the array as
-      // a valid entry and the filter logic still finds them on the new primary.
-      const update: Record<string, unknown> = {
-        teamIds: newPlayerTeamIds,
-        updatedAt: new Date(),
-      };
-      if (player.teamId === teamIdToRemove) {
-        update.teamId = newPlayerTeamIds[0];
-      }
-      await updateDocument('players', playerId, update);
-
-      // Trim the team from each parent IF they have no other player keeping
-      // them on it.
-      if (player.parentIds?.length) {
-        const remainingPlayers = allPlayers.filter(p =>
-          p.id !== playerId &&
-          ((p.teamIds || []).includes(teamIdToRemove) || p.teamId === teamIdToRemove)
-        );
-        for (const parentId of player.parentIds) {
-          const stillTiedViaOther = remainingPlayers.some(p =>
-            p.parentIds?.includes(parentId)
-          );
-          if (stillTiedViaOther) continue;
-          try {
-            const users = await getDocuments('users', []);
-            const parent: any = users.find((u: any) => u.uid === parentId || u.id === parentId);
-            if (!parent) continue;
-            const parentTeamIds: string[] = parent.teamIds || (parent.teamId ? [parent.teamId] : []);
-            if (!parentTeamIds.includes(teamIdToRemove)) continue;
-            const newParentTeamIds = parentTeamIds.filter(t => t !== teamIdToRemove);
-            await updateDocument('users', parentId, {
-              teamIds: newParentTeamIds,
-              updatedAt: new Date(),
-            });
-          } catch (err) {
-            console.error(`Error trimming parent ${parentId} teamIds:`, err);
-          }
-        }
-      }
-
+      // Worker handles the player.teamIds trim + parent fan-out
+      // (with the "another player still ties them to this team"
+      // guard) atomically.
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/teams/unshare-player', {
+        method: 'POST',
+        body: JSON.stringify({ teamId: teamIdToRemove, playerId }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `unshare-${res.status}`);
       loadData();
       alert(`${player.name} removed from ${teamName}.`);
     } catch (err) {
@@ -407,25 +357,25 @@ const TeamManagement: React.FC = () => {
       const coach = allCoaches.find((c: any) => (c.uid || c.id) === addCoachUserId);
       const team = teams.find(t => t.id === addCoachTargetTeamId);
       if (!coach || !team) return;
-
-      // Add coach to team's coachIds and assistantCoachIds
-      const currentCoachIds = team.coachIds || [];
-      const currentAssistants = team.assistantCoachIds || [];
       const coachId = coach.uid || coach.id;
 
-      if (!currentCoachIds.includes(coachId)) {
+      // Worker verifies caller is a coach on the target team, then
+      // atomically writes team.coachIds + user.teamIds. assistantCoachIds
+      // still lives client-side (non-security-critical labeling).
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/teams/add-coach', {
+        method: 'POST',
+        body: JSON.stringify({ teamId: team.id, coachUid: coachId, coachLevel: 'assistant' }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `add-coach-${res.status}`);
+      // Also maintain the legacy assistantCoachIds label array
+      // client-side. This is a UI-scoped field; the worker only
+      // owns the security-critical coachIds.
+      const currentAssistants = team.assistantCoachIds || [];
+      if (!currentAssistants.includes(coachId)) {
         await updateDocument('teams', team.id, {
-          coachIds: [...currentCoachIds, coachId],
           assistantCoachIds: [...currentAssistants, coachId],
-          updatedAt: new Date(),
-        });
-      }
-
-      // Add team to coach's teamIds
-      const coachTeamIds = coach.teamIds || [coach.teamId];
-      if (!coachTeamIds.includes(team.id)) {
-        await updateDocument('users', coachId, {
-          teamIds: [...coachTeamIds, team.id],
           updatedAt: new Date(),
         });
       }

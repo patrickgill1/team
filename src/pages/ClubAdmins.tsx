@@ -108,17 +108,23 @@ const ClubAdmins: React.FC = () => {
         setAddError('That user is already the owner.');
         return;
       }
-      // Default new admins to a sensible 'director-but-no-financials'
-      // set, matching Patrick's described use case. Owner can edit.
+      // Server-side grant: worker verifies caller is club owner/admin,
+      // then writes clubs.adminUids + adminScopes + users.isClubAdmin
+      // in one call.
       const initialScopes: ClubAdminScope[] = DIRECTOR_PRESET.filter((s) => s !== 'admins');
-      await updateDoc(doc(db, 'clubs', club.id), {
-        adminUids: arrayUnion(targetUid),
-        [`adminScopes.${targetUid}`]: initialScopes,
-        isClubAdminPromoted: true,
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/club/set-admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          clubId: club.id,
+          targetUid,
+          adminScopes: initialScopes,
+        }),
       });
-      // Stamp the legacy flag on the user doc so existing 'isClubAdmin'
-      // gating across the app keeps working until we migrate it all.
-      await updateDoc(doc(db, 'users', targetUid), { isClubAdmin: true });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `set-admin-${res.status}`);
+      // Small local flag the worker didn't set (UI-only signal).
+      await updateDoc(doc(db, 'clubs', club.id), { isClubAdminPromoted: true }).catch(() => {});
       setAddingEmail('');
     } catch (e: any) {
       setAddError(e?.message || 'Could not add admin.');
@@ -132,10 +138,17 @@ const ClubAdmins: React.FC = () => {
     if (uid === club.ownerUid) return;
     if (!window.confirm('Remove this admin? They will lose access to club admin features.')) return;
     try {
-      await updateDoc(doc(db, 'clubs', club.id), {
-        adminUids: arrayRemove(uid),
-        [`adminScopes.${uid}`]: null,  // remove the field; arrayRemove on a map key uses null
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/club/remove-admin', {
+        method: 'POST',
+        body: JSON.stringify({ clubId: club.id, targetUid: uid }),
       });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `remove-admin-${res.status}`);
+      // Clear the per-uid scopes map entry — non-critical UI state.
+      await updateDoc(doc(db, 'clubs', club.id), {
+        [`adminScopes.${uid}`]: null,
+      }).catch(() => {});
     } catch (e: any) {
       window.alert(e?.message || 'Could not remove admin.');
     }

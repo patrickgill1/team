@@ -726,6 +726,83 @@ async function handleTeamsSharePlayer(req: Request, env: Env, payload: any): Pro
 }
 
 // ────────────────────────────────────────────────────────────────
+// /teams/unshare-player — coach removes a player from a team they
+// were previously shared into. Trims the team from player.teamIds
+// AND from each parent's user.teamIds — UNLESS the parent has
+// another player still on that team.
+// Body: { teamId, playerId }
+// ────────────────────────────────────────────────────────────────
+async function handleTeamsUnsharePlayer(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+
+  const playerDoc = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  const player: any = playerDoc.data;
+  const playerTeamIds: string[] = Array.isArray(player.teamIds)
+    ? player.teamIds
+    : (player.teamId ? [player.teamId] : []);
+  if (!playerTeamIds.includes(teamId)) {
+    return json({ ok: false, error: 'player_not_on_team' }, 400);
+  }
+  if (playerTeamIds.length <= 1) {
+    return json({ ok: false, error: 'last_team_cannot_unshare' }, 400);
+  }
+  const parentIds: string[] = Array.isArray(player.parentIds) ? player.parentIds : [];
+
+  await commitDocumentTransforms(
+    pid,
+    `players/${playerId}`,
+    [{ fieldPath: 'teamIds', kind: 'arrayRemove', value: teamId }],
+    player.teamId === teamId ? { teamId: playerTeamIds.find(t => t !== teamId) || '' } : null,
+    sa,
+  );
+  await commitDocumentTransforms(
+    pid,
+    `teams/${teamId}`,
+    [{ fieldPath: 'playerIds', kind: 'arrayRemove', value: playerId }],
+    null,
+    sa,
+  );
+
+  // For each parent: does another player of theirs still tie them
+  // to this team? If yes, leave user.teamIds alone. If no, remove.
+  for (const parentUid of parentIds) {
+    try {
+      const otherPlayers = await runQuery(
+        pid,
+        'players',
+        [{ field: 'parentIds', op: 'ARRAY_CONTAINS', value: parentUid }],
+        sa,
+        50,
+      );
+      const stillTied = otherPlayers.some((p: any) => {
+        if (p.id === playerId) return false;
+        const otherTeams: string[] = Array.isArray(p.data?.teamIds)
+          ? p.data.teamIds
+          : (p.data?.teamId ? [p.data.teamId] : []);
+        return otherTeams.includes(teamId);
+      });
+      if (!stillTied) {
+        await commitDocumentTransforms(
+          pid,
+          `users/${parentUid}`,
+          [{ fieldPath: 'teamIds', kind: 'arrayRemove', value: teamId }],
+          null,
+          sa,
+        );
+      }
+    } catch (err) {
+      console.warn('[unshare-player] parent trim failed:', (err as Error).message);
+    }
+  }
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
 // /users/set-widget-player — user picks the kid the widget shows.
 // Caller must be a parent of the target player, or the player IS the
 // caller (adult self-claim).
@@ -870,6 +947,7 @@ export async function routeWriteGuard(
     case '/teams/add-coach':       return handleTeamsAddCoach(req, env, payload);
     case '/teams/remove-coach':    return handleTeamsRemoveCoach(req, env, payload);
     case '/teams/share-player':    return handleTeamsSharePlayer(req, env, payload);
+    case '/teams/unshare-player':  return handleTeamsUnsharePlayer(req, env, payload);
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
     default:                       return null;

@@ -151,18 +151,19 @@ const InviteJoin: React.FC = () => {
     const userRef = doc(db, 'users', uid);
     const existing = await getDoc(userRef);
     if (existing.exists()) return;
-    await setDoc(userRef, {
-      uid,
-      email: fallbackEmail,
-      name: fallbackName,
-      // role/teamId/approved get set authoritatively by consumeInvite — these
-      // are just safe defaults so the doc exists for the transaction to update.
-      role: invite.type === 'player' ? 'parent' : invite.type === 'team_manager' ? 'team_manager' : 'coach',
-      teamId: invite.teamId,
-      teamIds: [invite.teamId],
-      isActive: true,
-      createdAt: serverTimestamp(),
-      privacy: { showPhone: true, showEmail: true, showAddress: false },
+    // Route the first-time create through /users/bootstrap so the
+    // sensitive fields (role, teamIds, approved) come from the guarded
+    // path. Role here is a placeholder — /claim/invite overwrites it
+    // based on the invite's actual type on the next step.
+    const { workerFetch } = await import('../utils/workerFetch');
+    await workerFetch('/users/bootstrap', {
+      method: 'POST',
+      body: JSON.stringify({
+        role: invite.type === 'player' ? 'parent' : 'coach',
+        name: fallbackName,
+        email: fallbackEmail.toLowerCase(),
+        authProvider: 'email',
+      }),
     });
   };
 
@@ -202,40 +203,34 @@ const InviteJoin: React.FC = () => {
     setError(null);
     try {
       let uid: string;
+      const { workerFetch } = await import('../utils/workerFetch');
       if (mode === 'sign-up') {
         if (!name.trim()) { setError('Your name is required for new accounts.'); setSubmitting(false); return; }
         const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
         uid = cred.user.uid;
-        // Create the user doc so consumeInvite has something to update.
-        await setDoc(doc(db, 'users', uid), {
-          uid,
-          email: email.trim(),
-          name: name.trim(),
-          // role/teamId are set inside consumeInvite based on invite type.
-          role: invite.type === 'player' ? 'parent' : invite.type === 'team_manager' ? 'team_manager' : 'coach',
-          teamId: invite.teamId,
-          teamIds: [invite.teamId],
-          isActive: true,
-          createdAt: serverTimestamp(),
-          privacy: { showPhone: true, showEmail: true, showAddress: false },
+        await workerFetch('/users/bootstrap', {
+          method: 'POST',
+          body: JSON.stringify({
+            role: invite.type === 'player' ? 'parent' : 'coach',
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            authProvider: 'email',
+          }),
         });
       } else {
         const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
         uid = cred.user.uid;
-        // Make sure the user doc exists; create a minimal stub if not.
-        const userRef = doc(db, 'users', uid);
-        const u = await getDoc(userRef);
+        // Make sure the user doc exists; bootstrap if not.
+        const u = await getDoc(doc(db, 'users', uid));
         if (!u.exists()) {
-          await setDoc(userRef, {
-            uid,
-            email: email.trim(),
-            name: cred.user.displayName || email.trim().split('@')[0],
-            role: invite.type === 'player' ? 'parent' : invite.type === 'team_manager' ? 'team_manager' : 'coach',
-            teamId: invite.teamId,
-            teamIds: [invite.teamId],
-            isActive: true,
-            createdAt: serverTimestamp(),
-            privacy: { showPhone: true, showEmail: true, showAddress: false },
+          await workerFetch('/users/bootstrap', {
+            method: 'POST',
+            body: JSON.stringify({
+              role: invite.type === 'player' ? 'parent' : 'coach',
+              name: cred.user.displayName || email.trim().split('@')[0],
+              email: email.trim().toLowerCase(),
+              authProvider: 'email',
+            }),
           });
         }
       }

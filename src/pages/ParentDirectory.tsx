@@ -296,15 +296,23 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
         : `Demote ${name} back to parent? They'll lose coach access.`
     )) return;
     try {
-      const updates: any = {
-        role: promote ? 'coach' : 'parent',
-        approved: true,
-      };
-      if (promote) updates.coachLevel = 'assistant_coach';
-      await updateDocument('users', uid, updates);
+      if (!selectedTeamId) throw new Error('No team selected');
+      // Worker verifies caller is a coach on the target team AND the
+      // target user actually shares the team before flipping role.
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/users/set-role', {
+        method: 'POST',
+        body: JSON.stringify({
+          teamId: selectedTeamId,
+          targetUid: uid,
+          role: promote ? 'coach' : 'parent',
+        }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `set-role-${res.status}`);
       setDirectory(prev => prev.map(e =>
         e.user.uid === uid
-          ? { ...e, user: { ...e.user, role: updates.role, approved: true, coachLevel: updates.coachLevel ?? e.user.coachLevel } }
+          ? { ...e, user: { ...e.user, role: promote ? 'coach' : 'parent', approved: true, coachLevel: promote ? 'assistant_coach' : e.user.coachLevel } }
           : e
       ));
     } catch (error) {

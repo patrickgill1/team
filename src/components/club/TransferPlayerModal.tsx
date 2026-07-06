@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
-import { syncParentTeams } from '../../utils/syncParentTeams';
 import { Sheet, Button, FormField, fieldInputClass } from '../ui';
 
 interface TeamOption { id: string; name: string; ageGroup?: string }
@@ -44,22 +43,23 @@ const TransferPlayerModal: React.FC<Props> = ({ isOpen, onClose, player, teams, 
     setError(null);
     try {
       let nextTeamIds: string[];
-      let nextPrimary: string;
       if (mode === 'move') {
         nextTeamIds = [destinationId];
-        nextPrimary = destinationId;
       } else {
         nextTeamIds = Array.from(new Set([...currentTeamIds, destinationId]));
-        nextPrimary = player.teamId || nextTeamIds[0];
       }
-      await updateDocument('players', player.id, {
-        teamIds: nextTeamIds,
-        teamId: nextPrimary,
+      // Worker /players/set-teams verifies caller coaches every team
+      // on either side of the diff, patches player.teamIds/teamId,
+      // fans out to team.playerIds, and updates parents' user.teamIds
+      // (with the "still tied via another player" check). Replaces
+      // the syncParentTeams helper — one atomic call.
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const res = await workerFetch('/players/set-teams', {
+        method: 'POST',
+        body: JSON.stringify({ playerId: player.id, teamIds: nextTeamIds }),
       });
-      await syncParentTeams({
-        parentIds: player.parentIds,
-        teamIds: nextTeamIds,
-      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `transfer-${res.status}`);
       onTransferred();
       onClose();
       setDestinationId('');

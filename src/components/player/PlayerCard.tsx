@@ -90,12 +90,19 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 
     setIsDeleting(true);
     try {
-      // Soft delete: mark as inactive instead of hard-deleting the doc.
-      // The Players list filters by isActive so the player visually
-      // disappears, but their record + stats + media references are
-      // preserved and can be restored from the Archived view. Prior
-      // hard-delete had no recovery path and silently lost players.
-      await updateDocument('players', player.id, { isActive: false });
+      // Soft delete via worker (coach-of-team gated). Server writes
+      // players.isActive=false + deletedAt; the players list filters
+      // by isActive so the row disappears while stats/media stay
+      // recoverable from the Archived view.
+      const teamId = player.teamId || (Array.isArray(player.teamIds) ? player.teamIds[0] : '');
+      if (!teamId) throw new Error('No team on player');
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const res = await workerFetch('/players/set-active', {
+        method: 'POST',
+        body: JSON.stringify({ teamId, playerId: player.id, isActive: false }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `delete-${res.status}`);
       onDelete(player.id);
       setShowDeleteConfirm(false);
     } catch (error) {
@@ -123,12 +130,17 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const toggleMyChild = async () => {
     if (!userData) return;
     try {
-      const playerRef = doc(db, 'players', player.id);
-      if (isMyChild) {
-        await updateDoc(playerRef, { parentIds: arrayRemove(userData.uid) });
-      } else {
-        await updateDoc(playerRef, { parentIds: arrayUnion(userData.uid) });
-      }
+      // Worker verifies email-match or existing-parent before allowing
+      // arrayUnion/arrayRemove on players.parentIds. Prevents the
+      // pre-2026-07-06 player-takeover where any authed user could
+      // add themselves to any player.
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const res = await workerFetch('/players/toggle-self-parent', {
+        method: 'POST',
+        body: JSON.stringify({ playerId: player.id, on: !isMyChild }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `toggle-${res.status}`);
     } catch (err) {
       console.error('Error linking parent:', err);
     }

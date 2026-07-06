@@ -139,37 +139,38 @@ const TeamManagement: React.FC = () => {
   const handleCreateTeam = async () => {
     if (!userData || !teamName.trim()) return;
     try {
-      const newTeamId = await createTeam({
-        name: teamName.trim(),
-        description: teamDescription.trim(),
-        coachIds: [userData.uid],
-        headCoachId: userData.uid,
-        assistantCoachIds: [],
-        playerIds: [],
-        parentIds: [],
-        season: teamSeason.trim(),
-        ageGroup: teamAgeGroup.trim(),
-        league: teamLeague.trim() || undefined,
-        homeField: teamHomeField.trim() || undefined,
-        format: teamFormat,
-        homeKitColor: teamHomeKit.trim() || undefined,
-        awayKitColor: teamAwayKit.trim() || undefined,
-        updatedAt: new Date(),
+      // Worker creates the team + patches the user in one call.
+      // withDefaultClub:false because this is coach-side team-mgmt,
+      // not solo-coach onboarding — the club (if any) already exists.
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/teams/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: teamName.trim(),
+          season: teamSeason.trim(),
+          ageGroup: teamAgeGroup.trim(),
+          format: teamFormat,
+        }),
       });
-
-      // Add the new team to the user's teamIds
-      const currentTeamIds = userData.teamIds || [userData.teamId];
-      if (newTeamId && !currentTeamIds.includes(newTeamId)) {
-        await updateDocument('users', userData.uid, {
-          teamIds: [...currentTeamIds, newTeamId],
-          updatedAt: new Date()
-        });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `create-${res.status}`);
+      const newTeamId = data.teamId as string;
+      // Patch non-critical extras client-side (description, league,
+      // homeField, kit colors) — the /teams/create endpoint only
+      // knows the security-critical fields.
+      const extras: Record<string, any> = { updatedAt: new Date() };
+      if (teamDescription.trim()) extras.description = teamDescription.trim();
+      if (teamLeague.trim()) extras.league = teamLeague.trim();
+      if (teamHomeField.trim()) extras.homeField = teamHomeField.trim();
+      if (teamHomeKit.trim()) extras.homeKitColor = teamHomeKit.trim();
+      if (teamAwayKit.trim()) extras.awayKitColor = teamAwayKit.trim();
+      if (Object.keys(extras).length > 1) {
+        await updateDocument('teams', newTeamId, extras).catch(() => undefined);
       }
 
       resetForm();
       setShowCreateModal(false);
       await refreshTeams();
-      // Reload the page data to reflect changes
       window.location.reload();
     } catch (error) {
       console.error('Error creating team:', error);
@@ -313,34 +314,13 @@ const TeamManagement: React.FC = () => {
     if (!showTransferModal || !transferTargetId || !userData) return;
     const team = showTransferModal;
     try {
-      // Update team doc: set new head coach, move old one to assistants
-      const newAssistants = (team.assistantCoachIds || [])
-        .filter((id: string) => id !== transferTargetId);
-      // Add current head coach to assistants (if they're not the same)
-      if (team.headCoachId && team.headCoachId !== transferTargetId) {
-        newAssistants.push(team.headCoachId);
-      }
-
-      await updateDocument('teams', team.id, {
-        headCoachId: transferTargetId,
-        assistantCoachIds: newAssistants,
-        updatedAt: new Date(),
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/teams/transfer-head', {
+        method: 'POST',
+        body: JSON.stringify({ teamId: team.id, newHeadCoachUid: transferTargetId }),
       });
-
-      // Update new head coach's coachLevel
-      await updateDocument('users', transferTargetId, {
-        coachLevel: 'head_coach',
-        updatedAt: new Date(),
-      });
-
-      // Demote old head coach to assistant (on user doc)
-      if (team.headCoachId && team.headCoachId !== transferTargetId) {
-        await updateDocument('users', team.headCoachId, {
-          coachLevel: 'assistant_coach',
-          updatedAt: new Date(),
-        });
-      }
-
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `transfer-${res.status}`);
       setShowTransferModal(null);
       setTransferTargetId('');
       await refreshTeams();
@@ -556,7 +536,13 @@ const TeamManagement: React.FC = () => {
                         const msg = `Archive "${team.name}"?\n\n• It'll be hidden from the active team selector and dashboards.\n• All ${playerCount} players' stats, clips, chats, and events stay accessible.\n• Parents and players can still view their historical content.\n• You can restore the team later.`;
                         if (!window.confirm(msg)) return;
                         try {
-                          await updateDocument('teams', team.id, { isActive: false, archivedAt: new Date() } as any);
+                          const { workerFetch } = await import('../utils/workerFetch');
+                          const res = await workerFetch('/teams/archive', {
+                            method: 'POST',
+                            body: JSON.stringify({ teamId: team.id }),
+                          });
+                          const data: any = await res.json().catch(() => ({}));
+                          if (!res.ok || !data?.ok) throw new Error(data?.error || `archive-${res.status}`);
                           await refreshTeams();
                         } catch (err) {
                           console.error('Archive team failed:', err);
@@ -575,7 +561,13 @@ const TeamManagement: React.FC = () => {
                         e.stopPropagation();
                         if (!window.confirm(`Restore "${team.name}" to the active team list?`)) return;
                         try {
-                          await updateDocument('teams', team.id, { isActive: true, archivedAt: null } as any);
+                          const { workerFetch } = await import('../utils/workerFetch');
+                          const res = await workerFetch('/teams/restore', {
+                            method: 'POST',
+                            body: JSON.stringify({ teamId: team.id }),
+                          });
+                          const data: any = await res.json().catch(() => ({}));
+                          if (!res.ok || !data?.ok) throw new Error(data?.error || `restore-${res.status}`);
                           await refreshTeams();
                         } catch (err) {
                           console.error('Restore team failed:', err);

@@ -72,21 +72,41 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
 
       // 1. Create the player doc. Includes clubId + teamIds + legacy
       //    teamId so all read-paths (old and new) see the player.
-      const playerData: any = {
-        name: trimmed,
-        clubId,
-        teamId: teamIds[0],
-        teamIds,
-        isActive: true,
-        createdAt: serverTimestamp(),
-        ...(jerseyNumber ? { jerseyNumber: parseInt(jerseyNumber, 10) || undefined } : {}),
-        ...(position ? { position, positions: [position] } : {}),
-        ...(parentEmail.trim() ? { parentEmails: [parentEmail.trim().toLowerCase()] } : {}),
-        ...(isAdultPlayer ? { isAdultPlayer: true } : {}),
-      };
-      const playerRef = await addDoc(collection(db, 'players'), playerData);
+      // Create the player + append it to team.playerIds atomically
+      // via the worker (coach-of-team verified server-side).
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const primaryTeamId = teamIds[0];
+      const createRes = await workerFetch('/players/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          teamId: primaryTeamId,
+          name: trimmed,
+          jerseyNumber: jerseyNumber ? (parseInt(jerseyNumber, 10) || undefined) : undefined,
+          positions: position ? [position] : undefined,
+          parentEmails: parentEmail.trim() ? [parentEmail.trim().toLowerCase()] : undefined,
+          isAdultPlayer: !!isAdultPlayer,
+        }),
+      });
+      const createData: any = await createRes.json().catch(() => ({}));
+      if (!createRes.ok || !createData?.ok) {
+        throw new Error(createData?.error || `create-${createRes.status}`);
+      }
+      const playerRef = { id: String(createData.playerId) };
 
-      // 2. Create a player_membership per team chosen.
+      // If the caller picked multiple teams, expand player.teamIds
+      // via the same set-teams endpoint.
+      if (teamIds.length > 1) {
+        const setRes = await workerFetch('/players/set-teams', {
+          method: 'POST',
+          body: JSON.stringify({ playerId: playerRef.id, teamIds }),
+        });
+        const setData: any = await setRes.json().catch(() => ({}));
+        if (!setRes.ok || !setData?.ok) {
+          throw new Error(setData?.error || `set-teams-${setRes.status}`);
+        }
+      }
+
+      // Membership rows are non-security-critical — coach action bookkeeping.
       for (const teamId of teamIds) {
         const team = clubTeams.find(t => t.id === teamId);
         await addDoc(collection(db, 'player_memberships'), {
@@ -98,11 +118,6 @@ const AddPlayerModal: React.FC<Props> = ({ clubTeams, defaultTeamId, currentUid,
           position: position || undefined,
           isActive: true,
           joinedAt: serverTimestamp(),
-        });
-
-        // 3. Backwards compat: append player to team.playerIds.
-        await updateDoc(doc(db, 'teams', teamId), {
-          playerIds: arrayUnion(playerRef.id),
         });
       }
 

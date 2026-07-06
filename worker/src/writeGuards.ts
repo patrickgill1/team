@@ -922,6 +922,373 @@ async function handleUsersSetRole(req: Request, env: Env, payload: any): Promise
 }
 
 // ────────────────────────────────────────────────────────────────
+// /users/approve — coach approves a pending user (parent) on their
+// team. Also flips approvalStatus.
+// Body: { teamId, targetUid }
+// ────────────────────────────────────────────────────────────────
+async function handleUsersApprove(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const targetUid = String(payload?.targetUid || '');
+  if (!targetUid) return json({ ok: false, error: 'target_uid_required' }, 400);
+  const target = await getDocument(pid, `users/${targetUid}`, sa).catch(() => null);
+  if (!target?.data) return json({ ok: false, error: 'target_not_found' }, 404);
+  const targetTeams: string[] = Array.isArray(target.data.teamIds) ? target.data.teamIds : [];
+  if (!targetTeams.includes(teamId)) {
+    return json({ ok: false, error: 'target_not_on_team' }, 403);
+  }
+  await patchDocument(
+    pid,
+    `users/${targetUid}`,
+    { approved: true, approvalStatus: 'coach-approved', approvedAt: new Date() },
+    sa,
+  );
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /users/deactivate — coach removes / suspends a user on their team.
+// Body: { teamId, targetUid, reject?: boolean }  reject=true also
+// flips approved:false (post-reject state); default just deactivates.
+// ────────────────────────────────────────────────────────────────
+async function handleUsersDeactivate(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const targetUid = String(payload?.targetUid || '');
+  if (!targetUid) return json({ ok: false, error: 'target_uid_required' }, 400);
+  const target = await getDocument(pid, `users/${targetUid}`, sa).catch(() => null);
+  if (!target?.data) return json({ ok: false, error: 'target_not_found' }, 404);
+  const targetTeams: string[] = Array.isArray(target.data.teamIds) ? target.data.teamIds : [];
+  if (!targetTeams.includes(teamId)) {
+    return json({ ok: false, error: 'target_not_on_team' }, 403);
+  }
+  const patch: Record<string, any> = { isActive: false };
+  if (payload?.reject === true) patch.approved = false;
+  await patchDocument(pid, `users/${targetUid}`, patch, sa);
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /teams/transfer-head-coach — head coach transfers to another
+// coach already on the team. Updates team.headCoachId,
+// team.assistantCoachIds (moves old head into assistants), and both
+// users' coachLevel.
+// Body: { teamId, newHeadCoachUid }
+// ────────────────────────────────────────────────────────────────
+async function handleTeamsTransferHead(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  const claims = await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const newHead = String(payload?.newHeadCoachUid || '');
+  if (!newHead) return json({ ok: false, error: 'new_head_required' }, 400);
+  const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!team?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const teamData: any = team.data;
+  const coachIds: string[] = Array.isArray(teamData.coachIds) ? teamData.coachIds : [];
+  if (!coachIds.includes(newHead)) {
+    return json({ ok: false, error: 'new_head_not_on_team' }, 400);
+  }
+  const oldHead = String(teamData.headCoachId || claims.uid);
+  const assistants: string[] = Array.isArray(teamData.assistantCoachIds) ? teamData.assistantCoachIds : [];
+  const nextAssistants = assistants.filter(u => u !== newHead);
+  if (oldHead && oldHead !== newHead && !nextAssistants.includes(oldHead)) {
+    nextAssistants.push(oldHead);
+  }
+  await patchDocument(
+    pid,
+    `teams/${teamId}`,
+    { headCoachId: newHead, assistantCoachIds: nextAssistants, updatedAt: new Date() },
+    sa,
+  );
+  await patchDocument(pid, `users/${newHead}`, { coachLevel: 'head_coach', updatedAt: new Date() }, sa);
+  if (oldHead && oldHead !== newHead) {
+    await patchDocument(pid, `users/${oldHead}`, { coachLevel: 'assistant_coach', updatedAt: new Date() }, sa);
+  }
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /teams/archive + /teams/restore — soft-delete / undelete.
+// Body: { teamId }
+// ────────────────────────────────────────────────────────────────
+async function handleTeamsArchive(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  await patchDocument(pid, `teams/${teamId}`, { isActive: false, archivedAt: new Date() }, sa);
+  return json({ ok: true });
+}
+async function handleTeamsRestore(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  await patchDocument(pid, `teams/${teamId}`, { isActive: true, archivedAt: null }, sa);
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /players/create — coach adds a new player to their team.
+// Body: { teamId, name, dateOfBirth?, jerseyNumber?, positions?[],
+//         parentEmails?[], isAdultPlayer?, ... }
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersCreate(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  const claims = await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const name = String(payload?.name || '').slice(0, 100).trim();
+  if (!name) return json({ ok: false, error: 'name_required' }, 400);
+  const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const clubId = team?.data?.clubId ? String(team.data.clubId) : '';
+  const parentEmails: string[] = Array.isArray(payload?.parentEmails)
+    ? payload.parentEmails.map((e: any) => normEmail(e)).filter(Boolean)
+    : [];
+  const fields: Record<string, any> = {
+    name,
+    teamId,
+    teamIds: [teamId],
+    parentIds: [],
+    parentEmails,
+    isActive: true,
+    createdAt: new Date(),
+    createdBy: claims.uid,
+  };
+  if (clubId) fields.clubId = clubId;
+  if (payload?.dateOfBirth) fields.dateOfBirth = String(payload.dateOfBirth);
+  if (typeof payload?.jerseyNumber === 'number') fields.jerseyNumber = payload.jerseyNumber;
+  if (Array.isArray(payload?.positions)) fields.positions = payload.positions.slice(0, 5);
+  if (payload?.isAdultPlayer === true) fields.isAdultPlayer = true;
+  const playerId = await createDocument(pid, 'players', fields, sa);
+  await commitDocumentTransforms(
+    pid,
+    `teams/${teamId}`,
+    [{ fieldPath: 'playerIds', kind: 'arrayUnion', value: playerId }],
+    null,
+    sa,
+  );
+  return json({ ok: true, playerId });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /players/set-active — soft-delete / restore a player.
+// Body: { teamId, playerId, isActive }
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersSetActive(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  const patch: Record<string, any> = {
+    isActive: payload?.isActive === true,
+    updatedAt: new Date(),
+  };
+  if (payload?.isActive === false) patch.deletedAt = new Date();
+  else patch.deletedAt = null;
+  await patchDocument(pid, `players/${playerId}`, patch, sa);
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /players/link-parent — coach adds a parent (uid + email) to a
+// player on their team. Auto-fans out user.teamIds too.
+// Body: { teamId, playerId, parentUid, parentEmail? }
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersLinkParent(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  const parentUid = String(payload?.parentUid || '');
+  if (!playerId || !parentUid) return json({ ok: false, error: 'ids_required' }, 400);
+  const parentEmail = payload?.parentEmail ? normEmail(payload.parentEmail) : '';
+  const transforms: any[] = [{ fieldPath: 'parentIds', kind: 'arrayUnion', value: parentUid }];
+  if (parentEmail) transforms.push({ fieldPath: 'parentEmails', kind: 'arrayUnion', value: parentEmail });
+  await commitDocumentTransforms(pid, `players/${playerId}`, transforms, null, sa);
+  // Fan the team onto the parent's user.teamIds so they can see the team.
+  await commitDocumentTransforms(
+    pid,
+    `users/${parentUid}`,
+    [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
+    null,
+    sa,
+  );
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /players/toggle-self-parent — parent (or adult self) adds or
+// removes themselves from a player's parentIds. Used by PlayerCard's
+// "this is my kid" toggle. Verification: caller must already be a
+// parent (arrayRemove) OR the caller's email must match one of the
+// player's parentEmails (arrayUnion).
+// Body: { playerId, on: boolean }
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersToggleSelfParent(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  const on = payload?.on === true;
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  const player = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!player?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  const parentIds: string[] = Array.isArray(player.data.parentIds) ? player.data.parentIds : [];
+  const parentEmails: string[] = Array.isArray(player.data.parentEmails)
+    ? player.data.parentEmails.map(normEmail) : [];
+  const isCurrentParent = parentIds.includes(claims.uid);
+  const emailMatches = !!claims.email && parentEmails.includes(normEmail(claims.email));
+  if (on && !emailMatches && !isCurrentParent) {
+    return json({ ok: false, error: 'not_authorized' }, 403);
+  }
+  if (!on && !isCurrentParent) {
+    return json({ ok: true, noop: true });  // already off
+  }
+  await commitDocumentTransforms(
+    pid,
+    `players/${playerId}`,
+    [{ fieldPath: 'parentIds', kind: on ? 'arrayUnion' : 'arrayRemove', value: claims.uid }],
+    null,
+    sa,
+  );
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /players/set-teams — bulk assign a player to a set of teams. Used
+// by People page bulk-assign + TransferPlayerModal + edit modal.
+// Body: { playerId, teamIds }  (destructive set, not diff)
+// Caller must coach EVERY team being added and every team being
+// removed (safety) — worker checks both sides.
+// ────────────────────────────────────────────────────────────────
+async function handlePlayersSetTeams(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const playerId = String(payload?.playerId || '');
+  const newTeamIds: string[] = Array.isArray(payload?.teamIds)
+    ? payload.teamIds.filter((t: any) => typeof t === 'string' && t)
+    : [];
+  if (!playerId) return json({ ok: false, error: 'player_id_required' }, 400);
+  const player = await getDocument(pid, `players/${playerId}`, sa).catch(() => null);
+  if (!player?.data) return json({ ok: false, error: 'player_not_found' }, 404);
+  const oldTeamIds: string[] = Array.isArray(player.data.teamIds)
+    ? player.data.teamIds
+    : (player.data.teamId ? [player.data.teamId] : []);
+  const added = newTeamIds.filter(t => !oldTeamIds.includes(t));
+  const removed = oldTeamIds.filter(t => !newTeamIds.includes(t));
+  // Caller must coach every team on either side of the diff.
+  for (const t of [...added, ...removed]) {
+    await requireCoachOfTeam(req, env, t);
+  }
+  const patch: Record<string, any> = {
+    teamIds: newTeamIds,
+    teamId: newTeamIds[0] || '',
+    updatedAt: new Date(),
+  };
+  await patchDocument(pid, `players/${playerId}`, patch, sa);
+  // Fan out to teams and parents.
+  const parentIds: string[] = Array.isArray(player.data.parentIds) ? player.data.parentIds : [];
+  for (const t of added) {
+    await commitDocumentTransforms(
+      pid, `teams/${t}`,
+      [{ fieldPath: 'playerIds', kind: 'arrayUnion', value: playerId }],
+      null, sa,
+    ).catch(() => undefined);
+    for (const parentUid of parentIds) {
+      await commitDocumentTransforms(
+        pid, `users/${parentUid}`,
+        [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: t }],
+        null, sa,
+      ).catch(() => undefined);
+    }
+  }
+  for (const t of removed) {
+    await commitDocumentTransforms(
+      pid, `teams/${t}`,
+      [{ fieldPath: 'playerIds', kind: 'arrayRemove', value: playerId }],
+      null, sa,
+    ).catch(() => undefined);
+    // Only trim parent's teamIds if no OTHER player of theirs ties
+    // them to this team. Reuses the logic from /teams/unshare-player.
+    for (const parentUid of parentIds) {
+      const otherPlayers = await runQuery(
+        pid, 'players',
+        [{ field: 'parentIds', op: 'ARRAY_CONTAINS', value: parentUid }],
+        sa, 50,
+      ).catch(() => []);
+      const stillTied = otherPlayers.some((p: any) => {
+        if (p.id === playerId) return false;
+        const teams: string[] = Array.isArray(p.data?.teamIds)
+          ? p.data.teamIds
+          : (p.data?.teamId ? [p.data.teamId] : []);
+        return teams.includes(t);
+      });
+      if (!stillTied) {
+        await commitDocumentTransforms(
+          pid, `users/${parentUid}`,
+          [{ fieldPath: 'teamIds', kind: 'arrayRemove', value: t }],
+          null, sa,
+        ).catch(() => undefined);
+      }
+    }
+  }
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /users/set-teams — bulk assign a STAFF user (coach/team_manager)
+// to a set of teams. Used by People page staff editor + bulk-assign.
+// Body: { targetUid, teamIds }  (destructive set)
+// Caller must coach every team on either side of the diff.
+// ────────────────────────────────────────────────────────────────
+async function handleUsersSetTeams(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const targetUid = String(payload?.targetUid || '');
+  const newTeamIds: string[] = Array.isArray(payload?.teamIds)
+    ? payload.teamIds.filter((t: any) => typeof t === 'string' && t)
+    : [];
+  if (!targetUid) return json({ ok: false, error: 'target_uid_required' }, 400);
+  const target = await getDocument(pid, `users/${targetUid}`, sa).catch(() => null);
+  if (!target?.data) return json({ ok: false, error: 'target_not_found' }, 404);
+  const oldTeamIds: string[] = Array.isArray(target.data.teamIds)
+    ? target.data.teamIds
+    : (target.data.teamId ? [target.data.teamId] : []);
+  const added = newTeamIds.filter(t => !oldTeamIds.includes(t));
+  const removed = oldTeamIds.filter(t => !newTeamIds.includes(t));
+  for (const t of [...added, ...removed]) {
+    await requireCoachOfTeam(req, env, t);
+  }
+  // Also patch team.coachIds for added/removed if the target is a coach.
+  const isCoach = target.data.role === 'coach' || target.data.role === 'team_manager';
+  for (const t of added) {
+    if (isCoach) {
+      await commitDocumentTransforms(
+        pid, `teams/${t}`,
+        [{ fieldPath: 'coachIds', kind: 'arrayUnion', value: targetUid }],
+        null, sa,
+      ).catch(() => undefined);
+    }
+  }
+  for (const t of removed) {
+    if (isCoach) {
+      await commitDocumentTransforms(
+        pid, `teams/${t}`,
+        [{ fieldPath: 'coachIds', kind: 'arrayRemove', value: targetUid }],
+        null, sa,
+      ).catch(() => undefined);
+    }
+  }
+  await patchDocument(
+    pid,
+    `users/${targetUid}`,
+    { teamIds: newTeamIds, teamId: newTeamIds[0] || '', updatedAt: new Date() },
+    sa,
+  );
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
 // Route dispatcher. index.ts calls this once for /guard/* paths
 // so we don't have to add a dozen if-blocks to the main handler.
 // Returns null when the pathname isn't a guarded-write route.
@@ -948,6 +1315,17 @@ export async function routeWriteGuard(
     case '/teams/remove-coach':    return handleTeamsRemoveCoach(req, env, payload);
     case '/teams/share-player':    return handleTeamsSharePlayer(req, env, payload);
     case '/teams/unshare-player':  return handleTeamsUnsharePlayer(req, env, payload);
+    case '/teams/transfer-head':   return handleTeamsTransferHead(req, env, payload);
+    case '/teams/archive':         return handleTeamsArchive(req, env, payload);
+    case '/teams/restore':         return handleTeamsRestore(req, env, payload);
+    case '/users/approve':         return handleUsersApprove(req, env, payload);
+    case '/users/deactivate':      return handleUsersDeactivate(req, env, payload);
+    case '/users/set-teams':       return handleUsersSetTeams(req, env, payload);
+    case '/players/create':        return handlePlayersCreate(req, env, payload);
+    case '/players/set-active':    return handlePlayersSetActive(req, env, payload);
+    case '/players/link-parent':   return handlePlayersLinkParent(req, env, payload);
+    case '/players/toggle-self-parent': return handlePlayersToggleSelfParent(req, env, payload);
+    case '/players/set-teams':     return handlePlayersSetTeams(req, env, payload);
     case '/club/set-admin':        return handleClubSetAdmin(req, env, payload);
     case '/club/remove-admin':     return handleClubRemoveAdmin(req, env, payload);
     default:                       return null;

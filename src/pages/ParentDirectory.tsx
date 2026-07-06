@@ -254,10 +254,17 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   };
 
   const handleApproveMember = async (uid: string) => {
+    if (!selectedTeamId) return;
     try {
-      await updateDocument('users', uid, { approved: true });
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/users/approve', {
+        method: 'POST',
+        body: JSON.stringify({ teamId: selectedTeamId, targetUid: uid }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `approve-${res.status}`);
       setPendingMembers(prev => prev.filter(m => m.uid !== uid));
-      await loadDirectory(); // refresh approved list
+      await loadDirectory();
     } catch (error) {
       console.error('Error approving member:', error);
       alert('Failed to approve member.');
@@ -266,8 +273,15 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
   const handleRejectMember = async (uid: string) => {
     if (!window.confirm('Reject this member? They will be removed from the team.')) return;
+    if (!selectedTeamId) return;
     try {
-      await updateDocument('users', uid, { isActive: false, approved: false });
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/users/deactivate', {
+        method: 'POST',
+        body: JSON.stringify({ teamId: selectedTeamId, targetUid: uid, reject: true }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `reject-${res.status}`);
       setPendingMembers(prev => prev.filter(m => m.uid !== uid));
     } catch (error) {
       console.error('Error rejecting member:', error);
@@ -277,8 +291,15 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
   const handleRemoveMember = async (uid: string, name: string) => {
     if (!window.confirm(`Remove ${name} from the team? They will no longer have access.`)) return;
+    if (!selectedTeamId) return;
     try {
-      await updateDocument('users', uid, { isActive: false });
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/users/deactivate', {
+        method: 'POST',
+        body: JSON.stringify({ teamId: selectedTeamId, targetUid: uid }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `remove-${res.status}`);
       setDirectory(prev => prev.filter(e => e.user.uid !== uid));
     } catch (error) {
       console.error('Error removing member:', error);
@@ -322,11 +343,20 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
   };
 
   const handleLinkToPlayer = async (parentUid: string, parentEmail: string, playerId: string) => {
+    if (!selectedTeamId) return;
     try {
-      await updateDoc(doc(db, 'players', playerId), {
-        parentIds: arrayUnion(parentUid),
-        parentEmails: arrayUnion(parentEmail.toLowerCase())
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/players/link-parent', {
+        method: 'POST',
+        body: JSON.stringify({
+          teamId: selectedTeamId,
+          playerId,
+          parentUid,
+          parentEmail: parentEmail.toLowerCase(),
+        }),
       });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `link-${res.status}`);
       setLinkingUid(null);
       await loadDirectory();
     } catch (error) {

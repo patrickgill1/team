@@ -68,7 +68,6 @@ const Tasks = React.lazy(() => import('./pages/Tasks'));
 const PlatformClubs = React.lazy(() => import('./pages/PlatformClubs'));
 const CoachJoin = React.lazy(() => import('./pages/CoachJoin'));
 const TeamManagement = React.lazy(() => import('./pages/TeamManagement'));
-const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const AddRoster = React.lazy(() => import('./pages/AddRoster'));
 const ClubOverview = React.lazy(() => import('./pages/ClubOverview'));
 const ClubBranding = React.lazy(() => import('./pages/ClubBranding'));
@@ -878,17 +877,17 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Onboarding wizard — first-run flow for a coach who
-                signed up via the marketing site (or any other path
-                that leaves teamIds empty). ProtectedRoute funnels
-                empty-team coaches here automatically; this route
-                renders without AppLayout so the bottom nav doesn't
-                show during onboarding. */}
-            <Route path="/onboarding" element={
-              <ProtectedRoute allowEmpty>
-                <Onboarding />
-              </ProtectedRoute>
-            } />
+            {/* Legacy /onboarding — the Onboarding.tsx wizard was
+                superseded by OnboardingGate (rendered inline from
+                the empty-team branch above). ProtectedRoute still
+                redirects some coaches here; forward to root so the
+                gate takes over. Removes the last direct writes to
+                users.role/teamIds and players.parentIds that the
+                legacy page did.
+                Old Onboarding.tsx module is unreferenced now; kept
+                on disk as history until a followup cleanup deletes
+                it. */}
+            <Route path="/onboarding" element={<Navigate to="/" replace />} />
 
             {/* Standalone bulk add-players + invite-parents page.
                 Reachable from Dashboard's Getting Started card and

@@ -691,8 +691,16 @@ const ManagePersonModal: React.FC<{
       const removed = oldTeamIds.filter(t => !newTeamIds.includes(t));
 
       if (person.type === 'player') {
-        // Update player.teamIds for legacy compat
-        await updateDoc(doc(db, 'players', person.id), { teamIds: newTeamIds });
+        // Player-side teamIds set — worker verifies caller coaches
+        // every team on either side of the diff and fans out to
+        // team.playerIds + each parent's user.teamIds.
+        const { workerFetch } = await import('../utils/workerFetch');
+        const r = await workerFetch('/players/set-teams', {
+          method: 'POST',
+          body: JSON.stringify({ playerId: person.id, teamIds: newTeamIds }),
+        });
+        const d: any = await r.json().catch(() => ({}));
+        if (!r.ok || !d?.ok) throw new Error(d?.error || `set-teams-${r.status}`);
         // Add membership rows for newly-assigned teams
         for (const teamId of added) {
           const team = teams.find(t => t.id === teamId);
@@ -719,8 +727,17 @@ const ManagePersonModal: React.FC<{
           await batch.commit();
         }
       } else {
-        // Staff: update user.teamIds for legacy compat
-        if (person.uid) await updateDoc(doc(db, 'users', person.uid), { teamIds: newTeamIds });
+        // Staff-side teamIds set — worker fans out to team.coachIds
+        // for coach/team_manager users.
+        if (person.uid) {
+          const { workerFetch } = await import('../utils/workerFetch');
+          const r = await workerFetch('/users/set-teams', {
+            method: 'POST',
+            body: JSON.stringify({ targetUid: person.uid, teamIds: newTeamIds }),
+          });
+          const d: any = await r.json().catch(() => ({}));
+          if (!r.ok || !d?.ok) throw new Error(d?.error || `set-teams-${r.status}`);
+        }
         for (const teamId of added) {
           const team = teams.find(t => t.id === teamId);
           const clubId = team?.clubId || 'club_unknown';
@@ -800,17 +817,29 @@ async function bulkAddToTeam(
   team?: { id: string; name: string; clubId?: string },
 ) {
   const clubId = team?.clubId || 'club_unknown';
+  const { workerFetch } = await import('../utils/workerFetch');
   for (const t of targets) {
     if (t.teamIds.includes(teamId)) continue;
+    const nextTeamIds = [...t.teamIds, teamId];
     if (t.type === 'player') {
-      await updateDoc(doc(db, 'players', t.id), { teamIds: [...t.teamIds, teamId] });
+      const r = await workerFetch('/players/set-teams', {
+        method: 'POST',
+        body: JSON.stringify({ playerId: t.id, teamIds: nextTeamIds }),
+      });
+      const d: any = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.ok) throw new Error(d?.error || `bulk-player-${r.status}`);
       await addDoc(collection(db, 'player_memberships'), {
         clubId, teamId, seasonId: 'season_active',
         playerId: t.id, isActive: true,
         joinedAt: serverTimestamp(),
       });
     } else if (t.uid) {
-      await updateDoc(doc(db, 'users', t.uid), { teamIds: [...t.teamIds, teamId] });
+      const r = await workerFetch('/users/set-teams', {
+        method: 'POST',
+        body: JSON.stringify({ targetUid: t.uid, teamIds: nextTeamIds }),
+      });
+      const d: any = await r.json().catch(() => ({}));
+      if (!r.ok || !d?.ok) throw new Error(d?.error || `bulk-staff-${r.status}`);
       await addDoc(collection(db, 'staff_memberships'), {
         clubId, teamId, seasonId: 'season_active',
         uid: t.uid,

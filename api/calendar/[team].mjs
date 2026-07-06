@@ -85,9 +85,17 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Forward-only feed: pull events from ~24 hours ago onward.
+    // The 24h lookback keeps today's already-kicked-off game
+    // visible if a parent glances back at the day; deeper history
+    // just clutters the subscription (last season's practices,
+    // scrimmages from months ago). Standard behavior for iCal
+    // feeds served by Google Calendar / Fantastical / etc.
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const db = getFirestore(adminApp());
     const snap = await db.collection('events')
       .where('teamId', '==', teamId)
+      .where('date', '>=', cutoff)
       .limit(500)
       .get();
 

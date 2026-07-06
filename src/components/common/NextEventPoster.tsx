@@ -85,6 +85,30 @@ const NextEventPoster: React.FC<Props> = ({
   const eventDow   = eventDate ? DOWS_SHORT[eventDate.getDay()] : '';
   const location: string = (nextEvent as any)?.location || '';
   const developmentFocus: string = ((nextEvent as any)?.developmentFocus || '').trim();
+  // Pill label prefix for the development focus. Was hardcoded
+  // "Today: <focus>", which read wrong when the practice was
+  // tomorrow / later this week. Compare event date to today in the
+  // viewer's local tz so it always reads accurately.
+  const focusPrefix = (() => {
+    if (!eventDate) return 'Focus';
+    const today = new Date();
+    const sameDay = eventDate.getFullYear() === today.getFullYear()
+      && eventDate.getMonth() === today.getMonth()
+      && eventDate.getDate() === today.getDate();
+    if (sameDay) return 'Today';
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const isTomorrow = eventDate.getFullYear() === tomorrow.getFullYear()
+      && eventDate.getMonth() === tomorrow.getMonth()
+      && eventDate.getDate() === tomorrow.getDate();
+    if (isTomorrow) return 'Tomorrow';
+    // Same week (next 6 days) — day-of-week is clearer than a date.
+    const daysAhead = Math.floor((eventDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+    if (daysAhead >= 0 && daysAhead < 7) {
+      return DOWS_SHORT[eventDate.getDay()];
+    }
+    return 'Focus';
+  })();
 
   // Empty state — no events on the calendar yet. Patrick: "can it
   // still show the field picture at the top during the process? I
@@ -235,7 +259,7 @@ const NextEventPoster: React.FC<Props> = ({
                 )}
                 {developmentFocus && (
                   <p className="mt-1 inline-flex max-w-full items-center rounded-full bg-black/50 ring-1 ring-white/10 px-2 py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-brand-primary-soft truncate backdrop-blur-sm [text-shadow:0_2px_6px_rgba(0,0,0,0.85)]">
-                    Today: {developmentFocus}
+                    {focusPrefix}: {developmentFocus}
                   </p>
                 )}
               </Link>

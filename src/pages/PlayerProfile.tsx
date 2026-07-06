@@ -11,6 +11,7 @@ import InlineDevPlanCard from '../components/player/InlineDevPlanCard';
 import ProfileHero from '../components/player/ProfileHero';
 import ProfileStatsStrip from '../components/player/ProfileStatsStrip';
 import PlayerInfoCard from '../components/player/PlayerInfoCard';
+import PlayerCircleCard from '../components/player/PlayerCircleCard';
 import AddPlayer from '../components/player/AddPlayer';
 import EmptyState from '../components/common/EmptyState';
 import DataGate from '../components/common/DataGate';
@@ -743,6 +744,19 @@ const PlayerProfile: React.FC = () => {
         <div className="bg-surface-base">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
           <div className="space-y-4 sm:space-y-6">
+
+            {/* PLAYER CIRCLE — parents/guardians linked to this player.
+                Shown near the top of Overview so the invite-a-guardian
+                path is discoverable at the exact spot a parent lands
+                when they open their kid's page. */}
+            {userData && (
+              <PlayerCircleCard
+                player={player}
+                viewerUid={userData.uid}
+                viewerEmail={userData.email || ''}
+                viewerRole={userData.role || ''}
+              />
+            )}
 
             {/* WHAT PEOPLE ARE SAYING — kids love this. Always render a
                 card so the section never feels missing; show a friendly

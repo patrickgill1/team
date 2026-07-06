@@ -430,10 +430,20 @@ async function handleClaimOfferDecline(req: Request, env: Env, payload: any): Pr
 
 // ────────────────────────────────────────────────────────────────
 // /teams/create — signed-in user creates a team + becomes its coach.
-// Body: { name, ageGroup?, season?, clubId?, format? }
-// Creates the team doc with coachIds=[caller.uid], headCoachId=caller,
-// and stamps the teamId + role='coach' + coachLevel='head_coach' onto
-// the caller's user doc.
+// Body: { name, ageGroup?, season?, clubId?, format?,
+//         withDefaultClub? }
+//
+// Two modes:
+//  1. `clubId` provided (team joins an existing club — future flow
+//     for club admins adding a team to their org)
+//  2. `withDefaultClub: true` (the current onboarding "solo coach"
+//     path): worker creates a wrapper club with isDefaultSoloClub:
+//     true, stamps its id on the team + user, so "becoming a club
+//     later" is still a no-op — same posture as the pre-worker flow.
+//  3. Neither: team gets created without a clubId. Rare — mostly a
+//     safety fall-through.
+//
+// All writes happen server-side so the client only makes ONE call.
 // ────────────────────────────────────────────────────────────────
 async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<Response> {
   const claims = await requireUser(req, env);
@@ -442,7 +452,8 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   if (!name) return json({ ok: false, error: 'name_required' }, 400);
   const ageGroup = String(payload?.ageGroup || '').slice(0, 40);
   const season = String(payload?.season || '').slice(0, 40);
-  const clubId = payload?.clubId ? String(payload.clubId) : '';
+  const requestedClubId = payload?.clubId ? String(payload.clubId) : '';
+  const withDefaultClub = payload?.withDefaultClub === true;
   const format = ['7v7', '9v9', '11v11'].includes(String(payload?.format)) ? String(payload.format) : '7v7';
 
   const teamFields: Record<string, any> = {
@@ -458,19 +469,120 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
     createdAt: new Date(),
     createdBy: claims.uid,
   };
-  if (clubId) teamFields.clubId = clubId;
+  if (requestedClubId) teamFields.clubId = requestedClubId;
 
   const teamId = payload?.desiredId ? String(payload.desiredId).slice(0, 60) : undefined;
-  const newId = await createDocument(pid, 'teams', teamFields, sa, teamId);
+  const newTeamId = await createDocument(pid, 'teams', teamFields, sa, teamId);
 
-  await commitDocumentTransforms(
+  // Spin up the wrapper club when the caller asked for one.
+  let newClubId: string | null = null;
+  if (!requestedClubId && withDefaultClub) {
+    newClubId = await createDocument(
+      pid,
+      'clubs',
+      {
+        name,
+        ownerUid: claims.uid,
+        adminUids: [],
+        initialTeamId: newTeamId,
+        isDefaultSoloClub: true,
+        createdAt: new Date(),
+      },
+      sa,
+    );
+    // Stamp the club id back onto the team so multi-tenant scoping
+    // reads a coherent state.
+    await patchDocument(pid, `teams/${newTeamId}`, { clubId: newClubId }, sa);
+  }
+
+  const userPatch: Record<string, any> = {
+    role: 'coach',
+    coachLevel: 'head_coach',
+    approved: true,
+    approvalStatus: 'self-created-team',
+  };
+  const userTransforms: any[] = [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: newTeamId }];
+  const effectiveClubId = newClubId || requestedClubId;
+  if (effectiveClubId) {
+    userTransforms.push({ fieldPath: 'clubIds', kind: 'arrayUnion', value: effectiveClubId });
+  }
+  await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
+
+  return json({ ok: true, teamId: newTeamId, clubId: effectiveClubId || null });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /clubs/create — club-first onboarding path (director/registrar).
+// Body: { name, alsoCoach?: boolean, firstTeamName? }
+// If alsoCoach, ALSO creates a first team and stamps user as coach.
+// Otherwise user becomes club_admin with no team affiliation.
+// ────────────────────────────────────────────────────────────────
+async function handleClubsCreate(req: Request, env: Env, payload: any): Promise<Response> {
+  const claims = await requireUser(req, env);
+  const { pid, sa } = projectAndSA(env);
+  const name = String(payload?.name || '').slice(0, 100).trim();
+  if (!name) return json({ ok: false, error: 'name_required' }, 400);
+  const alsoCoach = payload?.alsoCoach === true;
+  const firstTeamName = String(payload?.firstTeamName || '').slice(0, 100).trim();
+  if (alsoCoach && !firstTeamName) {
+    return json({ ok: false, error: 'first_team_name_required' }, 400);
+  }
+
+  let teamId: string | null = null;
+  if (alsoCoach) {
+    teamId = await createDocument(
+      pid,
+      'teams',
+      {
+        name: firstTeamName,
+        coachIds: [claims.uid],
+        headCoachId: claims.uid,
+        assistantCoachIds: [],
+        playerIds: [],
+        parentIds: [],
+        season: String(new Date().getFullYear()),
+        ageGroup: '',
+        format: '7v7',
+        isActive: true,
+        createdAt: new Date(),
+        createdBy: claims.uid,
+      },
+      sa,
+    );
+  }
+  const clubId = await createDocument(
     pid,
-    `users/${claims.uid}`,
-    [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: newId }],
-    { role: 'coach', coachLevel: 'head_coach', approved: true },
+    'clubs',
+    {
+      name,
+      ownerUid: claims.uid,
+      adminUids: [],
+      isDefaultSoloClub: false,
+      createdAt: new Date(),
+      ...(teamId ? { initialTeamId: teamId } : {}),
+    },
     sa,
   );
-  return json({ ok: true, teamId: newId });
+  if (teamId) {
+    await patchDocument(pid, `teams/${teamId}`, { clubId }, sa);
+  }
+
+  const userPatch: Record<string, any> = {
+    role: alsoCoach ? 'coach' : 'club_admin',
+    approved: true,
+    approvalStatus: 'self-created-club',
+    // NOT platform admin — that's a separate flag Patrick controls.
+    // isClubAdmin here is only true for platform admins per legacy
+    // naming; do not stamp it based on club ownership.
+  };
+  const userTransforms: any[] = [{ fieldPath: 'clubIds', kind: 'arrayUnion', value: clubId }];
+  if (teamId) {
+    userPatch.coachLevel = 'head_coach';
+    userTransforms.push({ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId });
+  }
+  await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
+
+  return json({ ok: true, clubId, teamId });
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -715,6 +827,7 @@ export async function routeWriteGuard(
     case '/claim/offer-accept':    return handleClaimOfferAccept(req, env, payload);
     case '/claim/offer-decline':   return handleClaimOfferDecline(req, env, payload);
     case '/teams/create':          return handleTeamsCreate(req, env, payload);
+    case '/clubs/create':          return handleClubsCreate(req, env, payload);
     case '/teams/add-coach':       return handleTeamsAddCoach(req, env, payload);
     case '/teams/remove-coach':    return handleTeamsRemoveCoach(req, env, payload);
     case '/teams/share-player':    return handleTeamsSharePlayer(req, env, payload);

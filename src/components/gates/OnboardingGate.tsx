@@ -73,39 +73,23 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
     if (!uid || !teamName.trim()) return;
     setBusy(true); setError(null);
     try {
-      const teamId = await createTeam({
-        name: teamName.trim(),
-        coachIds: [uid],
-        headCoachId: uid,
-        assistantCoachIds: [],
-        playerIds: [],
-        parentIds: [],
-        season: new Date().getFullYear().toString(),
-        ageGroup: '',
-      } as any);
-      // Patrick's data-model intent: every team belongs to a club,
-      // even solo coaches get a default one named after the team so
-      // 'becoming a club later' is a no-op. The default wrapper
-      // gets isDefaultSoloClub: true so the admin portal + billing
-      // can distinguish solo-coach accounts from real multi-team
-      // clubs (Coach $99/yr vs Club $499/yr Pro tier).
-      const clubId = await createClub({
-        name: teamName.trim(),
-        ownerUid: uid,
-        initialTeamId: teamId,
+      // Server owns team + solo-club creation + user-doc stamps.
+      // withDefaultClub:true triggers the "every team belongs to a
+      // club" auto-wrap (isDefaultSoloClub: true) that the pre-
+      // worker flow did in three round trips.
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const res = await workerFetch('/teams/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: teamName.trim(),
+          season: String(new Date().getFullYear()),
+          withDefaultClub: true,
+        }),
       });
-      await updateDoc(doc(db, 'clubs', clubId), { isDefaultSoloClub: true });
-      // Stamp the team's clubId so multi-tenant scoping works.
-      await updateDoc(doc(db, 'teams', teamId), { clubId });
-      // Patch the user as a coach attached to the new team + club.
-      await updateDoc(doc(db, 'users', uid), {
-        role: 'coach',
-        teamId,
-        teamIds: arrayUnion(teamId),
-        clubIds: arrayUnion(clubId),
-        approved: true,
-        approvalStatus: 'self-created-team',
-      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `create-${res.status}`);
+      }
       await finishWithRefresh();
     } catch (e: any) {
       console.error('[onboarding] createTeam failed', e);
@@ -116,66 +100,31 @@ const OnboardingGate: React.FC<Props> = ({ onSignOut }) => {
 
   const handleCreateClub = async () => {
     if (!uid || !clubName.trim()) return;
-    // If the user opted to ALSO coach a team, require the team name
-    // before submitting. If they're admin-only, no team is created.
     if (clubIAlsoCoach && !clubFirstTeam.trim()) {
       setError("Add the team name you'll be coaching, or turn the coach toggle off.");
       return;
     }
     setBusy(true); setError(null);
     try {
-      let teamId: string | null = null;
-
-      // Coach path: create the team first so the club can stamp
-      // initialTeamId on creation. Skip when admin-only — the club
-      // exists as an empty shell that teams attach to later via the
-      // /club page's "+ Add team" flow.
-      if (clubIAlsoCoach) {
-        teamId = await createTeam({
-          name: clubFirstTeam.trim(),
-          coachIds: [uid],
-          headCoachId: uid,
-          assistantCoachIds: [],
-          playerIds: [],
-          parentIds: [],
-          season: new Date().getFullYear().toString(),
-          ageGroup: '',
-        } as any);
-      }
-
-      const clubId = await createClub({
-        name: clubName.trim(),
-        ownerUid: uid,
-        ...(teamId ? { initialTeamId: teamId } : {}),
+      // /clubs/create handles both paths server-side: alsoCoach:true
+      // spins up the first team + stamps user as coach; false leaves
+      // the club as an empty shell and stamps user as club_admin.
+      const { workerFetch } = await import('../../utils/workerFetch');
+      const res = await workerFetch('/clubs/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: clubName.trim(),
+          alsoCoach: clubIAlsoCoach,
+          firstTeamName: clubIAlsoCoach ? clubFirstTeam.trim() : undefined,
+        }),
       });
-      if (teamId) {
-        await updateDoc(doc(db, 'teams', teamId), { clubId });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `create-${res.status}`);
       }
-
-      // Role assignment depends on what they actually do.
-      // - club_admin: a director/registrar/treasurer who runs the
-      //   club but doesn't coach a team. They get club-level access
-      //   via clubs.ownerUid + adminUids, NOT coach UI surfaces.
-      // - coach: they're also head coach of the just-created team.
-      const userPatch: any = {
-        clubIds: arrayUnion(clubId),
-        approved: true,
-        approvalStatus: 'self-created-club',
-        isClubAdmin: false, // platform-admin flag, unrelated to club ownership
-      };
-      if (clubIAlsoCoach && teamId) {
-        userPatch.role = 'coach';
-        userPatch.teamId = teamId;
-        userPatch.teamIds = arrayUnion(teamId);
-      } else {
-        userPatch.role = 'club_admin';
-        // No teamId / teamIds — they're not on a roster anywhere.
-      }
-      await updateDoc(doc(db, 'users', uid), userPatch);
-
-      // Redirect target — coaches land on the dashboard (their team
-      // shows up immediately); club-only admins land on /club where
-      // the next steps are inviting coaches and adding teams.
+      // Redirect target — coaches land on the dashboard; club-only
+      // admins land on /club where the next steps are inviting
+      // coaches and adding teams.
       if (!clubIAlsoCoach) {
         if (refreshUserData) await refreshUserData();
         window.location.href = '/club';

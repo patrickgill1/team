@@ -1,7 +1,7 @@
 {
   "name": "firefc16-mailer",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

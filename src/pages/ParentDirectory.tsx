@@ -314,41 +314,6 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
     }
   };
 
-  const handleChangeRole = async (uid: string, name: string, currentRole: string) => {
-    const promote = currentRole !== 'coach';
-    const verb = promote ? 'promote' : 'demote';
-    const target = promote ? 'a coach' : 'a parent';
-    if (!window.confirm(
-      promote
-        ? `Promote ${name} to coach? They'll get full access to manage players, schedule, stats, and media.`
-        : `Demote ${name} back to parent? They'll lose coach access.`
-    )) return;
-    try {
-      if (!selectedTeamId) throw new Error('No team selected');
-      // Worker verifies caller is a coach on the target team AND the
-      // target user actually shares the team before flipping role.
-      const { workerFetch } = await import('../utils/workerFetch');
-      const res = await workerFetch('/users/set-role', {
-        method: 'POST',
-        body: JSON.stringify({
-          teamId: selectedTeamId,
-          targetUid: uid,
-          role: promote ? 'coach' : 'parent',
-        }),
-      });
-      const data: any = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.ok) throw new Error(data?.error || `set-role-${res.status}`);
-      setDirectory(prev => prev.map(e =>
-        e.user.uid === uid
-          ? { ...e, user: { ...e.user, role: promote ? 'coach' : 'parent', approved: true, coachLevel: promote ? 'assistant_coach' : e.user.coachLevel } }
-          : e
-      ));
-    } catch (error) {
-      console.error(`Error trying to ${verb} member to ${target}:`, error);
-      alert(`Failed to ${verb} ${name}.`);
-    }
-  };
-
   const handleLinkToPlayer = async (parentUid: string, parentEmail: string, playerId: string) => {
     if (!selectedTeamId) return;
     try {
@@ -491,24 +456,18 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                     behind a "hero" prop so only the current user's own
                     card gets one instead of the whole grid. */}
 
-                {/* Head coach controls (top-right) */}
+                {/* Head coach control (top-right).
+                    Promote-to-coach used to live here as a floating
+                    icon on every parent card. That was noisy for the
+                    ~99% of parents who never get promoted, and it
+                    tied a global user.role flip to a per-team surface.
+                    Both problems fixed by moving promotion into a
+                    parent detail sheet (opens on card tap) with the
+                    real Assistant / Team manager picker. This spot
+                    still shows Remove, which is the more common
+                    per-row need (family leaves the team). */}
                 {isUserHeadCoach && entry.user.uid !== userData?.uid && (isUserOwner || !isHeadCoach(entry.user)) && (
                   <div className="absolute top-3 right-3 z-10 flex space-x-1">
-                    <button
-                      onClick={() => handleChangeRole(entry.user.uid, entry.user.name, entry.user.role)}
-                      className="p-2 bg-line-default/10 hover:bg-line-default/20 ring-1 ring-line-default/15 rounded-full text-ink-primary backdrop-blur transition-colors"
-                      title={isCoachRole ? 'Demote to parent' : 'Promote to coach'}
-                    >
-                      {isCoachRole ? (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                      ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3l14 9-14 9V3z" />
-                        </svg>
-                      )}
-                    </button>
                     <button
                       onClick={() => handleRemoveMember(entry.user.uid, entry.user.name)}
                       className="p-2 bg-line-default/10 hover:bg-rose-500/40 ring-1 ring-line-default/15 rounded-full text-ink-primary backdrop-blur transition-colors"

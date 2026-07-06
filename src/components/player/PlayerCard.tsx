@@ -65,7 +65,16 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const isUserCoach = userData ? isCoach(userData.role) : false;
   const isUserStaff = userData ? isTeamStaff(userData.role) : false;
   const canEdit = isUserCoach && showActions;
-  const canInviteParents = isUserStaff && showActions;
+  const isMyChild = userData ? player.parentIds?.includes(userData.uid) : false;
+  const circleIsEmpty = !player.parentIds || player.parentIds.length === 0;
+  // Show "Add to circle" only where the viewer has a stake:
+  //   1. It's their kid (parent adding a co-parent / guardian)
+  //   2. Player has no guardians yet AND viewer is staff (get the
+  //      first parent onboarded)
+  // Coaches viewing other people's kids with guardians already set
+  // won't see it on the card — they can still reach it from the
+  // player detail sheet.
+  const canInviteToCircle = showActions && (isMyChild || (isUserStaff && circleIsEmpty));
 
   const handleInviteParent = async () => {
     if (!userData) return;
@@ -125,26 +134,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   };
 
   const age = calculateAge(player.dateOfBirth);
-  const isMyChild = userData ? player.parentIds?.includes(userData.uid) : false;
-
-  const toggleMyChild = async () => {
-    if (!userData) return;
-    try {
-      // Worker verifies email-match or existing-parent before allowing
-      // arrayUnion/arrayRemove on players.parentIds. Prevents the
-      // pre-2026-07-06 player-takeover where any authed user could
-      // add themselves to any player.
-      const { workerFetch } = await import('../../utils/workerFetch');
-      const res = await workerFetch('/players/toggle-self-parent', {
-        method: 'POST',
-        body: JSON.stringify({ playerId: player.id, on: !isMyChild }),
-      });
-      const data: any = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.ok) throw new Error(data?.error || `toggle-${res.status}`);
-    } catch (err) {
-      console.error('Error linking parent:', err);
-    }
-  };
 
   return (
     <>
@@ -291,27 +280,23 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             >
               View Profile →
             </Link>
-            {canInviteParents && (
+            {canInviteToCircle && (
               <button
                 onClick={handleInviteParent}
                 disabled={generatingInvite}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-brand-primary-soft/20 ring-1 ring-brand-primary-soft/40 text-ink-primary hover:bg-brand-primary-soft/30 text-xs font-semibold backdrop-blur transition disabled:opacity-50"
-                title="Generate a one-tap link to share with a parent"
+                title={circleIsEmpty ? 'No one is in this player’s circle yet. Invite the first guardian.' : 'Invite a co-parent, grandparent, or other guardian to this player’s circle.'}
               >
-                {generatingInvite ? '…' : '✉ Invite Parent'}
-              </button>
-            )}
-            {isUserCoach && userData && (
-              <button
-                onClick={toggleMyChild}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold backdrop-blur transition ${
-                  isMyChild
-                    ? 'bg-emerald-400/15 ring-1 ring-emerald-400/30 text-emerald-700 hover:bg-emerald-400/25'
-                    : 'bg-line-default/10 ring-1 ring-line-default/20 text-ink-primary/70 hover:bg-line-default/15 hover:text-ink-primary'
-                }`}
-                title={isMyChild ? 'Unlink as my child' : 'Link as my child'}
-              >
-                {isMyChild ? '✓ My Child' : 'My Child?'}
+                {generatingInvite ? (
+                  '…'
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v6m3-3h-6m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    {circleIsEmpty ? 'Start circle' : 'Add to circle'}
+                  </>
+                )}
               </button>
             )}
             {!isUserCoach && showActions && (

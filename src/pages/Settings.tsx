@@ -14,6 +14,7 @@ import { isCoach, isTeamStaff } from '../utils/helpers';
 import NotificationPreferences from '../components/common/NotificationPreferences';
 import EmailPreferences from '../components/common/EmailPreferences';
 import SubscriptionCard from '../components/settings/SubscriptionCard';
+import ClaimChildWidget from '../components/settings/ClaimChildWidget';
 import WidgetSetupCard from '../components/settings/WidgetSetupCard';
 import VideoStorageCard from '../components/video/VideoStorageCard';
 import { useTheme, type ThemeMode, isThemePickerVisible } from '../contexts/ThemeContext';
@@ -59,6 +60,9 @@ const Settings: React.FC = () => {
 
   const [linkedPlayers, setLinkedPlayers] = useState<LinkedPlayer[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
+  // Bumped by ClaimChildWidget on successful claim so the linked
+  // players list re-fetches without the parent needing to reload.
+  const [linkedReloadTick, setLinkedReloadTick] = useState(0);
   const [editingProfile, setEditingProfile] = useState(false);
   const [name, setName] = useState(userData?.name || '');
   const [phone, setPhone] = useState(userData?.phoneNumber || '');
@@ -139,7 +143,7 @@ const Settings: React.FC = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [userData?.uid]);
+  }, [userData?.uid, linkedReloadTick]);
 
   const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -420,6 +424,17 @@ const Settings: React.FC = () => {
                   </Link>
                 ))}
               </div>
+            )}
+            {userData && (
+              <ClaimChildWidget
+                userUid={userData.uid}
+                userEmail={userData.email || ''}
+                userTeamIds={Array.isArray(userData.teamIds) && userData.teamIds.length > 0
+                  ? userData.teamIds
+                  : (userData.teamId ? [userData.teamId] : [])}
+                alreadyClaimedIds={linkedPlayers.map((p) => p.id)}
+                onClaimed={() => setLinkedReloadTick((t) => t + 1)}
+              />
             )}
           </div>
         </section>

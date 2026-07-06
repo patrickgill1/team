@@ -128,6 +128,71 @@ export async function incrementFields(projectId: string, path: string, deltas: R
   if (!r.ok) throw new Error(`firestore increment ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
 }
 
+// Atomic array-union / array-remove via Firestore field transforms.
+// Safer than a read-modify-write for hot fields like user.teamIds or
+// player.parentIds where two invite-claims could otherwise race.
+// Accepts multiple transforms per doc so a single call can (e.g.)
+// arrayUnion teamIds AND patch role/name.
+export interface FieldTransform {
+  fieldPath: string;
+  kind: 'arrayUnion' | 'arrayRemove' | 'increment';
+  value: any;
+}
+export async function commitDocumentTransforms(
+  projectId: string,
+  path: string,
+  transforms: FieldTransform[],
+  patchFields: Record<string, any> | null,
+  sa: ServiceAccount,
+): Promise<void> {
+  const token = await getAccessToken(sa, FIRESTORE_SCOPE);
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit`;
+  const docName = `projects/${projectId}/databases/(default)/documents/${path}`;
+  const writes: any[] = [];
+  if (patchFields && Object.keys(patchFields).length > 0) {
+    const keys = Object.keys(patchFields);
+    writes.push({
+      update: {
+        name: docName,
+        fields: Object.fromEntries(keys.map(k => [k, encodeValue(patchFields[k])])),
+      },
+      updateMask: { fieldPaths: keys },
+    });
+  }
+  if (transforms.length > 0) {
+    writes.push({
+      transform: {
+        document: docName,
+        fieldTransforms: transforms.map(t => {
+          if (t.kind === 'arrayUnion') {
+            return {
+              fieldPath: t.fieldPath,
+              appendMissingElements: { values: (Array.isArray(t.value) ? t.value : [t.value]).map(encodeValue) },
+            };
+          }
+          if (t.kind === 'arrayRemove') {
+            return {
+              fieldPath: t.fieldPath,
+              removeAllFromArray: { values: (Array.isArray(t.value) ? t.value : [t.value]).map(encodeValue) },
+            };
+          }
+          return {
+            fieldPath: t.fieldPath,
+            increment: { integerValue: String(Math.trunc(Number(t.value))) },
+          };
+        }),
+      },
+    });
+  }
+  if (writes.length === 0) return;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ writes }),
+  });
+  if (!r.ok) throw new Error(`firestore commit ${path} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+}
+
 export async function createDocument(projectId: string, collection: string, fields: Record<string, any>, sa: ServiceAccount, docId?: string): Promise<string> {
   const token = await getAccessToken(sa, FIRESTORE_SCOPE);
   const idParam = docId ? `?documentId=${encodeURIComponent(docId)}` : '';

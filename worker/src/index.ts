@@ -53,6 +53,7 @@ import { handleParentEmailPrecheck } from './precheck';
 import { logWorkerError } from './errorLog';
 import { handleUnsubscribe, handleOpenPixel, runDueCampaigns } from './campaigns';
 import { handleSendVerification } from './authMail';
+import { routeWriteGuard } from './writeGuards';
 
 export interface Env {
   // NOTIFY_SECRET is retained on the env for backwards compatibility
@@ -593,6 +594,20 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     // the coach reviews before saving to their library. We use OpenAI's
     // JSON mode (response_format) so the model is forced to emit valid
     // JSON — no regex parsing of free-form prose needed.
+    // Guarded-write endpoints — sensitive Firestore mutations
+    // (invite claim, team create, role change, etc.) that need
+    // server-verified authorization. Each handler in
+    // writeGuards.ts requires its own auth scope; returns null
+    // when the pathname isn't one of ours so we fall through.
+    {
+      const guardResp = await routeWriteGuard(url.pathname, req, env, payload);
+      if (guardResp) {
+        const headers = new Headers(guardResp.headers);
+        for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+        return new Response(guardResp.body, { status: guardResp.status, headers });
+      }
+    }
+
     if (url.pathname === '/generate-drill') {
       await requireUser(req, env);
       if (!env.OPENAI_API_KEY) {

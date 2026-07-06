@@ -113,6 +113,14 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
                 : 'email',
     createdAt: new Date(nowMs),
     teamIds: [],
+    // Privacy defaults OFF — new users' contact info stays hidden
+    // in the parent directory unless they opt in via Settings.
+    // Coaches see everyone regardless (gated at the render layer).
+    privacy: {
+      showEmail: false,
+      showPhone: false,
+      showAddress: false,
+    },
   };
   await patchDocument(pid, `users/${claims.uid}`, initialFields, sa);
 

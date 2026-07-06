@@ -54,10 +54,13 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
     address: '',
     emergencyContact: '',
     emergencyPhone: '',
+    // Privacy defaults: OFF. Users opt in explicitly via the toggles
+    // when they want other parents to see their contact. Coaches see
+    // everyone regardless (gated at the render layer).
     privacy: {
-      showPhone: true,
-      showEmail: true,
-      showAddress: false
+      showPhone: false,
+      showEmail: false,
+      showAddress: false,
     },
     emailPreferences: {
       devPlan: true,
@@ -91,8 +94,8 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
             emergencyContact: freshUserData.emergencyContact || '',
             emergencyPhone: freshUserData.emergencyPhone || '',
             privacy: freshUserData.privacy || {
-              showPhone: true,
-              showEmail: true,
+              showPhone: false,
+              showEmail: false,
               showAddress: false
             },
             emailPreferences: {
@@ -110,9 +113,13 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
           emergencyContact: userDataAny.emergencyContact || '',
           emergencyPhone: userDataAny.emergencyPhone || '',
           privacy: userDataAny.privacy || {
-            showPhone: true,
-            showEmail: true,
-            showAddress: false
+            // Parents default to hidden — the directory only shows
+            // contact info to coaches unless a parent explicitly
+            // opts in via Settings. Coaches see everyone's contact
+            // regardless because they need it for team management.
+            showPhone: false,
+            showEmail: false,
+            showAddress: false,
           },
           emailPreferences: {
             devPlan: true, clip: true, potm: true, digest: true,
@@ -174,10 +181,10 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
             createdAt: player.createdAt?.toDate ? player.createdAt.toDate() : new Date(player.createdAt)
           })),
           privacy: user.privacy || {
-            showPhone: true,
-            showEmail: true,
-            showAddress: false
-          }
+            showPhone: false,
+            showEmail: false,
+            showAddress: false,
+          },
         };
       });
       
@@ -478,10 +485,11 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                 key={entry.user.uid}
                 className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-surface-raised via-surface-input to-surface-elevated p-5 sm:p-6 text-ink-primary shadow-2xl ring-1 ring-line-default/10"
               >
-                {/* decorative blobs — subtle glow in dark, near-invisible
-                    in light so they don't paint the whole card with color. */}
-                <div className={`absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl pointer-events-none ${isCoachRole ? 'bg-violet-500/[0.04] dark:bg-violet-500/20' : 'bg-brand-primary/[0.04] dark:bg-brand-primary/20'}`} />
-                <div className="absolute -bottom-16 -left-10 w-56 h-56 bg-rose-500/[0.04] dark:bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
+                {/* Decorative blobs removed 2026-07-06 — the reddish/
+                    violet wash across every card muddied the directory.
+                    If we ever want per-card accent glow back, gate it
+                    behind a "hero" prop so only the current user's own
+                    card gets one instead of the whole grid. */}
 
                 {/* Head coach controls (top-right) */}
                 {isUserHeadCoach && entry.user.uid !== userData?.uid && (isUserOwner || !isHeadCoach(entry.user)) && (
@@ -627,9 +635,9 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                   )}
 
                   {/* Contact rows */}
-                  {((entry.privacy.showEmail && entry.user.email) || (entry.privacy.showPhone && entry.user.phoneNumber) || (entry.privacy.showAddress && entry.user.address)) && (
+                  {(((isUserCoach || entry.privacy.showEmail) && entry.user.email) || ((isUserCoach || entry.privacy.showPhone) && entry.user.phoneNumber) || ((isUserCoach || entry.privacy.showAddress) && entry.user.address)) && (
                     <div className="space-y-1.5 mb-4">
-                      {entry.privacy.showEmail && entry.user.email && (
+                      {(isUserCoach || entry.privacy.showEmail) && entry.user.email && (
                         <a
                           href={`mailto:${entry.user.email}`}
                           className="flex items-center gap-2 text-sm text-ink-primary hover:text-brand-primary-soft break-all"
@@ -640,7 +648,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                           <span className="truncate">{entry.user.email}</span>
                         </a>
                       )}
-                      {entry.privacy.showPhone && entry.user.phoneNumber && (
+                      {(isUserCoach || entry.privacy.showPhone) && entry.user.phoneNumber && (
                         <a
                           href={`tel:${entry.user.phoneNumber}`}
                           className="flex items-center gap-2 text-sm text-ink-primary hover:text-brand-primary-soft"
@@ -651,7 +659,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                           <span>{formatPhone(entry.user.phoneNumber)}</span>
                         </a>
                       )}
-                      {entry.privacy.showAddress && entry.user.address && (
+                      {(isUserCoach || entry.privacy.showAddress) && entry.user.address && (
                         <div className="flex items-center gap-2 text-sm text-ink-primary/75">
                           <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -681,7 +689,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
 
                   {/* Action pills */}
                   <div className="flex flex-wrap gap-2">
-                    {entry.privacy.showEmail && entry.user.email && (
+                    {(isUserCoach || entry.privacy.showEmail) && entry.user.email && (
                       <button
                         onClick={() => window.open(`mailto:${entry.user.email}`)}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-elevated text-charcoal-800 font-bold text-sm shadow hover:scale-105 transition"
@@ -692,7 +700,7 @@ const ParentDirectory: React.FC<ParentDirectoryProps> = () => {
                         Email
                       </button>
                     )}
-                    {entry.privacy.showPhone && entry.user.phoneNumber && (
+                    {(isUserCoach || entry.privacy.showPhone) && entry.user.phoneNumber && (
                       <button
                         onClick={() => window.open(`tel:${entry.user.phoneNumber}`)}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-line-default/15 ring-1 ring-line-default/20 text-ink-primary font-semibold text-sm hover:bg-line-default/25 transition backdrop-blur"

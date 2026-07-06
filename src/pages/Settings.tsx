@@ -227,26 +227,26 @@ const Settings: React.FC = () => {
       return;
     }
     const url = `${origin}/api/calendar/${teamId}.ics`;
-    // webcals:// (with the s) signals TLS to iOS Calendar. Plain
-    // webcal:// is treated as HTTP by Apple even when the underlying
-    // endpoint is https, which pops the "Insecure Connection" prompt
-    // on subscribe. Fall back to webcal:// only if the origin is
-    // somehow http (dev / preview URLs).
-    const webcal = url.startsWith('https:')
-      ? url.replace(/^https:/, 'webcals:')
-      : url.replace(/^http:/, 'webcal:');
-    const message = `Subscribe in your phone calendar:\n\n${webcal}\n\nTap the link or paste it into Calendar → "Add Subscription Calendar".`;
+    // Scheme choice notes:
+    //   https:// — clean paste into Calendar > Add Subscription, no
+    //     warnings. What we hand out for copy/paste.
+    //   webcal:// — auto-opens Calendar on tap but shows a
+    //     misleading "Insecure Connection" prompt on iOS even over
+    //     TLS (webcal is treated as http by Apple's scheme list).
+    //   webcals:// — NOT recognized by iOS Calendar's validator;
+    //     rejected as "Validation failed." Do not use.
+    const message = `Subscribe in your phone calendar:\n\n${url}\n\nOpen Calendar → "Add Subscription Calendar" and paste this link.`;
     try {
       if (navigator.share) {
-        await (navigator as any).share({ title: 'Team calendar feed', text: message, url: webcal });
+        await (navigator as any).share({ title: 'Team calendar feed', text: message, url });
         return;
       }
     } catch { /* user canceled — fall through to clipboard */ }
     try {
-      await navigator.clipboard.writeText(webcal);
-      alert(`Subscription URL copied:\n${webcal}\n\nPaste it into your calendar app → Add Subscription Calendar.`);
+      await navigator.clipboard.writeText(url);
+      alert(`Subscription URL copied:\n${url}\n\nOpen Calendar → Add Subscription Calendar and paste it.`);
     } catch {
-      window.prompt('Subscription URL — copy this and add to your calendar:', webcal);
+      window.prompt('Subscription URL — copy this and add to your calendar:', url);
     }
   };
 

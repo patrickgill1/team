@@ -136,107 +136,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('[auth] verification send threw', e);
       }
 
-      console.log('Auth user created, now creating Firestore document...');
-      
-      // Only attach to a team when the signup carried a real invite-
-      // derived team id. Previously this fell back to DEFAULT_TEAM_ID
-      // for anything that smelled like a temp id, which silently
-      // attached random signups straight to Fire FC's active team.
-      // Now if no real team id is present we leave it empty and let
-      // the parent-email matcher below find the right team. If neither
-      // works, the user gets approved=false and no team — they can't
-      // see anything until a coach intentionally links them.
-      const looksReal = !!newUserData.teamId
-        && !newUserData.teamId.startsWith('team_temp')
-        && !newUserData.teamId.startsWith('team_'); // bare timestamps used to fall through
-      const effectiveTeamId = looksReal ? newUserData.teamId : '';
+      console.log('Auth user created; posting to /users/bootstrap...');
 
-      // Caller-supplied hint: the precheck already confirmed an
-      // email-on-player match, so auto-link is guaranteed to fire
-      // and approve them. Treat as if they joined via a real invite
-      // for the purposes of the initial user-doc write. Without
-      // this the OnboardingGate flashes 'approved=false' in the
-      // ~200ms window between createUser and the auto-link's
-      // approved=true patch.
-      const preApproveHint = (newUserData as any).preApproveOnAutoLink === true;
-      const shouldPreApprove = looksReal || preApproveHint;
-      // Strip the hint so it doesn't get persisted on the user doc.
+      // Bootstrap the user doc + email-match auto-link on the worker
+      // side. Server owns all the sensitive writes (role, teamIds,
+      // approved, players.parentIds) so a rogue client can't fabricate
+      // them. Same net effect for the user as the old client-side
+      // flow, plus the auto-link races into a single atomic write
+      // instead of three.
+      //
+      // Preserved from the pre-2026-07-03 flow:
+      //  - The `preApproveOnAutoLink` hint is redundant now — the
+      //    worker always runs auto-link when the email matches, and
+      //    stamps approved:true in the same commit. No UI flicker.
+      //  - The `team_temp` / `team_` id sanitization is no longer
+      //    needed at the client boundary — the worker ignores any
+      //    caller-supplied teamId and derives teamIds from the
+      //    linked player docs only.
       delete (newUserData as any).preApproveOnAutoLink;
 
-      const userDataWithId: any = {
-        ...newUserData,
-        uid: result.user.uid,
-        teamId: effectiveTeamId,
-        teamIds: effectiveTeamId ? [effectiveTeamId] : [],
-        isActive: true,
-        // Approved when joining via a real invite OR when the
-        // precheck already confirmed an email-on-player match.
-        approved: shouldPreApprove,
-        approvalStatus: looksReal ? 'auto'
-                      : preApproveHint ? 'auto-email-match'
-                      : 'pending',
-        authProvider: 'email'
-      };
-      
-      await createUser(userDataWithId);
-      console.log('Firestore user document created successfully with team ID:', effectiveTeamId);
-      
-      // Auto-link and auto-approve if email already on a player
-      if (userDataWithId.role !== 'coach' && userDataWithId.email) {
-        try {
-          const playersRef = collection(db, 'players');
-          const q = query(playersRef, where('parentEmails', 'array-contains', userDataWithId.email.toLowerCase()));
-          const snapshot = await getDocs(q);
-          let linked = false;
-          const linkedTeamIds = new Set<string>();
-          let firstPlayerPrimaryTeamId: string | null = null;
-          for (const playerDoc of snapshot.docs) {
-            const playerData = playerDoc.data();
-            if (!playerData.parentIds?.includes(result.user.uid)) {
-              await updateDoc(doc(db, 'players', playerDoc.id), {
-                parentIds: arrayUnion(result.user.uid)
-              });
-              console.log('Auto-linked new email parent to player:', playerDoc.id);
-            }
-            linked = true;
-            const pTeams: string[] = playerData.teamIds || (playerData.teamId ? [playerData.teamId] : []);
-            for (const t of pTeams) linkedTeamIds.add(t);
-            if (!firstPlayerPrimaryTeamId) {
-              firstPlayerPrimaryTeamId = playerData.teamId || pTeams[0] || null;
-            }
-          }
-          if (linked) {
-            // Replace the placeholder team assignment with the team(s) of the
-            // child this account was just linked to. Previously we left teamId
-            // as DEFAULT_TEAM_ID, so a parent whose kid was on Team B would
-            // log in and see Team A by default.
-            const userPatch: Record<string, unknown> = { approved: true };
-            if (firstPlayerPrimaryTeamId && !linkedTeamIds.has(effectiveTeamId)) {
-              userPatch.teamId = firstPlayerPrimaryTeamId;
-              userPatch.teamIds = Array.from(linkedTeamIds);
-            }
-            await updateDoc(doc(db, 'users', result.user.uid), userPatch);
-            console.log('Auto-approved new email parent via email match', userPatch);
-          }
-        } catch (linkError) {
-          console.error('Error auto-linking new email parent:', linkError);
+      try {
+        const { workerFetch } = await import('../utils/workerFetch');
+        const bootstrapRes = await workerFetch('/users/bootstrap', {
+          method: 'POST',
+          body: JSON.stringify({
+            role: newUserData.role || 'parent',
+            name: newUserData.name || '',
+            email: (newUserData.email || email).toLowerCase(),
+            phone: (newUserData as any).phone || '',
+            authProvider: 'email',
+          }),
+        });
+        const bootstrapData: any = await bootstrapRes.json().catch(() => ({}));
+        if (!bootstrapRes.ok || !bootstrapData?.ok) {
+          const code = bootstrapData?.error || `bootstrap-${bootstrapRes.status}`;
+          throw new Error(code);
         }
+        console.log('Firestore user document created via worker; linkedCount=', bootstrapData.linkedCount);
+      } catch (bootstrapErr) {
+        // Roll back the Firebase Auth account if the worker rejected
+        // us — otherwise the user retries and hits "email already in
+        // use" without any user doc to sign into. Same recovery
+        // posture as the old permission-denied handler.
+        if (auth.currentUser) {
+          try { await auth.currentUser.delete(); } catch { /* best effort */ }
+        }
+        throw bootstrapErr;
       }
-      
+
       return;
     } catch (error: any) {
       console.error('Sign up error:', error);
-      
-      // If auth user was created but Firestore failed, clean up
-      if (error.code === 'permission-denied' && auth.currentUser) {
-        console.log('Firestore creation failed, cleaning up auth user...');
-        try {
-          await auth.currentUser.delete();
-        } catch (deleteError) {
-          console.error('Failed to clean up auth user:', deleteError);
-        }
-      }
-      
       throw error;
     }
   };

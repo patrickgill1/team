@@ -1,6 +1,8 @@
 // Vercel serverless function — returns an iCalendar (.ics) feed for a
 // team's upcoming events. Parents subscribe in Apple/Google Calendar
-// via:  webcal://app.goalkickr.com/api/calendar/<teamId>
+// via:  webcals://app.goalkickr.com/api/calendar/<teamId>
+// (webcals with the s = TLS; plain webcal:// makes iOS Calendar
+// throw an "Insecure Connection" prompt on subscribe.)
 //
 // Reads through Firestore's REST API. Events are publicly readable
 // per the firestore.rules ("allow read: if true" on /events), so we

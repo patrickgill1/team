@@ -227,7 +227,14 @@ const Settings: React.FC = () => {
       return;
     }
     const url = `${origin}/api/calendar/${teamId}.ics`;
-    const webcal = url.replace(/^https?:/, 'webcal:');
+    // webcals:// (with the s) signals TLS to iOS Calendar. Plain
+    // webcal:// is treated as HTTP by Apple even when the underlying
+    // endpoint is https, which pops the "Insecure Connection" prompt
+    // on subscribe. Fall back to webcal:// only if the origin is
+    // somehow http (dev / preview URLs).
+    const webcal = url.startsWith('https:')
+      ? url.replace(/^https:/, 'webcals:')
+      : url.replace(/^http:/, 'webcal:');
     const message = `Subscribe in your phone calendar:\n\n${webcal}\n\nTap the link or paste it into Calendar → "Add Subscription Calendar".`;
     try {
       if (navigator.share) {

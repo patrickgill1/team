@@ -686,102 +686,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }).catch(err => console.warn('nativeShell import failed', err));
 
-    // Auto-fix temp team IDs
-    if (userData.teamId?.startsWith('temp_')) {
-      updateDocument('users', userId, {
-        teamId: DEFAULT_TEAM_ID,
-        teamIds: [DEFAULT_TEAM_ID],
-        updatedAt: new Date()
-      }).then(() => {
-        userData.teamId = DEFAULT_TEAM_ID;
-        userData.teamIds = [DEFAULT_TEAM_ID];
-        // Merge into CURRENT state — never replace with our stale
-        // closure snapshot. Otherwise an in-flight update (e.g. the
-        // user uploaded a new profile photo in Settings) gets clobbered
-        // when this background fix resolves.
-        setUserData(prev => prev ? { ...prev, teamId: DEFAULT_TEAM_ID, teamIds: [DEFAULT_TEAM_ID] } : prev);
-      }).catch(err => console.error('Error fixing temp team ID:', err));
-    }
-
-    // Backfill teamIds
-    if (!userData.teamIds?.length && userData.teamId) {
-      userData.teamIds = [userData.teamId];
-      updateDocument('users', userId, {
-        teamIds: [userData.teamId],
-        updatedAt: new Date()
-      }).catch(err => console.error('Error backfilling teamIds:', err));
-    }
-
-    // Auto-link parent to players by email match
-    if (userData.role === 'parent' && userData.email) {
-      const playersRef = collection(db, 'players');
-      const q = query(playersRef, where('parentEmails', 'array-contains', userData.email.toLowerCase()));
-      getDocs(q).then(async (snapshot) => {
-        let linked = false;
-        for (const playerDoc of snapshot.docs) {
-          const playerData = playerDoc.data();
-          if (!playerData.parentIds?.includes(userId)) {
-            await updateDoc(doc(db, 'players', playerDoc.id), {
-              parentIds: arrayUnion(userId)
-            }).catch(() => {});
-          }
-          linked = true;
-        }
-        if (linked && userData.approved === false) {
-          await updateDoc(doc(db, 'users', userId), { approved: true }).catch(() => {});
-          userData.approved = true;
-          setUserData(prev => prev ? { ...prev, approved: true } as any : prev);
-        }
-      }).catch(err => console.error('Error auto-linking parent:', err));
-    }
-
-    // Sync parent teamIds with their players' current teamIds.
-    // AUTHORITATIVE: replace, don't just append. Otherwise a parent who once
-    // had a player shared to Team B keeps Team B in their teamIds forever,
-    // even after we unshare the player. Authoritative set =
-    //   parent's own primary teamId ∪ union of all teamIds across all their players.
-    if (userData.role === 'parent') {
-      const playersRef = collection(db, 'players');
-      const q2 = query(playersRef, where('parentIds', 'array-contains', userId));
-      getDocs(q2).then(async (snapshot) => {
-        const correct = new Set<string>();
-        if (userData.teamId) correct.add(userData.teamId);
-        for (const playerDoc of snapshot.docs) {
-          const playerData = playerDoc.data();
-          const playerTeamIds = playerData.teamIds || (playerData.teamId ? [playerData.teamId] : []);
-          for (const tid of playerTeamIds) correct.add(tid);
-        }
-        const newTeamIds = Array.from(correct);
-        const currentTeamIds = userData.teamIds || (userData.teamId ? [userData.teamId] : []);
-        const sameSet =
-          newTeamIds.length === currentTeamIds.length &&
-          newTeamIds.every(t => currentTeamIds.includes(t));
-        // If the parent's primary teamId is no longer represented (e.g. they
-        // were created with DEFAULT_TEAM_ID but their kid is on another team,
-        // or we just unshared the only team they had access to), promote one
-        // of the valid teams to primary.
-        const primaryNeedsFix =
-          newTeamIds.length > 0 && !!userData.teamId && !correct.has(userData.teamId);
-        // Never write an empty set — if we somehow computed [], the parent has
-        // no players right now (e.g. mid-sign-up before linking) and we don't
-        // want to lock them out of their existing primary team.
-        if (newTeamIds.length > 0 && (!sameSet || primaryNeedsFix)) {
-          const patch: Record<string, unknown> = {
-            teamIds: newTeamIds,
-            updatedAt: new Date(),
-          };
-          if (primaryNeedsFix) {
-            patch.teamId = newTeamIds[0];
-            userData.teamId = newTeamIds[0];
-          }
-          await updateDoc(doc(db, 'users', userId), patch).catch(() => {});
-          userData.teamIds = newTeamIds;
-          // Merge — don't blast over a fresh photoURL the user just set
-          // in Settings while this background sync was running.
-          setUserData(prev => prev ? { ...prev, teamIds: newTeamIds, ...(primaryNeedsFix ? { teamId: newTeamIds[0] } : {}) } : prev);
-        }
-      }).catch(err => console.error('Error syncing parent teamIds:', err));
-    }
+    // The four legacy background writes that used to live here
+    // (temp team ID fix, teamIds backfill, parent-email auto-link,
+    // authoritative parent teamIds sync) are removed 2026-07-06.
+    //
+    // Reasons:
+    //  1. First-time user-doc creation + email-match auto-link is now
+    //     server-owned via /users/bootstrap. Fresh accounts never
+    //     have a `temp_` teamId, empty `teamIds` while a legacy
+    //     `teamId` sits stale, or a missing parent link.
+    //  2. `teamIds` writes here would fail under the tightened rules
+    //     anyway — worker owns those.
+    //  3. The "authoritative parent teamIds sync" (rebuild teamIds
+    //     from the union of each kid's teams every session) races
+    //     with /teams/share-player and /teams/unshare-player which
+    //     already fan out to parents server-side. When a parent's
+    //     teamIds ever drift, they'll be corrected on the next
+    //     share/unshare action — not on every login.
+    //
+    // If a drift bug shows up in the wild, the right fix is a
+    // dedicated /users/resync-teams worker endpoint, not resurrecting
+    // this session-time write.
   };
 
   // Catch the return leg of signInWithRedirect (mobile browsers).

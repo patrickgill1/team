@@ -87,25 +87,17 @@ service cloud.firestore {
       allow list: if request.auth != null;
       allow create: if isAuthed() && canCoachWrite()
         && onTeam(request.resource.data.teamId);
+      // The old "self-add to parentIds" branch is removed 2026-07-06.
+      // Any authed user could claim any player as their own by writing
+      // their uid onto parentIds — the audit's player-takeover finding.
+      // Now parentIds mutations only happen via /claim/invite,
+      // /claim/player-link (email-match verified server-side), or a
+      // coach on the team acting through the standard on-team branch.
       allow update: if isAuthed() && (
         isPlatformAdmin()
         || onTeam(resource.data.teamId)
-        || (resource.data.parentIds is list && request.auth.uid in resource.data.parentIds)
-        // Self-add to parentIds: a brand-new parent signing up via
-        // invite OR email auto-link needs to write their own uid
-        // onto the player's parentIds, but they're not yet on the
-        // team and not yet in parentIds — both other branches above
-        // deny. Allow ONLY when the update touches parentIds only
-        // and the resulting array contains the caller's uid.
-        // Patrick 2026-06-25: 'having a person trying to create
-        // an account and it is not letting him.' Auto-link in
-        // AuthContext silently swallowed the rule denial; invite
-        // consume surfaced it.
-        || (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parentIds'])
-          && request.resource.data.parentIds is list
-          && request.auth.uid in request.resource.data.parentIds
-        )
+        || (resource.data.parentIds is list && request.auth.uid in resource.data.parentIds
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['parentIds', 'teamId', 'teamIds']))
       );
       allow delete: if isAuthed() && (
         isPlatformAdmin()
@@ -131,24 +123,71 @@ service cloud.firestore {
       allow get: if isPlatformAdmin() || onTeam(teamId);
       allow list: if request.auth != null;
       allow create: if isAuthed();
-      allow update, delete: if isAuthed();
+      // Update / delete restricted to coaches on this team OR
+      // platform admin. Before 2026-07-06 any signed-in user could
+      // update/delete any team doc — the audit's teams wildcard write.
+      // Worker-driven writes (via /teams/create, /teams/add-coach,
+      // /teams/share-player, /teams/unshare-player) use the service
+      // account and bypass this rule entirely.
+      allow update, delete: if isAuthed() && (
+        isPlatformAdmin()
+        || (resource.data.coachIds is list && request.auth.uid in resource.data.coachIds)
+      );
     }
 
     // User docs. Every authed user can read (member lookups, mentions).
-    // Self-write only for general fields. CRITICAL: clients CANNOT
-    // write subscriptionActive / subscriptionTier / subscriptionStatus
-    // / isClubAdmin — those are platform-controlled (worker + Patrick
-    // manually). Allowing client write of subscriptionActive would
-    // defeat the entire trial gate.
+    //
+    // WRITE POLICY (hardened 2026-07-06 Phase 2):
+    // Self-writes are allowed ONLY for profile-and-preferences fields.
+    // The security-critical fields (role, team/club membership,
+    // approval, coverage, invite audit trail, subscription state,
+    // adult-player claim) are worker-only — they must be mutated
+    // through the guarded write endpoints in worker/src/writeGuards.ts
+    // where the caller's legitimacy can be verified (valid invite
+    // token, coach-of-team, self-only, etc). Before this change any
+    // signed-in user could grant themselves membership on any team
+    // by patching their own teamIds — the audit's #2 finding.
     match /users/{userId} {
       allow read: if isAuthed();
+      // Create still allowed self-only so the Firebase-Auth-to-
+      // Firestore bootstrap on first sign-in works. The worker's
+      // /users/bootstrap endpoint uses admin creds so THIS branch
+      // isn't hit for worker-driven creates — it's the fallback for
+      // legacy or manual paths.
       allow create: if isSelf(userId);
       allow update: if isAuthed() && (
         isPlatformAdmin()
         || (
           isSelf(userId)
           && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['subscriptionActive', 'subscriptionTier', 'subscriptionStatus', 'subscriptionUpdatedAt', 'isClubAdmin'])
+            .hasAny([
+              // Subscription state — worker-only via Stripe webhook.
+              'subscriptionActive', 'subscriptionTier', 'subscriptionStatus', 'subscriptionUpdatedAt',
+              // Platform admin flag — Patrick or worker only.
+              'isClubAdmin',
+              // Role + coach level — set via /users/bootstrap,
+              // /claim/invite, /teams/create, /users/set-role.
+              'role', 'coachLevel',
+              // Team + club membership — set via /users/bootstrap,
+              // /claim/invite, /claim/player-link, /teams/create,
+              // /teams/add-coach, /clubs/create, /club/set-admin, etc.
+              'teamId', 'teamIds', 'clubId', 'clubIds',
+              // Approval + coverage — server-controlled.
+              'approved', 'approvalStatus', 'approvedAt',
+              'coverageSource', 'coverageClubId',
+              // Invite audit trail — server-controlled.
+              'invitedBy', 'invitedVia',
+              // Adult-player claim — /claim/invite or /claim/player-link.
+              'selfPlayerId',
+              // Children list — /claim/player-link.
+              'children',
+              // Widget token — bootstrapped by the client via
+              // bootstrapWidgetToken() with cryptographically random
+              // value; keeping it self-writable so the client can
+              // rotate. Widget snapshot verifies token against the
+              // stored value, so a bad rotate just breaks the user's
+              // own widget.
+            ])
         )
       );
       allow delete: if isPlatformAdmin();
@@ -342,15 +381,26 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Invites — unguessable doc ID is the capability.
+    // Invites — unguessable doc ID IS the capability. Public `list`
+    // would let a bad actor enumerate every invite id in existence,
+    // which defeats the point. GET-by-id stays open so /join/{id}
+    // works without auth. Consumption happens via /claim/invite on
+    // the worker (service account), so client update/delete stays
+    // available only for the coach who created the invite (revoke).
     match /invites/{inviteId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && resource.data.createdBy == request.auth.uid;
     }
 
     match /coach_invites/{inviteId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && resource.data.createdBy == request.auth.uid;
     }
 
     // ────────────────────────────────────────────────────────────
@@ -385,12 +435,19 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Offers — /offer/:id is no-auth.
+    // Offers — /offer/:id landing page needs GET without auth. LIST is
+    // denied (audit finding: offers should not be enumerable). Status
+    // transitions go through /claim/offer-accept + /claim/offer-decline
+    // on the worker (service account), which verify the caller's email
+    // matches offer.parentEmail. Non-critical bookkeeping fields like
+    // promotedToPlayerId are still allowed via authenticated update
+    // for coach admin flows.
     match /offers/{offerId} {
-      allow read: if true;
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['status', 'respondedAt', 'declineReason', 'promotedToPlayerId', 'promotedAt', 'updatedAt'])
-        || request.auth != null;
+      allow get: if true;
+      allow list: if request.auth != null;
+      allow update: if request.auth != null
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['status', 'respondedAt', 'declineReason', 'acceptedAt', 'declinedAt']);
       allow create, delete: if request.auth != null;
     }
 

@@ -235,18 +235,23 @@ const Settings: React.FC = () => {
     //     TLS (webcal is treated as http by Apple's scheme list).
     //   webcals:// — NOT recognized by iOS Calendar's validator;
     //     rejected as "Validation failed." Do not use.
-    const message = `Subscribe in your phone calendar:\n\n${url}\n\nOpen Calendar → "Add Subscription Calendar" and paste this link.`;
+    // navigator.share puts BOTH text and url onto the clipboard when
+    // the user picks Copy from the share sheet — so any explanatory
+    // text ends up pasted into Calendar's URL field as a garbled
+    // blob. Share the raw url only; keep instructions in the alert
+    // that fires around the share (user reads them once, they don't
+    // get pasted).
     try {
       if (navigator.share) {
-        await (navigator as any).share({ title: 'Team calendar feed', text: message, url });
+        await (navigator as any).share({ title: 'Team calendar feed', url });
         return;
       }
     } catch { /* user canceled — fall through to clipboard */ }
     try {
       await navigator.clipboard.writeText(url);
-      alert(`Subscription URL copied:\n${url}\n\nOpen Calendar → Add Subscription Calendar and paste it.`);
+      alert(`Link copied. Open Calendar → Add Subscription Calendar and paste it.`);
     } catch {
-      window.prompt('Subscription URL — copy this and add to your calendar:', url);
+      window.prompt('Copy this and add to Calendar → Add Subscription Calendar:', url);
     }
   };
 

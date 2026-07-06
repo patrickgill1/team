@@ -51,7 +51,12 @@ const InviteShareModal: React.FC<Props> = ({ invite, open, onClose, playerName }
   const handleNativeShare = async () => {
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({ title: subject, text: smsBody, url });
+        // Share only the URL. Picking Copy from the sheet then puts
+        // just the link on the clipboard — no explainer text getting
+        // pasted into wherever the recipient goes next. The dedicated
+        // Text button below still uses smsBody when the intent IS to
+        // send a full message.
+        await navigator.share({ title: subject, url });
       } catch (err: any) {
         if (err?.name !== 'AbortError') console.warn('share failed', err);
       }

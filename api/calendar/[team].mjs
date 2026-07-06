@@ -5,16 +5,37 @@
 // (webcal:// works but iOS Calendar mislabels it "Insecure
 //  Connection" over TLS. webcals:// is not a recognized scheme.)
 //
-// Reads through Firestore's REST API. Events are publicly readable
-// per the firestore.rules ("allow read: if true" on /events), so we
-// don't need an authenticated client here — keeps the function tiny
-// and fast.
+// Uses Firebase Admin SDK to bypass Firestore rules — events are no
+// longer world-readable (Phase 2 security tightened them to
+// authed-only), so the unauthenticated REST path returns 403 and
+// iOS then labels the whole endpoint as "insecure" because it got
+// an HTML error page instead of iCal content.
 //
-// Env vars required:
-//   FIREBASE_PROJECT_ID — the project's Firebase ID (same value used
-//     by client-side firebase init).
+// Env vars required (Vercel):
+//   FIREBASE_PROJECT_ID   — Firebase project id
+//   FIREBASE_CLIENT_EMAIL — service account email
+//   FIREBASE_PRIVATE_KEY  — service account PEM key
+//                           (Vercel stores it with literal \n; we
+//                            convert those back to real newlines.)
 
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+function adminApp() {
+  const existing = getApps();
+  if (existing.length > 0) return existing[0];
+
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error('Missing Firebase Admin env vars (FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY).');
+  }
+  return initializeApp({
+    credential: cert({ projectId, clientEmail, privateKey }),
+    projectId,
+  });
+}
 
 function escapeIcs(text = '') {
   return String(text)
@@ -39,30 +60,21 @@ function fmt(date) {
   );
 }
 
-// Convert a Firestore REST API document into a flat JS object.
-function flatten(doc) {
-  const out = { id: (doc.name || '').split('/').pop() };
-  const fields = doc.fields || {};
-  for (const [k, v] of Object.entries(fields)) {
-    if ('stringValue' in v) out[k] = v.stringValue;
-    else if ('integerValue' in v) out[k] = parseInt(v.integerValue, 10);
-    else if ('doubleValue' in v) out[k] = v.doubleValue;
-    else if ('booleanValue' in v) out[k] = v.booleanValue;
-    else if ('timestampValue' in v) out[k] = new Date(v.timestampValue);
-    else if ('mapValue' in v) out[k] = v.mapValue;
-    else if ('arrayValue' in v) out[k] = (v.arrayValue.values || []).map((x) =>
-      'stringValue' in x ? x.stringValue : x);
-    else out[k] = v;
+// Coerce a Firestore field value to a Date. Admin SDK returns
+// Timestamps for timestamp fields; strings sometimes sneak in from
+// legacy imports. Return null if unrecognized.
+function toDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v.toDate === 'function') return v.toDate();
+  if (typeof v === 'string') {
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
   }
-  return out;
+  return null;
 }
 
 export default async function handler(req, res) {
-  if (!PROJECT_ID) {
-    res.status(500).send('Server misconfigured: FIREBASE_PROJECT_ID missing');
-    return;
-  }
-
   // Vercel encodes the dynamic segment ("team") as req.query.team. We
   // accept either /<teamId>.ics or /<teamId> for friendlier URLs.
   let teamId = (req.query.team || '').toString();
@@ -73,34 +85,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Query Firestore REST API for events where teamId == teamId.
-    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
-    const body = {
-      structuredQuery: {
-        from: [{ collectionId: 'events' }],
-        where: {
-          fieldFilter: {
-            field: { fieldPath: 'teamId' },
-            op: 'EQUAL',
-            value: { stringValue: teamId },
-          },
-        },
-        limit: 500,
-      },
-    };
-    const fsRes = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!fsRes.ok) {
-      const errText = await fsRes.text();
-      res.status(502).send(`Firestore error ${fsRes.status}: ${errText}`);
-      return;
-    }
-    const data = await fsRes.json();
-    const docs = Array.isArray(data) ? data.map((r) => r.document).filter(Boolean) : [];
-    const events = docs.map(flatten);
+    const db = getFirestore(adminApp());
+    const snap = await db.collection('events')
+      .where('teamId', '==', teamId)
+      .limit(500)
+      .get();
+
+    const events = snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
 
     // Build the .ics
     const now = new Date();
@@ -114,10 +105,10 @@ export default async function handler(req, res) {
       `X-WR-TIMEZONE:UTC`,
     ];
     for (const ev of events) {
-      const start = ev.date instanceof Date ? ev.date : (ev.date ? new Date(ev.date) : null);
-      if (!start || isNaN(start.getTime())) continue;
+      const start = toDate(ev.date);
+      if (!start) continue;
       // Default duration 90 min if no endDate provided.
-      const end = ev.endDate instanceof Date ? ev.endDate : new Date(start.getTime() + 90 * 60 * 1000);
+      const end = toDate(ev.endDate) || new Date(start.getTime() + 90 * 60 * 1000);
       const title = ev.title || (ev.type === 'practice' ? 'Practice' : ev.type === 'game' ? 'Game' : 'Event');
       const locationStr = ev.location || '';
       const descParts = [];

@@ -19,6 +19,7 @@ import WidgetSetupCard from '../components/settings/WidgetSetupCard';
 import VideoStorageCard from '../components/video/VideoStorageCard';
 import { useTheme, type ThemeMode, isThemePickerVisible } from '../contexts/ThemeContext';
 import { useViewMode } from '../contexts/ViewModeContext';
+import { useTeam } from '../contexts/TeamContext';
 import Walkthrough from '../components/onboarding/Walkthrough';
 
 interface LinkedPlayer {
@@ -37,6 +38,7 @@ const Settings: React.FC = () => {
   const { userData, currentUser, logout, deleteAccount, refreshUserData } = useAuth();
   const { updateDocument } = useFirestore();
   const { viewMode } = useViewMode();
+  const { selectedTeamId, teams } = useTeam();
   // OTA bundle version that's actually running. Distinct from
   // APP_VERSION (which is the binary version that matches what's in
   // the App Store / Play Store). So if you've pushed OTA fixes since
@@ -220,12 +222,18 @@ const Settings: React.FC = () => {
   const shareCalendarFeed = async () => {
     if (!userData?.uid) return;
     const origin = getShareOrigin();
-    // Subscribe URL is per-team; default to the user's primary team.
-    const teamId = userData.teamId || userData.teamIds?.[0];
+    // Use the currently-selected team from TeamContext. Falling back
+    // to userData.teamId / userData.teamIds[0] silently pointed
+    // multi-team coaches at their FIRST team every time — usually
+    // their old / archived one. selectedTeamId matches whatever's
+    // active in the team switcher, which is what the user sees on
+    // screen right now.
+    const teamId = selectedTeamId || userData.teamId || userData.teamIds?.[0];
     if (!teamId) {
       alert('Pick a team first to get its calendar feed.');
       return;
     }
+    const teamName = teams?.find(t => t.id === teamId)?.name;
     const url = `${origin}/api/calendar/${teamId}.ics`;
     // Scheme choice notes:
     //   https:// — clean paste into Calendar > Add Subscription, no
@@ -241,15 +249,19 @@ const Settings: React.FC = () => {
     // blob. Share the raw url only; keep instructions in the alert
     // that fires around the share (user reads them once, they don't
     // get pasted).
+    const shareTitle = teamName ? `${teamName} calendar feed` : 'Team calendar feed';
+    const copiedMsg = teamName
+      ? `${teamName} calendar link copied. Open Calendar → Add Subscription Calendar and paste it.`
+      : `Link copied. Open Calendar → Add Subscription Calendar and paste it.`;
     try {
       if (navigator.share) {
-        await (navigator as any).share({ title: 'Team calendar feed', url });
+        await (navigator as any).share({ title: shareTitle, url });
         return;
       }
     } catch { /* user canceled — fall through to clipboard */ }
     try {
       await navigator.clipboard.writeText(url);
-      alert(`Link copied. Open Calendar → Add Subscription Calendar and paste it.`);
+      alert(copiedMsg);
     } catch {
       window.prompt('Copy this and add to Calendar → Add Subscription Calendar:', url);
     }
@@ -519,6 +531,10 @@ const Settings: React.FC = () => {
               icon="calendar"
               label="Calendar Syncing (Google, Apple, etc)"
               onClick={shareCalendarFeed}
+              hint={(() => {
+                const t = teams?.find(tt => tt.id === selectedTeamId);
+                return t ? `Syncs events from ${t.name}. Switch teams to share a different feed.` : undefined;
+              })()}
             />
             <SettingsRow
               icon="shield"

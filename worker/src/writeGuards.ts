@@ -165,18 +165,27 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
 }
 
 // ────────────────────────────────────────────────────────────────
-// /claim/parent-invite — parent (or adult player) claims an invite.
+// /claim/invite — signed-in user consumes an invites/{id}. Replaces
+// src/utils/invites.ts consumeInvite. Handles all three invite
+// types (player, coach, team_manager) in a single endpoint since
+// they share the same collection.
 //
-// Replaces src/utils/invites.ts consumeInvite. Verifies the invite
-// token, then in one commit:
-//   users/{uid}: role, teamIds arrayUnion, selfPlayerId? (adult),
-//                 coverageSource / coverageClubId
-//   players/{playerId}: parentIds arrayUnion, isAdultPlayer? (adult)
-//   invites/{inviteId}: usedCount +1, usedBy arrayUnion
+// Body: { inviteId }
 //
-// Body: { inviteId, playerId? (adult self-claim), asAdultPlayer? }
+// Side-effects:
+//   player invite      → players/{playerId}.parentIds arrayUnion(uid),
+//                        players.isAdultPlayer=true (if adult flag),
+//                        users.role=parent, users.teamIds+=teamId,
+//                        users.selfPlayerId (if adult)
+//   coach invite       → users.role=coach, users.coachLevel,
+//                        users.teamIds+=teamId
+//   team_manager       → users.role=team_manager, teamIds+=teamId
+//
+// After the primary write, coach + team_manager invites also stamp
+// users.coverageSource='club' when the team belongs to a non-solo
+// club — matches the pre-worker post-transaction fixup.
 // ────────────────────────────────────────────────────────────────
-async function handleClaimParentInvite(req: Request, env: Env, payload: any): Promise<Response> {
+async function handleClaimInvite(req: Request, env: Env, payload: any): Promise<Response> {
   const claims = await requireUser(req, env);
   const { pid, sa } = projectAndSA(env);
   const inviteId = String(payload?.inviteId || '');
@@ -186,61 +195,65 @@ async function handleClaimParentInvite(req: Request, env: Env, payload: any): Pr
   if (!inviteDoc?.data) return json({ ok: false, error: 'invite_not_found' }, 404);
   const invite: any = inviteDoc.data;
   if (invite.revokedAt) return json({ ok: false, error: 'invite_revoked' }, 410);
-  if (typeof invite.expiresAt === 'string' && new Date(invite.expiresAt).getTime() < Date.now()) {
-    return json({ ok: false, error: 'invite_expired' }, 410);
+  if (invite.expiresAt) {
+    const exp = typeof invite.expiresAt === 'string'
+      ? new Date(invite.expiresAt).getTime()
+      : (typeof invite.expiresAt?.seconds === 'number' ? invite.expiresAt.seconds * 1000 : 0);
+    if (exp && exp < Date.now()) return json({ ok: false, error: 'invite_expired' }, 410);
   }
   const usedCount = typeof invite.usedCount === 'number' ? invite.usedCount : 0;
   const maxUses = typeof invite.maxUses === 'number' ? invite.maxUses : 1;
   if (usedCount >= maxUses) return json({ ok: false, error: 'invite_exhausted' }, 410);
   const usedBy: string[] = Array.isArray(invite.usedBy) ? invite.usedBy : [];
   if (usedBy.includes(claims.uid)) {
-    return json({ ok: false, error: 'already_used' }, 409);
+    // Already claimed by this uid — respond OK so client retries are
+    // safe. Matches the old client's early-return posture.
+    return json({ ok: true, teamId: invite.teamId, playerId: invite.playerId, idempotent: true });
   }
-  if (invite.kind !== 'parent' && invite.kind !== 'family' && invite.kind !== undefined) {
-    return json({ ok: false, error: 'wrong_invite_kind' }, 400);
-  }
-
   const teamId = String(invite.teamId || '');
   if (!teamId) return json({ ok: false, error: 'invite_missing_team' }, 400);
+  const inviteType = String(invite.type || '');
 
-  const playerIdOverride = payload?.playerId ? String(payload.playerId) : '';
-  const targetPlayerId = playerIdOverride || String(invite.playerId || '');
-  const asAdultPlayer = payload?.asAdultPlayer === true;
+  const nowIso = new Date();
+  const userTransforms: any[] = [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }];
+  const userPatch: Record<string, any> = {
+    approved: true,
+    approvalStatus: 'auto',
+    approvedAt: nowIso,
+    invitedBy: invite.createdBy || null,
+    invitedVia: inviteId,
+    teamId, // legacy single-team pointer
+  };
 
-  // Bind player if the invite named one, or the caller passed one
-  // (adult-player self-claim).
-  if (targetPlayerId) {
-    const playerDoc = await getDocument(pid, `players/${targetPlayerId}`, sa).catch(() => null);
-    if (!playerDoc?.data) return json({ ok: false, error: 'player_not_found' }, 404);
-    const patch: Record<string, any> = {};
-    if (asAdultPlayer) patch.isAdultPlayer = true;
+  if (inviteType === 'player') {
+    const playerId = String(invite.playerId || '');
+    if (!playerId) return json({ ok: false, error: 'invite_missing_player' }, 400);
+    const isAdultPlayer = invite.isAdultPlayer === true;
+    const relationship = String(invite.relationship || 'parent');
+
+    const playerPatch: Record<string, any> = {};
+    if (isAdultPlayer) playerPatch.isAdultPlayer = true;
     await commitDocumentTransforms(
       pid,
-      `players/${targetPlayerId}`,
+      `players/${playerId}`,
       [{ fieldPath: 'parentIds', kind: 'arrayUnion', value: claims.uid }],
-      Object.keys(patch).length ? patch : null,
+      Object.keys(playerPatch).length ? playerPatch : null,
       sa,
     );
+
+    userPatch.role = 'parent';
+    userPatch.relationship = relationship;
+    if (isAdultPlayer) userPatch.selfPlayerId = playerId;
+  } else if (inviteType === 'coach') {
+    userPatch.role = 'coach';
+    userPatch.coachLevel = String(invite.role || 'assistant_coach');
+  } else if (inviteType === 'team_manager') {
+    userPatch.role = 'team_manager';
+  } else {
+    return json({ ok: false, error: 'unknown_invite_type' }, 400);
   }
 
-  // Patch the user doc with the role + team + (optional) self-claim.
-  const userPatch: Record<string, any> = {
-    role: asAdultPlayer ? 'parent' : 'parent',  // adult players still 'parent' role UX-wise
-    approved: true,
-    approvalStatus: 'invite-consumed',
-  };
-  if (asAdultPlayer && targetPlayerId) userPatch.selfPlayerId = targetPlayerId;
-  if (invite.clubId) {
-    userPatch.coverageSource = 'club';
-    userPatch.coverageClubId = String(invite.clubId);
-  }
-  await commitDocumentTransforms(
-    pid,
-    `users/${claims.uid}`,
-    [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
-    userPatch,
-    sa,
-  );
+  await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
 
   // Mark invite consumed.
   await commitDocumentTransforms(
@@ -254,7 +267,32 @@ async function handleClaimParentInvite(req: Request, env: Env, payload: any): Pr
     sa,
   );
 
-  return json({ ok: true, teamId, playerId: targetPlayerId || null });
+  // Post-primary: coach + team_manager joining a NON-solo club
+  // inherit coverage from the club. Deferred until after the main
+  // writes so a bad club-lookup can't block the invite consume.
+  if (inviteType === 'coach' || inviteType === 'team_manager') {
+    try {
+      const teamDoc = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+      const teamData: any = teamDoc?.data || {};
+      const clubId = teamData.clubId ? String(teamData.clubId) : '';
+      if (clubId) {
+        const clubDoc = await getDocument(pid, `clubs/${clubId}`, sa).catch(() => null);
+        const clubData: any = clubDoc?.data || {};
+        if (clubData.isDefaultSoloClub !== true) {
+          await patchDocument(
+            pid,
+            `users/${claims.uid}`,
+            { coverageSource: 'club', coverageClubId: clubId },
+            sa,
+          );
+        }
+      }
+    } catch (err) {
+      console.warn('[claim-invite] club coverage stamp failed:', (err as Error).message);
+    }
+  }
+
+  return json({ ok: true, type: inviteType, teamId, playerId: invite.playerId || null });
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -356,13 +394,13 @@ async function handleClaimPlayerLink(req: Request, env: Env, payload: any): Prom
     approvalStatus: 'player-link',
   };
   if (isAdultClaim) userPatch.selfPlayerId = playerId;
-  await commitDocumentTransforms(
-    pid,
-    `users/${claims.uid}`,
-    teamIds.length > 0 ? [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamIds }] : [],
-    userPatch,
-    sa,
-  );
+  const userTransforms: any[] = [
+    { fieldPath: 'children', kind: 'arrayUnion', value: playerId },
+  ];
+  if (teamIds.length > 0) {
+    userTransforms.push({ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamIds });
+  }
+  await commitDocumentTransforms(pid, `users/${claims.uid}`, userTransforms, userPatch, sa);
   return json({ ok: true, playerId, linkedTeams: teamIds.length });
 }
 
@@ -821,7 +859,8 @@ export async function routeWriteGuard(
     case '/users/bootstrap':       return handleUsersBootstrap(req, env, payload);
     case '/users/set-widget-player': return handleUsersSetWidgetPlayer(req, env, payload);
     case '/users/set-role':        return handleUsersSetRole(req, env, payload);
-    case '/claim/parent-invite':   return handleClaimParentInvite(req, env, payload);
+    case '/claim/invite':          return handleClaimInvite(req, env, payload);
+    case '/claim/parent-invite':   return handleClaimInvite(req, env, payload);  // legacy alias
     case '/claim/coach-invite':    return handleClaimCoachInvite(req, env, payload);
     case '/claim/player-link':     return handleClaimPlayerLink(req, env, payload);
     case '/claim/offer-accept':    return handleClaimOfferAccept(req, env, payload);

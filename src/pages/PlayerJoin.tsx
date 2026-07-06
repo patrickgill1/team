@@ -98,26 +98,30 @@ const PlayerJoin: React.FC = () => {
   const linkUserToPlayer = async (user: User, playerData: Player) => {
     setLinking(true);
     try {
-      // Add parent to player's parentIds
-      await updateDoc(doc(db, 'players', playerData.id), {
-        parentIds: arrayUnion(user.uid),
+      // Server-side link. Verifies email match / adult-claim
+      // eligibility, then writes players.parentIds, users.children,
+      // users.teamIds, and users.selfPlayerId (when adult) atomically.
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/claim/player-link', {
+        method: 'POST',
+        body: JSON.stringify({
+          playerId: playerData.id,
+          asAdultPlayer: (playerData as any).isAdultPlayer === true,
+        }),
       });
-
-      // Add player to user's children list. Adult players: the
-      // player IS the user, so also stamp selfPlayerId on the user
-      // doc so in-app copy can flip from 'your kid' to 'you'.
-      const userPatch: Record<string, any> = {
-        children: arrayUnion(playerData.id),
-      };
-      if ((playerData as any).isAdultPlayer) {
-        userPatch.selfPlayerId = playerData.id;
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        const code = String(data?.error || `http-${res.status}`);
+        throw new Error(
+          code === 'not_authorized'
+            ? 'This player is not linked to your email. Please contact the coach.'
+            : `Failed to link (${code})`,
+        );
       }
-      await updateDoc(doc(db, 'users', user.uid), userPatch);
-
       setLinked(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error linking player:', err);
-      setError('Failed to link your account. Please contact the coach.');
+      setError(err?.message || 'Failed to link your account. Please contact the coach.');
     } finally {
       setLinking(false);
     }
@@ -130,20 +134,19 @@ const PlayerJoin: React.FC = () => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
 
-      // Ensure user doc exists in Firestore
+      // Ensure user doc exists — via worker bootstrap so role +
+      // approval fields go through the guarded path.
       const userDoc = await getDoc(doc(db, 'users', result.user.uid));
       if (!userDoc.exists()) {
-        const { setDoc } = await import('firebase/firestore');
-        await setDoc(doc(db, 'users', result.user.uid), {
-          uid: result.user.uid,
-          email: result.user.email,
-          name: result.user.displayName || result.user.email?.split('@')[0] || 'Parent',
-          role: 'parent',
-          teamId: TEAM_ID,
-          createdAt: new Date(),
-          authProvider: 'google',
-          profilePhotoUrl: result.user.photoURL || null,
-          isActive: true,
+        const { workerFetch } = await import('../utils/workerFetch');
+        await workerFetch('/users/bootstrap', {
+          method: 'POST',
+          body: JSON.stringify({
+            role: 'parent',
+            name: result.user.displayName || result.user.email?.split('@')[0] || 'Parent',
+            email: (result.user.email || '').toLowerCase(),
+            authProvider: 'google',
+          }),
         });
       }
     } catch (err: any) {
@@ -176,19 +179,18 @@ const PlayerJoin: React.FC = () => {
       if (authMode === 'login') {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       } else {
-        // Register
-        const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        // Create user doc
-        const { setDoc } = await import('firebase/firestore');
-        await setDoc(doc(db, 'users', result.user.uid), {
-          uid: result.user.uid,
-          email: result.user.email,
-          name: name.trim(),
-          role: 'parent',
-          teamId: TEAM_ID,
-          createdAt: new Date(),
-          authProvider: 'email',
-          isActive: true,
+        // Register — Firebase Auth account first, then worker
+        // bootstrap for the user doc.
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const { workerFetch } = await import('../utils/workerFetch');
+        await workerFetch('/users/bootstrap', {
+          method: 'POST',
+          body: JSON.stringify({
+            role: 'parent',
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            authProvider: 'email',
+          }),
         });
       }
     } catch (err: any) {

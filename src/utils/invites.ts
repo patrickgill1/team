@@ -151,126 +151,48 @@ export async function fetchInvite(id: string): Promise<FetchedInvite | null> {
 export async function consumeInvite(inviteId: string, uid: string): Promise<{ ok: true; type: Invite['type']; teamId: string; playerId?: string } | { ok: false; reason: string }> {
   if (!inviteId || !uid) return { ok: false, reason: 'missing-args' };
 
-  return runTransaction(db, async (tx) => {
-    const inviteRef = doc(db, COLL, inviteId);
-    const userRef = doc(db, 'users', uid);
-
-    const inviteSnap = await tx.get(inviteRef);
-    if (!inviteSnap.exists()) return { ok: false, reason: 'not-found' as const };
-    const inv: any = inviteSnap.data();
-    if (inv.revokedAt) return { ok: false, reason: 'revoked' as const };
-    const expiresAt: Date = inv.expiresAt?.toDate ? inv.expiresAt.toDate() : new Date(inv.expiresAt);
-    if (expiresAt.getTime() < Date.now()) return { ok: false, reason: 'expired' as const };
-    if (inv.maxUses != null && (inv.usedCount || 0) >= inv.maxUses) return { ok: false, reason: 'exhausted' as const };
-    if (Array.isArray(inv.usedBy) && inv.usedBy.includes(uid)) {
-      return { ok: true as const, type: inv.type, teamId: inv.teamId, playerId: inv.playerId };
-    }
-
-    const userSnap = await tx.get(userRef);
-    if (!userSnap.exists()) return { ok: false, reason: 'user-doc-missing' as const };
-
-    // Side-effects per invite type ----
-    if (inv.type === 'player') {
-      if (!inv.playerId) return { ok: false, reason: 'invite-malformed' as const };
-      const playerRef = doc(db, 'players', inv.playerId);
-      // Adult-player invites: the joining user IS the player. Stamp
-      // isAdultPlayer on the player doc so UI labels flip from
-      // 'your kid' to 'you'. Permissions still flow through
-      // parentIds (the adult is their own parent in the data) so
-      // nothing else has to branch on the flag.
-      const isAdultPlayer = !!(inv as any).isAdultPlayer;
-      const playerPatch: Record<string, any> = { parentIds: arrayUnion(uid) };
-      if (isAdultPlayer) playerPatch.isAdultPlayer = true;
-      tx.update(playerRef, playerPatch);
-      // Stamp relationship from the invite (default 'parent' for
-      // legacy invites that pre-date the field) so the directory
-      // can label them as "Grandparent of Hunter" etc.
-      const relationship = (inv as any).relationship || 'parent';
-      const userPatch: Record<string, any> = {
-        role: 'parent',
-        relationship,
-        teamId: inv.teamId,
-        teamIds: arrayUnion(inv.teamId),
-        approved: true,
-        approvalStatus: 'auto',
-        approvedAt: serverTimestamp(),
-        invitedBy: inv.createdBy,
-        invitedVia: inviteId,
-      };
-      if (isAdultPlayer) userPatch.selfPlayerId = inv.playerId;
-      tx.update(userRef, userPatch);
-    } else if (inv.type === 'coach') {
-      tx.update(userRef, {
-        role: 'coach',
-        coachLevel: inv.role || 'assistant_coach',
-        teamId: inv.teamId,
-        teamIds: arrayUnion(inv.teamId),
-        approved: true,
-        approvalStatus: 'auto',
-        approvedAt: serverTimestamp(),
-        invitedBy: inv.createdBy,
-        invitedVia: inviteId,
-      });
-    } else if (inv.type === 'team_manager') {
-      tx.update(userRef, {
-        role: 'team_manager',
-        teamId: inv.teamId,
-        teamIds: arrayUnion(inv.teamId),
-        approved: true,
-        approvalStatus: 'auto',
-        approvedAt: serverTimestamp(),
-        invitedBy: inv.createdBy,
-        invitedVia: inviteId,
-      });
-    } else {
-      return { ok: false, reason: 'unknown-invite-type' as const };
-    }
-
-    tx.update(inviteRef, {
-      usedCount: increment(1),
-      usedBy: arrayUnion(uid),
+  // The full read-verify-mutate-write cascade lives on the worker.
+  // Client just posts the invite id; server checks the token, applies
+  // side-effects (player.parentIds, user.role/teamIds, invite.usedBy,
+  // coverageSource for club-covered coaches) with the service account,
+  // and returns the result.
+  //
+  // Rejection reasons are mapped back to the legacy client string
+  // codes ('not-found', 'expired', 'exhausted', etc.) so InviteJoin's
+  // error copy doesn't need to change.
+  try {
+    const { workerFetch } = await import('./workerFetch');
+    const res = await workerFetch('/claim/invite', {
+      method: 'POST',
+      body: JSON.stringify({ inviteId }),
     });
-
-    return { ok: true as const, type: inv.type as Invite['type'], teamId: inv.teamId, playerId: inv.playerId };
-  }).then(async (result: any) => {
-    // Post-transaction: an invited coach / team_manager joining a
-    // team that belongs to a real (non-default-solo) club inherits
-    // their coverage from the club. They don't need to start their
-    // own trial — the club owner is paying for the platform on
-    // their staff's behalf. Stamp coverageSource so useTrialGate
-    // can un-gate without re-doing this lookup on every render.
-    //
-    // Outside the transaction because it needs reads from teams +
-    // clubs collections, and getting those into the same tx for
-    // every invite consume would balloon doc-read costs on parent
-    // invites that don't care.
-    if (!result.ok) return result;
-    if (result.type !== 'coach' && result.type !== 'team_manager') return result;
-    try {
-      const teamSnap = await getDoc(doc(db, 'teams', result.teamId));
-      if (!teamSnap.exists()) return result;
-      const teamData: any = teamSnap.data();
-      const clubId: string | undefined = teamData.clubId;
-      if (!clubId) return result;
-      const clubSnap = await getDoc(doc(db, 'clubs', clubId));
-      if (!clubSnap.exists()) return result;
-      const clubData: any = clubSnap.data();
-      // Skip default-solo clubs — those are the implicit wrapper
-      // around a single-coach team and the owner pays as a
-      // Coach-tier subscriber, not as a club. Their invited
-      // assistant coaches still need to pay.
-      if (clubData.isDefaultSoloClub === true) return result;
-      await updateDoc(doc(db, 'users', uid), {
-        coverageSource: 'club',
-        coverageClubId: clubId,
-      });
-    } catch (err) {
-      // Non-fatal — coach still joins the team, just hits the
-      // trial gate. Better than failing the whole invite consume.
-      console.warn('[consumeInvite] club coverage stamp failed', err);
+    const data: any = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.ok) {
+      const code = String(data?.error || `http-${res.status}`);
+      // Map worker error codes to the strings the caller UI expects.
+      const legacyReason =
+        code === 'invite_not_found'    ? 'not-found' :
+        code === 'invite_revoked'      ? 'revoked' :
+        code === 'invite_expired'      ? 'expired' :
+        code === 'invite_exhausted'    ? 'exhausted' :
+        code === 'already_used'        ? 'already-used' :
+        code === 'invite_missing_team' ? 'invite-malformed' :
+        code === 'invite_missing_player' ? 'invite-malformed' :
+        code === 'unknown_invite_type' ? 'unknown-invite-type' :
+        code === 'not-signed-in'       ? 'user-doc-missing' :
+        code;
+      return { ok: false, reason: legacyReason };
     }
-    return result;
-  });
+    return {
+      ok: true,
+      type: (data.type as Invite['type']) || 'player',
+      teamId: String(data.teamId || ''),
+      playerId: data.playerId ? String(data.playerId) : undefined,
+    };
+  } catch (err) {
+    console.warn('[consumeInvite] worker call failed', err);
+    return { ok: false, reason: String((err as any)?.message || err) };
+  }
 }
 
 export async function revokeInvite(inviteId: string): Promise<void> {

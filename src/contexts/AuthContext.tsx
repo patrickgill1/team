@@ -248,92 +248,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let userData = await getUserData(user.uid);
       
       if (!userData) {
-        // No DEFAULT_TEAM_ID fallback anymore — if there's no invite,
-        // we'll see if the email matches a roster parent below. If
-        // neither, the user lands with no team + approved=false,
-        // which keeps them out of any club's data.
-        const effectiveTeamId = inviteTeamId || '';
-
         // Extract name from Google profile
         const displayName = user.displayName || '';
-        const nameParts = displayName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        const fullName = displayName || `${firstName} ${lastName}`.trim() || 'Google User';
+        const fullName = displayName || 'Google User';
 
-        const newUserData: any = {
-          uid: user.uid,
-          email: user.email || '',
-          name: fullName,
-          // Default to coach for any direct app signup. Parents
-          // arrive via invite link (consumeInvite sets role=parent)
-          // or via /register (the registration flow sets it). A user
-          // who downloads and signs up cold is almost certainly a
-          // coach setting up a team; default coach -> ProtectedRoute
-          // routes them to /onboarding. The track picker there lets
-          // them say "I'm a club" if they're really a club director.
-          role: inviteTeamId ? 'parent' : 'coach',
-          teamId: effectiveTeamId,
-          teamIds: effectiveTeamId ? [effectiveTeamId] : [],
-          isActive: true,
-          approved: !!inviteTeamId,
-          approvalStatus: inviteTeamId ? 'auto' : 'pending',
-          profilePhotoUrl: user.photoURL || null,
-          authProvider: 'google',
-          privacy: {
-            showPhone: true,
-            showEmail: true,
-            showAddress: false
+        // Post to /users/bootstrap for the user-doc create + email-
+        // match auto-link. Same posture as the email signUp path:
+        // worker owns all sensitive writes (role, teamIds, approved,
+        // players.parentIds). Role defaults to coach unless the
+        // signup came via an invite (parent path).
+        try {
+          const { workerFetch } = await import('../utils/workerFetch');
+          const bootstrapRes = await workerFetch('/users/bootstrap', {
+            method: 'POST',
+            body: JSON.stringify({
+              role: inviteTeamId ? 'parent' : 'coach',
+              name: fullName,
+              email: (user.email || '').toLowerCase(),
+              authProvider: 'google',
+            }),
+          });
+          const bootstrapData: any = await bootstrapRes.json().catch(() => ({}));
+          if (!bootstrapRes.ok || !bootstrapData?.ok) {
+            throw new Error(bootstrapData?.error || `bootstrap-${bootstrapRes.status}`);
           }
-        };
-        
-        await createUser(newUserData);
-        userData = newUserData;
-        
-        // Auto-link and auto-approve if email already on a player
-        if (user.email) {
-          try {
-            const playersRef = collection(db, 'players');
-            const q = query(playersRef, where('parentEmails', 'array-contains', user.email.toLowerCase()));
-            const snapshot = await getDocs(q);
-            let linked = false;
-            const linkedTeamIds = new Set<string>();
-            let firstPlayerPrimaryTeamId: string | null = null;
-            for (const playerDoc of snapshot.docs) {
-              const playerData = playerDoc.data();
-              if (!playerData.parentIds?.includes(user.uid)) {
-                await updateDoc(doc(db, 'players', playerDoc.id), {
-                  parentIds: arrayUnion(user.uid)
-                });
-                console.log('Auto-linked new Google parent to player:', playerDoc.id);
-              }
-              linked = true;
-              const pTeams: string[] = playerData.teamIds || (playerData.teamId ? [playerData.teamId] : []);
-              for (const t of pTeams) linkedTeamIds.add(t);
-              if (!firstPlayerPrimaryTeamId) {
-                firstPlayerPrimaryTeamId = playerData.teamId || pTeams[0] || null;
-              }
-            }
-            if (linked) {
-              // Switch the new user away from the DEFAULT_TEAM_ID placeholder
-              // onto their child's team(s) — see signUp() for the same logic.
-              const userPatch: Record<string, unknown> = { approved: true };
-              if (firstPlayerPrimaryTeamId && !linkedTeamIds.has(effectiveTeamId)) {
-                userPatch.teamId = firstPlayerPrimaryTeamId;
-                userPatch.teamIds = Array.from(linkedTeamIds);
-                (userData as any).teamId = firstPlayerPrimaryTeamId;
-                (userData as any).teamIds = Array.from(linkedTeamIds);
-              }
-              await updateDoc(doc(db, 'users', user.uid), userPatch);
-              (userData as any).approved = true;
-              console.log('Auto-approved new Google parent via email match', userPatch);
-            }
-          } catch (linkError) {
-            console.error('Error auto-linking new Google parent:', linkError);
-          }
+          userData = await getUserData(user.uid);
+        } catch (bootstrapErr) {
+          console.error('[google] bootstrap failed', bootstrapErr);
+          // Don't delete the Firebase Auth account here — Google's
+          // credential store may hold onto it and the user won't be
+          // able to retry cleanly. Instead surface the error and let
+          // the user try signing in again.
+          throw bootstrapErr;
         }
-        
-        console.log('New Google user created with team ID:', effectiveTeamId);
+
+        console.log('New Google user created via worker');
       } else {
         console.log('Existing Google user found:', userData);
         
@@ -471,31 +420,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Create the Firestore user doc on first sign-in.
       let userData = await getUserData(user.uid);
       if (!userData) {
-        // Same lockdown as Google + email signup paths. No
-        // DEFAULT_TEAM_ID fallback. New users get a real team only
-        // when an invite carried one; otherwise team-less + pending.
-        const effectiveTeamId = inviteTeamId || '';
+        // Same posture as Google + email: worker /users/bootstrap
+        // owns the sensitive writes; auto-link runs server-side.
         const fullName = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
-        const newUserData: any = {
-          uid: user.uid,
-          email: user.email || '',
-          name: fullName,
-          // Default to coach for direct signups (see Google path comment).
-          role: inviteTeamId ? 'parent' : 'coach',
-          teamId: effectiveTeamId,
-          teamIds: effectiveTeamId ? [effectiveTeamId] : [],
-          isActive: true,
-          approved: !!inviteTeamId,
-          approvalStatus: inviteTeamId ? 'auto' : 'pending',
-          profilePhotoUrl: user.photoURL || null,
-          authProvider: 'apple',
-          privacy: { showPhone: true, showEmail: true, showAddress: false },
-        };
-        await createUser(newUserData);
-        // Push the new doc into local state immediately so the SimpleAuth
-        // post-sign-in redirect fires without waiting for onAuthStateChanged
-        // → subscribeToUser to round-trip Firestore.
-        setUserData(newUserData);
+        try {
+          const { workerFetch } = await import('../utils/workerFetch');
+          const bootstrapRes = await workerFetch('/users/bootstrap', {
+            method: 'POST',
+            body: JSON.stringify({
+              role: inviteTeamId ? 'parent' : 'coach',
+              name: fullName,
+              email: (user.email || '').toLowerCase(),
+              authProvider: 'apple',
+            }),
+          });
+          const bootstrapData: any = await bootstrapRes.json().catch(() => ({}));
+          if (!bootstrapRes.ok || !bootstrapData?.ok) {
+            throw new Error(bootstrapData?.error || `bootstrap-${bootstrapRes.status}`);
+          }
+        } catch (bootstrapErr) {
+          console.error('[apple] bootstrap failed', bootstrapErr);
+          throw bootstrapErr;
+        }
+        // Hydrate local state from the just-created doc.
+        const fresh = await getUserData(user.uid);
+        if (fresh) setUserData(fresh as any);
       } else {
         setUserData(userData);
       }
@@ -858,56 +807,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const displayName = user.displayName || '';
         const fullName = displayName || (user.email ? user.email.split('@')[0] : 'Member');
-        const newUserData: any = {
-          uid: user.uid,
-          email: user.email || '',
-          name: fullName,
-          // Default to coach for direct signups (see Google path comment).
-          role: inviteTeamId ? 'parent' : 'coach',
-          teamId: inviteTeamId,
-          teamIds: inviteTeamId ? [inviteTeamId] : [],
-          isActive: true,
-          approved: !!inviteTeamId,
-          approvalStatus: inviteTeamId ? 'auto' : 'pending',
-          profilePhotoUrl: user.photoURL || null,
-          authProvider: 'google',
-          privacy: { showPhone: true, showEmail: true, showAddress: false },
-        };
-        await createUser(newUserData);
-
-        // Roster auto-link: same logic as the popup path so a parent
-        // who's been pre-added by a coach gets approved + on the
-        // right team without any extra steps.
-        if (user.email) {
-          try {
-            const snap = await getDocs(query(
-              collection(db, 'players'),
-              where('parentEmails', 'array-contains', user.email.toLowerCase()),
-            ));
-            const linkedTeamIds = new Set<string>();
-            let firstPlayerPrimaryTeamId: string | null = null;
-            for (const playerDoc of snap.docs) {
-              const p = playerDoc.data();
-              if (!p.parentIds?.includes(user.uid)) {
-                await updateDoc(doc(db, 'players', playerDoc.id), {
-                  parentIds: arrayUnion(user.uid),
-                });
-              }
-              const pTeams: string[] = p.teamIds || (p.teamId ? [p.teamId] : []);
-              for (const t of pTeams) linkedTeamIds.add(t);
-              if (!firstPlayerPrimaryTeamId) firstPlayerPrimaryTeamId = p.teamId || pTeams[0] || null;
-            }
-            if (snap.size > 0 && firstPlayerPrimaryTeamId) {
-              await updateDoc(doc(db, 'users', user.uid), {
-                approved: true,
-                approvalStatus: 'auto',
-                teamId: firstPlayerPrimaryTeamId,
-                teamIds: Array.from(linkedTeamIds),
-              });
-            }
-          } catch (err) {
-            console.warn('redirect-return roster link failed', err);
+        // Same worker path as the popup + native Google flows. Auto-
+        // link runs server-side during /users/bootstrap.
+        try {
+          const { workerFetch } = await import('../utils/workerFetch');
+          const bootstrapRes = await workerFetch('/users/bootstrap', {
+            method: 'POST',
+            body: JSON.stringify({
+              role: inviteTeamId ? 'parent' : 'coach',
+              name: fullName,
+              email: (user.email || '').toLowerCase(),
+              authProvider: 'google',
+            }),
+          });
+          const bootstrapData: any = await bootstrapRes.json().catch(() => ({}));
+          if (!bootstrapRes.ok || !bootstrapData?.ok) {
+            throw new Error(bootstrapData?.error || `bootstrap-${bootstrapRes.status}`);
           }
+        } catch (err) {
+          console.error('[redirect-return] bootstrap failed', err);
+          return;  // onAuthStateChanged still fires; user can retry
         }
       } catch (err) {
         // No-op when there's nothing to handle. Firebase throws here

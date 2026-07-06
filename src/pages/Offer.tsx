@@ -152,10 +152,21 @@ const Offer: React.FC = () => {
         }
       }
 
-      // Flip the offer + registration.
+      // Offer status flip through the worker so it can verify the
+      // caller's email matches the offer's parentEmail before
+      // accepting — the audit flagged this as an unauthenticated
+      // status-mutation vector. Then patch the promotion metadata
+      // client-side (non-security-critical bookkeeping).
+      const { workerFetch } = await import('../utils/workerFetch');
+      const acceptRes = await workerFetch('/claim/offer-accept', {
+        method: 'POST',
+        body: JSON.stringify({ offerId: offer.id }),
+      });
+      const acceptData: any = await acceptRes.json().catch(() => ({}));
+      if (!acceptRes.ok || !acceptData?.ok) {
+        throw new Error(acceptData?.error || `accept-${acceptRes.status}`);
+      }
       await updateDoc(doc(db, 'offers', offer.id), {
-        status: 'accepted',
-        respondedAt: serverTimestamp(),
         promotedToPlayerId: playerId,
         promotedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -256,12 +267,17 @@ const Offer: React.FC = () => {
     if (!offer || !registration) return;
     setSubmitting(true);
     try {
-      await updateDoc(doc(db, 'offers', offer.id), {
-        status: 'declined',
-        declineReason: declineReason.trim() || undefined,
-        respondedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      // Decline via worker (email-match gate); notes/reason patch
+      // stays client-side.
+      const { workerFetch } = await import('../utils/workerFetch');
+      const declineRes = await workerFetch('/claim/offer-decline', {
+        method: 'POST',
+        body: JSON.stringify({ offerId: offer.id, reason: declineReason.trim() || undefined }),
       });
+      const declineData: any = await declineRes.json().catch(() => ({}));
+      if (!declineRes.ok || !declineData?.ok) {
+        throw new Error(declineData?.error || `decline-${declineRes.status}`);
+      }
       await updateDoc(doc(db, 'registrations', registration.id), {
         status: 'declined',
         notes: declineReason.trim() ? `Offer declined: ${declineReason.trim()}` : undefined,

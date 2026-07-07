@@ -15,6 +15,7 @@ import {
   drainWatchGameActions,
   publishWatchGameSession,
   WatchGameAction,
+  WatchPublishResult,
 } from '../utils/watchGameBridge';
 
 type StatKind = 'goal' | 'owngoal' | 'assist' | 'save' | 'yellow' | 'red' | 'sub' | 'note';
@@ -178,6 +179,11 @@ const GameDay: React.FC = () => {
   const [pickerKind, setPickerKind] = useState<StatKind | null>(null);
   const [noteText, setNoteText] = useState('');
   const [now, setNow] = useState(Date.now());
+  // Diagnostic: last watch publish result + timestamp. Rendered as
+  // a small chip so we can tell if the phone THINKS it published
+  // vs the Watch actually receiving. Delivery via WCSession is
+  // best-effort and silent when something's wrong.
+  const [watchStatus, setWatchStatus] = useState<{ result: WatchPublishResult; at: number } | null>(null);
   const handledWatchActionIds = useRef<Set<string>>(new Set());
 
   // Coach authority is per-team: presence in team.coachIds is the
@@ -835,7 +841,7 @@ const GameDay: React.FC = () => {
 
   useEffect(() => {
     if (!isUserCoach || !eventId || !event || !game) return;
-    void publishWatchGameSession({
+    publishWatchGameSession({
       eventId,
       teamId: event.teamId || game.teamId,
       homeName: usLabel,
@@ -889,6 +895,8 @@ const GameDay: React.FC = () => {
           jerseyNumber: p.jerseyNumber ?? null,
         })),
       updatedAt: Date.now(),
+    }).then((result) => {
+      setWatchStatus({ result, at: Date.now() });
     });
   }, [
     isUserCoach,
@@ -1115,6 +1123,43 @@ const GameDay: React.FC = () => {
               }`}>
                 {status === 'live' ? '● LIVE' : status === 'halftime' ? 'PAUSED' : status === 'final' ? 'FINAL' : 'SCHEDULED'}
               </span>
+              {/* Watch bridge diagnostic. Rendered only for coaches
+                  so parents don't see internal state. Tells us what
+                  the phone THINKS happened when it published to the
+                  Watch — useful because WCSession delivery failures
+                  are silent. */}
+              {isUserCoach && (() => {
+                const r = watchStatus?.result;
+                if (!r) return null;
+                const ago = watchStatus ? Math.max(0, Math.floor((now - watchStatus.at) / 1000)) : 0;
+                const agoLabel = ago < 60 ? `${ago}s ago` : ago < 3600 ? `${Math.floor(ago / 60)}m ago` : `${Math.floor(ago / 3600)}h ago`;
+                let label: string;
+                let tone: string;
+                if (!r.bridgeReady) {
+                  label = 'Watch: no bridge';
+                  tone = 'bg-gray-500/15 text-gray-300 ring-gray-500/30';
+                } else if (r.error) {
+                  label = `Watch: err ${r.error.slice(0, 20)}`;
+                  tone = 'bg-red-500/15 text-red-300 ring-red-500/30';
+                } else if (r.available === false) {
+                  label = 'Watch: not paired';
+                  tone = 'bg-amber-500/15 text-amber-300 ring-amber-500/30';
+                } else if (r.reachable === false) {
+                  label = `Watch: queued ${agoLabel}`;
+                  tone = 'bg-amber-500/15 text-amber-300 ring-amber-500/30';
+                } else {
+                  label = `Watch: sent ${agoLabel}`;
+                  tone = 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30';
+                }
+                return (
+                  <span
+                    className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ring-1 ${tone}`}
+                    title={JSON.stringify(r)}
+                  >
+                    {label}
+                  </span>
+                );
+              })()}
             </div>
           </div>
           <div className="grid grid-cols-3 items-center text-center gap-2">

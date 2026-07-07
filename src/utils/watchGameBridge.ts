@@ -81,10 +81,33 @@ function isWatchBridgeAvailable(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 }
 
-export async function publishWatchGameSession(session: WatchGameSession): Promise<void> {
-  if (!isWatchBridgeAvailable()) return;
-  if (typeof nativeBridge.setGameSession !== 'function') return;
-  await nativeBridge.setGameSession({ session }).catch(() => undefined);
+export interface WatchPublishResult {
+  // Native platform is iOS and the plugin method exists. False on
+  // Android, in the browser, or when the bundle predates the plugin.
+  bridgeReady: boolean;
+  // WCSession available (paired Watch companion installed).
+  available?: boolean;
+  // Watch is running and receiving now. When false the payload was
+  // still queued via updateApplicationContext and will apply on the
+  // Watch's next foreground.
+  reachable?: boolean;
+  // Present on failure so callers can surface the error.
+  error?: string;
+}
+
+export async function publishWatchGameSession(session: WatchGameSession): Promise<WatchPublishResult> {
+  if (!isWatchBridgeAvailable()) return { bridgeReady: false };
+  if (typeof nativeBridge.setGameSession !== 'function') return { bridgeReady: false };
+  try {
+    const raw: any = await nativeBridge.setGameSession({ session });
+    return {
+      bridgeReady: true,
+      available: typeof raw?.available === 'boolean' ? raw.available : undefined,
+      reachable: typeof raw?.reachable === 'boolean' ? raw.reachable : undefined,
+    };
+  } catch (err: any) {
+    return { bridgeReady: true, error: err?.message || String(err) };
+  }
 }
 
 export async function clearWatchGameSession(): Promise<void> {

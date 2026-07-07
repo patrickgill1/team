@@ -1624,6 +1624,27 @@ export interface Team {
   coachIds: string[];
   headCoachId?: string;
   assistantCoachIds?: string[];
+  /** Team managers. Distinct from coaches — a manager typically does
+   *  logistics (schedule, chat, dues) but not coaching craft (drills,
+   *  tactics). Populated by /teams/set-staff-role. Empty on legacy
+   *  teams; the hasStaffPermission() helper treats undefined as
+   *  "nobody" without throwing. */
+  managerIds?: string[];
+  /** Per-uid permission overrides. Absent uid = fall back to role
+   *  defaults (see src/utils/staffPermissions.ts). Head coach has
+   *  everything on regardless of what's here. Populated by
+   *  /teams/set-staff-permissions. */
+  staffPermissions?: Record<string, {
+    gameday?: boolean;
+    planPractice?: boolean;
+    manageRoster?: boolean;
+    uploadDrills?: boolean;
+    postMedia?: boolean;
+    manageSchedule?: boolean;
+    chat?: boolean;
+    viewDues?: boolean;
+    deletePlayers?: boolean;
+  }>;
   playerIds: string[];
   parentIds: string[];
   season: string;

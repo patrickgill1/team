@@ -1058,6 +1058,159 @@ async function handleTeamsTransferHead(req: Request, env: Env, payload: any): Pr
 }
 
 // ────────────────────────────────────────────────────────────────
+// /teams/set-staff-permissions — head coach adjusts per-staff
+// permission map. Only the head coach on the team can call this;
+// they can set arbitrary keys for any assistant / manager on the
+// team. Absent uid = fall back to role defaults (client-side helper
+// takes care of that).
+//
+// Body: { teamId, staffUid, permissions: { [key]: boolean } }
+//
+// Only the keys listed in the ALLOWED set are written; anything
+// else is ignored (a rogue client can't invent new permission keys).
+// ────────────────────────────────────────────────────────────────
+const ALLOWED_STAFF_PERMISSION_KEYS = new Set<string>([
+  'gameday', 'planPractice', 'manageRoster', 'uploadDrills', 'postMedia',
+  'manageSchedule', 'chat', 'viewDues', 'deletePlayers',
+]);
+
+async function handleTeamsSetStaffPermissions(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  if (!teamId) return json({ ok: false, error: 'team_id_required' }, 400);
+  const staffUid = String(payload?.staffUid || '');
+  if (!staffUid) return json({ ok: false, error: 'staff_uid_required' }, 400);
+  const permissions = payload?.permissions;
+  if (!permissions || typeof permissions !== 'object') {
+    return json({ ok: false, error: 'permissions_object_required' }, 400);
+  }
+
+  const claims = await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!team?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+
+  // Only the head coach can rewrite staff permissions. Assistants
+  // and managers can't grant themselves new capabilities.
+  const headCoachId = String(team.data.headCoachId || '');
+  if (headCoachId && headCoachId !== claims.uid) {
+    return json({ ok: false, error: 'not_head_coach' }, 403);
+  }
+
+  // Filter to allowed keys with boolean values only.
+  const filtered: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(permissions)) {
+    if (!ALLOWED_STAFF_PERMISSION_KEYS.has(k)) continue;
+    if (typeof v !== 'boolean') continue;
+    filtered[k] = v;
+  }
+  if (Object.keys(filtered).length === 0) {
+    return json({ ok: false, error: 'no_valid_permissions' }, 400);
+  }
+
+  // Merge with existing overrides so we don't clobber keys the
+  // caller didn't send.
+  const existing: Record<string, Record<string, boolean>> = (team.data.staffPermissions as any) || {};
+  const nextForUid = { ...(existing[staffUid] || {}), ...filtered };
+  const nextMap = { ...existing, [staffUid]: nextForUid };
+
+  await patchDocument(
+    pid,
+    `teams/${teamId}`,
+    { staffPermissions: nextMap, updatedAt: new Date() },
+    sa,
+  );
+  return json({ ok: true, effective: nextForUid });
+}
+
+// ────────────────────────────────────────────────────────────────
+// /teams/set-staff-role — head coach adds or moves a user between
+// assistant coach and team manager, or removes them from staff.
+// Body: { teamId, staffUid, role: 'assistant' | 'manager' | 'remove' }
+//
+// Manages assistantCoachIds + managerIds atomically. Won't touch
+// headCoachId (that transfer is a separate flow).
+// ────────────────────────────────────────────────────────────────
+async function handleTeamsSetStaffRole(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  if (!teamId) return json({ ok: false, error: 'team_id_required' }, 400);
+  const staffUid = String(payload?.staffUid || '');
+  if (!staffUid) return json({ ok: false, error: 'staff_uid_required' }, 400);
+  const role = String(payload?.role || '');
+  if (!['assistant', 'manager', 'remove'].includes(role)) {
+    return json({ ok: false, error: 'invalid_role', valid: ['assistant', 'manager', 'remove'] }, 400);
+  }
+
+  const claims = await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  if (!team?.data) return json({ ok: false, error: 'team_not_found' }, 404);
+  const headCoachId = String(team.data.headCoachId || '');
+  if (headCoachId && headCoachId !== claims.uid) {
+    return json({ ok: false, error: 'not_head_coach' }, 403);
+  }
+  if (staffUid === headCoachId) {
+    return json({ ok: false, error: 'cannot_move_head_coach', hint: 'Use the head-coach transfer flow.' }, 400);
+  }
+
+  const assistants: string[] = Array.isArray(team.data.assistantCoachIds) ? team.data.assistantCoachIds : [];
+  const managers: string[] = Array.isArray(team.data.managerIds) ? team.data.managerIds : [];
+  const coachIds: string[] = Array.isArray(team.data.coachIds) ? team.data.coachIds : [];
+
+  const nextAssistants = new Set(assistants.filter(u => u !== staffUid));
+  const nextManagers = new Set(managers.filter(u => u !== staffUid));
+  const nextCoachIds = new Set(coachIds.filter(u => u !== staffUid));
+
+  if (role === 'assistant') {
+    nextAssistants.add(staffUid);
+    nextCoachIds.add(staffUid);
+  } else if (role === 'manager') {
+    nextManagers.add(staffUid);
+    // Managers don't sit in coachIds — coachIds is coach-only for
+    // gate checks like "is this person a coach on the team" that
+    // exclude managers by definition.
+  }
+  // 'remove' just leaves them out of all three sets.
+
+  await patchDocument(
+    pid,
+    `teams/${teamId}`,
+    {
+      assistantCoachIds: [...nextAssistants],
+      managerIds: [...nextManagers],
+      coachIds: [...nextCoachIds],
+      updatedAt: new Date(),
+    },
+    sa,
+  );
+
+  // Sync teamIds on the user side. Add when they join, remove when
+  // they leave the whole team (i.e., role='remove' AND they weren't
+  // already in headCoachId, which we already refused above).
+  const userTeamsPath = `users/${staffUid}`;
+  const userDoc = await getDocument(pid, userTeamsPath, sa).catch(() => null);
+  const userTeamIds: string[] = Array.isArray(userDoc?.data?.teamIds) ? userDoc.data.teamIds : [];
+  if (role === 'remove') {
+    if (userTeamIds.includes(teamId)) {
+      await commitDocumentTransforms(
+        pid, userTeamsPath,
+        [{ fieldPath: 'teamIds', kind: 'arrayRemove', value: teamId }],
+        null, sa,
+      );
+    }
+  } else {
+    if (!userTeamIds.includes(teamId)) {
+      await commitDocumentTransforms(
+        pid, userTeamsPath,
+        [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamId }],
+        null, sa,
+      );
+    }
+  }
+
+  return json({ ok: true });
+}
+
+// ────────────────────────────────────────────────────────────────
 // /teams/archive + /teams/restore — soft-delete / undelete.
 // Body: { teamId }
 //
@@ -1451,6 +1604,8 @@ export async function routeWriteGuard(
     case '/teams/transfer-head':   return handleTeamsTransferHead(req, env, payload);
     case '/teams/archive':         return handleTeamsArchive(req, env, payload);
     case '/teams/restore':         return handleTeamsRestore(req, env, payload);
+    case '/teams/set-staff-permissions': return handleTeamsSetStaffPermissions(req, env, payload);
+    case '/teams/set-staff-role':  return handleTeamsSetStaffRole(req, env, payload);
     case '/users/approve':         return handleUsersApprove(req, env, payload);
     case '/users/deactivate':      return handleUsersDeactivate(req, env, payload);
     case '/users/set-teams':       return handleUsersSetTeams(req, env, payload);

@@ -257,51 +257,75 @@ const CoachCockpit: React.FC = () => {
             </div>
           </section>
 
-          {/* Quick action 2x2 grid */}
+          {/* Coach control panel — 8 quick actions covering the
+              team's operational surface. Head coach sees all of
+              them. When Phase 4 wires per-permission gating, tiles
+              a person doesn't have permission for will hide. */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-3">
-            <Link
+            <CoachTile
               to="/calendar"
-              className="rounded-xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
-            >
-              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              title="New event"
+              hint="Practice, game, or team meeting."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <p className="text-[13px] font-black text-ink-primary leading-tight mt-1">New event</p>
-              <p className="text-[11px] text-ink-primary/55 leading-snug">Practice, game, or team meeting.</p>
-            </Link>
-
-            <Link
+              </svg>}
+            />
+            <CoachTile
+              to="/players"
+              title="Roster"
+              hint="Add players, edit jerseys, positions."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>}
+            />
+            <CoachTile
               to="/wall"
-              className="rounded-xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
-            >
-              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              title="Post to wall"
+              hint="Announcement every family sees."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <rect x="3" y="4" width="18" height="16" rx="2" /><line x1="7" y1="9" x2="17" y2="9" /><line x1="7" y1="13" x2="17" y2="13" /><line x1="7" y1="17" x2="13" y2="17" />
-              </svg>
-              <p className="text-[13px] font-black text-ink-primary leading-tight mt-1">Post to wall</p>
-              <p className="text-[11px] text-ink-primary/55 leading-snug">Announcement every family sees.</p>
-            </Link>
-
-            <Link
+              </svg>}
+            />
+            <CoachTile
               to="/chat"
-              className="rounded-xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
-            >
-              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              title="Team chat"
+              hint="Reply to parents, send a DM."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-              </svg>
-              <p className="text-[13px] font-black text-ink-primary leading-tight mt-1">Open team chat</p>
-              <p className="text-[11px] text-ink-primary/55 leading-snug">Reply to parents, send a DM.</p>
-            </Link>
-
-            <Link
+              </svg>}
+            />
+            <CoachTile
+              to="/player-media"
+              title="Media"
+              hint="Post photos and clips. POTM."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+              </svg>}
+            />
+            <CoachTile
+              to="/practice-plan"
+              title="Practice plan"
+              hint="Timeline of drills. Save and print."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <rect x="4" y="4" width="16" height="16" rx="2" /><line x1="8" y1="9" x2="16" y2="9" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="12" y2="17" />
+              </svg>}
+            />
+            <CoachTile
               to="/development"
-              className="rounded-xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1"
-            >
-              <svg className="w-5 h-5 text-brand-primary-soft" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              title="Development plans"
+              hint="Set goals + log practice per kid."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
-              <p className="text-[13px] font-black text-ink-primary leading-tight mt-1">Development plans</p>
-              <p className="text-[11px] text-ink-primary/55 leading-snug">Set goals + log practice for each kid.</p>
-            </Link>
+              </svg>}
+            />
+            <CoachTile
+              to="/team/staff"
+              title="Staff"
+              hint="Assistants, managers, permissions."
+              icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2z" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>}
+            />
           </div>
 
           {/* Recent media uploaded by the team — surfaces parents'
@@ -357,5 +381,21 @@ const CoachCockpit: React.FC = () => {
     </div>
   );
 };
+
+const CoachTile: React.FC<{
+  to: string;
+  title: string;
+  hint: string;
+  icon: React.ReactNode;
+}> = ({ to, title, hint, icon }) => (
+  <Link
+    to={to}
+    className="rounded-xl bg-surface-elevated ring-1 ring-line-default/10 hover:ring-brand-primary/30 transition p-4 flex flex-col gap-1 min-h-[92px]"
+  >
+    <span className="text-brand-primary-soft">{icon}</span>
+    <p className="text-[13px] font-black text-ink-primary leading-tight mt-1">{title}</p>
+    <p className="text-[11px] text-ink-primary/55 leading-snug">{hint}</p>
+  </Link>
+);
 
 export default CoachCockpit;

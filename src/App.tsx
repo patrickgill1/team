@@ -53,6 +53,7 @@ const Registrations = React.lazy(() => import('./pages/Registrations'));
 const AdminTeams = React.lazy(() => import('./pages/AdminTeams'));
 const SeasonWizard = React.lazy(() => import('./pages/SeasonWizard'));
 const CoachCockpit = React.lazy(() => import('./pages/CoachCockpit'));
+const StaffManagement = React.lazy(() => import('./pages/StaffManagement'));
 const Products = React.lazy(() => import('./pages/Products'));
 const RegistrationFormBuilder = React.lazy(() => import('./pages/RegistrationFormBuilder'));
 const Tryouts = React.lazy(() => import('./pages/Tryouts'));
@@ -668,6 +669,14 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <CoachCockpit />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/team/staff" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <StaffManagement />
                 </AppLayout>
               </ProtectedRoute>
             } />

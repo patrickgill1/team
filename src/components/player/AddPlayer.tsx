@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getShareOrigin } from '../../utils/origin';
+import { parseDobInput, formatDobInput } from '../../utils/dobDate';
 
 interface AddPlayerProps {
   isOpen: boolean;
@@ -14,6 +15,13 @@ interface AddPlayerProps {
   editingPlayer?: Player | null;
   existingPlayers: Player[];
 }
+
+// DOB helpers moved to src/utils/dobDate.ts so ProfileHero,
+// PlayerCard, and any other future consumer share the same UTC-noon
+// storage convention. Alias to keep the existing local variable
+// names in this file readable.
+const parseDateInput = parseDobInput;
+const formatDateInput = formatDobInput;
 
 const AddPlayer: React.FC<AddPlayerProps> = ({
   isOpen,
@@ -248,8 +256,20 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         parentEmails: editingPlayer.parentEmails && editingPlayer.parentEmails.length > 0
           ? editingPlayer.parentEmails
           : [''],
+        // Format the existing DOB back into a YYYY-MM-DD string for
+        // the native <input type="date"/> field. MUST use LOCAL
+        // calendar getters (getFullYear/Month/Date), not
+        // toISOString(): the ISO variant emits UTC, so a Denver
+        // parent editing an Aug 16 birthday could see Aug 15 in the
+        // input, save, and shift the stored date by another day.
         dateOfBirth: editingPlayer.dateOfBirth
-          ? (editingPlayer.dateOfBirth.toISOString ? editingPlayer.dateOfBirth.toISOString().split('T')[0] : (editingPlayer.dateOfBirth as any).toDate ? (editingPlayer.dateOfBirth as any).toDate().toISOString().split('T')[0] : new Date(editingPlayer.dateOfBirth as any).toISOString().split('T')[0])
+          ? formatDateInput(
+              (editingPlayer.dateOfBirth as any).toDate
+                ? (editingPlayer.dateOfBirth as any).toDate()
+                : editingPlayer.dateOfBirth instanceof Date
+                  ? editingPlayer.dateOfBirth
+                  : new Date(editingPlayer.dateOfBirth as any)
+            )
           : '',
         medicalInfo: editingPlayer.medicalInfo || ''
       });
@@ -307,7 +327,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
     // Date of birth validation (optional)
     if (formData.dateOfBirth) {
-      const birthDate = new Date(formData.dateOfBirth);
+      const birthDate = parseDateInput(formData.dateOfBirth);
       const today = new Date();
       const minAge = new Date(today.getFullYear() - 30, today.getMonth(), today.getDate());
       const maxAge = new Date(today.getFullYear() - 4, today.getMonth(), today.getDate());
@@ -430,7 +450,12 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         position: cleanPositions[0] || undefined,
         parentIds: [], // For now, we'll implement parent assignment separately
         parentEmails: validParentEmails.length > 0 ? validParentEmails : undefined,
-        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined,
+        // Parse the YYYY-MM-DD string as LOCAL midnight, not UTC.
+        // `new Date("YYYY-MM-DD")` is spec'd as UTC — a Denver parent
+        // entering Aug 16 would end up with Aug 15 stored + rendered
+        // everywhere else. parseDateInput uses the local Date
+        // constructor for a stable calendar day.
+        dateOfBirth: formData.dateOfBirth ? parseDateInput(formData.dateOfBirth) : undefined,
         medicalInfo: formData.medicalInfo.trim() || undefined,
         teamId: effectiveTeamId,
         teamIds: newTeamIds,

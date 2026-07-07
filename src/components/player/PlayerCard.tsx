@@ -7,6 +7,7 @@ import { isCoach, isTeamStaff } from '../../utils/helpers';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { createPlayerInvite } from '../../utils/invites';
+import { computeDobAge } from '../../utils/dobDate';
 import InviteShareModal from '../common/InviteShareModal';
 import { reactivatePlayerForCurrentSeason } from '../../utils/seasons';
 
@@ -121,19 +122,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     }
   };
 
-  const calculateAge = (dateOfBirth?: Date): number | null => {
-    if (!dateOfBirth) return null;
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
-  const age = calculateAge(player.dateOfBirth);
+  // Age comparison uses UTC calendar days to stay consistent with
+  // the DOB storage convention (stored at UTC noon). Legacy UTC-
+  // midnight rows also compute correctly. See src/utils/dobDate.ts.
+  const age = computeDobAge(player.dateOfBirth);
 
   return (
     <>

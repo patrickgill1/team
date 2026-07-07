@@ -1,5 +1,6 @@
 import React from 'react';
 import { getPlayerPositionsLabel } from '../../utils/helpers';
+import { coerceDob, formatDobShort, computeDobAge } from '../../utils/dobDate';
 import type { Player } from '../../types';
 
 // PlayerProfile hero. Uses the same semantic surface/ink treatment as
@@ -16,10 +17,9 @@ interface Props {
 }
 
 const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm, onEdit, onBack }) => {
-  const dob = player.dateOfBirth
-    ? (player.dateOfBirth instanceof Date ? player.dateOfBirth : new Date(player.dateOfBirth as any))
-    : null;
-  const age = dob ? computeAge(dob) : null;
+  const dob = coerceDob(player.dateOfBirth);
+  const age = computeDobAge(player.dateOfBirth);
+  const dobLabel = formatDobShort(player.dateOfBirth);
   const positionLabel = getPlayerPositionsLabel(player) || (player as any).position;
 
   return (
@@ -93,7 +93,7 @@ const ProfileHero: React.FC<Props> = ({ player, teamName, canEdit, isCurrentPotm
           {(dob || player.preferredFoot) && (
             <div className="mt-3 flex items-center gap-2 flex-wrap text-ink-primary/75">
               {dob && (
-                <Pill icon={<CalendarIcon />} label={`${dob.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}${age != null ? ` (${age})` : ''}`} />
+                <Pill icon={<CalendarIcon />} label={`${dobLabel}${age != null ? ` (${age})` : ''}`} />
               )}
               {player.preferredFoot && (
                 <Pill icon={<FootIcon />} label={`${player.preferredFoot} foot`} />

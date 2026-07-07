@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, limit, orderBy, query, where, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, orderBy, query, updateDoc, where, Timestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
@@ -103,6 +103,44 @@ const CoachCockpit: React.FC = () => {
       done: byKind.has(k),
     }));
   }, [userData]);
+
+  // Self-attestation: coach taps a row to confirm they hold that
+  // credential. Adds/removes a manual cert row on the user doc.
+  // When the Sports Affinity webhook lands, the 'ussf' source wins
+  // on conflict, so manual rows get automatically superseded — no
+  // migration needed. Optimistic UI: refresh happens via
+  // AuthContext's user-doc listener.
+  const [certBusyKind, setCertBusyKind] = useState<string | null>(null);
+  const toggleCert = async (kind: string) => {
+    if (!userData?.uid || certBusyKind) return;
+    setCertBusyKind(kind);
+    try {
+      const current = Array.isArray((userData as any)?.coachCertifications)
+        ? [...(userData as any).coachCertifications]
+        : [];
+      const alreadyOn = current.some((c: any) => c?.kind === kind);
+      const next = alreadyOn
+        ? current.filter((c: any) => c?.kind !== kind)
+        : [
+            ...current,
+            {
+              id: `manual-${kind}-${Date.now()}`,
+              name: CERT_LABELS[kind] || kind,
+              kind,
+              source: 'manual',
+              issuedAt: new Date(),
+            },
+          ];
+      await updateDoc(doc(db, 'users', userData.uid), {
+        coachCertifications: next,
+      });
+    } catch (err) {
+      console.error('[coach-cockpit] cert toggle failed', err);
+      alert('Could not update. Try again.');
+    } finally {
+      setCertBusyKind(null);
+    }
+  };
 
   const isUserCoach = isCoach((userData as any)?.role);
   if (!isUserCoach) {
@@ -272,40 +310,46 @@ const CoachCockpit: React.FC = () => {
               media in window. */}
           <CoachRecentMediaCard />
 
-          {/* Coach cert checklist — your own status. */}
+          {/* Coach cert checklist — your own status. Tap a row to
+              self-attest. Manual entries get superseded by ussf-
+              source rows once the Sports Affinity webhook lands. */}
           <div className="rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-4 mt-3">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Your coaching credentials</p>
-                <p className="text-sm font-bold text-ink-primary mt-0.5">
-                  {certDoneCount === certTotal
-                    ? <span className="text-emerald-300">All four on file</span>
-                    : <><span className="text-ink-primary/85">{certDoneCount} / {certTotal}</span><span className="text-ink-primary/50 font-normal">  ·  on file</span></>}
-                </p>
-              </div>
-              <Link
-                to="/settings"
-                className="text-[10px] font-extrabold tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary-soft"
-              >
-                Update →
-              </Link>
+            <div className="mb-2">
+              <p className="text-[10px] font-extrabold tracking-widest uppercase text-ink-primary/55">Your coaching credentials</p>
+              <p className="text-sm font-bold text-ink-primary mt-0.5">
+                {certDoneCount === certTotal
+                  ? <span className="text-emerald-300">All four on file</span>
+                  : <><span className="text-ink-primary/85">{certDoneCount} / {certTotal}</span><span className="text-ink-primary/50 font-normal">  ·  on file</span></>}
+              </p>
             </div>
-            <ul className="space-y-1.5 mt-3">
-              {certStatus.map((c) => (
-                <li key={c.kind} className="flex items-center gap-2 text-[13px]">
-                  <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center ring-1 ${
-                    c.done ? 'bg-emerald-500/15 ring-emerald-400/40 text-emerald-300' : 'bg-bone/5 ring-line-default/10 text-ink-primary/40'
-                  }`}>
-                    {c.done ? (
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                    ) : null}
-                  </span>
-                  <span className={c.done ? 'text-ink-primary/85' : 'text-ink-primary/55'}>{c.label}</span>
-                </li>
-              ))}
+            <ul className="space-y-1 mt-3">
+              {certStatus.map((c) => {
+                const busy = certBusyKind === c.kind;
+                return (
+                  <li key={c.kind}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCert(c.kind)}
+                      disabled={busy}
+                      className={`w-full flex items-center gap-2 text-[13px] py-1.5 px-1.5 rounded-lg hover:bg-line-default/[0.05] transition-colors disabled:opacity-60 ${
+                        busy ? 'cursor-wait' : 'cursor-pointer'
+                      }`}
+                    >
+                      <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ring-1 transition-colors ${
+                        c.done ? 'bg-emerald-500/15 ring-emerald-400/40 text-emerald-300' : 'bg-bone/5 ring-line-default/20 text-ink-primary/40'
+                      }`}>
+                        {c.done ? (
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                        ) : null}
+                      </span>
+                      <span className={c.done ? 'text-ink-primary/85' : 'text-ink-primary/55'}>{c.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
             <p className="text-[11px] text-ink-primary/45 mt-3 italic">
-              Required for the team-activation funnel. Once the Sports Affinity API is wired, these auto-confirm from your learning.ussoccer.com record.
+              Tap a row to confirm you hold that credential. Once the Sports Affinity integration lands, these will auto-confirm from your learning.ussoccer.com record.
             </p>
           </div>
         </div>

@@ -201,10 +201,17 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
     checkAccess();
 
-    // Hard safety ceiling — never leave the spinner up forever.
+    // Hard safety ceiling — never leave the spinner up forever. Only
+    // triggers a fail-open reset if we're STILL checking after 4s.
+    // Before this guard, the timer would fire even after checkAccess
+    // had already resolved, clobbering a legitimate gateReason (like
+    // 'not-linked') back to 'none' and flashing OnboardingGate away
+    // into an empty dashboard that spun forever.
     const timer = setTimeout(() => {
-      setChecking(false);
-      setGateReason('none');
+      setChecking((wasChecking) => {
+        if (wasChecking) setGateReason('none');
+        return false;
+      });
     }, 4000);
     return () => clearTimeout(timer);
   }, [userData?.uid, userData?.role, userData?.teamId, userData?.teamIds?.length]);

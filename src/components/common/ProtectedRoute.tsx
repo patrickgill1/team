@@ -56,22 +56,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // First-run gate. A signed-in coach with no teams belongs in the
-  // onboarding wizard. Parents are excluded — they're handled by
-  // InThePoolHero on the dashboard (unrostered = "in the pool" status
-  // page). Routes that should bypass this (the wizard itself,
-  // anything we add to an allowlist) set allowEmpty.
-  if (!allowEmpty) {
-    const teamIds: any[] = Array.isArray((userData as any).teamIds)
-      ? (userData as any).teamIds
-      : [];
-    const hasAnyTeam = teamIds.length > 0 || !!(userData as any).teamId;
-    const role = (userData as any).role;
-    const needsOnboarding = !hasAnyTeam && role !== 'parent';
-    if (needsOnboarding && location.pathname !== '/onboarding') {
-      return <Navigate to="/onboarding" replace />;
-    }
-  }
+  // First-run gate used to redirect unteamed coaches to /onboarding,
+  // but /onboarding was retired 2026-06-26 (it now redirects back
+  // here). That formed a redirect cycle for any fresh coach signup
+  // (Google + role:'coach' + teamIds:[]) which tripped the browser's
+  // history.replaceState throttle within seconds and dumped the user
+  // into the error boundary. The in-app <OnboardingGate /> rendered
+  // by AppLayout when gateReason='not-linked' handles this case, so
+  // the redirect is dead code — leaving it in was the bug.
+  // `allowEmpty` kept for API compatibility but no longer read here.
+  void allowEmpty;
 
   return <>{children}</>;
 };

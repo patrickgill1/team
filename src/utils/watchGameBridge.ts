@@ -95,11 +95,36 @@ export interface WatchPublishResult {
   error?: string;
 }
 
+// WCSession's updateApplicationContext accepts only plist-compatible
+// values (NSString / NSNumber / NSData / NSDate / NSArray /
+// NSDictionary). NSNull is NOT in that list — a payload with any
+// null field can be silently dropped by iOS mid-delivery. The
+// symptom is exactly what Patrick's Watch showed: publish returns
+// "sent" / "queued", but the Watch never actually applies the
+// session. Strip nulls (and undefineds) recursively before we hand
+// the object to the native plugin.
+function stripNulls<T>(value: T): T {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) {
+    return (value as any).map((v: any) => stripNulls(v)).filter((v: any) => v !== null && v !== undefined) as any;
+  }
+  if (typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value as Record<string, any>)) {
+      if (v === null || v === undefined) continue;
+      out[k] = stripNulls(v);
+    }
+    return out as any;
+  }
+  return value;
+}
+
 export async function publishWatchGameSession(session: WatchGameSession): Promise<WatchPublishResult> {
   if (!isWatchBridgeAvailable()) return { bridgeReady: false };
   if (typeof nativeBridge.setGameSession !== 'function') return { bridgeReady: false };
+  const cleanSession = stripNulls(session);
   try {
-    const raw: any = await nativeBridge.setGameSession({ session });
+    const raw: any = await nativeBridge.setGameSession({ session: cleanSession });
     return {
       bridgeReady: true,
       available: typeof raw?.available === 'boolean' ? raw.available : undefined,

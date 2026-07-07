@@ -124,11 +124,25 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
   };
   await patchDocument(pid, `users/${claims.uid}`, initialFields, sa);
 
-  // Email-match auto-link. Parents get pre-approved when their email
-  // was already on a player's parentEmails (added by the coach who
-  // invited them). Idempotent — arrayUnion won't duplicate.
+  // Email-match auto-link. Runs UNCONDITIONALLY on wantRole.
+  //
+  // Before 2026-07-07 this was gated on `wantRole !== 'coach'`,
+  // which silently broke every parent who Google-authed into the
+  // app without an invite link: AuthContext defaults Google signups
+  // to role='coach', the auto-link skipped, and even though their
+  // email was on parentEmails, they never got linked to their kid.
+  // Support triage kept finding "2 parent emails on the player, 0
+  // accounts linked" (Ruston, others).
+  //
+  // Correct rule: if the caller's email matches ANY player's
+  // parentEmails, they are a parent — regardless of what the
+  // client-side default said. Link them and flip role to 'parent'
+  // in the same commit so they get parent-shaped access
+  // (dashboard InThePoolHero, RSVPs, chat, media view).
+  //
+  // Idempotent — arrayUnion won't duplicate.
   const linked: { playerId: string; teamIds: string[] }[] = [];
-  if (email && wantRole !== 'coach') {
+  if (email) {
     try {
       const players = await runQuery(
         pid,
@@ -158,18 +172,44 @@ async function handleUsersBootstrap(req: Request, env: Env, payload: any): Promi
 
   if (linked.length > 0) {
     const teamsToAdd = Array.from(new Set(linked.flatMap(l => l.teamIds).filter(Boolean)));
+    // Always stamp approved + parent role when there was a match —
+    // even if the initial write set role='coach' from the client
+    // default. The email match is the source of truth for parent
+    // status. If they're ALSO a coach somewhere (their email on
+    // team.coachIds), the per-team check picks that up separately;
+    // the global role stays 'parent'.
+    const patch: Record<string, any> = {
+      approved: true,
+      approvalStatus: 'auto-email-match',
+    };
+    if (wantRole === 'coach') {
+      patch.role = 'parent';
+    }
     if (teamsToAdd.length > 0) {
       await commitDocumentTransforms(
         pid,
         `users/${claims.uid}`,
         [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: teamsToAdd }],
-        { approved: true, approvalStatus: 'auto-email-match' },
+        patch,
         sa,
       );
+    } else {
+      // Match with no teamIds on the player (unusual — orphaned
+      // player, or team just deleted). Still patch role + approved
+      // so at least the identity is right.
+      await patchDocument(pid, `users/${claims.uid}`, patch, sa);
     }
   }
 
-  return json({ ok: true, uid: claims.uid, linkedCount: linked.length });
+  return json({
+    ok: true,
+    uid: claims.uid,
+    linkedCount: linked.length,
+    // Return the resolved role so the client can update its cached
+    // userData without a round-trip refresh. Callers that don't need
+    // this ignore the field.
+    role: linked.length > 0 && wantRole === 'coach' ? 'parent' : wantRole,
+  });
 }
 
 // ────────────────────────────────────────────────────────────────

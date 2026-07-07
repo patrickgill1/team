@@ -1167,10 +1167,29 @@ async function handlePlayersLinkParent(req: Request, env: Env, payload: any): Pr
 
 // ────────────────────────────────────────────────────────────────
 // /players/toggle-self-parent — parent (or adult self) adds or
-// removes themselves from a player's parentIds. Used by PlayerCard's
-// "this is my kid" toggle. Verification: caller must already be a
-// parent (arrayRemove) OR the caller's email must match one of the
-// player's parentEmails (arrayUnion).
+// removes themselves from a player's parentIds. Used by the Settings
+// "Claim a player" widget, the Player Circle card, and now the
+// player edit modal "This player is my kid" toggle.
+//
+// Authorization (on=true):
+//   - Caller is already a parent → allow (no-op re-add is fine)
+//   - Caller's email matches one of the player's parentEmails → allow
+//   - Caller is a coach on ANY of the player's teams → allow (a coach
+//     claiming their own kid on their own team is the common case;
+//     they already have full write access to the player, so this
+//     doesn't expand what they can do — it just doesn't force them
+//     to add their own email to parentEmails first as a papercut)
+//
+// On success we also:
+//   - arrayUnion the caller's email onto parentEmails (so future
+//     signups from the same address auto-link cleanly and the Circle
+//     UI shows them by email)
+//   - arrayUnion each of the player's teamIds onto the user's
+//     teamIds (so they see the team in the switcher)
+//
+// Authorization (on=false): only the caller themselves. That's not
+// a security question — anyone who's ever been linked can unlink.
+//
 // Body: { playerId, on: boolean }
 // ────────────────────────────────────────────────────────────────
 async function handlePlayersToggleSelfParent(req: Request, env: Env, payload: any): Promise<Response> {
@@ -1184,21 +1203,54 @@ async function handlePlayersToggleSelfParent(req: Request, env: Env, payload: an
   const parentIds: string[] = Array.isArray(player.data.parentIds) ? player.data.parentIds : [];
   const parentEmails: string[] = Array.isArray(player.data.parentEmails)
     ? player.data.parentEmails.map(normEmail) : [];
+  const playerTeamIds: string[] = Array.isArray(player.data.teamIds) && player.data.teamIds.length > 0
+    ? player.data.teamIds
+    : (player.data.teamId ? [player.data.teamId] : []);
   const isCurrentParent = parentIds.includes(claims.uid);
   const emailMatches = !!claims.email && parentEmails.includes(normEmail(claims.email));
-  if (on && !emailMatches && !isCurrentParent) {
+
+  // Coach-of-team fallback: caller is a coach on the player's team.
+  // Only compute if the two cheap checks above didn't already pass.
+  let isCoachOnPlayerTeam = false;
+  if (on && !emailMatches && !isCurrentParent && playerTeamIds.length > 0) {
+    for (const teamId of playerTeamIds) {
+      const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+      const coachIds: string[] = Array.isArray(team?.data?.coachIds) ? team.data.coachIds : [];
+      if (coachIds.includes(claims.uid)) { isCoachOnPlayerTeam = true; break; }
+    }
+  }
+
+  if (on && !emailMatches && !isCurrentParent && !isCoachOnPlayerTeam) {
     return json({ ok: false, error: 'not_authorized' }, 403);
   }
   if (!on && !isCurrentParent) {
     return json({ ok: true, noop: true });  // already off
   }
-  await commitDocumentTransforms(
-    pid,
-    `players/${playerId}`,
-    [{ fieldPath: 'parentIds', kind: on ? 'arrayUnion' : 'arrayRemove', value: claims.uid }],
-    null,
-    sa,
-  );
+
+  const playerTransforms: any[] = [
+    { fieldPath: 'parentIds', kind: on ? 'arrayUnion' : 'arrayRemove', value: claims.uid },
+  ];
+  // On claim, mirror the caller's email into parentEmails so the
+  // Circle UI can display them by email and future re-bootstraps
+  // auto-link. Skip if the email is already there.
+  if (on && claims.email && !parentEmails.includes(normEmail(claims.email))) {
+    playerTransforms.push({ fieldPath: 'parentEmails', kind: 'arrayUnion', value: normEmail(claims.email) });
+  }
+  await commitDocumentTransforms(pid, `players/${playerId}`, playerTransforms, null, sa);
+
+  // On claim, fan the player's teams onto the user so they see the
+  // team in the switcher. On unclaim, leave user.teamIds alone —
+  // they might still be a coach on it, and yanking it here would
+  // hide the team from a coach who was just cleaning up a mis-link.
+  if (on && playerTeamIds.length > 0) {
+    await commitDocumentTransforms(
+      pid,
+      `users/${claims.uid}`,
+      [{ fieldPath: 'teamIds', kind: 'arrayUnion', value: playerTeamIds }],
+      null,
+      sa,
+    );
+  }
   return json({ ok: true });
 }
 

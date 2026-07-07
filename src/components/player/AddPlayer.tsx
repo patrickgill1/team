@@ -102,6 +102,16 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   const [isAdultPlayer, setIsAdultPlayer] = useState<boolean>(
     !!(editingPlayer as any)?.isAdultPlayer,
   );
+  // "This player is my kid" — coach-only shortcut that links the
+  // coach as a parent alongside their coaching role, so they get
+  // parent-side surfaces (dev plan, media notifs, chat replies) on
+  // their own kid. State reflects whether the coach is already in
+  // parentIds; toggle it and we call /players/toggle-self-parent
+  // after the base save. Initialized in the useEffect below alongside
+  // the rest of the form state so it re-syncs when the modal reopens
+  // for a different player.
+  const [isMyKid, setIsMyKid] = useState<boolean>(false);
+  const [initialIsMyKid, setInitialIsMyKid] = useState<boolean>(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -245,6 +255,9 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
       });
       setTargetTeamId(editingPlayer.teamId || selectedTeamId);
       setProfilePhotoPreview(editingPlayer.profilePhotoUrl || '');
+      const alreadyMyKid = !!(userData?.uid && Array.isArray(editingPlayer.parentIds) && editingPlayer.parentIds.includes(userData.uid));
+      setIsMyKid(alreadyMyKid);
+      setInitialIsMyKid(alreadyMyKid);
     } else {
       setFormData({
         name: '',
@@ -255,6 +268,8 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         medicalInfo: ''
       });
       setProfilePhotoPreview('');
+      setIsMyKid(false);
+      setInitialIsMyKid(false);
     }
     setErrors({});
     setUploadError(null);
@@ -429,33 +444,55 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
 
       console.log('Attempting to save player:', basePlayerData);
 
+      // Persist the base player doc first. Then, if the coach flipped
+      // the "This player is my kid" toggle, fire /players/toggle-self-
+      // parent — that endpoint owns the atomic parentIds + parentEmails
+      // + user.teamIds sync so we don't try to reproduce it here.
+      let savedPlayerId: string;
+      let savedPlayer: Player;
       if (editingPlayer) {
-        // Update existing player
         console.log('Updating existing player with ID:', editingPlayer.id);
         await updatePlayer(editingPlayer.id, basePlayerData);
-        const updatedPlayer: Player = {
-          ...editingPlayer,
-          ...basePlayerData
-        };
-        console.log('Player updated successfully:', updatedPlayer);
-        onPlayerAdded(updatedPlayer);
+        savedPlayerId = editingPlayer.id;
+        savedPlayer = { ...editingPlayer, ...basePlayerData };
+        console.log('Player updated successfully:', savedPlayer);
+      } else {
+        console.log('Adding new player...');
+        savedPlayerId = await addPlayer(basePlayerData);
+        savedPlayer = { ...basePlayerData, id: savedPlayerId, createdAt: new Date() };
+        console.log('New player created with ID:', savedPlayerId);
+      }
+
+      if (isMyKid !== initialIsMyKid && userData?.uid) {
+        try {
+          const { workerFetch } = await import('../../utils/workerFetch');
+          const res = await workerFetch('/players/toggle-self-parent', {
+            method: 'POST',
+            body: JSON.stringify({ playerId: savedPlayerId, on: isMyKid }),
+          });
+          const data: any = await res.json().catch(() => ({}));
+          if (!res.ok || !data?.ok) {
+            console.warn('toggle-self-parent failed', data);
+          } else {
+            // Reflect the link locally so the caller sees fresh state
+            // without an extra reload.
+            const nextParentIds = new Set<string>(Array.isArray(savedPlayer.parentIds) ? savedPlayer.parentIds : []);
+            if (isMyKid) nextParentIds.add(userData.uid);
+            else nextParentIds.delete(userData.uid);
+            savedPlayer = { ...savedPlayer, parentIds: Array.from(nextParentIds) };
+          }
+        } catch (err) {
+          console.warn('toggle-self-parent threw', err);
+        }
+      }
+
+      onPlayerAdded(savedPlayer);
+
+      if (editingPlayer) {
         onClose();
       } else {
-        // Add new player
-        console.log('Adding new player...');
-        const playerId = await addPlayer(basePlayerData);
-        console.log('New player created with ID:', playerId);
-        
-        const newPlayer: Player = {
-          ...basePlayerData,
-          id: playerId,
-          createdAt: new Date()
-        };
-        console.log('New player object:', newPlayer);
-        onPlayerAdded(newPlayer);
-        
         // Show invite link instead of closing
-        const link = `${getShareOrigin()}/join?player=${playerId}&code=${basePlayerData.inviteCode}`;
+        const link = `${getShareOrigin()}/join?player=${savedPlayerId}&code=${basePlayerData.inviteCode}`;
         setInviteLink(link);
       }
     } catch (error) {
@@ -802,6 +839,31 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
               </div>
             </div>
           </label>
+
+          {/* This player is my kid — coach-only shortcut. Hides on
+              adult teams (the player IS the user there) and for
+              users who aren't coaches on the target team. */}
+          {!isAdultPlayer && userData && (
+            <div className="rounded-xl bg-surface-input ring-1 ring-line-default/10 p-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isMyKid}
+                  onChange={(e) => setIsMyKid(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                  disabled={isSubmitting}
+                />
+                <span className="flex-1">
+                  <span className="block text-sm font-semibold text-ink-primary">
+                    This player is my kid
+                  </span>
+                  <span className="block text-[11px] text-ink-primary/55 mt-0.5 leading-snug">
+                    Links you as a parent on this player alongside your coaching role, so you get parent-side updates (dev plan, media, chat). Your email is added to the parent list automatically.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
 
           {/* Parent Emails */}
           <div>

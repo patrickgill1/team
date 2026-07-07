@@ -10,6 +10,7 @@ import Header from '../components/common/Header';
 import EmailVerifyBanner from '../components/common/EmailVerifyBanner';
 import { RichContent } from './Wall';
 import NextEventPoster from '../components/common/NextEventPoster';
+import FamilyFeed from '../components/dashboard/FamilyFeed';
 import InThePoolHero from '../components/dashboard/InThePoolHero';
 import NotificationsBanner from '../components/common/NotificationsBanner';
 import SubscribeBanner from '../components/dashboard/SubscribeBanner';
@@ -895,6 +896,16 @@ const Dashboard: React.FC = () => {
         noLabel={posterNoLabel}
         onRsvp={quickRsvp}
       />
+      {/* FamilyFeed shows only when the user has 2+ teams — cross-
+          team next-event summaries + this-week rollup. Sits under
+          the NextEventPoster so single-team users see the classic
+          hero and nothing extra, while multi-team families get a
+          glanceable "what's happening across every team" strip
+          right below. Rendered as its own margin block; internally
+          returns null when userTeams.length <= 1. */}
+      <div className="max-w-4xl mx-auto px-3 sm:px-6">
+        <FamilyFeed />
+      </div>
       {/* Coach accordion bar — slim color-coded status indicator that
           surfaces only when there's actionable coach work (RSVPs
           missing, game today, recent messages). Sits BELOW the hero

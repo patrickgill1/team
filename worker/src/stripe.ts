@@ -767,6 +767,93 @@ export async function handleFounderCount(env: StripeEnv): Promise<Response> {
   }
 }
 
+// ── Endpoint: POST /stripe/subscription-cancel ──────────────────
+//
+// User-initiated cancellation for the caller's own subscription.
+// Body: { uid, subscriptionId, atPeriodEnd?: boolean }
+//
+// Defaults to cancel_at_period_end=true so the customer keeps what
+// they've already paid for through the current cycle. Passing
+// atPeriodEnd=false cancels immediately (destroys the sub).
+//
+// Apple compliance note: user-initiated cancellation of an
+// externally-purchased subscription is account-servicing under the
+// App Store rules — no IAP required. This is intentionally
+// paired with keeping tier changes on the Stripe hosted portal
+// (proration-based upgrades read as "in-app payment" to a strict
+// reviewer, so we punt those to Safari).
+export async function handleSubscriptionCancel(payload: any, env: StripeEnv): Promise<Response> {
+  const subscriptionId = String(payload?.subscriptionId || '').trim();
+  if (!subscriptionId) return json({ ok: false, error: 'missing-subscriptionId' }, 400);
+  const atPeriodEnd = payload?.atPeriodEnd !== false; // default true
+  try {
+    let sub: any;
+    if (atPeriodEnd) {
+      sub = await stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+        cancel_at_period_end: true,
+      });
+    } else {
+      // DELETE is done via POST with _method override on some
+      // clients, but Stripe supports POST /subscriptions/{id}/cancel
+      // for the immediate cancel. Falling through the standard REST
+      // helper (which posts) hits it correctly.
+      sub = await stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {});
+    }
+    return json({
+      ok: true,
+      id: sub.id,
+      status: sub.status,
+      cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+      cancelAt: sub.cancel_at || null,
+      canceledAt: sub.canceled_at || null,
+    });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
+// ── Endpoint: POST /stripe/subscription-reactivate ──────────────
+//
+// Undo a cancel_at_period_end that hasn't yet cycled through. If
+// the subscription is already past the cancel date (status=canceled),
+// this is a no-op that returns 409 — reactivation requires a new
+// checkout, not a resurrection of the Stripe object.
+//
+// Body: { uid, subscriptionId }
+export async function handleSubscriptionReactivate(payload: any, env: StripeEnv): Promise<Response> {
+  const subscriptionId = String(payload?.subscriptionId || '').trim();
+  if (!subscriptionId) return json({ ok: false, error: 'missing-subscriptionId' }, 400);
+  if (!env.STRIPE_SECRET_KEY) return json({ ok: false, error: 'stripe-not-configured' }, 500);
+  try {
+    // Fetch the sub via GET so we can check state before mutating.
+    // stripeRequest is POST-only, so hit Stripe directly.
+    const getRes = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+    });
+    const current: any = await getRes.json();
+    if (!getRes.ok) {
+      return json({ ok: false, error: current?.error?.message || `stripe ${getRes.status}` }, 502);
+    }
+    if (current.status === 'canceled') {
+      return json({ ok: false, error: 'already-terminated', hint: 'Subscription already canceled. Start a new checkout to resubscribe.' }, 409);
+    }
+    if (!current.cancel_at_period_end) {
+      return json({ ok: true, id: current.id, status: current.status, noop: true });
+    }
+    const sub = await stripeRequest(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      cancel_at_period_end: false,
+    });
+    return json({
+      ok: true,
+      id: sub.id,
+      status: sub.status,
+      cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    });
+  } catch (err: any) {
+    return json({ ok: false, error: String(err?.message || err) }, 502);
+  }
+}
+
 // ── Endpoint: POST /stripe/customer-portal ──────────────────────
 //
 // Creates a Stripe Billing Customer Portal session so a subscribed

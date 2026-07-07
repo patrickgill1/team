@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestore } from '../../hooks/useFirestore';
 import { useSubscription } from '../../hooks/useSubscription';
-import { openCustomerPortal, openWebSignup, isAppleDevice } from '../../utils/subscriptionApi';
+import { openCustomerPortal, openWebSignup, isAppleDevice, cancelSubscription, reactivateSubscription } from '../../utils/subscriptionApi';
 import TierPickerSheet from '../common/TierPickerSheet';
 import { Button, Pill } from '../ui';
 
@@ -75,6 +75,10 @@ const SubscriptionCard: React.FC = () => {
   // so we can route the chosen tier through the right downstream
   // step (email prompt OR direct openWebSignup).
   const [pickerIntent, setPickerIntent] = useState<null | 'subscribe' | 'upgrade'>(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [reactivateBusy, setReactivateBusy] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelMessage, setCancelMessage] = useState<string | null>(null);
 
   const knownEmail = (currentUser?.email || userData?.email || '').trim();
 
@@ -85,6 +89,28 @@ const SubscriptionCard: React.FC = () => {
     const err = await openCustomerPortal({ customerId: subscription.customerId });
     setOpening(false);
     if (err) setPortalError('Could not open the billing portal. Try again in a moment.');
+  };
+
+  const handleCancel = async () => {
+    if (!subscription?.subscriptionId) return;
+    const label = renewsAt ? ` You'll keep access until ${renewsAt}.` : '';
+    if (!window.confirm(`Cancel your subscription?${label} You can reactivate any time before then.`)) return;
+    setCancelBusy(true);
+    setCancelError(null); setCancelMessage(null);
+    const err = await cancelSubscription({ subscriptionId: subscription.subscriptionId, atPeriodEnd: true });
+    setCancelBusy(false);
+    if (err) setCancelError('Could not cancel. Try again in a moment.');
+    else setCancelMessage(renewsAt ? `Canceled. Access continues until ${renewsAt}.` : 'Canceled.');
+  };
+
+  const handleReactivate = async () => {
+    if (!subscription?.subscriptionId) return;
+    setReactivateBusy(true);
+    setCancelError(null); setCancelMessage(null);
+    const err = await reactivateSubscription({ subscriptionId: subscription.subscriptionId });
+    setReactivateBusy(false);
+    if (err) setCancelError('Could not reactivate. Try again in a moment.');
+    else setCancelMessage('Reactivated. Your subscription will renew as normal.');
   };
 
   const openSignupWith = (intent: 'subscribe' | 'upgrade', email: string, tier?: 'annual' | 'club') => {
@@ -351,8 +377,51 @@ const SubscriptionCard: React.FC = () => {
           Change plan
         </Button>
       </div>
+
+      {/* In-app cancel / reactivate. Kept SEPARATE from the primary
+          buttons so the destructive path doesn't sit next to Change
+          plan. Cancel defaults to at-period-end so the coach keeps
+          what they've already paid for. Reactivate is only meaningful
+          when cancel_at_period_end is set and the window hasn't
+          closed. Both hit /stripe/subscription-cancel and
+          /stripe/subscription-reactivate on the worker; Stripe's
+          webhook handles the subscriptions/{uid} update. */}
+      {subscription?.subscriptionId && (
+        <div className="pt-1">
+          {willCancelAtPeriodEnd ? (
+            <button
+              type="button"
+              onClick={handleReactivate}
+              disabled={reactivateBusy}
+              className="w-full text-sm font-bold py-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 ring-1 ring-emerald-500/30 transition-colors disabled:opacity-50"
+            >
+              {reactivateBusy ? 'Reactivating…' : 'Reactivate subscription'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelBusy || !isActive}
+              className="w-full text-xs font-bold py-2 text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {cancelBusy ? 'Canceling…' : 'Cancel subscription'}
+            </button>
+          )}
+          {cancelMessage && (
+            <p className="mt-2 text-[11px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2">
+              {cancelMessage}
+            </p>
+          )}
+          {cancelError && (
+            <p className="mt-2 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+              {cancelError}
+            </p>
+          )}
+        </div>
+      )}
+
       <p className="text-charcoal-500 text-[11px] leading-snug pt-1">
-        Billing, cancellation, and plan changes happen on goalkickr.com in your system browser.
+        Cancel any time in the app. Plan changes and payment method updates open goalkickr.com in your system browser.
       </p>
       {emailModal}
     </div>

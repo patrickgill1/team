@@ -86,6 +86,58 @@ export async function openCustomerPortal(opts: {
 //
 // Prefill email + uid via query so the marketing form skips Firebase
 // signup (the account already exists; we just need Stripe Checkout).
+// Cancel the caller's own subscription. atPeriodEnd=true (default)
+// keeps them on the plan until the current cycle ends — kinder UX
+// than yanking access immediately. Returns null on success or a
+// short error string.
+export async function cancelSubscription(opts: {
+  subscriptionId: string;
+  atPeriodEnd?: boolean;
+}): Promise<string | null> {
+  if (!hasWorkerConfig()) return 'billing-not-configured';
+  const uid = getAuth().currentUser?.uid;
+  if (!uid) return 'not-signed-in';
+  try {
+    const res = await workerFetch('/stripe/subscription-cancel', {
+      method: 'POST',
+      body: JSON.stringify({
+        uid,
+        subscriptionId: opts.subscriptionId,
+        atPeriodEnd: opts.atPeriodEnd !== false,
+      }),
+    });
+    const data = await res.json().catch(() => ({} as any));
+    if (!res.ok || !data?.ok) return data?.error || `cancel-error-${res.status}`;
+    return null;
+  } catch (err: any) {
+    return String(err?.message || err);
+  }
+}
+
+// Undo a pending cancel_at_period_end. Only works before the sub
+// hits its cancel date — after that a fresh checkout is required.
+export async function reactivateSubscription(opts: {
+  subscriptionId: string;
+}): Promise<string | null> {
+  if (!hasWorkerConfig()) return 'billing-not-configured';
+  const uid = getAuth().currentUser?.uid;
+  if (!uid) return 'not-signed-in';
+  try {
+    const res = await workerFetch('/stripe/subscription-reactivate', {
+      method: 'POST',
+      body: JSON.stringify({
+        uid,
+        subscriptionId: opts.subscriptionId,
+      }),
+    });
+    const data = await res.json().catch(() => ({} as any));
+    if (!res.ok || !data?.ok) return data?.error || `reactivate-error-${res.status}`;
+    return null;
+  } catch (err: any) {
+    return String(err?.message || err);
+  }
+}
+
 export function openWebSignup(opts: {
   email?: string;
   uid?: string;

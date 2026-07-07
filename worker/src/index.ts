@@ -43,6 +43,8 @@ import {
   handleRegistrationCheckout,
   handleRegistrationRefund,
   handleSubscriptionCheckout,
+  handleSubscriptionCancel,
+  handleSubscriptionReactivate,
   handleVideoCheckout,
   handleFounderCount,
   handleCustomerPortal,
@@ -462,6 +464,22 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
     if (url.pathname === '/stripe/customer-portal') {
       await requireSelf(req, env, String(payload?.uid || ''));
       const res = await handleCustomerPortal(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    if (url.pathname === '/stripe/subscription-cancel') {
+      await requireSelf(req, env, String(payload?.uid || ''));
+      const res = await handleSubscriptionCancel(payload, env);
+      const headers = new Headers(res.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(res.body, { status: res.status, headers });
+    }
+
+    if (url.pathname === '/stripe/subscription-reactivate') {
+      await requireSelf(req, env, String(payload?.uid || ''));
+      const res = await handleSubscriptionReactivate(payload, env);
       const headers = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(res.body, { status: res.status, headers });

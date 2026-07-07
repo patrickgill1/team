@@ -1060,17 +1060,50 @@ async function handleTeamsTransferHead(req: Request, env: Env, payload: any): Pr
 // ────────────────────────────────────────────────────────────────
 // /teams/archive + /teams/restore — soft-delete / undelete.
 // Body: { teamId }
+//
+// Accepts EITHER a coach on the team OR a club admin whose club
+// owns the team. The second path unblocks directors/registrars who
+// aren't coaching but need to retire teams (e.g., end-of-season
+// cleanup, coach left the platform).
 // ────────────────────────────────────────────────────────────────
+async function requireCoachOrClubAdminOfTeam(
+  req: Request,
+  env: Env,
+  teamId: string,
+): Promise<void> {
+  try {
+    await requireCoachOfTeam(req, env, teamId);
+    return;
+  } catch (err: any) {
+    // Only fall through to the club-admin path on the specific
+    // "not_coach_of_team" branch. Missing team, bad token, etc.
+    // should keep their original error.
+    if (err?.code !== 'not_coach_of_team' && err?.status !== 403) throw err;
+  }
+  const { pid, sa } = projectAndSA(env);
+  const team = await getDocument(pid, `teams/${teamId}`, sa).catch(() => null);
+  const clubId = team?.data?.clubId as string | undefined;
+  if (!clubId) {
+    // Team has no club → no club-admin fallback. Surface the same
+    // AuthError shape the coach path would have produced so the
+    // outer catch renders the correct 403 body.
+    throw new AuthError('not_coach_of_team', 403);
+  }
+  await requireClubAdmin(req, env, clubId);
+}
+
 async function handleTeamsArchive(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
-  await requireCoachOfTeam(req, env, teamId);
+  if (!teamId) return json({ ok: false, error: 'team_id_required' }, 400);
+  await requireCoachOrClubAdminOfTeam(req, env, teamId);
   const { pid, sa } = projectAndSA(env);
   await patchDocument(pid, `teams/${teamId}`, { isActive: false, archivedAt: new Date() }, sa);
   return json({ ok: true });
 }
 async function handleTeamsRestore(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
-  await requireCoachOfTeam(req, env, teamId);
+  if (!teamId) return json({ ok: false, error: 'team_id_required' }, 400);
+  await requireCoachOrClubAdminOfTeam(req, env, teamId);
   const { pid, sa } = projectAndSA(env);
   await patchDocument(pid, `teams/${teamId}`, { isActive: true, archivedAt: null }, sa);
   return json({ ok: true });

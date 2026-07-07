@@ -83,6 +83,17 @@ export function openWebSignup(opts: {
   uid?: string;
   tier?: 'founder' | 'monthly' | 'annual' | 'club' | 'club-pro';
   intent?: 'subscribe' | 'upgrade';
+  /**
+   * Optional promo code to pre-apply on the Stripe checkout. When
+   * present, the marketing site's /signup handler should forward
+   * this as `couponCode` to the worker's /stripe/subscription-
+   * checkout endpoint, which resolves it to a promotion_code id
+   * and stamps it as a Discounts[] entry on the Session. Result:
+   * the coupon is already applied by the time the user sees the
+   * Stripe hosted page — no hunting for the "Add promotion code"
+   * link. Falls back gracefully if the code is invalid.
+   */
+  coupon?: string;
 }): void {
   const params = new URLSearchParams();
   // Only forward an email that actually looks like one. Some legacy
@@ -97,6 +108,7 @@ export function openWebSignup(opts: {
   if (opts.uid) params.set('uid', opts.uid);
   if (opts.tier) params.set('tier', opts.tier);
   if (opts.intent) params.set('intent', opts.intent);
+  if (opts.coupon) params.set('coupon', opts.coupon.trim().toUpperCase());
   // Tell the marketing site that this signup originated from a
   // native app session. Used by the post-checkout success page to
   // skip the "Download the GoalKickr app" CTA (they're literally

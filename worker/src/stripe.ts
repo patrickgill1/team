@@ -566,6 +566,33 @@ export async function handleSubscriptionCheckout(payload: any, env: StripeEnv): 
     }
   }
 
+  // Optional pre-applied coupon. Marketing site accepts ?coupon=X
+  // in the URL, forwards it here, and we resolve the human-readable
+  // code to a Stripe promotion_code id + attach it via discounts[]
+  // so the customer never has to click "Add promotion code" on the
+  // hosted checkout. Any resolution failure (bad code, deactivated,
+  // expired) is non-fatal — we log and drop the pre-apply, but let
+  // the checkout continue with allow_promotion_codes on so the user
+  // can still enter it manually.
+  const couponCode = payload?.couponCode ? String(payload.couponCode).trim().toUpperCase() : '';
+  let resolvedPromotionCodeId: string | null = null;
+  if (couponCode && env.STRIPE_SECRET_KEY) {
+    // Stripe's /v1/promotion_codes list is a GET endpoint; the shared
+    // stripeRequest helper only does POST. Inline fetch here.
+    try {
+      const listUrl = `https://api.stripe.com/v1/promotion_codes?code=${encodeURIComponent(couponCode)}&active=true&limit=1`;
+      const listRes = await fetch(listUrl, {
+        headers: { authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+      });
+      const listData: any = await listRes.json().catch(() => ({}));
+      const first = Array.isArray(listData?.data) ? listData.data[0] : null;
+      if (first?.id) resolvedPromotionCodeId = first.id;
+      else console.warn('[subscription-checkout] coupon code not found or inactive:', couponCode);
+    } catch (err) {
+      console.warn('[subscription-checkout] promotion_code lookup failed', err);
+    }
+  }
+
   try {
     const sessionParams: Record<string, any> = {
       mode: 'subscription',
@@ -573,12 +600,20 @@ export async function handleSubscriptionCheckout(payload: any, env: StripeEnv): 
       cancel_url: cancelUrl,
       'line_items[0][price]': priceId,
       'line_items[0][quantity]': 1,
-      // Allow promotion codes on the hosted page — handy for the
-      // launch period when Patrick is dropping codes in DMs.
-      allow_promotion_codes: true,
       'metadata[tier]': tier,
       'metadata[priceId]': priceId,
     };
+    // allow_promotion_codes and discounts are mutually exclusive on
+    // the Stripe API — if we pre-apply, drop the "Add promotion
+    // code" link so the customer isn't confused seeing two ways to
+    // enter one. If we didn't resolve one, keep the manual entry.
+    if (resolvedPromotionCodeId) {
+      sessionParams['discounts[0][promotion_code]'] = resolvedPromotionCodeId;
+      sessionParams['metadata[couponCode]'] = couponCode;
+      sessionParams['metadata[couponPreApplied]'] = 'true';
+    } else {
+      sessionParams['allow_promotion_codes'] = true;
+    }
     if (customerEmail) sessionParams['customer_email'] = customerEmail;
     if (uid) {
       sessionParams['metadata[uid]'] = uid;
@@ -597,7 +632,7 @@ export async function handleSubscriptionCheckout(payload: any, env: StripeEnv): 
       sessionParams['subscription_data[trial_period_days]'] = trialDays;
     }
     const session = await stripeRequest(env, '/checkout/sessions', sessionParams);
-    return json({ ok: true, url: session.url, sessionId: session.id });
+    return json({ ok: true, url: session.url, sessionId: session.id, couponPreApplied: !!resolvedPromotionCodeId });
   } catch (err: any) {
     return json({ ok: false, error: String(err?.message || err) }, 502);
   }

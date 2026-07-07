@@ -47,13 +47,18 @@ interface PracticePlan {
 // Category descriptors — color stays inside the Fire palette (no
 // violet/amber). `icon` is an AppIcon name so we render outlines
 // instead of mixed emoji.
+// Category tint = a thin left-border accent only. Background stays
+// theme-safe (bg-surface-elevated / text-ink-primary), so nothing
+// competes with the drill content and dark-mode text stays legible.
+// Left border varies by category so you can eyeball the plan
+// structure at a glance without a red-on-red visual mess.
 const CATEGORY: Record<Drill['category'], { label: string; color: string; icon: any }> = {
-  warmup:    { label: 'Warm-up',   color: 'bg-brand-primary/15 text-charcoal-800 border-brand-primary-soft/30',         icon: 'running' },
-  technical: { label: 'Technical', color: 'bg-brand-primary/15 text-brand-primary-soft border-brand-primary-soft/30',         icon: 'soccer' },
-  tactical:  { label: 'Tactical',  color: 'bg-surface-raised/10 text-charcoal-800 border-charcoal-700/20', icon: 'chart' },
-  scrimmage: { label: 'Scrimmage', color: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30', icon: 'trophy' },
-  fitness:   { label: 'Fitness',   color: 'bg-brand-primary/20 text-charcoal-800 border-brand-primary-soft/40',        icon: 'highlight' },
-  cooldown:  { label: 'Cool-down', color: 'bg-brand-primary/20 text-brand-primary-soft border-brand-primary-soft/30',        icon: 'check' },
+  warmup:    { label: 'Warm-up',   color: 'bg-surface-elevated text-ink-primary border-line-default/10 border-l-4 border-l-amber-400',          icon: 'running' },
+  technical: { label: 'Technical', color: 'bg-surface-elevated text-ink-primary border-line-default/10 border-l-4 border-l-brand-primary-soft', icon: 'soccer' },
+  tactical:  { label: 'Tactical',  color: 'bg-surface-elevated text-ink-primary border-line-default/10 border-l-4 border-l-violet-400',         icon: 'chart' },
+  scrimmage: { label: 'Scrimmage', color: 'bg-surface-elevated text-ink-primary border-line-default/10 border-l-4 border-l-emerald-400',        icon: 'trophy' },
+  fitness:   { label: 'Fitness',   color: 'bg-surface-elevated text-ink-primary border-line-default/10 border-l-4 border-l-rose-400',           icon: 'highlight' },
+  cooldown:  { label: 'Cool-down', color: 'bg-surface-elevated text-ink-primary border-line-default/10 border-l-4 border-l-sky-400',            icon: 'check' },
 };
 
 // Library drills now load LIVE from the real `drills` collection so
@@ -284,7 +289,7 @@ const PracticePlanBuilder: React.FC = () => {
       <div className="max-w-6xl mx-auto p-4 sm:p-6 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
         {/* Sidebar: plan list */}
         <aside className="print:hidden">
-          <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10/70 p-3">
+          <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10 p-3">
             <div className="text-[11px] font-bold uppercase tracking-wider text-ink-primary/50 px-2 mb-2">Your plans</div>
             {loading ? (
               <div className="text-sm text-ink-primary/40 px-2 py-4">Loading…</div>
@@ -331,7 +336,7 @@ const PracticePlanBuilder: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10 p-5 print:shadow-none print:ring-0">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <input
                     value={active.title}
@@ -410,7 +415,7 @@ const PracticePlanBuilder: React.FC = () => {
               </div>
 
               {/* Timeline */}
-              <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10 p-5 print:shadow-none print:ring-0">
                 {active.drills.length === 0 ? (
                   <div className="text-center text-ink-primary/40 py-8 text-sm">Empty session. Pull drills from the library or build one.</div>
                 ) : (
@@ -419,46 +424,55 @@ const PracticePlanBuilder: React.FC = () => {
                       const startMin = active.drills.slice(0, idx).reduce((s, x) => s + (x.durationMin || 0), 0);
                       const meta = CATEGORY[d.category];
                       return (
-                        <li key={d.id} className={`rounded-xl border ${meta.color} p-3 print:break-inside-avoid`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-mono tabular-nums text-ink-primary/65 bg-line-default/60 rounded px-1.5 py-0.5">
+                        <li key={d.id} className={`rounded-xl border ${meta.color} p-3 print:break-inside-avoid overflow-hidden`}>
+                          {/* Meta row: time + category chip + reorder/remove.
+                              Kept compact so the name row below can take the
+                              full width for the drill name — critical on
+                              phones where a single flex row of everything
+                              overflowed the viewport. */}
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-[10px] font-mono tabular-nums text-ink-primary/65 bg-line-default/40 rounded px-1.5 py-0.5">
                               {String(Math.floor(startMin / 60)).padStart(1, '0')}:{String(startMin % 60).padStart(2, '0')}
                             </span>
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-ink-primary/75">
                               <AppIcon name={meta.icon} className="w-3 h-3" />
                               <span>{meta.label}</span>
                             </span>
+                            <select
+                              value={d.category}
+                              onChange={e => editDrill(d.id, { category: e.target.value as Drill['category'] })}
+                              className="bg-line-default/30 rounded px-1.5 py-0.5 text-xs text-ink-primary/85 print:hidden"
+                            >
+                              {Object.entries(CATEGORY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                            </select>
+                            <div className="ml-auto flex items-center gap-1 print:hidden">
+                              <button onClick={() => moveDrill(idx, -1)} disabled={idx === 0} className="text-xs px-1.5 disabled:opacity-30" aria-label="Move up">↑</button>
+                              <button onClick={() => moveDrill(idx, 1)} disabled={idx === active.drills.length - 1} className="text-xs px-1.5 disabled:opacity-30" aria-label="Move down">↓</button>
+                              <button onClick={() => removeDrill(d.id)} className="text-xs px-1.5 text-rose-300" aria-label="Remove drill">✕</button>
+                            </div>
+                          </div>
+                          {/* Name + duration row */}
+                          <div className="flex items-center gap-2 mb-2">
                             <input
                               value={d.name}
                               onChange={e => editDrill(d.id, { name: e.target.value })}
-                              className="flex-1 bg-transparent border-b border-current/30 focus:border-current focus:outline-none font-semibold text-sm py-0.5"
+                              className="flex-1 min-w-0 bg-transparent border-b border-line-default/30 focus:border-brand-primary focus:outline-none font-semibold text-sm py-0.5 text-ink-primary"
                             />
                             <input
                               type="number"
                               min={1} max={120}
                               value={d.durationMin}
                               onChange={e => editDrill(d.id, { durationMin: parseInt(e.target.value || '0', 10) })}
-                              className="w-14 bg-line-default/60 rounded px-2 py-0.5 text-xs text-ink-primary/85"
-                            /><span className="text-xs">min</span>
-                            <select
-                              value={d.category}
-                              onChange={e => editDrill(d.id, { category: e.target.value as Drill['category'] })}
-                              className="bg-line-default/60 rounded px-1.5 py-0.5 text-xs print:hidden"
-                            >
-                              {Object.entries(CATEGORY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
-                            <div className="flex items-center gap-1 print:hidden">
-                              <button onClick={() => moveDrill(idx, -1)} disabled={idx === 0} className="text-xs px-1.5 disabled:opacity-30">↑</button>
-                              <button onClick={() => moveDrill(idx, 1)} disabled={idx === active.drills.length - 1} className="text-xs px-1.5 disabled:opacity-30">↓</button>
-                              <button onClick={() => removeDrill(d.id)} className="text-xs px-1.5 text-rose-300">✕</button>
-                            </div>
+                              className="w-14 bg-line-default/30 rounded px-2 py-0.5 text-xs text-ink-primary/85 flex-shrink-0"
+                            />
+                            <span className="text-xs text-ink-primary/65 flex-shrink-0">min</span>
                           </div>
                           <textarea
                             value={d.notes || ''}
                             onChange={e => editDrill(d.id, { notes: e.target.value })}
                             placeholder="Notes (setup, key coaching points, equipment…)"
                             rows={2}
-                            className="w-full bg-line-default/40 rounded-lg p-2 text-xs text-ink-primary/85 placeholder-bone/50/70 focus:outline-none focus:bg-line-default/70"
+                            className="w-full bg-line-default/20 rounded-lg p-2 text-xs text-ink-primary/85 placeholder-ink-primary/40 focus:outline-none focus:bg-line-default/30"
                           />
                         </li>
                       );
@@ -468,7 +482,7 @@ const PracticePlanBuilder: React.FC = () => {
               </div>
 
               {/* Plan-level notes */}
-              <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10/70 p-5 print:shadow-none print:ring-0">
+              <div className="bg-surface-elevated rounded-2xl shadow-sm ring-1 ring-line-default/10 p-5 print:shadow-none print:ring-0">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-ink-primary/50">General notes</label>
                 <textarea
                   value={active.notes || ''}

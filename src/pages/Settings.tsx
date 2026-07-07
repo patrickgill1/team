@@ -469,6 +469,13 @@ const Settings: React.FC = () => {
           <SubscriptionCard />
         </section>
 
+        {/* ── HOME LAYOUT PREVIEW ──────────────────────────────────
+             Feature flag for the new Family Home. Off by default. */}
+        <section>
+          <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Home layout</h2>
+          <FamilyHomeToggle />
+        </section>
+
         {/* ── MANAGE ACCOUNT ────────────────────────────────────── */}
         <section>
           <h2 className="text-2xl font-bold text-ink-primary mb-2 px-1">Notifications</h2>
@@ -772,6 +779,43 @@ const ThemeToggleCard: React.FC = () => {
           Currently rendering: <span className="text-ink-primary/70 font-bold">{resolved}</span>. Light mode is being rolled out gradually; some screens still render dark until their cards migrate to the new theme tokens.
         </p>
       </div>
+    </div>
+  );
+};
+
+// Preview flag for the new Family-first Home layout. Kept in
+// localStorage (client-only) so switching devices doesn't
+// accidentally roll it out to a family member. Off by default.
+const FamilyHomeToggle: React.FC = () => {
+  const [enabled, setEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem('familyHomeEnabled') === '1'; } catch { return false; }
+  });
+  const toggle = () => {
+    const next = !enabled;
+    setEnabled(next);
+    try { localStorage.setItem('familyHomeEnabled', next ? '1' : '0'); } catch { /* ignore */ }
+  };
+  return (
+    <div className="bg-surface-elevated rounded-xl border border-line-default/10 shadow-sm p-4">
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={toggle}
+          className="mt-1 w-4 h-4 accent-brand-primary flex-shrink-0"
+        />
+        <span className="flex-1">
+          <span className="block text-sm font-bold text-ink-primary">Try the new Home (preview)</span>
+          <span className="block text-[11px] text-ink-primary/55 mt-0.5 leading-snug">
+            A family-first Home that shows a card for each of your kids, tiles for teams you coach, and a compact week-ahead strip. Classic Dashboard stays at Home when this is off.
+          </span>
+          {enabled && (
+            <Link to="/home-v2" className="mt-2 inline-block text-brand-primary-soft text-xs font-bold hover:text-brand-primary">
+              Open new Home →
+            </Link>
+          )}
+        </span>
+      </label>
     </div>
   );
 };

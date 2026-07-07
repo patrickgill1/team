@@ -43,6 +43,22 @@ function clipThumb(clip: any): string | undefined {
 }
 
 const Dashboard: React.FC = () => {
+  // Family Home preview flag — when the user has opted in via
+  // Settings, this Home route hands off to FamilyHome instead of
+  // rendering the classic Dashboard. Kept as a client-only flag
+  // (localStorage) so a device toggle doesn't affect other family
+  // members' devices. Turn off in Settings to come back here.
+  const familyHomeEnabled = (() => {
+    try { return typeof window !== 'undefined' && localStorage.getItem('familyHomeEnabled') === '1'; } catch { return false; }
+  })();
+  if (familyHomeEnabled) {
+    const FamilyHome = React.lazy(() => import('./FamilyHome'));
+    return (
+      <React.Suspense fallback={null}>
+        <FamilyHome />
+      </React.Suspense>
+    );
+  }
   const { userData } = useAuth();
   const { selectedTeamId, selectedTeam } = useTeam();
   // Coach-mode view collapses the dashboard to team/coach context
@@ -346,16 +362,23 @@ const Dashboard: React.FC = () => {
       .slice(0, 3);
   }, [players]);
 
-  // The parent's linked player on this team (their kid).
-  // Coaches with a kid on the team count too — the parentIds array on
-  // a player is the source of truth, regardless of the user's role.
-  const myPlayer = useMemo(() => {
-    if (!userData) return null;
-    return players.find((p: any) =>
+  // The parent's linked players on this team (their kids). Multi-kid
+  // households (siblings on the same team) get all of theirs here;
+  // the render loop below wraps 2+ in a swipeable carousel.
+  // Coaches with a kid on the team count too — parentIds is the
+  // source of truth regardless of the user's role.
+  const myPlayers = useMemo(() => {
+    if (!userData) return [] as any[];
+    return players.filter((p: any) =>
       (Array.isArray(p.parentIds) && p.parentIds.includes(userData.uid)) ||
       p.parentId === userData.uid
-    ) || null;
+    );
   }, [players, userData]);
+  // Back-compat: many downstream hooks still read a singular
+  // myPlayer (streak, POTM, tonight's goal). They target the FIRST
+  // linked kid; siblings surface in the carousel UI but the hooks
+  // don't need to fan out.
+  const myPlayer = myPlayers[0] || null;
 
   // Quick-tile badge values. Wall: unread posts since localStorage
   // lastSeen for this team (same lookup the megaphone uses); cap at
@@ -1067,12 +1090,20 @@ const Dashboard: React.FC = () => {
             practice-streak ribbon since they're related surfaces.
             Patrick 2026-06-21 dialogue idea #3. */}
         <CoachTeamHealthCard />
-        {isParentMode && myPlayer && (
-          <MyPlayerCard
-            player={myPlayer}
-            latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
-            isPotm={isPotmThisWeek}
-          />
+        {isParentMode && myPlayers.length > 0 && (
+          myPlayers.length === 1 ? (
+            <MyPlayerCard
+              player={myPlayers[0]}
+              latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
+              isPotm={isPotmThisWeek}
+            />
+          ) : (
+            <SiblingCarousel
+              players={myPlayers}
+              latestThumb={featuredClip ? clipThumb(featuredClip) : undefined}
+              isPotmForPrimary={isPotmThisWeek}
+            />
+          )
         )}
 
         {/* FamilyFeed — cross-team summary for multi-team families.
@@ -1437,6 +1468,76 @@ const RecentChatsCard: React.FC<{ chats: ChatThread[]; userUid: string; userPhot
           })}
         </div>
       )}
+    </div>
+  );
+};
+
+// Sibling carousel — renders one MyPlayerCard per linked player
+// with a horizontal-scroll snap so the parent can swipe between
+// kids. Kept dead simple (native CSS scroll-snap, no gesture lib)
+// because iOS Safari handles this without a JS lib. Includes dot
+// indicators so parents can tell at a glance how many kids are in
+// the stack.
+const SiblingCarousel: React.FC<{
+  players: Player[];
+  latestThumb?: string;
+  isPotmForPrimary: boolean;
+}> = ({ players, latestThumb, isPotmForPrimary }) => {
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    if (idx !== activeIdx) setActiveIdx(idx);
+  };
+
+  const goTo = (idx: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: idx * el.clientWidth, behavior: 'smooth' });
+  };
+
+  return (
+    <div>
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-3 sm:-mx-6 px-3 sm:px-6 gap-3"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {players.map((p, i) => (
+          <div key={p.id} className="snap-center flex-shrink-0 w-full">
+            <MyPlayerCard
+              player={p}
+              // Latest thumb + POTM are computed against the primary
+              // kid on the Dashboard. Applying them to sibling cards
+              // could be misleading (they'd show the wrong clip or
+              // announce a POTM for the wrong kid), so we only pass
+              // through for the first card.
+              latestThumb={i === 0 ? latestThumb : undefined}
+              isPotm={i === 0 ? isPotmForPrimary : false}
+            />
+          </div>
+        ))}
+      </div>
+      {/* Dot indicators. Tapping a dot jumps to that kid. */}
+      <div className="flex justify-center items-center gap-1.5 mt-2">
+        {players.map((p, i) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => goTo(i)}
+            className={`h-1.5 rounded-full transition-all ${
+              i === activeIdx
+                ? 'w-6 bg-brand-primary'
+                : 'w-1.5 bg-ink-primary/25 hover:bg-ink-primary/45'
+            }`}
+            aria-label={`View ${p.name || 'sibling ' + (i + 1)}`}
+          />
+        ))}
+      </div>
     </div>
   );
 };

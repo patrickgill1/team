@@ -95,6 +95,11 @@ const Onboarding: React.FC = () => {
   const [homeKitColor, setHomeKitColor] = useState('');
   const [awayKitColor, setAwayKitColor] = useState('');
   const [clubName, setClubName] = useState(firstName ? `${firstName}'s club` : '');
+  // Club-track only: if the director is ALSO coaching one of the
+  // teams from day one, we spin the first team up alongside the
+  // club in a single /clubs/create call. Default off since most
+  // pure directors won't coach; solo-coach-founders can flip it on.
+  const [clubAlsoCoach, setClubAlsoCoach] = useState(false);
   // Staff invites collected on the parents-invite step. One row per
   // staff member, with role (assistant_coach | team_manager). Emails
   // get an invite link to claim the role once they sign in.
@@ -203,28 +208,47 @@ const Onboarding: React.FC = () => {
     }
   };
 
-  // ─ Club creation (only on Club / Club Pro tiers) ─
+  // ─ Club creation — club-first onboarding path ─
+  // Uses the worker /clubs/create endpoint which atomically:
+  //   1. creates the club doc (ownerUid = user)
+  //   2. optionally creates the first team + stamps user as coach
+  //      (when clubAlsoCoach is on)
+  //   3. sets user role to club_admin (or coach if alsoCoach)
+  //   4. updates user.clubIds + user.teamIds via server transforms
+  // No client-side follow-up write is needed — the worker returns
+  // the created ids and we route based on which came back.
   const handleCreateClub = async () => {
-    if (!userData || !clubName.trim() || !createdTeamId) {
+    if (!userData || !clubName.trim()) {
       setError('Add a club name to continue.');
+      return;
+    }
+    if (clubAlsoCoach && !teamName.trim()) {
+      setError('Add a team name or turn off "Also start my first team".');
       return;
     }
     setError(null);
     setBusy(true);
     try {
-      const newClubId = await createClub({
-        name: clubName.trim(),
-        ownerUid: userData.uid,
-        initialTeamId: createdTeamId,
+      const { workerFetch } = await import('../utils/workerFetch');
+      const res = await workerFetch('/clubs/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: clubName.trim(),
+          alsoCoach: clubAlsoCoach,
+          firstTeamName: clubAlsoCoach ? teamName.trim() : undefined,
+        }),
       });
-      if (!newClubId) throw new Error('Club creation returned no id.');
-      setCreatedClubId(newClubId);
-      // Link team to club so the team admin UI shows it under the club.
-      await updateDocument('teams', createdTeamId, {
-        clubId: newClubId,
-        updatedAt: new Date(),
-      });
-      setStep('roster');
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `create-club-${res.status}`);
+      }
+      if (data.clubId) setCreatedClubId(data.clubId);
+      if (data.teamId) setCreatedTeamId(data.teamId);
+      await refreshUserData?.();
+      // Route: if a team was created, continue to roster; otherwise
+      // land the director on done (they'll add teams from the admin
+      // panel later).
+      setStep(data.teamId ? 'roster' : 'done');
     } catch (err: any) {
       setError(String(err?.message || err));
     } finally {
@@ -458,7 +482,7 @@ const Onboarding: React.FC = () => {
               </p>
             )}
 
-            <PrimaryButton onClick={() => setStep('team')} className="mt-7 w-full">
+            <PrimaryButton onClick={() => setStep(isClubTier ? 'club' : 'team')} className="mt-7 w-full">
               Continue
             </PrimaryButton>
           </Card>
@@ -466,7 +490,7 @@ const Onboarding: React.FC = () => {
 
         {step === 'team' && (
           <Card>
-            <Kicker>Step 1{isClubTier ? ' of 3' : ' of 2'}</Kicker>
+            <Kicker>Your team</Kicker>
             <H>Name your squad.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
               Change any of this later from Team HQ.
@@ -533,11 +557,12 @@ const Onboarding: React.FC = () => {
 
         {step === 'club' && isClubTier && (
           <Card>
-            <Kicker>Step 2 of 3</Kicker>
+            <Kicker>Your club</Kicker>
             <H>Name your club.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              The club is the umbrella over all your teams. You can turn on payments
-              later when you&apos;re ready to collect dues.
+              The club is the umbrella over every team you run. Payments,
+              registrations, and admin all live here. You can add teams now or
+              later from the admin panel.
             </p>
             <Field label="Club name">
               <input
@@ -548,9 +573,52 @@ const Onboarding: React.FC = () => {
                 placeholder="e.g. Riverside SC"
               />
             </Field>
+
+            {/* Optional first-team block. Directors who ALSO coach a
+                specific team can spin it up here in a single step;
+                pure directors leave it off and add teams from the
+                admin panel after onboarding. */}
+            <div className="mt-5 pt-5 border-t border-line-default/10">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={clubAlsoCoach}
+                  onChange={e => setClubAlsoCoach(e.target.checked)}
+                  className="mt-1 w-4 h-4 accent-brand-primary flex-shrink-0"
+                />
+                <span className="flex-1">
+                  <span className="block text-sm font-bold text-ink-primary">Also start my first team now</span>
+                  <span className="block text-xs text-ink-primary/55 mt-0.5">
+                    Check this if you're a director who ALSO coaches. You'll be the head coach of this team. Skip if you're a pure director — add teams later from the admin panel.
+                  </span>
+                </span>
+              </label>
+
+              {clubAlsoCoach && (
+                <div className="mt-4">
+                  <Field label="Team name">
+                    <input
+                      type="text"
+                      value={teamName}
+                      onChange={e => setTeamName(e.target.value)}
+                      className="form-input"
+                      placeholder="e.g. Eagles U10"
+                    />
+                  </Field>
+                  <p className="text-[11px] text-ink-primary/45 mt-2">
+                    Set format, age, and kit colors from Team HQ after you land on the dashboard.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {error && <ErrorBanner>{error}</ErrorBanner>}
-            <PrimaryButton onClick={handleCreateClub} disabled={busy || !clubName.trim()} className="mt-6 w-full">
-              {busy ? 'Creating club…' : 'Create club'}
+            <PrimaryButton
+              onClick={handleCreateClub}
+              disabled={busy || !clubName.trim() || (clubAlsoCoach && !teamName.trim())}
+              className="mt-6 w-full"
+            >
+              {busy ? 'Creating…' : clubAlsoCoach ? 'Create club + first team' : 'Create club'}
             </PrimaryButton>
           </Card>
         )}
@@ -648,8 +716,8 @@ const Onboarding: React.FC = () => {
 
         {step === 'invite' && (
           <Card>
-            <Kicker>Step {isClubTier ? '3 of 3' : '2 of 2'}</Kicker>
-            <H>Bring parents in.</H>
+            <Kicker>Bring parents in</Kicker>
+            <H>Player Circle link.</H>
             <p className="mt-3 text-charcoal-300 text-sm">
               Send this link to parents. They sign in, claim their player, and they're in.
               Revoke or regenerate it anytime from the Team page.
@@ -771,9 +839,13 @@ const Onboarding: React.FC = () => {
             <Kicker>Almost done</Kicker>
             <H>{isClubTrack ? 'Start your club subscription.' : 'Start your free trial.'}</H>
             <p className="mt-3 text-charcoal-300 text-sm">
-              <span className="text-ink-primary font-semibold">{teamName}</span> is set up.
+              <span className="text-ink-primary font-semibold">
+                {isClubTrack ? clubName : teamName}
+              </span> is set up.
               {isClubTrack
-                ? ' Club includes unlimited teams, registrations, dues, and financial reporting. The fee is waived if your club processes $15K+/yr in registrations through GoalKickr.'
+                ? (createdTeamId
+                    ? ` You're also head coach of ${teamName}. Add more teams from the admin panel anytime.`
+                    : ' Add teams from the admin panel when you\'re ready.')
                 : ' Start your 7-day free trial to unlock everything — chat, RSVPs, gameday, development plans. No charge for 7 days, cancel anytime.'}
             </p>
 
@@ -990,8 +1062,12 @@ const PrimaryButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = (
   </button>
 );
 const StepIndicator: React.FC<{ currentStep: Step; isClubTier: boolean }> = ({ currentStep, isClubTier }) => {
+  // Club track: welcome → club → [roster / event / invite only if
+  //   they created a first team at the club step] → done. We show
+  //   the maximal ordering so the dots don't shrink when the user
+  //   ticks the "also start a team" box mid-flow.
   const order: Step[] = isClubTier
-    ? ['welcome', 'team', 'club', 'roster', 'event', 'invite', 'done']
+    ? ['welcome', 'club', 'roster', 'event', 'invite', 'done']
     : ['welcome', 'team', 'roster', 'event', 'invite', 'done'];
   const idx = order.indexOf(currentStep);
   return (

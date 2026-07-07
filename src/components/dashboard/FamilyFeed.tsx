@@ -1,51 +1,52 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, getDocs, query, where, orderBy, limit, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeam } from '../../contexts/TeamContext';
 import type { CalendarEvent } from '../../types';
 
-// FamilyFeed — cross-team home surface for users who belong to more
-// than one team. Renders inline on the Dashboard above the standard
-// per-team hero.
+// FamilyFeed — cross-team home surface for users on 2+ teams. Sits
+// BELOW MyPlayerCard on the Dashboard so the kid stays the emotional
+// core; this is a helper for families whose kid plays for one team
+// AND who help run / spectate another.
 //
-// Solo-team users don't see this at all (component returns null in
-// that case). Everyone with 2+ teams gets:
-//   1. One card per team showing "next event" summary + team badge
-//   2. A chronological "this week" rollup across every team
+// Deliberately excludes the currently-selected team — that team's
+// next event already sits at the top of Home in NextEventPoster.
+// Showing it again here just makes the dashboard read as a list of
+// duplicates.
 //
-// Firestore lookups are parallel across teams — N is small in
-// practice (2-5) so we don't need the array-contains-any batching.
+// Per-team hide: users can tap the small × on any team card to
+// suppress it from this surface. Stored on user.dashboardHiddenTeamIds
+// so it persists across devices. Hidden teams stay accessible via
+// the top-nav switcher and everywhere else.
 
 interface Props {
-  /** Suppress the whole component (e.g. dashboard already showing
-   *  another team-specific view). Callers usually leave undefined. */
+  /** Suppress the whole component (e.g. host wants a different
+   *  layout). Callers usually leave undefined. */
   hidden?: boolean;
 }
 
 const DOW_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// Assigned team color used for the badge + timeline dot. Keeps the
-// palette consistent across the two visual surfaces. Cycles for
-// coaches with 3+ teams; index-stable so the same team always gets
-// the same color across renders.
-const TEAM_TINTS: Array<{ chip: string; dot: string; ring: string }> = [
-  { chip: 'bg-brand-primary/15 text-brand-primary-soft', dot: 'bg-brand-primary', ring: 'ring-brand-primary/30' },
-  { chip: 'bg-emerald-500/15 text-emerald-300', dot: 'bg-emerald-400', ring: 'ring-emerald-500/30' },
-  { chip: 'bg-amber-500/15 text-amber-300', dot: 'bg-amber-400', ring: 'ring-amber-500/30' },
-  { chip: 'bg-violet-500/15 text-violet-300', dot: 'bg-violet-400', ring: 'ring-violet-500/30' },
-  { chip: 'bg-sky-500/15 text-sky-300', dot: 'bg-sky-400', ring: 'ring-sky-500/30' },
-  { chip: 'bg-rose-500/15 text-rose-300', dot: 'bg-rose-400', ring: 'ring-rose-500/30' },
+// Stable-per-team color palette. Index cycles for 3+ teams. Used as
+// a left-edge accent so cards read as "team-branded" without
+// dominating the surface with tinted panels.
+const TEAM_ACCENTS: Array<{ border: string; chip: string }> = [
+  { border: 'border-l-brand-primary',     chip: 'bg-brand-primary/15 text-brand-primary-soft' },
+  { border: 'border-l-emerald-400',       chip: 'bg-emerald-500/15 text-emerald-300' },
+  { border: 'border-l-amber-400',         chip: 'bg-amber-500/15 text-amber-300' },
+  { border: 'border-l-violet-400',        chip: 'bg-violet-500/15 text-violet-300' },
+  { border: 'border-l-sky-400',           chip: 'bg-sky-500/15 text-sky-300' },
+  { border: 'border-l-rose-400',          chip: 'bg-rose-500/15 text-rose-300' },
 ];
 
-interface TeamEventsSummary {
+interface TeamRow {
   teamId: string;
   teamName: string;
   ageGroup?: string;
   nextEvent: CalendarEvent | null;
-  upcomingThisWeek: CalendarEvent[];
   colorIdx: number;
 }
 
@@ -62,40 +63,56 @@ function fmtEventTime(d: Date): string {
 }
 
 const FamilyFeed: React.FC<Props> = ({ hidden }) => {
-  const { userData } = useAuth();
-  const { teams, setSelectedTeamId } = useTeam();
-  const [summaries, setSummaries] = useState<TeamEventsSummary[]>([]);
+  const { userData, currentUser } = useAuth();
+  const { teams, selectedTeamId, setSelectedTeamId } = useTeam();
+  const [rows, setRows] = useState<TeamRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showHidden, setShowHidden] = useState(false);
 
-  const userTeams = useMemo(() => {
+  const hiddenIds: string[] = useMemo(
+    () => Array.isArray((userData as any)?.dashboardHiddenTeamIds) ? (userData as any).dashboardHiddenTeamIds : [],
+    [(userData as any)?.dashboardHiddenTeamIds],
+  );
+
+  // Membership: teams user belongs to, active, excluding the one
+  // shown by NextEventPoster (the selected team) — that's where the
+  // duplication was coming from.
+  const membershipTeams = useMemo(() => {
     const teamIds: string[] = Array.isArray(userData?.teamIds) && userData.teamIds.length > 0
       ? userData.teamIds
       : (userData?.teamId ? [userData.teamId] : []);
-    // Skip archived teams — they'd clutter the multi-team surface
-    // with rosters/schedules the user isn't actively using. Team
-    // Management can restore them if needed.
-    return teams.filter((t) => teamIds.includes(t.id) && (t as any).isActive !== false);
-  }, [teams, userData?.teamIds, userData?.teamId]);
+    return teams.filter((t) => teamIds.includes(t.id) && (t as any).isActive !== false && t.id !== selectedTeamId);
+  }, [teams, userData?.teamIds, userData?.teamId, selectedTeamId]);
 
-  const shouldRender = !hidden && userTeams.length > 1;
+  const visibleTeams = useMemo(
+    () => membershipTeams.filter((t) => !hiddenIds.includes(t.id)),
+    [membershipTeams, hiddenIds],
+  );
+  const hiddenTeams = useMemo(
+    () => membershipTeams.filter((t) => hiddenIds.includes(t.id)),
+    [membershipTeams, hiddenIds],
+  );
 
+  const shouldRender = !hidden && (visibleTeams.length > 0 || hiddenTeams.length > 0);
+
+  // Fetch just the next event for each visible team. Deliberately
+  // no "this week rollup" pass — it read as a wall of lists and
+  // duplicated content from the individual team rows.
   useEffect(() => {
     if (!shouldRender) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       setLoading(true);
       const now = new Date();
-      const endOfWeek = new Date(now);
-      endOfWeek.setDate(now.getDate() + 7);
       try {
-        const rows = await Promise.all(
-          userTeams.map(async (team, i) => {
+        const results = await Promise.all(
+          visibleTeams.map(async (team, i) => {
             const eventsSnap = await getDocs(query(
               collection(db, 'events'),
               where('teamId', '==', team.id),
               where('date', '>=', now),
               orderBy('date', 'asc'),
-              limit(20),
+              limit(3),
             )).catch(() => null);
             const evs: CalendarEvent[] = eventsSnap
               ? eventsSnap.docs.map((d) => {
@@ -104,21 +121,16 @@ const FamilyFeed: React.FC<Props> = ({ hidden }) => {
                   return { id: d.id, ...data, date } as CalendarEvent;
                 }).filter((e: any) => !e.isCancelled)
               : [];
-            const upcomingThisWeek = evs.filter((e) => {
-              const d = new Date(e.date);
-              return d >= now && d <= endOfWeek;
-            });
             return {
               teamId: team.id,
               teamName: team.name,
               ageGroup: (team as any).ageGroup,
               nextEvent: evs[0] || null,
-              upcomingThisWeek,
-              colorIdx: i % TEAM_TINTS.length,
-            } as TeamEventsSummary;
+              colorIdx: i % TEAM_ACCENTS.length,
+            } as TeamRow;
           }),
         );
-        if (!cancelled) setSummaries(rows);
+        if (!cancelled) setRows(results);
       } catch (err) {
         console.warn('[FamilyFeed] load failed', err);
       } finally {
@@ -126,126 +138,127 @@ const FamilyFeed: React.FC<Props> = ({ hidden }) => {
       }
     })();
     return () => { cancelled = true; };
-  }, [shouldRender, userTeams.map((t) => t.id).join(',')]);
+  }, [shouldRender, visibleTeams.map((t) => t.id).join(',')]);
+
+  const setHidden = async (teamId: string, hide: boolean) => {
+    if (!currentUser?.uid) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        dashboardHiddenTeamIds: hide ? arrayUnion(teamId) : arrayRemove(teamId),
+      });
+    } catch (err) {
+      console.warn('[FamilyFeed] hide/show failed', err);
+    }
+  };
 
   if (!shouldRender) return null;
 
-  const weekEvents = useMemo(() => {
-    const all: Array<{ ev: CalendarEvent; summary: TeamEventsSummary }> = [];
-    for (const s of summaries) {
-      for (const ev of s.upcomingThisWeek) all.push({ ev, summary: s });
-    }
-    all.sort((a, b) => new Date(a.ev.date).getTime() - new Date(b.ev.date).getTime());
-    return all;
-  }, [summaries]);
-
-  const handleFocusTeam = (teamId: string) => {
-    setSelectedTeamId(teamId);
-    // Dashboard listens for selectedTeamId changes and re-fetches; no
-    // manual navigation needed. If a future refactor requires an
-    // explicit navigate, adding it here is a one-liner.
-  };
+  const totalCount = membershipTeams.length;
+  const hiddenCount = hiddenTeams.length;
 
   return (
     <section className="mt-3 mb-4">
       <div className="flex items-baseline justify-between mb-2">
-        <h2 className="text-lg font-black text-ink-primary">Your family week</h2>
-        <span className="text-[11px] text-ink-primary/45 font-bold tabular-nums">{userTeams.length} teams</span>
+        <h2 className="text-sm font-black uppercase tracking-widest text-ink-primary/55">
+          Your other teams
+        </h2>
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowHidden((v) => !v)}
+            className="text-[11px] font-bold text-brand-primary-soft hover:text-brand-primary"
+          >
+            {showHidden ? 'Hide' : 'Show'} {hiddenCount} hidden
+          </button>
+        )}
       </div>
 
       <div className="space-y-2">
-        {summaries.map((s) => (
+        {rows.map((r) => (
           <TeamCard
-            key={s.teamId}
-            summary={s}
-            onFocus={handleFocusTeam}
+            key={r.teamId}
+            row={r}
+            onFocus={(id) => setSelectedTeamId(id)}
+            onHide={() => setHidden(r.teamId, true)}
           />
         ))}
       </div>
 
-      {weekEvents.length > 0 && (
-        <div className="mt-4 rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 p-3">
-          <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-2 px-1">
-            This week
-          </p>
+      {showHidden && hiddenTeams.length > 0 && (
+        <div className="mt-3 rounded-2xl bg-surface-elevated/60 ring-1 ring-line-default/10 p-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-ink-primary/45 mb-2">Hidden from Home</p>
           <ul className="space-y-1">
-            {weekEvents.slice(0, 8).map(({ ev, summary }) => (
-              <li key={`${summary.teamId}:${ev.id}`}>
-                <Link
-                  to={`/events/${ev.id}`}
-                  onClick={() => setSelectedTeamId(summary.teamId)}
-                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-line-default/[0.04] transition-colors"
+            {hiddenTeams.map((t) => (
+              <li key={t.id} className="flex items-center gap-2 py-1">
+                <span className="text-xs font-bold text-ink-primary/75 truncate flex-1">{t.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setHidden(t.id, false)}
+                  className="text-[10px] font-black uppercase tracking-widest text-brand-primary-soft hover:text-brand-primary px-2 py-1 rounded"
                 >
-                  <span className={`w-2 h-2 rounded-full ${TEAM_TINTS[summary.colorIdx].dot} flex-shrink-0`} />
-                  <span className="text-xs font-bold text-ink-primary truncate flex-1">
-                    {ev.title || (ev.type === 'game' ? 'Game' : ev.type === 'practice' ? 'Practice' : 'Event')}
-                  </span>
-                  <span className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${TEAM_TINTS[summary.colorIdx].chip} flex-shrink-0`}>
-                    {summary.teamName.length > 14 ? summary.teamName.slice(0, 14) + '…' : summary.teamName}
-                  </span>
-                  <span className="text-[11px] text-ink-primary/55 tabular-nums flex-shrink-0">
-                    {fmtEventTime(new Date(ev.date))}
-                  </span>
-                </Link>
+                  Show on Home
+                </button>
               </li>
             ))}
           </ul>
-          {weekEvents.length > 8 && (
-            <Link
-              to="/calendar"
-              className="mt-2 block text-center text-[11px] font-bold text-brand-primary-soft hover:text-brand-primary py-1"
-            >
-              + {weekEvents.length - 8} more this week
-            </Link>
-          )}
         </div>
       )}
 
-      {loading && summaries.length === 0 && (
-        <p className="text-xs text-ink-primary/45 text-center py-4">Loading…</p>
+      {loading && rows.length === 0 && visibleTeams.length > 0 && (
+        <p className="text-xs text-ink-primary/45 text-center py-3">Loading…</p>
+      )}
+
+      {visibleTeams.length === 0 && hiddenCount > 0 && (
+        <p className="text-xs text-ink-primary/55 leading-snug px-1">
+          All {totalCount} other teams are hidden from Home. Tap the toggle above to bring them back.
+        </p>
       )}
     </section>
   );
 };
 
 const TeamCard: React.FC<{
-  summary: TeamEventsSummary;
+  row: TeamRow;
   onFocus: (teamId: string) => void;
-}> = ({ summary, onFocus }) => {
-  const tint = TEAM_TINTS[summary.colorIdx];
-  const nextEventDate = summary.nextEvent ? new Date(summary.nextEvent.date) : null;
+  onHide: () => void;
+}> = ({ row, onFocus, onHide }) => {
+  const tint = TEAM_ACCENTS[row.colorIdx];
+  const nextEventDate = row.nextEvent ? new Date(row.nextEvent.date) : null;
   return (
-    <Link
-      to="/dashboard"
-      onClick={() => onFocus(summary.teamId)}
-      className={`block rounded-2xl bg-surface-elevated ring-1 ring-line-default/10 hover:${tint.ring} transition p-3.5`}
-    >
-      <div className="flex items-start gap-3">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${tint.chip} flex-shrink-0 mt-0.5`}>
-          {summary.teamName}
-        </span>
-        {summary.ageGroup && (
-          <span className="text-[11px] text-ink-primary/45 font-bold flex-shrink-0 mt-0.5">
-            {summary.ageGroup}
-          </span>
-        )}
-      </div>
-      {summary.nextEvent && nextEventDate ? (
-        <div className="mt-2">
-          <p className="text-sm font-black text-ink-primary leading-tight">
-            {summary.nextEvent.title || (summary.nextEvent.type === 'game' ? 'Game' : summary.nextEvent.type === 'practice' ? 'Practice' : 'Event')}
+    <div className={`relative rounded-xl bg-surface-elevated ring-1 ring-line-default/10 border-l-4 ${tint.border} pl-3 pr-2 py-2.5 flex items-center gap-2`}>
+      <Link
+        to="/dashboard"
+        onClick={() => onFocus(row.teamId)}
+        className="flex-1 min-w-0 flex items-center gap-2.5"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-black text-ink-primary truncate leading-tight">
+            {row.teamName}
+            {row.ageGroup && <span className="text-ink-primary/45 font-normal"> · {row.ageGroup}</span>}
           </p>
-          <p className="text-xs text-ink-primary/70 mt-0.5">
-            {fmtEventTime(nextEventDate)}
-            {(summary.nextEvent as any).location ? ` · ${(summary.nextEvent as any).location}` : ''}
-          </p>
+          {row.nextEvent && nextEventDate ? (
+            <p className="text-[11px] text-ink-primary/60 truncate mt-0.5">
+              {row.nextEvent.title || (row.nextEvent.type === 'game' ? 'Game' : 'Practice')} · {fmtEventTime(nextEventDate)}
+            </p>
+          ) : (
+            <p className="text-[11px] text-ink-primary/40 mt-0.5">Nothing scheduled</p>
+          )}
         </div>
-      ) : (
-        <p className="mt-2 text-xs text-ink-primary/55">
-          Nothing scheduled.
-        </p>
-      )}
-    </Link>
+        <span className="text-ink-primary/30">→</span>
+      </Link>
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onHide(); }}
+        className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-ink-primary/35 hover:text-ink-primary/70 hover:bg-line-default/[0.06] transition-colors"
+        aria-label={`Hide ${row.teamName} from Home`}
+        title="Hide from Home"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
   );
 };
 

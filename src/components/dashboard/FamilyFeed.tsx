@@ -71,7 +71,10 @@ const FamilyFeed: React.FC<Props> = ({ hidden }) => {
     const teamIds: string[] = Array.isArray(userData?.teamIds) && userData.teamIds.length > 0
       ? userData.teamIds
       : (userData?.teamId ? [userData.teamId] : []);
-    return teams.filter((t) => teamIds.includes(t.id));
+    // Skip archived teams — they'd clutter the multi-team surface
+    // with rosters/schedules the user isn't actively using. Team
+    // Management can restore them if needed.
+    return teams.filter((t) => teamIds.includes(t.id) && (t as any).isActive !== false);
   }, [teams, userData?.teamIds, userData?.teamId]);
 
   const shouldRender = !hidden && userTeams.length > 1;

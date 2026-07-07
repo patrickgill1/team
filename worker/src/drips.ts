@@ -83,7 +83,7 @@ export async function runRegistrationDrips(env: DripEnv): Promise<{ ok: boolean;
       // Send + record.
       const ok = await sendDripEmail(env, {
         to: email,
-        subject: 'You started — finish your Fire FC registration',
+        subject: 'You started, finish your GoalKickr registration',
         html: incompleteRegistrationHtml(env, u.data?.name || email.split('@')[0]),
       });
       if (ok) {
@@ -96,7 +96,7 @@ export async function runRegistrationDrips(env: DripEnv): Promise<{ ok: boolean;
           clubId: u.data?.clubId,
           parentEmail: email,
           channel: 'drip_incomplete_registration',
-          subject: 'You started — finish your Fire FC registration',
+          subject: 'You started, finish your GoalKickr registration',
         });
       }
     }
@@ -257,7 +257,7 @@ function wrap(inner: string): string {
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#f0f9ff;padding:24px;">
     <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);">
       <div style="background:${NAVY};padding:20px;text-align:center;border-bottom:3px solid ${CYAN};">
-        <div style="color:#fff;font-weight:900;letter-spacing:2.5px;font-size:16px;text-transform:uppercase;">Fire FC</div>
+        <div style="color:#fff;font-weight:900;letter-spacing:2.5px;font-size:16px;text-transform:uppercase;">GoalKickr</div>
       </div>
       <div style="padding:24px;color:${NAVY};line-height:1.6;font-size:15px;">${inner}</div>
     </div>
@@ -271,7 +271,7 @@ function button(href: string, label: string): string {
 function incompleteRegistrationHtml(env: DripEnv, name: string): string {
   return wrap(`
     <h2 style="margin:0 0 12px;font-size:22px;color:${NAVY};">Hey ${name}, you're almost there!</h2>
-    <p style="margin:0 0 12px;color:#475569;">You started your Fire FC account but haven't finished registering your player yet. Takes about 90 seconds — and once you're in the pool, your coach can reach out.</p>
+    <p style="margin:0 0 12px;color:#475569;">You started your GoalKickr account but haven't finished registering your player yet. Takes about 90 seconds, and once you're in the pool, your coach can reach out.</p>
     ${button(`${env.APP_ORIGIN}/register`, 'Finish registering')}
     <p style="margin:0;font-size:13px;color:#94a3b8;">Questions? Just reply to this email.</p>
   `);

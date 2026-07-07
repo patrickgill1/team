@@ -52,12 +52,20 @@ export async function openCustomerPortal(opts: {
   try {
     // uid is required so the worker's requireSelf(uid) gate can
     // confirm the token owner matches. Without it we'd return 400.
+    //
+    // Default returnUrl points at the app host (app.goalkickr.com),
+    // NOT the marketing site. Marketing site had no /account route
+    // and Stripe's Customer Portal "return" arrow would dump the
+    // user on a 404 after they finished managing their sub. Sending
+    // them back to the app itself keeps them oriented — universal-
+    // link handoff kicks them straight into the native shell on iOS,
+    // and the web SPA renders normally on other platforms.
     const res = await workerFetch('/stripe/customer-portal', {
       method: 'POST',
       body: JSON.stringify({
         uid,
         customerId,
-        returnUrl: opts.returnUrl || `${SITE_URL}/account`,
+        returnUrl: opts.returnUrl || 'https://app.goalkickr.com/settings',
       }),
     });
     const data = await res.json().catch(() => ({} as any));

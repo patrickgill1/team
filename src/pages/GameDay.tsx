@@ -6,7 +6,7 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useFirestore } from '../hooks/useFirestore';
 import { useTeam } from '../contexts/TeamContext';
-import { isCoach, resolveSenderRole } from '../utils/helpers';
+import { isCoach, isOwner, resolveSenderRole } from '../utils/helpers';
 import GameRecapCard from '../components/gameday/GameRecapCard';
 import FormationView from '../components/gameday/FormationView';
 import {
@@ -180,7 +180,17 @@ const GameDay: React.FC = () => {
   const [now, setNow] = useState(Date.now());
   const handledWatchActionIds = useRef<Set<string>>(new Set());
 
-  const isUserCoach = userData ? isCoach(userData.role) : false;
+  // Coach authority is per-team: presence in team.coachIds is the
+  // source of truth (see reference_coach_role_model). Keep the
+  // legacy global role check + isOwner as fallbacks so this fix
+  // never TIGHTENS on any existing coach — only broadens for users
+  // whose global role is club_admin / team_manager but who are
+  // actually on this specific team's coach roster.
+  const isUserCoach = !!(userData && (
+    isCoach(userData.role)
+    || isOwner(userData)
+    || (selectedTeam?.coachIds?.includes(userData.uid) ?? false)
+  ));
 
   // 1Hz tick for clock
   useEffect(() => {

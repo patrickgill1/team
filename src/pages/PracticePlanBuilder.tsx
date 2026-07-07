@@ -301,7 +301,7 @@ const PracticePlanBuilder: React.FC = () => {
                   <li key={p.id}>
                     <button
                       onClick={() => setActiveId(p.id || null)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${activeId === p.id ? 'bg-brand-primary/15 text-charcoal-800 ring-1 ring-brand-primary-soft' : 'hover:bg-line-default/[0.05] text-ink-primary/85'}`}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeId === p.id ? 'bg-brand-primary/15 text-ink-primary ring-1 ring-brand-primary/40' : 'hover:bg-line-default/5 text-ink-primary/85'}`}
                     >
                       <div className="font-semibold truncate flex items-center gap-1.5">
                         {p.isTemplate && (
@@ -341,13 +341,13 @@ const PracticePlanBuilder: React.FC = () => {
                   <input
                     value={active.title}
                     onChange={e => update(p => ({ ...p, title: e.target.value }))}
-                    className="sm:col-span-2 px-3 py-2 rounded-xl border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-base font-bold text-ink-primary/90"
+                    className="sm:col-span-2 px-3 py-2 rounded-xl bg-surface-input border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-base font-bold text-ink-primary placeholder-ink-primary/40"
                   />
                   <input
                     type="date"
                     value={active.date || ''}
                     onChange={e => update(p => ({ ...p, date: e.target.value }))}
-                    className="px-3 py-2 rounded-xl border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-sm"
+                    className="px-3 py-2 rounded-xl bg-surface-input border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-sm text-ink-primary"
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -358,7 +358,7 @@ const PracticePlanBuilder: React.FC = () => {
                       min={15} max={180} step={5}
                       value={active.durationMin}
                       onChange={e => update(p => ({ ...p, durationMin: parseInt(e.target.value || '0', 10) }))}
-                      className="w-20 px-2 py-1 rounded border border-line-default/15 text-sm"
+                      className="w-20 px-2 py-1 rounded bg-surface-input border border-line-default/15 text-sm text-ink-primary"
                     /> <span className="text-ink-primary/50 text-sm">min</span>
                   </label>
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${totalMin > active.durationMin ? 'bg-rose-500/20 text-rose-300' : totalMin === active.durationMin ? 'bg-emerald-500/20 text-emerald-300' : 'bg-surface-base text-ink-primary/65'}`}>
@@ -378,7 +378,7 @@ const PracticePlanBuilder: React.FC = () => {
                 <div className="flex flex-wrap gap-2 print:hidden">
                   <button
                     onClick={() => setShowLibrary(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand-primary/15 hover:bg-brand-primary/20 text-brand-primary-soft rounded-lg ring-1 ring-brand-primary-soft font-semibold"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand-primary hover:bg-brand-primary-dim text-white rounded-lg font-semibold shadow-sm"
                   >
                     <AppIcon name="clipboard" className="w-4 h-4" />
                     <span>Add from library</span>
@@ -489,7 +489,7 @@ const PracticePlanBuilder: React.FC = () => {
                   onChange={e => update(p => ({ ...p, notes: e.target.value }))}
                   placeholder="Anything you want assistants/parents to know about this practice."
                   rows={3}
-                  className="mt-1.5 w-full px-3 py-2 rounded-xl border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-sm"
+                  className="mt-1.5 w-full px-3 py-2 rounded-xl bg-surface-input border border-line-default/15 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-sm text-ink-primary placeholder-ink-primary/40"
                 />
               </div>
             </div>

@@ -4,6 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { friendlyAuthError } from '../utils/authErrors';
 
+// Temporary version stamp so we can tell over screenshots which
+// bundle Patrick is actually running while iterating on the auth
+// layout. Delete once the Dynamic Island / form-fit debugging is
+// settled.
+const AUTH_DEBUG_VERSION = '3.9.111';
+
 const SimpleAuth: React.FC = () => {
   const { signIn, signUp, signInWithGoogle, signInWithApple, currentUser, userData, loading, error } = useAuth();
   const isNativePlatform = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
@@ -408,6 +414,7 @@ const SimpleAuth: React.FC = () => {
       // hardcoded height cannot be misinterpreted by any CSS
       // engine, safe-area quirk, or Capacitor viewport oddity.
       className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-6 sm:pb-16"
+      style={{ paddingTop: 60 }}
     >
       {/* Top region pure black so it blends with the native
           AppDelegate safe-area strip without a visible seam.
@@ -430,14 +437,24 @@ const SimpleAuth: React.FC = () => {
       {/* Subtle grid */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
+      {/* Temporary version stamp — bottom-right corner. Only shown
+          while we debug the Dynamic Island / form-fit issue. Lets us
+          confirm over screenshots which bundle Patrick is running.
+          Delete this block once we know we're aligned. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed bottom-2 right-2 text-[10px] font-mono text-white/25 z-50"
+      >
+        v{AUTH_DEBUG_VERSION}
+      </div>
+
       {/* Mobile-first container with better spacing */}
       <div className="relative w-full max-w-sm sm:max-w-md space-y-3 sm:space-y-9">
         {/* DYNAMIC ISLAND SPACER — hardcoded height, no calc, no
-            env(), no max(). Guaranteed 130px of vertical air above
-            the logo pill so it cannot ride into the Dynamic Island
-            no matter what Capacitor / iOS / the WebView does with
-            safe-area math. */}
-        <div style={{ height: 130 }} aria-hidden />
+            env(), no max(). Belt AND suspenders: inline style AND
+            arbitrary Tailwind class both set the same 160px.
+            Whichever the browser respects, we get clearance. */}
+        <div className="h-[160px]" style={{ height: 160, minHeight: 160 }} aria-hidden />
         {/* Logo and Header Section */}
         <div className="text-center">
           <div className="mb-3 sm:mb-6 flex justify-center">

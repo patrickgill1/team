@@ -34,6 +34,10 @@ const Navigation: React.FC = () => {
   const { userData, logout, deleteAccount } = useAuth();
   const { teams, selectedTeamId, selectedTeam, setSelectedTeamId } = useTeam();
   const { hasStore } = useClubStore((selectedTeam as any)?.clubId || null);
+  // Youth-only nav entries drop out for adult teams. Development
+  // Pathway is the current offender; more may join as the adult
+  // audience grows.
+  const isAdultTeam = (selectedTeam as any)?.audienceType === 'adult';
   const { resolved: resolvedTheme } = useTheme();
   const location = useLocation();
   // isInviteOpen state removed with the legacy modal.
@@ -209,7 +213,7 @@ const Navigation: React.FC = () => {
     { name: 'Attendance', path: '/attendance', icon: 'check', group: 'apps' },
     { name: 'Volunteers', path: '/volunteers', icon: 'handshake', group: 'apps' },
     { name: 'Directory', path: '/directory', icon: 'phone', group: 'apps' },
-    { name: 'Development', path: '/development', icon: 'chart', group: 'apps' },
+    ...(isAdultTeam ? [] : [{ name: 'Development', path: '/development', icon: 'chart' as const, group: 'apps' as const }]),
     ...(isUserCoach ? [{ name: 'Game Day', path: `/game-day/quick_${Date.now()}`, icon: 'whistle' as const, group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Practice Plan', path: '/practice-plan', icon: 'clipboard' as const, group: 'apps' as const }] : []),
     ...(isUserCoach ? [{ name: 'Surveys', path: '/surveys', icon: 'survey' as const, group: 'apps' as const }] : []),

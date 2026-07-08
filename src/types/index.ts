@@ -552,6 +552,15 @@ export interface Player {
   preferredFoot?: 'Left' | 'Right' | 'Both';
   favoritePosition?: string;
   favoritePlayer?: string;
+  /** Adult-team roster fields. Used on adult / semi-pro rosters
+   *  where players self-manage and coaches need standard scouting
+   *  info. Hidden entirely on youth teams. */
+  secondaryPosition?: string;
+  heightCm?: number;
+  /** Free-text club history (semi-pro / rec adults often care about
+   *  this for team-selection context). Bounded to 4 entries in the
+   *  UI to avoid a wall of text. */
+  pastClubs?: string[];
   /** When this kid first joined the club. Falls back to createdAt
    *  for legacy players. */
   joinedAt?: Date;
@@ -1520,6 +1529,20 @@ export interface CalendarEvent {
    *  prompts after the event. Examples: first touch, confidence,
    *  defending, finishing. */
   developmentFocus?: string;
+  /** Post-match player ratings (adult teams). Coach or captain gives
+   *  a 1-10 grade per player after the final whistle. Keyed by
+   *  playerId. Optional per-player note (short). Never surfaces on
+   *  youth teams. Shows up in Match Center → post-match sheet + on
+   *  the player's stats page as season-form average. */
+  playerRatings?: Record<string, {
+    playerId: string;
+    playerName: string;
+    rating: number;
+    note?: string;
+    ratedBy: string;
+    ratedByName?: string;
+    ratedAt: any;
+  }>;
   /** Private parent/player post-event feedback, keyed by playerId
    *  then submitter uid. Visible to coaches; not posted to chat/wall. */
   playerFeedback?: Record<string, Record<string, {
@@ -1655,6 +1678,16 @@ export interface Team {
    *  club-scope chat threads, team store, ClubOverview scoping. Teams
    *  with no clubId are personal/standalone (e.g. an adult pickup). */
   clubId?: string;
+  /** Who plays on this team. Drives copy, hidden surfaces, and
+   *  available features across the app:
+   *  - 'youth' (default, and legacy) → parent-facing surfaces on,
+   *    Player Circle / Whispers / Development Pathway visible, DOB
+   *    surfaced as age band (U8, U10, etc.).
+   *  - 'adult' → parent-facing surfaces hidden, player IS the account,
+   *    adult roster fields (position, foot, past clubs) unlocked,
+   *    availability polling + post-match ratings enabled.
+   *  Absent = 'youth' so the entire existing base stays intact. */
+  audienceType?: 'youth' | 'adult';
   /** Standard match format — used to size the field + decide how many
    *  players auto-place into the lineup. Defaults to '7v7' if unset. */
   format?: GameFormat;

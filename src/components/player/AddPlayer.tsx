@@ -7,6 +7,7 @@ import { useTeam } from '../../contexts/TeamContext';
 import { useFirestore } from '../../hooks/useFirestore';
 import { getShareOrigin } from '../../utils/origin';
 import { parseDobInput, formatDobInput } from '../../utils/dobDate';
+import { useTeamAudience } from '../../hooks/useTeamAudience';
 
 interface AddPlayerProps {
   isOpen: boolean;
@@ -33,6 +34,12 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
   const { userData } = useAuth();
   const { selectedTeamId, teams } = useTeam();
   const { addPlayer, updatePlayer } = useFirestore();
+
+  // Adult vs youth flavor of the form. Team-level audience beats the
+  // per-player "adult" toggle: an adult team's roster is always
+  // adult, no toggle needed. isYouth = show parent-email row + the
+  // "my kid" shortcut. isAdultTeam = show position/foot/past clubs
+  // and swap the email row to a player-email single field.
   const [targetTeamId, setTargetTeamId] = useState(selectedTeamId);
   // ALL teams the user is allowed to see for the share/move picker.
   // Defaults to the user's teams (from TeamContext), but when the
@@ -93,6 +100,12 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
     return () => { cancelled = true; };
   }, [isOpen, userData, teams, selectedTeamId]);
 
+  // Look up the audience of the *target* team, not the currently
+  // selected team, so a coach who's in the create-modal for a
+  // different team gets the right form flavor.
+  const targetTeam = teams.find(t => t.id === (targetTeamId || selectedTeamId));
+  const { isAdult: isAdultTeam } = useTeamAudience(targetTeam);
+
   const [formData, setFormData] = useState({
     name: '',
     jerseyNumber: '',
@@ -102,14 +115,25 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
     positions: ['Midfielder'] as string[],
     parentEmails: [''],
     dateOfBirth: '',
-    medicalInfo: ''
+    medicalInfo: '',
+    // Adult roster fields — only shown when the target team is adult.
+    secondaryPosition: '',
+    preferredFoot: '' as '' | 'Left' | 'Right' | 'Both',
+    heightCm: '',
+    pastClubs: [] as string[],
   });
   // Adult-team mode: the player IS the user (no parent layer).
   // Drives `isAdultPlayer` on the player doc + flips the invite to
-  // a self-signup link.
+  // a self-signup link. Seeds true when the *team* is adult so a
+  // brand-new player on an adult team never gets wrongly saved as
+  // youth. Team-audience always wins; the manual toggle is only
+  // visible on youth teams (edge case for mixed rosters).
   const [isAdultPlayer, setIsAdultPlayer] = useState<boolean>(
-    !!(editingPlayer as any)?.isAdultPlayer,
+    !!(editingPlayer as any)?.isAdultPlayer || isAdultTeam,
   );
+  useEffect(() => {
+    if (isAdultTeam) setIsAdultPlayer(true);
+  }, [isAdultTeam]);
   // "This player is my kid" — coach-only shortcut that links the
   // coach as a parent alongside their coaching role, so they get
   // parent-side surfaces (dev plan, media notifs, chat replies) on
@@ -271,7 +295,11 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                   : new Date(editingPlayer.dateOfBirth as any)
             )
           : '',
-        medicalInfo: editingPlayer.medicalInfo || ''
+        medicalInfo: editingPlayer.medicalInfo || '',
+        secondaryPosition: (editingPlayer as any).secondaryPosition || '',
+        preferredFoot: ((editingPlayer as any).preferredFoot as any) || '',
+        heightCm: (editingPlayer as any).heightCm ? String((editingPlayer as any).heightCm) : '',
+        pastClubs: Array.isArray((editingPlayer as any).pastClubs) ? (editingPlayer as any).pastClubs : [],
       });
       setTargetTeamId(editingPlayer.teamId || selectedTeamId);
       setProfilePhotoPreview(editingPlayer.profilePhotoUrl || '');
@@ -285,7 +313,11 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         positions: ['Midfielder'],
         parentEmails: [''],
         dateOfBirth: '',
-        medicalInfo: ''
+        medicalInfo: '',
+        secondaryPosition: '',
+        preferredFoot: '',
+        heightCm: '',
+        pastClubs: [],
       });
       setProfilePhotoPreview('');
       setIsMyKid(false);
@@ -461,6 +493,14 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         teamIds: newTeamIds,
         isActive: true,
         isAdultPlayer: isAdultPlayer || undefined,
+        // Adult-only roster fields. Trimmed/coerced here so an adult
+        // team that captures them writes clean data, and a youth team
+        // (where these inputs never render) never puts them on the
+        // player doc.
+        secondaryPosition: isAdultTeam && formData.secondaryPosition.trim() ? formData.secondaryPosition.trim() : undefined,
+        preferredFoot: isAdultTeam && formData.preferredFoot ? formData.preferredFoot : undefined,
+        heightCm: isAdultTeam && formData.heightCm.trim() ? Number(formData.heightCm) : undefined,
+        pastClubs: isAdultTeam && formData.pastClubs.length > 0 ? formData.pastClubs.filter(c => !!c.trim()).map(c => c.trim()).slice(0, 4) : undefined,
         profilePhotoUrl: profilePhotoUrl,
         updatedAt: new Date(),
         stats: editingPlayer?.stats || createDefaultStats(),
@@ -845,30 +885,97 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             {errors.dateOfBirth && <p className="text-rose-300 text-sm mt-1">{errors.dateOfBirth}</p>}
           </div>
 
-          {/* Adult-team mode toggle. When on, the player IS the user
-              (no parent layer). Flips invite to self-signup and the
-              parent-email row label below. Patrick 2026-06-26 — for
-              the Saturday pickup wedge. */}
-          <label className="flex items-start gap-2 p-3 rounded-lg ring-1 ring-line-default/10 bg-surface-base cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isAdultPlayer}
-              onChange={(e) => setIsAdultPlayer(e.target.checked)}
-              disabled={isSubmitting}
-              className="mt-0.5 accent-brand-primary"
-            />
-            <div className="flex-1">
-              <div className="text-sm font-bold text-ink-primary">Adult player (no parent)</div>
-              <div className="text-[11px] text-ink-primary/55 mt-0.5">
-                Pickup leagues, over-35s, adult rec teams. The invite goes to the player themself; they sign up and manage their own profile.
+          {/* Adult-team roster fields — only shown when the target
+              team's audienceType is 'adult'. Semi-pro, over-35, and
+              any other adult club expects these instead of parent
+              details. */}
+          {isAdultTeam && (
+            <div className="rounded-xl bg-surface-input ring-1 ring-line-default/10 p-3 space-y-3">
+              <p className="text-[10px] font-black tracking-widest uppercase text-brand-primary-soft">Adult roster details</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-ink-primary/75 mb-1">Secondary position</label>
+                  <input
+                    type="text"
+                    value={formData.secondaryPosition}
+                    onChange={(e) => setFormData({ ...formData, secondaryPosition: e.target.value })}
+                    className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/10 rounded-lg text-sm"
+                    placeholder="e.g. LB, CDM"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-primary/75 mb-1">Dominant foot</label>
+                  <div className="inline-flex items-center bg-surface-base ring-1 ring-line-default/10 rounded-full p-0.5">
+                    {(['Left', 'Right', 'Both'] as const).map(f => (
+                      <button
+                        type="button"
+                        key={f}
+                        onClick={() => setFormData({ ...formData, preferredFoot: formData.preferredFoot === f ? '' : f })}
+                        className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                          formData.preferredFoot === f ? 'bg-brand-primary text-white' : 'text-ink-primary/65'
+                        }`}
+                        disabled={isSubmitting}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-primary/75 mb-1">Height (cm)</label>
+                  <input
+                    type="number"
+                    min={100}
+                    max={230}
+                    value={formData.heightCm}
+                    onChange={(e) => setFormData({ ...formData, heightCm: e.target.value })}
+                    className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/10 rounded-lg text-sm"
+                    placeholder="e.g. 178"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-ink-primary/75 mb-1">Past clubs (up to 4)</label>
+                  <textarea
+                    value={formData.pastClubs.join('\n')}
+                    onChange={(e) => setFormData({ ...formData, pastClubs: e.target.value.split('\n').slice(0, 4) })}
+                    className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/10 rounded-lg text-sm resize-none"
+                    rows={3}
+                    placeholder={'One per line, e.g.\nReal Salt Lake U23\nUtah United'}
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
             </div>
-          </label>
+          )}
+
+          {/* Manual "adult player" toggle — only useful on a youth
+              team hosting an occasional adult (rare). Hidden when the
+              whole team is already adult since the toggle is
+              effectively always-on there. */}
+          {!isAdultTeam && (
+            <label className="flex items-start gap-2 p-3 rounded-lg ring-1 ring-line-default/10 bg-surface-base cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isAdultPlayer}
+                onChange={(e) => setIsAdultPlayer(e.target.checked)}
+                disabled={isSubmitting}
+                className="mt-0.5 accent-brand-primary"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-bold text-ink-primary">Adult player (no parent)</div>
+                <div className="text-[11px] text-ink-primary/55 mt-0.5">
+                  Pickup leagues, over-35s, adult rec teams. The invite goes to the player themself; they sign up and manage their own profile.
+                </div>
+              </div>
+            </label>
+          )}
 
           {/* This player is my kid — coach-only shortcut. Hides on
               adult teams (the player IS the user there) and for
               users who aren't coaches on the target team. */}
-          {!isAdultPlayer && userData && (
+          {!isAdultPlayer && !isAdultTeam && userData && (
             <div className="rounded-xl bg-surface-input ring-1 ring-line-default/10 p-3">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -890,10 +997,10 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
             </div>
           )}
 
-          {/* Parent Emails */}
+          {/* Parent / player Emails */}
           <div>
             <label className="block text-sm font-medium text-ink-primary/80 mb-1">
-              {isAdultPlayer ? 'Player Email (Optional)' : 'Parent Email Addresses (Optional)'}
+              {(isAdultPlayer || isAdultTeam) ? 'Player Email (Optional)' : 'Parent Email Addresses (Optional)'}
             </label>
             <div className="space-y-2">
               {formData.parentEmails.map((email, index) => (
@@ -931,7 +1038,7 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
                 disabled={isSubmitting}
                 className="mt-2 text-brand-primary-soft hover:text-brand-primary-soft text-sm font-medium disabled:opacity-50"
               >
-                + Add another parent email
+                + Add another {(isAdultPlayer || isAdultTeam) ? 'email' : 'parent email'}
               </button>
             )}
 

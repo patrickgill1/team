@@ -41,6 +41,10 @@ const TeamManagement: React.FC = () => {
   const [teamFormat, setTeamFormat] = useState<'7v7' | '9v9' | '11v11'>('7v7');
   const [teamHomeKit, setTeamHomeKit] = useState('');
   const [teamAwayKit, setTeamAwayKit] = useState('');
+  // Adult vs youth switch — drives Player Circle / Whispers /
+  // Development Pathway visibility on this team's surfaces + swaps
+  // the roster field set (adult adds position/foot/past clubs).
+  const [teamAudience, setTeamAudience] = useState<'youth' | 'adult'>('youth');
 
   // Coach invite form
   // inviteEmail / inviteLevel / inviteLink / linkCopied state
@@ -150,6 +154,7 @@ const TeamManagement: React.FC = () => {
           season: teamSeason.trim(),
           ageGroup: teamAgeGroup.trim(),
           format: teamFormat,
+          audienceType: teamAudience,
         }),
       });
       const data: any = await res.json().catch(() => ({}));
@@ -164,6 +169,7 @@ const TeamManagement: React.FC = () => {
       if (teamHomeField.trim()) extras.homeField = teamHomeField.trim();
       if (teamHomeKit.trim()) extras.homeKitColor = teamHomeKit.trim();
       if (teamAwayKit.trim()) extras.awayKitColor = teamAwayKit.trim();
+      if (teamAudience === 'adult') extras.audienceType = 'adult';
       if (Object.keys(extras).length > 1) {
         await updateDocument('teams', newTeamId, extras).catch(() => undefined);
       }
@@ -191,6 +197,7 @@ const TeamManagement: React.FC = () => {
         format: teamFormat,
         homeKitColor: teamHomeKit.trim() || undefined,
         awayKitColor: teamAwayKit.trim() || undefined,
+        audienceType: teamAudience,
       });
       resetForm();
       setEditingTeam(null);
@@ -292,6 +299,7 @@ const TeamManagement: React.FC = () => {
     setTeamFormat((team as any).format || '7v7');
     setTeamHomeKit(team.homeKitColor || '');
     setTeamAwayKit(team.awayKitColor || '');
+    setTeamAudience(team.audienceType === 'adult' ? 'adult' : 'youth');
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -382,6 +390,7 @@ const TeamManagement: React.FC = () => {
     setTeamFormat('7v7');
     setTeamHomeKit('');
     setTeamAwayKit('');
+    setTeamAudience('youth');
     setEditingTeam(null);
   };
 
@@ -751,6 +760,28 @@ const TeamManagement: React.FC = () => {
                       ))}
                     </div>
                     <p className="text-xs text-ink-primary/50 mt-1">Drives the formation field size + default player positions in the live tracker.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-ink-primary/85 mb-1">Who plays on this team?</label>
+                    <div className="inline-flex items-center bg-line-default/[0.08] ring-1 ring-line-default/10 rounded-full p-0.5">
+                      {(['youth', 'adult'] as const).map((a) => (
+                        <button
+                          type="button"
+                          key={a}
+                          onClick={() => setTeamAudience(a)}
+                          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition ${
+                            teamAudience === a ? 'bg-brand-primary text-white shadow-sm' : 'text-ink-primary/65 hover:text-ink-primary'
+                          }`}
+                        >
+                          {a}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-ink-primary/50 mt-1">
+                      {teamAudience === 'adult'
+                        ? 'Adult roster: players self-manage, no parent layer. Hides Player Circle, Whispers, and Development Pathway. Shows position/foot/past clubs on the roster.'
+                        : 'Kids and families. Full family features: Player Circle for guardians, Whispers, Development Pathway, age-band awareness.'}
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

@@ -541,6 +541,7 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
   const requestedClubId = payload?.clubId ? String(payload.clubId) : '';
   const withDefaultClub = payload?.withDefaultClub === true;
   const format = ['7v7', '9v9', '11v11'].includes(String(payload?.format)) ? String(payload.format) : '7v7';
+  const audienceType = payload?.audienceType === 'adult' ? 'adult' : undefined;
 
   const teamFields: Record<string, any> = {
     name,
@@ -555,6 +556,7 @@ async function handleTeamsCreate(req: Request, env: Env, payload: any): Promise<
     createdAt: new Date(),
     createdBy: claims.uid,
   };
+  if (audienceType) teamFields.audienceType = audienceType;
   if (requestedClubId) teamFields.clubId = requestedClubId;
 
   const teamId = payload?.desiredId ? String(payload.desiredId).slice(0, 60) : undefined;

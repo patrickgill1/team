@@ -901,13 +901,17 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
       ctx.waitUntil(
         runAdminWeeklyRoundup(env).then(r => console.log('[cron] admin roundup', JSON.stringify(r)))
       );
-      // Weekly 'This Week' summary post to each team's Team Wall.
-      ctx.waitUntil(
-        runWeeklyTeamWallDigest(env).then(r => console.log('[cron] team-wall weekly', JSON.stringify(r)))
-      );
     } else if (cron === '0 16 * * *') {
       ctx.waitUntil(
         runRegistrationDrips(env).then(r => console.log('[cron] registration drips', JSON.stringify(r)))
+      );
+      // Daily 9am MDT tick for the Team Wall weekly summary. Reads
+      // each team's wallDigestConfig — fires only for opt-in teams
+      // whose configured day matches today's day-of-week in the
+      // club tz. Skips Sundays only when the coach picked another
+      // day (they can also opt into Sunday if they want).
+      ctx.waitUntil(
+        runWeeklyTeamWallDigest(env).then(r => console.log('[cron] team-wall daily tick', JSON.stringify(r)))
       );
     } else if (cron === '*/5 * * * *') {
       // Campaign tick — only does work when scheduled campaigns are

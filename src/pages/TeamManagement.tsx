@@ -46,6 +46,11 @@ const TeamManagement: React.FC = () => {
   // the roster field set (adult adds position/foot/past clubs).
   const [teamAudience, setTeamAudience] = useState<'youth' | 'adult'>('youth');
   const [teamPublicFixtures, setTeamPublicFixtures] = useState<boolean>(false);
+  // Weekly Team Wall summary — coach opts in per team, picks the
+  // day. Default OFF so quiet teams stay quiet and Sunday-observing
+  // families never get a surprise post on the Sabbath.
+  const [teamDigestEnabled, setTeamDigestEnabled] = useState<boolean>(false);
+  const [teamDigestDay, setTeamDigestDay] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(1);
 
   // Coach invite form
   // inviteEmail / inviteLevel / inviteLink / linkCopied state
@@ -200,6 +205,9 @@ const TeamManagement: React.FC = () => {
         awayKitColor: teamAwayKit.trim() || undefined,
         audienceType: teamAudience,
         publicFixturesEnabled: teamPublicFixtures,
+        wallDigestConfig: teamDigestEnabled
+          ? { enabled: true, dayOfWeek: teamDigestDay }
+          : { enabled: false, dayOfWeek: teamDigestDay },
       });
       resetForm();
       setEditingTeam(null);
@@ -303,6 +311,8 @@ const TeamManagement: React.FC = () => {
     setTeamAwayKit(team.awayKitColor || '');
     setTeamAudience(team.audienceType === 'adult' ? 'adult' : 'youth');
     setTeamPublicFixtures(team.publicFixturesEnabled === true);
+    setTeamDigestEnabled((team as any).wallDigestConfig?.enabled === true);
+    setTeamDigestDay(((team as any).wallDigestConfig?.dayOfWeek ?? 1) as any);
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -395,6 +405,8 @@ const TeamManagement: React.FC = () => {
     setTeamAwayKit('');
     setTeamAudience('youth');
     setTeamPublicFixtures(false);
+    setTeamDigestEnabled(false);
+    setTeamDigestDay(1);
     setEditingTeam(null);
   };
 
@@ -807,6 +819,57 @@ const TeamManagement: React.FC = () => {
                         )}
                       </span>
                     </label>
+                  </div>
+                  <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={teamDigestEnabled}
+                        onChange={(e) => setTeamDigestEnabled(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-bold text-ink-primary">Weekly Team Wall summary</span>
+                        <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                          A single 'This Week' post auto-writes to your Team Wall on the day you pick, summarizing games (W/L/D), Player of the Match winners, new clips, and milestones. Quiet weeks skip themselves.
+                        </span>
+                      </span>
+                    </label>
+                    {teamDigestEnabled && (
+                      <div className="mt-3 pl-7">
+                        <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-1.5">Post it on</p>
+                        <div className="inline-flex flex-wrap items-center bg-line-default/[0.08] ring-1 ring-line-default/10 rounded-full p-0.5 gap-0.5">
+                          {([
+                            { d: 1, label: 'Mon' },
+                            { d: 2, label: 'Tue' },
+                            { d: 3, label: 'Wed' },
+                            { d: 4, label: 'Thu' },
+                            { d: 5, label: 'Fri' },
+                            { d: 6, label: 'Sat' },
+                            { d: 0, label: 'Sun' },
+                          ] as const).map(({ d, label }) => (
+                            <button
+                              type="button"
+                              key={d}
+                              onClick={() => setTeamDigestDay(d as any)}
+                              className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full transition ${
+                                teamDigestDay === d
+                                  ? 'bg-brand-primary text-white shadow-sm'
+                                  : 'text-ink-primary/65 hover:text-ink-primary'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {teamDigestDay === 0 && (
+                          <p className="mt-2 text-[11px] text-amber-300/85">
+                            Heads up: Sunday can be a quiet day for families who keep the Sabbath. Consider Monday or Friday.
+                          </p>
+                        )}
+                        <p className="mt-2 text-[10px] text-ink-primary/45">Fires around 9am team-local time.</p>
+                      </div>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

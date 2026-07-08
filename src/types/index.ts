@@ -1696,6 +1696,17 @@ export interface Team {
    *  world-readable; adult / semi-pro teams flip it for scouts &
    *  fans. */
   publicFixturesEnabled?: boolean;
+  /** Coach control over the automatic 'This Week' summary post the
+   *  worker writes to Team Wall. OPT-IN by default (undefined /
+   *  enabled=false → no digest). Coach picks the day of week when it
+   *  fires (0=Sun … 6=Sat). Sunday-avoiding memory means the UI
+   *  should NEVER default to Sunday for religious families; the
+   *  picker exposes the option only if the coach explicitly wants
+   *  it. Hour is fixed at 9am team-local for simplicity. */
+  wallDigestConfig?: {
+    enabled: boolean;
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  };
   /** Standard match format — used to size the field + decide how many
    *  players auto-place into the lineup. Defaults to '7v7' if unset. */
   format?: GameFormat;

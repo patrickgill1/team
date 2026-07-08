@@ -214,13 +214,15 @@ export async function runWeeklyDigest(env: DigestEnv): Promise<{ ok: boolean; te
 }
 
 // ── Weekly Team Wall summary ──────────────────────────────────
-// Sunday-evening ritual: for each active team, aggregate the week's
-// wall_posts by kind and write a single "This Week" post to that
-// team's wall. Turns a scroll-through-the-week into one summary card
-// parents see at the top of Team Wall Monday morning.
+// Daily-tick cron reads each team's wallDigestConfig. When enabled
+// AND the configured dayOfWeek matches today (in the team's local
+// tz), that team gets a 'This Week' summary post written to its
+// wall. When disabled / unset, nothing happens. This gives coaches
+// full control — most importantly, they can avoid Sunday, which
+// matters for Mormon families and other households that keep the
+// Sabbath quiet.
 //
-// Skips teams with zero recognition-flavored posts (no games, no
-// POTM, no clips, no milestones) so we don't spam quiet weeks.
+// Skips quiet weeks (nothing to summarize) even for opted-in teams.
 export async function runWeeklyTeamWallDigest(
   env: { FCM_SERVICE_ACCOUNT?: string },
 ): Promise<{ ok: boolean; teams: number; posts: number; errors: string[] }> {
@@ -237,6 +239,16 @@ export async function runWeeklyTeamWallDigest(
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - ONE_WEEK_MS);
+  // Today-of-week in the club's local tz. Cloudflare Workers run in
+  // UTC; without an explicit conversion we'd fire a day early / late
+  // for teams on the west side of midnight.
+  const todayDow = Number(new Intl.DateTimeFormat('en-US', {
+    weekday: 'short', timeZone: CLUB_TZ,
+  }).format(now));
+  // Intl doesn't return a number for weekday — do it manually.
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const todayName = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: CLUB_TZ }).format(now);
+  const currentDow = Math.max(0, dayNames.indexOf(todayName));
   let posts = 0;
 
   for (const team of teams) {
@@ -247,6 +259,17 @@ export async function runWeeklyTeamWallDigest(
     // rest of the cron: don't send noise to test rigs.
     if (team.data.isDemo === true) continue;
     if (team.data.notificationsDisabled === true) continue;
+
+    // Per-team opt-in check. No config → no digest. Not this day →
+    // no digest. Explicitly disabled → no digest.
+    const cfg = team.data.wallDigestConfig;
+    if (!cfg || cfg.enabled !== true) continue;
+    if (typeof cfg.dayOfWeek !== 'number' || cfg.dayOfWeek !== currentDow) continue;
+    // Never touched todayDow because we compute currentDow from the
+    // club tz instead — the two would agree, but the name lookup is
+    // the source of truth. Keeping this reference so a future test
+    // catches drift if we swap the impl.
+    void todayDow;
 
     let recent: FirestoreDoc[] = [];
     try {

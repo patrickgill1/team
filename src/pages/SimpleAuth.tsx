@@ -319,6 +319,8 @@ const SimpleAuth: React.FC = () => {
           kicker="For coaches"
           title="You're the person these kids remember."
           body="Live gameday tracker, POTM crowns, one-tap tagging, a drill library, and a wall that turns each game into a story your team scrolls Monday morning."
+          mockup="/recap.jpg"
+          mockupAlt="Full-time game recap card on Team Wall"
         />
         <TeaserSlide
           src="/hero/friends.jpg"
@@ -326,6 +328,8 @@ const SimpleAuth: React.FC = () => {
           kicker="For parents"
           title="Your kid's season, from anywhere."
           body="Tagged clips push to your phone. RSVP once. See the game recap the moment the whistle blows. When you can't be there, you're still there."
+          mockup="/wall.jpg"
+          mockupAlt="Team Wall feed showing game recap and POTM award"
         />
         <TeaserSlide
           src="/hero/training.jpg"
@@ -333,6 +337,8 @@ const SimpleAuth: React.FC = () => {
           kicker="For growth"
           title="Every day the kid gets a little better."
           body="Practice streaks (with a rest day if your family keeps one), development plans, a drill library that plays inline. Not just a schedule. A path."
+          mockup="/potm.jpg"
+          mockupAlt="Player of the Match crown card"
         />
 
         {/* Bottom CTA repeats so scrollers don't hunt for it. Same
@@ -775,20 +781,23 @@ const SimpleAuth: React.FC = () => {
 
 // Teaser slide — full viewport per section, cinematic. Photo fills
 // the entire slide; copy sits ~60% down the frame over a soft scrim.
-// Each slide reads as its own PAGE, not a card on a scroll. Apple
-// product-page rhythm, not a Facebook feed.
+// When a mockup is provided, it floats above the copy as a
+// screenshot-in-a-device-frame, so the visitor sees the real UI
+// alongside the photo. Apple product-page rhythm, not a Facebook feed.
 const TeaserSlide: React.FC<{
   src: string;
   alt: string;
   kicker: string;
   title: string;
   body: string;
+  mockup?: string;
+  mockupAlt?: string;
   reversed?: boolean;
-}> = ({ src, alt, kicker, title, body }) => (
+}> = ({ src, alt, kicker, title, body, mockup, mockupAlt }) => (
   <section className="relative overflow-hidden bg-charcoal-950">
     <div
       className="relative flex flex-col justify-end"
-      style={{ minHeight: '85svh' }}
+      style={{ minHeight: '95svh' }}
     >
       <img
         src={src}
@@ -798,11 +807,36 @@ const TeaserSlide: React.FC<{
       />
       {/* Cinematic scrim — light in the top third, heavy at the
           bottom half so copy has serious contrast without darkening
-          the emotional beat of the photo. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/85 pointer-events-none" aria-hidden />
-      <div className="relative px-6 pb-16 sm:pb-20 pt-16 max-w-2xl mx-auto text-white">
+          the emotional beat of the photo. Heavier when a mockup is
+          floating over the frame so it doesn't feel washed out. */}
+      <div className={`absolute inset-0 pointer-events-none ${
+        mockup
+          ? 'bg-gradient-to-b from-black/50 via-black/40 to-black/90'
+          : 'bg-gradient-to-b from-black/20 via-black/25 to-black/85'
+      }`} aria-hidden />
+
+      {/* Mockup — floats mid-slide as a phone-shaped screenshot with
+          a light chrome (rounded corners, subtle white ring, dark
+          drop shadow). Positioned above the copy so the visitor's
+          eye lands on the actual UI before the pitch. */}
+      {mockup && (
+        <div className="relative pt-10 sm:pt-16 flex justify-center px-6">
+          <div className="relative w-[70%] max-w-[280px] sm:max-w-[320px] rounded-[32px] overflow-hidden ring-1 ring-white/15 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+            <img
+              src={mockup}
+              alt={mockupAlt || ''}
+              className="block w-full h-auto"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className={`relative px-6 max-w-2xl mx-auto text-white ${
+        mockup ? 'pb-12 sm:pb-16 pt-8' : 'pb-16 sm:pb-20 pt-16'
+      }`}>
         <p className="text-[10px] font-black tracking-[0.35em] uppercase text-brand-primary-soft drop-shadow-lg mb-3">{kicker}</p>
-        <h2 className="text-[28px] sm:text-4xl font-black leading-[1.1] tracking-tight drop-shadow-lg mb-4 max-w-xl">
+        <h2 className="text-[26px] sm:text-4xl font-black leading-[1.1] tracking-tight drop-shadow-lg mb-4 max-w-xl">
           {title}
         </h2>
         <p className="text-[15px] sm:text-base text-white/85 leading-relaxed drop-shadow max-w-md">

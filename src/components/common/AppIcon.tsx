@@ -251,19 +251,17 @@ const CUSTOM_PATHS: Partial<Record<AppIconName, React.ReactNode>> = {
   club: (
     <path d="M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.294 -2.333 5.588c0 3.704 3.134 6.706 7 6.706c3.866 0 7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235" />
   ),
-  // Custom monoline corner flag: vertical pole, triangular flag
-  // pointing right at the top, and a shallow corner-arc at the base
-  // suggesting the touchline. Signature icon for The Sideline —
-  // captures both the sideline location (the arc curving in from
-  // the corner of the pitch) and the goal-celebration moment (the
-  // flag players run to after scoring). Used as the middle bottom
-  // tab so The Sideline reads as the app's cultural anchor.
+  // Signature Sideline icon — corner flag with solid triangular
+  // banner, pole, and corner-arc where the touchlines meet. Author'd
+  // in Illustrator on a 14.63-unit grid; scaled up 1.6404x here so it
+  // fills the shared 24x24 viewBox the wrapper SVG uses. Filled fill
+  // (not stroke) so the middle tab reads visually heavier than its
+  // outline neighbors — matches the Instagram-Reels middle-tab
+  // pattern where the center icon is the app's cultural anchor.
   sideline: (
-    <>
-      <path d="M11 4 L11 17" />
-      <path d="M11 4 L19 6 L11 9 Z" />
-      <path d="M3 20 Q 12 15 21 20" />
-    </>
+    <g transform="scale(1.6404)" fill="currentColor" stroke="none">
+      <path d="M13.68,14.48l-2.96-2.96c-.5.27-1.03.48-1.59.63-1.26.33-2.57.31-3.83-.06-.37-.11-.72-.24-1.06-.41l-.33-.17-2.95,2.95c-.22.22-.59.21-.8,0-.21-.22-.21-.57,0-.79l.46-.46,5.05-5.05,1.08-1.08V.56c0-.15.07-.29.16-.39.18-.18.45-.23.67-.11l.33.19,1.03.62,1.17.71,1.23.74c.16.1.26.25.27.43.02.23-.08.43-.28.55l-1.06.64-2.4,1.44v1.7s4.93,4.93,4.93,4.93l1.68,1.67c.12.13.17.31.14.49-.03.18-.14.34-.32.42-.2.09-.46.06-.62-.1Z" />
+    </g>
   ),
 };
 

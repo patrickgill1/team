@@ -9,7 +9,7 @@
  * Then emails one digest per parent of the team.
  */
 
-import { runQuery, listDocuments, FirestoreDoc } from './firestore';
+import { runQuery, listDocuments, createDocument, FirestoreDoc } from './firestore';
 import { parseServiceAccount, type ServiceAccount } from './fcm';
 
 interface DigestEnv {
@@ -211,4 +211,142 @@ export async function runWeeklyDigest(env: DigestEnv): Promise<{ ok: boolean; te
   }
 
   return { ok: errors.length === 0, teams: teams.length, emails: totalEmails, errors };
+}
+
+// ── Weekly Team Wall summary ──────────────────────────────────
+// Sunday-evening ritual: for each active team, aggregate the week's
+// wall_posts by kind and write a single "This Week" post to that
+// team's wall. Turns a scroll-through-the-week into one summary card
+// parents see at the top of Team Wall Monday morning.
+//
+// Skips teams with zero recognition-flavored posts (no games, no
+// POTM, no clips, no milestones) so we don't spam quiet weeks.
+export async function runWeeklyTeamWallDigest(
+  env: { FCM_SERVICE_ACCOUNT?: string },
+): Promise<{ ok: boolean; teams: number; posts: number; errors: string[] }> {
+  const errors: string[] = [];
+  if (!env.FCM_SERVICE_ACCOUNT) return { ok: false, teams: 0, posts: 0, errors: ['no-service-account'] };
+  let sa: ServiceAccount;
+  try { sa = parseServiceAccount(env.FCM_SERVICE_ACCOUNT); } catch { return { ok: false, teams: 0, posts: 0, errors: ['invalid-service-account'] }; }
+  const projectId = sa.project_id;
+
+  const teams = await listDocuments(projectId, 'teams', sa, 200).catch(e => {
+    errors.push(`teams: ${e.message}`);
+    return [];
+  });
+
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - ONE_WEEK_MS);
+  let posts = 0;
+
+  for (const team of teams) {
+    const teamId = team.id;
+    // Skip archived teams — their wall doesn't need weekly noise.
+    if (team.data.isActive === false) continue;
+    // Skip demo / notifications-disabled teams — same reason as the
+    // rest of the cron: don't send noise to test rigs.
+    if (team.data.isDemo === true) continue;
+    if (team.data.notificationsDisabled === true) continue;
+
+    let recent: FirestoreDoc[] = [];
+    try {
+      recent = await runQuery(projectId, 'wall_posts', [
+        { field: 'teamId', op: 'EQUAL', value: teamId },
+        { field: 'timestamp', op: 'GREATER_THAN_OR_EQUAL', value: weekAgo },
+      ], sa, 200);
+    } catch (e: any) {
+      errors.push(`team ${teamId} wall query: ${e?.message || e}`);
+      continue;
+    }
+
+    // Split by postedFrom so the summary can call out what actually
+    // happened this week — vs. dumping a raw post count.
+    const games: FirestoreDoc[] = [];
+    const potms: FirestoreDoc[] = [];
+    const clips: FirestoreDoc[] = [];
+    const milestones: FirestoreDoc[] = [];
+    for (const p of recent) {
+      const kind = String(p.data.postedFrom || 'wall');
+      if (kind === 'game') games.push(p);
+      else if (kind === 'potm') potms.push(p);
+      else if (kind === 'video') clips.push(p);
+      else if (kind === 'juggle' || kind === 'devplan') milestones.push(p);
+    }
+    const total = games.length + potms.length + clips.length + milestones.length;
+    if (total === 0) continue; // quiet week — don't post
+
+    // Tally W/L/D from recap payloads for a one-line season nugget.
+    let wins = 0, losses = 0, draws = 0;
+    for (const g of games) {
+      const outcome = g.data.recap?.outcome;
+      if (outcome === 'W') wins++;
+      else if (outcome === 'L') losses++;
+      else if (outcome === 'D') draws++;
+    }
+
+    // Coach name for author. Prefer the team's head coach; fall back
+    // to a generic 'Team Bot' style label when unavailable so the
+    // sender field never renders empty.
+    const senderId = String(team.data.headCoachId || 'team-wall-bot');
+    const senderName = 'GoalKickr';
+    const teamName = String(team.data.name || 'Team');
+
+    const lines: string[] = [];
+    lines.push(`## This Week · ${teamName}`);
+    lines.push('');
+    const bits: string[] = [];
+    if (games.length > 0) {
+      const wld = [
+        wins > 0 ? `${wins}W` : '',
+        losses > 0 ? `${losses}L` : '',
+        draws > 0 ? `${draws}D` : '',
+      ].filter(Boolean).join(' · ');
+      bits.push(`**${games.length} game${games.length === 1 ? '' : 's'}**${wld ? ` (${wld})` : ''}`);
+    }
+    if (potms.length > 0) {
+      const names = potms
+        .map(p => p.data.potmResult?.playerName)
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(', ');
+      bits.push(names
+        ? `**Player${potms.length === 1 ? '' : 's'} of the Match:** ${names}`
+        : `${potms.length} POTM crown${potms.length === 1 ? '' : 's'}`);
+    }
+    if (clips.length > 0) bits.push(`**${clips.length} new clip${clips.length === 1 ? '' : 's'}**`);
+    if (milestones.length > 0) bits.push(`**${milestones.length} milestone${milestones.length === 1 ? '' : 's'}**`);
+    lines.push(bits.join('  ·  '));
+    lines.push('');
+    lines.push('_Tap Team Wall to see the whole week._');
+
+    try {
+      await createDocument(projectId, 'wall_posts', {
+        teamId,
+        content: lines.join('\n'),
+        senderId,
+        senderName,
+        senderRole: 'coach',
+        timestamp: new Date(),
+        attachments: null,
+        reactions: [],
+        wallPinnedTop: null,
+        postedFrom: 'wall',
+        category: 'announcement',
+        weeklyDigest: {
+          weekStart: weekAgo,
+          games: games.length,
+          wins, losses, draws,
+          potmCount: potms.length,
+          potmNames: potms.map(p => p.data.potmResult?.playerName).filter(Boolean).slice(0, 5),
+          clipCount: clips.length,
+          milestoneCount: milestones.length,
+        },
+      }, sa);
+      posts++;
+    } catch (e: any) {
+      errors.push(`team ${teamId} wall write: ${e?.message || e}`);
+    }
+  }
+
+  return { ok: errors.length === 0, teams: teams.length, posts, errors };
 }

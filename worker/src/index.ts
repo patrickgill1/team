@@ -33,7 +33,7 @@ import {
   authErrorResponse,
   AuthError,
 } from './auth';
-import { runWeeklyDigest } from './digest';
+import { runWeeklyDigest, runWeeklyTeamWallDigest } from './digest';
 import { runRegistrationDrips } from './drips';
 import { runAdminWeeklyRoundup } from './adminDigest';
 import {
@@ -900,6 +900,10 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
       );
       ctx.waitUntil(
         runAdminWeeklyRoundup(env).then(r => console.log('[cron] admin roundup', JSON.stringify(r)))
+      );
+      // Weekly 'This Week' summary post to each team's Team Wall.
+      ctx.waitUntil(
+        runWeeklyTeamWallDigest(env).then(r => console.log('[cron] team-wall weekly', JSON.stringify(r)))
       );
     } else if (cron === '0 16 * * *') {
       ctx.waitUntil(

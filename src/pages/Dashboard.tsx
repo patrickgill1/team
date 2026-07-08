@@ -274,7 +274,7 @@ const Dashboard: React.FC = () => {
               postedFrom: (data.postedFrom as string) || 'wall',
             };
           });
-          // Dashboard splits the Sideline feed into two derived
+          // Dashboard splits the Team Wall feed into two derived
           // surfaces: 'Announcements' (coach category posts) and
           // 'New for you' (recognition-flavored auto-posts about
           // the user's kids). We hold the full page-1 set in state
@@ -384,7 +384,7 @@ const Dashboard: React.FC = () => {
   const announcementPosts = useMemo(() => {
     return wallPosts.filter(p => (p.category || 'announcement') === 'announcement').slice(0, 5);
   }, [wallPosts]);
-  // 'New for you' surface — recognition-flavored Sideline posts about
+  // 'New for you' surface — recognition-flavored Team Wall posts about
   // the user's kids. POTM crowns, tagged clips, dev-plan milestones,
   // juggle PRs. Matched to the user's linked players by first-name
   // substring against the post content. Time-bounded to 14 days so
@@ -1140,7 +1140,7 @@ const Dashboard: React.FC = () => {
             from the last 14 days. First surface a parent sees after
             the hero, so the emotional payoff loop (POTM crown, tagged
             clip, streak milestone, dev-plan win) leads the app rather
-            than getting buried in the Sideline feed. */}
+            than getting buried in the Team Wall feed. */}
         {newForYouPosts.length > 0 && (
           <div className="bg-gradient-to-br from-brand-primary/10 via-surface-elevated to-surface-base rounded-2xl ring-1 ring-brand-primary/25 overflow-hidden shadow-lg">
             <div className="px-5 py-3 border-b border-brand-primary/10 flex items-center justify-between">
@@ -1150,7 +1150,7 @@ const Dashboard: React.FC = () => {
                 </svg>
                 New for {myPlayer?.name?.split(' ')[0] || 'you'}
               </h3>
-              <Link to="/wall" className="text-brand-primary-soft text-sm font-semibold hover:text-brand-primary">View Sideline</Link>
+              <Link to="/wall" className="text-brand-primary-soft text-sm font-semibold hover:text-brand-primary">Team Wall</Link>
             </div>
             <ul className="divide-y divide-line-default/5">
               {newForYouPosts.map(p => {

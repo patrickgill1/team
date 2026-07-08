@@ -88,7 +88,7 @@ export type AppIconName =
   | 'cone'
   | 'running'
   | 'flag'
-  | 'sideline'
+  | 'wall'
   | 'map-pin'
   | 'clock'
   | 'wrench';
@@ -144,9 +144,10 @@ const ICON_MAP: Record<AppIconName, LucideIcon> = {
   // the universal "practice/drills" cue.
   running: TrafficCone,
   flag: Flag,
-  // 'sideline' is a hand-authored monoline (corner flag + pole +
-  // corner arc). See CUSTOM_PATHS below.
-  sideline: Flag,
+  // 'wall' (Team Wall) is a hand-drawn group-of-players icon.
+  // See CUSTOM_PATHS below. Falls back to Users if custom path
+  // registration is skipped.
+  wall: Users,
   'map-pin': MapPin,
   clock: Clock,
   // Distinct from Settings (gear) — used for team-admin / setup
@@ -251,16 +252,19 @@ const CUSTOM_PATHS: Partial<Record<AppIconName, React.ReactNode>> = {
   club: (
     <path d="M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.294 -2.333 5.588c0 3.704 3.134 6.706 7 6.706c3.866 0 7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235" />
   ),
-  // Signature Sideline icon — corner flag with solid triangular
-  // banner, pole, and corner-arc where the touchlines meet. Author'd
-  // in Illustrator on a 14.63-unit grid; scaled up 1.6404x here so it
-  // fills the shared 24x24 viewBox the wrapper SVG uses. Filled fill
-  // (not stroke) so the middle tab reads visually heavier than its
-  // outline neighbors — matches the Instagram-Reels middle-tab
-  // pattern where the center icon is the app's cultural anchor.
-  sideline: (
-    <g transform="scale(1.6404)" fill="currentColor" stroke="none">
-      <path d="M13.68,14.48l-2.96-2.96c-.5.27-1.03.48-1.59.63-1.26.33-2.57.31-3.83-.06-.37-.11-.72-.24-1.06-.41l-.33-.17-2.95,2.95c-.22.22-.59.21-.8,0-.21-.22-.21-.57,0-.79l.46-.46,5.05-5.05,1.08-1.08V.56c0-.15.07-.29.16-.39.18-.18.45-.23.67-.11l.33.19,1.03.62,1.17.71,1.23.74c.16.1.26.25.27.43.02.23-.08.43-.28.55l-1.06.64-2.4,1.44v1.7s4.93,4.93,4.93,4.93l1.68,1.67c.12.13.17.31.14.49-.03.18-.14.34-.32.42-.2.09-.46.06-.62-.1Z" />
+  // Team Wall signature icon — a huddle of three players (two heads
+  // in front, one behind). Custom because Lucide's Users only shows
+  // two people and reads more like "add a contact" than "team."
+  // Filled so the middle tab reads visually heavier than its outline
+  // neighbors — same anchoring pattern Instagram uses for Reels.
+  wall: (
+    <g fill="currentColor" stroke="none">
+      <circle cx="8" cy="8" r="2.4" />
+      <circle cx="16" cy="8" r="2.4" />
+      <circle cx="12" cy="6" r="2.2" opacity="0.85" />
+      <path d="M3.5 19c0-2.6 2-4.6 4.5-4.6s4.5 2 4.5 4.6v.5H3.5v-.5z" />
+      <path d="M11.5 19c0-2.6 2-4.6 4.5-4.6s4.5 2 4.5 4.6v.5H11.5v-.5z" />
+      <path d="M7.7 15c0-2.3 1.8-4.1 4.3-4.1s4.3 1.8 4.3 4.1v.5H7.7v-.5z" opacity="0.85" />
     </g>
   ),
 };

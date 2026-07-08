@@ -165,13 +165,11 @@ const Navigation: React.FC = () => {
   const bottomTabs: Array<{ name: string; path: string; icon: import('./AppIcon').AppIconName }> = [
     { name: 'Home', path: '/dashboard', icon: 'home' },
     { name: 'Events', path: '/calendar', icon: 'calendar' },
-    // The Sideline lives in the middle — the thumb-sweet-spot on the
+    // Team Wall lives in the middle — the thumb-sweet-spot on the
     // bottom bar. This is deliberate: it's the culture spine (game
     // recaps, POTM crowns, tagged clips, votes, coach news) and its
-    // spatial position signals that. Named after the touchline where
-    // parents, coaches, and subs stand together with their team; the
-    // metaphor mirrors what this surface does digitally.
-    { name: 'Sideline', path: '/wall', icon: 'sideline' },
+    // spatial position signals that.
+    { name: 'Team Wall', path: '/wall', icon: 'wall' },
     { name: 'Chat', path: '/chat', icon: 'chat' },
     { name: 'More', path: '#more', icon: 'menu' },
   ];
@@ -203,7 +201,7 @@ const Navigation: React.FC = () => {
     })),
     { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps' },
     { name: 'Mentions', path: '/mentions', icon: 'highlight', group: 'apps' },
-    { name: 'Sideline', path: '/wall', icon: 'news', group: 'apps' },
+    { name: 'Team Wall', path: '/wall', icon: 'wall', group: 'apps' },
     // Team Store only shows when the active club has a storeUrl set.
     // Empty-state-as-nav-entry felt like clutter on clubs that don't
     // run a store. Patrick 2026-06-25.
@@ -257,8 +255,9 @@ const Navigation: React.FC = () => {
     'Calendar':  '/calendar',
     'Vote':      '/player-of-match',
     'Stats':     '/stats',
-    'Wall':      '/wall',      // legacy alias for old links; canonical name is Sideline
-    'Sideline':  '/wall',
+    'Wall':      '/wall',
+    'Team Wall': '/wall',
+    'Sideline':  '/wall',      // legacy alias — surface was briefly named 'The Sideline'
   };
   const findItem = (name: string) => {
     const direct = allNavItems.find(i => i.name === name);

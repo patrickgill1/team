@@ -1,6 +1,6 @@
 /**
  * Auto-post helpers — write a wall_posts doc when high-value team
- * events happen, so The Sideline surfaces them without a coach having
+ * events happen, so Team Wall surfaces them without a coach having
  * to remember to post manually.
  *
  * Detection rules:
@@ -12,7 +12,7 @@
  * permission, whatever), the underlying event/media creation still
  * succeeds — auto-posting is a nice-to-have on top.
  *
- * The Sideline lives in its own `wall_posts` collection — it does NOT
+ * Team Wall lives in its own `wall_posts` collection — it does NOT
  * piggyback on chat. Markdown source here renders cleanly on the
  * Sideline and never leaks into a chat thread. (Collection name kept
  * as `wall_posts` for backward-compat; only user-facing copy renames.)

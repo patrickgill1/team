@@ -734,7 +734,7 @@ const Wall: React.FC = () => {
           void sendPushToTeam(
             selectedTeamId,
             {
-              title: `${userData.name || 'Coach'} posted on the Sideline`,
+              title: `${userData.name || 'Coach'} posted on Team Wall`,
               body: (plainText.slice(0, 140) || 'New announcement'),
               url: '/wall',
             },
@@ -1048,7 +1048,7 @@ const Wall: React.FC = () => {
           </Link>
           <h1 className="text-base sm:text-lg font-black text-ink-primary flex items-center gap-1.5">
             <AppIcon name="news" className="w-4 h-4 text-brand-primary-soft" />
-            <span className="tracking-tight">The Sideline</span>
+            <span className="tracking-tight">Team Wall</span>
           </h1>
           {canPost ? (
             <button
@@ -1378,7 +1378,7 @@ const Wall: React.FC = () => {
             <EmptyState
               icon={<AppIcon name="news" className="w-5 h-5" />}
               title={
-                activeCategory === 'feed' ? 'Nothing on the Sideline yet'
+                activeCategory === 'feed' ? 'Nothing on Team Wall yet'
                 : activeCategory === 'media' ? 'No media posts yet'
                 : activeCategory === 'recaps' ? 'No game recaps yet'
                 : activeCategory === 'awards' ? 'No awards to celebrate yet'

@@ -370,7 +370,7 @@ const GameDay: React.FC = () => {
       const { autoPostGameRecapToWall, autoPostGoalOfTheMatchToWall } = await import('../utils/autoPostToWall');
       const actorForWall = { uid: userData.uid, name: userData.name || 'Coach', role: userData.role || 'coach' };
       // Recap first (headline), then Goal of the Match poll (below
-      // it) so parents scrolling the Sideline hit the recap card
+      // it) so parents scrolling Team Wall hit the recap card
       // before the vote CTA. Both fire-and-forget.
       void autoPostGameRecapToWall(event as any, game, actorForWall, usLabel);
       void autoPostGoalOfTheMatchToWall(event as any, game, actorForWall);

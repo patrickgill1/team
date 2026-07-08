@@ -25,7 +25,7 @@ export const VOCAB = {
   // ── Surfaces (page titles, nav labels) ───────────────────────
   dashboard:        'Team HQ',
   teamHq:           'Team HQ',
-  wall:             'The Sideline',
+  wall:             'Team Wall',
   trainingGround:   'Training Ground',
   matchCenter:      'Match Center',
   playerCard:       'Player Card',
@@ -87,7 +87,7 @@ export const VOCAB = {
   // ── Comms ────────────────────────────────────────────────────
   sendTeamUpdate:   'Send Team Update',
   teamDrop:         'Team Drop',
-  postToWall:       'Post to the Sideline',
+  postToWall:       'Post to Team Wall',
   teamReactions:    'Team Reactions',
   teamVote:         'Team Vote',
   familyUpdate:     'Family Update',

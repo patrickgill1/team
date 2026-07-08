@@ -1872,27 +1872,74 @@ const PlayerMediaPage: React.FC = () => {
                     </div>
                   )}
                   {players.length > 1 && (
-                    <div>
-                      <label className="block text-sm font-medium text-ink-primary/85 mb-1">Tag Other Players</label>
-                      <div className="flex flex-wrap gap-1.5">
+                    <div className="rounded-xl bg-brand-primary/[0.05] ring-1 ring-brand-primary-soft/20 p-3">
+                      <div className="flex items-baseline justify-between mb-2">
+                        <label className="text-sm font-bold text-ink-primary/85">
+                          Who's in this clip?
+                          {uploadTaggedPlayers.length > 0 && (
+                            <span className="ml-2 text-[10px] font-black text-brand-primary-soft tabular-nums">{uploadTaggedPlayers.length}</span>
+                          )}
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setUploadTaggedPlayers(players.filter(p => p.id !== uploadPlayerId).map(p => p.id))}
+                            className="text-[10px] font-black tracking-widest uppercase text-brand-primary-soft hover:text-brand-primary px-2 py-1"
+                          >
+                            Tag all
+                          </button>
+                          <span className="text-ink-primary/25">·</span>
+                          <button
+                            type="button"
+                            onClick={() => setUploadTaggedPlayers([])}
+                            className="text-[10px] font-black tracking-widest uppercase text-ink-primary/50 hover:text-ink-primary px-2 py-1"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
                         {players
                           .filter(p => p.id !== uploadPlayerId)
-                          .map(p => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => toggleTaggedPlayer(p.id)}
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                                uploadTaggedPlayers.includes(p.id)
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-line-default/[0.08] text-ink-primary/65 hover:bg-line-default/[0.1]'
-                              }`}
-                            >
-                              {p.name}
-                            </button>
-                          ))}
+                          .map(p => {
+                            const on = uploadTaggedPlayers.includes(p.id);
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => toggleTaggedPlayer(p.id)}
+                                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition ring-1 ${
+                                  on
+                                    ? 'bg-brand-primary/20 ring-brand-primary-soft/60'
+                                    : 'bg-transparent ring-line-default/10 hover:bg-line-default/[0.05]'
+                                }`}
+                              >
+                                <div className={`relative w-11 h-11 rounded-full overflow-hidden flex-shrink-0 ${on ? 'ring-2 ring-brand-primary-soft' : 'ring-1 ring-line-default/15'}`}>
+                                  {(p as any).profilePhotoUrl ? (
+                                    <img src={(p as any).profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full bg-line-default/10 flex items-center justify-center">
+                                      <span className="text-[13px] font-black text-ink-primary/70">
+                                        {(p.jerseyNumber != null) ? `#${p.jerseyNumber}` : (p.name || '?').charAt(0).toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {on && (
+                                    <div className="absolute inset-0 bg-brand-primary/30 flex items-center justify-center">
+                                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                                <span className={`text-[10px] font-bold leading-tight truncate w-full text-center ${on ? 'text-ink-primary' : 'text-ink-primary/60'}`}>
+                                  {(p.name || '').split(' ')[0]}
+                                </span>
+                              </button>
+                            );
+                          })}
                       </div>
-                      <p className="text-xs text-ink-primary/40 mt-1">Tag players involved in this clip</p>
+                      <p className="text-[10px] text-ink-primary/40 mt-2">Tap a face to tag them in this clip. Each tagged player's family gets a push.</p>
                     </div>
                   )}
                   {uploading && (

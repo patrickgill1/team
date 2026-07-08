@@ -317,14 +317,16 @@ const SimpleAuth: React.FC = () => {
         </section>
 
         {/* SLIDES 2-4: teasers, each snap-fits its viewport */}
+        {/* Teaser slides — mockups removed. The photography is the
+            pitch; screenshots were undermining the emotional beat.
+            Copy sits low over a heavy bottom scrim. Nothing floats
+            over the subject in the frame. */}
         <TeaserSlide
           src="/hero/coach-huddle.jpg"
           alt="Coach kneeling with team at sunset"
           kicker="For coaches"
           title="You're the person these kids remember."
-          body="Live gameday tracker, POTM crowns, tagged clips, a wall that turns each game into a story your team scrolls Monday morning."
-          mockup="/recap.jpg"
-          mockupAlt="Full-time game recap card on Team Wall"
+          body="Live gameday tracker, POTM crowns, tagged clips, and a wall that turns each game into a story your team scrolls Monday morning."
         />
         <TeaserSlide
           src="/hero/friends.jpg"
@@ -332,8 +334,6 @@ const SimpleAuth: React.FC = () => {
           kicker="For parents"
           title="Your kid's season, from anywhere."
           body="Tagged clips ping your phone. See the recap the moment the whistle blows. When you can't be there, you're still there."
-          mockup="/wall.jpg"
-          mockupAlt="Team Wall feed showing game recap and POTM award"
         />
         <TeaserSlide
           src="/hero/training.jpg"
@@ -341,8 +341,6 @@ const SimpleAuth: React.FC = () => {
           kicker="For growth"
           title="Every day the kid gets a little better."
           body="Practice streaks, development plans, a drill library that plays inline. Not just a schedule. A path."
-          mockup="/potm.jpg"
-          mockupAlt="Player of the Match crown card"
         />
 
         {/* SLIDE 5: BOTTOM CTA */}

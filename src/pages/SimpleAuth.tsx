@@ -244,81 +244,85 @@ const SimpleAuth: React.FC = () => {
 
   if (showLanding) {
     return (
-      <div className="min-h-screen bg-charcoal-950 text-white">
-        {/* Hero fold — first thing an unauth'd visitor sees. Big
-            celebration photo, brand, tagline, three CTAs. Scroll down
-            for the teaser cards. */}
-        <section
-          className="relative overflow-hidden"
-          style={{ paddingTop: 'env(safe-area-inset-top)' }}
-        >
-          <div className="relative min-h-[100svh] flex flex-col">
-            <img
-              src="/hero/celebration.jpg"
-              alt="Kids celebrating a goal at sunset"
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="eager"
-            />
-            {/* Scrim so brand + copy read against the sky */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/80 pointer-events-none" aria-hidden />
+      // Full-viewport scroll-snap container — each child slide gets
+      // snap-start + h-screen so the swipe feels like flicking a
+      // TikTok deck: one story per screen, no partial-slide bleed.
+      <div className="fixed inset-0 h-screen w-screen overflow-y-scroll overflow-x-hidden snap-y snap-mandatory bg-charcoal-950 text-white overscroll-none">
 
-            <div className="relative flex-1 flex flex-col justify-between px-6 py-8">
-              {/* Brand */}
-              <div className="flex justify-center pt-4">
-                <div className="rounded-2xl bg-black/25 backdrop-blur-md px-4 py-2 ring-1 ring-white/10">
-                  <Logo size="lg" variant="full" />
-                </div>
+        {/* SLIDE 1: HERO */}
+        <section className="relative h-screen w-full snap-start snap-always overflow-hidden">
+          <img
+            src="/hero/celebration.jpg"
+            alt="Kids celebrating a goal at sunset"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+          />
+          {/* Scrim: darker at top for safe-area logo contrast, mid
+              transparency for the tagline, heavy at bottom for CTAs. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/25 to-black/85 pointer-events-none" aria-hidden />
+          <div
+            className="relative h-full flex flex-col px-6"
+            style={{
+              paddingTop: 'calc(env(safe-area-inset-top) + 12px)',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
+            }}
+          >
+            {/* Brand pinned near safe area */}
+            <div className="flex justify-center">
+              <div className="rounded-2xl bg-black/25 backdrop-blur-md px-4 py-2 ring-1 ring-white/10">
+                <Logo size="lg" variant="full" />
               </div>
+            </div>
 
-              {/* Tagline centered in the middle third */}
+            {/* Tagline centered in the middle */}
+            <div className="flex-1 flex items-center justify-center">
               <div className="text-center max-w-md mx-auto">
-                <p className="text-[11px] font-black tracking-[0.3em] uppercase text-brand-primary-soft/95 drop-shadow mb-3">The season lives here</p>
-                <h1 className="text-3xl sm:text-4xl font-black leading-tight drop-shadow-lg">
+                <p className="text-[11px] font-black tracking-[0.3em] uppercase text-brand-primary-soft/95 drop-shadow mb-3">
+                  The season lives here
+                </p>
+                <h1 className="text-3xl sm:text-4xl font-black leading-[1.1] drop-shadow-2xl">
                   Every kid's season, every coach's crew, every parent's front-row seat.
                 </h1>
               </div>
+            </div>
 
-              {/* CTAs */}
-              <div className="max-w-md mx-auto w-full space-y-3">
-                <button
-                  type="button"
-                  onClick={() => { setMode('register'); setJoinFlow(false); setShowLanding(false); }}
-                  className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
-                >
-                  Set up a new team
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
-                  className="w-full py-3.5 rounded-full bg-white text-charcoal-950 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
-                >
-                  Join a team with a code
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMode('login'); setShowLanding(false); }}
-                  className="w-full py-3 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white/90 font-bold tracking-wider uppercase text-xs transition"
-                >
-                  Log in
-                </button>
-                <p className="text-center text-[10px] tracking-widest uppercase text-white/60 pt-1">
-                  Scroll to see what your season looks like ↓
-                </p>
-              </div>
+            {/* CTAs pinned to the bottom */}
+            <div className="max-w-md mx-auto w-full space-y-2.5">
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setJoinFlow(false); setShowLanding(false); }}
+                className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
+              >
+                Set up a new team
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
+                className="w-full py-3.5 rounded-full bg-white text-charcoal-950 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
+              >
+                Join a team with a code
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setShowLanding(false); }}
+                className="w-full py-3 rounded-full bg-white/10 hover:bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white/90 font-bold tracking-wider uppercase text-xs transition"
+              >
+                Log in
+              </button>
+              <p className="text-center text-[10px] tracking-widest uppercase text-white/55 pt-1">
+                Swipe up to see more ↑
+              </p>
             </div>
           </div>
         </section>
 
-        {/* Teaser pages — each fills the viewport so the visitor sees
-            one story at a time, cinematic-style. Photos take the full
-            frame; copy sits at the bottom over a scrim. Feels like
-            chapters, not a scroll of cards. */}
+        {/* SLIDES 2-4: teasers, each snap-fits its viewport */}
         <TeaserSlide
           src="/hero/coach-huddle.jpg"
           alt="Coach kneeling with team at sunset"
           kicker="For coaches"
           title="You're the person these kids remember."
-          body="Live gameday tracker, POTM crowns, one-tap tagging, a drill library, and a wall that turns each game into a story your team scrolls Monday morning."
+          body="Live gameday tracker, POTM crowns, tagged clips, a wall that turns each game into a story your team scrolls Monday morning."
           mockup="/recap.jpg"
           mockupAlt="Full-time game recap card on Team Wall"
         />
@@ -327,7 +331,7 @@ const SimpleAuth: React.FC = () => {
           alt="Teammates laughing on the field at sunset"
           kicker="For parents"
           title="Your kid's season, from anywhere."
-          body="Tagged clips push to your phone. RSVP once. See the game recap the moment the whistle blows. When you can't be there, you're still there."
+          body="Tagged clips ping your phone. See the recap the moment the whistle blows. When you can't be there, you're still there."
           mockup="/wall.jpg"
           mockupAlt="Team Wall feed showing game recap and POTM award"
         />
@@ -336,30 +340,32 @@ const SimpleAuth: React.FC = () => {
           alt="Kids working through a dribbling drill"
           kicker="For growth"
           title="Every day the kid gets a little better."
-          body="Practice streaks (with a rest day if your family keeps one), development plans, a drill library that plays inline. Not just a schedule. A path."
+          body="Practice streaks, development plans, a drill library that plays inline. Not just a schedule. A path."
           mockup="/potm.jpg"
           mockupAlt="Player of the Match crown card"
         />
 
-        {/* Bottom CTA repeats so scrollers don't hunt for it. Same
-            three buttons as the top so 'Join with code' is discover-
-            able from either end of the page. */}
-        <section className="bg-charcoal-950 px-6 py-16 border-t border-white/5">
-          <div className="max-w-md mx-auto text-center space-y-6">
+        {/* SLIDE 5: BOTTOM CTA */}
+        <section className="relative h-screen w-full snap-start snap-always overflow-hidden bg-charcoal-950 flex flex-col items-center justify-center px-6"
+          style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}
+        >
+          <div className="max-w-md mx-auto text-center space-y-6 w-full">
             <p className="text-[10px] font-black tracking-[0.3em] uppercase text-brand-primary-soft">Ready?</p>
-            <h2 className="text-3xl font-black tracking-tight">Start your team in a minute.</h2>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
+              Start your team in a minute.
+            </h2>
             <p className="text-white/60 text-sm">7-day free trial for coaches. No card up front.</p>
-            <div className="space-y-3">
+            <div className="space-y-2.5 pt-2">
               <button
                 type="button"
-                onClick={() => { setMode('register'); setShowLanding(false); }}
+                onClick={() => { setMode('register'); setJoinFlow(false); setShowLanding(false); }}
                 className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
               >
                 Set up a new team
               </button>
               <button
                 type="button"
-                onClick={() => { setMode('register'); setShowLanding(false); }}
+                onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
                 className="w-full py-3.5 rounded-full bg-white text-charcoal-950 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
               >
                 Join a team with a code
@@ -779,11 +785,11 @@ const SimpleAuth: React.FC = () => {
   );
 };
 
-// Teaser slide — full viewport per section, cinematic. Photo fills
-// the entire slide; copy sits ~60% down the frame over a soft scrim.
-// When a mockup is provided, it floats above the copy as a
-// screenshot-in-a-device-frame, so the visitor sees the real UI
-// alongside the photo. Apple product-page rhythm, not a Facebook feed.
+// Teaser slide — h-screen page, cinematic. Photo edge-to-edge
+// including safe-area (no black top band). Mockup floats in the
+// UPPER third of the frame (over sky / dead space, NOT the emotional
+// subject in the middle-lower area). Copy at the bottom. Snaps into
+// place like a TikTok deck.
 const TeaserSlide: React.FC<{
   src: string;
   alt: string;
@@ -794,55 +800,50 @@ const TeaserSlide: React.FC<{
   mockupAlt?: string;
   reversed?: boolean;
 }> = ({ src, alt, kicker, title, body, mockup, mockupAlt }) => (
-  <section className="relative overflow-hidden bg-charcoal-950">
-    <div
-      className="relative flex flex-col justify-end"
-      style={{ minHeight: '95svh' }}
-    >
-      <img
-        src={src}
-        alt={alt}
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
-      {/* Cinematic scrim — light in the top third, heavy at the
-          bottom half so copy has serious contrast without darkening
-          the emotional beat of the photo. Heavier when a mockup is
-          floating over the frame so it doesn't feel washed out. */}
-      <div className={`absolute inset-0 pointer-events-none ${
-        mockup
-          ? 'bg-gradient-to-b from-black/50 via-black/40 to-black/90'
-          : 'bg-gradient-to-b from-black/20 via-black/25 to-black/85'
-      }`} aria-hidden />
+  <section className="relative h-screen w-full snap-start snap-always overflow-hidden bg-charcoal-950">
+    <img
+      src={src}
+      alt={alt}
+      className="absolute inset-0 w-full h-full object-cover"
+      loading="lazy"
+    />
+    {/* Scrim: darker top so the mockup pops out of the sky, mid
+        transparent so the subject's emotion still reads, heavier
+        bottom for the copy stack. */}
+    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/15 to-black/90 pointer-events-none" aria-hidden />
 
-      {/* Mockup — floats mid-slide as a phone-shaped screenshot with
-          a light chrome (rounded corners, subtle white ring, dark
-          drop shadow). Positioned above the copy so the visitor's
-          eye lands on the actual UI before the pitch. */}
-      {mockup && (
-        <div className="relative pt-10 sm:pt-16 flex justify-center px-6">
-          <div className="relative w-[70%] max-w-[280px] sm:max-w-[320px] rounded-[32px] overflow-hidden ring-1 ring-white/15 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-            <img
-              src={mockup}
-              alt={mockupAlt || ''}
-              className="block w-full h-auto"
-              loading="lazy"
-            />
-          </div>
+    {/* Mockup — pinned to the UPPER portion of the frame where
+        photos typically have negative space (sky, distance). Compact
+        max-width so it doesn't dominate. Softly floats with a light
+        chrome ring + big shadow. */}
+    {mockup && (
+      <div
+        className="absolute inset-x-0 flex justify-center px-6 z-10"
+        style={{ top: 'calc(env(safe-area-inset-top) + 24px)' }}
+      >
+        <div className="relative w-[52%] max-w-[220px] rounded-[24px] overflow-hidden ring-1 ring-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.6)]">
+          <img
+            src={mockup}
+            alt={mockupAlt || ''}
+            className="block w-full h-auto"
+            loading="lazy"
+          />
         </div>
-      )}
-
-      <div className={`relative px-6 max-w-2xl mx-auto text-white ${
-        mockup ? 'pb-12 sm:pb-16 pt-8' : 'pb-16 sm:pb-20 pt-16'
-      }`}>
-        <p className="text-[10px] font-black tracking-[0.35em] uppercase text-brand-primary-soft drop-shadow-lg mb-3">{kicker}</p>
-        <h2 className="text-[26px] sm:text-4xl font-black leading-[1.1] tracking-tight drop-shadow-lg mb-4 max-w-xl">
-          {title}
-        </h2>
-        <p className="text-[15px] sm:text-base text-white/85 leading-relaxed drop-shadow max-w-md">
-          {body}
-        </p>
       </div>
+    )}
+
+    {/* Copy stack pinned to bottom, respects safe area */}
+    <div
+      className="absolute inset-x-0 bottom-0 px-6 pt-12 max-w-2xl mx-auto text-white"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 32px)' }}
+    >
+      <p className="text-[10px] font-black tracking-[0.35em] uppercase text-brand-primary-soft drop-shadow-lg mb-3">{kicker}</p>
+      <h2 className="text-[26px] sm:text-4xl font-black leading-[1.05] tracking-tight drop-shadow-lg mb-3 max-w-xl">
+        {title}
+      </h2>
+      <p className="text-[14px] sm:text-base text-white/85 leading-snug drop-shadow max-w-md">
+        {body}
+      </p>
     </div>
   </section>
 );

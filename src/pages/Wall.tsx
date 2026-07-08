@@ -1100,12 +1100,20 @@ const Wall: React.FC = () => {
       <div className="max-w-2xl mx-auto px-0 sm:px-4 py-3 space-y-3">
         {canPost && composerOpen && (
           <div
-            className="fixed inset-0 z-40 bg-surface-base/80 animate-fade-in flex items-end sm:items-center justify-center sm:p-4"
+            // Composer opens as a FULL-BLEED overlay on mobile (was a
+            // half-sheet that let the background bleed through; Patrick
+            // couldn't tell the modal from the feed underneath).
+            // Desktop stays as a centered pop-in card so wider screens
+            // still get chrome to see it's a modal.
+            className="fixed inset-0 z-40 bg-surface-base animate-fade-in flex flex-col sm:items-center sm:justify-center sm:p-4 sm:bg-surface-base/95"
             onClick={closeComposer}
           >
             <div
-              className="bg-surface-elevated w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+              className="bg-surface-elevated w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-2xl shadow-2xl flex flex-col sm:max-h-[90vh] overflow-hidden animate-sheet-up sm:animate-pop-in"
+              style={{
+                paddingTop: 'env(safe-area-inset-top)',
+                paddingBottom: 'env(safe-area-inset-bottom)',
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-gradient-to-b from-surface-base to-surface-elevated px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -1548,14 +1556,17 @@ const Wall: React.FC = () => {
                     )
                   )}
 
-                  {/* Quick-tap reaction strip — always visible so a
-                      one-tap heart/fire/clap doesn't require opening
-                      the picker. Extras (custom emojis from the picker)
-                      render alongside on the right. Comment count +
-                      "Who reacted" + author-only "Seen by N" ride
-                      after so all engagement signals live on one row. */}
+                  {/* Reaction row — only shown when at least one
+                      person has reacted OR there are comments / seen
+                      counts to surface. Empty posts stay clean; the
+                      React button in the footer opens the full picker
+                      for a first reaction. Chips are the sum of
+                      quick emojis (heart/fire/clap/soccer/trophy)
+                      with count > 0 + any custom emojis added via
+                      the picker. */}
+                  {(quickReactions.some(q => q.count > 0) || extraReactions.length > 0 || (commentCounts[p.id] || 0) > 0 || (canSeeSeen && seenCount > 0)) && (
                   <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 flex-wrap text-[12px] text-ink-primary/50">
-                    {quickReactions.map(({ emoji, count, mine }) => (
+                    {quickReactions.filter(q => q.count > 0).map(({ emoji, count, mine }) => (
                       <button
                         key={emoji}
                         type="button"
@@ -1563,14 +1574,12 @@ const Wall: React.FC = () => {
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[13px] ring-1 transition active:scale-95 ${
                           mine
                             ? 'bg-brand-primary/15 ring-brand-primary-soft/40 text-brand-primary-soft'
-                            : count > 0
-                              ? 'bg-line-default/[0.04] ring-line-default/10 text-ink-primary/85 hover:bg-line-default/[0.08]'
-                              : 'bg-transparent ring-line-default/15 text-ink-primary/45 hover:text-ink-primary/85 hover:bg-line-default/[0.05]'
+                            : 'bg-line-default/[0.04] ring-line-default/10 text-ink-primary/85 hover:bg-line-default/[0.08]'
                         }`}
                         aria-label={`React with ${emoji}`}
                       >
                         <span className="text-sm leading-none">{emoji}</span>
-                        {count > 0 && <span className="font-semibold tabular-nums">{count}</span>}
+                        <span className="font-semibold tabular-nums">{count}</span>
                       </button>
                     ))}
                     {extraReactions.map(([emoji, info]) => (
@@ -1615,6 +1624,7 @@ const Wall: React.FC = () => {
                       </button>
                     )}
                   </div>
+                  )}
 
                   {/* Action footer — dark navy strip with cyan accents.
                       Matches the rest of the app's branded chrome

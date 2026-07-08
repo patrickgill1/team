@@ -384,13 +384,15 @@ const Dashboard: React.FC = () => {
   const announcementPosts = useMemo(() => {
     return wallPosts.filter(p => (p.category || 'announcement') === 'announcement').slice(0, 5);
   }, [wallPosts]);
-  // 'New for you' surface — recognition-flavored Team Wall posts about
-  // the user's kids. POTM crowns, tagged clips, dev-plan milestones,
-  // juggle PRs. Matched to the user's linked players by first-name
-  // substring against the post content. Time-bounded to 14 days so
-  // stale wins don't linger on the dashboard forever.
+  // 'New for you' surface — recognition-flavored Team Wall posts
+  // about the user's kids. POTM crowns, tagged clips, dev-plan
+  // milestones, juggle PRs. Shows whenever the user has ANY linked
+  // players (previously gated to isParentMode, which hid it from
+  // coaches who ALSO have a kid on the team — Patrick's own case).
+  // Matched to the user's linked players by first-name substring
+  // against the post content. Time-bounded to 14 days.
   const newForYouPosts = useMemo(() => {
-    if (!isParentMode || myPlayers.length === 0) return [];
+    if (myPlayers.length === 0) return [];
     const RECOGNITION_KINDS = new Set(['potm', 'juggle', 'devplan', 'video']);
     const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
     const firstNames = myPlayers.map(p => (p.name || '').trim().split(/\s+/)[0].toLowerCase()).filter(Boolean);
@@ -402,7 +404,7 @@ const Dashboard: React.FC = () => {
         return firstNames.some(fn => fn && body.includes(fn));
       })
       .slice(0, 3);
-  }, [wallPosts, isParentMode, myPlayers]);
+  }, [wallPosts, myPlayers]);
   const planStreakBadge = useMemo(() => {
     const s = (myPlayer as any)?.currentStreakDays || 0;
     return s > 0 ? s : null;

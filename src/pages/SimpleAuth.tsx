@@ -401,16 +401,13 @@ const SimpleAuth: React.FC = () => {
 
   return (
     <div
-      // Padding-top is a Tailwind class (pt-28 = 7rem = 112px) rather
-      // than an inline `max(calc(env(safe-area-inset-top) + ...), ...)`
-      // style. Patrick's screenshot on 3.9.108 showed the logo at
-      // y=0 with the Dynamic Island painting straight over it —
-      // meaning the inline calc/max was being parsed as invalid by
-      // Capacitor's WebView and falling back to padding-top: 0.
-      // Plain Tailwind class = zero syntax risk, unconditional 112px.
-      // 112px comfortably clears the Dynamic Island bottom (~48-62pt)
-      // and the status bar on any current iPhone.
-      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pt-28 sm:pt-32 pb-6 sm:pb-16"
+      // Padding-top removed entirely — even Tailwind pt-28 wasn't
+      // making it below the Dynamic Island for Patrick. Replaced
+      // with an explicit spacer <div> inside the flex column below
+      // (search for "DYNAMIC ISLAND SPACER"). An element with
+      // hardcoded height cannot be misinterpreted by any CSS
+      // engine, safe-area quirk, or Capacitor viewport oddity.
+      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-6 sm:pb-16"
     >
       {/* Top region pure black so it blends with the native
           AppDelegate safe-area strip without a visible seam.
@@ -434,14 +431,13 @@ const SimpleAuth: React.FC = () => {
       <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
       {/* Mobile-first container with better spacing */}
-      {/* Header spacing tightened 2026-07: on iPhone Pro Max the
-          hero header (logo + pill + h2 + subtitle) was pushing the
-          Sign Up / Sign In tabs and Apple/Google buttons below the
-          fold, so users had to scroll after tapping a bottom CTA on
-          the landing. Cut vertical bulk: mb-5 → mb-3 for logo, mb-4
-          → mb-2 for kicker pill, and h2 down one size on mobile
-          (text-4xl → text-3xl). space-y-7 → space-y-5 on outer. */}
-      <div className="relative w-full max-w-sm sm:max-w-md space-y-5 sm:space-y-9">
+      <div className="relative w-full max-w-sm sm:max-w-md space-y-3 sm:space-y-9">
+        {/* DYNAMIC ISLAND SPACER — hardcoded height, no calc, no
+            env(), no max(). Guaranteed 130px of vertical air above
+            the logo pill so it cannot ride into the Dynamic Island
+            no matter what Capacitor / iOS / the WebView does with
+            safe-area math. */}
+        <div style={{ height: 130 }} aria-hidden />
         {/* Logo and Header Section */}
         <div className="text-center">
           <div className="mb-3 sm:mb-6 flex justify-center">
@@ -510,12 +506,11 @@ const SimpleAuth: React.FC = () => {
             </div>
 
             {/* Sign in with Apple — native iOS only (Apple Store requirement when offering Google sign-in) */}
-            {/* Hidden when the email form is expanded: the user has
-                committed to the email path, so Apple/Google would
-                just take vertical space and confuse the choice.
-                They can collapse the email form by tapping the
-                segmented control if they want to switch. */}
-            {isNativePlatform && signInWithApple && !emailFormOpen && !joinFlow && (
+            {/* Always visible now. Hiding when the email form was
+                open left Patrick with no way to get back to social
+                sign-in from the email view — he had to force-close
+                the app. Fixed by just never hiding these buttons. */}
+            {isNativePlatform && signInWithApple && (
               <div className="mb-3">
                 <button
                   onClick={async () => {
@@ -555,9 +550,9 @@ const SimpleAuth: React.FC = () => {
             )}
 
             {/* Google Sign-In Button - Only show if function is available */}
-            {/* Same rationale as Apple: hidden when email form is
-                open so the email path stays uncrowded. */}
-            {signInWithGoogle && !emailFormOpen && !joinFlow && (
+            {/* Same as Apple: always visible so users can jump back
+                to social sign-in from any state. */}
+            {signInWithGoogle && (
               <div className="mb-6">
                 <button
                   onClick={handleGoogleSignIn}
@@ -608,12 +603,10 @@ const SimpleAuth: React.FC = () => {
               </button>
             )}
 
-            {/* Divider between social sign-in and email form — only
-                shown when both are visible. Since we now hide Apple
-                / Google when the email form is open (see rationale
-                on those buttons), this divider is only visible in
-                the joinFlow path where we surface everything. */}
-            {(emailFormOpen || joinFlow) && signInWithGoogle && (isNativePlatform || !emailFormOpen) && joinFlow && (
+            {/* Divider between social sign-in and email form —
+                shown whenever the email form is expanded and there
+                is at least one social sign-in above it. */}
+            {(emailFormOpen || joinFlow) && (signInWithGoogle || (isNativePlatform && signInWithApple)) && (
               <div className="relative mb-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-line-default/10" />
@@ -625,97 +618,89 @@ const SimpleAuth: React.FC = () => {
             )}
 
             <form
-              className={`space-y-3 sm:space-y-4 ${(emailFormOpen || joinFlow) ? '' : 'hidden'}`}
+              className={`space-y-4 ${(emailFormOpen || joinFlow) ? '' : 'hidden'}`}
               onSubmit={handleSubmit}
             >
-              {/* Two-column packing — Patrick asked "two fields per
-                  line if they decide to use email". Halves the
-                  vertical footprint of the form. On sm+ it stays
-                  2-col too since the container gets wider. Labels
-                  are compact and inputs use py-3 instead of py-3.5
-                  to shave a few more pixels. */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Email */}
-                <div>
-                  <label htmlFor="email" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
-                      errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
-                    }`}
-                    placeholder="you@example.com"
-                    disabled={isSubmitting}
-                    autoComplete="email"
-                  />
-                  {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label htmlFor="password" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
-                      errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
-                    }`}
-                    placeholder={mode === 'login' ? '••••••••' : '6+ chars'}
-                    disabled={isSubmitting}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  />
-                  {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
-                </div>
+              {/* Back to full-width fields — the 2-col packing was
+                  too cramped per Patrick. One field per row, larger
+                  inputs, easier to read/tap. */}
+              <div>
+                <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                  }`}
+                  placeholder="you@example.com"
+                  disabled={isSubmitting}
+                  autoComplete="email"
+                />
+                {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
               </div>
 
-              {/* Row 2 — register only: confirm password + full name */}
-              {mode === 'register' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                      Confirm
-                    </label>
-                    <input
-                      id="confirmPassword"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
-                        errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
-                      }`}
-                      placeholder="Repeat"
-                      disabled={isSubmitting}
-                      autoComplete="new-password"
-                    />
-                    {errors.confirmPassword && <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>}
-                  </div>
+              <div>
+                <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                  }`}
+                  placeholder={mode === 'login' ? '••••••••' : 'At least 6 characters'}
+                  disabled={isSubmitting}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                />
+                {errors.password && <p className="text-red-400 text-sm mt-1">{errors.password}</p>}
+              </div>
 
-                  <div>
-                    <label htmlFor="name" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                      Full Name
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
-                        errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
-                      }`}
-                      placeholder="Your name"
-                      disabled={isSubmitting}
-                      autoComplete="name"
-                    />
-                    {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
-                  </div>
+              {mode === 'register' && (
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    Confirm Password
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                    }`}
+                    placeholder="Repeat your password"
+                    disabled={isSubmitting}
+                    autoComplete="new-password"
+                  />
+                  {errors.confirmPassword && <p className="text-red-400 text-sm mt-1">{errors.confirmPassword}</p>}
+                </div>
+              )}
+
+              {mode === 'register' && (
+                <div>
+                  <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    Your Full Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
+                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                    }`}
+                    placeholder="Enter your full name"
+                    disabled={isSubmitting}
+                    autoComplete="name"
+                  />
+                  {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
                 </div>
               )}
 

@@ -97,9 +97,21 @@ service cloud.firestore {
       // kid (profile photo, jersey number, positions) but cannot
       // modify parentIds / teamId / teamIds from that branch — those
       // require worker action.
+      // Belt-and-suspenders 2026-07-07: parentIds is off-limits to
+      // any client update path — coach or parent alike. Only worker
+      // endpoints (which use the service account and bypass rules)
+      // can mutate it. This locks out the class of bug where an
+      // unrelated roster form save clobbered the parent list.
+      // parentEmails STAYS writable from the coach path because the
+      // AddPlayer form legitimately captures / edits invite-match
+      // emails; it doesn't grant access, only maps future signups.
       allow update: if isAuthed() && (
         isPlatformAdmin()
-        || onTeam(resource.data.teamId)
+        || (
+          onTeam(resource.data.teamId)
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['parentIds'])
+        )
         || (
           resource.data.parentIds is list
           && request.auth.uid in resource.data.parentIds

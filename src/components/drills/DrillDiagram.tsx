@@ -75,6 +75,29 @@ const Field: React.FC<{ kind: DrillDiagramSpec['field'] }> = ({ kind }) => {
     );
   }
 
+  if (kind === 'circle') {
+    // Big dashed ring in the middle for rondos, king-of-the-ring,
+    // juggling circles, tick-tack etc. Radius sized to leave a
+    // margin so player dots on the perimeter don't touch the box.
+    const cx = VB_W / 2;
+    const cy = VB_H / 2;
+    const r = Math.min(VB_W, VB_H) / 2 - INSET - 14;
+    return (
+      <>
+        {boundary}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="none"
+          stroke={FIELD_LINE}
+          strokeWidth={1.5}
+          strokeDasharray="5 4"
+        />
+      </>
+    );
+  }
+
   if (kind === 'half') {
     // Half pitch: goal top, half line bottom, penalty box top.
     return (

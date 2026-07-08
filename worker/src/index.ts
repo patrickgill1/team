@@ -720,16 +720,44 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
       } else {
         await requireUser(req, env);
       }
-      if (!env.OPENAI_API_KEY) {
-        return json({ ok: false, error: 'openai-not-configured' }, 503, cors);
-      }
       const title = String(payload?.title || '').slice(0, 120).trim();
       const setup = String(payload?.setup || '').slice(0, 500).trim();
       const instructions = String(payload?.instructions || '').slice(0, 800).trim();
       const focus = String(payload?.focus || '').slice(0, 200).trim();
       const topic = String(payload?.topic || '').slice(0, 30);
       const ageBand = String(payload?.ageBand || 'all').slice(0, 16);
-      if (!title || !setup) return json({ ok: false, error: 'title-and-setup-required' }, 400, cors);
+      // Modes:
+      //   'library-then-ai' (default): try the hand-authored library
+      //     first, fall back to AI generation for anything not in it.
+      //   'library-only': manual library only. Drills not in the
+      //     library get { diagram: null } so the caller can wipe the
+      //     old AI-generated field. This is the mode Patrick uses
+      //     when replacing the earlier AI batch with quality
+      //     hand-authored diagrams for the seed drills.
+      //   'ai-only': skip the library entirely and force AI. Escape
+      //     hatch for debugging.
+      const mode = payload?.mode === 'library-only'
+        ? 'library-only'
+        : payload?.mode === 'ai-only' ? 'ai-only' : 'library-then-ai';
+      if (!title) return json({ ok: false, error: 'title-required' }, 400, cors);
+
+      if (mode !== 'ai-only') {
+        const { findManualDiagram } = await import('./drillDiagramLibrary');
+        const manual = findManualDiagram(title);
+        if (manual) {
+          return json({ ok: true, diagram: manual, source: 'library' }, 200, cors);
+        }
+        if (mode === 'library-only') {
+          // No manual entry + no AI fallback allowed. Caller should
+          // set drill.diagram = null / delete the field.
+          return json({ ok: true, diagram: null, source: 'not-in-library' }, 200, cors);
+        }
+      }
+
+      if (!setup) return json({ ok: false, error: 'setup-required-for-ai-generation' }, 400, cors);
+      if (!env.OPENAI_API_KEY) {
+        return json({ ok: false, error: 'openai-not-configured' }, 503, cors);
+      }
 
       const systemMsg = [
         'You are a youth-soccer chalkboard artist.',
@@ -743,7 +771,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
         '',
         'Schema:',
         '{',
-        '  "field": "none" | "half" | "full" | "grid",',
+        '  "field": "none" | "half" | "full" | "grid" | "circle",',
         '  "cones":     [ { "x": number, "y": number, "color": "orange" | "yellow" | "red" | "blue" } ],',
         '  "players":   [ { "x": number, "y": number, "team": "attack" | "defense" | "neutral" | "keeper", "label": string } ],',
         '  "balls":     [ { "x": number, "y": number } ],',
@@ -804,7 +832,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
         // clamps out-of-range values, so we mostly just guard the
         // top-level shape so we don't store garbage on the drill.
         const spec = sanitizeDiagram(parsed);
-        return json({ ok: true, diagram: spec }, 200, cors);
+        return json({ ok: true, diagram: spec, source: 'ai' }, 200, cors);
       } catch (err: any) {
         return json({ ok: false, error: 'openai-fetch-failed', detail: String(err?.message || err).slice(0, 200) }, 502, cors);
       }
@@ -817,7 +845,7 @@ async function routeFetch(req: Request, env: Env): Promise<Response> {
 // renderer expects. Anything the model misses gets an empty array,
 // never undefined, so Firestore writes don't reject.
 function sanitizeDiagram(raw: any): any {
-  const field = ['none', 'half', 'full', 'grid'].includes(raw?.field) ? raw.field : 'none';
+  const field = ['none', 'half', 'full', 'grid', 'circle'].includes(raw?.field) ? raw.field : 'none';
   const num = (v: any) => (typeof v === 'number' && isFinite(v) ? v : 50);
   const str = (v: any, max = 80) => (typeof v === 'string' ? v.slice(0, max) : undefined);
   const point = (p: any) => ({ x: num(p?.x), y: num(p?.y) });

@@ -2064,8 +2064,10 @@ export interface PlayerPublicShare {
 export interface DrillDiagramSpec {
   /** Background pitch style. 'none' = plain green field, no lines.
    *  'half' = one goal + half-line. 'full' = both goals + center
-   *  circle. 'grid' = square training grid with cone corners. */
-  field: 'none' | 'half' | 'full' | 'grid';
+   *  circle. 'grid' = square training grid with cone corners.
+   *  'circle' = big dashed ring in the center (rondos, king-of-the-
+   *  ring, juggling circles). */
+  field: 'none' | 'half' | 'full' | 'grid' | 'circle';
   /** Cone markers (0..100 x/y). Orange triangles by default. */
   cones?: Array<{ x: number; y: number; color?: 'orange' | 'yellow' | 'red' | 'blue' }>;
   /** Player dots. Team drives color: attack=cyan, defense=red,

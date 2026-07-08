@@ -195,6 +195,13 @@ const Onboarding: React.FC = () => {
   };
 
   // ─── Add the coach's own kid as a player ─────────────────────
+  // Two worker calls (rules-hardened 2026-07-06 keep parentIds off
+  // the client write path):
+  //   1. /players/create — writes the player doc with parentEmails
+  //      set to the coach's own email. Coach-of-team verified server-
+  //      side. Returns the new playerId.
+  //   2. /players/toggle-self-parent — flips the coach's uid onto
+  //      the player's parentIds because email is now on the list.
   const handleAddKid = async () => {
     if (!userData || !createdTeamId) {
       setError('Missing team. Go back a step.');
@@ -204,22 +211,50 @@ const Onboarding: React.FC = () => {
       setError('Add your kid’s name.');
       return;
     }
+    const coachEmail = (userData.email || currentUser?.email || '').trim().toLowerCase();
+    if (!coachEmail) {
+      setError('No email on your account — sign in again.');
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
-      const jerseyNumber = kidJerseyNumber.trim() ? Number(kidJerseyNumber.trim()) : undefined;
-      await addPlayer({
-        name: kidName.trim(),
-        teamId: createdTeamId,
-        jerseyNumber: (typeof jerseyNumber === 'number' && !isNaN(jerseyNumber)) ? jerseyNumber : undefined,
-        position: kidPosition.trim() || undefined,
-        parentIds: [userData.uid],
-        isActive: true,
-        createdBy: userData.uid,
-        createdAt: new Date(),
-      } as any);
-      // Also mark the user as a parent of this player (dashboard
-      // uses parentIds → player lookup for widgets, streaks, etc).
+      const { workerFetch } = await import('../utils/workerFetch');
+      const jerseyNumber = kidJerseyNumber.trim() ? (parseInt(kidJerseyNumber.trim(), 10) || undefined) : undefined;
+
+      const createRes = await workerFetch('/players/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          teamId: createdTeamId,
+          name: kidName.trim(),
+          jerseyNumber,
+          positions: kidPosition.trim() ? [kidPosition.trim()] : undefined,
+          parentEmails: [coachEmail],
+        }),
+      });
+      const createData: any = await createRes.json().catch(() => ({}));
+      if (!createRes.ok || !createData?.ok) {
+        throw new Error(createData?.error || `create-player-${createRes.status}`);
+      }
+      const playerId = String(createData.playerId || '');
+
+      // Now link the coach as a parent. Requires their email be on
+      // the player's parentEmails list, which we just seeded above.
+      if (playerId) {
+        try {
+          const claimRes = await workerFetch('/players/toggle-self-parent', {
+            method: 'POST',
+            body: JSON.stringify({ playerId, on: true }),
+          });
+          const claimData: any = await claimRes.json().catch(() => ({}));
+          if (!claimRes.ok || !claimData?.ok) {
+            console.warn('self-parent claim failed', claimData);
+          }
+        } catch (claimErr) {
+          console.warn('self-parent claim threw', claimErr);
+        }
+      }
+
       await refreshUserData?.();
       goStep('practice-days');
     } catch (err: any) {
@@ -264,6 +299,11 @@ const Onboarding: React.FC = () => {
   };
 
   // ─── Write the schedule ──────────────────────────────────────
+  // Batched through the worker's /events/batch-create endpoint
+  // because a fresh coach doesn't have subscriptionActive yet, so
+  // client-side event creates are blocked by the trial wall in
+  // canCoachWrite(). The worker uses the service account so no
+  // sub check, but still verifies coach-of-team.
   const handleSaveSchedule = async () => {
     if (!userData || !createdTeamId) {
       setError('Missing team. Go back a step.');
@@ -273,20 +313,28 @@ const Onboarding: React.FC = () => {
     setBusy(true);
     try {
       if (activeDates.length > 0) {
-        const writes = activeDates.map(evDate => {
-          const endDate = new Date(evDate.getTime() + practiceDurationMins * 60000);
-          return addEvent({
+        const { workerFetch } = await import('../utils/workerFetch');
+        const events = activeDates.map(evDate => {
+          const endMs = evDate.getTime() + practiceDurationMins * 60000;
+          return {
             title: 'Practice',
             type: 'practice',
-            date: evDate,
-            endDate,
+            dateMs: evDate.getTime(),
+            endMs,
             location: practiceLocation.trim() || '',
-            teamId: createdTeamId,
-            createdBy: userData.uid,
             createdByName: userData.name || 'Coach',
-          } as any);
+          };
         });
-        await Promise.allSettled(writes);
+        const res = await workerFetch('/events/batch-create', {
+          method: 'POST',
+          body: JSON.stringify({ teamId: createdTeamId, events }),
+        });
+        const data: any = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) {
+          console.warn('batch schedule create failed', data);
+          // Don't hard-block the wizard on a batch failure — coach
+          // can add practices later from Events.
+        }
       }
       goStep('invite');
     } catch (err: any) {

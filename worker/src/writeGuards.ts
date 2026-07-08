@@ -1269,6 +1269,52 @@ async function handleTeamsRestore(req: Request, env: Env, payload: any): Promise
 // Body: { teamId, name, dateOfBirth?, jerseyNumber?, positions?[],
 //         parentEmails?[], isAdultPlayer?, ... }
 // ────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
+// /events/batch-create — write N events in one call. Used by the
+// onboarding wizard to materialize the auto-generated practice
+// schedule. Client-side event creates are blocked for pre-trial
+// coaches by the canCoachWrite() trial wall; this endpoint bypasses
+// the wall via the service account, but still verifies the caller
+// is a coach on the target team.
+//
+// Body: { teamId, events: Array<{ title, type, date, endDate, location }> }
+// Response: { ok: true, created: number, ids: string[] }
+// ────────────────────────────────────────────────────────────────
+async function handleEventsBatchCreate(req: Request, env: Env, payload: any): Promise<Response> {
+  const teamId = String(payload?.teamId || '');
+  const claims = await requireCoachOfTeam(req, env, teamId);
+  const { pid, sa } = projectAndSA(env);
+  const events: any[] = Array.isArray(payload?.events) ? payload.events.slice(0, 100) : [];
+  if (events.length === 0) return json({ ok: true, created: 0, ids: [] });
+  const ids: string[] = [];
+  for (const ev of events) {
+    const dateMs = Number(ev?.dateMs);
+    const endMs = Number(ev?.endMs);
+    if (!isFinite(dateMs) || !isFinite(endMs)) continue;
+    const fields: Record<string, any> = {
+      title: String(ev?.title || 'Practice').slice(0, 120),
+      type: ev?.type === 'game' ? 'game' : 'practice',
+      date: new Date(dateMs),
+      endDate: new Date(endMs),
+      location: String(ev?.location || '').slice(0, 200),
+      teamId,
+      createdBy: claims.uid,
+      createdByName: String(ev?.createdByName || '').slice(0, 80) || 'Coach',
+      createdAt: new Date(),
+      isActive: true,
+    };
+    try {
+      const id = await createDocument(pid, 'events', fields, sa);
+      ids.push(id);
+    } catch (err) {
+      // Skip individual failures; a whole-batch abort would strand
+      // the coach in the wizard with no way to retry cleanly.
+      console.warn('batch event create failed', err);
+    }
+  }
+  return json({ ok: true, created: ids.length, ids });
+}
+
 async function handlePlayersCreate(req: Request, env: Env, payload: any): Promise<Response> {
   const teamId = String(payload?.teamId || '');
   const claims = await requireCoachOfTeam(req, env, teamId);
@@ -1612,6 +1658,7 @@ export async function routeWriteGuard(
     case '/users/deactivate':      return handleUsersDeactivate(req, env, payload);
     case '/users/set-teams':       return handleUsersSetTeams(req, env, payload);
     case '/players/create':        return handlePlayersCreate(req, env, payload);
+    case '/events/batch-create':   return handleEventsBatchCreate(req, env, payload);
     case '/players/set-active':    return handlePlayersSetActive(req, env, payload);
     case '/players/link-parent':   return handlePlayersLinkParent(req, env, payload);
     case '/players/toggle-self-parent': return handlePlayersToggleSelfParent(req, env, payload);

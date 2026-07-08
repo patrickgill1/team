@@ -401,7 +401,14 @@ const SimpleAuth: React.FC = () => {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
+      // Was `relative min-h-screen overflow-hidden` — that let the
+      // auth form participate in body scroll, and iOS auto-scroll to
+      // focused inputs (or leftover scroll from the landing's
+      // fixed-inset scroll container) kept pushing the logo up into
+      // the Dynamic Island. Switching to `fixed inset-0 overflow-y-auto`
+      // gives the auth form its own scroll context, always starting
+      // at 0, isolated from anything that happened on the landing.
+      className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
     >
       {/* Top region pure black so it blends with the native
@@ -704,7 +711,6 @@ const SimpleAuth: React.FC = () => {
                     value={formData.inviteCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, inviteCode: e.target.value.trim().toUpperCase() }))}
                     placeholder="e.g. UF-841422"
-                    autoFocus
                     className="w-full px-3 py-2.5 rounded-lg bg-black/40 ring-1 ring-white/15 text-white font-mono tracking-wider placeholder-white/30 focus:ring-brand-primary-soft/60 focus:outline-none"
                     autoCapitalize="characters"
                     autoCorrect="off"

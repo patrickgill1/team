@@ -35,10 +35,14 @@ async function postToWall(
   opts: {
     attachments?: Array<{ url: string; type: string; name?: string }>;
     postedFrom?: 'wall' | 'game' | 'video' | 'potm' | 'devplan' | 'juggle';
+    // Structured payload for hero-card rendering. The Wall renderer
+    // reads this and swaps the markdown fallback for the specialized
+    // card (GameRecapCard for recap, PotmWinnerCard for potmResult).
+    recap?: any;
   } = {}
 ): Promise<string | null> {
   try {
-    const ref = await addDoc(collection(db, 'wall_posts'), {
+    const doc: any = {
       teamId,
       content,
       senderId: actor.uid,
@@ -49,7 +53,9 @@ async function postToWall(
       reactions: [],
       wallPinnedTop: null,
       postedFrom: opts.postedFrom || 'wall',
-    });
+    };
+    if (opts.recap) doc.recap = opts.recap;
+    const ref = await addDoc(collection(db, 'wall_posts'), doc);
     return ref.id;
   } catch (err) {
     console.warn('autoPostToWall: write failed', err);
@@ -112,16 +118,16 @@ export async function autoPostGameRecapToWall(
   },
   actor: Actor,
   usLabel: string,
+  team?: { homeKitColor?: string; awayKitColor?: string },
 ): Promise<void> {
   if (event.type !== 'game' || !event.teamId) return;
 
   const ours = game.ourScore || 0;
   const theirs = game.oppScore || 0;
   const opp = event.opponent || 'Opponent';
-  const outcome = ours > theirs ? 'W' : ours < theirs ? 'L' : 'D';
+  const outcome: 'W' | 'L' | 'D' = ours > theirs ? 'W' : ours < theirs ? 'L' : 'D';
   const outcomeWord = outcome === 'W' ? 'Win' : outcome === 'L' ? 'Loss' : 'Draw';
 
-  // Tally goal + assist scorers so we can surface a top-line list.
   const goals: Record<string, { name: string; count: number }> = {};
   const assists: Record<string, { name: string; count: number }> = {};
   (game.timeline || []).forEach(t => {
@@ -134,25 +140,39 @@ export async function autoPostGameRecapToWall(
       a.count++;
     }
   });
+  const scorerList = Object.values(goals).sort((a, b) => b.count - a.count);
+  const assistList = Object.values(assists).sort((a, b) => b.count - a.count);
 
-  const goalList = Object.values(goals)
-    .sort((a, b) => b.count - a.count)
-    .map(g => g.count > 1 ? `${g.name} ×${g.count}` : g.name)
-    .join(', ');
-  const assistList = Object.values(assists)
-    .sort((a, b) => b.count - a.count)
-    .map(a => a.count > 1 ? `${a.name} ×${a.count}` : a.name)
-    .join(', ');
-
+  // Markdown fallback body — surfaces on legacy clients that predate
+  // the recap-card renderer, and remains the source of truth for any
+  // text-only surface (email digest, notification body, etc).
+  const goalListMd = scorerList.map(g => g.count > 1 ? `${g.name} ×${g.count}` : g.name).join(', ');
+  const assistListMd = assistList.map(a => a.count > 1 ? `${a.name} ×${a.count}` : a.name).join(', ');
   const lines: string[] = [];
   lines.push(`## Full time — ${outcomeWord}`);
   lines.push(`**${usLabel} ${ours} — ${theirs} ${opp}**`);
-  if (goalList) lines.push(`**Goals:** ${goalList}`);
-  if (assistList) lines.push(`**Assists:** ${assistList}`);
+  if (goalListMd) lines.push(`**Goals:** ${goalListMd}`);
+  if (assistListMd) lines.push(`**Assists:** ${assistListMd}`);
   lines.push('');
   lines.push('_Tap POTM to vote for player of the match._');
 
-  await postToWall(event.teamId, actor, lines.join('\n'), { postedFrom: 'game' });
+  const recap = {
+    eventId: event.id,
+    gameId: event.id,
+    ourScore: ours,
+    opponentScore: theirs,
+    ourName: usLabel,
+    opponent: opp,
+    homeAway: event.homeAway,
+    outcome,
+    scorers: scorerList,
+    assists: assistList,
+    homeKitColor: team?.homeKitColor,
+    awayKitColor: team?.awayKitColor,
+    gameDate: event.date,
+  };
+
+  await postToWall(event.teamId, actor, lines.join('\n'), { postedFrom: 'game', recap });
 }
 
 /** Auto-post the Goal of the Match poll after a game ends. Attaches

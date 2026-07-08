@@ -1848,6 +1848,26 @@ export interface WallPost {
     options: Array<{ id: string; text: string; voters: string[] }>;
     multi?: boolean;
   };
+  /** Structured game recap payload. Present on posts written by
+   *  autoPostGameRecapToWall so the Wall renderer can swap the
+   *  markdown fallback for a proper hero card with a score bug,
+   *  kit-color accents, scorers list, and a link into the game view.
+   *  Absent posts fall back to the markdown render. */
+  recap?: {
+    eventId?: string;
+    gameId?: string;
+    ourScore: number;
+    opponentScore: number;
+    ourName?: string;
+    opponent: string;
+    homeAway?: 'home' | 'away';
+    outcome: 'W' | 'L' | 'D';
+    scorers?: Array<{ name: string; count: number }>;
+    assists?: Array<{ name: string; count: number }>;
+    homeKitColor?: string;
+    awayKitColor?: string;
+    gameDate?: any;
+  };
 }
 
 export interface WallComment {

@@ -11,6 +11,7 @@ import EmptyState from '../components/common/EmptyState';
 import EmojiPicker from '../components/chat/EmojiPicker';
 import WallPollCard from '../components/wall/WallPollCard';
 import WallEditor from '../components/wall/WallEditor';
+import GameRecapCard from '../components/wall/GameRecapCard';
 import TrialGateModal from '../components/common/TrialGateModal';
 import { useTrialGate } from '../hooks/useTrialGate';
 import { marked } from 'marked';
@@ -1474,7 +1475,15 @@ const Wall: React.FC = () => {
                     </div>
                   </div>
 
-                  {p.content && (
+                  {/* Hero recap card — swaps in when the post carries
+                      structured recap metadata (postedFrom='game' auto-
+                      posts). Absent recap → fall through to markdown
+                      body so legacy recaps still render.  */}
+                  {(p as any).recap ? (
+                    <div className="px-3 pb-3">
+                      <GameRecapCard recap={(p as any).recap} timestamp={p.timestamp} />
+                    </div>
+                  ) : p.content ? (
                     <article className="px-4 pb-3 text-ink-primary/90 break-words text-[15.5px] leading-relaxed">
                       {(p as any).contentFormat === 'tiptap-html' ? (
                         <div
@@ -1489,7 +1498,7 @@ const Wall: React.FC = () => {
                         <RichContent text={p.content} />
                       )}
                     </article>
-                  )}
+                  ) : null}
 
                   {p.poll && (
                     <WallPollCard

@@ -51,6 +51,24 @@ const TeamManagement: React.FC = () => {
   // families never get a surprise post on the Sabbath.
   const [teamDigestEnabled, setTeamDigestEnabled] = useState<boolean>(false);
   const [teamDigestDay, setTeamDigestDay] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(1);
+  // Practice-streak rest day — coach picks the day of week that
+  // doesn't count toward or break the streak (Sunday by default for
+  // religious families; coach can pick 'none' for a straight
+  // 7-day/week streak or move it to another day).
+  type RestDayValue = 'none' | 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  const [teamStreakRestDay, setTeamStreakRestDay] = useState<RestDayValue>(0);
+  // Weekly EMAIL digest — coach opts in per team, picks day, picks
+  // which sections appear, and can add a personal message that
+  // leads the email.
+  const [teamEmailEnabled, setTeamEmailEnabled] = useState<boolean>(false);
+  const [teamEmailDay, setTeamEmailDay] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
+  const [teamEmailSections, setTeamEmailSections] = useState({
+    pastEvents: true,
+    teamWall: true,
+    potm: true,
+    upcomingEvents: true,
+  });
+  const [teamEmailMessage, setTeamEmailMessage] = useState('');
 
   // Coach invite form
   // inviteEmail / inviteLevel / inviteLink / linkCopied state
@@ -208,7 +226,16 @@ const TeamManagement: React.FC = () => {
         wallDigestConfig: teamDigestEnabled
           ? { enabled: true, dayOfWeek: teamDigestDay }
           : { enabled: false, dayOfWeek: teamDigestDay },
-      });
+        streakConfig: {
+          restDayOfWeek: teamStreakRestDay === 'none' ? null : teamStreakRestDay,
+        },
+        emailDigestConfig: {
+          enabled: teamEmailEnabled,
+          dayOfWeek: teamEmailDay,
+          sections: teamEmailSections,
+          message: teamEmailMessage.trim() || '',
+        },
+      } as any);
       resetForm();
       setEditingTeam(null);
       await refreshTeams();
@@ -313,6 +340,23 @@ const TeamManagement: React.FC = () => {
     setTeamPublicFixtures(team.publicFixturesEnabled === true);
     setTeamDigestEnabled((team as any).wallDigestConfig?.enabled === true);
     setTeamDigestDay(((team as any).wallDigestConfig?.dayOfWeek ?? 1) as any);
+    // Streak rest day — legacy teams (undefined) get the historic
+    // Sunday default; a coach who wants "no rest day" saves null.
+    const raw = (team as any).streakConfig?.restDayOfWeek;
+    if (raw === null) setTeamStreakRestDay('none');
+    else if (typeof raw === 'number') setTeamStreakRestDay(raw as any);
+    else setTeamStreakRestDay(0);
+    // Email digest
+    const ecfg = (team as any).emailDigestConfig;
+    setTeamEmailEnabled(ecfg?.enabled === true);
+    setTeamEmailDay((ecfg?.dayOfWeek ?? 0) as any);
+    setTeamEmailSections({
+      pastEvents: ecfg?.sections?.pastEvents ?? true,
+      teamWall: ecfg?.sections?.teamWall ?? true,
+      potm: ecfg?.sections?.potm ?? true,
+      upcomingEvents: ecfg?.sections?.upcomingEvents ?? true,
+    });
+    setTeamEmailMessage(ecfg?.message || '');
   };
 
   const handleOpenTransfer = async (team: Team) => {
@@ -407,6 +451,11 @@ const TeamManagement: React.FC = () => {
     setTeamPublicFixtures(false);
     setTeamDigestEnabled(false);
     setTeamDigestDay(1);
+    setTeamStreakRestDay(0);
+    setTeamEmailEnabled(false);
+    setTeamEmailDay(0);
+    setTeamEmailSections({ pastEvents: true, teamWall: true, potm: true, upcomingEvents: true });
+    setTeamEmailMessage('');
     setEditingTeam(null);
   };
 
@@ -862,12 +911,118 @@ const TeamManagement: React.FC = () => {
                             </button>
                           ))}
                         </div>
-                        {teamDigestDay === 0 && (
-                          <p className="mt-2 text-[11px] text-amber-300/85">
-                            Heads up: Sunday can be a quiet day for families who keep the Sabbath. Consider Monday or Friday.
-                          </p>
-                        )}
                         <p className="mt-2 text-[10px] text-ink-primary/45">Fires around 9am team-local time.</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                    <p className="text-sm font-bold text-ink-primary mb-1">Practice-streak rest day</p>
+                    <p className="text-[11px] text-ink-primary/60 leading-snug mb-2">
+                      Pick the day of the week that shouldn't count toward or break a player's streak. Kids who observe a rest day can keep their streak alive by practicing the other six.
+                    </p>
+                    <div className="inline-flex flex-wrap items-center bg-line-default/[0.08] ring-1 ring-line-default/10 rounded-full p-0.5 gap-0.5">
+                      {([
+                        { d: 'none' as const, label: 'None' },
+                        { d: 0 as const, label: 'Sun' },
+                        { d: 1 as const, label: 'Mon' },
+                        { d: 2 as const, label: 'Tue' },
+                        { d: 3 as const, label: 'Wed' },
+                        { d: 4 as const, label: 'Thu' },
+                        { d: 5 as const, label: 'Fri' },
+                        { d: 6 as const, label: 'Sat' },
+                      ]).map(({ d, label }) => (
+                        <button
+                          type="button"
+                          key={String(d)}
+                          onClick={() => setTeamStreakRestDay(d as any)}
+                          className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full transition ${
+                            teamStreakRestDay === d
+                              ? 'bg-brand-primary text-white shadow-sm'
+                              : 'text-ink-primary/65 hover:text-ink-primary'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-line-default/[0.04] ring-1 ring-line-default/10 p-3">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={teamEmailEnabled}
+                        onChange={(e) => setTeamEmailEnabled(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-brand-primary flex-shrink-0"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-sm font-bold text-ink-primary">Weekly email to parents</span>
+                        <span className="block text-[11px] text-ink-primary/60 mt-0.5 leading-snug">
+                          A recap email to every parent on this team. You pick the day, what sections it includes, and can add a personal note that leads the email.
+                        </span>
+                      </span>
+                    </label>
+                    {teamEmailEnabled && (
+                      <div className="mt-3 pl-7 space-y-3">
+                        <div>
+                          <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-1.5">Send on</p>
+                          <div className="inline-flex flex-wrap items-center bg-line-default/[0.08] ring-1 ring-line-default/10 rounded-full p-0.5 gap-0.5">
+                            {([
+                              { d: 0, label: 'Sun' },
+                              { d: 1, label: 'Mon' },
+                              { d: 2, label: 'Tue' },
+                              { d: 3, label: 'Wed' },
+                              { d: 4, label: 'Thu' },
+                              { d: 5, label: 'Fri' },
+                              { d: 6, label: 'Sat' },
+                            ] as const).map(({ d, label }) => (
+                              <button
+                                type="button"
+                                key={d}
+                                onClick={() => setTeamEmailDay(d as any)}
+                                className={`px-3 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full transition ${
+                                  teamEmailDay === d
+                                    ? 'bg-brand-primary text-white shadow-sm'
+                                    : 'text-ink-primary/65 hover:text-ink-primary'
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-1.5">What to include</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {([
+                              { key: 'pastEvents' as const, label: 'Past week\'s events' },
+                              { key: 'teamWall' as const, label: 'Team Wall highlights' },
+                              { key: 'potm' as const, label: 'Player of the Match' },
+                              { key: 'upcomingEvents' as const, label: 'Coming up next week' },
+                            ]).map(({ key, label }) => (
+                              <label key={key} className="flex items-center gap-2 cursor-pointer text-sm text-ink-primary/85">
+                                <input
+                                  type="checkbox"
+                                  checked={teamEmailSections[key]}
+                                  onChange={(e) => setTeamEmailSections(prev => ({ ...prev, [key]: e.target.checked }))}
+                                  className="w-4 h-4 accent-brand-primary"
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-1.5">Your note (optional)</p>
+                          <textarea
+                            value={teamEmailMessage}
+                            onChange={(e) => setTeamEmailMessage(e.target.value.slice(0, 500))}
+                            placeholder="Great effort this week, team. Big game Saturday."
+                            className="w-full px-3 py-2 bg-surface-base text-ink-primary border border-line-default/10 rounded-lg text-sm resize-none"
+                            rows={3}
+                          />
+                          <p className="text-[10px] text-ink-primary/45 mt-1">Leads the email so parents know the recap came from you.</p>
+                        </div>
+                        <p className="text-[10px] text-ink-primary/45">Sends around 4pm team-local time on the day you pick.</p>
                       </div>
                     )}
                   </div>

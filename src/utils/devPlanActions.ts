@@ -77,28 +77,38 @@ export function buildPracticeDayKeys(activePlans: DevelopmentPlan[]): Set<string
   return dayKeys;
 }
 
-/** Walk back from today, counting consecutive practice days. Sundays
- *  are SKIPPED — they don't count toward the streak, and missing a
- *  Sunday doesn't break it (so a kid who observes a religious day of
- *  rest can keep a streak alive by practicing the other six days).
+/** Walk back from today, counting consecutive practice days.
+ *
+ *  `restDayOfWeek` is optional (0=Sun … 6=Sat, or null/undefined for
+ *  no rest day). When set, that day is SKIPPED — it doesn't count
+ *  toward the streak and missing it doesn't break it. This lets a
+ *  team observing any religious/cultural day off keep streaks alive
+ *  by practicing the other six days.
+ *
+ *  Backward compat: when the caller doesn't pass a rest day, we
+ *  default to Sunday (0), matching the original hard-coded behavior.
+ *  Coaches who want NO rest day pass `null` explicitly.
+ *
  *  Today gets a free pass: if you haven't logged yet today, we start
  *  walking from yesterday instead of penalizing you mid-day. */
-export function computeStreakDays(activePlans: DevelopmentPlan[]): number {
+export function computeStreakDays(
+  activePlans: DevelopmentPlan[],
+  restDayOfWeek: number | null | undefined = 0,
+): number {
   const dayKeys = buildPracticeDayKeys(activePlans);
   if (dayKeys.size === 0) return 0;
+  const skipDow: number | null = (restDayOfWeek === null || restDayOfWeek === undefined) ? 0 : restDayOfWeek;
   const cursor = new Date();
   cursor.setHours(0, 0, 0, 0);
   const todayKey = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-  // If today is unlogged AND not a Sunday, start from yesterday — but
-  // if today IS a Sunday, leave the cursor here; the loop below will
-  // skip it without breaking.
-  if (!dayKeys.has(todayKey) && cursor.getDay() !== 0) {
+  // If today is unlogged AND not the rest day, start from yesterday.
+  // When today IS the rest day, leave the cursor; the loop skips it.
+  if (!dayKeys.has(todayKey) && (skipDow == null || cursor.getDay() !== skipDow)) {
     cursor.setDate(cursor.getDate() - 1);
   }
   let streak = 0;
   for (;;) {
-    if (cursor.getDay() === 0) {
-      // Sunday — skip without counting or breaking.
+    if (skipDow != null && cursor.getDay() === skipDow) {
       cursor.setDate(cursor.getDate() - 1);
       continue;
     }
@@ -126,27 +136,40 @@ export async function recomputeAndPersistPlayerStreak(
   actor?: { uid: string; name: string; role?: string }
 ): Promise<number> {
   try {
-    const streak = computeStreakDays(activePlansAfterUpdate);
-
-    // Read the prior streak + player name/team BEFORE writing so we
-    // can detect milestone crossings and post to the wall. One extra
-    // round-trip per tap, but only on "I did it today" — light traffic.
+    // Read the prior streak + player name/team + team rest-day config
+    // BEFORE computing so we honor the team's practice-streak setting
+    // (undefined → default Sunday-skip for back-compat). One extra
+    // round-trip per tap, but only on 'I did it today' — light traffic.
     let priorStreak = 0;
     let playerName: string | undefined;
     let teamId: string | null | undefined;
-    if (actor) {
+    let restDayOfWeek: number | null | undefined = 0;
+    try {
+      const snap = await getDoc(doc(db, 'players', playerId));
+      if (snap.exists()) {
+        const data = snap.data() as any;
+        priorStreak = typeof data.currentStreakDays === 'number' ? data.currentStreakDays : 0;
+        playerName = data.name;
+        teamId = data.teamId;
+      }
+    } catch (err) {
+      console.warn('streak prior read failed', err);
+    }
+    if (teamId) {
       try {
-        const snap = await getDoc(doc(db, 'players', playerId));
-        if (snap.exists()) {
-          const data = snap.data() as any;
-          priorStreak = typeof data.currentStreakDays === 'number' ? data.currentStreakDays : 0;
-          playerName = data.name;
-          teamId = data.teamId;
+        const teamSnap = await getDoc(doc(db, 'teams', teamId));
+        if (teamSnap.exists()) {
+          const cfg = (teamSnap.data() as any).streakConfig;
+          if (cfg && Object.prototype.hasOwnProperty.call(cfg, 'restDayOfWeek')) {
+            restDayOfWeek = cfg.restDayOfWeek === null ? null : Number(cfg.restDayOfWeek);
+          }
         }
       } catch (err) {
-        console.warn('streak prior read failed', err);
+        console.warn('team streak config read failed', err);
       }
     }
+
+    const streak = computeStreakDays(activePlansAfterUpdate, restDayOfWeek);
 
     await updateDoc(doc(db, 'players', playerId), {
       currentStreakDays: streak,

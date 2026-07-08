@@ -1707,6 +1707,31 @@ export interface Team {
     enabled: boolean;
     dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   };
+  /** Coach control over the practice-streak rest day. When
+   *  restDayOfWeek is set (0=Sun … 6=Sat), that day is skipped —
+   *  it doesn't count toward the streak and missing it doesn't
+   *  break it. Null = no rest day (every day of the week counts).
+   *  Undefined (legacy teams) = fall back to Sunday-skip default,
+   *  preserving the original behavior. */
+  streakConfig?: {
+    restDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6 | null;
+  };
+  /** Coach control over the weekly email digest sent to parents.
+   *  Coach picks day + which sections appear + optional custom
+   *  message that leads the email. Undefined = fall back to the
+   *  legacy 'send everything on Sunday 4pm MDT' default so no
+   *  existing team is silently changed. */
+  emailDigestConfig?: {
+    enabled: boolean;
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    sections: {
+      pastEvents: boolean;
+      teamWall: boolean;
+      potm: boolean;
+      upcomingEvents: boolean;
+    };
+    message?: string;
+  };
   /** Standard match format — used to size the field + decide how many
    *  players auto-place into the lineup. Defaults to '7v7' if unset. */
   format?: GameFormat;

@@ -895,9 +895,9 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
     //   "*/5 * * * *"  — campaign tick (in-app Mailchimp replacement)
     const cron = event.cron || '';
     if (cron === '0 22 * * SUN') {
-      ctx.waitUntil(
-        runWeeklyDigest(env).then(r => console.log('[cron] weekly digest', JSON.stringify(r)))
-      );
+      // Retained: admin roundup runs once a week on Sunday. The
+      // parent-facing digest moved to the daily tick below so coaches
+      // can pick the day themselves.
       ctx.waitUntil(
         runAdminWeeklyRoundup(env).then(r => console.log('[cron] admin roundup', JSON.stringify(r)))
       );
@@ -905,13 +905,15 @@ async function scheduledHandler(event: ScheduledEvent, env: Env, ctx: ExecutionC
       ctx.waitUntil(
         runRegistrationDrips(env).then(r => console.log('[cron] registration drips', JSON.stringify(r)))
       );
-      // Daily 9am MDT tick for the Team Wall weekly summary. Reads
-      // each team's wallDigestConfig — fires only for opt-in teams
-      // whose configured day matches today's day-of-week in the
-      // club tz. Skips Sundays only when the coach picked another
-      // day (they can also opt into Sunday if they want).
+      // Daily 10am MDT tick reads each team's config and fires the
+      // parent digests only when the configured day matches today.
+      // Team Wall summary + parent email digest both live here so
+      // coaches control both from Team settings.
       ctx.waitUntil(
         runWeeklyTeamWallDigest(env).then(r => console.log('[cron] team-wall daily tick', JSON.stringify(r)))
+      );
+      ctx.waitUntil(
+        runWeeklyDigest(env).then(r => console.log('[cron] email digest daily tick', JSON.stringify(r)))
       );
     } else if (cron === '*/5 * * * *') {
       // Campaign tick — only does work when scheduled campaigns are

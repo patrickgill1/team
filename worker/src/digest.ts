@@ -97,46 +97,78 @@ async function buildTeamDigest(projectId: string, sa: ServiceAccount, teamId: st
   return { upcomingEvents, recentNews, recentDevGoals, recentMedia };
 }
 
-function renderDigestHtml(teamName: string, parentName: string, appOrigin: string, d: DigestData): { subject: string; html: string } | null {
+interface EmailDigestSectionFlags {
+  pastEvents: boolean;
+  teamWall: boolean;
+  potm: boolean;
+  upcomingEvents: boolean;
+}
+
+function renderDigestHtml(
+  teamName: string,
+  parentName: string,
+  appOrigin: string,
+  d: DigestData,
+  sections: EmailDigestSectionFlags = { pastEvents: true, teamWall: true, potm: true, upcomingEvents: true },
+  coachMessage?: string,
+): { subject: string; html: string } | null {
   const totalItems = d.upcomingEvents.length + d.recentNews.length + d.recentDevGoals.length + d.recentMedia.length;
-  if (totalItems === 0) return null;
+  if (totalItems === 0 && !coachMessage) return null;
 
-  const eventsRows = d.upcomingEvents
-    .sort((a, b) => new Date(a.data.date).getTime() - new Date(b.data.date).getTime())
-    .map(e => `<li><b>${escapeHtml(e.data.title || 'Event')}</b> — ${escapeHtml(fmtDate(new Date(e.data.date)))}${e.data.location ? ` at ${escapeHtml(e.data.location)}` : ''}</li>`)
-    .join('');
+  const parts: string[] = [];
 
-  const newsRows = d.recentNews
-    .sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime())
-    .slice(0, 5)
-    .map(n => `<li><a href="${appOrigin}/news" style="color:#1e3a5f;text-decoration:none"><b>${escapeHtml(n.data.title || 'Update')}</b></a> — ${escapeHtml(String(n.data.content || '').slice(0, 120))}…</li>`)
-    .join('');
+  // Coach's personal note leads the email so it's the first thing
+  // parents read. Renders as an italic quote block.
+  if (coachMessage && coachMessage.trim()) {
+    parts.push(`<div style="border-left:3px solid #1e3a5f;padding:10px 14px;margin:0 0 20px;background:#f8fafc;color:#0f172a;font-style:italic">${escapeHtml(coachMessage.trim())}</div>`);
+  }
 
-  const devRows = d.recentDevGoals
-    .sort((a, b) => b.verifiedAt.getTime() - a.verifiedAt.getTime())
-    .slice(0, 8)
-    .map(g => `<li>🎯 <b>${escapeHtml(g.playerName)}</b> completed <i>${escapeHtml(g.goalTitle)}</i> in “${escapeHtml(g.planTitle)}”</li>`)
-    .join('');
+  if (sections.upcomingEvents) {
+    const rows = d.upcomingEvents
+      .sort((a, b) => new Date(a.data.date).getTime() - new Date(b.data.date).getTime())
+      .map(e => `<li><b>${escapeHtml(e.data.title || 'Event')}</b> — ${escapeHtml(fmtDate(new Date(e.data.date)))}${e.data.location ? ` at ${escapeHtml(e.data.location)}` : ''}</li>`)
+      .join('');
+    if (rows) parts.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">Coming up this week</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${rows}</ul>`);
+  }
 
-  const mediaRows = d.recentMedia
-    .sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime())
-    .slice(0, 5)
-    .map(m => `<li>${m.data.type === 'video' ? '🎥' : '📸'} ${escapeHtml(m.data.playerName || 'A player')}${m.data.caption ? ` — ${escapeHtml(String(m.data.caption).slice(0, 80))}` : ''}</li>`)
-    .join('');
+  if (sections.teamWall) {
+    const rows = d.recentNews
+      .sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime())
+      .slice(0, 5)
+      .map(n => `<li><a href="${appOrigin}/wall" style="color:#1e3a5f;text-decoration:none"><b>${escapeHtml(n.data.title || 'Update')}</b></a> — ${escapeHtml(String(n.data.content || '').slice(0, 120))}…</li>`)
+      .join('');
+    if (rows) parts.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">Team Wall highlights</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${rows}</ul>`);
+  }
 
-  const sections: string[] = [];
-  if (eventsRows) sections.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">📅 Upcoming this week</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${eventsRows}</ul>`);
-  if (newsRows)   sections.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">📰 Latest team news</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${newsRows}</ul>`);
-  if (devRows)    sections.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">🎯 Goals completed</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${devRows}</ul>`);
-  if (mediaRows)  sections.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">✨ New highlights</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${mediaRows}</ul><p style="margin-top:8px"><a href="${appOrigin}/highlights" style="color:#1e3a5f;font-weight:bold">▶ Watch the highlight reel</a></p>`);
+  if (sections.potm) {
+    // POTM is a subset of dev goals + media in the current data —
+    // we surface completed dev goals as the recognition proxy. If a
+    // real POTM aggregation lands in DigestData later, plug it in.
+    const rows = d.recentDevGoals
+      .sort((a, b) => b.verifiedAt.getTime() - a.verifiedAt.getTime())
+      .slice(0, 8)
+      .map(g => `<li><b>${escapeHtml(g.playerName)}</b> completed <i>${escapeHtml(g.goalTitle)}</i> in "${escapeHtml(g.planTitle)}"</li>`)
+      .join('');
+    if (rows) parts.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">Player recognition</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${rows}</ul>`);
+  }
 
-  const subject = `${teamName} weekly digest — ${d.upcomingEvents.length} upcoming, ${d.recentDevGoals.length} goals, ${d.recentMedia.length} clips`;
+  if (sections.pastEvents) {
+    const rows = d.recentMedia
+      .sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime())
+      .slice(0, 5)
+      .map(m => `<li>${escapeHtml(m.data.playerName || 'A player')}${m.data.caption ? ` — ${escapeHtml(String(m.data.caption).slice(0, 80))}` : ''}</li>`)
+      .join('');
+    if (rows) parts.push(`<h3 style="color:#1e3a5f;margin:18px 0 8px">This week on the field</h3><ul style="margin:0;padding-left:18px;line-height:1.6">${rows}</ul><p style="margin-top:8px"><a href="${appOrigin}/highlights" style="color:#1e3a5f;font-weight:bold">Watch the highlight reel</a></p>`);
+  }
 
+  if (parts.length === 0) return null;
+
+  const subject = `${teamName} weekly recap`;
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
       <h1 style="color:#1e3a5f;margin:0 0 4px">Hi ${escapeHtml(parentName.split(' ')[0] || 'there')},</h1>
-      <p style="color:#475569;margin:0 0 16px">Here's what happened with <b>${escapeHtml(teamName)}</b> this week.</p>
-      ${sections.join('')}
+      <p style="color:#475569;margin:0 0 16px">Here's what's happening with <b>${escapeHtml(teamName)}</b> this week.</p>
+      ${parts.join('')}
       <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
       <p style="font-size:12px;color:#94a3b8;margin:0">You can change your email preferences any time in your profile.</p>
     </div>
@@ -169,16 +201,33 @@ export async function runWeeklyDigest(env: DigestEnv): Promise<{ ok: boolean; te
   try { sa = parseServiceAccount(env.FCM_SERVICE_ACCOUNT); } catch { return { ok: false, teams: 0, emails: 0, errors: ['invalid-service-account'] }; }
   const projectId = sa.project_id;
 
-  // Load teams + all users (we'll filter parents per team).
   const [teams, users] = await Promise.all([
     listDocuments(projectId, 'teams', sa, 100).catch(e => { errors.push(`teams: ${e.message}`); return []; }),
     listDocuments(projectId, 'users', sa, 1000).catch(e => { errors.push(`users: ${e.message}`); return []; }),
   ]);
 
+  // Same day-of-week gating as the wall digest: fire in the club tz.
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const todayName = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: CLUB_TZ }).format(new Date());
+  const currentDow = Math.max(0, dayNames.indexOf(todayName));
+
   let totalEmails = 0;
   for (const team of teams) {
     const teamId = team.id;
     const teamName = String(team.data.name || 'Your team');
+
+    // Coach content control. Legacy teams (undefined cfg) preserve
+    // the historical behavior for one grace week so no team suddenly
+    // stops receiving the email without the coach touching it.
+    const cfg = team.data.emailDigestConfig;
+    if (cfg) {
+      if (cfg.enabled !== true) continue;
+      if (typeof cfg.dayOfWeek === 'number' && cfg.dayOfWeek !== currentDow) continue;
+    } else {
+      // Legacy default: keep firing on Sunday only.
+      if (currentDow !== 0) continue;
+    }
+
     let digest: DigestData;
     try {
       digest = await buildTeamDigest(projectId, sa, teamId);
@@ -201,9 +250,22 @@ export async function runWeeklyDigest(env: DigestEnv): Promise<{ ok: boolean; te
 
     if (parents.length === 0) continue;
 
+    // Section flags + coach message pulled from the team's saved
+    // config. Legacy default (no config): send all sections, no
+    // custom message — matches what the email has always looked like.
+    const sectionFlags = cfg?.sections || { pastEvents: true, teamWall: true, potm: true, upcomingEvents: true };
+    const coachMessage = cfg?.message || '';
+
     for (const p of parents) {
-      const rendered = renderDigestHtml(teamName, String(p.data.name || ''), env.APP_ORIGIN, digest);
-      if (!rendered) break; // nothing to send for this team
+      const rendered = renderDigestHtml(
+        teamName,
+        String(p.data.name || ''),
+        env.APP_ORIGIN,
+        digest,
+        sectionFlags,
+        coachMessage,
+      );
+      if (!rendered) break;
       const ok = await sendDigestEmail(env, String(p.data.email), rendered.subject, rendered.html);
       if (ok) totalEmails++;
       else errors.push(`send to ${p.data.email} failed`);

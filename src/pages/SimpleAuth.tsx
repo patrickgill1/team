@@ -409,7 +409,13 @@ const SimpleAuth: React.FC = () => {
       // gives the auth form its own scroll context, always starting
       // at 0, isolated from anything that happened on the landing.
       className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
+      // Hard floor of 5rem (80px) — Capacitor WebView reports
+      // env(safe-area-inset-top) as 0 on iPhone Pro Max, so the calc
+      // alone would give 4rem (64px), which sits inside the Dynamic
+      // Island (bottom ~62pt). max() guarantees 80px clearance on any
+      // device while still letting real safe-area push down further
+      // on browsers that honor it.
+      style={{ paddingTop: 'max(calc(env(safe-area-inset-top) + 1.5rem), 5rem)' }}
     >
       {/* Top region pure black so it blends with the native
           AppDelegate safe-area strip without a visible seam.
@@ -449,7 +455,10 @@ const SimpleAuth: React.FC = () => {
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur-md mb-2 sm:mb-4">
+          {/* Kicker chip: hidden on mobile — every pixel there
+              matters for keeping the Sign Up / Sign In buttons above
+              the fold on iPhone Pro Max. Still shown at sm+. */}
+          <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-line-default/5 ring-1 ring-line-default/10 backdrop-blur-md mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-primary-soft animate-pulse" />
             <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-brand-primary-soft/90">
               {mode === 'login' && 'Member Access'}
@@ -457,11 +466,14 @@ const SimpleAuth: React.FC = () => {
             </span>
           </div>
 
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-brand-primary-soft to-violet-300 bg-clip-text text-transparent leading-tight mb-1 sm:mb-2">
+          <h2 className="text-2xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-brand-primary-soft to-violet-300 bg-clip-text text-transparent leading-tight mb-1 sm:mb-2">
             {mode === 'login' && 'Welcome Back'}
             {mode === 'register' && 'Start Your Team'}
           </h2>
-          <p className="text-sm sm:text-base text-slate-400 px-2">
+          {/* Subtitle: hidden on mobile for the same reason. The h2
+              is self-explanatory; parents/coaches on a phone don't
+              need extra prose between the title and the buttons. */}
+          <p className="hidden sm:block text-sm sm:text-base text-slate-400 px-2">
             {mode === 'login' && 'Sign in to access your team hub'}
             {mode === 'register' && 'Create an account to set up your team or join one'}
           </p>

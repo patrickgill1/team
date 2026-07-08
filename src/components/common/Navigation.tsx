@@ -171,7 +171,7 @@ const Navigation: React.FC = () => {
     // spatial position signals that. Named after the touchline where
     // parents, coaches, and subs stand together with their team; the
     // metaphor mirrors what this surface does digitally.
-    { name: 'Sideline', path: '/wall', icon: 'news' },
+    { name: 'Sideline', path: '/wall', icon: 'sideline' },
     { name: 'Chat', path: '/chat', icon: 'chat' },
     { name: 'More', path: '#more', icon: 'menu' },
   ];

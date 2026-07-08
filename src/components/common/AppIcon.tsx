@@ -88,6 +88,7 @@ export type AppIconName =
   | 'cone'
   | 'running'
   | 'flag'
+  | 'sideline'
   | 'map-pin'
   | 'clock'
   | 'wrench';
@@ -143,6 +144,9 @@ const ICON_MAP: Record<AppIconName, LucideIcon> = {
   // the universal "practice/drills" cue.
   running: TrafficCone,
   flag: Flag,
+  // 'sideline' is a hand-authored monoline (corner flag + pole +
+  // corner arc). See CUSTOM_PATHS below.
+  sideline: Flag,
   'map-pin': MapPin,
   clock: Clock,
   // Distinct from Settings (gear) — used for team-admin / setup
@@ -246,6 +250,20 @@ const CUSTOM_PATHS: Partial<Record<AppIconName, React.ReactNode>> = {
   // Tabler "flame" — fits Fire FC for the Club nav entry.
   club: (
     <path d="M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.294 -2.333 5.588c0 3.704 3.134 6.706 7 6.706c3.866 0 7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235" />
+  ),
+  // Custom monoline corner flag: vertical pole, triangular flag
+  // pointing right at the top, and a shallow corner-arc at the base
+  // suggesting the touchline. Signature icon for The Sideline —
+  // captures both the sideline location (the arc curving in from
+  // the corner of the pitch) and the goal-celebration moment (the
+  // flag players run to after scoring). Used as the middle bottom
+  // tab so The Sideline reads as the app's cultural anchor.
+  sideline: (
+    <>
+      <path d="M11 4 L11 17" />
+      <path d="M11 4 L19 6 L11 9 Z" />
+      <path d="M3 20 Q 12 15 21 20" />
+    </>
   ),
 };
 

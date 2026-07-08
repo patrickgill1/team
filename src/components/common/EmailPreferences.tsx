@@ -67,7 +67,7 @@ const EmailPreferences: React.FC = () => {
       />
       <Row
         label="Club and team emails"
-        hint="Wall post blasts, registration drips, team announcements."
+        hint="Sideline post blasts, registration drips, team announcements."
         on={tier2}
         busy={saving === 'tier2'}
         onToggle={() => flip('tier2')}

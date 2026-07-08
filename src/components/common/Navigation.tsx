@@ -165,13 +165,13 @@ const Navigation: React.FC = () => {
   const bottomTabs: Array<{ name: string; path: string; icon: import('./AppIcon').AppIconName }> = [
     { name: 'Home', path: '/dashboard', icon: 'home' },
     { name: 'Events', path: '/calendar', icon: 'calendar' },
-    // Wall lives in the middle — the thumb-sweet-spot on the bottom
-    // bar. This is deliberate: it's the culture spine (game recaps,
-    // POTM crowns, tagged clips, votes, coach news) and its spatial
-    // position signals that. Absorbs Media as an internal tab so
-    // per-kid clip archives still work via Player Profile without a
-    // separate Media tab eating primary real estate.
-    { name: 'Wall', path: '/wall', icon: 'news' },
+    // The Sideline lives in the middle — the thumb-sweet-spot on the
+    // bottom bar. This is deliberate: it's the culture spine (game
+    // recaps, POTM crowns, tagged clips, votes, coach news) and its
+    // spatial position signals that. Named after the touchline where
+    // parents, coaches, and subs stand together with their team; the
+    // metaphor mirrors what this surface does digitally.
+    { name: 'Sideline', path: '/wall', icon: 'news' },
     { name: 'Chat', path: '/chat', icon: 'chat' },
     { name: 'More', path: '#more', icon: 'menu' },
   ];
@@ -203,7 +203,7 @@ const Navigation: React.FC = () => {
     })),
     { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps' },
     { name: 'Mentions', path: '/mentions', icon: 'highlight', group: 'apps' },
-    { name: 'Wall', path: '/wall', icon: 'news', group: 'apps' },
+    { name: 'Sideline', path: '/wall', icon: 'news', group: 'apps' },
     // Team Store only shows when the active club has a storeUrl set.
     // Empty-state-as-nav-entry felt like clutter on clubs that don't
     // run a store. Patrick 2026-06-25.
@@ -257,7 +257,8 @@ const Navigation: React.FC = () => {
     'Calendar':  '/calendar',
     'Vote':      '/player-of-match',
     'Stats':     '/stats',
-    'Wall':      '/wall',
+    'Wall':      '/wall',      // legacy alias for old links; canonical name is Sideline
+    'Sideline':  '/wall',
   };
   const findItem = (name: string) => {
     const direct = allNavItems.find(i => i.name === name);

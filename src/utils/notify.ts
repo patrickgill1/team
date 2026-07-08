@@ -669,8 +669,8 @@ export function tplWallPost(opts: {
     ` : ''}
     ${opts.postUrl
       ? button(opts.postUrl, opts.pollQuestion ? 'Vote in the poll' : 'Open the post')
-      : button(APP_BASE + '/wall', 'Open the wall')}
-    <p style="margin:14px 0 0;font-size:12px;color:#94a3b8;">You received this because ${opts.senderName} posted on the ${opts.teamName} wall. Manage your email preferences in the app.</p>
+      : button(APP_BASE + '/wall', 'Open the Sideline')}
+    <p style="margin:14px 0 0;font-size:12px;color:#94a3b8;">You received this because ${opts.senderName} posted on the ${opts.teamName} Sideline. Manage your email preferences in the app.</p>
   `, { signature: opts.signature || { name: opts.senderName, role: 'Coach', teamName: opts.teamName } });
   return { subject, html };
 }

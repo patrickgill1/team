@@ -480,7 +480,13 @@ const AddPlayer: React.FC<AddPlayerProps> = ({
         // (first selected) so older readers keep working without a migration.
         positions: cleanPositions.length > 0 ? cleanPositions : undefined,
         position: cleanPositions[0] || undefined,
-        parentIds: [], // For now, we'll implement parent assignment separately
+        // CRITICAL: preserve existing parentIds on edit. Earlier code
+        // hard-set `parentIds: []` on every save, which nuked every
+        // linked parent the second a coach touched the roster form
+        // (e.g. moved a returning player to their new team). Adding
+        // new parents flows through /players/toggle-self-parent and
+        // /players/link-parent — this form never grows parentIds.
+        parentIds: editingPlayer?.parentIds || [],
         parentEmails: validParentEmails.length > 0 ? validParentEmails : undefined,
         // Parse the YYYY-MM-DD string as LOCAL midnight, not UTC.
         // `new Date("YYYY-MM-DD")` is spec'd as UTC — a Denver parent

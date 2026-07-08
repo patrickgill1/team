@@ -167,7 +167,12 @@ const FamilyHome: React.FC = () => {
         endOfWeek.setDate(now.getDate() + 7);
         const relevantTeamIds = new Set<string>(userTeamIds);
         rawPlayers.forEach((p: any) => {
-          const primary = Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds[0] : p.teamId;
+          // p.teamId is the canonical primary. Fall back to teamIds[0] only
+// when the primary field is missing (legacy multi-team players).
+// Using teamIds[0] first was showing coaches their kid's OLD team
+// after a mid-season move, because the array kept the old team
+// first even after teamId got repointed.
+const primary = p.teamId || (Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds[0] : undefined);
           if (primary) relevantTeamIds.add(primary);
         });
         const teamChunks: string[][] = [];
@@ -195,7 +200,7 @@ const FamilyHome: React.FC = () => {
 
         // 3. Build LinkedKid rows.
         const kidRows: LinkedKid[] = rawPlayers.map((p: any) => {
-          const primaryTeam = Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds[0] : p.teamId;
+          const primaryTeam = p.teamId || (Array.isArray(p.teamIds) && p.teamIds.length > 0 ? p.teamIds[0] : undefined);
           const teamInfo = teamById[primaryTeam] || { name: 'Team', colorIdx: 0 };
           const nextEvent = (eventsByTeam[primaryTeam] || [])[0] || null;
           return {

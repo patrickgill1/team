@@ -401,14 +401,16 @@ const SimpleAuth: React.FC = () => {
 
   return (
     <div
-      // Back to natural document flow. The fixed inset-0 attempt
-      // (3.9.105-107) had iOS layout quirks in Capacitor that left
-      // the logo positioned above the visible viewport. With the
-      // form fields now packed 2-per-row (see form section below),
-      // total content fits in one viewport, so scroll behavior
-      // doesn't matter anymore — nothing to scroll.
-      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-6 sm:pb-16"
-      style={{ paddingTop: 'max(calc(env(safe-area-inset-top) + 1.5rem), 5rem)' }}
+      // Padding-top is a Tailwind class (pt-28 = 7rem = 112px) rather
+      // than an inline `max(calc(env(safe-area-inset-top) + ...), ...)`
+      // style. Patrick's screenshot on 3.9.108 showed the logo at
+      // y=0 with the Dynamic Island painting straight over it —
+      // meaning the inline calc/max was being parsed as invalid by
+      // Capacitor's WebView and falling back to padding-top: 0.
+      // Plain Tailwind class = zero syntax risk, unconditional 112px.
+      // 112px comfortably clears the Dynamic Island bottom (~48-62pt)
+      // and the status bar on any current iPhone.
+      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pt-28 sm:pt-32 pb-6 sm:pb-16"
     >
       {/* Top region pure black so it blends with the native
           AppDelegate safe-area strip without a visible seam.

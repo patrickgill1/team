@@ -46,6 +46,12 @@ const SimpleAuth: React.FC = () => {
   // one without hunting for it. The signup submission then applies
   // the code same as the ?invite= URL path.
   const [joinFlow, setJoinFlow] = useState(false);
+  // Progressive disclosure — Heja pattern. Show Apple/Google as
+  // one-tap options first; hide the email form behind a 'Continue
+  // with email' button so the initial screen isn't a wall of input
+  // fields. Auto-expand when the user typed anything (e.g. picked
+  // 'join with code' which pre-focuses the invite input).
+  const [emailFormOpen, setEmailFormOpen] = useState(false);
 
   // Redirect if user is already logged in AND has userData
   useEffect(() => {
@@ -544,22 +550,40 @@ const SimpleAuth: React.FC = () => {
               </div>
             )}
 
-            {/* Show divider only if Google Sign-In is available */}
-            {signInWithGoogle && (
-              <>
-                {/* Divider */}
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-line-default/10" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-surface-base/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
-                  </div>
-                </div>
-              </>
+            {/* Progressive-disclosure email button — hides the full
+                signup form behind a single tap. Auto-expands when we
+                came in via 'Join with code' (invite code entry needs
+                to be visible immediately) or when the user has already
+                typed something in the form. */}
+            {!emailFormOpen && !joinFlow && (
+              <button
+                type="button"
+                onClick={() => setEmailFormOpen(true)}
+                className="w-full py-3.5 rounded-xl bg-line-default/[0.05] hover:bg-line-default/[0.08] ring-1 ring-line-default/10 text-white font-bold tracking-wider transition mb-4 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="M3 7l9 6 9-6" />
+                </svg>
+                Continue with email
+              </button>
             )}
 
-            <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit}>
+            {(emailFormOpen || joinFlow) && signInWithGoogle && (
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-line-default/10" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-3 bg-surface-base/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
+                </div>
+              </div>
+            )}
+
+            <form
+              className={`space-y-5 sm:space-y-6 ${(emailFormOpen || joinFlow) ? '' : 'hidden'}`}
+              onSubmit={handleSubmit}
+            >
               {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">

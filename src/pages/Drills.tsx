@@ -1109,7 +1109,14 @@ const LibraryCard: React.FC<{
   const featured = isFeatured(drill);
   const isYours = !!voterUid && drill.createdBy === voterUid;
 
-  const hasVideo = Array.isArray(drill.videoLinks) && drill.videoLinks.length > 0;
+  // Only count *curated* videos as real. The seed importer used to
+  // fall back to a YouTube search URL when we didn't have a specific
+  // clip — that renders as "Search: {drill} on YouTube" which is a
+  // dead-feeling link. Curated entries have a resolved youtubeId; the
+  // fallbacks don't. Filter them out so the chip + preview only
+  // surface real videos.
+  const videoLinks = (drill.videoLinks || []).filter(v => !!v.youtubeId);
+  const hasVideo = videoLinks.length > 0;
 
   return (
     <li className="bg-surface-elevated rounded-2xl ring-1 ring-line-default/10 overflow-hidden">
@@ -1246,7 +1253,14 @@ const DrillPreviewSheet: React.FC<{
   saving: boolean;
   alreadySaved: boolean;
 }> = ({ drill, onClose, onSave, saving, alreadySaved }) => {
-  const hasVideo = Array.isArray(drill.videoLinks) && drill.videoLinks.length > 0;
+  // Only count *curated* videos as real. The seed importer used to
+  // fall back to a YouTube search URL when we didn't have a specific
+  // clip — that renders as "Search: {drill} on YouTube" which is a
+  // dead-feeling link. Curated entries have a resolved youtubeId; the
+  // fallbacks don't. Filter them out so the chip + preview only
+  // surface real videos.
+  const videoLinks = (drill.videoLinks || []).filter(v => !!v.youtubeId);
+  const hasVideo = videoLinks.length > 0;
   const topicLabel = TOPICS.find(t => t.value === drill.topic)?.label || drill.topic;
 
   return (
@@ -1320,7 +1334,7 @@ const DrillPreviewSheet: React.FC<{
             <div>
               <p className="text-[10px] font-black tracking-widest uppercase text-ink-primary/55 mb-2">Videos</p>
               <ul className="space-y-1.5">
-                {drill.videoLinks!.map(v => (
+                {videoLinks.map(v => (
                   <li key={v.id}>
                     <a
                       href={v.url}

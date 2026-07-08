@@ -40,6 +40,12 @@ const SimpleAuth: React.FC = () => {
     if (q.get('mode') === 'signin' || q.get('mode') === 'login') return false;
     return true;
   });
+  // Distinct 'join with code' flow — when the visitor taps 'Join a
+  // team with a code' on the landing, we surface an invite-code
+  // input at the top of the register form so they can paste/type
+  // one without hunting for it. The signup submission then applies
+  // the code same as the ?invite= URL path.
+  const [joinFlow, setJoinFlow] = useState(false);
 
   // Redirect if user is already logged in AND has userData
   useEffect(() => {
@@ -276,14 +282,14 @@ const SimpleAuth: React.FC = () => {
               <div className="max-w-md mx-auto w-full space-y-3">
                 <button
                   type="button"
-                  onClick={() => { setMode('register'); setShowLanding(false); }}
+                  onClick={() => { setMode('register'); setJoinFlow(false); setShowLanding(false); }}
                   className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
                 >
                   Set up a new team
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setMode('register'); setShowLanding(false); }}
+                  onClick={() => { setMode('register'); setJoinFlow(true); setShowLanding(false); }}
                   className="w-full py-3.5 rounded-full bg-white text-charcoal-950 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
                 >
                   Join a team with a code
@@ -640,7 +646,30 @@ const SimpleAuth: React.FC = () => {
                   record). The onboarding wizard's team-vs-club picker
                   handles the real "what are you setting up?" question. */}
 
-              {/* Invite Code (Register mode only) */}
+              {/* Invite Code entry — visible + editable when the
+                  visitor arrived here via the 'Join a team with a
+                  code' landing CTA. Same field also shows as an
+                  emerald confirmation banner when a code is already
+                  filled (URL-driven ?invite=... path). */}
+              {mode === 'register' && joinFlow && !formData.inviteCode && (
+                <div className="rounded-xl p-4 bg-brand-primary/10 ring-1 ring-brand-primary/30">
+                  <label className="block text-sm font-bold text-white mb-2">Team code from your coach</label>
+                  <input
+                    type="text"
+                    value={formData.inviteCode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, inviteCode: e.target.value.trim().toUpperCase() }))}
+                    placeholder="e.g. UF-841422"
+                    autoFocus
+                    className="w-full px-3 py-2.5 rounded-lg bg-black/40 ring-1 ring-white/15 text-white font-mono tracking-wider placeholder-white/30 focus:ring-brand-primary-soft/60 focus:outline-none"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                  <p className="mt-2 text-[11px] text-white/55">
+                    Paste the code your coach shared. You'll join their team the moment you finish signing up.
+                  </p>
+                </div>
+              )}
               {mode === 'register' && formData.inviteCode && (
                 <div className="rounded-xl p-4 bg-emerald-400/10 ring-1 ring-emerald-400/30">
                   <div className="flex items-center space-x-2">
@@ -648,6 +677,7 @@ const SimpleAuth: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="text-emerald-100 font-semibold text-sm">Joining existing team</span>
+                    <span className="ml-auto font-mono text-[11px] text-emerald-100/70">{formData.inviteCode}</span>
                   </div>
                   <p className="text-emerald-200/80 text-sm mt-1">You'll be added to the team automatically after creating your account.</p>
                 </div>

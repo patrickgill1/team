@@ -6,8 +6,27 @@ import { db } from '../utils/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { useTeam } from '../contexts/TeamContext';
 import { isCoach } from '../utils/helpers';
-import Header from '../components/common/Header';
+import NextEventPoster from '../components/common/NextEventPoster';
 import type { CalendarEvent } from '../types';
+
+// Match classic Dashboard's copy so the same event surfaces read
+// consistently across both surfaces.
+function familyFriendlyWhen(d: Date): string {
+  const now = new Date();
+  const ms = d.getTime() - now.getTime();
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return mins <= 5 ? 'Starting now' : `In ${mins} min`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 12) return `In ${hrs} hour${hrs === 1 ? '' : 's'}`;
+  const sameDay = d.toDateString() === now.toDateString();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  const isTomorrow = d.toDateString() === tomorrow.toDateString();
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (sameDay) return `Today at ${time}`;
+  if (isTomorrow) return `Tomorrow at ${time}`;
+  return `${d.toLocaleDateString(undefined, { weekday: 'short' })} at ${time}`;
+}
 
 // FamilyHome — the "cross-team, cross-kid" replacement for the
 // per-team Dashboard we've had. Behind a feature flag
@@ -246,22 +265,50 @@ const primary = p.teamId || (Array.isArray(p.teamIds) && p.teamIds.length > 0 ? 
     navigate(to);
   };
 
+  // Soonest upcoming event across ALL kids' teams — anchors the
+  // stadium hero. weekEvents is already date-sorted; take the head.
+  const familyNextEvent = weekEvents[0]?.event || null;
+  const familyRsvpCounts = useMemo(() => {
+    if (!familyNextEvent) return { going: 0, pending: 0 };
+    const playerR = ((familyNextEvent as any).playerRsvps || {}) as Record<string, { status: string }>;
+    let going = 0;
+    Object.values(playerR).forEach((v) => { if (v.status === 'going') going++; });
+    // "pending" here approximates "family members who haven't
+    // clicked yet" — count the linked kids as the base.
+    const respondedForKids = kids.filter(k => k.teamId === weekEvents[0]?.teamId).length;
+    return { going, pending: Math.max(0, respondedForKids - Object.keys(playerR).length) };
+  }, [familyNextEvent, kids, weekEvents]);
+
   return (
     <div className="min-h-screen bg-surface-base pb-24">
-      <Header title="Home" subtitle="Preview" />
+      {/* Stadium hero — same anchor card as classic Home. Uses the
+          soonest family-wide event so the parent sees their next
+          thing regardless of which team it's on. */}
+      <NextEventPoster
+        greeting={greeting}
+        firstName={firstName || 'Welcome'}
+        nextEvent={familyNextEvent as any}
+        whenText={familyNextEvent ? familyFriendlyWhen(new Date(familyNextEvent.date as any)) : ''}
+        weather={null}
+        goingCount={familyRsvpCounts.going}
+        pendingCount={familyRsvpCounts.pending}
+        playerCount={kids.length}
+        isCoach={coachTiles.length > 0}
+        currentStatus={null}
+        goingLabel={kids.length > 1 ? 'All going' : 'Going'}
+        noLabel={kids.length > 1 ? 'None going' : "Can't"}
+        onRsvp={() => {
+          // Family view is a router into the per-team RSVP flow.
+          // Dashboard has inline RSVP because it's scoped to a
+          // single team; here we send parents to the event detail
+          // so they can RSVP each kid explicitly.
+          if (familyNextEvent) navigate(`/events/${familyNextEvent.id}`);
+        }}
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-5">
-        {/* Greeting */}
-        <div>
-          <p className="text-[10px] font-black tracking-widest uppercase text-brand-primary-soft">
-            {greeting}
-          </p>
-          <h1 className="text-2xl font-black text-ink-primary mt-0.5">
-            {firstName ? `${firstName}` : 'Welcome'}
-          </h1>
-          <p className="text-[11px] text-ink-primary/45 mt-1">
-            New Home preview. Send me feedback and I'll iterate; the classic Dashboard is still live at Home.
-          </p>
-        </div>
+        <p className="text-[11px] text-ink-primary/40">
+          New Home preview. Send me feedback and I'll iterate; the classic Dashboard is still live at Home.
+        </p>
 
         {/* Kids strip */}
         {kids.length > 0 && (

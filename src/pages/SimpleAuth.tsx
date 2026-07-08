@@ -401,20 +401,13 @@ const SimpleAuth: React.FC = () => {
 
   return (
     <div
-      // Was `relative min-h-screen overflow-hidden` — that let the
-      // auth form participate in body scroll, and iOS auto-scroll to
-      // focused inputs (or leftover scroll from the landing's
-      // fixed-inset scroll container) kept pushing the logo up into
-      // the Dynamic Island. Switching to `fixed inset-0 overflow-y-auto`
-      // gives the auth form its own scroll context, always starting
-      // at 0, isolated from anything that happened on the landing.
-      className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
-      // Hard floor of 5rem (80px) — Capacitor WebView reports
-      // env(safe-area-inset-top) as 0 on iPhone Pro Max, so the calc
-      // alone would give 4rem (64px), which sits inside the Dynamic
-      // Island (bottom ~62pt). max() guarantees 80px clearance on any
-      // device while still letting real safe-area push down further
-      // on browsers that honor it.
+      // Back to natural document flow. The fixed inset-0 attempt
+      // (3.9.105-107) had iOS layout quirks in Capacitor that left
+      // the logo positioned above the visible viewport. With the
+      // form fields now packed 2-per-row (see form section below),
+      // total content fits in one viewport, so scroll behavior
+      // doesn't matter anymore — nothing to scroll.
+      className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-6 sm:pb-16"
       style={{ paddingTop: 'max(calc(env(safe-area-inset-top) + 1.5rem), 5rem)' }}
     >
       {/* Top region pure black so it blends with the native
@@ -483,13 +476,13 @@ const SimpleAuth: React.FC = () => {
         <div className="relative rounded-3xl bg-line-default/[0.04] backdrop-blur-2xl ring-1 ring-line-default/10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
           <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-brand-primary-soft/60 to-transparent" />
           {/* Form padding optimized for mobile */}
-          <div className="p-6 sm:p-8">
+          <div className="p-4 sm:p-8">
 
             {/* Sign Up / Sign In segmented control — the explicit
                 first decision so a brand-new user doesn't have to
                 figure out which mode they're in. Active pill is
                 crimson; inactive is muted. One tap to switch. */}
-            <div className="mb-6 grid grid-cols-2 gap-1 p-1 rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10">
+            <div className="mb-4 grid grid-cols-2 gap-1 p-1 rounded-2xl bg-line-default/[0.04] ring-1 ring-line-default/10">
               <button
                 type="button"
                 onClick={() => switchMode('register')}
@@ -515,7 +508,12 @@ const SimpleAuth: React.FC = () => {
             </div>
 
             {/* Sign in with Apple — native iOS only (Apple Store requirement when offering Google sign-in) */}
-            {isNativePlatform && signInWithApple && (
+            {/* Hidden when the email form is expanded: the user has
+                committed to the email path, so Apple/Google would
+                just take vertical space and confuse the choice.
+                They can collapse the email form by tapping the
+                segmented control if they want to switch. */}
+            {isNativePlatform && signInWithApple && !emailFormOpen && !joinFlow && (
               <div className="mb-3">
                 <button
                   onClick={async () => {
@@ -555,7 +553,9 @@ const SimpleAuth: React.FC = () => {
             )}
 
             {/* Google Sign-In Button - Only show if function is available */}
-            {signInWithGoogle && (
+            {/* Same rationale as Apple: hidden when email form is
+                open so the email path stays uncrowded. */}
+            {signInWithGoogle && !emailFormOpen && !joinFlow && (
               <div className="mb-6">
                 <button
                   onClick={handleGoogleSignIn}
@@ -606,102 +606,114 @@ const SimpleAuth: React.FC = () => {
               </button>
             )}
 
-            {(emailFormOpen || joinFlow) && signInWithGoogle && (
-              <div className="relative mb-6">
+            {/* Divider between social sign-in and email form — only
+                shown when both are visible. Since we now hide Apple
+                / Google when the email form is open (see rationale
+                on those buttons), this divider is only visible in
+                the joinFlow path where we surface everything. */}
+            {(emailFormOpen || joinFlow) && signInWithGoogle && (isNativePlatform || !emailFormOpen) && joinFlow && (
+              <div className="relative mb-4">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-line-default/10" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="px-3 bg-surface-base/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or continue with email</span>
+                  <span className="px-3 bg-surface-base/40 backdrop-blur-sm text-slate-400 uppercase tracking-widest">Or with email</span>
                 </div>
               </div>
             )}
 
             <form
-              className={`space-y-5 sm:space-y-6 ${(emailFormOpen || joinFlow) ? '' : 'hidden'}`}
+              className={`space-y-3 sm:space-y-4 ${(emailFormOpen || joinFlow) ? '' : 'hidden'}`}
               onSubmit={handleSubmit}
             >
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
-                  }`}
-                  placeholder="you@example.com"
-                  disabled={isSubmitting}
-                  autoComplete="email"
-                />
-                {errors.email && <p className="text-red-400 text-sm mt-1.5">{errors.email}</p>}
-              </div>
-
-              {/* Password */}
-              <div>
-                <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                    errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
-                  }`}
-                  placeholder={mode === 'login' ? '••••••••' : 'At least 6 characters'}
-                  disabled={isSubmitting}
-                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                />
-                {errors.password && <p className="text-red-400 text-sm mt-1.5">{errors.password}</p>}
-              </div>
-
-              {/* Confirm Password (Register/Setup only) */}
-              {mode === 'register' && (
+              {/* Two-column packing — Patrick asked "two fields per
+                  line if they decide to use email". Halves the
+                  vertical footprint of the form. On sm+ it stays
+                  2-col too since the container gets wider. Labels
+                  are compact and inputs use py-3 instead of py-3.5
+                  to shave a few more pixels. */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Email */}
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                    Confirm Password
+                  <label htmlFor="email" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    Email
                   </label>
                   <input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
+                      errors.email ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                     }`}
-                    placeholder="Repeat your password"
+                    placeholder="you@example.com"
                     disabled={isSubmitting}
-                    autoComplete="new-password"
+                    autoComplete="email"
                   />
-                  {errors.confirmPassword && <p className="text-red-400 text-sm mt-1.5">{errors.confirmPassword}</p>}
+                  {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
                 </div>
-              )}
 
-              {/* Name (Register/Setup only) */}
-              {mode === 'register' && (
+                {/* Password */}
                 <div>
-                  <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                    Your Full Name
+                  <label htmlFor="password" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    Password
                   </label>
                   <input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={`w-full px-4 py-3.5 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-base ${
-                      errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
+                      errors.password ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
                     }`}
-                    placeholder="Enter your full name"
+                    placeholder={mode === 'login' ? '••••••••' : '6+ chars'}
                     disabled={isSubmitting}
-                    autoComplete="name"
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   />
-                  {errors.name && <p className="text-red-400 text-sm mt-1.5">{errors.name}</p>}
+                  {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
+                </div>
+              </div>
+
+              {/* Row 2 — register only: confirm password + full name */}
+              {mode === 'register' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Confirm
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
+                        errors.confirmPassword ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                      }`}
+                      placeholder="Repeat"
+                      disabled={isSubmitting}
+                      autoComplete="new-password"
+                    />
+                    {errors.confirmPassword && <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>}
+                  </div>
+
+                  <div>
+                    <label htmlFor="name" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Full Name
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className={`w-full px-3 py-3 rounded-xl bg-line-default/5 text-white placeholder-slate-500 ring-1 transition-all focus:outline-none focus:ring-2 text-sm ${
+                        errors.name ? 'ring-red-500/70 bg-red-500/5 focus:ring-red-400' : 'ring-line-default/10 focus:ring-brand-primary-soft/60 focus:bg-line-default/[0.07]'
+                      }`}
+                      placeholder="Your name"
+                      disabled={isSubmitting}
+                      autoComplete="name"
+                    />
+                    {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
+                  </div>
                 </div>
               )}
 

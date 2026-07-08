@@ -144,10 +144,9 @@ const ICON_MAP: Record<AppIconName, LucideIcon> = {
   // the universal "practice/drills" cue.
   running: TrafficCone,
   flag: Flag,
-  // 'wall' (Team Wall) is a hand-drawn group-of-players icon.
-  // See CUSTOM_PATHS below. Falls back to Users if custom path
-  // registration is skipped.
-  wall: Users,
+  // 'wall' aliases Newspaper — Team Wall = posted content, and the
+  // paper glyph reads at any size without needing explanation.
+  wall: Newspaper,
   'map-pin': MapPin,
   clock: Clock,
   // Distinct from Settings (gear) — used for team-admin / setup
@@ -251,21 +250,6 @@ const CUSTOM_PATHS: Partial<Record<AppIconName, React.ReactNode>> = {
   // Tabler "flame" — fits Fire FC for the Club nav entry.
   club: (
     <path d="M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.294 -2.333 5.588c0 3.704 3.134 6.706 7 6.706c3.866 0 7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235" />
-  ),
-  // Team Wall signature icon — a huddle of three players (two heads
-  // in front, one behind). Custom because Lucide's Users only shows
-  // two people and reads more like "add a contact" than "team."
-  // Filled so the middle tab reads visually heavier than its outline
-  // neighbors — same anchoring pattern Instagram uses for Reels.
-  wall: (
-    <g fill="currentColor" stroke="none">
-      <circle cx="8" cy="8" r="2.4" />
-      <circle cx="16" cy="8" r="2.4" />
-      <circle cx="12" cy="6" r="2.2" opacity="0.85" />
-      <path d="M3.5 19c0-2.6 2-4.6 4.5-4.6s4.5 2 4.5 4.6v.5H3.5v-.5z" />
-      <path d="M11.5 19c0-2.6 2-4.6 4.5-4.6s4.5 2 4.5 4.6v.5H11.5v-.5z" />
-      <path d="M7.7 15c0-2.3 1.8-4.1 4.3-4.1s4.3 1.8 4.3 4.1v.5H7.7v-.5z" opacity="0.85" />
-    </g>
   ),
 };
 

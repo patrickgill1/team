@@ -169,7 +169,7 @@ const Navigation: React.FC = () => {
     // bottom bar. This is deliberate: it's the culture spine (game
     // recaps, POTM crowns, tagged clips, votes, coach news) and its
     // spatial position signals that.
-    { name: 'Team Wall', path: '/wall', icon: 'wall' },
+    { name: 'Team Wall', path: '/wall', icon: 'news' },
     { name: 'Chat', path: '/chat', icon: 'chat' },
     { name: 'More', path: '#more', icon: 'menu' },
   ];
@@ -201,7 +201,7 @@ const Navigation: React.FC = () => {
     })),
     { name: 'Chat', path: '/chat', icon: 'chat', group: 'apps' },
     { name: 'Mentions', path: '/mentions', icon: 'highlight', group: 'apps' },
-    { name: 'Team Wall', path: '/wall', icon: 'wall', group: 'apps' },
+    { name: 'Team Wall', path: '/wall', icon: 'news', group: 'apps' },
     // Team Store only shows when the active club has a storeUrl set.
     // Empty-state-as-nav-entry felt like clutter on clubs that don't
     // run a store. Patrick 2026-06-25.

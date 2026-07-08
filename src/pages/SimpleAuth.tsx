@@ -61,6 +61,17 @@ const SimpleAuth: React.FC = () => {
     }
   }, [currentUser, userData, loading, navigate]);
 
+  // Reset scroll to top whenever we swap between landing and auth
+  // form. Without this, a user who scrolled to the bottom of the
+  // landing to tap a CTA would land on the auth form still scrolled
+  // down — pushing the logo up into the Dynamic Island. Patrick
+  // reproduced this on iPhone Pro Max: top CTAs worked (scroll was
+  // 0), bottom CTAs surfaced the auth form with the logo overlapping
+  // the island pill.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [showLanding]);
+
   // Check for invite code in URL only once when component mounts
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -391,13 +402,7 @@ const SimpleAuth: React.FC = () => {
   return (
     <div
       className="relative min-h-screen overflow-hidden bg-gradient-to-b from-brand-primary-dim from-0% via-black via-[10%] to-black flex items-start justify-center px-4 pb-10 sm:pb-16"
-      // 6.5rem-plus-safe-area wasn't enough — Patrick screenshotted the
-      // GK shield sitting inside the Dynamic Island. Turns out
-      // env(safe-area-inset-top) evaluates to 0 in this Capacitor
-      // WebView on iPhone Pro Max, so the calc collapsed to just 6.5rem.
-      // Use max() with a hard 9rem floor so the logo clears the island
-      // no matter what env() returns.
-      style={{ paddingTop: 'max(calc(env(safe-area-inset-top) + 5rem), 9rem)' }}
+      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 4rem)' }}
     >
       {/* Top region pure black so it blends with the native
           AppDelegate safe-area strip without a visible seam.

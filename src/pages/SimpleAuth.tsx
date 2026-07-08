@@ -303,9 +303,10 @@ const SimpleAuth: React.FC = () => {
           </div>
         </section>
 
-        {/* Teaser cards — each is a hero photo + copy that maps to
-            one of the app's emotional loops. Coach edits, real
-            moments, real growth. */}
+        {/* Teaser pages — each fills the viewport so the visitor sees
+            one story at a time, cinematic-style. Photos take the full
+            frame; copy sits at the bottom over a scrim. Feels like
+            chapters, not a scroll of cards. */}
         <TeaserSlide
           src="/hero/coach-huddle.jpg"
           alt="Coach kneeling with team at sunset"
@@ -319,7 +320,6 @@ const SimpleAuth: React.FC = () => {
           kicker="For parents"
           title="Your kid's season, from anywhere."
           body="Tagged clips push to your phone. RSVP once. See the game recap the moment the whistle blows. When you can't be there, you're still there."
-          reversed
         />
         <TeaserSlide
           src="/hero/training.jpg"
@@ -329,7 +329,9 @@ const SimpleAuth: React.FC = () => {
           body="Practice streaks (with a rest day if your family keeps one), development plans, a drill library that plays inline. Not just a schedule. A path."
         />
 
-        {/* Bottom CTA repeats so scrollers don't hunt for it */}
+        {/* Bottom CTA repeats so scrollers don't hunt for it. Same
+            three buttons as the top so 'Join with code' is discover-
+            able from either end of the page. */}
         <section className="bg-charcoal-950 px-6 py-16 border-t border-white/5">
           <div className="max-w-md mx-auto text-center space-y-6">
             <p className="text-[10px] font-black tracking-[0.3em] uppercase text-brand-primary-soft">Ready?</p>
@@ -342,6 +344,13 @@ const SimpleAuth: React.FC = () => {
                 className="w-full py-3.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
               >
                 Set up a new team
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setShowLanding(false); }}
+                className="w-full py-3.5 rounded-full bg-white text-charcoal-950 font-black tracking-wider uppercase text-sm shadow-lg active:scale-95 transition"
+              >
+                Join a team with a code
               </button>
               <button
                 type="button"
@@ -734,10 +743,10 @@ const SimpleAuth: React.FC = () => {
   );
 };
 
-// Teaser slide — full-bleed hero photo + copy block. Alternating
-// image / text order (via `reversed`) creates a visual rhythm as the
-// user scrolls the landing page. Photo takes ~55% of the slide's
-// vertical space so the copy block reads without competing.
+// Teaser slide — full viewport per section, cinematic. Photo fills
+// the entire slide; copy sits ~60% down the frame over a soft scrim.
+// Each slide reads as its own PAGE, not a card on a scroll. Apple
+// product-page rhythm, not a Facebook feed.
 const TeaserSlide: React.FC<{
   src: string;
   alt: string;
@@ -746,19 +755,29 @@ const TeaserSlide: React.FC<{
   body: string;
   reversed?: boolean;
 }> = ({ src, alt, kicker, title, body }) => (
-  <section className="relative overflow-hidden">
-    <div className="relative aspect-[4/5] sm:aspect-[16/9]">
+  <section className="relative overflow-hidden bg-charcoal-950">
+    <div
+      className="relative flex flex-col justify-end"
+      style={{ minHeight: '85svh' }}
+    >
       <img
         src={src}
         alt={alt}
         className="absolute inset-0 w-full h-full object-cover"
         loading="lazy"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80 pointer-events-none" aria-hidden />
-      <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10 max-w-2xl mx-auto text-white">
-        <p className="text-[10px] font-black tracking-[0.3em] uppercase text-brand-primary-soft/95 drop-shadow mb-2">{kicker}</p>
-        <h2 className="text-2xl sm:text-3xl font-black leading-tight drop-shadow-lg mb-3">{title}</h2>
-        <p className="text-sm text-white/80 leading-relaxed drop-shadow max-w-md">{body}</p>
+      {/* Cinematic scrim — light in the top third, heavy at the
+          bottom half so copy has serious contrast without darkening
+          the emotional beat of the photo. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/25 to-black/85 pointer-events-none" aria-hidden />
+      <div className="relative px-6 pb-16 sm:pb-20 pt-16 max-w-2xl mx-auto text-white">
+        <p className="text-[10px] font-black tracking-[0.35em] uppercase text-brand-primary-soft drop-shadow-lg mb-3">{kicker}</p>
+        <h2 className="text-[28px] sm:text-4xl font-black leading-[1.1] tracking-tight drop-shadow-lg mb-4 max-w-xl">
+          {title}
+        </h2>
+        <p className="text-[15px] sm:text-base text-white/85 leading-relaxed drop-shadow max-w-md">
+          {body}
+        </p>
       </div>
     </div>
   </section>
